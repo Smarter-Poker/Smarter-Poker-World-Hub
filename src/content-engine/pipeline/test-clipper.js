@@ -6,7 +6,6 @@
 import { videoClipper } from './VideoClipper.js';
 import { getRandomClip, getRandomCaption, markClipUsed, getClipStats } from './ClipLibrary.js';
 import fs from 'fs';
-import path from 'path';
 
 async function testClipPipeline() {
     console.log('\n🧪 TESTING VIDEO CLIP PIPELINE');

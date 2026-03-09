@@ -8,7 +8,6 @@
  * to preserve referential integrity and allow recovery within 30 days.
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
-import { getServerUser } from '../../../src/lib/serverAuth';
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,

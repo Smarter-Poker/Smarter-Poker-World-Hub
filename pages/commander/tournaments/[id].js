@@ -19,7 +19,6 @@ import {
   Award,
   ExternalLink,
   RefreshCw,
-  Loader2,
   XCircle
 } from 'lucide-react';
 import EliminatePlayerModal from '../../../src/components/commander/modals/EliminatePlayerModal';

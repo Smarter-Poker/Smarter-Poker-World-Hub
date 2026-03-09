@@ -12,9 +12,7 @@
 import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  TABLE_THEMES, THEME_ORDER, CARD_BACKS,
-  getStoredThemeId, setStoredThemeId,
-  getStoredCardBack, setStoredCardBack,
+  TABLE_THEMES, THEME_ORDER, CARD_BACKS, setStoredThemeId, setStoredCardBack,
 } from './TableThemes';
 
 export default function ThemePicker({ currentThemeId, onThemeChange, currentCardBack, onCardBackChange, soundEnabled, onToggleSound }) {

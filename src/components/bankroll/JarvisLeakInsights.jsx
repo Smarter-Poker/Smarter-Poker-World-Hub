@@ -5,7 +5,6 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { supabase } from '../../lib/supabase';
 
 const RISK_CONFIG = {
     low: { color: '#22c55e', label: 'Low Risk', bg: 'rgba(34,197,94,0.15)' },

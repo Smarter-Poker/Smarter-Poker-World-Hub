@@ -13,7 +13,7 @@ import {
   sendPushNotification,
   isOneSignalConfigured
 } from '../../../../../src/lib/commander/pushNotifications';
-import { logAction, AuditActions } from '../../../../../src/lib/commander/audit';
+import { logAction } from '../../../../../src/lib/commander/audit';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,

@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { Trophy, Star, Zap, Crown, Flame, Target, Award } from 'lucide-react';
+import { Trophy, Star, Crown, Target, Award } from 'lucide-react';
 
 // Confetti configuration
 const CONFETTI_COLORS = ['#00d4ff', '#ffd700', '#ff6b6b', '#22c55e', '#a78bfa', '#f472b6'];

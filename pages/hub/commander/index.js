@@ -9,7 +9,6 @@ import { MapPin, Search, RefreshCw, AlertCircle, Trophy, FileText, Shield, Zap, 
 import VenueCard from '../../../src/components/commander/player/VenueCard';
 import WaitlistCard from '../../../src/components/commander/player/WaitlistCard';
 import { supabase } from '../../../src/lib/supabase';
-import { getSafeUser } from '../../../src/lib/authUtils';
 import { getAuthUser } from '../../../src/lib/authUtils';
 // NOTE: PushNotificationProvider removed — _app.js OneSignalProvider covers all pages globally
 

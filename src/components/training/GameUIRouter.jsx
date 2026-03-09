@@ -8,7 +8,6 @@
  */
 
 import React from 'react';
-import GTOQuestionCard from './GTOQuestionCard';
 
 // Import game-specific UIs
 import UniversalDynamicTable from './games/UniversalDynamicTable';

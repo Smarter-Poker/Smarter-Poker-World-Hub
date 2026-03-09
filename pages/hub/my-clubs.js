@@ -11,7 +11,6 @@
  */
 
 import SEOHead from '../../src/components/seo/SEOHead';
-import Link from 'next/link';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { usePersistedState } from '../../src/hooks/usePersistedState';
 import { useRouter } from 'next/router';

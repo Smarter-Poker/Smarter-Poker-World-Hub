@@ -8,7 +8,7 @@
 
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, Image as ImageIcon } from 'lucide-react';
+import { Camera } from 'lucide-react';
 import ReceiptScanner from './ReceiptScanner';
 import DoubleDownPrompt from './toke/DoubleDownPrompt';
 import AddDownModal from './toke/AddDownModal';

@@ -6,7 +6,6 @@
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import SEOHead from '../../src/components/seo/SEOHead';
 import { Video, Play, Square, Settings, Loader2, Clock, Wifi, Youtube, Twitch, Facebook, X } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../src/engine/EventBus';

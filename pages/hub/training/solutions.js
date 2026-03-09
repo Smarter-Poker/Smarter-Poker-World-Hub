@@ -15,7 +15,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import RangeGrid from '../../../src/components/training/RangeGrid';
 import CardSelectorModal from '../../../src/components/training/CardSelectorModal';
 import RunoutHeatmap from '../../../src/components/training/RunoutHeatmap';

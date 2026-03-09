@@ -3,7 +3,6 @@
  * Staff can display QR code for player check-in
  * Dark industrial sci-fi gaming theme
  */
-import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';

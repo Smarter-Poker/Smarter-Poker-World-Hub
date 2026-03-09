@@ -6,10 +6,8 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getGrokClient } from '../../../src/lib/grokClient';
 import { getAgentConfig, buildSystemPrompt } from '../../../src/lib/liveHelp/agentPrompts';
-import { collectUserContext } from '../../../src/lib/liveHelp/contextCollector';
 import { injectKnowledge } from '../../../src/lib/liveHelp/knowledgeInjection';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { getServerUser } from '../../../src/lib/serverAuth';
 
 
 const supabase = createClient(

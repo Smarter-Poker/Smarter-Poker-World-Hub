@@ -25,12 +25,11 @@ import { supabase } from '../../src/lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { useAvatar } from '../../src/contexts/AvatarContext';
-import { Search, Eye, TrendingUp, Trophy, Play, Check, MapPin, ExternalLink, Loader, Bookmark, BookmarkCheck, Share2, Twitter, LinkIcon, CheckCircle, ChevronDown, Video, Newspaper, Globe, ChevronRight, Film } from 'lucide-react';
+import { Eye, TrendingUp, Trophy, Play, MapPin, ExternalLink, Loader, Bookmark, BookmarkCheck, Share2, Twitter, LinkIcon, CheckCircle, ChevronDown, Newspaper, Globe, ChevronRight, Film } from 'lucide-react';
 
 import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { useExternalLink } from '../../src/components/ui/ExternalLinkModal';
-import useTrainingBus from '../../src/hooks/useTrainingBus';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getNewsPreferences, updateNewsPreferences } from '../../src/services/newsPreferences';

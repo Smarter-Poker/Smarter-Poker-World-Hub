@@ -4,7 +4,6 @@
  * Returns aggregate stats for the reports dashboard
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
-import { getServerUser } from '../../../../src/lib/serverAuth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
 const supabase = createClient(

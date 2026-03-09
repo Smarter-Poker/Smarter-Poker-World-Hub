@@ -20,7 +20,7 @@ import type {
     TableSize
 } from '../types/poker';
 import { getBlindPositions, getPreflopActionOrder, getVillainNames } from './SeatLayouts';
-import { type GameMode, type StrategyProfile, type EngineType } from './GameManifest';
+import { type GameMode } from './GameManifest';
 
 export class ScenarioGenerator {
     private config: GameConfig;
@@ -33,6 +33,8 @@ export class ScenarioGenerator {
     private heroSeat: number;
     private currentBet: number;
     private timestamp: number;
+    private heroCards: string[];
+    private usedCards: Set<string>;
 
     constructor(config: GameConfig, mode?: GameMode) {
         this.config = config;
@@ -45,6 +47,8 @@ export class ScenarioGenerator {
         this.heroSeat = 0;
         this.currentBet = 0;
         this.timestamp = 0;
+        this.heroCards = [];
+        this.usedCards = new Set();
     }
 
     /**
@@ -60,13 +64,14 @@ export class ScenarioGenerator {
      */
     private generate(): Scenario {
         this.initializePlayers();
+        this.heroCards = this.dealHeroCards();
         this.phaseA_Antes();
         this.phaseB_Blinds();
         this.phaseC_PreflopAction();
 
         const boardCards = this.generateBoardCards();
+        const correctAction = this.determineCorrectAction(boardCards);
         const question = this.generateQuestion();
-        const correctAction = this.determineCorrectAction();
 
         return {
             config: this.config,
@@ -76,6 +81,7 @@ export class ScenarioGenerator {
             heroSeat: this.heroSeat,
             actionLog: [...this.actionLog],
             boardCards,
+            heroCards: [...this.heroCards],
             finalPot: this.pot,
             question,
             correctAction
@@ -201,18 +207,26 @@ export class ScenarioGenerator {
 
     /**
      * 🃏 PHASE C: Generate preflop action sequence
+     * Safety cap: max 50 iterations to prevent infinite loops
      */
     private phaseC_PreflopAction(): void {
         const actionOrder = this.getPreflopActionOrder();
         let actionComplete = false;
         let lastAggressorIndex = -1;
+        let iterations = 0;
+        const MAX_ITERATIONS = 50;
 
-        while (!actionComplete) {
+        while (!actionComplete && iterations < MAX_ITERATIONS) {
+            iterations++;
+
             for (let i = 0; i < actionOrder.length; i++) {
                 const seat = actionOrder[i];
                 const player = this.players[seat];
 
                 if (player.hasFolded || player.stack === 0) continue;
+
+                // Skip hero — hero's decision is the user's choice
+                if (player.isHero) continue;
 
                 // Determine valid actions
                 const needsToAct = player.currentBet < this.currentBet;
@@ -249,6 +263,10 @@ export class ScenarioGenerator {
 
             // Check if action is complete (everyone has acted and matched current bet or folded)
             actionComplete = this.isActionComplete(actionOrder, lastAggressorIndex);
+        }
+
+        if (iterations >= MAX_ITERATIONS) {
+            console.warn('⚠️ ScenarioGenerator: Hit iteration safety cap in phaseC_PreflopAction');
         }
 
         // Sweep all bets to pot
@@ -342,7 +360,28 @@ export class ScenarioGenerator {
     }
 
     /**
-     * 🃏 Generate random board cards
+     * 🃏 Deal 2 hole cards to the hero (unique, not duplicated on the board)
+     */
+    private dealHeroCards(): string[] {
+        const ranks = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
+        const suits = ['♠', '♥', '♦', '♣'];
+        const cards: string[] = [];
+
+        while (cards.length < 2) {
+            const rank = ranks[Math.floor(Math.random() * ranks.length)];
+            const suit = suits[Math.floor(Math.random() * suits.length)];
+            const card = rank + suit;
+            if (!this.usedCards.has(card)) {
+                cards.push(card);
+                this.usedCards.add(card);
+            }
+        }
+
+        return cards;
+    }
+
+    /**
+     * 🃏 Generate random board cards (unique, not duplicating hero cards)
      */
     private generateBoardCards(): string[] {
         const ranks = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
@@ -353,8 +392,9 @@ export class ScenarioGenerator {
             const rank = ranks[Math.floor(Math.random() * ranks.length)];
             const suit = suits[Math.floor(Math.random() * suits.length)];
             const card = rank + suit;
-            if (!cards.includes(card)) {
+            if (!this.usedCards.has(card)) {
                 cards.push(card);
+                this.usedCards.add(card);
             }
         }
 
@@ -362,26 +402,151 @@ export class ScenarioGenerator {
     }
 
     /**
-     * ❓ Generate a question based on the scenario
+     * ❓ Generate a context-aware question based on the scenario
      */
     private generateQuestion(): string {
         const hero = this.players[this.heroSeat];
         const potSize = this.pot;
         const heroStack = hero.stack;
+        const heroCards = this.heroCards.join(' ');
 
-        return `You are in seat ${this.heroSeat + 1} with ${heroStack} chips. The pot is ${potSize}. What is your best move?`;
+        // Describe what happened before hero's turn
+        const raisers = this.actionLog.filter(a => a.type === 'RAISE' && a.playerSeat !== this.heroSeat);
+        const callers = this.actionLog.filter(a => a.type === 'CALL' && a.playerSeat !== this.heroSeat);
+
+        let context = '';
+        if (raisers.length > 0) {
+            const lastRaise = raisers[raisers.length - 1];
+            const raiserName = this.players[lastRaise.playerSeat]?.name || 'Villain';
+            context = `${raiserName} raised to ${lastRaise.newBet}. `;
+            if (callers.length > 0) {
+                context += `${callers.length} player${callers.length > 1 ? 's' : ''} called. `;
+            }
+        } else if (callers.length > 0) {
+            context = `${callers.length} limper${callers.length > 1 ? 's' : ''} entered the pot. `;
+        }
+
+        return `You hold ${heroCards} with ${heroStack} chips. ${context}The pot is ${potSize}. What is your best move?`;
     }
 
     /**
-     * ✅ Determine the correct action (simplified for now)
+     * ✅ Determine the correct action based on actual hand strength
+     *
+     * Uses a multi-factor evaluation:
+     * 1. Raw card rank strength (high cards, pairs)
+     * 2. Suitedness bonus (flush draw potential)
+     * 3. Connectivity bonus (straight draw potential)
+     * 4. Position adjustment
+     * 5. Pot odds and stack-to-pot ratio
      */
-    private determineCorrectAction(): 'FOLD' | 'CALL' | 'RAISE' | 'ALL_IN' {
-        // Simplified logic - can be enhanced with GTO solver integration
-        const rand = Math.random();
-        if (rand < 0.3) return 'FOLD';
-        if (rand < 0.6) return 'CALL';
-        if (rand < 0.9) return 'RAISE';
-        return 'ALL_IN';
+    private determineCorrectAction(boardCards: string[]): 'FOLD' | 'CALL' | 'RAISE' | 'ALL_IN' {
+        const hero = this.players[this.heroSeat];
+        const strength = this.evaluateHandStrength(this.heroCards, boardCards);
+        const spr = hero.stack / Math.max(this.pot, 1); // Stack-to-pot ratio
+        const facingRaise = this.currentBet > this.config.bigBlind;
+
+        // Position factor: being in later position is advantageous
+        const { sbSeat, bbSeat } = getBlindPositions(this.tableSize, this.buttonSeat);
+        const isInPosition = this.heroSeat === this.buttonSeat;
+        const isInBlinds = this.heroSeat === sbSeat || this.heroSeat === bbSeat;
+        const positionBonus = isInPosition ? 0.1 : (isInBlinds ? -0.05 : 0);
+
+        const adjustedStrength = Math.min(1, strength + positionBonus);
+
+        // Very short stack → push/fold mode
+        if (spr < 3) {
+            if (adjustedStrength >= 0.55) return 'ALL_IN';
+            if (adjustedStrength >= 0.35 && !facingRaise) return 'ALL_IN';
+            return 'FOLD';
+        }
+
+        // Facing a raise
+        if (facingRaise) {
+            if (adjustedStrength >= 0.75) return 'RAISE';  // Premium → 3-bet
+            if (adjustedStrength >= 0.45) return 'CALL';   // Playable → call
+            return 'FOLD';                                  // Weak → fold
+        }
+
+        // Open spot (no raise yet)
+        if (adjustedStrength >= 0.65) return 'RAISE';  // Strong → open raise
+        if (adjustedStrength >= 0.40) return 'CALL';   // Marginal → limp/call
+        return 'FOLD';                                  // Weak → fold
+    }
+
+    /**
+     * 📊 Evaluate hand strength on a 0-1 scale
+     * Considers: high card rank, pairs, suitedness, connectivity, board interaction
+     */
+    private evaluateHandStrength(heroCards: string[], boardCards: string[]): number {
+        const RANK_VALUES: Record<string, number> = {
+            'A': 14, 'K': 13, 'Q': 12, 'J': 11, 'T': 10,
+            '9': 9, '8': 8, '7': 7, '6': 6, '5': 5, '4': 4, '3': 3, '2': 2
+        };
+
+        if (heroCards.length < 2) return 0.3;
+
+        const r1 = heroCards[0][0];
+        const r2 = heroCards[1][0];
+        const s1 = heroCards[0].slice(1);
+        const s2 = heroCards[1].slice(1);
+
+        const v1 = RANK_VALUES[r1] || 5;
+        const v2 = RANK_VALUES[r2] || 5;
+        const highCard = Math.max(v1, v2);
+        const lowCard = Math.min(v1, v2);
+
+        let score = 0;
+
+        // 1. Base rank strength (0-0.5)
+        // Average rank normalized to 0-1, weighted toward high cards
+        score += ((highCard + lowCard) / 28) * 0.35;
+
+        // 2. Pair bonus (0-0.25)
+        if (r1 === r2) {
+            // Pocket pair — strength scales with rank
+            score += 0.15 + (highCard / 14) * 0.15;
+        }
+
+        // 3. Suitedness bonus (0-0.08)
+        const isSuited = s1 === s2;
+        if (isSuited) {
+            score += 0.08;
+        }
+
+        // 4. Connectivity bonus (0-0.07)
+        const gap = Math.abs(v1 - v2);
+        if (gap === 1) score += 0.07;      // Connectors (e.g., 9T)
+        else if (gap === 2) score += 0.04; // One-gappers (e.g., 9J)
+        else if (gap === 3) score += 0.02; // Two-gappers
+
+        // 5. Broadway bonus — both cards T or higher
+        if (v1 >= 10 && v2 >= 10) {
+            score += 0.05;
+        }
+
+        // 6. Ace bonus (kicker matters)
+        if (r1 === 'A' || r2 === 'A') {
+            score += 0.06;
+        }
+
+        // 7. Board interaction (basic — check for pairs on board)
+        if (boardCards.length >= 3) {
+            const boardRanks = boardCards.map(c => c[0]);
+            const boardSuits = boardCards.map(c => c.slice(1));
+
+            // Paired with board
+            if (boardRanks.includes(r1)) score += 0.12;
+            if (boardRanks.includes(r2)) score += 0.10;
+
+            // Flush draw (3+ same suit on board + hero)
+            if (isSuited) {
+                const suitCount = boardSuits.filter(s => s === s1).length;
+                if (suitCount >= 2) score += 0.08; // Flush draw
+                if (suitCount >= 3) score += 0.10; // Made flush
+            }
+        }
+
+        return Math.min(1, Math.max(0, score));
     }
 
     /**
@@ -393,13 +558,28 @@ export class ScenarioGenerator {
 
     /**
      * ✅ Validate scenario mathematical integrity
+     * Uses actual player count instead of hardcoded 9
      */
     static validate(scenario: Scenario): boolean {
         const totalChips = scenario.players.reduce((sum, p) => sum + p.stack + p.currentBet, 0) + scenario.finalPot;
-        const expectedTotal = scenario.config.startStack * 9;
+        const expectedTotal = scenario.config.startStack * scenario.players.length;
 
         if (Math.abs(totalChips - expectedTotal) > 0.01) {
-            console.error('Chip conservation violated!', { totalChips, expectedTotal });
+            console.error('Chip conservation violated!', { totalChips, expectedTotal, playerCount: scenario.players.length });
+            return false;
+        }
+
+        // Validate hero cards exist
+        if (!scenario.heroCards || scenario.heroCards.length !== 2) {
+            console.error('Hero cards missing or invalid!', scenario.heroCards);
+            return false;
+        }
+
+        // Validate no duplicate cards between hero and board
+        const allCards = [...scenario.heroCards, ...scenario.boardCards];
+        const uniqueCards = new Set(allCards);
+        if (uniqueCards.size !== allCards.length) {
+            console.error('Duplicate cards detected!', allCards);
             return false;
         }
 

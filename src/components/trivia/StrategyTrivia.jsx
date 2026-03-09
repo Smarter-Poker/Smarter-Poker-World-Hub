@@ -13,7 +13,7 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { calculateDiamonds, TRIVIA_MODES, getCategoryName } from '../../../src/lib/trivia/triviaEngine';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
-import { Zap, SkipForward, Shield, Clock, CheckCircle, XCircle, ArrowRight, Trophy, Gem, Target, DollarSign, BarChart3, Brain } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, ArrowRight, Trophy, Gem, Target, DollarSign, BarChart3, Brain } from 'lucide-react';
 import GTOScenarioDisplay from './GTOScenarioDisplay';
 
 /** Format poker text: enforce BB/SB spacing and capitalization rules */

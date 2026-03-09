@@ -24,7 +24,7 @@ import { RatingStars } from './RatingStars';
 import { ConversationList } from './ConversationList';
 import { VoiceInput } from './VoiceInput';
 import { VoiceOutput } from './VoiceOutput';
-import { PersonalitySelector, JarvisPersonality, getPersonalityPrompt } from './PersonalitySelector';
+import { PersonalitySelector, JarvisPersonality } from './PersonalitySelector';
 import { JarvisAdvancedToolbar } from './JarvisAdvancedToolbar';
 
 interface Message {

@@ -74,6 +74,9 @@ export default async function handler(req, res) {
             const qData = q.question_data;
             if (!qData) return null; // Skip null entries
 
+            // Track whether we had to fabricate any data
+            let dataQuality = 'SOLVER_EXACT';
+
             const scenario = qData.scenario || {};
             const options = qData.options || [];
             const correctAnswer = qData.correctAnswer;
@@ -84,12 +87,14 @@ export default async function handler(req, res) {
                 if (heroHand && heroHand.length >= 4) {
                     qData.heroCards = [heroHand.substring(0, 2), heroHand.substring(2, 4)];
                 } else {
+                    // BUG-C FIX: Tag fabricated cards
                     const ranks = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6'];
                     const suits = ['h', 'd', 'c', 's'];
                     qData.heroCards = [
                         ranks[Math.floor(Math.random() * 6)] + suits[Math.floor(Math.random() * 4)],
                         ranks[Math.floor(Math.random() * 8)] + suits[Math.floor(Math.random() * 4)]
                     ];
+                    dataQuality = 'SIMULATED';
                 }
             }
 
@@ -102,8 +107,10 @@ export default async function handler(req, res) {
                         if (i + 1 < boardStr.length) cards.push(boardStr.substring(i, i + 2));
                     }
                     qData.boardCards = cards.length >= 3 ? cards : _randomBoard(qData.heroCards);
+                    if (cards.length < 3) dataQuality = 'SIMULATED';
                 } else {
                     qData.boardCards = _randomBoard(qData.heroCards);
+                    dataQuality = 'SIMULATED';
                 }
             }
 
@@ -135,6 +142,7 @@ export default async function handler(req, res) {
                     if (sum !== 100 && correctAnswer) {
                         qData.gtoFrequencies[correctAnswer] = (qData.gtoFrequencies[correctAnswer] || 0) + (100 - sum);
                     }
+                    dataQuality = 'SIMULATED';
                 }
             }
 
@@ -165,6 +173,8 @@ export default async function handler(req, res) {
             scenario.villainStack = Math.min(Math.max(scenario.villainStack || 1, 1), 300);
             qData.scenario = scenario;
             if (!qData.source) qData.source = 'CACHED_SCENARIO';
+            // IMP-5: Tag data quality for frontend confidence indicators
+            qData.dataQuality = dataQuality;
 
             return qData;
         }).filter(Boolean); // Remove null entries

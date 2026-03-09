@@ -4,7 +4,6 @@
  * Auth: Bearer token (owner or admin only)
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
-import { getServerUser } from '../../../src/lib/serverAuth';
 
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 

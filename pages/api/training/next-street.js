@@ -35,7 +35,7 @@ export default async function handler(req, res) {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
-    const { gameId, heroHand, boardCards, street, pot, stackDepth } = req.query;
+    const { gameId, heroHand, boardCards, street, pot, stackDepth, heroPosition, villainPosition } = req.query;
 
     if (!gameId || !street || !boardCards) {
         return res.status(400).json({ success: false, error: 'gameId, street, and boardCards are required' });
@@ -84,8 +84,8 @@ export default async function handler(req, res) {
             street,
             pot: parseFloat(pot) || 6,
             stackDepth: parseInt(stackDepth) || 100,
-            heroPosition: 'BTN',
-            villainPosition: 'BB',
+            heroPosition: heroPosition || 'BTN',
+            villainPosition: villainPosition || 'BB',
         });
 
         if (question) {

@@ -10,7 +10,6 @@ import {
   Users, Clock, TrendingUp, Star, Loader2,
   BarChart3, Repeat, ChevronDown, Search, ArrowLeft
 } from 'lucide-react';
-import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../../src/engine/EventBus';
 
 export default function PlayerActivityReport() {

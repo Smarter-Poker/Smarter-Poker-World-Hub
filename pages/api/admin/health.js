@@ -5,8 +5,8 @@
  *   Returns status of all configured services
  */
 import { isTwilioConfigured } from '../../../src/lib/commander/twilio';
-import { isOneSignalConfigured, getOneSignalStatus } from '../../../src/lib/commander/pushNotifications';
-import { isEmailConfigured, getEmailStatus } from '../../../src/lib/emailTemplates';
+import { getOneSignalStatus } from '../../../src/lib/commander/pushNotifications';
+import { getEmailStatus } from '../../../src/lib/emailTemplates';
 import { getSentryStatus } from '../../../src/lib/sentry';
 
 export default async function handler(req, res) {

@@ -3,7 +3,6 @@
  * 4 clickable icon cards routing to dedicated sub-pages
  */
 
-import Image from 'next/image';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';

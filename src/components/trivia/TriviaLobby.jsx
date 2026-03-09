@@ -5,11 +5,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { Zap, Trophy, BookOpen, GraduationCap, Gem, Lock, ChevronRight, Flame, Heart, Skull, Infinity, Shuffle, Swords, Calendar, Target, Banknote, Calculator, Brain, AlertTriangle } from 'lucide-react';
+import { Trophy, BookOpen, GraduationCap, Gem, Heart, Infinity, Shuffle, Swords, Calendar, Target, Banknote, Calculator, Brain } from 'lucide-react';
 import MetalFrame from '../ui/MetalFrame';
 import HexButton from '../ui/HexButton';
 import PortholeIcon from '../ui/PortholeIcon';
-import StreakBadge from './StreakBadge';
 import { supabase } from '../../lib/supabase';
 import { busEmit } from '../../engine/EventBus';
 import { getAuthUser } from '../../lib/authUtils';

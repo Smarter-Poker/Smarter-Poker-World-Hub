@@ -6,7 +6,6 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { LEAK_TYPES } from '../engine/LeakSignalAnalyzer';
 
 // Initialize Supabase client
 const supabase = createClient(

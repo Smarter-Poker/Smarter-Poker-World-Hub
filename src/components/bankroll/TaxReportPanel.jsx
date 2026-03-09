@@ -5,9 +5,9 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { FileText, Download, Calendar, AlertTriangle, Loader2, DollarSign, TrendingUp, TrendingDown, Upload, Trash2, Eye, Plus, X, Check, Camera, Scan, RefreshCw } from 'lucide-react';
+import { FileText, Download, Calendar, AlertTriangle, Loader2, DollarSign, TrendingUp, TrendingDown, Upload, Trash2, Eye, Plus, X, Check, Camera, RefreshCw } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { METAL, GRADIENTS, GLOWS, ANIMATIONS } from './metalStyles';
+import { METAL, ANIMATIONS } from './metalStyles';
 import DocumentCropper from './DocumentCropper';
 import LiveCameraScanner from './LiveCameraScanner';
 

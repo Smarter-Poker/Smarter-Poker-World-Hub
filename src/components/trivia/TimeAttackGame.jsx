@@ -3,12 +3,11 @@
  * Speed creates adrenaline, 1💎 per 3 correct (max 5💎/day)
  */
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { Clock, Zap, Gem, Target, Timer } from 'lucide-react';
 import { busEmit } from '../../engine/EventBus';
 import MetalFrame from '../ui/MetalFrame';
-import HexButton from '../ui/HexButton';
 
 const GAME_DURATION = 30; // seconds
 const DAILY_DIAMOND_CAP = 5;

@@ -3,9 +3,9 @@
  * Stakes: 5-50💎, winner takes all
  */
 
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Gem, X, Search, User, Check, Clock } from 'lucide-react';
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+import { Send, Gem, X, Search, User, Check } from 'lucide-react';
 import MetalFrame from '../ui/MetalFrame';
 import HexButton from '../ui/HexButton';
 

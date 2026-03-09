@@ -9,7 +9,6 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { getServerUser } from '../../../src/lib/serverAuth';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -52,6 +51,8 @@ export default async function handler(req, res) {
             classificationCounts, // Classification distribution
             // Trainer config (if custom)
             trainerConfig,
+            // BUG-05 FIX: Speed bonus diamonds
+            speedBonusDiamonds,
         } = req.body;
 
         if (!gameId) {
@@ -100,7 +101,38 @@ export default async function handler(req, res) {
             // Still return success since we saved to training_progress and training_level_history
         }
 
-        // 4. Update lifetime stats aggregate
+        // 4. BUG-05 FIX: Award speed bonus diamonds to user's balance
+        if (speedBonusDiamonds && speedBonusDiamonds > 0) {
+            try {
+                // Use RPC to atomically increment diamonds
+                const { error: rpcErr } = await supabase.rpc('increment_diamonds', {
+                    user_id_input: userId,
+                    amount: speedBonusDiamonds,
+                });
+
+                if (rpcErr) {
+                    // Fallback: direct update with current value
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('diamond_balance')
+                        .eq('id', userId)
+                        .single();
+
+                    if (profile) {
+                        await supabase
+                            .from('profiles')
+                            .update({ diamond_balance: (profile.diamond_balance || 0) + speedBonusDiamonds })
+                            .eq('id', userId);
+                    }
+                }
+
+                console.log(`[SaveSession] Awarded ${speedBonusDiamonds} speed bonus diamonds to ${userId}`);
+            } catch (diamondErr) {
+                console.warn('[SaveSession] Diamond award failed (non-blocking):', diamondErr.message);
+            }
+        }
+
+        // 5. Update lifetime stats aggregate
         // Upsert into a simple lifetime_stats concept in training_progress
         // We use training_progress metadata for now
 

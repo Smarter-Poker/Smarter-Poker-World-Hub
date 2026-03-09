@@ -10,7 +10,6 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { User, Clock, DollarSign, MapPin, Calendar, TrendingUp, Award, Star, ChevronRight, Settings, Bell, History, Gift, Edit2, Globe } from 'lucide-react';
 import { supabase } from '../../../../src/lib/supabase';
-import { getSafeUser } from '../../../../src/lib/authUtils';
 import { getAuthUser } from '../../../../src/lib/authUtils';
 import { getAccessToken } from '../../../../src/lib/authUtils';
 

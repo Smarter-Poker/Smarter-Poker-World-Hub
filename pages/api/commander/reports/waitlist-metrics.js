@@ -4,7 +4,6 @@
  * Returns: avg wait time, call-to-seat rate, no-show rate, peak demand, game type breakdown
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
-import { getServerUser } from '../../../../src/lib/serverAuth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
 const supabase = createClient(

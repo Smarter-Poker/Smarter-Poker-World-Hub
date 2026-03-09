@@ -10,7 +10,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import { DollarSign, Clock, Loader2, Package, Trash2, Save, RefreshCw, Receipt } from 'lucide-react';
+import { DollarSign, Clock, Loader2, Package, Trash2, Save, RefreshCw } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';

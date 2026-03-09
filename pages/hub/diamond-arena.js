@@ -6,10 +6,8 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import SEOHead from '../../src/components/seo/SEOHead';
-import Link from 'next/link';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
-import confetti from 'canvas-confetti';
 import { useAvatar } from '../../src/contexts/AvatarContext';
 
 // God-Mode Stack

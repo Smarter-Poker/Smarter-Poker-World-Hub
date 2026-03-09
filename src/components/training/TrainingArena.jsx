@@ -14,10 +14,10 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { trainingRunEngine, RUN_RULES, RunState } from '../../engine/TrainingRunEngine';
-import { eventBus, EventType, busEmit } from '../../engine/EventBus';
+import { busEmit } from '../../engine/EventBus';
 
 // Seat positions around the table (hero at bottom center)
 const SEAT_POSITIONS = [

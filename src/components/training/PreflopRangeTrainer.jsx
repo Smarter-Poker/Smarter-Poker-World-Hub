@@ -9,7 +9,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { classifyMove, CLASSIFICATION_CONFIG } from '../../hooks/useGTOWScore';
 

@@ -4,9 +4,7 @@
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { useState } from 'react';
-import {
-  Calendar, Clock, MapPin, Users, DollarSign,
-  Eye, EyeOff, Lock, Globe, Save, X
+import { Users, Lock, Globe, Save, X
 } from 'lucide-react';
 
 const GAME_TYPES = [

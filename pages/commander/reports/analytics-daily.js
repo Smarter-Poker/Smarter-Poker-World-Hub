@@ -7,7 +7,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { BarChart3, Users, DollarSign, Clock, TrendingUp, Loader2, RefreshCw, Trophy, CreditCard, AlertTriangle, ArrowLeft } from 'lucide-react';
-import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../../src/engine/EventBus';
 
 export default function AnalyticsDailyReport() {

@@ -8,7 +8,6 @@
  * Route: /hub/training/arena/[gameId]?level=X&session=Y
  */
 
-import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import Head from 'next/head';

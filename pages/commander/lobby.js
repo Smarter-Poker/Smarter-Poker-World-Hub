@@ -15,8 +15,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
-import DealerTicker from '../../src/components/commander/shared/DealerTicker';
 import useWakeLock from '../../src/hooks/useWakeLock';
 import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';

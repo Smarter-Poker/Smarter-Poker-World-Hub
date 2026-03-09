@@ -1,7 +1,6 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import allVenuesData from '../../../data/all-venues.json';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { getServerUser } from '../../../src/lib/serverAuth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,

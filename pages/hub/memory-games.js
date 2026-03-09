@@ -3,7 +3,6 @@
    Full Video Game Experience with Pressure, Combos, and Diamond Economy
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import Image from 'next/image';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -11,7 +10,6 @@ import { createClient } from '@supabase/supabase-js';
 import confetti from 'canvas-confetti';
 import { SoundEngine, EffectsEngine, LEVELS, MASTERY_THRESHOLD, GAME_COST } from '../../src/games/GameEngine';
 import { getScenariosByLevel, getRandomScenario, getLevelConfig, RANKS, getHandName, MIXED_SCENARIOS, LEVEL_1_SCENARIOS, LEVEL_2_SCENARIOS, LEVEL_3_SCENARIOS, LEVEL_4_SCENARIOS, LEVEL_5_SCENARIOS, LEVEL_6_SCENARIOS, LEVEL_7_SCENARIOS, LEVEL_8_SCENARIOS, LEVEL_9_SCENARIOS, LEVEL_10_SCENARIOS } from '../../src/games/ScenarioDatabase';
-import { supabase } from '../../src/lib/supabase';
 
 // God-Mode Stack
 import { useMemoryStore } from '../../src/stores/memoryStore';

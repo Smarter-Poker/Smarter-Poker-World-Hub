@@ -34,8 +34,8 @@ const AVATARS = [
  * @returns {PokerState} Complete poker state with action log
  */
 export function generateLevel(levelNum) {
-    // Seed random for deterministic generation
-    const seed = levelNum * 12345;
+    // Seed with timestamp + level for per-session uniqueness
+    const seed = (levelNum * 12345) + (Date.now() % 100000);
     const rng = seededRandom(seed);
 
     // Generate deck
@@ -169,11 +169,14 @@ function generateQuestion(heroCards, board, actionLog, levelNum) {
  * Determine correct answer (simplified for demo)
  */
 function determineCorrectAnswer(heroCards, board, actionLog, levelNum) {
-    // Simplified logic - in production, use GTO solver
     const heroStrength = evaluateHandStrength(heroCards);
 
-    if (heroStrength > 0.7) return 'raise';
-    if (heroStrength > 0.4) return 'call';
+    // Scale thresholds with level difficulty — harder levels are tighter
+    const raiseThreshold = 0.7 - (levelNum * 0.005);
+    const callThreshold = 0.4 - (levelNum * 0.005);
+
+    if (heroStrength > raiseThreshold) return 'raise';
+    if (heroStrength > callThreshold) return 'call';
     return 'fold';
 }
 
@@ -181,10 +184,48 @@ function determineCorrectAnswer(heroCards, board, actionLog, levelNum) {
  * Evaluate hand strength (0-1)
  */
 function evaluateHandStrength(cards) {
-    // Simplified - just check for high cards
-    const ranks = cards.map(c => RANKS.indexOf(c.rank));
-    const avgRank = ranks.reduce((a, b) => a + b, 0) / ranks.length;
-    return avgRank / RANKS.length;
+    if (!cards || cards.length < 2) return 0.3;
+
+    const RANK_ORDER = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
+    const r1 = cards[0]?.rank;
+    const r2 = cards[1]?.rank;
+    const s1 = cards[0]?.suit;
+    const s2 = cards[1]?.suit;
+
+    if (!r1 || !r2) return 0.3;
+
+    const v1 = RANK_ORDER.indexOf(r1);
+    const v2 = RANK_ORDER.indexOf(r2);
+    const high = Math.max(v1, v2);
+    const low = Math.min(v1, v2);
+
+    let score = 0;
+
+    // 1. Base rank strength
+    score += (high + low) / 24 * 0.4;
+
+    // 2. Pocket pair bonus
+    if (r1 === r2) {
+        score += 0.22 + (high / 12) * 0.15;
+    }
+
+    // 3. Suited bonus
+    if (s1 === s2) {
+        score += 0.08;
+    }
+
+    // 4. Connectivity bonus
+    const gap = Math.abs(v1 - v2);
+    if (gap === 1) score += 0.06;
+    else if (gap === 2) score += 0.03;
+
+    // 5. Broadway bonus (both T+)
+    if (v1 >= 8 && v2 >= 8) score += 0.05;
+
+    // 6. Ace bonus
+    if (r1 === 'A' || r2 === 'A') score += 0.06;
+
+    return Math.min(1, Math.max(0, score));
 }
 
 /**
@@ -232,7 +273,7 @@ export function generateLevelsInBackground(startLevel, endLevel, onProgress, onC
     let currentLevel = startLevel;
 
     function generateNext(deadline) {
-        while ((deadline.timeRemaining() > 0 || Deadline.didTimeout) && currentLevel <= endLevel) {
+        while ((deadline.timeRemaining() > 0 || deadline.didTimeout) && currentLevel <= endLevel) {
             const levelData = generateLevel(currentLevel);
             levels.push(levelData);
 

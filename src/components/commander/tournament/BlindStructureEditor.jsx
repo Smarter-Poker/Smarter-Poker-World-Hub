@@ -4,7 +4,7 @@
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { useState } from 'react';
-import { Plus, Trash2, Clock, Coffee, GripVertical } from 'lucide-react';
+import { Plus, Trash2, Coffee, GripVertical } from 'lucide-react';
 
 // Common tournament structures
 const PRESET_STRUCTURES = {

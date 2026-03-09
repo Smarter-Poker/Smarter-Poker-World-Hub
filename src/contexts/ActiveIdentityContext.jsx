@@ -13,7 +13,6 @@
  */
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '../lib/supabase';
 
 const ActiveIdentityContext = createContext({
     activeIdentity: { mode: 'personal', clubPage: null },

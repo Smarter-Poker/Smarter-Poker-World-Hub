@@ -6,7 +6,7 @@
  */
 import { memo, useState, useEffect } from 'react';
 import {
-  X, Trophy, Calendar, DollarSign, Users, Clock, Loader2,
+  X, Trophy, Loader2,
   ChevronLeft, Zap, Crown, Target, RefreshCw, Rocket, Crosshair,
   Check, Settings, Layers, CalendarDays
 } from 'lucide-react';
@@ -14,8 +14,6 @@ import BlindStructureEditor from '../tournaments/BlindStructureEditor';
 import {
   TOURNAMENT_TEMPLATES,
   TOURNAMENT_TYPES,
-  COMMON_BUYINS,
-  COMMON_CHIP_STACKS,
   formatBuyin,
   formatChips,
   estimateDuration

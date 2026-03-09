@@ -9,7 +9,7 @@
 import { useRef, useState, useCallback } from 'react';
 import { useFrame, useLoader, ThreeEvent } from '@react-three/fiber';
 import { Float } from '@react-three/drei';
-import { Mesh, TextureLoader, CircleGeometry } from 'three';
+import { Mesh, TextureLoader } from 'three';
 
 interface ProfileOrbProps {
     profileImageUrl?: string;  // Custom profile picture URL

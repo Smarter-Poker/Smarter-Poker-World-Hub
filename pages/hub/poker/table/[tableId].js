@@ -8,7 +8,7 @@ import { useRouter } from 'next/router';
 import { supabase } from '../../../../src/lib/supabase';
 import LivePokerTable from '../../../../src/components/poker/LivePokerTable';
 import SEOHead from '../../../../src/components/seo/SEOHead';
-import { getAccessToken, getAuthUser } from '../../../../src/lib/authUtils';
+import { getAuthUser } from '../../../../src/lib/authUtils';
 
 export default function PokerTablePage() {
   const router = useRouter();

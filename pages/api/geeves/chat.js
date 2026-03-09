@@ -226,6 +226,7 @@ export default async function handler(req, res) {
             success: true,
             fromCache: false,
             cacheId,
+            missedQuestion: true
         });
 
     } catch (error) {

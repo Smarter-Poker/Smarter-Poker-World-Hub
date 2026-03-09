@@ -9,7 +9,6 @@ config({ path: '.env.local' });
 import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
 import fs from 'fs';
-import path from 'path';
 import https from 'https';
 
 const supabase = createClient(

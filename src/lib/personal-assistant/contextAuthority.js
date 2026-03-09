@@ -5,7 +5,6 @@
  * Default = LIVE_PLAY (BLOCK) — Never trust user assertions.
  */
 
-import { createClient } from '@supabase/supabase-js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONTEXT STATES

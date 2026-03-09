@@ -11,7 +11,7 @@ import { getAuthUser } from '../../../src/lib/authUtils';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
-import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
+import { busEmit } from '../../../src/engine/EventBus';
 
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -22,7 +22,6 @@ import { TRIVIA_MODES, calculateDiamonds } from '../../../src/lib/trivia/triviaE
 
 // Phase 1 Enhancement Imports
 import PrizeWheel from '../../../src/components/trivia/PrizeWheel';
-import StreakBadge from '../../../src/components/trivia/StreakBadge';
 import { useCelebrations } from '../../../src/components/trivia/CelebrationEffects';
 import { getStreakTier, calculateRewardWithMultiplier } from '../../../src/config/triviaStreakSystem';
 

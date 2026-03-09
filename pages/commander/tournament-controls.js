@@ -10,7 +10,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { busEmit } from '../../src/engine/EventBus';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import { Trophy, Users, Clock, Loader2, Play, Monitor, Settings } from 'lucide-react';
+import { Trophy, Users, Loader2, Play, Monitor, Settings } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 

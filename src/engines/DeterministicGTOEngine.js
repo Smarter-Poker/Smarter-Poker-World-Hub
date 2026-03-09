@@ -293,35 +293,10 @@ export class DeterministicGTOEngine {
                 }
             }
 
-            // No match at all — try ANY scenario on this street (same game type)
-            // This gives us solver-accurate frequencies even if the exact board doesn't match
-            const { data: anyMatches } = await supabase
-                .from('solved_spots_gold')
-                .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
-                .eq('game_type', gameConfig.pioGameType)
-                .eq('stack_depth', gameConfig.pioStackDepth)
-                .eq('street', street)
-                .limit(10);
-
-            if (anyMatches && anyMatches.length > 0) {
-                const scenario = anyMatches[Math.floor(Math.random() * anyMatches.length)];
-                const question = this.buildQuestionFromScenario(scenario, gameConfig, 5, 0);
-
-                if (question) {
-                    // Override with our actual board and hero hand
-                    question.scenario.board = boardCards.join(' ');
-                    question.boardCards = boardCards;
-                    question.heroHand = heroHand;
-                    question.heroCards = parseHandToCards(heroHand);
-                    question.scenario.heroHand = heroHand;
-                    question.scenario.pot = Math.round(pot);
-                    question.question = `You hold ${heroHand} on the ${street}. Board: ${boardCards.join(' ')}. What is the GTO play?`;
-                    console.log(`[DeterministicEngine] ⚠️ Multi-street: using similar ${street} scenario (different board)`);
-                    return question;
-                }
-            }
-
-            console.log(`[DeterministicEngine] ❌ No ${street} solver data available for ${gameConfig.pioGameType}`);
+            // BUG-G FIX: Removed 3rd-tier 'ANY scenario' fallback.
+            // Grabbing solver data from a completely different board is misleading —
+            // the frequencies don't apply to our board texture. Instead, end the hand cleanly.
+            console.log(`[DeterministicEngine] ❌ No ${street} solver data available for ${gameConfig.pioGameType} (no board match)`);
             return null;
         } catch (err) {
             console.error('[DeterministicEngine] queryNextStreet error:', err.message);
@@ -420,25 +395,30 @@ export class DeterministicGTOEngine {
             gtoFrequencies[action] = Math.round((handActions[action] || 0) * 100);
         });
 
-        // ═══ COMPUTE EV DATA ═══
+        // IMP-4: Frequency normalization validation — ensure frequencies sum to ~100%
+        const freqSum = Object.values(gtoFrequencies).reduce((s, v) => s + v, 0);
+        if (freqSum > 0 && Math.abs(freqSum - 100) > 1) {
+            // Normalize and log warning
+            const factor = 100 / freqSum;
+            validActions.forEach(action => {
+                gtoFrequencies[action] = Math.round(gtoFrequencies[action] * factor);
+            });
+            console.warn(`[DeterministicEngine] ⚠️ Frequencies summed to ${freqSum}%, normalized for ${heroHand} in ${scenario.scenario_hash}`);
+        }
+
+        // ═══ COMPUTE EV DATA (Real solver values only — no fabrication) ═══
         const heroHandEV = handEVs[heroHand] || 0;
         const allEVs = Object.values(handEVs).filter(v => typeof v === 'number');
         const maxHandEV = allEVs.length > 0 ? Math.max(...allEVs) : heroHandEV;
-
-        // Compute real EV loss per action (solver-accurate)
-        const actionEVs = {};
-        validActions.forEach(action => {
-            // EV of choosing this action = frequency-weighted sum across the range
-            // Simplified: use hand EV scaled by frequency alignment
-            const freq = handActions[action] || 0;
-            actionEVs[action] = heroHandEV * freq;
-        });
+        // BUG-A FIX: Removed fabricated actionEVs (heroHandEV * freq is nonsensical)
+        // Per-action EV requires per-action EV data from the solver, which we don't have.
+        // The frontend uses frequency deviation for EV loss instead.
 
         // ═══ EXTRACT BOARD & POSITION DATA ═══
         const board = parseBoardFromHash(scenario.scenario_hash);
         const heroPosition = extractPositionFromHash(scenario.scenario_hash);
         const villainPosition = VILLAIN_MAP[heroPosition] || 'BB';
-        const estimatedPot = POT_BY_STREET[scenario.street] || 6;
+        const estimatedPot = strategyMatrix.pot || POT_BY_STREET[scenario.street] || 6;
 
         // ═══ BUILD OPTIONS ═══
         // Show up to 4 valid actions with proper labels
@@ -506,7 +486,6 @@ export class DeterministicGTOEngine {
                 optimalEV: maxHandEV,
                 handEVs,
                 heroHand,
-                actionEVs,
             },
             explanation,
             difficulty: level,

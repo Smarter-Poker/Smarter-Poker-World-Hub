@@ -8,7 +8,7 @@
  */
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { initAntiGravity, initAntiGravitySync, getBootState, isSystemHealthy } from '../lib/AntiGravityBoot';
+import { initAntiGravity, initAntiGravitySync } from '../lib/AntiGravityBoot';
 import SystemOffline from '../components/SystemOffline';
 
 // Context

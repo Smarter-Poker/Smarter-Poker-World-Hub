@@ -9,7 +9,6 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { ArrowLeft, Award, Star, Lock } from 'lucide-react';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
-import { supabase } from '../../../../src/lib/supabase';
 import { getAccessToken } from '../../../../src/lib/authUtils';
 
 export default function AchievementsPage() {

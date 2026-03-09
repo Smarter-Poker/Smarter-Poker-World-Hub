@@ -3,7 +3,7 @@
  * Gamification with logging streaks and achievements
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 
 // Clean SmarterPoker-style achievements (no emojis)

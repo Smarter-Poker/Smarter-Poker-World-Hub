@@ -11,7 +11,6 @@ import { SocialCard } from './SocialCard';
 import { ChallengeCard } from './ChallengeCard';
 import { ShareScoreCard } from './ShareScoreCard';
 import { HeatMapBorder, GTOMasterGlow } from './HeatMapBorder';
-import { LoadingSpinner } from '../ui/LoadingSpinner';
 import { claimReward } from '../../lib/claimReward';
 
 // ═══════════════════════════════════════════════════════════════════════════

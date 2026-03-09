@@ -5,8 +5,8 @@
  */
 import React, { useState } from 'react';
 import {
-  Shield, User, Clock, Filter, Search, ChevronDown,
-  LogIn, LogOut, UserPlus, UserMinus, Play, Pause,
+  Shield, User, Filter, Search, ChevronDown,
+  LogIn, UserPlus, Play,
   DollarSign, Gift, Settings, Download, AlertCircle
 } from 'lucide-react';
 

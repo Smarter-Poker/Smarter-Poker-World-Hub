@@ -4,8 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Trophy, Gem, Users, Clock, Calendar, Award, ChevronRight } from 'lucide-react';
+import { Trophy, Gem, Users, Clock, Award } from 'lucide-react';
 import MetalFrame from '../ui/MetalFrame';
 import HexButton from '../ui/HexButton';
 

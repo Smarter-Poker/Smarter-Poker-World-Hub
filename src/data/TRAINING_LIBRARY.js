@@ -178,6 +178,7 @@ export const TRAINING_LIBRARY = [
     { id: 'adv-014', name: 'Bet Sizing Theory', focus: 'Geometric sizing', category: 'ADVANCED', difficulty: 4, icon: '📏', tags: ['gto', 'math'] },
     { id: 'adv-015', name: 'Population Reads', focus: 'Pool tendencies', category: 'ADVANCED', difficulty: 3, icon: '👥', tags: ['exploitative'] },
     { id: 'adv-016', name: 'Exploit Ladder', focus: 'Deviation strategy', category: 'ADVANCED', difficulty: 4, icon: '🪜', tags: ['exploitative'] },
+    { id: 'quiz-gauntlet', name: 'Quiz Gauntlet', focus: 'High-speed GTO blitz', category: 'ADVANCED', difficulty: 5, icon: '⚡', tags: ['gto', 'math', 'exploitative'] },
     { id: 'adv-017', name: 'Capped Ranges', focus: 'Playing condensed', category: 'ADVANCED', difficulty: 4, icon: '📦', tags: ['gto'] },
     { id: 'adv-018', name: 'Polarity Index', focus: 'Range splitting', category: 'ADVANCED', difficulty: 5, icon: '🧲', tags: ['gto'], vipOnly: true },
     { id: 'adv-019', name: 'Solver Scripts', focus: 'Sim interpretation', category: 'ADVANCED', difficulty: 5, icon: '💻', tags: ['gto'], vipOnly: true },

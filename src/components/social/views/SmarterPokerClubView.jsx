@@ -8,8 +8,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { CreatePostBox, SPPostCard, SPAvatar, SP_COLORS } from '../SmarterPokerStyleCard';
-import { PokerTierBadge, WinRateDisplay } from '../PokerReputationBadges';
-import { supabase } from '../../../lib/supabase';
+import { PokerTierBadge } from '../PokerReputationBadges';
 
 // TODO: Providers missing - need creation:
 // - SocialOrbProvider (useSocialOrb hook) - @/providers/SocialOrbProvider

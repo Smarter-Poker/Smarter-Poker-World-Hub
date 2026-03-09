@@ -133,7 +133,7 @@ export class GameGuard extends Component<GameGuardProps, GameGuardState> {
 // ═══════════════════════════════════════════════════════════════════════════
 // NETWORK GUARD HOOK
 // ═══════════════════════════════════════════════════════════════════════════
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 
 interface UseNetworkGuardReturn {
     isOnline: boolean;

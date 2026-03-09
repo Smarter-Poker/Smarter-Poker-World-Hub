@@ -9,8 +9,8 @@
  * - Cards at hero position
  */
 
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React from 'react';
+import { motion } from 'framer-motion';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // EXACT SEAT POSITIONS (matching reference image)

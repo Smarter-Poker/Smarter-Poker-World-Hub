@@ -7,7 +7,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import { createClient } from '@supabase/supabase-js';
 import SEOHead from '../../src/components/seo/SEOHead';
-import { Gift, Plus, Clock, DollarSign, Edit, Trash2, ToggleLeft, ToggleRight, Trophy, Zap, Target, Loader2, X, Check, Award, CheckCircle, User, Copy, BarChart3, CheckSquare, Square, GripVertical } from 'lucide-react';
+import { Gift, Plus, Clock, DollarSign, Edit, Trash2, ToggleLeft, ToggleRight, Trophy, Zap, Target, Loader2, X, Check, Award, CheckCircle, User, BarChart3, CheckSquare, Square, GripVertical } from 'lucide-react';
 import PromotionCard from '../../src/components/commander/promotions/PromotionCard';
 import PromotionEditor from '../../src/components/commander/promotions/PromotionEditor';
 import PromotionBuilder from '../../src/components/commander/promotions/PromotionBuilder';

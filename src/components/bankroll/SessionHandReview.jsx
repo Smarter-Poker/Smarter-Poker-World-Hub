@@ -4,9 +4,9 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Brain, Link2, ExternalLink, Search, Loader2, CheckCircle } from 'lucide-react';
+import { Link2, ExternalLink, Search, Loader2, CheckCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { METAL, GRADIENTS, GLOWS, ANIMATIONS } from './metalStyles';
+import { METAL, GRADIENTS, ANIMATIONS } from './metalStyles';
 
 export default function SessionHandReview({ userId }) {
     const [recentHands, setRecentHands] = useState([]);

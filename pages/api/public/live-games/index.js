@@ -8,7 +8,6 @@
 import { supabase } from '../../../../src/lib/supabase';
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
-import { getServerUser } from '../../../../src/lib/serverAuth';
 
 // Admin client for RPC calls
 const supabaseAdmin = createClient(

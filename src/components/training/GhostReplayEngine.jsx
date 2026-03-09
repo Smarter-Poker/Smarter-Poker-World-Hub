@@ -6,7 +6,7 @@
  */
 
 import React, { useState } from 'react';
-import { X, ChevronLeft, ChevronRight, Play, FastForward } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 
 // Re-use core elements from GodModeArena structure
 function MiniCard({ rank, suit, isRed }) {

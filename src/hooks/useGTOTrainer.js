@@ -11,7 +11,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { getAuthUser, getSessionToken } from '../lib/authUtils';
-import TRAINING_CONFIG, { checkLevelPassed, getXPReward, getRequiredCorrect } from '../config/trainingConfig';
+import TRAINING_CONFIG, { checkLevelPassed, getRequiredCorrect } from '../config/trainingConfig';
 import useGTOWScore, { simulateGTOFrequencies, classifyMove } from './useGTOWScore';
 import { trainingSounds } from '../utils/trainingSounds';
 
@@ -368,7 +368,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
 
         // Record to backend (async, non-blocking)
         recordAnswer(currentQuestion.id, selectedOptionId, isCorrect);
-    }, [currentQuestion, showFeedback, bestStreak, recordAnswer, level, gtowScoring]);
+    }, [currentQuestion, showFeedback, bestStreak, recordAnswer, level, gtowScoring, questionNumber, effectiveQuestionsPerLevel]);
 
     /**
      * ═══ MULTI-STREET: Advance to next street within same hand ═══

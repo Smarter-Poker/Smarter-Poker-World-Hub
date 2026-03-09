@@ -4,7 +4,7 @@
  * Dark industrial sci-fi gaming theme
  */
 import React, { useState, useEffect } from 'react';
-import { X, Save, Trash2, Calendar, Clock, DollarSign } from 'lucide-react';
+import { X, Save, Trash2, Calendar, DollarSign } from 'lucide-react';
 
 const PROMOTION_TYPES = [
   { value: 'high_hand', label: 'High Hand' },

@@ -14,7 +14,6 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { DeterministicGTOEngine } from '../../../src/engines/DeterministicGTOEngine';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { getServerUser } from '../../../src/lib/serverAuth';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -156,8 +155,12 @@ function buildAndReturnQuestions(res, scenarios, count, position, stackDepth, st
     const questions = [];
     const usedIds = new Set();
 
-    // Shuffle scenarios for variety
-    const shuffled = [...scenarios].sort(() => Math.random() - 0.5);
+    // BUG-D FIX: Fisher-Yates shuffle (sort-based shuffle is biased in V8 TimSort)
+    const shuffled = [...scenarios];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
 
     for (let i = 0; i < count && i < shuffled.length * 2; i++) {
         const scenario = shuffled[i % shuffled.length];

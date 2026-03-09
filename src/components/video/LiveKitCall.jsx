@@ -7,7 +7,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
     LiveKitRoom,
-    VideoConference,
     RoomAudioRenderer,
     ControlBar,
     useTracks,

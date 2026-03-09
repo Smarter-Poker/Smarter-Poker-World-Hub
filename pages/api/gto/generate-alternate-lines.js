@@ -8,7 +8,6 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { getServerUser } from '../../../src/lib/serverAuth';
 
 const _supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,

@@ -11,7 +11,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Diamond, Crown, Zap, Sparkles, ChevronRight } from 'lucide-react';
+import { Diamond, Crown, Zap, ChevronRight } from 'lucide-react';
 
 const ANIM = `
     @keyframes welcomeFadeIn { from { opacity:0; transform:scale(0.9) translateY(20px); } to { opacity:1; transform:scale(1) translateY(0); } }

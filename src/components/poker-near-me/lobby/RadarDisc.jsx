@@ -20,7 +20,6 @@ import { useFrame } from '@react-three/fiber';
 import {
   ShaderMaterial,
   DoubleSide,
-  Color,
   AdditiveBlending,
 } from 'three';
 

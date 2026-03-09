@@ -6,11 +6,9 @@
  * Connected to SocialService
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { SPAvatar, SP_COLORS, SPPostCard } from '../SmarterPokerStyleCard';
-import { PokerTierBadge, WinRateDisplay } from '../PokerReputationBadges';
-import { PhotoGrid } from '../SmarterPokerPhotos';
-import { supabase } from '../../../lib/supabase';
+import { PokerTierBadge } from '../PokerReputationBadges';
 
 // TODO: Providers missing - need creation:
 // - SocialOrbProvider (useSocialOrb hook) - @/providers/SocialOrbProvider

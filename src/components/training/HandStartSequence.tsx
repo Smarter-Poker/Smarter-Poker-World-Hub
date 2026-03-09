@@ -5,15 +5,14 @@
  * Executes the full choreography before handing control to the game.
  */
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     useOpeningChoreography,
     AnimatedCard,
     AnimatedChip,
     AnimatedDealerButton,
-    ActivePlayerRing,
-    type ChoreographyPhase
+    ActivePlayerRing
 } from './OpeningChoreography';
 import { SEAT_LAYOUTS, type TableSize } from '../../lib/SeatLayouts';
 

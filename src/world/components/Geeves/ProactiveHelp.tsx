@@ -2,7 +2,6 @@
    PROACTIVE HELP — DISABLED (User requested no popups)
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import React from 'react';
 
 interface ProactiveHelpProps {
     onAccept: (suggestion: string) => void;

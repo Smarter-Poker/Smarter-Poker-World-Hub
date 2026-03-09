@@ -3,8 +3,8 @@
  * Stake your diamonds, 10-question quiz, 2x payout on 80%+
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import { Gem, AlertTriangle, Check, X, Zap, Target } from 'lucide-react';
 import MetalFrame from '../ui/MetalFrame';
 import HexButton from '../ui/HexButton';

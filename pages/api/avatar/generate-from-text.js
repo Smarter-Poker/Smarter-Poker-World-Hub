@@ -12,7 +12,6 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import sharp from 'sharp';
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { getServerUser } from '../../../src/lib/serverAuth';
 
 // Increase timeout for AI generation
 export const config = {

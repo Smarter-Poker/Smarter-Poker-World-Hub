@@ -7,7 +7,7 @@
 import { useState, useEffect } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, Settings, BarChart3, Shield, Trophy, Key, Search, AlertTriangle, DollarSign, UserCog, Building2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, BarChart3, Shield, Trophy, Key, Search, AlertTriangle, DollarSign, UserCog, Building2 } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../../src/engine/EventBus';
 

@@ -13,7 +13,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { busEmit } from '../../engine/EventBus';
-import { Clock, ChevronRight, ChevronDown, ChevronUp, CheckCircle, XCircle, Zap, Gem, Flame, Volume2, VolumeX } from 'lucide-react';
+import { ChevronRight, ChevronDown, ChevronUp, CheckCircle, XCircle, Zap, Gem, Flame, Volume2, VolumeX } from 'lucide-react';
 import HintButtons, { applyHint } from './HintButtons';
 import GhostOpponent from './GhostOpponent';
 import { toTitleCase } from '../../lib/trivia/titleCase';

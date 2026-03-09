@@ -4,7 +4,7 @@
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { useState } from 'react';
-import { Phone, Bell, UserCheck, UserX, Clock, Plus } from 'lucide-react';
+import { Bell, UserCheck, UserX, Clock, Plus } from 'lucide-react';
 
 export default function WaitlistManager({
   waitlists = [],

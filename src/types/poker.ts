@@ -53,6 +53,7 @@ export interface Scenario {
     heroSeat: number;
     actionLog: ActionLogEntry[];
     boardCards: string[];
+    heroCards: string[];
     finalPot: number;
     question: string;
     correctAction: 'FOLD' | 'CALL' | 'RAISE' | 'ALL_IN';

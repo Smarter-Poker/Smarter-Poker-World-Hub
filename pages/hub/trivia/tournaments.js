@@ -11,7 +11,7 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
-import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
+import { busEmit } from '../../../src/engine/EventBus';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MetalFrame from '../../../src/components/ui/MetalFrame';

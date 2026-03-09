@@ -9,7 +9,6 @@ import { videoClipper } from './VideoClipper.js';
 import { getRandomClip, getRandomCaption, markClipUsed } from './ClipLibrary.js';
 import { createClient } from '@supabase/supabase-js';
 import fs from 'fs';
-import path from 'path';
 
 // Load env vars from .env.local
 import { config } from 'dotenv';

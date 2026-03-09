@@ -2,7 +2,6 @@
  * Social Page Management - Owner/admin dashboard for managing page settings,
  * members, content moderation, and analytics
  */
-import Link from 'next/link';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';

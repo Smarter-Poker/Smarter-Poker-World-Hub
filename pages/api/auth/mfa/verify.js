@@ -11,7 +11,6 @@ const supabase = createClient(
 );
 import speakeasy from 'speakeasy';
 import crypto from 'crypto';
-import { getServerUser } from '../../../../src/lib/serverAuth';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {

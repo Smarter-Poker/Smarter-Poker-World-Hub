@@ -13,7 +13,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import { Calendar, Users, Plus, X, Clock, Send, ChevronLeft, ChevronRight, Loader2, RefreshCw, MessageSquare, Mail, Filter, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Calendar, Users, Plus, X, Clock, Send, ChevronLeft, ChevronRight, Loader2, RefreshCw, MessageSquare, Mail, AlertCircle, CheckCircle2 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';

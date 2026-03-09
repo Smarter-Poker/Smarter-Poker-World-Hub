@@ -2,7 +2,7 @@
  * TournamentAlerts.jsx — Feature #6: Tournament Alerts Engine
  * Custom notification preferences for tournament matching.
  */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const GAME_TYPES = ['NLH', 'PLO', 'Mixed', 'Omaha Hi-Lo', 'Stud'];
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];

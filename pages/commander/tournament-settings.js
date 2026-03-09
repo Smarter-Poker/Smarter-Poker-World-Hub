@@ -6,7 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import { Trophy, Zap, Crown, Target, RefreshCw, Rocket, Crosshair, ChevronRight, Settings, Clock, Loader2, Eye, Copy, Users, Timer } from 'lucide-react';
+import { Trophy, Zap, Crown, Target, RefreshCw, Rocket, Crosshair, ChevronRight, Settings, Clock, Loader2, Eye, Copy, Timer } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import BlindStructureEditor from '../../src/components/commander/tournaments/BlindStructureEditor';

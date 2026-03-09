@@ -6,7 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 
-import { BarChart3, Users, Trophy, Clock, DollarSign, FileText, Activity, ChevronRight, TrendingUp, Filter } from 'lucide-react';
+import { BarChart3, Users, Trophy, Clock, DollarSign, FileText, Activity, ChevronRight, TrendingUp } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../../src/engine/EventBus';
 import SEOHead from '../../../src/components/seo/SEOHead';

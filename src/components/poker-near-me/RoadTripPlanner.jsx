@@ -2,7 +2,7 @@
  * RoadTripPlanner.jsx — Feature #3: Smart Poker Road Trip Planner
  * Multi-stop trip builder with route overlay showing poker venues along the way.
  */
-import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 
 const CORRIDOR_OPTIONS = [25, 50, 100];
 

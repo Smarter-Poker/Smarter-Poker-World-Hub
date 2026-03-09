@@ -6,7 +6,7 @@
 import { useState } from 'react';
 import {
   Gift, DollarSign, Calendar, Clock, Settings,
-  ChevronRight, ChevronLeft, Check, X, Star, Zap, Image, Sparkles
+  ChevronRight, ChevronLeft, Check, X, Star, Zap, Sparkles
 } from 'lucide-react';
 
 const PROMOTION_TYPES = [

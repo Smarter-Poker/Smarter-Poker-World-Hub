@@ -12,7 +12,7 @@
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Zap, Gem, Target, Clock, Flame, RotateCcw, Home, ChevronRight, Swords, Crown } from 'lucide-react';
+import { Trophy, Zap, Gem, Target, Clock, Flame, RotateCcw, Home, ChevronRight, Crown } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import * as audio from '../../lib/trivia/triviaAudio';
 

@@ -7,7 +7,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../../src/components/seo/SEOHead';
-import { ArrowLeft, Home, Users, Calendar, Plus, Settings, UserMinus, Clock, DollarSign, Trash2, Loader2, X, Check, Wallet, ArrowUpRight, ArrowDownLeft, RefreshCw, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Users, Calendar, Plus, Settings, UserMinus, Clock, DollarSign, Trash2, Loader2, X, Check, Wallet, ArrowUpRight, ArrowDownLeft, RefreshCw, AlertCircle } from 'lucide-react';
 import RSVPManager from '../../../../../src/components/commander/home-games/RSVPManager';
 import { supabase } from '../../../../../src/lib/supabase';
 import { getAccessToken } from '../../../../../src/lib/authUtils';

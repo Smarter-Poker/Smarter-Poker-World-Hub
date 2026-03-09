@@ -10,7 +10,7 @@
  * 
  * Tabs: Dashboard | Issue Comp | Comp Log | Rates
  */
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { Gift, DollarSign, Users, Clock, Search, TrendingUp, Loader2, RefreshCw, Check, Shield, X, UtensilsCrossed, Ticket, Coins, Timer, CreditCard, ShoppingBag, FileText, Award, BarChart3 } from 'lucide-react';

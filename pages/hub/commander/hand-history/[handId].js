@@ -15,7 +15,6 @@ import {
   Lightbulb,
   ChevronDown
 } from 'lucide-react';
-import { supabase } from '../../../../src/lib/supabase';
 import { getAccessToken } from '../../../../src/lib/authUtils';
 
 function CardDisplay({ cards, size = 'md' }) {

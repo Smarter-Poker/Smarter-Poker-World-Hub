@@ -22,15 +22,7 @@ import { getGrokClient } from '../../../src/lib/grokClient.js';
 import {
     shouldHorseBeActive,
     isHorseActiveHour,
-    getHorseActivityRate,
-    applyWritingStyle,
-    getTimeOfDayEnergy,
-    getStakesVoice,
-    injectTypos,
-    shouldHorsePostToday,
-    getHorseDailyPostLimit,
-    getContentAwareReaction,
-    detectContentType
+    applyWritingStyle
 } from '../../../src/content-engine/pipeline/HorseScheduler.js';
 
 // ClipLibrary functions - loaded dynamically in handler

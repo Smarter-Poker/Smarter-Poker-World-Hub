@@ -7,7 +7,7 @@
 import React, { useState, useEffect } from 'react';
 import { SP_COLORS, SPAvatar } from './SmarterPokerStyleCard';
 import { NotificationBell, NotificationsDropdown } from './SmarterPokerNotifications';
-import { ChatDock, ChatWindow, ConversationList } from './SmarterPokerMessenger';
+import { ChatDock } from './SmarterPokerMessenger';
 import { supabase } from '../../lib/supabase';
 
 // ═══════════════════════════════════════════════════════════════════════════

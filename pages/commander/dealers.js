@@ -6,7 +6,6 @@
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import SEOHead from '../../src/components/seo/SEOHead';
 import { Users, Plus, Clock, Search, Loader2, Edit2, RotateCw, Star, Check, X, History, ArrowRight, AlertCircle } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';

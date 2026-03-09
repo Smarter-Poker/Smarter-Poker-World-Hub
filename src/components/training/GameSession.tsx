@@ -13,7 +13,7 @@
  * @author Smarter.Poker Engineering
  */
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 
 // Import engine-specific components

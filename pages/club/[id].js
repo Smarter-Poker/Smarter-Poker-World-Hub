@@ -23,17 +23,14 @@ import {
   Share2,
   ChevronRight,
   Calendar,
-  DollarSign,
   CheckCircle,
   Image as ImageIcon,
   Trophy,
-  Zap,
   Play,
   Loader2,
   ExternalLink,
   ThumbsUp,
   Send,
-  MoreHorizontal,
   X,
 } from 'lucide-react';
 

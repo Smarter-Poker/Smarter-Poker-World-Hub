@@ -5,7 +5,6 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import { useState, useEffect } from 'react';
 
 // Filter categories matching reference
 const FILTER_OPTIONS = [

@@ -6,7 +6,6 @@
 // Opt out of static generation — this is a dev test page only
 export const dynamic = 'force-dynamic';
 
-import Image from 'next/image';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 

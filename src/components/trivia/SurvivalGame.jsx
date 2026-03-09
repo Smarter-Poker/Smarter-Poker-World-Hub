@@ -6,7 +6,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, Zap, Trophy, Clock, Target, AlertTriangle, Gem } from 'lucide-react';
+import { Clock, Target, AlertTriangle, Gem } from 'lucide-react';
 import { busEmit } from '../../engine/EventBus';
 import MetalFrame from '../ui/MetalFrame';
 import HexButton from '../ui/HexButton';

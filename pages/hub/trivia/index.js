@@ -6,7 +6,6 @@
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../../src/lib/supabase';
-import { getAuthUser } from '../../../src/lib/authUtils';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 
 import PageTransition from '../../../src/components/transitions/PageTransition';

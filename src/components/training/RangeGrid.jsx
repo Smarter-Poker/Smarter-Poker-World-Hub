@@ -16,7 +16,7 @@
 
 import React, { useState, useMemo, memo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getClassificationColor, getClassificationMeta } from '../../utils/pokerHandEvaluator';
+import { getClassificationColor } from '../../utils/pokerHandEvaluator';
 
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 

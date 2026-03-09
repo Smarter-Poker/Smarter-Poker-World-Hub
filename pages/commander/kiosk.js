@@ -8,7 +8,6 @@
  * - New Member: popup directing to staff for membership registration
  * Designed for tablet at room entrance, large touch targets
  */
-import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';

@@ -6,7 +6,7 @@ import { useState, useEffect, useCallback } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
-import { getSafeUser, getAuthUser } from '../../../src/lib/authUtils';
+import { getAuthUser } from '../../../src/lib/authUtils';
 import usePersistedFilters from '../../../src/hooks/usePersistedFilters';
 
 const getAuthToken = async () => {

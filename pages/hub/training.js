@@ -76,7 +76,6 @@ import toast from '../../src/stores/toastStore';
 import { trainingSounds } from '../../src/utils/trainingSounds';
 import GamificationService from '../../services/GamificationService';
 import AchievementToast from '../../src/components/training/AchievementToast';
-import ChallengesWidget from '../../src/components/training/ChallengesWidget';
 import JarvisRecommendations from '../../src/components/training/JarvisRecommendations';
 // DailyBonusWidget removed per UI overhaul
 import useTrainingRealtime from '../../src/hooks/useTrainingRealtime';

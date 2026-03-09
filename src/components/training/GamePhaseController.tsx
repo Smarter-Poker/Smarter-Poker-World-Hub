@@ -13,7 +13,7 @@
  * - Session Report Modal → Review Mode for mistakes
  */
 
-import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import type { SolverResult } from './FeedbackCard';
 
 // ═══════════════════════════════════════════════════════════════════════════

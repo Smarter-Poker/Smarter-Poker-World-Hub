@@ -7,7 +7,6 @@
 
 import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Text, Line } from '@react-three/drei';
 import * as THREE from 'three';
 import { TextureLoader } from 'three';
 

@@ -7,7 +7,7 @@ import Image from 'next/image';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
-import { getSafeUser, getAuthUser } from '../../../src/lib/authUtils';
+import { getAuthUser } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 import usePersistedFilters from '../../../src/hooks/usePersistedFilters';

@@ -7,7 +7,6 @@
  */
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
 import { claimReward } from '../../lib/claimReward';
 
 // TODO: Module dependencies missing:

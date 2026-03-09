@@ -4,7 +4,6 @@
  * Returns per-table usage: hours active, avg players, peak times, uptime %
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
-import { getServerUser } from '../../../../src/lib/serverAuth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
 const supabase = createClient(

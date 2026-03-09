@@ -11,13 +11,10 @@
 
 import dynamic from 'next/dynamic';
 const ShoppingCart = dynamic(() => import('../../src/components/store/ShoppingCart'), { ssr: false });
-import Image from 'next/image';
-import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { usePersistedFilters } from '../../src/hooks/usePersistedFilters';
-import confetti from 'canvas-confetti';
 
 // God-Mode Stack
 import PageTransition from '../../src/components/transitions/PageTransition';

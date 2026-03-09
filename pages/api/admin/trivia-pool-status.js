@@ -8,7 +8,6 @@
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
-import { getGrokClient } from '../../../src/lib/grokClient';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,

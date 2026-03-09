@@ -16,11 +16,9 @@ import { useFrame } from '@react-three/fiber';
 import {
   BufferGeometry,
   Float32BufferAttribute,
-  PointsMaterial,
   AdditiveBlending,
   TextureLoader,
   ShaderMaterial,
-  Color,
 } from 'three';
 
 // ─── High-res procedural glow sprite (256x256) ───

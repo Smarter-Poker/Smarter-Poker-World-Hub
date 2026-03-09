@@ -11,7 +11,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import MistakeCluster from '../../../src/components/training/MistakeCluster';
 import GhostReplayEngine from '../../../src/components/training/GhostReplayEngine';

@@ -9,7 +9,6 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { ArrowLeft, Save, User, Camera } from 'lucide-react';
-import { supabase } from '../../../../src/lib/supabase';
 import { getAccessToken } from '../../../../src/lib/authUtils';
 
 export default function ProfileEditPage() {

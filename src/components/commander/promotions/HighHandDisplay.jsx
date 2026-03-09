@@ -4,7 +4,7 @@
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { useState } from 'react';
-import { Star, Clock, DollarSign, Trophy, User, Table2, RefreshCw } from 'lucide-react';
+import { Star, Clock, DollarSign, Trophy, User, Table2 } from 'lucide-react';
 
 const HAND_RANKS = [
   'Royal Flush', 'Straight Flush', 'Four of a Kind', 'Full House',

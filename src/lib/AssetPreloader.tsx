@@ -11,7 +11,7 @@
  * - Works even if all assets fail
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ASSET MANIFEST - All required game assets

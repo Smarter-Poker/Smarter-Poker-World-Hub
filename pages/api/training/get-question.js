@@ -168,10 +168,13 @@ export default async function handler(req, res) {
 
 
         // ═══════════════════════════════════════════════════════════════════
-        // STEP 4: GENERATE WITH GROK AI (Last Resort)
+        // STEP 4: GROK AI — SCENARIO (Psychology) GAMES ONLY
+        // BUG-E FIX: Removed Grok fallback for PIO/CHART games.
+        // Grok generates hallucinated GTO data that violates the deterministic standard.
+        // Only SCENARIO (psychology) games use Grok since they have no solver data by design.
         // ═══════════════════════════════════════════════════════════════════
-        if (!question) {
-            question = await generateQuestionWithGrok(gameId, engineType, level, gameType, game, gameConfig);
+        if (!question && preferredEngine === 'SCENARIO') {
+            question = await generateQuestionWithGrok(gameId, 'SCENARIO', level, gameType, game, gameConfig);
 
             // Save to cache for future use
             if (question) {
@@ -181,14 +184,13 @@ export default async function handler(req, res) {
                         .insert({
                             question_id: question.id,
                             game_id: gameId,
-                            engine_type: engineType.toUpperCase(),
+                            engine_type: 'SCENARIO',
                             game_type: gameType,
                             level: parseInt(level),
                             question_data: question,
                             times_used: 1,
                         });
                 } catch (cacheError) {
-                    // Ignore duplicate errors (question already cached)
                     if (!cacheError.message?.includes('duplicate')) {
                         console.error('[Training] ⚠️ Cache save failed:', cacheError.message);
                     }

@@ -7,7 +7,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Image, X, Trash2, Calendar, DollarSign } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { METAL, GRADIENTS, GLOWS } from './metalStyles';
+import { METAL } from './metalStyles';
 
 export default function SavedReceipts({ userId }) {
     const [receipts, setReceipts] = useState([]);

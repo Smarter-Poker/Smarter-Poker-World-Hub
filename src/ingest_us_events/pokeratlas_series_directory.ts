@@ -5,7 +5,7 @@
 
 import * as cheerio from 'cheerio';
 import { createHash } from 'crypto';
-import type { Series, SourceEntry, CrawlResult, PageCrawlState } from './types';
+import type { SourceEntry, CrawlResult, PageCrawlState } from './types';
 
 const BASE_URL = 'https://www.pokeratlas.com/poker-tournament-series';
 const RATE_LIMIT_MS = 1500;

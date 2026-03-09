@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { SoundEngine, EffectsEngine } from './GameEngine';
-import { getRandomScenario, getLevelConfig, RANKS } from './ScenarioDatabase';
+import { getRandomScenario } from './ScenarioDatabase';
 
 // Game constants
 const INITIAL_TIME = 3000; // 3 seconds per hand

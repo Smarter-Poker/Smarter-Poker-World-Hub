@@ -9,7 +9,8 @@
     "build": "NODE_OPTIONS='--max-old-space-size=7168' next build",
     "start": "next start",
     "ingest:us-events": "npx ts-node --esm src/ingest_us_events/run.ts",
-    "warm-geeves": "node scripts/warmGeevesCache.js"
+    "warm-geeves": "node scripts/warmGeevesCache.js",
+    "db:push": "node scripts/antigravity_sql_push.js"
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",
@@ -88,6 +89,9 @@
     "@types/react": "19.2.8",
     "autoprefixer": "^10.4.23",
     "daisyui": "^5.5.14",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^14.2.35",
+    "eslint-plugin-unused-imports": "^4.4.1",
     "postcss": "^8.5.6",
     "tailwindcss-3d": "^1.1.0",
     "ts-node": "^10.9.2",

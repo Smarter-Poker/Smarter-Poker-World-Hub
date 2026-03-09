@@ -12,7 +12,6 @@ import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { useState } from 'react';
-import confetti from 'canvas-confetti';
 import GameCard from '../../../../src/components/training/GameCard';
 import { getGamesByCategory } from '../../../../src/data/TRAINING_LIBRARY';
 import useTrainingProgress from '../../../../src/hooks/useTrainingProgress';

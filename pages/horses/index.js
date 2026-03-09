@@ -3,7 +3,7 @@
  * Integrated into hub-vanguard Next.js app at /horses
  */
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { supabase } from '../../src/lib/supabase';

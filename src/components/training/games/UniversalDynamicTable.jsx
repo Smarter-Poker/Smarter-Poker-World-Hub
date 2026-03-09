@@ -11,7 +11,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import RangeGrid from '../RangeGrid';
 import {
@@ -528,30 +528,37 @@ function getHeroSeatIndex(heroPosition, playerCount) {
 // COUNTDOWN TIMER — GTO Wizard-style time pressure ring
 // ═══════════════════════════════════════════════════════════════════════════
 
-function CountdownTimer({ seconds = 60, questionNumber, showFeedback, active = true }) {
+function CountdownTimer({ seconds = 60, questionNumber, showFeedback, active = true, onTimeExpired = null }) {
     const [timeLeft, setTimeLeft] = React.useState(seconds);
+    const expiredRef = React.useRef(false);
     const radius = 18;
     const circumference = 2 * Math.PI * radius;
 
     // Reset timer on new question
     React.useEffect(() => {
         setTimeLeft(seconds);
+        expiredRef.current = false;
     }, [questionNumber, seconds]);
 
-    // Countdown tick — stops at 0, never auto-picks
+    // Countdown tick — fires onTimeExpired when hitting 0
     React.useEffect(() => {
         if (!active || showFeedback || timeLeft <= 0) return;
         const timer = setInterval(() => {
             setTimeLeft(prev => {
                 if (prev <= 1) {
                     clearInterval(timer);
+                    // BUG-04 FIX: Fire callback when timer expires
+                    if (onTimeExpired && !expiredRef.current) {
+                        expiredRef.current = true;
+                        setTimeout(() => onTimeExpired(), 0);
+                    }
                     return 0;
                 }
                 return prev - 1;
             });
         }, 1000);
         return () => clearInterval(timer);
-    }, [active, showFeedback, timeLeft]);
+    }, [active, showFeedback, timeLeft, onTimeExpired]);
 
     if (!active || showFeedback) return null;
 
@@ -1939,11 +1946,25 @@ function UniversalDynamicTable({
 
             {/* ACTION BUTTONS — GTO Wizard-style poker action bar (F2: Dynamic sizing + F9: Keyboard hints) */}
             <div style={{ ...styles.actionBar, position: 'relative' }}>
-                {/* Countdown Timer — 60 seconds, no auto-pick */}
+                {/* Countdown Timer — 60 seconds, auto-submits worst action on expiry */}
                 <CountdownTimer
                     seconds={60}
                     questionNumber={questionNumber}
                     showFeedback={showFeedback}
+                    onTimeExpired={() => {
+                        // BUG-04 FIX: Auto-submit worst option when timer expires
+                        if (!showFeedback && !selectedAnswer && onAnswer) {
+                            const opts = question?.options || [];
+                            // Find fold option, or use the first option as fallback
+                            const foldOpt = opts.find(o => /fold/i.test(o.text || o.label || ''));
+                            const worstId = foldOpt ? (foldOpt.id || foldOpt) : (opts[0]?.id || opts[0]);
+                            if (worstId) {
+                                setSelectedAnswer(worstId);
+                                onAnswer(worstId);
+                                SoundEngine.play('wrong');
+                            }
+                        }
+                    }}
                 />
                 {/* Quit/Back Button */}
                 {onExit && (
@@ -2231,75 +2252,92 @@ function UniversalDynamicTable({
                             </motion.div>
                         )}
 
-                        {/* Explanation + Why Drawer */}
-                        {explanation && (
-                            <div>
-                                <div style={styles.feedbackExplanation}>{explanation}</div>
-                                <button
-                                    onClick={() => setShowWhyDrawer(!showWhyDrawer)}
-                                    style={{
-                                        marginTop: 6, padding: '5px 14px', borderRadius: 6,
-                                        background: 'rgba(0, 212, 255, 0.08)',
-                                        border: '1px solid rgba(0, 212, 255, 0.25)',
-                                        color: '#00d4ff', fontSize: 11, fontWeight: 700,
-                                        cursor: 'pointer', letterSpacing: 0.5,
-                                    }}
-                                >
-                                    {showWhyDrawer ? 'Hide Details' : 'Why?'}
-                                </button>
-                                <AnimatePresence>
-                                    {showWhyDrawer && (
-                                        <motion.div
-                                            initial={{ height: 0, opacity: 0 }}
-                                            animate={{ height: 'auto', opacity: 1 }}
-                                            exit={{ height: 0, opacity: 0 }}
-                                            transition={{ duration: 0.25 }}
-                                            style={{ overflow: 'hidden' }}
-                                        >
-                                            <div style={{
-                                                marginTop: 8, padding: '10px 12px',
-                                                background: 'rgba(0, 212, 255, 0.04)',
-                                                borderRadius: 8,
-                                                border: '1px solid rgba(0, 212, 255, 0.12)',
-                                                fontSize: 11, color: '#cbd5e1', lineHeight: 1.6,
-                                            }}>
-                                                <div style={{ fontWeight: 700, color: '#00d4ff', marginBottom: 6, fontSize: 10, letterSpacing: 1 }}>
-                                                    SOLVER ANALYSIS
-                                                </div>
-                                                <div style={{ marginBottom: 4 }}>
-                                                    <strong style={{ color: '#22c55e' }}>Optimal Play:</strong>{' '}
-                                                    {options.find(o => o.id === correctAnswer)?.text || correctAnswer}
-                                                    {computedFrequencies[correctAnswer] > 0 && (
-                                                        <span style={{ color: '#94a3b8' }}> at {computedFrequencies[correctAnswer]}% frequency</span>
-                                                    )}
-                                                </div>
-                                                {selectedAnswer && selectedAnswer !== correctAnswer && (
+                        {/* Explanation + Why Drawer — UX-02: Fallback explanation when none provided */}
+                        {(() => {
+                            // Generate fallback explanation if none provided
+                            const displayExplanation = explanation || (() => {
+                                if (!moveClassification) return null;
+                                const correctOpt = options.find(o => o.id === correctAnswer)?.text || correctAnswer;
+                                const selectedOpt = selectedAnswer ? (options.find(o => o.id === selectedAnswer)?.text || selectedAnswer) : '';
+                                const freq = computedFrequencies[correctAnswer] || 0;
+
+                                if (moveClassification === 'best') return `Great — ${correctOpt} is the highest-frequency play${freq > 0 ? ` at ${freq}%` : ''}.`;
+                                if (moveClassification === 'correct') return `Good — your action is part of the GTO mix, though ${correctOpt} is more frequent.`;
+                                if (moveClassification === 'inaccuracy') return `${correctOpt} is the solver's primary action${freq > 0 ? ` at ${freq}%` : ''}. ${selectedOpt} is a marginal option that costs ${evLoss > 0 ? evLoss.toFixed(1) + ' BB' : 'some'} EV.`;
+                                if (moveClassification === 'wrong') return `The solver prefers ${correctOpt}${freq > 0 ? ` (${freq}%)` : ''}. Your choice of ${selectedOpt} loses ${evLoss > 0 ? evLoss.toFixed(1) + ' BB' : 'significant'} EV.`;
+                                return `A blunder — ${correctOpt} is the clear optimal play. ${selectedOpt} is not in the solver's strategy and costs ${evLoss > 0 ? evLoss.toFixed(1) + ' BB' : 'heavy'} EV.`;
+                            })();
+
+                            if (!displayExplanation) return null;
+                            return (
+                                <div>
+                                    <div style={styles.feedbackExplanation}>{displayExplanation}</div>
+                                    <button
+                                        onClick={() => setShowWhyDrawer(!showWhyDrawer)}
+                                        style={{
+                                            marginTop: 6, padding: '5px 14px', borderRadius: 6,
+                                            background: 'rgba(0, 212, 255, 0.08)',
+                                            border: '1px solid rgba(0, 212, 255, 0.25)',
+                                            color: '#00d4ff', fontSize: 11, fontWeight: 700,
+                                            cursor: 'pointer', letterSpacing: 0.5,
+                                        }}
+                                    >
+                                        {showWhyDrawer ? 'Hide Details' : 'Why?'}
+                                    </button>
+                                    <AnimatePresence>
+                                        {showWhyDrawer && (
+                                            <motion.div
+                                                initial={{ height: 0, opacity: 0 }}
+                                                animate={{ height: 'auto', opacity: 1 }}
+                                                exit={{ height: 0, opacity: 0 }}
+                                                transition={{ duration: 0.25 }}
+                                                style={{ overflow: 'hidden' }}
+                                            >
+                                                <div style={{
+                                                    marginTop: 8, padding: '10px 12px',
+                                                    background: 'rgba(0, 212, 255, 0.04)',
+                                                    borderRadius: 8,
+                                                    border: '1px solid rgba(0, 212, 255, 0.12)',
+                                                    fontSize: 11, color: '#cbd5e1', lineHeight: 1.6,
+                                                }}>
+                                                    <div style={{ fontWeight: 700, color: '#00d4ff', marginBottom: 6, fontSize: 10, letterSpacing: 1 }}>
+                                                        SOLVER ANALYSIS
+                                                    </div>
                                                     <div style={{ marginBottom: 4 }}>
-                                                        <strong style={{ color: '#ef4444' }}>Your Pick:</strong>{' '}
-                                                        {options.find(o => o.id === selectedAnswer)?.text || selectedAnswer}
-                                                        {evLoss > 0 && (
-                                                            <span style={{ color: '#ef4444' }}> loses {evLoss.toFixed(2)} BB vs optimal</span>
+                                                        <strong style={{ color: '#22c55e' }}>Optimal Play:</strong>{' '}
+                                                        {options.find(o => o.id === correctAnswer)?.text || correctAnswer}
+                                                        {computedFrequencies[correctAnswer] > 0 && (
+                                                            <span style={{ color: '#94a3b8' }}> at {computedFrequencies[correctAnswer]}% frequency</span>
                                                         )}
                                                     </div>
-                                                )}
-                                                {boardTexture && (
-                                                    <div style={{ marginBottom: 4 }}>
-                                                        <strong style={{ color: '#94a3b8' }}>Board:</strong>{' '}
-                                                        {boardTexture.suitTexture} + {boardTexture.connectTexture} texture.
-                                                        {' '}{heroPosition && `Hero in ${POSITION_NAMES[heroPosition] || heroPosition}.`}
-                                                    </div>
-                                                )}
-                                                {street && (
-                                                    <div style={{ color: '#64748b', fontSize: 10, marginTop: 4 }}>
-                                                        Street: {street.charAt(0).toUpperCase() + street.slice(1)} | Pot: {pot} BB | SPR: {spr || 'N/A'}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
-                            </div>
-                        )}
+                                                    {selectedAnswer && selectedAnswer !== correctAnswer && (
+                                                        <div style={{ marginBottom: 4 }}>
+                                                            <strong style={{ color: '#ef4444' }}>Your Pick:</strong>{' '}
+                                                            {options.find(o => o.id === selectedAnswer)?.text || selectedAnswer}
+                                                            {evLoss > 0 && (
+                                                                <span style={{ color: '#ef4444' }}> loses {evLoss.toFixed(2)} BB vs optimal</span>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                    {boardTexture && (
+                                                        <div style={{ marginBottom: 4 }}>
+                                                            <strong style={{ color: '#94a3b8' }}>Board:</strong>{' '}
+                                                            {boardTexture.suitTexture} + {boardTexture.connectTexture} texture.
+                                                            {' '}{heroPosition && `Hero in ${POSITION_NAMES[heroPosition] || heroPosition}.`}
+                                                        </div>
+                                                    )}
+                                                    {street && (
+                                                        <div style={{ color: '#64748b', fontSize: 10, marginTop: 4 }}>
+                                                            Street: {street.charAt(0).toUpperCase() + street.slice(1)} | Pot: {pot} BB | SPR: {spr || 'N/A'}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+                            );
+                        })()}
 
                         {/* F12: Villain Range Summary + Range Grid Toggle */}
                         {question?.rawFrequencies && (

@@ -4,7 +4,6 @@
  * Query: ?staff_id=X&venue_id=Y&week=2026-03-02
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
-import { getServerUser } from '../../../src/lib/serverAuth';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,

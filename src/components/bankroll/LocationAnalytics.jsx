@@ -3,7 +3,7 @@
  * P/L breakdown by venue with bar chart visualization
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 
 export default function LocationAnalytics({ entries = [], isLoading }) {

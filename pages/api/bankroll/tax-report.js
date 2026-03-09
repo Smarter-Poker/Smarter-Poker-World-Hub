@@ -9,7 +9,6 @@ import autoTable from 'jspdf-autotable';
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { checkFeatureAccess } from '../../../src/lib/gates/premiumFeatureGate';
-import { getServerUser } from '../../../src/lib/serverAuth';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,

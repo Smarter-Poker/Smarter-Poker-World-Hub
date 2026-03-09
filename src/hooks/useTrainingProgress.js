@@ -9,8 +9,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { getPlayStatus, getRankFromMastery, PLAY_STATUS, USER_RANKS } from '../components/training/GameBadge';
-import supabase from '../lib/supabase';
+import { getPlayStatus, getRankFromMastery, USER_RANKS } from '../components/training/GameBadge';
 
 const STORAGE_KEY = 'pokeriq_training_progress';
 

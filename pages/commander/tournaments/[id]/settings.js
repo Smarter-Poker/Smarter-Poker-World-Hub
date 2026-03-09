@@ -12,7 +12,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { Save, Plus, Trash2, Clock, DollarSign, Coffee, ChevronUp, ChevronDown, Loader2, Settings, Check, ArrowLeft } from 'lucide-react';
-import CommanderLayout from '../../../../src/components/commander/shared/CommanderLayout';
 import { broadcastChange } from '../../../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../../../src/engine/EventBus';
 

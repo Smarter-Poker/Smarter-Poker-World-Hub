@@ -14,8 +14,7 @@ import {
     getSoundManager,
     getHapticsManager,
     SoundManager,
-    HapticsManager,
-    SoundEvent
+    HapticsManager
 } from '../lib/SoundManager';
 import type { ActionType } from '../types/poker';
 

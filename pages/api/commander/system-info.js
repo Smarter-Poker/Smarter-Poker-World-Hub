@@ -3,7 +3,6 @@
  * GET /api/commander/system-info - Get system health, version, recent log
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
-import { getServerUser } from '../../../src/lib/serverAuth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const supabase = createClient(

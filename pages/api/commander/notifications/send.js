@@ -6,7 +6,7 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { normalizePhoneNumber, isSmsConfigured } from '../../../../src/lib/commander/notifications';
 import { sendSMS as twilioSendSMS, isTwilioConfigured } from '../../../../src/lib/commander/twilio';
-import { isOneSignalConfigured, sendPushNotification as pushNotifySend } from '../../../../src/lib/commander/pushNotifications';
+import { isOneSignalConfigured } from '../../../../src/lib/commander/pushNotifications';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { checkMemoryRateLimit } from '../../../../src/lib/commander/rateLimit';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';

@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { Flame, Shield, ChevronUp, Zap } from 'lucide-react';
+import { Flame, ChevronUp, Zap } from 'lucide-react';
 import { formatStreakDisplay, getNextTier, STREAK_TIERS } from '../../config/triviaStreakSystem';
 
 export default function StreakBadge({

@@ -6,7 +6,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { POKER_IQ_ORBS, COMMANDER_ORB, TOKE_TRACKER_ORB, PINNED_ORB_IDS } from '../../orbs/manifest/registry';
-import type { OrbConfig } from '../../orbs/manifest/registry';
 import { getHiddenCardIds, setHiddenCardIds } from '../../state/userPreferences';
 import { getAuthUser } from '../../lib/authUtils';
 

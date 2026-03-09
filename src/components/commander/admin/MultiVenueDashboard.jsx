@@ -5,9 +5,8 @@
  */
 import React, { useState } from 'react';
 import {
-  Building2, Users, Clock, DollarSign, Activity,
-  TrendingUp, TrendingDown, ChevronRight, MapPin,
-  ListFilter, LayoutGrid, LayoutList
+  Building2, Users, DollarSign, Activity,
+  TrendingUp, TrendingDown, ChevronRight, MapPin, LayoutGrid, LayoutList
 } from 'lucide-react';
 
 function VenueCard({ venue, onSelect, isSelected }) {

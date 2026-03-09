@@ -13,7 +13,7 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// HAND HISTORY PARSER — Supports PokerStars format
+// HAND HISTORY PARSERS — Multi-Site Support (PokerStars, GGPoker, 888, WPN)
 // ═══════════════════════════════════════════════════════════════════════════
 
 function parsePokerStarsHand(text) {
@@ -24,24 +24,15 @@ function parsePokerStarsHand(text) {
         if (!block.trim() || block.length < 50) continue;
         try {
             const hand = {};
-
-            // Extract hand ID
             const idMatch = block.match(/Hand #(\d+)/);
-            hand.id = idMatch ? idMatch[1] : `hand-${hands.length}`;
-
-            // Extract game type
+            hand.id = idMatch ? idMatch[1] : `ps-${hands.length}`;
+            hand.site = 'PokerStars';
             hand.gameType = block.includes('Tournament') ? 'MTT' : 'Cash';
-
-            // Extract stakes
             const stakesMatch = block.match(/\(?\$?([\d.]+)\/\$?([\d.]+)/);
             hand.stakes = stakesMatch ? `${stakesMatch[1]}/${stakesMatch[2]}` : 'Unknown';
-
-            // Extract hero and position
             const heroMatch = block.match(/Dealt to (.+?) \[(.+?)\]/);
             hand.hero = heroMatch ? heroMatch[1] : 'Hero';
             hand.heroCards = heroMatch ? heroMatch[2].split(' ') : [];
-
-            // Extract board
             const boardMatches = [];
             const flopMatch = block.match(/\*\*\* FLOP \*\*\* \[(.+?)\]/);
             if (flopMatch) boardMatches.push(...flopMatch[1].split(' '));
@@ -50,44 +41,194 @@ function parsePokerStarsHand(text) {
             const riverMatch = block.match(/\*\*\* RIVER \*\*\*.*\[(.+?)\]/);
             if (riverMatch) boardMatches.push(riverMatch[1]);
             hand.board = boardMatches;
-
-            // Extract pot
             const potMatch = block.match(/Total pot \$?([\d.]+)/);
             hand.pot = potMatch ? parseFloat(potMatch[1]) : 0;
-
-            // Extract hero position from seat info
             const seatLines = block.match(/Seat \d+: .+/g) || [];
             const buttonMatch = block.match(/Seat #(\d+) is the button/);
             hand.button = buttonMatch ? parseInt(buttonMatch[1]) : 1;
-
-            // Extract actions
             hand.actions = [];
             const actionLines = block.match(/.+?: (?:folds|calls|raises|bets|checks|all-in).*/gi) || [];
             for (const line of actionLines) {
                 const aMatch = line.match(/(.+?): (folds|calls|raises|bets|checks|all-in)(?:\s+\$?([\d.]+))?/i);
                 if (aMatch) {
                     hand.actions.push({
-                        player: aMatch[1].trim(),
-                        action: aMatch[2].toLowerCase(),
+                        player: aMatch[1].trim(), action: aMatch[2].toLowerCase(),
                         amount: aMatch[3] ? parseFloat(aMatch[3]) : 0,
                         isHero: aMatch[1].trim() === hand.hero,
                     });
                 }
             }
-
-            // Extract result
             const wonMatch = block.match(/collected \$?([\d.]+)/);
             hand.result = wonMatch ? parseFloat(wonMatch[1]) : 0;
-
             hand.rawText = block.substring(0, 500);
             hands.push(hand);
-        } catch (e) {
-            // Skip unparseable hands
-            continue;
-        }
+        } catch (e) { continue; }
     }
     return hands;
 }
+
+function parseGGPokerHand(text) {
+    const hands = [];
+    const handBlocks = text.split(/(?=Poker Hand #)/);
+
+    for (const block of handBlocks) {
+        if (!block.trim() || block.length < 50) continue;
+        try {
+            const hand = {};
+            const idMatch = block.match(/Hand #([\w-]+)/);
+            hand.id = idMatch ? idMatch[1] : `gg-${hands.length}`;
+            hand.site = 'GGPoker';
+            hand.gameType = block.includes('Tournament') || block.includes('Bounty') ? 'MTT' : 'Cash';
+            const stakesMatch = block.match(/\(?\$?([\d.]+)\/\$?([\d.]+)/);
+            hand.stakes = stakesMatch ? `${stakesMatch[1]}/${stakesMatch[2]}` : 'Unknown';
+            const heroMatch = block.match(/Dealt to (?:Hero|(.+?)) \[(.+?)\]/);
+            hand.hero = heroMatch ? (heroMatch[1] || 'Hero') : 'Hero';
+            hand.heroCards = heroMatch ? heroMatch[2].split(' ') : [];
+            const boardMatches = [];
+            const flopMatch = block.match(/\*\*\* FLOP \*\*\* \[(.+?)\]/);
+            if (flopMatch) boardMatches.push(...flopMatch[1].split(' '));
+            const turnMatch = block.match(/\*\*\* TURN \*\*\*.*\[(.+?)\]/);
+            if (turnMatch) boardMatches.push(turnMatch[1]);
+            const riverMatch = block.match(/\*\*\* RIVER \*\*\*.*\[(.+?)\]/);
+            if (riverMatch) boardMatches.push(riverMatch[1]);
+            hand.board = boardMatches;
+            const potMatch = block.match(/Total pot \$?([\d.]+)/);
+            hand.pot = potMatch ? parseFloat(potMatch[1]) : 0;
+            hand.button = 1;
+            hand.actions = [];
+            const actionLines = block.match(/.+?: (?:Folds|Calls|Raises|Bets|Checks|All-in).*/gi) || [];
+            for (const line of actionLines) {
+                const aMatch = line.match(/(.+?): (Folds|Calls|Raises|Bets|Checks|All-in)(?:\s+\$?([\d.]+))?/i);
+                if (aMatch) {
+                    hand.actions.push({
+                        player: aMatch[1].trim(), action: aMatch[2].toLowerCase(),
+                        amount: aMatch[3] ? parseFloat(aMatch[3]) : 0,
+                        isHero: aMatch[1].trim() === hand.hero || aMatch[1].trim() === 'Hero',
+                    });
+                }
+            }
+            const wonMatch = block.match(/collected \$?([\d.]+)/);
+            hand.result = wonMatch ? parseFloat(wonMatch[1]) : 0;
+            hand.rawText = block.substring(0, 500);
+            hands.push(hand);
+        } catch (e) { continue; }
+    }
+    return hands;
+}
+
+function parse888Hand(text) {
+    const hands = [];
+    const handBlocks = text.split(/(?=\*\*\*\*\* 888poker Hand History)/);
+
+    for (const block of handBlocks) {
+        if (!block.trim() || block.length < 50) continue;
+        try {
+            const hand = {};
+            const idMatch = block.match(/Game (\d+)/);
+            hand.id = idMatch ? idMatch[1] : `888-${hands.length}`;
+            hand.site = '888poker';
+            hand.gameType = block.includes('Tournament') ? 'MTT' : 'Cash';
+            const stakesMatch = block.match(/\$?([\d.]+)\/\$?([\d.]+)/);
+            hand.stakes = stakesMatch ? `${stakesMatch[1]}/${stakesMatch[2]}` : 'Unknown';
+            const heroMatch = block.match(/Dealt to (.+?) \[(.+?)\]/);
+            hand.hero = heroMatch ? heroMatch[1] : 'Hero';
+            hand.heroCards = heroMatch ? heroMatch[2].split(/[\s,]+/) : [];
+            const boardMatches = [];
+            const flopMatch = block.match(/\*\* Dealing flop \*\* \[(.+?)\]/i);
+            if (flopMatch) boardMatches.push(...flopMatch[1].split(/[\s,]+/));
+            const turnMatch = block.match(/\*\* Dealing turn \*\* \[(.+?)\]/i);
+            if (turnMatch) boardMatches.push(turnMatch[1].trim());
+            const riverMatch = block.match(/\*\* Dealing river \*\* \[(.+?)\]/i);
+            if (riverMatch) boardMatches.push(riverMatch[1].trim());
+            hand.board = boardMatches;
+            const potMatch = block.match(/Total pot \$?([\d.]+)/);
+            hand.pot = potMatch ? parseFloat(potMatch[1]) : 0;
+            hand.button = 1;
+            hand.actions = [];
+            const actionLines = block.match(/.+? (?:folds|calls|raises|bets|checks).*/gi) || [];
+            for (const line of actionLines) {
+                const aMatch = line.match(/(.+?) (folds|calls|raises|bets|checks)(?:\s*\[?\$?([\d.]+)\]?)?/i);
+                if (aMatch) {
+                    hand.actions.push({
+                        player: aMatch[1].trim(), action: aMatch[2].toLowerCase(),
+                        amount: aMatch[3] ? parseFloat(aMatch[3]) : 0,
+                        isHero: aMatch[1].trim() === hand.hero,
+                    });
+                }
+            }
+            const wonMatch = block.match(/collected \[?\$?([\d.]+)/);
+            hand.result = wonMatch ? parseFloat(wonMatch[1]) : 0;
+            hand.rawText = block.substring(0, 500);
+            hands.push(hand);
+        } catch (e) { continue; }
+    }
+    return hands;
+}
+
+function parseWPNHand(text) {
+    const hands = [];
+    const handBlocks = text.split(/(?=(?:Winning Poker Network|Game started at))/);
+
+    for (const block of handBlocks) {
+        if (!block.trim() || block.length < 50) continue;
+        try {
+            const hand = {};
+            const idMatch = block.match(/Game ID: ?(\d+)/);
+            hand.id = idMatch ? idMatch[1] : `wpn-${hands.length}`;
+            hand.site = 'WPN/ACR';
+            hand.gameType = block.includes('Tournament') || block.includes('Sit&Go') ? 'MTT' : 'Cash';
+            const stakesMatch = block.match(/\$?([\d.]+)\/\$?([\d.]+)/);
+            hand.stakes = stakesMatch ? `${stakesMatch[1]}/${stakesMatch[2]}` : 'Unknown';
+            const heroMatch = block.match(/Dealt to (.+?) \[(.+?)\]/);
+            hand.hero = heroMatch ? heroMatch[1] : 'Hero';
+            hand.heroCards = heroMatch ? heroMatch[2].split(/[\s,]+/) : [];
+            const boardMatches = [];
+            const boardMatch = block.match(/Board: \[(.+?)\]/);
+            if (boardMatch) boardMatches.push(...boardMatch[1].split(/[\s,]+/));
+            hand.board = boardMatches;
+            const potMatch = block.match(/Total pot[:\s]+\$?([\d.]+)/i);
+            hand.pot = potMatch ? parseFloat(potMatch[1]) : 0;
+            hand.button = 1;
+            hand.actions = [];
+            const actionLines = block.match(/.+? (?:folds|calls|raises|bets|checks|all-in).*/gi) || [];
+            for (const line of actionLines) {
+                const aMatch = line.match(/(.+?) (folds|calls|raises|bets|checks|all-in)(?:\s+\$?([\d.]+))?/i);
+                if (aMatch) {
+                    hand.actions.push({
+                        player: aMatch[1].trim(), action: aMatch[2].toLowerCase(),
+                        amount: aMatch[3] ? parseFloat(aMatch[3]) : 0,
+                        isHero: aMatch[1].trim() === hand.hero,
+                    });
+                }
+            }
+            const wonMatch = block.match(/collected \$?([\d.]+)/);
+            hand.result = wonMatch ? parseFloat(wonMatch[1]) : 0;
+            hand.rawText = block.substring(0, 500);
+            hands.push(hand);
+        } catch (e) { continue; }
+    }
+    return hands;
+}
+
+/**
+ * AUTO-DETECT format and parse hands from any supported site
+ */
+function parseHandHistory(text) {
+    if (text.includes('PokerStars')) return parsePokerStarsHand(text);
+    if (text.includes('Poker Hand #') || text.includes('GGPoker') || text.includes('GG Network')) return parseGGPokerHand(text);
+    if (text.includes('888poker') || text.includes('888 Hand')) return parse888Hand(text);
+    if (text.includes('Winning Poker Network') || text.includes('Game started at') || text.includes('Americas Cardroom')) return parseWPNHand(text);
+    // Fallback: try PokerStars format (most common)
+    const psHands = parsePokerStarsHand(text);
+    if (psHands.length > 0) return psHands;
+    // Try all parsers
+    const ggHands = parseGGPokerHand(text);
+    if (ggHands.length > 0) return ggHands;
+    const hands888 = parse888Hand(text);
+    if (hands888.length > 0) return hands888;
+    return parseWPNHand(text);
+}
+
 
 // ═══════════════════════════════════════════════════════════════════════════
 // HAND CARD COMPONENT
@@ -239,23 +380,27 @@ export default function HandHistoryUploadPage() {
         const text = await file.text();
         setIsAnalyzing(true);
 
-        // Parse hands
-        const hands = parsePokerStarsHand(text);
-        setParsedHands(hands);
+        // Parse hands using auto-detect multi-site parser
+        const hands = parseHandHistory(text);
+        setParsedHands(prev => [...prev, ...hands]);
 
         // Compute stats
-        const totalHands = hands.length;
-        const heroActions = hands.reduce((sum, h) => sum + h.actions.filter(a => a.isHero).length, 0);
-        const withShowdown = hands.filter(h => h.board.length >= 3).length;
+        const allHands = [...parsedHands, ...hands];
+        const totalHands = allHands.length;
+        const heroActions = allHands.reduce((sum, h) => sum + h.actions.filter(a => a.isHero).length, 0);
+        const withShowdown = allHands.filter(h => h.board.length >= 3).length;
+        const detectedSite = hands[0]?.site || 'Unknown';
 
         setStats({
             totalHands,
             heroActions,
             withShowdown,
-            avgPot: totalHands > 0 ? hands.reduce((s, h) => s + h.pot, 0) / totalHands : 0,
+            avgPot: totalHands > 0 ? allHands.reduce((s, h) => s + h.pot, 0) / totalHands : 0,
+            detectedSite,
         });
 
         // Bus Event — notify other pages that hand history was uploaded
+
         if (typeof window !== 'undefined') {
             window.dispatchEvent(new CustomEvent('training:hand-history-uploaded', {
                 detail: { totalHands, heroActions, withShowdown },

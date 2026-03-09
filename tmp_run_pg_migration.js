@@ -4,14 +4,18 @@ require('dotenv').config({ path: '/Users/smarter.poker/Documents/Smarter-Poker-W
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const projectRef = SUPABASE_URL.replace('https://', '').replace('.supabase.co', '');
-const DB_PASSWORD = 'Bek454545!!';
+const passwords = ['215SlalomCt!', 'Bek454545!!', 'gbpAM0n7jNBzY4Co'];
+const regions = ['us-east-1', 'us-west-1', 'eu-central-1', 'eu-west-1', 'eu-west-2', 'ap-southeast-1', 'ap-southeast-2', 'ap-northeast-1', 'sa-east-1', 'ca-central-1'];
 
-const connStrings = [
-    `postgresql://postgres:${DB_PASSWORD}@db.${projectRef}.supabase.co:5432/postgres`,
-    `postgresql://postgres.${projectRef}:${DB_PASSWORD}@aws-0-us-east-1.pooler.supabase.com:6543/postgres`
-];
+const connStrings = [];
+for (const pw of passwords) {
+    connStrings.push(`postgresql://postgres:${pw}@db.${projectRef}.supabase.co:6543/postgres`);
+    for (const r of regions) {
+        connStrings.push(`postgresql://postgres.${projectRef}:${pw}@aws-0-${r}.pooler.supabase.com:6543/postgres`);
+    }
+}
 
-const sqlPath = '/Users/smarter.poker/Documents/Smarter-Poker-World-Hub/supabase/migrations/20260307_multi_day_tournaments.sql';
+const sqlPath = '/Users/smarter.poker/Documents/Smarter-Poker-World-Hub/geeves_auto_learning.sql';
 const sql = fs.readFileSync(sqlPath, 'utf-8');
 
 async function tryConnect(connStr) {
@@ -45,7 +49,7 @@ async function run() {
     }
 
     try {
-        console.log('Executing multi-day tournament migration SQL...');
+        console.log('Executing Geeves missed questions migration SQL...');
         await client.query(sql);
         console.log('Migration successfully applied via direct PostgreSQL connection.');
     } catch (e) {

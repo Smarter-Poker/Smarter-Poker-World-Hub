@@ -10,7 +10,6 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { getServerUser } from '../../../src/lib/serverAuth';
 
 export default async function handler(req, res) {
   if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {

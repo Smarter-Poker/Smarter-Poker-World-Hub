@@ -4,7 +4,6 @@
  * Returns revenue breakdown: time charges, tournament fees, comps issued/redeemed
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
-import { getServerUser } from '../../../../src/lib/serverAuth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
 const supabase = createClient(

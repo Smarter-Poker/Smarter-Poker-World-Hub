@@ -6,7 +6,7 @@
 import { useState } from 'react';
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
-import { Smartphone, Tablet, Share, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Smartphone, Tablet, ArrowRight, CheckCircle2 } from 'lucide-react';
 
 export default function InstallPage() {
     const [tab, setTab] = useState('ipad');

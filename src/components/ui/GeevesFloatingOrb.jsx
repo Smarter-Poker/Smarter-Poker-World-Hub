@@ -286,6 +286,12 @@ export default function GeevesFloatingOrb() {
 
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
+
+            // Dispatch real-time event to update analytics dashboard and logs
+            if (data.missedQuestion) {
+                busEmit.geevesQuestionMissed(text.trim(), path);
+            }
+
             const answer = data.response || data.message || data.reply || data.answer || 'I had trouble with that. Try again!';
             const followUps = Array.isArray(data.followUps) ? data.followUps : [];
             setMessages(prev => [...prev, {

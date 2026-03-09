@@ -18,7 +18,7 @@ import HexButton from '../../../src/components/ui/HexButton';
 import { Timer, Trophy, Gem, Zap, Play } from 'lucide-react';
 import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
-import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
+import { busEmit } from '../../../src/engine/EventBus';
 
 /** Shuffle answer options so correct answer isn't always A */
 function shuffleOptions(questions) {

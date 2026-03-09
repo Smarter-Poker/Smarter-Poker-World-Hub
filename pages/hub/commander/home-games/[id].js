@@ -8,7 +8,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { ArrowLeft, Home, Users, Calendar, MapPin, Clock, DollarSign, Share2, Settings, UserPlus, Check, X, Copy, Loader2, MessageSquare, Star } from 'lucide-react';
-import RsvpForm, { RsvpList } from '../../../../src/components/commander/home-games/RsvpForm';
+import RsvpForm from '../../../../src/components/commander/home-games/RsvpForm';
 import PlayerRating from '../../../../src/components/commander/home-games/PlayerRating';
 import { supabase } from '../../../../src/lib/supabase';
 import { getAccessToken } from '../../../../src/lib/authUtils';

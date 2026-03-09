@@ -14,8 +14,8 @@
  * - Mobile-first responsiveness
  */
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { motion, AnimatePresence, useAnimation } from 'framer-motion';
+import React, { useMemo } from 'react';
+import { motion } from 'framer-motion';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PREMIUM DESIGN TOKENS

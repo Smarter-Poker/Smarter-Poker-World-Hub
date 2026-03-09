@@ -5,7 +5,6 @@
  * Also supports: ?session_id=X (full session summary receipt)
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
-import { getServerUser } from '../../../../src/lib/serverAuth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
 const supabase = createClient(

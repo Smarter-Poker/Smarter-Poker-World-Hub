@@ -3,7 +3,7 @@
  * Reference: SCOPE_LOCK.md - Phase 3 Components
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Plus, Trash2, DollarSign } from 'lucide-react';
 
 // Common payout structures by entry count

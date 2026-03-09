@@ -12,8 +12,8 @@
 import { useState, useRef } from 'react';
 import {
     X, User, Mail, Phone, MapPin, Calendar, CreditCard,
-    Clock, Star, FileText, Edit2, Shield, Printer, Save,
-    DollarSign, Award, Check, AlertTriangle, Lock
+    Clock, FileText, Edit2, Shield, Printer,
+    DollarSign, AlertTriangle, Lock
 } from 'lucide-react';
 import MemberCard from './MemberCard';
 

@@ -15,7 +15,6 @@
  * For list/approve/reject: if unionId is provided, scoped to that union.
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
-import { getServerUser } from '../../../src/lib/serverAuth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const supabaseAdmin = createClient(

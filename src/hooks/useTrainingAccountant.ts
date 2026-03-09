@@ -11,7 +11,7 @@
 
 import { useCallback, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { getLaw, LEAK_TO_LAW_MAP } from '../data/POKER_LAWS';
+import { getLaw } from '../data/POKER_LAWS';
 
 interface XPLogEntry {
     user_id: string;

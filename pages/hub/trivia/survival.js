@@ -16,10 +16,10 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import SurvivalGame from '../../../src/components/trivia/SurvivalGame';
 import MetalFrame from '../../../src/components/ui/MetalFrame';
 import HexButton from '../../../src/components/ui/HexButton';
-import { Gem, Target, Play } from 'lucide-react';
+import { Gem, Target } from 'lucide-react';
 import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
-import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
+import { busEmit } from '../../../src/engine/EventBus';
 
 /** Shuffle answer options so correct answer isn't always A */
 function shuffleOptions(questions) {

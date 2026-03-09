@@ -7,7 +7,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { LayoutGrid, Loader2, RefreshCw, Clock, Users, TrendingUp, ArrowLeft } from 'lucide-react';
-import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../../src/engine/EventBus';
 
 const RANGES = [

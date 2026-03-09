@@ -14,7 +14,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import {
-  RefreshCw, Clock, Users, Loader2, ArrowRightLeft, Coffee,
+  RefreshCw, Clock, Users, ArrowRightLeft, Coffee,
   CheckCircle2, AlertTriangle, RotateCcw, ChevronDown, ChevronUp, History
 } from 'lucide-react';
 import dynamic from 'next/dynamic';

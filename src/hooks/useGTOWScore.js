@@ -81,26 +81,41 @@ export function simulateGTOFrequencies(options, correctAnswer, level = 1) {
     const frequencies = {};
     const optionCount = options.length;
 
-    // For each option, determine its action type and assign a frequency
+    // BUG-03 FIX: Deterministic seeded PRNG based on option data
+    // Same question + options always produces identical frequencies
+
+    // BUG-H FIX: Use deterministic hash instead of Math.random()
+    // Same inputs always produce same frequencies
+    function hashStr(str) {
+        let h = 0;
+        for (let i = 0; i < str.length; i++) {
+            h = ((h << 5) - h) + str.charCodeAt(i);
+            h |= 0;
+        }
+        return Math.abs(h);
+    }
+    function seededRand(seed) {
+        return ((seed * 9301 + 49297) % 233280) / 233280;
+    }
+
+    const baseSeed = hashStr((correctAnswer || '') + options.length + level);
+
     options.forEach((option, index) => {
         const optionId = option.id || String.fromCharCode(97 + index);
         const text = (typeof option === 'string' ? option : (option.text || option.label || '')).toLowerCase();
 
         const isCorrect = optionId === correctAnswer || optionId?.toLowerCase() === correctAnswer?.toLowerCase();
+        const optSeed = baseSeed + hashStr(optionId);
 
         if (isCorrect) {
-            // Correct answer gets the dominant frequency
-            // Higher levels → less dominant (closer to mixed strategy)
             const dominance = Math.max(40, 85 - (level * 4));
-            frequencies[optionId] = dominance + Math.random() * 10;
+            frequencies[optionId] = dominance + seededRand(optSeed) * 10;
         } else {
-            // Wrong answers get smaller frequencies
-            // Some might still be "valid" at low frequencies (mixed strategies)
-            const isPartiallyCorrect = Math.random() > 0.6; // 40% chance it's a mixed strategy option
+            const isPartiallyCorrect = seededRand(optSeed + 1) > 0.6;
             if (isPartiallyCorrect) {
-                frequencies[optionId] = 3 + Math.random() * 15; // 3-18% frequency
+                frequencies[optionId] = 3 + seededRand(optSeed + 2) * 15;
             } else {
-                frequencies[optionId] = Math.random() * 3; // 0-3% frequency (near-zero)
+                frequencies[optionId] = seededRand(optSeed + 3) * 3;
             }
         }
     });
@@ -114,7 +129,6 @@ export function simulateGTOFrequencies(options, correctAnswer, level = 1) {
     // Ensure they sum to exactly 100
     const currentSum = Object.values(frequencies).reduce((s, f) => s + f, 0);
     const diff = 100 - currentSum;
-    // Add remainder to the correct answer
     const correctKey = Object.keys(frequencies).find(k =>
         k === correctAnswer || k?.toLowerCase() === correctAnswer?.toLowerCase()
     );
@@ -168,16 +182,15 @@ export function calculateRealEVLoss(evData, selectedAction, optimalAction, rawFr
     // If player chose the optimal action, EV loss = 0
     if (selectedAction === optimalAction) return 0;
 
-    // Compute EV loss based on frequency deviation
-    // Higher frequency actions are closer to GTO optimal
-    const selectedFreq = rawFrequencies?.[selectedAction]?.[heroHand] || 0;
-    const optimalFreq = rawFrequencies?.[optimalAction]?.[heroHand] || 1;
-
-    // EV loss scales with how far the selected action deviates from optimal
-    // Using pot-relative scaling: loss proportional to (1 - selectedFreq) * pot factor
-    const freqDeviation = Math.max(0, optimalFreq - selectedFreq);
+    // BUG-B FIX: Better EV loss approximation when per-action EV data isn't available.
+    // Use (1 - selectedFreq) as the primary signal — actions with 0% solver frequency
+    // have maximum EV loss, while actions with 40% frequency have minimal EV loss.
+    const selectedFreqNorm = selectedFreq; // 0.0 - 1.0 from rawFrequencies
     const potFactor = Math.max(1, pot / 10);
-    const evLoss = freqDeviation * potFactor * 0.5; // Scale to realistic BB range
+
+    // Non-linear scaling: near-zero frequency actions lose much more EV
+    const lossScale = Math.pow(1 - selectedFreqNorm, 1.5);
+    const evLoss = Math.min(lossScale * potFactor * 0.8, pot * 0.5); // Cap at 50% of pot
 
     return Math.round(evLoss * 100) / 100;
 }
@@ -322,8 +335,9 @@ export default function useGTOWScore() {
         const { classification, evLoss, frequencyDiff, handData = {} } = params;
 
         const config = CLASSIFICATION_CONFIG[classification];
+        // BUG-J FIX: Deterministic score impact — use midpoint instead of random
         const scoreImpact = config
-            ? config.scoreImpact.min + Math.random() * (config.scoreImpact.max - config.scoreImpact.min)
+            ? (config.scoreImpact.min + config.scoreImpact.max) / 2
             : 0;
 
         const isMistake = [

@@ -15,7 +15,7 @@
  *   This hook orchestrates which is active/visible.
  */
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef } from 'react';
 
 const MAX_TABLES = 4;
 

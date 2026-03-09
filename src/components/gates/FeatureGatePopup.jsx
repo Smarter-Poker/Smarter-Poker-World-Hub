@@ -24,8 +24,7 @@ import {
     checkFeatureAccess,
     purchaseFeatureAccess,
     purchaseDailyUnlockAll,
-    FEATURE_CONFIG,
-    DAILY_UNLOCK_ALL_COST
+    FEATURE_CONFIG
 } from '../../lib/gates/premiumFeatureGate';
 
 // ═══════════════════════════════════════════════════════════════════════════

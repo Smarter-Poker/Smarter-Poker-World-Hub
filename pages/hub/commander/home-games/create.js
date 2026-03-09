@@ -20,7 +20,6 @@ import {
 } from 'lucide-react';
 import CreateGameForm from '../../../../src/components/commander/home-games/CreateGameForm';
 import GoogleMapPicker from '../../../../src/components/maps/GoogleMapPicker';
-import { supabase } from '../../../../src/lib/supabase';
 import { getAccessToken } from '../../../../src/lib/authUtils';
 
 const GAME_TYPES = [

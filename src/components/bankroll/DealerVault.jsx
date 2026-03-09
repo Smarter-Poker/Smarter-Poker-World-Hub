@@ -7,7 +7,7 @@
  */
 
 import { memo,  useState, useEffect, useCallback, useRef } from 'react';
-import { Camera, Scan, Loader2, Upload, Check, RefreshCw, X } from 'lucide-react';
+import { Camera, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import toast from '../../stores/toastStore';
 import LiveCameraScanner from './LiveCameraScanner';

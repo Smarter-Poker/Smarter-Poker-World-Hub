@@ -11,8 +11,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Users,
-  Clock,
-  Phone,
   Bell,
   Table,
   Trophy,

@@ -12,7 +12,6 @@ import {
     fetchCalendarEvents,
     createCalendarEvent,
     deleteCalendarEvent,
-    updateCalendarEvent,
 } from '../../lib/bankroll/calendarSelectors';
 import toast from '../../stores/toastStore';
 import { supabase } from '../../lib/supabase';

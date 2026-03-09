@@ -6,7 +6,7 @@
    v19.1 — Baked-in Assets Standard (no duplicate labels)
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { Suspense, useMemo, useState, useEffect, useRef } from 'react';
+import { Suspense, useMemo, useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { Canvas } from '@react-three/fiber';
 import { Float } from '@react-three/drei';
@@ -18,10 +18,9 @@ import { useWorldStore } from '../state/worldStore';
 import type { OrbConfig } from '../orbs/manifest/registry';
 import { COMMANDER_ORB, POKER_IQ_ORBS, TOKE_TRACKER_ORB, PINNED_ORB_IDS } from '../orbs/manifest/registry';
 import { NeuronLights } from './components/NeuronLights';
-import { LaunchPad, useLaunchAnimation } from './components/LaunchPad';
+import { useLaunchAnimation } from './components/LaunchPad';
 import { useCinematicIntro } from './components/CinematicIntro';
 import { useReturnBurst } from './components/ReturnBurst';
-import { CardCustomizerPanel } from './components/CardCustomizerPanel';
 import { HubErrorBoundary } from '../components/ui/HubErrorBoundary';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -44,14 +43,11 @@ function useIsMobile() {
 }
 
 // UI Components
-import { DiamondStat } from './components/HeaderStats';
 // WelcomeBack removed — was showing hardcoded 'PokerPro' mock data
 import { StreakPopup } from './components/StreakPopup';
-import { SearchOrb, SearchOverlay } from './components/GlobalSearch';
+import { SearchOverlay } from './components/GlobalSearch';
 
-import { GeevesOrb } from './components/GeevesOrb';
-import { useLiveHelp, LiveHelpPanel } from './components/Geeves';
-import { SettingsOrb } from './components/SettingsOrb';
+import { useLiveHelp } from './components/Geeves';
 import NewUserWelcomeModal from '../components/gates/NewUserWelcomeModal';
 import { useAvatar } from '../contexts/AvatarContext';
 

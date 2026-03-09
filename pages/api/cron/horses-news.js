@@ -20,15 +20,11 @@ import Parser from 'rss-parser';
 import { getGrokClient } from '../../../src/lib/grokClient.js';
 import {
     applyWritingStyle,
-    getHorseWritingStyle,
     getTimeOfDayEnergy,
-    getStakesVoice,
     injectTypos,
     shouldHorsePostToday,
-    getHorseDailyPostLimit,
     getContentAwareReaction,
-    detectContentType,
-    getRandomPostDelay
+    detectContentType
 } from '../../../src/content-engine/pipeline/HorseScheduler.js';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;

@@ -14,11 +14,9 @@
 
 import { videoClipper } from './VideoClipper.js';
 import {
-    getRandomClip,
     getRandomCaption,
     markClipUsed,
     CLIP_LIBRARY,
-    getClipWithSourceRotation,
     CLIP_SOURCES
 } from './ClipLibrary.js';
 import { HorseStable } from './HorseStable.js';

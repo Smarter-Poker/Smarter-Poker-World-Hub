@@ -15,16 +15,14 @@ import { MessageReactions } from './MessageReactions';
 import { CopyButton } from './CopyButton';
 import { VoiceInput } from './VoiceInput';
 import { EnhancedTypingIndicator } from './EnhancedTypingIndicator';
-import { useKeyboardShortcuts, KeyboardShortcutHints } from './KeyboardShortcuts';
-import { ThemeToggle, getThemeColors, type Theme } from './ThemeToggle';
-import { CompactModeToggle, getCompactStyles } from './CompactModeToggle';
-import { LanguageSelector, useTranslation, type Language } from './LanguageSelector';
+import { useKeyboardShortcuts } from './KeyboardShortcuts';
+import { getThemeColors, type Theme } from './ThemeToggle';
+import { getCompactStyles } from './CompactModeToggle';
+import { useTranslation, type Language } from './LanguageSelector';
 import { AutoComplete } from './AutoComplete';
 import { ConversationHistory } from './ConversationHistory';
 import { RichMediaRenderer } from './RichMediaRenderer';
-import { GeevesAvatar } from './JarvisAvatar';
 import { ScreenshotUpload } from './ScreenshotUpload';
-import { ExportButton } from './ExportButton';
 
 
 // ─────────────────────────────────────────────────────────────────────────────

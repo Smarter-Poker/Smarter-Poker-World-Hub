@@ -5,7 +5,6 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { fetchLedgerEntries, deleteLedgerEntry } from '../../lib/bankroll/bankrollSelectors';
 import LedgerTimeline from './LedgerTimeline';
 import LogEntryModal from './LogEntryModal';

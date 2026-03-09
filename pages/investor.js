@@ -4,16 +4,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 // Icons & Layout Library
 import {
-    SlideContainer,
     TitleSlide,
     SplitSlide,
     TableSlide,
     GridSlide,
-    FullImageSlide,
-    MetalPhoneFrame,
-    TabletFrame,
-    HolographicHUD,
-    DesktopMonitor
+    FullImageSlide
 } from '../src/components/pitch/SlideLayouts';
 
 // =========================================================================

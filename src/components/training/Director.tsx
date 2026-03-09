@@ -20,7 +20,7 @@ import { useProgression, type RewardBreakdown, type Leak } from '../../hooks/use
 import { useAssetPreloader } from '../../lib/AssetPreloader';
 import { useNetworkGuard, OfflineBadge } from '../../lib/GameGuard';
 import { SEAT_LAYOUTS, getTableFormatName, type TableSize } from '../../lib/SeatLayouts';
-import type { Scenario, ActionLogEntry, GameConfig, Player } from '../../types/poker';
+import type { Scenario, GameConfig } from '../../types/poker';
 
 interface DirectorProps {
     config: GameConfig;

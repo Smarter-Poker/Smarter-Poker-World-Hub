@@ -14,10 +14,9 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/useCommanderSync';
-import { Plus, Loader2, RefreshCw, UserPlus, ArrowLeft } from 'lucide-react';
+import { Plus, RefreshCw, UserPlus, ArrowLeft } from 'lucide-react';
 import dynamic from 'next/dynamic';
 const SkeletonDark = dynamic(() => import('../../../src/components/ui/SkeletonDark'), { ssr: false });
-import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../../src/engine/EventBus';
 
 function formatCountdown(minutes) {

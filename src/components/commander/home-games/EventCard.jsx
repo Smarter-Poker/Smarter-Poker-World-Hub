@@ -3,7 +3,7 @@
  * Reference: SCOPE_LOCK.md - Phase 4 Components
  * Dark industrial sci-fi gaming theme
  */
-import { Calendar, Clock, MapPin, Users, User } from 'lucide-react';
+import { Calendar, Clock, Users, User } from 'lucide-react';
 
 const STATUS_CONFIG = {
   draft: { label: 'Draft', color: 'bg-[#6B7280]' },

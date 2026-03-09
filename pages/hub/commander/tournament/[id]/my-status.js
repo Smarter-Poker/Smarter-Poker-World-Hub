@@ -7,13 +7,12 @@
  * - Self-report their chip count (WSOP+ feature)
  * - See tournament info (current level, blinds, players remaining)
  */
-import Link from 'next/link';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../../../src/lib/supabase';
 import SEOHead from '../../../../../src/components/seo/SEOHead';
 import TournamentStoryCard from '../../../../../src/components/social/TournamentStoryCard';
-import { Trophy, Users, Clock, Loader2, CheckCircle2, ChevronLeft, Coins, TrendingUp, Hash, Bell, Share2, Camera } from 'lucide-react';
+import { Trophy, Users, Loader2, CheckCircle2, ChevronLeft, Coins, TrendingUp, Hash, Bell, Share2, Camera } from 'lucide-react';
 import useTournamentRealtime from '../../../../../src/hooks/useTournamentRealtime';
 import { getAccessToken, getAuthUser } from '../../../../../src/lib/authUtils';
 

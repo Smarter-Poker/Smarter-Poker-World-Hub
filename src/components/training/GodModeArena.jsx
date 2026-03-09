@@ -15,10 +15,13 @@ import GameUIRouter from './GameUIRouter';
 import TrainerConfigModal from './TrainerConfigModal';
 import HandReplayViewer from './HandReplayViewer';
 import PositionStatsPanel from './PositionStatsPanel';
+import PreflopRangeTrainer from './PreflopRangeTrainer';
+import SPRTrainer from '../../../pages/hub/training/spr-trainer';
+import QuizGauntlet from '../../../pages/hub/training/quiz-gauntlet';
+
 // Components defined locally within this file or in other imports
 import useGTOTrainer from '../../hooks/useGTOTrainer';
 import { CLASSIFICATION_CONFIG, MOVE_CLASSIFICATIONS } from '../../hooks/useGTOWScore';
-import dynamic from 'next/dynamic';
 import Confetti from 'react-confetti';
 import TRAINING_CONFIG from '../../config/trainingConfig';
 import { getGameById } from '../../data/TRAINING_LIBRARY';
@@ -673,6 +676,12 @@ function GodModeArena({
     if (gameId === 'cash-001') {
         return <PreflopRangeTrainer onExit={onExit} />;
     }
+    if (gameId === 'adv-011') {
+        return <SPRTrainer onExit={onExit} />;
+    }
+    if (gameId === 'quiz-gauntlet') {
+        return <QuizGauntlet onExit={onExit} />;
+    }
 
     const engineType = getEngineType(gameId);
 
@@ -730,6 +739,75 @@ function GodModeArena({
     const [showDrillFilters, setShowDrillFilters] = useState(false);
     const [drillFilters, setDrillFilters] = useState(null);
     const [mistakesFilterActive, setMistakesFilterActive] = useState(false);
+
+    // ═══ QW-1: DIFFICULTY SELECTOR (beginner/standard/expert) ═══
+    const [difficulty, setDifficulty] = useState(() => {
+        if (typeof window !== 'undefined') return localStorage.getItem('gma_difficulty') || 'standard';
+        return 'standard';
+    });
+    useEffect(() => { if (typeof window !== 'undefined') localStorage.setItem('gma_difficulty', difficulty); }, [difficulty]);
+
+    // ═══ QW-2: TIMER MODE (relaxed/standard/blitz) ═══
+    const TIMER_DURATIONS = { relaxed: 0, standard: 60, blitz: 15 };
+    const [timerMode, setTimerMode] = useState(() => {
+        if (typeof window !== 'undefined') return localStorage.getItem('gma_timer') || 'standard';
+        return 'standard';
+    });
+    useEffect(() => { if (typeof window !== 'undefined') localStorage.setItem('gma_timer', timerMode); }, [timerMode]);
+    const [timerRemaining, setTimerRemaining] = useState(TIMER_DURATIONS[timerMode] || 60);
+    const timerIntervalRef = useRef(null);
+
+    // Reset timer when new question loads
+    useEffect(() => {
+        if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+        const duration = TIMER_DURATIONS[timerMode];
+        if (!duration || !currentQuestion || showFeedback || gameComplete) return;
+        setTimerRemaining(duration);
+        timerIntervalRef.current = setInterval(() => {
+            setTimerRemaining(prev => {
+                if (prev <= 1) {
+                    clearInterval(timerIntervalRef.current);
+                    // Auto-submit timeout as wrong answer
+                    if (currentQuestion?.options?.length > 0) {
+                        const wrongOption = currentQuestion.options.find(o => {
+                            const id = o.id || o;
+                            return id !== currentQuestion.correctAnswer;
+                        });
+                        if (wrongOption) submitAnswer(wrongOption.id || wrongOption);
+                    }
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+        return () => clearInterval(timerIntervalRef.current);
+    }, [currentQuestion, timerMode, showFeedback, gameComplete]);
+
+    // Pause timer during feedback
+    useEffect(() => {
+        if (showFeedback && timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    }, [showFeedback]);
+
+    // ═══ QW-2 / T2-2: KEYBOARD SHORTCUTS ═══
+    useEffect(() => {
+        const handler = (e) => {
+            if (showFeedback && e.key === ' ') {
+                e.preventDefault();
+                handleNextQuestion();
+                return;
+            }
+            if (!showFeedback && currentQuestion?.options) {
+                const idx = parseInt(e.key) - 1;
+                if (idx >= 0 && idx < currentQuestion.options.length) {
+                    e.preventDefault();
+                    const opt = currentQuestion.options[idx];
+                    submitAnswer(opt.id || opt);
+                }
+            }
+        };
+        window.addEventListener('keydown', handler);
+        return () => window.removeEventListener('keydown', handler);
+    }, [showFeedback, currentQuestion, submitAnswer, handleNextQuestion]);
 
     // ═══ Phase 21: Game Phase State Machine ═══
     const [gamePhase, setGamePhase] = useState('splash'); // 'splash' | 'playing' | 'review'
@@ -860,6 +938,7 @@ function GodModeArena({
                 positionStats: posStats,
                 classificationCounts: classCounts,
                 trainerConfig,
+                speedBonusDiamonds, // BUG-05 FIX: Include speed bonus so backend can award them
             };
 
             try {
@@ -915,6 +994,19 @@ function GodModeArena({
 
     // UI-2: Manual advance — no auto-timer. User clicks "Next Hand →" button
     // nextQuestion is passed down as onNextHand to UniversalDynamicTable
+
+    // ═══ QW-1: Filter options by difficulty ═══
+    const filteredOptions = useMemo(() => {
+        if (!currentQuestion?.options) return [];
+        const opts = currentQuestion.options;
+        if (difficulty === 'beginner' && opts.length > 2) {
+            // Keep correct answer + 1 wrong answer (the most common trap)
+            const correct = opts.find(o => (o.id || o) === currentQuestion.correctAnswer);
+            const wrong = opts.filter(o => (o.id || o) !== currentQuestion.correctAnswer);
+            return [correct, wrong[0]].filter(Boolean);
+        }
+        return opts; // standard + expert show all
+    }, [currentQuestion, difficulty]);
 
     // ═══════════════════════════════════════════════════════════════════════
     // ERROR STATE — Graceful fallback when API fails (auth, network, etc.)
@@ -1352,7 +1444,7 @@ function GodModeArena({
                         <div id="hand-replay-section">
                             <HandReplayViewer handHistory={
                                 mistakesFilterActive
-                                    ? handHistory.filter(h => h.classification && h.classification !== 'Best' && h.classification !== 'Good')
+                                    ? handHistory.filter(h => h.classification && h.classification !== 'best' && h.classification !== 'correct')
                                     : handHistory
                             } />
                         </div>

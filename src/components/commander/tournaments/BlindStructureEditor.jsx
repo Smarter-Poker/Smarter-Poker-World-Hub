@@ -4,7 +4,7 @@
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { useState } from 'react';
-import { Plus, Trash2, Coffee, ChevronUp, ChevronDown } from 'lucide-react';
+import { Plus, Trash2, Coffee } from 'lucide-react';
 
 export default function BlindStructureEditor({ structure, onChange, readOnly = false }) {
     const [editingIndex, setEditingIndex] = useState(null);

@@ -10,7 +10,6 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { Trophy, Users, Calendar, ChevronRight, Search, DollarSign } from 'lucide-react';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
-import { supabase } from '../../../../src/lib/supabase';
 import { usePersistedState } from '../../../../src/hooks/usePersistedState';
 import { getAccessToken } from '../../../../src/lib/authUtils';
 

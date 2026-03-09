@@ -13,7 +13,6 @@ import {
   Trophy, Calendar, Users, DollarSign, Clock, MapPin,
   Play, CheckCircle
 } from 'lucide-react';
-import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { supabase } from '../../../../src/lib/supabase';
 import { getAccessToken } from '../../../../src/lib/authUtils';
 

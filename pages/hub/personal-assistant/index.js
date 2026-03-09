@@ -15,8 +15,6 @@ import { useAvatar } from '../../../src/contexts/AvatarContext';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { useRecentSessions } from '../../../src/hooks/useAssistant';
-import JarvisChatWidget from '../../../src/components/jarvis/JarvisChatWidget';
-import FeatureGate from '../../../src/components/gates/FeatureGate';
 import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 
 // ═══════════════════════════════════════════════════════════════════════════

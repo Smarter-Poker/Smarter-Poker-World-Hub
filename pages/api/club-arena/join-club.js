@@ -25,7 +25,6 @@
  * Auth: Bearer token (any authenticated user)
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
-import { getServerUser } from '../../../src/lib/serverAuth';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 
 const supabaseAdmin = createClient(

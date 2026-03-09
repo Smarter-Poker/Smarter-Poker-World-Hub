@@ -11,9 +11,8 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
-import confetti from 'canvas-confetti';
 import { supabase } from '../../src/lib/supabase';
-import { getSafeUser, getAuthUser, getAccessToken } from '../../src/lib/authUtils';
+import { getAuthUser, getAccessToken } from '../../src/lib/authUtils';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
@@ -36,7 +35,7 @@ import { useMessengerStore } from '../../src/stores/messengerStore';
 import { useOneSignal } from '../../src/contexts/OneSignalContext';
 import { useUnreadCount } from '../../src/hooks/useUnreadCount';
 import { createRingTone } from '../../src/utils/ringTone';
-import { createMultiDeviceAuthListener, withRetry, safeAsync, getCircuit, isOnline } from '../../src/utils/authGuard';
+import { createMultiDeviceAuthListener, withRetry, getCircuit, isOnline } from '../../src/utils/authGuard';
 import { useActiveIdentity } from '../../src/contexts/ActiveIdentityContext';
 
 // ═══════════════════════════════════════════════════════════════════════════

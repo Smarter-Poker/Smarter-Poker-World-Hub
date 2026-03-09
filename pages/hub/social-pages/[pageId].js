@@ -3,7 +3,6 @@
  * Supports venue, group, community, and brand pages
  */
 import SEOHead from '../../../src/components/seo/SEOHead';
-import Link from 'next/link';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';

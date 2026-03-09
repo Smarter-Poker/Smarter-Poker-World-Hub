@@ -13,7 +13,6 @@
  * { "crons": [{ "path": "/api/cron/freeroll-qualification-sync", "schedule": "0 0,6,12,18 * * *" }] }
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
-import { getServerUser } from '../../../src/lib/serverAuth';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,

@@ -3,7 +3,7 @@
  * Reference: SCOPE_LOCK.md - Phase 2 Components
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
-import { Users, Clock, Settings, Play, Square, Wrench } from 'lucide-react';
+import { Users, Clock, Play, Wrench } from 'lucide-react';
 
 const STATUS_CONFIG = {
   available: {

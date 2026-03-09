@@ -9,7 +9,6 @@
 import React, { useState, useEffect } from 'react';
 import { SP_COLORS, SPAvatar } from '../SmarterPokerStyleCard';
 import { PokerReactionBar } from '../PokerReputationBadges';
-import { supabase } from '../../../lib/supabase';
 
 // TODO: Provider missing - needs creation:
 // - SocialOrbProvider (useSocialOrb hook) - @/providers/SocialOrbProvider

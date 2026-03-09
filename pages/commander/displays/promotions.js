@@ -6,7 +6,6 @@
  * Auto-rotates between promotions every 8 seconds
  * Real-time sync via Supabase + Commander Data Bus
  */
-import Image from 'next/image';
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';

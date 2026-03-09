@@ -6,7 +6,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useState, useEffect, useCallback } from 'react';
-import { getAuthUser } from '../../../lib/authUtils';
+import { busEmit } from '../../../engine/EventBus';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // AGENT DEFINITIONS
@@ -199,6 +199,12 @@ export function useLiveHelp() {
             }
 
             const data = await response.json();
+
+            // Dispatch real-time event to update analytics dashboard and logs
+            if (data.missedQuestion) {
+                const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+                busEmit.geevesQuestionMissed(content.trim(), currentPath);
+            }
 
             // Variable typing delay — KB answers feel instant, Grok feels thoughtful
             const delayMs = data.fromLocalKB

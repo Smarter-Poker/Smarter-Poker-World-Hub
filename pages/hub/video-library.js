@@ -6,10 +6,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { usePersistedFilters } from '../../src/hooks/usePersistedFilters';
 import SEOHead from '../../src/components/seo/SEOHead';
-import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
-import confetti from 'canvas-confetti';
 import { supabase } from '../../src/lib/supabase';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { useAvatar } from '../../src/contexts/AvatarContext';

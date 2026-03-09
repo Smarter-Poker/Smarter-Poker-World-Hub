@@ -8,7 +8,7 @@
 
 import React, { useState } from 'react';
 import { HeatMapBorder, GTOMasterGlow } from './HeatMapBorder';
-import { PokerTierBadge, PokerReactionBar, PokerAchievementBadge } from './PokerReputationBadges';
+import { PokerTierBadge, PokerReactionBar } from './PokerReputationBadges';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🃏 POST TYPES (Like SmarterPoker's photo/video/live but poker-themed)

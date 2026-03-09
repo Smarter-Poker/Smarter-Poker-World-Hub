@@ -4,12 +4,10 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
-import { supabase } from '../../lib/supabase';
-import { getBankrollStats, calculateTravelROI } from '../../lib/bankroll/calculations';
+import { getBankrollStats } from '../../lib/bankroll/calculations';
 import { runLeakAnalysis } from '../../lib/bankroll/leakDetection';
-import { getLocationStats, getUserLocations } from '../../lib/bankroll/locationMemory';
-import { fetchLedgerEntries, fetchTrips, getDateRangeFilter, updateLedgerEntry, deleteLedgerEntry, getActiveSeries } from '../../lib/bankroll/bankrollSelectors';
+import { getUserLocations } from '../../lib/bankroll/locationMemory';
+import { fetchLedgerEntries, fetchTrips, getDateRangeFilter, deleteLedgerEntry, getActiveSeries } from '../../lib/bankroll/bankrollSelectors';
 import toast from '../../stores/toastStore';
 import LedgerTimeline from './LedgerTimeline';
 import LeakAlertPanel from './LeakAlertPanel';

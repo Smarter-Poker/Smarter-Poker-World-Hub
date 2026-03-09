@@ -18,7 +18,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { Clock, Users, DollarSign, Trophy, Loader2, ChevronDown, ChevronUp, Share2, CheckCircle2, Copy } from 'lucide-react';
+import { Users, DollarSign, Trophy, Loader2, ChevronDown, ChevronUp, Share2, CheckCircle2, Copy } from 'lucide-react';
 import useTournamentRealtime from '../../../../src/hooks/useTournamentRealtime';
 
 // Prefer real name from profiles over manually typed player_name (alias)

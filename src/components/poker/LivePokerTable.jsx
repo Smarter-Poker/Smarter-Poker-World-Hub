@@ -40,7 +40,7 @@ import { getHandStrength } from '../../lib/handStrength';
 
 import {
   TABLE_THEMES, getStoredThemeId, getStoredCardBack,
-  getActiveTheme, setStoredThemeId, setStoredCardBack,
+  getActiveTheme,
 } from './TableThemes';
 import ThemePicker from './ThemePicker';
 import PlayerNoteModal, { COLOR_LABELS } from './PlayerNoteModal';

@@ -12,7 +12,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import { createPost, createComment, createAuthor } from './social-types';
+import { createPost, createComment } from './social-types';
 
 export class UnifiedSocialService {
     constructor(supabaseClient) {

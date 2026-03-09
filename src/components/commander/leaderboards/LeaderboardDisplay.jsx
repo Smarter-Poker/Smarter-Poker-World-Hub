@@ -4,7 +4,7 @@
  * Dark industrial sci-fi gaming theme
  */
 import React from 'react';
-import { Trophy, Medal, Clock, Calendar, Users, Award, ChevronRight } from 'lucide-react';
+import { Trophy, Medal, Calendar, Users, Award, ChevronRight } from 'lucide-react';
 
 const RANK_STYLES = {
   1: { bg: '#FEF3C7', text: '#92400E', icon: '#F59E0B' },

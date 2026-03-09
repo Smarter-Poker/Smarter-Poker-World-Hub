@@ -3,9 +3,8 @@
  * Displays assistant alerts for detected leaks and patterns
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getLocationStats, getLocationAlerts } from '../../lib/bankroll/locationMemory';
 
 const ALERT_ICONS = {
   venue: '◆',

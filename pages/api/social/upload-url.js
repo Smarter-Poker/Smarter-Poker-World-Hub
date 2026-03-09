@@ -13,7 +13,6 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { getServerUser } from '../../../src/lib/serverAuth';
 
 const BUCKET = 'social-media';
 const MAX_VIDEO_SIZE = 5 * 1024 * 1024 * 1024; // 5GB — Supabase Pro max, no practical limit

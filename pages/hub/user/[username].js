@@ -11,7 +11,6 @@ import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import { usePersistedState } from '../../../src/hooks/usePersistedState';
 import { supabase } from '../../../src/lib/supabase';
-import { getSafeUser } from '../../../src/lib/authUtils';
 import { emitCacheInvalidation, onCacheInvalidation } from '../../../src/lib/cacheSync';
 
 // Components

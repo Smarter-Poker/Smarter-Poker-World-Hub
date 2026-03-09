@@ -15,11 +15,11 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MetalFrame from '../../../src/components/ui/MetalFrame';
 import HexButton from '../../../src/components/ui/HexButton';
-import { Shuffle, Trophy, BookOpen, GraduationCap, Gem, CheckCircle, XCircle, ArrowRight, Target, Banknote, Calculator, Brain } from 'lucide-react';
+import { Trophy, BookOpen, GraduationCap, Gem, CheckCircle, XCircle, ArrowRight, Target, Banknote, Calculator, Brain } from 'lucide-react';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
-import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
+import { busEmit } from '../../../src/engine/EventBus';
 
 /** Shuffle answer options so correct answer isn't always A */
 function shuffleOptions(questions) {

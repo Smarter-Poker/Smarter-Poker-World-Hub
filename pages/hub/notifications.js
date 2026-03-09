@@ -4,7 +4,6 @@
  */
 
 import SEOHead from '../../src/components/seo/SEOHead';
-import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import { supabase } from '../../src/lib/supabase';

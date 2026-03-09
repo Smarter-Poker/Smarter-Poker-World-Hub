@@ -14,7 +14,7 @@ import Head from 'next/head';
 import { motion } from 'framer-motion';
 import { getClinicById, getRemediationXPMultiplier } from '../../../../src/data/TRAINING_CLINICS';
 import useTrainingProgress from '../../../../src/hooks/useTrainingProgress';
-import feedback, { EFFECT_STYLES, screenEffects } from '../../../../src/engine/HapticsFeedback';
+import feedback, { EFFECT_STYLES } from '../../../../src/engine/HapticsFeedback';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 

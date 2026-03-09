@@ -3,7 +3,7 @@
  * Reference: SCOPE_LOCK.md - Phase 2 Components
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
-import { User, UserX } from 'lucide-react';
+import { User } from 'lucide-react';
 
 export default function SeatPicker({
   seats = [],

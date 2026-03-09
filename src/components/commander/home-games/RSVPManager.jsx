@@ -6,7 +6,7 @@
 import { useState, useMemo } from 'react';
 import {
   Users, UserCheck, UserX, Clock, Search, Check, X,
-  MessageSquare, ChevronDown, ChevronUp, Mail
+  MessageSquare, ChevronDown, ChevronUp
 } from 'lucide-react';
 
 const RSVP_STATUS = {

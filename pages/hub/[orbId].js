@@ -7,7 +7,6 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import confetti from 'canvas-confetti';
 import { getOrbById } from '../../src/orbs/manifest/registry';
 
 // God-Mode Stack

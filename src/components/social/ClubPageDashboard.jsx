@@ -6,7 +6,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
-import { supabase } from '../../lib/supabase';
 
 // Shared color theme (SmarterPoker Dark)
 const C = {

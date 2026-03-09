@@ -32,7 +32,6 @@ import { formatCurrency } from '../../src/lib/bankroll/currencyUtils';
 // Bankroll components
 import LedgerTimeline from '../../src/components/bankroll/LedgerTimeline';
 const LogEntryModal = dynamic(() => import('../../src/components/bankroll/LogEntryModal'), { ssr: false });
-import LeakAlertPanel from '../../src/components/bankroll/LeakAlertPanel';
 import BankrollRulesCard from '../../src/components/bankroll/BankrollRulesCard';
 import BankrollTrendChart from '../../src/components/bankroll/BankrollTrendChart';
 // QuickLogWidget removed
@@ -41,14 +40,11 @@ import JarvisLeakInsights from '../../src/components/bankroll/JarvisLeakInsights
 // Phase 2 Components
 import BankrollGoals from '../../src/components/bankroll/BankrollGoals';
 import LocationAnalytics from '../../src/components/bankroll/LocationAnalytics';
-import WeeklySummary from '../../src/components/bankroll/WeeklySummary';
 import BankrollProjection from '../../src/components/bankroll/BankrollProjection';
 import PlayerNotes from '../../src/components/bankroll/PlayerNotes';
 // Phase 4 Components
-import SessionTimer from '../../src/components/bankroll/SessionTimer';
 import HistoricalComparison from '../../src/components/bankroll/HistoricalComparison';
 import VarianceCalculator from '../../src/components/bankroll/VarianceCalculator';
-import BankrollHeatMap from '../../src/components/bankroll/BankrollHeatMap';
 // Phase 5 Pro Components
 import BankrollProGate from '../../src/components/bankroll/BankrollProGate';
 import ReceiptScanner from '../../src/components/bankroll/ReceiptScanner';

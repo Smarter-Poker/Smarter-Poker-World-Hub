@@ -15,19 +15,14 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../../lib/supabase';
 import { TRAINING_CLINICS } from '../../data/TRAINING_CLINICS';
 import { useTrainingAccountant } from '../../hooks/useTrainingAccountant';
-import { getLaw, getViolationExplanation } from '../../data/POKER_LAWS';
-import LeakFixerIntercept from './LeakFixerIntercept';
+import { getLaw } from '../../data/POKER_LAWS';
 
 // Data-Driven GameLoop Engines
 import { loadGameData, GameLoopStartingState } from '../../engine/gameDataLoader';
 import {
-    useActionReplay,
-    generateFullNarrative,
-    ghostPlayerVariants,
-    ANIMATION_TIMING
+    useActionReplay
 } from '../../engine/actionReplayEngine';
 
 // TypeScript interfaces

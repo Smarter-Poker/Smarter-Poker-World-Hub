@@ -71,8 +71,12 @@ function generateOptions(correctAction, allActions) {
         if (options.length >= 4) break;
         options.push(action);
     }
-    // Fill remaining with distractors from the pool
-    const shuffledPool = ACTION_POOL.sort(() => Math.random() - 0.5);
+    // Fill remaining with distractors from the pool (Fisher-Yates shuffle)
+    const shuffledPool = [...ACTION_POOL];
+    for (let i = shuffledPool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffledPool[i], shuffledPool[j]] = [shuffledPool[j], shuffledPool[i]];
+    }
     for (const action of shuffledPool) {
         if (options.length >= 4) break;
         const normalized = action.toLowerCase().trim();
@@ -80,8 +84,12 @@ function generateOptions(correctAction, allActions) {
             options.push(action);
         }
     }
-    // Shuffle options
-    return options.sort(() => Math.random() - 0.5);
+    // Shuffle options with Fisher-Yates
+    for (let i = options.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [options[i], options[j]] = [options[j], options[i]];
+    }
+    return options;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

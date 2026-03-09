@@ -4,7 +4,7 @@
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { useState } from 'react';
-import { Star, Send, User, MessageSquare } from 'lucide-react';
+import { Star, Send, User } from 'lucide-react';
 
 function StarRating({ value, onChange, size = 24, readonly = false }) {
   const [hovered, setHovered] = useState(0);

@@ -20,7 +20,7 @@ import {
     submitMatchScore,
     processMatchReward
 } from '../../../src/services/pvpMatchmaking';
-import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
+import { busEmit } from '../../../src/engine/EventBus';
 
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';

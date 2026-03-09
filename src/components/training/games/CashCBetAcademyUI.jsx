@@ -12,7 +12,6 @@
  */
 
 import React from 'react';
-import { motion } from 'framer-motion';
 import GTOQuestionCard from '../GTOQuestionCard';
 
 export default function CashCBetAcademyUI({ question, onAnswer, showFeedback, feedbackResult, explanation, questionNumber, totalQuestions, level }) {

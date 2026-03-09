@@ -14,15 +14,13 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import {
-  Menu, X, Users, Clock, Layout, Map, Bell, Trophy,
+import { X, Users, Clock, Layout, Map, Bell, Trophy,
   Monitor, DollarSign, Gift, Calendar, Tv, Activity, BarChart3,
-  AlertTriangle, PlusCircle, Lock, Upload, QrCode, Settings, LogOut,
-  Package, Briefcase, Globe, Crown, FileText
+  AlertTriangle, PlusCircle, Lock, Upload, QrCode, Settings, LogOut, Globe, Crown, FileText
 } from 'lucide-react';
 import CommanderErrorBoundary from './CommanderErrorBoundary';
 import FloorCallAlert from './FloorCallAlert';
-import { canAccessRoute, getUpgradeTier, getTierConfig, TIERS } from '../../../lib/commander/tierConfig';
+import { canAccessRoute, getUpgradeTier, getTierConfig } from '../../../lib/commander/tierConfig';
 import { canRoleAccessRoute, isSensitiveRoute } from '../../../lib/commander/auth';
 import useClubBranding from '../../../lib/commander/useClubBranding';
 import { supabase } from '../../../lib/supabase';

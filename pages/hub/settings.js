@@ -7,9 +7,7 @@
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { usePersistedState } from '../../src/hooks/usePersistedState';
-import confetti from 'canvas-confetti';
 // useTheme removed — unused (DarkModeToggle handles theme internally)
 import { DarkModeToggle } from '../../src/components/DarkModeToggle';
 import { supabase } from '../../src/lib/supabase';

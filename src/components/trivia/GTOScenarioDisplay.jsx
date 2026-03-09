@@ -10,7 +10,7 @@
  */
 
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, Info, Target, DollarSign, GitBranch, Brain } from 'lucide-react';
+import { ChevronDown, ChevronUp, Info, Target, DollarSign, GitBranch } from 'lucide-react';
 import styles from './GTOScenarioDisplay.module.css';
 
 // Jarvis avatar - using the official persona

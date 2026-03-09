@@ -10,7 +10,6 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import crypto from 'crypto';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { lookupKnowledgeBase } from '../../../src/lib/geevesKnowledgeBase';
-import { getServerUser } from '../../../src/lib/serverAuth';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -381,6 +380,18 @@ export default async function handler(req, res) {
         // ═══════════════════════════════════════════════════════════════════
         const cacheEntry = await saveToCache(question, answer, questionType, user.id);
 
+        // Auto-Learning Loop — log missed question to Supabase
+        try {
+            await supabase.rpc('geeves_upsert_missed_question', {
+                p_question: question,
+                p_hash: questionHash,
+                p_page: currentPage || null,
+                p_grok_answer: answer,
+            });
+        } catch (err) {
+            console.warn('[Geeves Ask] Failed to log missed question:', err.message);
+        }
+
         // Save to conversation
         if (conversationId) {
             await saveConversationMessages(conversationId, question, answer, cacheEntry?.id, false);
@@ -394,7 +405,8 @@ export default async function handler(req, res) {
             questionType,
             fromCache: false,
             cacheId: cacheEntry?.id,
-            timesServed: 1
+            timesServed: 1,
+            missedQuestion: true
         });
 
     } catch (error) {

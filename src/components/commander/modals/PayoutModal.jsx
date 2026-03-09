@@ -4,7 +4,7 @@
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { useState, useEffect, useMemo } from 'react';
-import { X, DollarSign, Trophy, Loader2, Check, Edit2, AlertCircle, Settings } from 'lucide-react';
+import { X, DollarSign, Trophy, Loader2, Check } from 'lucide-react';
 import { broadcastChange } from '../../../lib/commander/useCommanderSync';
 
 // Standard payout percentages by number of places

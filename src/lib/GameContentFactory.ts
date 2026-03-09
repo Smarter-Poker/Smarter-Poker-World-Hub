@@ -15,12 +15,11 @@ import type {
     HeroPosition,
     BoardTexture,
     VillainProfile,
-    SituationType,
     ThemeSkin
 } from './GameDNA';
 import { getRangeProfile, shouldApplyICM, getThemeSkin, isPushFoldMode } from './GameDNA';
 import { getGameDefinition, GAMES_LIST } from './MasterGameLibrary';
-import { getBlindPositions, getPreflopActionOrder, getVillainNames, type TableSize } from './SeatLayouts';
+import { getBlindPositions, getVillainNames, type TableSize } from './SeatLayouts';
 import type { Scenario, GameConfig, Player, ActionLogEntry, ActionType } from '../types/poker';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -416,6 +415,11 @@ export class GameContentFactory {
             tableSize: tableSize
         };
 
+        // Deal hero cards from remaining deck
+        const usedCards = new Set(hydration.boardCards.map(c => c.toLowerCase()));
+        const remainingDeck = shuffleDeck(createDeck()).filter(c => !usedCards.has(c.toLowerCase()));
+        const heroCards = remainingDeck.slice(0, 2);
+
         return {
             config,
             tableSize,
@@ -424,6 +428,7 @@ export class GameContentFactory {
             heroSeat: hydration.heroPosition,
             actionLog: hydration.actionLog,
             boardCards: hydration.boardCards,
+            heroCards,
             finalPot: hydration.pot,
             question,
             correctAction,
