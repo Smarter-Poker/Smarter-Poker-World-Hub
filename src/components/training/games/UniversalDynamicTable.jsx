@@ -589,7 +589,7 @@ function CountdownTimer({ seconds = 60, questionNumber, showFeedback, active = t
                 {/* Timer text */}
                 <text x="22" y="22" textAnchor="middle" dominantBaseline="central"
                     fill={color} fontSize="13" fontWeight="bold"
-                    fontFamily="'Orbitron', monospace"
+                    fontFamily="'Inter', monospace"
                 >
                     {timeLeft}
                 </text>
@@ -612,9 +612,9 @@ function detectActionType(text) {
 }
 
 // GTO Wizard-style color-coded action buttons — matches their exact scheme
-// CHECK = green, FOLD = muted blue-grey, CALL = teal, RAISE/BET = red/salmon gradient
+// CHECK = green passive, FOLD = muted blue-grey, CALL = teal, RAISE/BET = red/salmon
 const ACTION_COLORS = {
-    fold: { bg: '#2a3a2a', border: '#4a6a4a', text: '#8ab88a', accent: '#67a36f' },
+    fold: { bg: '#2a2a35', border: '#5a5a6a', text: '#a0a0b0', accent: '#7a7a8a' },
     check: { bg: '#2a3a2a', border: '#4a6a4a', text: '#8ab88a', accent: '#67a36f' },
     call: { bg: '#1e3a4a', border: '#3a6a7a', text: '#7ab8d0', accent: '#5aa0b8' },
     raise: { bg: '#4a2a2a', border: '#8a4a4a', text: '#d6a0a0', accent: '#d6504a' },
@@ -666,19 +666,18 @@ const loadingStyles = {
         height: '100vh',
         display: 'flex',
         flexDirection: 'column',
-        background: 'linear-gradient(180deg, #0a0a12 0%, #1a1a2e 100%)',
+        background: '#121212',
     },
     questionBar: {
-        height: 60,
-        background: 'rgba(255,255,255,0.05)',
-        margin: 16,
-        borderRadius: 12,
+        height: 50,
+        background: 'rgba(255,255,255,0.03)',
+        margin: '0',
         overflow: 'hidden',
     },
     pulse: {
         width: '100%',
         height: '100%',
-        background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)',
+        background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent)',
         animation: 'pulse 1.5s infinite',
     },
     tableArea: {
@@ -689,24 +688,29 @@ const loadingStyles = {
         justifyContent: 'center',
         position: 'relative',
     },
+    tableImage: {
+        opacity: 0.15,
+        height: '50%',
+        objectFit: 'contain',
+    },
     loadingText: {
         position: 'absolute',
-        color: '#00d4ff',
-        fontSize: 18,
-        fontWeight: 'bold',
-        fontFamily: "'Orbitron', sans-serif",
-        animation: 'pulse 1.5s infinite',
+        color: '#5ac8c8',
+        fontSize: 16,
+        fontWeight: 700,
+        fontFamily: "'Inter', sans-serif",
+        letterSpacing: 1,
     },
     buttonsArea: {
         display: 'flex',
-        gap: 10,
-        padding: 16,
+        gap: 0,
+        padding: 0,
     },
     buttonSkeleton: {
         flex: 1,
         height: 56,
-        background: 'rgba(255,255,255,0.05)',
-        borderRadius: 10,
+        background: 'rgba(255,255,255,0.03)',
+        borderTop: '1px solid rgba(255,255,255,0.06)',
     },
 };
 
@@ -781,7 +785,7 @@ function ClassificationFlashBanner({ classification, evLoss, show }) {
                     color: config.color,
                     letterSpacing: 1,
                     textTransform: 'uppercase',
-                    fontFamily: "'Orbitron', monospace",
+                    fontFamily: "'Inter', monospace",
                 }}>
                     {config.label}
                 </span>
@@ -823,7 +827,7 @@ function EVLossTicker({ totalEVLoss, show }) {
                 right: 12,
                 fontSize: 11,
                 fontWeight: 700,
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "'Inter', monospace",
                 color: evColor,
                 background: 'rgba(0,0,0,0.5)',
                 padding: '4px 10px',
@@ -933,7 +937,7 @@ function UniversalDynamicTable({
         };
         SoundEngine.play(soundMap[moveClassification] || 'wrong');
         // Haptic feedback on mobile for wrong/blunder
-        if ((moveClassification === 'wrong' || moveClassification === 'blunder') && navigator.vibrate) {
+        if ((moveClassification === 'wrong' || moveClassification === 'blunder') && typeof navigator !== 'undefined' && navigator.vibrate) {
             navigator.vibrate(moveClassification === 'blunder' ? [100, 50, 100] : [80]);
         }
     }, [showFeedback, moveClassification]);
@@ -1003,7 +1007,8 @@ function UniversalDynamicTable({
         };
     }, [showFeedback, onNextHand]);
 
-    // Phase 25: Keyboard Shortcuts (1-4 for actions, Space for next, Esc to exit)
+    // Phase 25: Keyboard Shortcuts — UNIFIED handler (1-4, F/C/R, Space/Enter, Esc)
+    // This is the SINGLE keyboard handler. Do NOT add duplicates.
     useEffect(() => {
         const handleKeyDown = (e) => {
             // Don't intercept if user is typing in an input
@@ -1018,7 +1023,7 @@ function UniversalDynamicTable({
                 return;
             }
 
-            // During question: 1-4 = select answer
+            // During question: 1-4 = select answer by index
             if (!showFeedback && !selectedAnswer) {
                 const keyNum = parseInt(key);
                 if (keyNum >= 1 && keyNum <= 4) {
@@ -1026,20 +1031,31 @@ function UniversalDynamicTable({
                     const opts = question?.options || [];
                     if (opts[keyNum - 1]) {
                         const optId = opts[keyNum - 1].id || opts[keyNum - 1];
-                        setSelectedAnswer(optId);
-                        if (onAnswer) onAnswer(optId);
+                        handleAnswer(optId);
                     }
+                    return;
+                }
+                // F/C/R shortcuts for fold/check-call/raise
+                const lower = key.toLowerCase();
+                if (lower === 'f') {
+                    const opts = question?.options || [];
+                    const foldOpt = opts.find(o => /fold/i.test(o.text || ''));
+                    if (foldOpt) handleAnswer(foldOpt.id);
+                } else if (lower === 'c') {
+                    const opts = question?.options || [];
+                    const checkCallOpt = opts.find(o => /check|call/i.test(o.text || ''));
+                    if (checkCallOpt) handleAnswer(checkCallOpt.id);
+                } else if (lower === 'r') {
+                    const opts = question?.options || [];
+                    const raiseOpt = opts.find(o => /raise|bet|all.in|shove/i.test(o.text || ''));
+                    if (raiseOpt) handleAnswer(raiseOpt.id);
                 }
             }
         };
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [showFeedback, selectedAnswer, onNextHand, onAnswer, question]);
-
-    // ════════════════════════════════════════════════════════════════════════
-    // DYNAMIC DATA EXTRACTION FROM QUESTION
-    // ════════════════════════════════════════════════════════════════════════
+    }, [showFeedback, selectedAnswer, onNextHand, onAnswer, question, handleAnswer]);
 
     // ═══════════════════════════════════════════════════════════════════════
     // DYNAMIC DATA EXTRACTION FROM QUESTION
@@ -1245,47 +1261,11 @@ function UniversalDynamicTable({
         }
     }, [showFeedback, moveClassification]);
 
-    // F9: Keyboard shortcuts (must be after handleAnswer definition)
-    useEffect(() => {
-        if (showFeedback || !question) return;
-        const opts = question?.options || [];
-        const handler = (e) => {
-            const key = e.key;
-            if (key >= '1' && key <= '4') {
-                const idx = parseInt(key) - 1;
-                if (idx < opts.length) {
-                    const optId = opts[idx].id || String.fromCharCode(97 + idx);
-                    handleAnswer(optId);
-                }
-            }
-            const lower = key.toLowerCase();
-            if (lower === 'f') {
-                const foldOpt = opts.find(o => /fold/i.test(o.text));
-                if (foldOpt) handleAnswer(foldOpt.id);
-            } else if (lower === 'c') {
-                const checkCallOpt = opts.find(o => /check|call/i.test(o.text));
-                if (checkCallOpt) handleAnswer(checkCallOpt.id);
-            } else if (lower === 'r') {
-                const raiseOpt = opts.find(o => /raise|bet|all.in|shove/i.test(o.text));
-                if (raiseOpt) handleAnswer(raiseOpt.id);
-            }
-        };
-        window.addEventListener('keydown', handler);
-        return () => window.removeEventListener('keydown', handler);
-    }, [showFeedback, question, handleAnswer]);
+    // F9: Keyboard shortcuts — REMOVED (consolidated into Phase 25 unified handler above)
+    // Do NOT re-add a second keydown listener here.
 
-    // UI-2: Space/Enter to advance to next hand during feedback
-    useEffect(() => {
-        if (!showFeedback || !onNextHand) return;
-        const handler = (e) => {
-            if (e.key === ' ' || e.key === 'Enter') {
-                e.preventDefault();
-                onNextHand();
-            }
-        };
-        window.addEventListener('keydown', handler);
-        return () => window.removeEventListener('keydown', handler);
-    }, [showFeedback, onNextHand]);
+    // UI-2: Space/Enter advance — REMOVED (consolidated into Phase 25 unified handler above)
+    // Do NOT re-add a second keydown listener here.
 
     // F6: Board texture classification
     const boardTexture = useMemo(() => classifyBoardTexture(boardCards), [boardCards]);
@@ -1985,7 +1965,7 @@ function UniversalDynamicTable({
                                 />
                             </div>
                             <span style={{
-                                fontSize: 9, fontWeight: 700, fontFamily: "'Orbitron', monospace",
+                                fontSize: 9, fontWeight: 700, fontFamily: "'Inter', monospace",
                                 color: difficultyLevel <= 3 ? '#22c55e'
                                     : difficultyLevel <= 6 ? '#fbbf24'
                                         : difficultyLevel <= 8 ? '#f97316' : '#ef4444',
@@ -2031,7 +2011,7 @@ function UniversalDynamicTable({
                             animate={{ y: 0, opacity: 1 }}
                             transition={{ delay: 0.15 }}
                             style={{
-                                fontFamily: "'Orbitron', sans-serif", fontSize: 22,
+                                fontFamily: "'Inter', sans-serif", fontSize: 22,
                                 fontWeight: 900, color: '#fbbf24', letterSpacing: 2,
                                 textShadow: '0 2px 8px rgba(251,191,36,0.4)',
                             }}
@@ -2067,7 +2047,7 @@ function UniversalDynamicTable({
                             background: `linear-gradient(135deg, ${speedBonusToast.color}22 0%, ${speedBonusToast.color}11 100%)`,
                             border: `1px solid ${speedBonusToast.color}66`,
                             color: speedBonusToast.color,
-                            fontFamily: "'Orbitron', monospace",
+                            fontFamily: "'Inter', monospace",
                             fontSize: 13, fontWeight: 800, letterSpacing: 1.5,
                             boxShadow: `0 0 20px ${speedBonusToast.color}33`,
                         }}
@@ -2237,14 +2217,14 @@ function UniversalDynamicTable({
                             <span style={{
                                 fontSize: 13, fontWeight: 800, color: classConfig?.color || '#3b82f6',
                                 letterSpacing: 0.8, textTransform: 'uppercase',
-                                fontFamily: "'Orbitron', monospace",
+                                fontFamily: "'Inter', monospace",
                             }}>{classConfig?.label || 'Unknown'}</span>
                         </motion.div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <span style={{ fontSize: 11, color: '#94a3b8' }}>EV:</span>
                             <span style={{
                                 fontSize: 14, fontWeight: 800,
-                                fontFamily: "'Orbitron', monospace",
+                                fontFamily: "'Inter', monospace",
                                 color: evLoss > 0 ? '#ef4444' : '#22c55e',
                             }}>
                                 {evLoss > 0 ? `-${evLoss.toFixed(2)}` : '0.00'} BB
@@ -2339,7 +2319,7 @@ function UniversalDynamicTable({
                                                 style={{ height: '100%', background: barColor, borderRadius: 3 }}
                                             />
                                         </div>
-                                        <div style={{ width: 44, fontSize: 9, fontWeight: 'bold', textAlign: 'right', fontFamily: "'Orbitron', monospace", color: ev >= 0 ? '#22c55e' : '#ef4444' }}>
+                                        <div style={{ width: 44, fontSize: 9, fontWeight: 'bold', textAlign: 'right', fontFamily: "'Inter', monospace", color: ev >= 0 ? '#22c55e' : '#ef4444' }}>
                                             {ev >= 0 ? '+' : ''}{ev.toFixed(2)}
                                         </div>
                                     </div>
@@ -2597,7 +2577,7 @@ const styles = {
         height: '100vh',
         display: 'flex',
         flexDirection: 'column',
-        background: 'transparent',
+        background: '#121212',
         fontFamily: "'Inter', -apple-system, sans-serif",
         overflow: 'hidden',
     },
@@ -2644,25 +2624,25 @@ const styles = {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        padding: '4px 12px',
-        borderRadius: 8,
-        border: '2px solid #22c55e',
-        background: 'rgba(0,0,0,0.3)',
+        padding: '3px 10px',
+        borderRadius: 6,
+        border: '1.5px solid #22c55e',
+        background: 'rgba(34, 197, 94, 0.08)',
     },
 
     scoreValue: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        fontFamily: "'Orbitron', 'Courier New', monospace",
+        fontSize: 16,
+        fontWeight: 800,
+        fontFamily: "'Inter', sans-serif",
         lineHeight: 1,
     },
 
     scoreLabel: {
-        fontSize: 8,
+        fontSize: 7,
         color: '#94a3b8',
         textTransform: 'uppercase',
         letterSpacing: 1,
-        fontWeight: '600',
+        fontWeight: '700',
     },
 
     questionCounter: {
@@ -2681,14 +2661,6 @@ const styles = {
         display: 'flex',
         alignItems: 'center',
         gap: 12,
-    },
-
-    questionText: {
-        color: '#e2e8f0',
-        fontSize: 15,
-        fontWeight: '600',
-        lineHeight: 1.4,
-        flex: 1,
     },
 
     inlineCard: {
@@ -2927,7 +2899,7 @@ const styles = {
 
     progressBarFill: {
         height: '100%',
-        background: 'linear-gradient(90deg, #00d4ff, #06b6d4)',
+        background: 'linear-gradient(90deg, #5ac8c8, #4db8b8)',
         borderRadius: '0 2px 2px 0',
     },
 
@@ -2935,7 +2907,7 @@ const styles = {
     scenarioInfo: {
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between',
+        justifyContent: 'flex-start',
         flex: 1,
         gap: 8,
     },
@@ -2943,41 +2915,49 @@ const styles = {
     scenarioLabel: {
         fontSize: 13,
         color: '#94a3b8',
-        fontWeight: '500',
+        // GAP-1: Action history strip — horizontal scrollable chips
     },
-
     actionHistoryStrip: {
         display: 'flex',
         alignItems: 'center',
-        gap: 4,
-        flexWrap: 'wrap',
+        gap: 6,
+        overflowX: 'auto',
+        whiteSpace: 'nowrap',
+        flex: 1,
+        scrollbarWidth: 'none',
+        msOverflowStyle: 'none',
     },
 
     actionHistoryItem: {
         display: 'inline-flex',
         alignItems: 'center',
-        gap: 3,
+        gap: 4,
+        padding: '2px 8px',
+        borderRadius: 4,
+        background: 'rgba(255,255,255,0.04)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        flexShrink: 0,
     },
 
     actionHistoryPos: {
         fontSize: 10,
-        fontWeight: 'bold',
-        color: '#00d4ff',
+        fontWeight: 800,
+        color: '#5ac8c8',
         textTransform: 'uppercase',
         letterSpacing: 0.5,
     },
 
     actionHistoryAction: {
-        fontSize: 11,
+        fontSize: 10,
         color: '#e2e8f0',
-        fontWeight: '500',
+        fontWeight: '600',
         textTransform: 'capitalize',
     },
 
     actionHistorySep: {
         fontSize: 10,
-        color: '#64748b',
-        margin: '0 2px',
+        color: '#4a4a55',
+        margin: '0 1px',
     },
 
     // GAP-6: Effective stack badge
@@ -3063,15 +3043,14 @@ const styles = {
         zIndex: 2,
     },
 
-    // ── STATS HUD
+    // ── STATS HUD (compact GTO Wizard style)
     statsHUD: {
         display: 'flex',
         justifyContent: 'space-around',
         alignItems: 'center',
-        padding: '6px 16px',
-        background: 'rgba(0,0,0,0.4)',
+        padding: '5px 16px',
+        background: '#1a1a1a',
         borderTop: '1px solid rgba(255,255,255,0.06)',
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
         flexShrink: 0,
     },
 
@@ -3079,20 +3058,20 @@ const styles = {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: 1,
+        gap: 0,
     },
 
     statsHUDLabel: {
-        fontSize: 9,
+        fontSize: 8,
         color: '#64748b',
         textTransform: 'uppercase',
         letterSpacing: 0.5,
-        fontWeight: '600',
+        fontWeight: '700',
     },
 
     statsHUDValue: {
-        fontSize: 14,
-        fontWeight: 'bold',
+        fontSize: 13,
+        fontWeight: 800,
         fontFamily: "'Inter', sans-serif",
     },
 
@@ -3210,7 +3189,7 @@ const styles = {
     evLossValue: {
         color: '#ef4444',
         fontWeight: 'bold',
-        fontFamily: "'Orbitron', 'Courier New', monospace",
+        fontFamily: "'Inter', 'Courier New', monospace",
     },
 
     feedbackExplanation: {

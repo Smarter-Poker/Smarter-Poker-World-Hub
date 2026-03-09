@@ -1063,7 +1063,7 @@ function GodModeArenaInner({
         const isAuthError = error.toLowerCase().includes('auth') || error.toLowerCase().includes('401');
         return (
             <div style={{
-                minHeight: '100vh', background: 'linear-gradient(180deg, #0a0a15, #1a1a2e)',
+                minHeight: '100vh', background: '#121212',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
             }}>
                 <div style={{
@@ -1817,7 +1817,7 @@ const styles = {
     fullScreenContainer: {
         width: '100%',
         height: '100vh',
-        background: 'transparent',
+        background: '#121212',
         overflow: 'hidden',
     },
 
@@ -1828,7 +1828,7 @@ const styles = {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'linear-gradient(145deg, #0a0a1a 0%, #0d1b30 50%, #0a0a1a 100%)',
+        background: '#121212',
         zIndex: 999,
     },
     splashContent: {

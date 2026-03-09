@@ -515,12 +515,18 @@ export default function HandHistoryUploadPage() {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                     body: JSON.stringify({
-                        game_id: 'hand-history-review',
-                        score: sessionData.totalHands,
-                        accuracy: sessionData.withShowdown / Math.max(sessionData.totalHands, 1) * 100,
-                        hands_played: sessionData.totalHands,
-                        ev_loss: 0,
-                        metadata: sessionData,
+                        gameId: 'hand-history-review',
+                        gameName: `Hand History Review (${sessionData.totalHands} hands)`,
+                        gtowScore: Math.round(sessionData.withShowdown / Math.max(sessionData.totalHands, 1) * 100),
+                        totalEVLoss: 0,
+                        handsPlayed: sessionData.totalHands,
+                        mistakeCount: 0,
+                        accuracy: Math.round(sessionData.withShowdown / Math.max(sessionData.totalHands, 1) * 100),
+                        correctCount: sessionData.withShowdown,
+                        bestStreak: 0,
+                        levelPassed: true,
+                        level: 1,
+                        handHistory: [],
                     }),
                 });
             }
@@ -535,9 +541,9 @@ export default function HandHistoryUploadPage() {
         }
 
         // Emit GTO coaching aggregate for dashboard/leak-finder reactivity
-        if (typeof eventBus !== 'undefined' && eventBus.emit && sessionData.hands) {
-            const coachingAggregate = { gto: 0, ok: 0, leak: 0, total: sessionData.hands.length };
-            sessionData.hands.forEach(h => {
+        if (typeof eventBus !== 'undefined' && eventBus.emit && hands && hands.length > 0) {
+            const coachingAggregate = { gto: 0, ok: 0, leak: 0, total: hands.length };
+            hands.forEach(h => {
                 try {
                     const { grade } = gradeHand(h);
                     if (grade === 'GTO') coachingAggregate.gto++;

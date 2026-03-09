@@ -116,6 +116,11 @@ export default function useTrainingProgress() {
 
     // Load on mount and listen to global events
     useEffect(() => {
+        // BUG-F FIX: Actually call loadProgress on mount — previously only set up
+        // event listener but never invoked the initial load, causing isLoaded to
+        // stay false forever and blocking the Training Hub with a permanent spinner.
+        loadProgress();
+
         const handleReload = () => {
             console.log('[useTrainingProgress] Caught trainingSessionSaved bus event, re-hydrating...');
             loadProgress();
