@@ -111,10 +111,15 @@ export default function TableWizardPage() {
 
     const handleJoinTable = useCallback((tableId) => {
         setJoinedTable(tableId);
-        eventBus.emit(EventType.SESSION_END, {
-            source: 'TableWizard', action: 'table_joined', tableId,
-        }, 'TableWizard');
-        eventBus.emit('training:session-complete', { game_id: 'table-wizard', accuracy: 100, correct_answers: 1, total_questions: 1, hands_played: 1 });
+        // HARDENED: safe eventBus access
+        try {
+            if (typeof eventBus !== 'undefined' && eventBus?.emit) {
+                eventBus.emit(EventType?.SESSION_END || 'session:end', {
+                    source: 'TableWizard', action: 'table_joined', tableId,
+                }, 'TableWizard');
+                eventBus.emit('training:session-complete', { game_id: 'table-wizard', accuracy: 100, correct_answers: 1, total_questions: 1, hands_played: 1 });
+            }
+        } catch (e) { console.warn('[TableWizard] EventBus error:', e); }
     }, []);
 
     const handleRefresh = useCallback(() => {

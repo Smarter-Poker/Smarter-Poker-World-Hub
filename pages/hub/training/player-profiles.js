@@ -193,10 +193,13 @@ export default function PlayerProfilesPage() {
         setSelectedProfile(id);
         setShowAdaptation(false);
         setActiveScenario(0);
-        eventBus.emit(EventType.SESSION_END, {
-            source: 'PlayerProfiles', action: 'profile_selected', profileId: id,
-        }, 'PlayerProfiles');
-        eventBus.emit('training:session-complete', { game_id: 'player-profiles', accuracy: 100, correct_answers: 1, total_questions: 1, hands_played: 1 });
+        // HARDENED: safe eventBus access
+        try {
+            eventBus?.emit?.(EventType?.SESSION_END || 'session:end', {
+                source: 'PlayerProfiles', action: 'profile_selected', profileId: id,
+            }, 'PlayerProfiles');
+            eventBus?.emit?.('training:session-complete', { game_id: 'player-profiles', accuracy: 100, correct_answers: 1, total_questions: 1, hands_played: 1 });
+        } catch (e) { console.warn('[PlayerProfiles] EventBus error:', e); }
     }, []);
 
     return (

@@ -177,13 +177,16 @@ export default function BountyTrainerPage() {
     }, []);
 
     const handleComplete = useCallback(() => {
-        eventBus.emit(EventType.SESSION_END, {
-            source: 'BountyTrainer', score, totalAnswered, format: activeFormat,
-        }, 'BountyTrainer');
-        eventBus.emit('training:session-complete', {
-            game_id: 'bounty-trainer', accuracy: totalAnswered ? Math.round((score / totalAnswered) * 100) : 0,
-            correct_answers: score, total_questions: totalAnswered, hands_played: totalAnswered,
-        });
+        // HARDENED: safe eventBus access
+        try {
+            eventBus?.emit?.(EventType?.SESSION_END || 'session:end', {
+                source: 'BountyTrainer', score, totalAnswered, format: activeFormat,
+            }, 'BountyTrainer');
+            eventBus?.emit?.('training:session-complete', {
+                game_id: 'bounty-trainer', accuracy: totalAnswered ? Math.round((score / Math.max(totalAnswered, 1)) * 100) : 0,
+                correct_answers: score, total_questions: totalAnswered, hands_played: totalAnswered,
+            });
+        } catch (e) { console.warn('[BountyTrainer] EventBus error:', e); }
     }, [score, totalAnswered, activeFormat]);
 
     return (

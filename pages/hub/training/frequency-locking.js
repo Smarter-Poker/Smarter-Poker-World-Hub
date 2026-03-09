@@ -153,8 +153,11 @@ export default function FrequencyLockingPage() {
 
     const handleReset = useCallback(() => {
         setTree(DEFAULT_TREE);
-        eventBus.emit(EventType.SESSION_END, { source: 'FrequencyLocking', action: 'reset' }, 'FrequencyLocking');
-        eventBus.emit('training:session-complete', { game_id: 'frequency-locking', accuracy: 100, correct_answers: 1, total_questions: 1, hands_played: 1 });
+        // HARDENED: safe eventBus access
+        try {
+            eventBus?.emit?.(EventType?.SESSION_END || 'session:end', { source: 'FrequencyLocking', action: 'reset' }, 'FrequencyLocking');
+            eventBus?.emit?.('training:session-complete', { game_id: 'frequency-locking', accuracy: 100, correct_answers: 1, total_questions: 1, hands_played: 1 });
+        } catch (e) { console.warn('[FreqLocking] EventBus error:', e); }
     }, []);
 
     const lockedCount = tree.reduce((s, n) => s + n.actions.filter(a => a.locked).length, 0);

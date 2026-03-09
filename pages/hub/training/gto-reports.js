@@ -49,7 +49,9 @@ const STAT_LABELS = {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function getDeviationColor(userVal, gtoVal) {
-    const diff = Math.abs(userVal - gtoVal);
+    const safeUser = Number.isFinite(userVal) ? userVal : 0;
+    const safeGTO = Number.isFinite(gtoVal) ? gtoVal : 0;
+    const diff = Math.abs(safeUser - safeGTO);
     if (diff <= 3) return { bg: 'rgba(34,197,94,0.15)', text: '#22c55e', label: 'GTO' };
     if (diff <= 8) return { bg: 'rgba(251,191,36,0.15)', text: '#fbbf24', label: 'Minor Leak' };
     if (diff <= 15) return { bg: 'rgba(249,115,22,0.15)', text: '#f97316', label: 'Moderate Leak' };
@@ -57,16 +59,18 @@ function getDeviationColor(userVal, gtoVal) {
 }
 
 function calculateGTOProximity(userStats, baselines) {
-    const keys = Object.keys(baselines);
+    const keys = Object.keys(baselines || {});
     if (keys.length === 0) return 100;
     let totalPenalty = 0;
     keys.forEach(key => {
-        if (userStats[key] !== undefined && baselines[key] !== undefined) {
-            const diff = Math.abs(userStats[key] - baselines[key]);
+        const uv = Number(userStats?.[key]);
+        const bv = Number(baselines[key]);
+        if (Number.isFinite(uv) && Number.isFinite(bv)) {
+            const diff = Math.abs(uv - bv);
             totalPenalty += Math.min(diff * 2, 30); // Max 30 penalty per stat
         }
     });
-    return Math.max(0, Math.round(100 - (totalPenalty / keys.length)));
+    return Math.max(0, Math.round(100 - (totalPenalty / Math.max(keys.length, 1))));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -75,8 +79,11 @@ function calculateGTOProximity(userStats, baselines) {
 
 function StatCard({ statKey, userVal, gtoVal, index, onClick, isActive }) {
     const meta = STAT_LABELS[statKey] || { label: statKey, desc: '', icon: '📊' };
-    const dev = getDeviationColor(userVal, gtoVal);
-    const diff = userVal - gtoVal;
+    // HARDENED: safe numeric values for toFixed
+    const safeUser = Number.isFinite(userVal) ? userVal : 0;
+    const safeGTO = Number.isFinite(gtoVal) ? gtoVal : 0;
+    const dev = getDeviationColor(safeUser, safeGTO);
+    const diff = safeUser - safeGTO;
 
     return (
         <motion.div
@@ -105,15 +112,15 @@ function StatCard({ statKey, userVal, gtoVal, index, onClick, isActive }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                 <div>
                     <div style={{ fontSize: 28, fontWeight: 800, color: dev.text, fontFamily: "'Orbitron', monospace" }}>
-                        {userVal.toFixed(1)}%
+                        {safeUser.toFixed(1)}%
                     </div>
                     <div style={{ fontSize: 10, color: '#64748b' }}>
-                        GTO: {gtoVal.toFixed(1)}% ({diff > 0 ? '+' : ''}{diff.toFixed(1)}%)
+                        GTO: {safeGTO.toFixed(1)}% ({diff > 0 ? '+' : ''}{diff.toFixed(1)}%)
                     </div>
                 </div>
                 <div style={{ width: 80, height: 32 }}>
                     <div style={{ display: 'flex', alignItems: 'flex-end', height: '100%', gap: 3 }}>
-                        <div style={{ flex: 1, background: dev.text, borderRadius: 3, height: `${Math.min(100, (userVal / Math.max(gtoVal, 1)) * 100)}%`, opacity: 0.8 }} />
+                        <div style={{ flex: 1, background: dev.text, borderRadius: 3, height: `${Math.min(100, (safeUser / Math.max(safeGTO, 0.1)) * 100)}%`, opacity: 0.8 }} />
                         <div style={{ flex: 1, background: '#475569', borderRadius: 3, height: '100%', opacity: 0.5 }} />
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 2 }}>
