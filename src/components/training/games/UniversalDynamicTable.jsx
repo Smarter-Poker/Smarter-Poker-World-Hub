@@ -931,6 +931,9 @@ function UniversalDynamicTable({
     // Phase 3: Floating EV popup
     const [evPopup, setEvPopup] = React.useState(null);
 
+    // F4: In-Trainer Mode Switching Bar
+    const [activeMode, setActiveMode] = React.useState('trainer');
+
     // PHASE 5: Hand Strength evaluation
     const handStrength = useMemo(() => {
         if (showFeedback) return null;
@@ -992,6 +995,18 @@ function UniversalDynamicTable({
     }, [showFeedback, moveClassification, question, heroCards, boardCards, heroPosition, selectedAnswer, evLoss, explanation]);
     const [showMistakeReview, setShowMistakeReview] = React.useState(false);
     const [mistakeReviewIndex, setMistakeReviewIndex] = React.useState(0);
+
+    // PHASE 9: Simplified Mode — collapses low-frequency actions for scoring
+    const [simplifiedMode, setSimplifiedMode] = React.useState(() => {
+        try { return localStorage.getItem('sp_simplified_mode') === 'true'; } catch { return false; }
+    });
+    const toggleSimplifiedMode = useCallback(() => {
+        setSimplifiedMode(prev => {
+            const next = !prev;
+            try { localStorage.setItem('sp_simplified_mode', String(next)); } catch { }
+            return next;
+        });
+    }, []);
 
     // PHASE 5: Adaptive Difficulty Level (computed from session accuracy)
     const computedDifficulty = useMemo(() => {
@@ -1335,11 +1350,23 @@ function UniversalDynamicTable({
 
     // Compute move classification for feedback display
     const computedClassification = useMemo(() => {
-        if (moveClassification) return moveClassification;
+        if (moveClassification) {
+            // PHASE 9: Simplified Mode override — if user's selected action has <5% freq, upgrade inaccuracies to 'correct'
+            if (simplifiedMode && (moveClassification === 'inaccuracy') && selectedAnswer && computedFrequencies) {
+                const userFreq = computedFrequencies[selectedAnswer] || computedFrequencies[selectedAnswer?.toLowerCase()] || 0;
+                if (userFreq > 0 && userFreq < 5) return 'correct';
+            }
+            return moveClassification;
+        }
         if (!showFeedback || !selectedAnswer) return null;
-        const result = classifyMove(selectedAnswer, correctAnswer, computedFrequencies);
+        let result = classifyMove(selectedAnswer, correctAnswer, computedFrequencies);
+        // PHASE 9: Simplified Mode override for computed classification
+        if (simplifiedMode && result.classification === 'inaccuracy') {
+            const userFreq = computedFrequencies[selectedAnswer] || computedFrequencies[selectedAnswer?.toLowerCase()] || 0;
+            if (userFreq > 0 && userFreq < 5) return 'correct';
+        }
         return result.classification;
-    }, [moveClassification, showFeedback, selectedAnswer, correctAnswer, computedFrequencies]);
+    }, [moveClassification, showFeedback, selectedAnswer, correctAnswer, computedFrequencies, simplifiedMode]);
 
     // Get classification config for display
     const classConfig = computedClassification ? CLASSIFICATION_CONFIG[computedClassification] : null;
@@ -1463,7 +1490,7 @@ function UniversalDynamicTable({
     }
 
     return (
-        <div style={styles.container}>
+        <div className="gto-trainer-container" style={styles.container}>
             {/* CSS Animation Keyframes */}
             <style>{`
                 @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
@@ -1562,6 +1589,21 @@ function UniversalDynamicTable({
                     <div style={styles.questionCounter}>
                         {questionNumber}/{totalQuestions}
                     </div>
+                    {/* PHASE 9: Simplified Mode Toggle */}
+                    <motion.button
+                        onClick={toggleSimplifiedMode}
+                        whileTap={{ scale: 0.95 }}
+                        style={{
+                            padding: '2px 8px', borderRadius: 6,
+                            fontSize: 8, fontWeight: 700, letterSpacing: 0.8,
+                            border: simplifiedMode ? '1px solid rgba(168,85,247,0.4)' : '1px solid rgba(255,255,255,0.1)',
+                            background: simplifiedMode ? 'rgba(168,85,247,0.15)' : 'rgba(255,255,255,0.03)',
+                            color: simplifiedMode ? '#c084fc' : '#64748b',
+                            cursor: 'pointer', textTransform: 'uppercase',
+                        }}
+                    >
+                        {simplifiedMode ? 'SIMPLE' : 'FULL'}
+                    </motion.button>
                 </div>
             </div>
 
@@ -2391,6 +2433,119 @@ function UniversalDynamicTable({
                 })}
             </div>
 
+            {/* F4: MODE SWITCHING BAR — Bottom toolbar */}
+            <div style={styles.modeBar}>
+                {[
+                    { id: 'trainer', icon: '🎯', label: 'Trainer' },
+                    { id: 'range', icon: '📊', label: 'Range' },
+                    { id: 'strategy', icon: '📈', label: 'Strategy' },
+                    { id: 'settings', icon: '⚙️', label: 'Settings' },
+                ].map(mode => (
+                    <button
+                        key={mode.id}
+                        onClick={() => setActiveMode(mode.id)}
+                        style={{
+                            ...styles.modeBarBtn,
+                            color: activeMode === mode.id ? '#00d4ff' : '#64748b',
+                            borderTop: activeMode === mode.id ? '2px solid #00d4ff' : '2px solid transparent',
+                            background: activeMode === mode.id ? 'rgba(0,212,255,0.06)' : 'transparent',
+                        }}
+                    >
+                        <span style={{ fontSize: 16 }}>{mode.icon}</span>
+                        <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: 0.5 }}>{mode.label}</span>
+                    </button>
+                ))}
+            </div>
+
+            {/* F4: RANGE MODE — Show range grid when mode is active */}
+            {activeMode === 'range' && !showFeedback && (
+                <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    style={{ padding: '8px 12px', background: 'rgba(0,0,0,0.4)', borderTop: '1px solid rgba(255,255,255,0.06)' }}
+                >
+                    <div style={{ fontSize: 9, fontWeight: 700, color: '#64748b', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4, textAlign: 'center' }}>
+                        Range Matrix {heroCards?.length === 2 && <span style={{ color: '#00d4ff' }}>• {heroCards.join('')}</span>}
+                    </div>
+                    <RangeGrid
+                        gridData={(() => {
+                            if (!computedFrequencies || !options) return null;
+                            const gridData = {};
+                            options.forEach(opt => {
+                                const optId = opt.id || opt;
+                                const freq = computedFrequencies[optId] || 0;
+                                if (freq > 0) gridData[optId] = freq;
+                            });
+                            return gridData;
+                        })()}
+                        actions={options?.map(o => o.id || o) || []}
+                        cellSize={18}
+                        heroHand={heroCards?.join('')}
+                        compact={true}
+                    />
+                </motion.div>
+            )}
+
+            {/* F4: STRATEGY MODE — Show full strategy analysis */}
+            {activeMode === 'strategy' && !showFeedback && computedFrequencies && (
+                <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    style={{ padding: '10px 14px', background: 'rgba(0,0,0,0.4)', borderTop: '1px solid rgba(255,255,255,0.06)' }}
+                >
+                    <div style={{ fontSize: 9, fontWeight: 700, color: '#64748b', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 6, textAlign: 'center' }}>
+                        GTO Strategy Distribution
+                    </div>
+                    {options.slice(0, 4).map(opt => {
+                        const optId = opt.id || opt;
+                        const text = typeof opt === 'string' ? opt : (opt.text || opt.label || 'Option');
+                        const freq = computedFrequencies[optId] || 0;
+                        const actionType = detectActionType(text);
+                        const barColor = ACTION_COLORS[actionType]?.border || '#64748b';
+                        return (
+                            <div key={optId} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                <div style={{ width: 60, fontSize: 10, fontWeight: 600, color: barColor, textAlign: 'right' }}>{text}</div>
+                                <div style={{ flex: 1, height: 8, background: 'rgba(255,255,255,0.05)', borderRadius: 4, overflow: 'hidden' }}>
+                                    <motion.div
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${freq}%` }}
+                                        transition={{ duration: 0.6, ease: 'easeOut' }}
+                                        style={{ height: '100%', background: barColor, borderRadius: 4 }}
+                                    />
+                                </div>
+                                <div style={{ width: 36, fontSize: 11, fontWeight: 800, color: '#e2e8f0', textAlign: 'right', fontFamily: "'Inter', monospace" }}>{freq}%</div>
+                            </div>
+                        );
+                    })}
+                </motion.div>
+            )}
+
+            {/* F4: SETTINGS MODE */}
+            {activeMode === 'settings' && !showFeedback && (
+                <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    style={{ padding: '10px 14px', background: 'rgba(0,0,0,0.4)', borderTop: '1px solid rgba(255,255,255,0.06)' }}
+                >
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <button onClick={() => setStudyMode(!studyMode)} style={styles.settingsBtn}>
+                            {studyMode ? '📖 Study Mode: ON' : '📖 Study Mode: OFF'}
+                        </button>
+                        <button onClick={() => setRngMode(!rngMode)} style={styles.settingsBtn}>
+                            {rngMode ? '🎲 RNG Mode: ON' : '🎲 RNG Mode: OFF'}
+                        </button>
+                        {onExit && (
+                            <button onClick={onExit} style={{ ...styles.settingsBtn, color: '#ef4444', borderColor: 'rgba(239,68,68,0.3)' }}>
+                                🚪 Quit Session
+                            </button>
+                        )}
+                    </div>
+                </motion.div>
+            )}
+
             {/* INLINE FEEDBACK — Table stays visible, results shown below action bar */}
             {showFeedback && (
                 <motion.div
@@ -2399,6 +2554,43 @@ function UniversalDynamicTable({
                     transition={{ type: 'spring', damping: 22, stiffness: 300 }}
                     style={styles.feedbackInline}
                 >
+
+                    {/* F5: FULL STRATEGY OVERLAY — Shows all action frequencies as bars during feedback */}
+                    <div style={{ width: '100%', marginBottom: 6 }}>
+                        <div style={{ fontSize: 9, fontWeight: 700, color: '#64748b', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4 }}>
+                            GTO Action Frequencies
+                        </div>
+                        {options.slice(0, 4).map(opt => {
+                            const optId = opt.id || opt;
+                            const text = typeof opt === 'string' ? opt : (opt.text || opt.label || 'Option');
+                            const freq = computedFrequencies[optId] || 0;
+                            const isCorrect = optId === correctAnswer;
+                            const isSelected = optId === selectedAnswer;
+                            const actionType = detectActionType(text);
+                            const barColor = isCorrect ? '#22c55e' : isSelected ? (classConfig?.color || '#ef4444') : ACTION_COLORS[actionType]?.border || '#475569';
+                            return (
+                                <div key={optId} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                                    <div style={{
+                                        width: 50, fontSize: 9, fontWeight: 700, textAlign: 'right',
+                                        color: isCorrect ? '#22c55e' : isSelected ? (classConfig?.color || '#ef4444') : '#94a3b8',
+                                    }}>
+                                        {isCorrect && '✓ '}{isSelected && !isCorrect && '✗ '}{text}
+                                    </div>
+                                    <div style={{ flex: 1, height: 6, background: 'rgba(255,255,255,0.05)', borderRadius: 3, overflow: 'hidden' }}>
+                                        <motion.div
+                                            initial={{ width: 0 }}
+                                            animate={{ width: `${freq}%` }}
+                                            transition={{ duration: 0.5, delay: 0.15 }}
+                                            style={{ height: '100%', background: barColor, borderRadius: 3 }}
+                                        />
+                                    </div>
+                                    <div style={{ width: 32, fontSize: 10, fontWeight: 800, textAlign: 'right', fontFamily: "'Inter', monospace", color: '#e2e8f0' }}>
+                                        {freq}%
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
                     {/* Classification + EV Row */}
                     <div style={styles.feedbackTopRow}>
                         <motion.div
@@ -2833,6 +3025,29 @@ function UniversalDynamicTable({
 // STYLES
 // ═══════════════════════════════════════════════════════════════════════════
 
+// F8: Desktop-responsive layout — inject a stylesheet for wide screens
+if (typeof window !== 'undefined' && !document.getElementById('gto-desktop-responsive')) {
+    const styleTag = document.createElement('style');
+    styleTag.id = 'gto-desktop-responsive';
+    styleTag.textContent = `
+        @media (min-width: 900px) {
+            .gto-trainer-container {
+                max-width: 600px !important;
+                margin: 0 auto !important;
+                border-left: 1px solid rgba(255,255,255,0.06) !important;
+                border-right: 1px solid rgba(255,255,255,0.06) !important;
+                box-shadow: 0 0 60px rgba(0,0,0,0.5) !important;
+            }
+        }
+        @media (min-width: 1200px) {
+            .gto-trainer-container {
+                max-width: 520px !important;
+            }
+        }
+    `;
+    document.head.appendChild(styleTag);
+}
+
 const styles = {
     container: {
         width: '100%',
@@ -3057,6 +3272,41 @@ const styles = {
         whiteSpace: 'nowrap',
         background: '#2a2a32',
         border: '1px solid #4a4a55',
+    },
+
+    // F4: Mode Switching Bar styles
+    modeBar: {
+        display: 'flex',
+        justifyContent: 'space-around',
+        alignItems: 'stretch',
+        background: '#1a1a1a',
+        borderTop: '1px solid rgba(255,255,255,0.08)',
+        flexShrink: 0,
+    },
+    modeBarBtn: {
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 2,
+        padding: '8px 0',
+        border: 'none',
+        cursor: 'pointer',
+        fontFamily: "'Inter', sans-serif",
+        transition: 'all 0.15s ease',
+    },
+    settingsBtn: {
+        padding: '10px 16px',
+        borderRadius: 8,
+        background: 'rgba(255,255,255,0.04)',
+        border: '1px solid rgba(255,255,255,0.1)',
+        color: '#e2e8f0',
+        fontSize: 12,
+        fontWeight: 600,
+        cursor: 'pointer',
+        textAlign: 'left',
+        fontFamily: "'Inter', sans-serif",
     },
 
     badgeLabel: {

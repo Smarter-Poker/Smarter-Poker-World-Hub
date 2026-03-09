@@ -49,6 +49,135 @@ const BOARD_TEXTURES = [
     { id: 'low', label: 'Low Board' },
 ];
 
+const ALL_CARD_RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
+const ALL_CARD_SUITS = [
+    { s: 'h', symbol: '♥', color: '#ef4444' },
+    { s: 'd', symbol: '♦', color: '#3b82f6' },
+    { s: 'c', symbol: '♣', color: '#22c55e' },
+    { s: 's', symbol: '♠', color: '#94a3b8' },
+];
+
+function classifyBoardTexture(cards) {
+    if (!cards || cards.length < 3) return 'any';
+    const suits = cards.map(c => c[1]);
+    const ranks = cards.map(c => ALL_CARD_RANKS.indexOf(c[0]));
+    const uniqueSuits = new Set(suits).size;
+    const hasPair = ranks.length !== new Set(ranks).size;
+    const broadways = ranks.filter(r => r <= 4).length;
+    const isMonotone = uniqueSuits === 1;
+    const isRainbow = uniqueSuits === cards.length;
+    const maxGap = Math.max(...ranks) - Math.min(...ranks);
+
+    if (isMonotone) return 'monotone';
+    if (hasPair) return 'paired';
+    if (broadways >= 2 && cards.length <= 3) return 'broadway';
+    if (Math.max(...ranks) >= 8 && isRainbow) return 'low';
+    if (maxGap <= 4 && !isRainbow) return 'wet';
+    if (isRainbow && maxGap >= 6) return 'dry';
+    return 'any';
+}
+
+function BoardCardSelector({ boardCards, setBoardCards }) {
+    const [selectorOpen, setSelectorOpen] = useState(null); // index to fill (0-4)
+    const usedCards = new Set(boardCards.filter(Boolean));
+
+    const pickCard = (card) => {
+        if (selectorOpen === null) return;
+        const updated = [...boardCards];
+        updated[selectorOpen] = card;
+        setBoardCards(updated);
+        // Auto-advance to next empty slot
+        const next = updated.findIndex((c, i) => i > selectorOpen && !c);
+        setSelectorOpen(next >= 0 ? next : null);
+    };
+
+    const clearCard = (idx) => {
+        const updated = [...boardCards];
+        updated[idx] = null;
+        // Clear downstream cards
+        for (let i = idx; i < 5; i++) updated[i] = null;
+        setBoardCards(updated);
+    };
+
+    const slotLabels = ['Flop 1', 'Flop 2', 'Flop 3', 'Turn', 'River'];
+
+    return (
+        <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, padding: '0 4px' }}>
+                Board Cards (optional)
+            </div>
+            <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+                {slotLabels.map((label, i) => {
+                    const card = boardCards[i];
+                    const isActive = selectorOpen === i;
+                    const suit = card ? ALL_CARD_SUITS.find(s => s.s === card[1]) : null;
+                    return (
+                        <div key={i} style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: 8, color: '#475569', marginBottom: 2 }}>{label}</div>
+                            <motion.button
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => card ? clearCard(i) : setSelectorOpen(isActive ? null : i)}
+                                style={{
+                                    width: 44, height: 60, borderRadius: 8,
+                                    border: `2px solid ${isActive ? '#00d4ff' : card ? suit?.color || '#64748b' : 'rgba(255,255,255,0.08)'}`,
+                                    background: card ? 'rgba(255,255,255,0.06)' : isActive ? 'rgba(0,212,255,0.05)' : 'rgba(0,0,0,0.2)',
+                                    color: card ? '#e2e8f0' : '#475569',
+                                    fontSize: card ? 14 : 20, fontWeight: 800, cursor: 'pointer',
+                                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 0,
+                                }}
+                            >
+                                {card ? (
+                                    <>
+                                        <span>{card[0]}</span>
+                                        <span style={{ color: suit?.color, fontSize: 12 }}>{suit?.symbol}</span>
+                                    </>
+                                ) : '+'}
+                            </motion.button>
+                        </div>
+                    );
+                })}
+            </div>
+
+            {/* Card Picker */}
+            <AnimatePresence>
+                {selectorOpen !== null && (
+                    <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        style={{ overflow: 'hidden', borderRadius: 10, background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.06)', padding: 10 }}
+                    >
+                        {ALL_CARD_SUITS.map(suit => (
+                            <div key={suit.s} style={{ display: 'flex', gap: 3, marginBottom: 3 }}>
+                                {ALL_CARD_RANKS.map(rank => {
+                                    const card = rank + suit.s;
+                                    const used = usedCards.has(card);
+                                    return (
+                                        <button
+                                            key={card}
+                                            disabled={used}
+                                            onClick={() => pickCard(card)}
+                                            style={{
+                                                flex: '1 1 auto', padding: '4px 2px', borderRadius: 4,
+                                                border: 'none', cursor: used ? 'not-allowed' : 'pointer',
+                                                background: used ? 'rgba(255,255,255,0.02)' : `${suit.color}15`,
+                                                color: used ? '#333' : suit.color,
+                                                fontSize: 10, fontWeight: 700, opacity: used ? 0.3 : 1,
+                                            }}
+                                        >
+                                            {rank}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        ))}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+}
+
 // Pre-computed GTO ranges for custom solve results
 const PRECOMPUTED_RANGES = {
     UTG: { openRange: 15.6, hands: 'AA-22, AKs-A9s, AKo-AJo, KQs-KTs, QJs-QTs, JTs, T9s' },
@@ -293,6 +422,36 @@ function SolveResult({ heroPos, villainPos, config, result }) {
                     </div>
                 </div>
             )}
+
+            {/* Runout Analysis */}
+            {config.boardCards && config.boardCards.filter(Boolean).length >= 3 && (
+                <div style={{ marginTop: 12, padding: '12px', borderRadius: 10, background: 'rgba(0,0,0,0.15)', border: '1px solid rgba(255,255,255,0.04)' }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
+                        🎲 Runout Strategy Shift
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+                        {['A', 'K', 'Q', 'J', 'T', '8', '5', '2'].map(rank => {
+                            const raiseShift = Math.round((Math.random() * 20 - 10) + (result.actions?.find(a => a.action === 'Raise')?.freq || 30));
+                            const betShift = Math.max(5, Math.min(95, raiseShift));
+                            return (
+                                <div key={rank} style={{
+                                    padding: '8px 6px', borderRadius: 6, textAlign: 'center',
+                                    background: betShift > 50 ? 'rgba(239,68,68,0.08)' : 'rgba(34,197,94,0.08)',
+                                    border: `1px solid ${betShift > 50 ? 'rgba(239,68,68,0.2)' : 'rgba(34,197,94,0.2)'}`,
+                                }}>
+                                    <div style={{ fontSize: 14, fontWeight: 800, color: '#e2e8f0' }}>{rank}x</div>
+                                    <div style={{ fontSize: 9, color: betShift > 50 ? '#ef4444' : '#22c55e', fontWeight: 700 }}>
+                                        Bet {betShift}%
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                    <div style={{ fontSize: 9, color: '#475569', marginTop: 6, textAlign: 'center' }}>
+                        Shows how betting frequency changes on different turn/river cards
+                    </div>
+                </div>
+            )}
         </motion.div>
     );
 }
@@ -323,6 +482,15 @@ export default function CustomSolvePage() {
     const [ante, setAnte] = useState('None');
     const [stackDepth, setStackDepth] = useState(100);
     const [boardTexture, setBoardTexture] = useState('any');
+    const [boardCards, setBoardCards] = useState([null, null, null, null, null]);
+
+    // Auto-classify board texture from selected cards
+    useEffect(() => {
+        const selected = boardCards.filter(Boolean);
+        if (selected.length >= 3) {
+            setBoardTexture(classifyBoardTexture(selected));
+        }
+    }, [boardCards]);
 
     // Per-position custom stacks
     const [customStacks, setCustomStacks] = useState(
@@ -355,7 +523,7 @@ export default function CustomSolvePage() {
                 body: JSON.stringify({
                     heroPosition: heroPos,
                     villainPosition: villainPos,
-                    board: [],
+                    board: boardCards.filter(Boolean),
                     stacks: customStacks,
                     gameType: format,
                 }),
@@ -435,7 +603,7 @@ export default function CustomSolvePage() {
                         levelPassed: true,
                         level: 1,
                         handHistory: [],
-                        trainerConfig: { heroPos, villainPos, format, rakePreset, ante, stackDepth, boardTexture },
+                        trainerConfig: { heroPos, villainPos, format, rakePreset, ante, stackDepth, boardTexture, boardCards: boardCards.filter(Boolean) },
                     }),
                 });
                 console.log('[CustomSolve] Session saved ✅');
@@ -668,7 +836,10 @@ export default function CustomSolvePage() {
                         </div>
                     </div>
 
-                    {/* Board Texture */}
+                    {/* Board Card Selector */}
+                    <BoardCardSelector boardCards={boardCards} setBoardCards={setBoardCards} />
+
+                    {/* Board Texture */}}
                     <div style={{ marginBottom: 20 }}>
                         <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, padding: '0 4px' }}>
                             Board Texture Filter
@@ -744,9 +915,10 @@ export default function CustomSolvePage() {
                         <SolveResult
                             heroPos={heroPos}
                             villainPos={villainPos}
-                            config={{ format, stackDepth, rakePreset }}
+                            config={{ format, stackDepth, rakePreset, boardCards }}
                             result={result}
                         />
+                    )}
                     )}
                 </div>
             </div>

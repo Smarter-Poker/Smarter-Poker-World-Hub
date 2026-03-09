@@ -13,7 +13,7 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { DiamondEngine } from '../../../src/services/DiamondEngine';
-import { getAuthUser } from '../../../src/lib/authUtils';
+import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // VILLAIN PROFILES
@@ -263,6 +263,32 @@ export default function NodelockingPage() {
         setCustomTendencies(prev => ({ ...(prev || base), [key]: Math.max(0, Math.min(100, parseFloat(value) || 0)) }));
     }, [selectedProfile]);
 
+    // Total EV from exploits
+    const totalEV = useMemo(() => {
+        return exploits.reduce((sum, e) => sum + parseFloat(e.ev) || 0, 0).toFixed(2);
+    }, [exploits]);
+
+    // Save profile analysis to Supabase
+    const saveAnalysis = useCallback(async () => {
+        try {
+            const token = getAccessToken();
+            if (token) {
+                await fetch('/api/training/save-session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({
+                        gameId: 'nodelocking',
+                        questionsAnswered: exploits.length,
+                        questionsCorrect: exploits.filter(e => e.priority === 'HIGH').length,
+                        accuracy: Math.round((exploits.filter(e => e.priority === 'HIGH').length / Math.max(exploits.length, 1)) * 100),
+                        trainerConfig: { profile: selectedProfile, tendencies: activeProfile.tendencies, exploits: exploits.map(e => e.action), totalEV },
+                    }),
+                });
+            }
+            eventBus.emit(EventType.SESSION_END, { accuracy: 100, questionsAnswered: exploits.length, questionsCorrect: exploits.length }, 'nodelocking');
+        } catch (e) { console.error('[Nodelocking] Save error:', e); }
+    }, [selectedProfile, activeProfile, exploits, totalEV]);
+
     if (isCheckingVIP) {
         return (
             <div style={{ minHeight: '100vh', background: '#0a0a12', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -353,21 +379,20 @@ export default function NodelockingPage() {
                         marginBottom: 16,
                     }}>
                         <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', marginBottom: 12 }}>
-                            🎛️ Locked Tendencies <span style={{ fontSize: 9, color: '#64748b', fontWeight: 400 }}>(click values to customize)</span>
+                            🏛️ Locked Tendencies <span style={{ fontSize: 9, color: '#64748b', fontWeight: 400 }}>(drag sliders to customize)</span>
                         </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                             {Object.entries(activeProfile.tendencies).map(([key, val]) => (
-                                <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 8px', borderRadius: 6, background: 'rgba(255,255,255,0.03)' }}>
-                                    <span style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase' }}>{key.replace(/([A-Z])/g, ' $1')}</span>
+                                <div key={key}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                                        <span style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase' }}>{key.replace(/([A-Z])/g, ' $1')}</span>
+                                        <span style={{ fontSize: 12, fontWeight: 800, color: val > 50 ? '#fbbf24' : '#00d4ff', fontFamily: "'Orbitron', monospace" }}>{val}%</span>
+                                    </div>
                                     <input
-                                        type="number"
+                                        type="range" min="0" max="100" step="1"
                                         value={val}
                                         onChange={(e) => handleTendencyChange(key, e.target.value)}
-                                        style={{
-                                            width: 50, textAlign: 'right', fontSize: 12, fontWeight: 700,
-                                            color: '#e2e8f0', background: 'transparent', border: '1px solid rgba(255,255,255,0.1)',
-                                            borderRadius: 4, padding: '2px 6px',
-                                        }}
+                                        style={{ width: '100%', accentColor: activeProfile.color, height: 6 }}
                                     />
                                 </div>
                             ))}
@@ -414,6 +439,36 @@ export default function NodelockingPage() {
                                 </div>
                             </motion.div>
                         ))}
+
+                        {/* Total EV Impact */}
+                        <div style={{
+                            marginTop: 12, padding: '16px', borderRadius: 12,
+                            background: 'linear-gradient(135deg, rgba(34,197,94,0.08), rgba(0,212,255,0.08))',
+                            border: '1px solid rgba(34,197,94,0.2)',
+                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        }}>
+                            <div>
+                                <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 1 }}>Estimated Total Edge</div>
+                                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>Combined EV from all exploits</div>
+                            </div>
+                            <div style={{ fontSize: 28, fontWeight: 900, color: '#22c55e', fontFamily: "'Orbitron', monospace" }}>
+                                +{totalEV} <span style={{ fontSize: 12, color: '#64748b' }}>BB/hand</span>
+                            </div>
+                        </div>
+
+                        {/* Save Analysis Button */}
+                        <motion.button
+                            whileTap={{ scale: 0.97 }}
+                            onClick={saveAnalysis}
+                            style={{
+                                width: '100%', marginTop: 16, padding: '14px', borderRadius: 10,
+                                border: 'none', background: 'linear-gradient(135deg, #ef4444, #f59e0b)',
+                                color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer',
+                                boxShadow: '0 4px 20px rgba(239,68,68,0.2)',
+                            }}
+                        >
+                            💾 Save Analysis to Database
+                        </motion.button>
                     </div>
                 </div>
             </div>

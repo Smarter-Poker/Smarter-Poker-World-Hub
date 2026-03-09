@@ -257,66 +257,215 @@ function MiniCard({ card }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// GTO COACHING ENGINE — Analyze hero actions against GTO baselines
+// GTO COACHING ENGINE — 5-Tier Grading (Best → Blunder) + EV Loss
 // ═══════════════════════════════════════════════════════════════════════════
+
+const GRADE_TIERS = {
+    BEST: { label: 'Best', icon: '✦', color: '#22c55e', bg: 'rgba(34,197,94,0.1)', border: 'rgba(34,197,94,0.3)' },
+    CORRECT: { label: 'Correct', icon: '✓', color: '#3b82f6', bg: 'rgba(59,130,246,0.1)', border: 'rgba(59,130,246,0.3)' },
+    INACCURACY: { label: 'Inaccuracy', icon: '~', color: '#fbbf24', bg: 'rgba(251,191,36,0.1)', border: 'rgba(251,191,36,0.3)' },
+    MISTAKE: { label: 'Mistake', icon: '✗', color: '#f97316', bg: 'rgba(249,115,22,0.1)', border: 'rgba(249,115,22,0.3)' },
+    BLUNDER: { label: 'Blunder', icon: '✗✗', color: '#ef4444', bg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.3)' },
+};
 
 function gradeHand(hand) {
     const heroActions = hand.actions.filter(a => a.isHero);
-    if (heroActions.length === 0) return { grade: 'N/A', color: '#64748b', tips: [] };
+    if (heroActions.length === 0) return { grade: 'N/A', tier: null, color: '#64748b', evLoss: 0, tips: [], position: 'UNK', street: 'preflop' };
 
-    // Early exit for simple fold hands
     const folds = heroActions.filter(a => a.action === 'folds').length;
     if (folds === 1 && heroActions.length === 1) {
-        return { grade: 'OK', color: '#94a3b8', tips: [{ text: 'Folded preflop — standard', type: 'info' }] };
+        return { grade: 'CORRECT', tier: GRADE_TIERS.CORRECT, color: GRADE_TIERS.CORRECT.color, evLoss: 0, tips: [{ text: 'Folded preflop — standard line', type: 'info' }], position: 'UNK', street: 'preflop' };
     }
 
     const tips = [];
-    let score = 80; // Start at "good"
-
-    // Check for passive play (too many calls, no raises)
+    let score = 100;
+    let evLoss = 0;
     const calls = heroActions.filter(a => a.action === 'calls').length;
     const raises = heroActions.filter(a => a.action === 'raises' || a.action === 'bets').length;
+    const checks = heroActions.filter(a => a.action === 'checks').length;
+    const potSize = Math.max(hand.pot, 1);
 
+    // Determine street depth for classification
+    const street = hand.board.length >= 5 ? 'river' : hand.board.length >= 4 ? 'turn' : hand.board.length >= 3 ? 'flop' : 'preflop';
+
+    // RULE 1: Passive play leak (calls without raising)
     if (calls > 2 && raises === 0) {
         tips.push({ text: 'Too passive — consider raising for value or as a bluff', type: 'warning' });
-        score -= 20;
+        score -= 30;
+        evLoss += potSize * 0.08;
     }
 
+    // RULE 2: Flatting preflop when 3-betting is better
     if (raises > 0 && hand.board.length === 0 && heroActions[0]?.action === 'calls') {
-        tips.push({ text: 'Flatting preflop when raising may be better (especially in position)', type: 'info' });
-        score -= 10;
+        const preRaise = hand.actions.find(a => !a.isHero && (a.action === 'raises' || a.action === 'bets'));
+        if (preRaise) {
+            tips.push({ text: 'Flatting vs raise — consider 3-betting for value or as a bluff', type: 'warning' });
+            score -= 15;
+            evLoss += potSize * 0.04;
+        }
     }
 
-    // Check for large flop/turn bets
-    const bigBets = heroActions.filter(a => a.amount > hand.pot * 0.8);
+    // RULE 3: Oversized bets on dry boards
+    const bigBets = heroActions.filter(a => a.amount > potSize * 0.8);
     if (bigBets.length > 0 && hand.board.length >= 3) {
-        tips.push({ text: 'Large bet sizing detected — consider smaller bets on dry boards', type: 'info' });
-        score -= 5;
+        tips.push({ text: `Overbetting ${(bigBets[0].amount / potSize * 100).toFixed(0)}% pot — consider 33-50% on dry textures`, type: 'info' });
+        score -= 10;
+        evLoss += potSize * 0.03;
     }
 
-    // Check for preflop 3-bet opportunities
-    const preRaise = hand.actions.find(a => !a.isHero && (a.action === 'raises' || a.action === 'bets'));
-    const heroPreResponse = heroActions[0];
-    if (preRaise && heroPreResponse?.action === 'calls' && hand.board.length === 0) {
-        tips.push({ text: 'Facing a raise — consider 3-betting with strong hands', type: 'tip' });
-    }
-
-    // Check for missed c-bet spots
+    // RULE 4: Missed continuation bet
     const isPreRaiser = heroActions[0]?.action === 'raises' || heroActions[0]?.action === 'bets';
-    const flopActions = hand.actions.filter(a => a.isHero && hand.board.length >= 3);
-    if (isPreRaiser && flopActions.length > 0 && flopActions[0]?.action === 'checks') {
-        tips.push({ text: 'Missed c-bet opportunity as preflop aggressor — GTO continuation-bets ~65% of the time', type: 'warning' });
-        score -= 15;
+    if (isPreRaiser && checks > 0 && hand.board.length >= 3) {
+        tips.push({ text: 'Missed c-bet as preflop aggressor — GTO c-bets ~65% of flops', type: 'warning' });
+        score -= 20;
+        evLoss += potSize * 0.06;
     }
 
-    // Good play detection
+    // RULE 5: Check-call river with no showdown value
+    if (hand.board.length >= 5 && heroActions.length >= 3) {
+        const lastAction = heroActions[heroActions.length - 1];
+        if (lastAction?.action === 'calls' && hand.result === 0) {
+            tips.push({ text: 'Called river and lost — hero call may be a blunder at this frequency', type: 'warning' });
+            score -= 25;
+            evLoss += potSize * 0.12;
+        }
+    }
+
+    // RULE 6: All-in preflop without premium
+    const allins = heroActions.filter(a => a.action === 'all-in');
+    if (allins.length > 0 && hand.board.length === 0) {
+        score -= 5;
+        tips.push({ text: 'Preflop all-in — ensure this is +EV at your stack depth', type: 'info' });
+    }
+
+    // Positive detection
+    if (isPreRaiser && raises >= 2 && hand.result > 0) {
+        score += 10;
+        tips.push({ text: 'Aggressive value line rewarded — strong play', type: 'good' });
+    }
     if (tips.length === 0) {
-        tips.push({ text: 'Clean line — no major deviations from GTO detected', type: 'good' });
+        tips.push({ text: 'Clean line — no detectable GTO deviations', type: 'good' });
     }
 
-    const grade = score >= 80 ? 'GTO' : score >= 60 ? 'OK' : 'LEAK';
-    const color = score >= 80 ? '#22c55e' : score >= 60 ? '#fbbf24' : '#ef4444';
-    return { grade, color, tips };
+    // Clamp
+    score = Math.max(0, Math.min(100, score));
+    evLoss = Math.round(evLoss * 100) / 100;
+
+    // Map to 5-tier grade
+    let gradeName, tier;
+    if (score >= 90) { gradeName = 'BEST'; tier = GRADE_TIERS.BEST; }
+    else if (score >= 75) { gradeName = 'CORRECT'; tier = GRADE_TIERS.CORRECT; }
+    else if (score >= 55) { gradeName = 'INACCURACY'; tier = GRADE_TIERS.INACCURACY; }
+    else if (score >= 30) { gradeName = 'MISTAKE'; tier = GRADE_TIERS.MISTAKE; }
+    else { gradeName = 'BLUNDER'; tier = GRADE_TIERS.BLUNDER; }
+
+    return { grade: gradeName, tier, color: tier.color, evLoss, tips, score, position: 'UNK', street };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LEAK REPORT — Aggregate analysis across all uploaded hands
+// ═══════════════════════════════════════════════════════════════════════════
+
+function LeakReport({ hands }) {
+    if (!hands || hands.length === 0) return null;
+
+    const graded = hands.map(h => gradeHand(h));
+    const counts = { BEST: 0, CORRECT: 0, INACCURACY: 0, MISTAKE: 0, BLUNDER: 0, 'N/A': 0 };
+    let totalEVLoss = 0;
+    const streetLeaks = { preflop: { count: 0, evLoss: 0 }, flop: { count: 0, evLoss: 0 }, turn: { count: 0, evLoss: 0 }, river: { count: 0, evLoss: 0 } };
+
+    graded.forEach(g => {
+        counts[g.grade] = (counts[g.grade] || 0) + 1;
+        totalEVLoss += g.evLoss || 0;
+        if (g.street && streetLeaks[g.street] && (g.grade === 'MISTAKE' || g.grade === 'BLUNDER' || g.grade === 'INACCURACY')) {
+            streetLeaks[g.street].count++;
+            streetLeaks[g.street].evLoss += g.evLoss || 0;
+        }
+    });
+
+    const total = hands.length;
+    const accuracy = Math.round(((counts.BEST + counts.CORRECT) / Math.max(total - counts['N/A'], 1)) * 100);
+    const worstStreet = Object.entries(streetLeaks).sort((a, b) => b[1].evLoss - a[1].evLoss)[0];
+
+    // Grade distribution bar
+    const gradeBars = ['BEST', 'CORRECT', 'INACCURACY', 'MISTAKE', 'BLUNDER'].filter(g => counts[g] > 0);
+    const barTotal = gradeBars.reduce((s, g) => s + counts[g], 0);
+
+    return (
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+            style={{ marginBottom: 20, borderRadius: 16, background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+
+            {/* Header */}
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ fontSize: 14, fontWeight: 800, color: '#e2e8f0' }}>📊 GTO Leak Report</div>
+                <div style={{ fontSize: 11, color: '#64748b' }}>{total} hands analyzed</div>
+            </div>
+
+            {/* Grade Distribution Bar */}
+            <div style={{ padding: '16px 20px' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Grade Distribution</div>
+                <div style={{ display: 'flex', height: 24, borderRadius: 6, overflow: 'hidden', marginBottom: 12 }}>
+                    {gradeBars.map(g => (
+                        <div key={g} style={{ width: `${(counts[g] / barTotal) * 100}%`, background: GRADE_TIERS[g].color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 800, color: '#fff', minWidth: counts[g] > 0 ? 20 : 0 }}>
+                            {counts[g]}
+                        </div>
+                    ))}
+                </div>
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                    {gradeBars.map(g => (
+                        <div key={g} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10 }}>
+                            <div style={{ width: 8, height: 8, borderRadius: 2, background: GRADE_TIERS[g].color }} />
+                            <span style={{ color: '#94a3b8' }}>{GRADE_TIERS[g].label}: <strong style={{ color: '#e2e8f0' }}>{counts[g]}</strong></span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Key Metrics */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, padding: '0 20px 16px' }}>
+                <div style={{ padding: '12px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', textAlign: 'center' }}>
+                    <div style={{ fontSize: 22, fontWeight: 900, color: accuracy >= 70 ? '#22c55e' : accuracy >= 50 ? '#fbbf24' : '#ef4444' }}>{accuracy}%</div>
+                    <div style={{ fontSize: 9, fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>GTO Accuracy</div>
+                </div>
+                <div style={{ padding: '12px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', textAlign: 'center' }}>
+                    <div style={{ fontSize: 22, fontWeight: 900, color: '#ef4444' }}>-{totalEVLoss.toFixed(1)}</div>
+                    <div style={{ fontSize: 9, fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>Total EV Loss ($)</div>
+                </div>
+                <div style={{ padding: '12px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', textAlign: 'center' }}>
+                    <div style={{ fontSize: 22, fontWeight: 900, color: '#f97316' }}>{counts.MISTAKE + counts.BLUNDER}</div>
+                    <div style={{ fontSize: 9, fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>Mistakes</div>
+                </div>
+            </div>
+
+            {/* Street Breakdown */}
+            <div style={{ padding: '0 20px 16px' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Leak Hotspots by Street</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+                    {Object.entries(streetLeaks).map(([street, data]) => (
+                        <div key={street} style={{
+                            padding: '10px 8px', borderRadius: 8, textAlign: 'center',
+                            background: worstStreet[0] === street && data.count > 0 ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.02)',
+                            border: `1px solid ${worstStreet[0] === street && data.count > 0 ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.05)'}`,
+                        }}>
+                            <div style={{ fontSize: 14, fontWeight: 800, color: data.count > 0 ? '#ef4444' : '#475569' }}>{data.count}</div>
+                            <div style={{ fontSize: 8, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 }}>{street}</div>
+                            {data.evLoss > 0 && <div style={{ fontSize: 8, color: '#ef4444', marginTop: 2 }}>-${data.evLoss.toFixed(1)}</div>}
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Top Coaching Insight */}
+            {worstStreet[1].count > 0 && (
+                <div style={{ padding: '12px 20px 16px', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                    <div style={{ fontSize: 11, color: '#fbbf24', fontWeight: 700, marginBottom: 4 }}>💡 Primary Leak</div>
+                    <div style={{ fontSize: 12, color: '#cbd5e1', lineHeight: 1.5 }}>
+                        Your biggest leak is on the <strong style={{ color: '#ef4444' }}>{worstStreet[0]}</strong> ({worstStreet[1].count} mistakes, -${worstStreet[1].evLoss.toFixed(1)} EV). Focus your study on {worstStreet[0]} play to recapture the most EV.
+                    </div>
+                </div>
+            )}
+        </motion.div>
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -328,17 +477,18 @@ function AnalyzedHandRow({ hand, index }) {
     const heroActions = hand.actions.filter(a => a.isHero);
     const heroActionSummary = heroActions.map(a => a.action).join(' → ') || 'N/A';
     const coaching = gradeHand(hand);
+    const tier = coaching.tier || GRADE_TIERS.CORRECT;
 
     return (
         <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.05 }}
+            transition={{ delay: Math.min(index * 0.03, 1) }}
             style={{
                 marginBottom: 8, borderRadius: 10,
                 background: 'rgba(0,0,0,0.25)',
-                border: '1px solid rgba(255,255,255,0.06)',
-                overflow: 'hidden',
+                border: `1px solid ${expanded ? tier.border : 'rgba(255,255,255,0.06)'}`,
+                overflow: 'hidden', transition: 'border-color 0.2s',
             }}
         >
             <button
@@ -351,13 +501,12 @@ function AnalyzedHandRow({ hand, index }) {
                 }}
             >
                 <div style={{
-                    width: 28, height: 28, borderRadius: '50%',
-                    background: `${coaching.color}15`,
-                    border: `1px solid ${coaching.color}40`,
+                    width: 32, height: 32, borderRadius: '50%',
+                    background: tier.bg, border: `2px solid ${tier.border}`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 8, fontWeight: 800, color: coaching.color, letterSpacing: 0.3,
+                    fontSize: 10, fontWeight: 800, color: tier.color, letterSpacing: 0.3,
                 }}>
-                    {coaching.grade}
+                    {tier.icon}
                 </div>
                 <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', gap: 4, marginBottom: 3 }}>
@@ -369,17 +518,25 @@ function AnalyzedHandRow({ hand, index }) {
                             </>
                         )}
                     </div>
-                    <div style={{ fontSize: 10, color: '#94a3b8' }}>
-                        {hand.gameType} {hand.stakes} — {heroActionSummary}
+                    <div style={{ display: 'flex', gap: 6, fontSize: 10, color: '#94a3b8' }}>
+                        <span>{hand.gameType} {hand.stakes}</span>
+                        <span style={{ color: '#475569' }}>•</span>
+                        <span>{heroActionSummary}</span>
+                        {coaching.evLoss > 0 && (
+                            <><span style={{ color: '#475569' }}>•</span><span style={{ color: '#ef4444', fontWeight: 700 }}>-${coaching.evLoss.toFixed(2)} EV</span></>
+                        )}
                     </div>
                 </div>
-                <div style={{
-                    fontSize: 12, fontWeight: 700,
-                    color: hand.result > 0 ? '#22c55e' : hand.result < 0 ? '#ef4444' : '#94a3b8',
-                }}>
-                    {hand.result > 0 ? '+' : ''}{hand.pot > 0 ? `$${hand.pot.toFixed(0)}` : ''}
+                <div style={{ textAlign: 'right' }}>
+                    <div style={{
+                        fontSize: 12, fontWeight: 700,
+                        color: hand.result > 0 ? '#22c55e' : hand.result < 0 ? '#ef4444' : '#94a3b8',
+                    }}>
+                        {hand.result > 0 ? '+' : ''}{hand.pot > 0 ? `$${hand.pot.toFixed(0)}` : ''}
+                    </div>
+                    <div style={{ fontSize: 8, fontWeight: 700, color: tier.color, textTransform: 'uppercase' }}>{tier.label}</div>
                 </div>
-                <span style={{ color: '#475569', fontSize: 14, transform: expanded ? 'rotate(180deg)' : '' }}>\u25BC</span>
+                <span style={{ color: '#475569', fontSize: 14, transform: expanded ? 'rotate(180deg)' : '', transition: 'transform 0.2s' }}>▼</span>
             </button>
 
             <AnimatePresence>
@@ -415,30 +572,36 @@ function AnalyzedHandRow({ hand, index }) {
                             ))}
                         </div>
 
-                        {/* GTO Coaching Panel */}
+                        {/* GTO Coaching Panel — 5-Tier */}
                         <div style={{
                             padding: '10px 12px', borderRadius: 8,
-                            background: `${coaching.color}08`,
-                            border: `1px solid ${coaching.color}20`,
+                            background: tier.bg, border: `1px solid ${tier.border}`,
                         }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                                 <div style={{
-                                    padding: '2px 8px', borderRadius: 4, fontSize: 9, fontWeight: 800,
-                                    background: `${coaching.color}20`, color: coaching.color,
-                                    letterSpacing: 0.5,
+                                    padding: '3px 10px', borderRadius: 6, fontSize: 10, fontWeight: 800,
+                                    background: `${tier.color}25`, color: tier.color,
+                                    letterSpacing: 0.5, display: 'flex', alignItems: 'center', gap: 4,
                                 }}>
-                                    {coaching.grade === 'GTO' ? 'GTO APPROVED' : coaching.grade === 'OK' ? 'QUESTIONABLE' : coaching.grade === 'LEAK' ? 'MAJOR LEAK' : 'STANDARD'}
+                                    <span>{tier.icon}</span> {tier.label.toUpperCase()}
                                 </div>
-                                <div style={{ fontSize: 9, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                                    COACHING
-                                </div>
+                                {coaching.evLoss > 0 && (
+                                    <div style={{ fontSize: 10, fontWeight: 700, color: '#ef4444' }}>
+                                        -{coaching.evLoss.toFixed(2)} EV
+                                    </div>
+                                )}
+                                {coaching.score !== undefined && (
+                                    <div style={{ fontSize: 9, color: '#64748b', marginLeft: 'auto' }}>
+                                        Score: {coaching.score}/100
+                                    </div>
+                                )}
                             </div>
                             {coaching.tips.map((tip, i) => (
                                 <div key={i} style={{
-                                    display: 'flex', gap: 6, padding: '4px 0', fontSize: 10,
-                                    color: tip.type === 'good' ? '#22c55e' : tip.type === 'warning' ? '#fbbf24' : '#94a3b8',
+                                    display: 'flex', gap: 6, padding: '4px 0', fontSize: 11,
+                                    color: tip.type === 'good' ? '#22c55e' : tip.type === 'warning' ? '#fbbf24' : '#cbd5e1',
                                 }}>
-                                    <span style={{ fontSize: 8 }}>
+                                    <span style={{ fontSize: 10, flexShrink: 0 }}>
                                         {tip.type === 'good' ? '✓' : tip.type === 'warning' ? '⚠' : tip.type === 'tip' ? '💡' : 'ℹ'}
                                     </span>
                                     <span>{tip.text}</span>
@@ -800,6 +963,9 @@ export default function HandHistoryUploadPage() {
                                     ))}
                                 </motion.div>
                             )}
+
+                            {/* Leak Report */}
+                            {parsedHands.length > 0 && <LeakReport hands={parsedHands} />}
 
                             {/* Parsed Hands List */}
                             {parsedHands.length > 0 && (
