@@ -1,15 +1,5 @@
 {
   "framework": "nextjs",
-  "rewrites": [
-    {
-      "source": "/hub/club-arena",
-      "destination": "https://club-arena.vercel.app/hub/club-arena/"
-    },
-    {
-      "source": "/hub/club-arena/:path*",
-      "destination": "https://club-arena.vercel.app/hub/club-arena/:path*"
-    }
-  ],
   "headers": [
     {
       "source": "/api/(.*)",
