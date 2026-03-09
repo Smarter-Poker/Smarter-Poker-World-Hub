@@ -1976,11 +1976,13 @@ function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, is
           background: ({
             holdem: '#22c55e', omaha4: '#f59e0b', omaha5: '#e67e22',
             omaha6: '#e74c3c', omaha_hilo: '#ef4444', short_deck: '#8b5cf6',
+            pineapple: '#eab308', flo: '#14b8a6', mixed: '#f59e0b',
           })[tableState?.config?.variant] || '#22c55e',
         }}>
           {({
             holdem: 'NLH', omaha4: 'PLO4', omaha5: 'PLO5', omaha6: 'PLO6',
             omaha_hilo: 'PLO8', short_deck: '6+',
+            pineapple: '🍍', flo: 'FLO', mixed: 'MIX',
           })[tableState?.config?.variant] || 'NLH'}
         </span>
         <span style={{ color: T.textSecondary, fontSize: 11, fontWeight: 600 }}>

@@ -39,6 +39,7 @@ const VC = {
   flo: { label: 'FLO', color: '#14B8A6', bg: 'linear-gradient(145deg,#051514,#0a2422)', accent: '#14B8A6' },
   mixed: { label: 'MIX', color: '#EAB308', bg: 'linear-gradient(145deg,#1a1505,#2d2008)', accent: '#EAB308' },
   ofc: { label: 'OFC', color: '#EC4899', bg: 'linear-gradient(145deg,#1a0510,#2d0a1e)', accent: '#EC4899' },
+  pineapple: { label: '🍍', color: '#F1C40F', bg: 'linear-gradient(145deg,#1a1505,#2d2408)', accent: '#F1C40F' },
   spin: { label: 'SPIN', color: '#F1C40F', bg: 'linear-gradient(145deg,#1a1505,#2d2408)', accent: '#F1C40F' },
 };
 const DV = { label: '?', color: '#888', bg: 'linear-gradient(145deg,#111,#1e1e1e)', accent: '#555' };
