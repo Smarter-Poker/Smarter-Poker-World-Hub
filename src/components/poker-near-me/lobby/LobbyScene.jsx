@@ -59,11 +59,11 @@ async function initSingleton(propsRef) {
   try {
     // Create the wrapper div and canvas element at module scope
     singletonWrapper = document.createElement('div');
-    singletonWrapper.style.cssText = 'position:absolute;inset:0;';
+    singletonWrapper.style.cssText = 'position:absolute;inset:0;pointer-events:none;';
     singletonWrapper.className = 'r3f-singleton-mount';
 
     singletonCanvas = document.createElement('canvas');
-    singletonCanvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;display:block;';
+    singletonCanvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;display:block;pointer-events:none;';
 
     // PRE-CREATE WebGL context with correct attributes BEFORE R3F touches it.
     // WebGL context attributes are IMMUTABLE after creation. If R3F creates

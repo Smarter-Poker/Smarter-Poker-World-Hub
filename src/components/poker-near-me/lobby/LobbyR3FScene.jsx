@@ -769,7 +769,8 @@ function SceneContent({ propsRef, quality, setQuality, setDpr }) {
     console.log('[R3FScene] SceneContent mounting, loading sub-components...');
 
     import('./RadarDisc').then(m => { if (mountedRef.current) setRadarDisc(() => m.RadarDisc); }).catch(err => console.warn('[R3FScene] RadarDisc failed:', err.message));
-    import('./FeaturePod').then(m => { if (mountedRef.current) setFeaturePod(() => m.FeaturePod); }).catch(err => console.warn('[R3FScene] FeaturePod failed:', err.message));
+    // FeaturePod disabled — 2D overlay provides the icon UI; no need to load this chunk
+    // import('./FeaturePod').then(m => { if (mountedRef.current) setFeaturePod(() => m.FeaturePod); }).catch(err => console.warn('[R3FScene] FeaturePod failed:', err.message));
     import('./ParticleField').then(m => { if (mountedRef.current) setParticleField(() => m.ParticleField); }).catch(err => console.warn('[R3FScene] ParticleField failed:', err.message));
     import('./ParallaxCamera').then(m => { if (mountedRef.current) setParallaxCamera(() => m.ParallaxCamera); }).catch(err => console.warn('[R3FScene] ParallaxCamera failed:', err.message));
 
@@ -803,8 +804,8 @@ function SceneContent({ propsRef, quality, setQuality, setDpr }) {
       {/* ═══ PROPS BRIDGE ═══ */}
       <PropsSync propsRef={propsRef} onUpdate={handlePropsUpdate} />
 
-      {/* ═══ NATIVE CLICK DETECTION (bypasses broken R3F events) ═══ */}
-      <ClickDetector propsRef={propsRef} />
+      {/* ═══ NATIVE CLICK DETECTION — disabled: 2D overlay handles clicks ═══ */}
+      {/* <ClickDetector propsRef={propsRef} /> */}
 
       {/* ═══ COSMIC BACKGROUND ═══ */}
       <StarField />
@@ -852,8 +853,11 @@ function SceneContent({ propsRef, quality, setQuality, setDpr }) {
       {/* ═══ ORBITAL HALO ═══ */}
       <OrbitalHalo />
 
-      {/* ═══ FEATURE PODS ═══ */}
-      {FeaturePod && FEATURE_PODS.map((pod) => (
+      {/* ═══ FEATURE PODS — disabled: 2D LobbyOverlay provides richer icon UI ═══ */}
+      {/* The 3D scene serves as cinematic atmospheric background only.
+          FeaturePod glass spheres + labels overlap with the 2D icon grid,
+          creating visual clutter. Keep pods available for future immersive mode. */}
+      {/* {FeaturePod && FEATURE_PODS.map((pod) => (
         <FeaturePod
           key={pod.id}
           pod={pod}
@@ -862,7 +866,7 @@ function SceneContent({ propsRef, quality, setQuality, setDpr }) {
           isActive={syncedProps.activePod === pod.id}
           onClick={() => syncedProps.onPodClick?.(pod.id)}
         />
-      ))}
+      ))} */}
 
       {/* ═══ PARTICLE FIELD ═══ */}
       {ParticleField && <ParticleField count={q.particleCount} spread={16} />}
