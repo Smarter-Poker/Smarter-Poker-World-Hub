@@ -59,71 +59,71 @@ const SEAT_LAYOUTS = {
   ],
   3: [
     { x: 50, y: 88 },
-    { x: 15, y: 30 },
-    { x: 85, y: 30 },
+    { x: 18, y: 30 },
+    { x: 82, y: 30 },
   ],
   4: [
     { x: 50, y: 88 },
-    { x: 8, y: 50 },
+    { x: 12, y: 50 },
     { x: 50, y: 8 },
-    { x: 92, y: 50 },
+    { x: 88, y: 50 },
   ],
   5: [
     { x: 50, y: 88 },
-    { x: 10, y: 60 },
-    { x: 25, y: 10 },
-    { x: 75, y: 10 },
-    { x: 90, y: 60 },
+    { x: 14, y: 60 },
+    { x: 28, y: 12 },
+    { x: 72, y: 12 },
+    { x: 86, y: 60 },
   ],
   6: [
     { x: 50, y: 88 },  // Bottom center (hero default)
-    { x: 12, y: 65 },  // Left lower
-    { x: 8, y: 32 },   // Left upper
+    { x: 14, y: 65 },  // Left lower
+    { x: 12, y: 32 },  // Left upper
     { x: 40, y: 6 },   // Top left
     { x: 60, y: 6 },   // Top right
-    { x: 88, y: 32 },  // Right upper
+    { x: 86, y: 32 },  // Right upper
   ],
   7: [
     { x: 50, y: 88 },
-    { x: 14, y: 72 },
-    { x: 6, y: 42 },
-    { x: 25, y: 8 },
-    { x: 75, y: 8 },
-    { x: 94, y: 42 },
-    { x: 86, y: 72 },
+    { x: 16, y: 72 },
+    { x: 10, y: 42 },
+    { x: 28, y: 8 },
+    { x: 72, y: 8 },
+    { x: 90, y: 42 },
+    { x: 84, y: 72 },
   ],
   8: [
     { x: 50, y: 88 },
-    { x: 18, y: 76 },
-    { x: 6, y: 48 },
-    { x: 18, y: 18 },
+    { x: 20, y: 76 },
+    { x: 10, y: 48 },
+    { x: 20, y: 18 },
     { x: 50, y: 6 },
-    { x: 82, y: 18 },
-    { x: 94, y: 48 },
-    { x: 82, y: 76 },
+    { x: 80, y: 18 },
+    { x: 90, y: 48 },
+    { x: 80, y: 76 },
   ],
   9: [
-    { x: 50, y: 88 },
-    { x: 20, y: 76 },
-    { x: 6, y: 50 },
-    { x: 18, y: 22 },
-    { x: 38, y: 6 },
-    { x: 62, y: 6 },
-    { x: 82, y: 22 },
-    { x: 94, y: 50 },
-    { x: 80, y: 76 },
+    { x: 50, y: 88 },  // Seat 1 — Hero (bottom center)
+    { x: 22, y: 76 },  // Seat 2 — Lower left
+    { x: 10, y: 50 },  // Seat 3 — Middle left
+    { x: 20, y: 22 },  // Seat 4 — Upper left
+    { x: 40, y: 6 },   // Seat 5 — Top left
+    { x: 60, y: 6 },   // Seat 6 — Top right
+    { x: 80, y: 22 },  // Seat 7 — Upper right
+    { x: 90, y: 50 },  // Seat 8 — Middle right
+    { x: 78, y: 76 },  // Seat 9 — Lower right
   ],
   10: [
     { x: 50, y: 88 },
-    { x: 22, y: 78 },
-    { x: 6, y: 55 },
-    { x: 10, y: 28 },
-    { x: 30, y: 6 },
+    { x: 24, y: 78 },
+    { x: 10, y: 55 },
+    { x: 14, y: 28 },
+    { x: 32, y: 6 },
     { x: 50, y: 3 },
-    { x: 70, y: 6 },
-    { x: 90, y: 28 },
-    { x: 94, y: 55 },
-    { x: 78, y: 78 },
+    { x: 68, y: 6 },
+    { x: 86, y: 28 },
+    { x: 90, y: 55 },
+    { x: 76, y: 78 },
   ],
 };
 
@@ -2772,47 +2772,45 @@ function LivePokerTable({
         fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
       }}
     >
-      {/* Table surface */}
+      {/* Table surface — vertical layout for Club Arena mobile */}
       <div
         style={{
           position: 'absolute',
-          top: '8%',
-          left: '5%',
-          right: '5%',
-          bottom: '12%',
+          top: '6%',
+          left: '2%',
+          right: '2%',
+          bottom: '10%',
         }}
       >
-        {/* Outer glow */}
-        <div
+        {/* Poker table image — vertical orientation for portrait mode */}
+        <img
+          src="/images/poker-table-vertical.png"
+          alt=""
+          draggable={false}
           style={{
             position: 'absolute',
-            inset: -4,
-            borderRadius: '50%',
-            background: `radial-gradient(ellipse, transparent 60%, ${T.edgeGlow} 100%)`,
+            top: 0,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            height: '100%',
+            maxWidth: '100%',
+            objectFit: 'contain',
+            pointerEvents: 'none',
+            zIndex: 0,
           }}
         />
 
-        {/* Gold rail */}
+        {/* Table content overlay — positioned over the vertical table */}
         <div
           style={{
             position: 'absolute',
-            inset: 0,
-            borderRadius: '50%',
-            background: `linear-gradient(135deg, ${T.railColor}, ${T.railColorDark}, ${T.railColor})`,
-            padding: 5,
+            top: '18%',
+            left: '15%',
+            right: '15%',
+            bottom: '18%',
+            zIndex: 1,
           }}
         >
-          {/* Inner rail */}
-          <div
-            style={{
-              width: '100%',
-              height: '100%',
-              borderRadius: '50%',
-              background: `linear-gradient(180deg, ${T.feltGrad1}, ${T.feltGrad2})`,
-              position: 'relative',
-              boxShadow: 'inset 0 0 80px rgba(0,0,0,0.5)',
-            }}
-          >
             {/* BBJ Ticker */}
             {tableState?.config?.bbjEnabled && tableState?.clubId && (
               <BBJTicker
@@ -2859,7 +2857,6 @@ function LivePokerTable({
                 seats={seats}
               />
             )}
-          </div>
         </div>
 
         {/* Seats */}
