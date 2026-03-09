@@ -1,8 +1,16 @@
 /**
- * 🚌 GLOBAL EVENT BUS
+ * 🚌 GLOBAL EVENT BUS — HARDENED
  * ═══════════════════════════════════════════════════════════════════════════
  * The Central Nervous System of PokerIQ + Club Commander.
  * All engines, services, and components communicate through this bus.
+ *
+ * HARDENING [RAT-BUS-HARDEN — March 9, 2026]:
+ *   1) busEmit works as BOTH a function AND an object (via Proxy).
+ *      - busEmit('training:session-complete', payload)  ← function call
+ *      - busEmit.diamondsEarned(100, 'streak')          ← named method
+ *      Both patterns are safe and will never crash.
+ *   2) eventBus.emit is SSR-safe — silently no-ops on the server.
+ *   3) All emit paths wrapped in try/catch — bus errors never crash pages.
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
@@ -43,10 +51,13 @@ export const EventType = {
     DATA_MUTATED: 'DATA_MUTATED',
 
     // ── Geeves AI Help Bot ──
-    GEEVES_QUESTION_MISSED: 'GEEVES_QUESTION_MISSED', // Question answered by Grok (not local KB)
-    GEEVES_KB_UPDATED: 'GEEVES_KB_UPDATED',           // Admin marked question as added to KB
-    GEEVES_OPENED: 'GEEVES_OPENED',                   // User opened the Geeves panel
+    GEEVES_QUESTION_MISSED: 'GEEVES_QUESTION_MISSED',
+    GEEVES_KB_UPDATED: 'GEEVES_KB_UPDATED',
+    GEEVES_OPENED: 'GEEVES_OPENED',
 };
+
+// ─── SSR Safety Check ──────────────────────────────────────────
+const _isClient = typeof window !== 'undefined';
 
 class GlobalEventBus {
     constructor() {
@@ -65,32 +76,45 @@ class GlobalEventBus {
         };
     }
 
+    /**
+     * Emit an event. SSR-safe: silently no-ops on the server so pages
+     * that emit during useMemo/render never crash during SSR.
+     */
     emit(eventType, payload = {}, source = 'system') {
-        const event = {
-            type: eventType,
-            payload,
-            timestamp: Date.now(),
-            source
-        };
+        // [HARDENING] SSR guard — emit is a no-op on the server.
+        // Events only matter in the browser where listeners exist.
+        if (!_isClient) return;
 
-        this.history.unshift(event);
-        if (this.history.length > 100) {
-            this.history.pop();
-        }
+        try {
+            const event = {
+                type: eventType,
+                payload,
+                timestamp: Date.now(),
+                source
+            };
 
-        const callbacks = this.listeners.get(eventType);
-        if (callbacks) {
-            callbacks.forEach(callback => {
-                try {
-                    callback(event);
-                } catch (error) {
-                    console.error(`Event bus error for ${eventType}:`, error);
-                }
-            });
-        }
+            this.history.unshift(event);
+            if (this.history.length > 100) {
+                this.history.pop();
+            }
 
-        if (typeof window !== 'undefined' && window.location?.hostname === 'localhost') {
-            console.log(`🚌 [BUS] ${eventType}`, payload);
+            const callbacks = this.listeners.get(eventType);
+            if (callbacks) {
+                callbacks.forEach(callback => {
+                    try {
+                        callback(event);
+                    } catch (error) {
+                        console.error(`Event bus error for ${eventType}:`, error);
+                    }
+                });
+            }
+
+            if (window.location?.hostname === 'localhost') {
+                console.log(`🚌 [BUS] ${eventType}`, payload);
+            }
+        } catch (err) {
+            // [HARDENING] Bus errors must NEVER crash a page render.
+            if (_isClient) console.warn(`🚌 [BUS] Emit failed for ${eventType}:`, err);
         }
     }
 
@@ -101,22 +125,21 @@ class GlobalEventBus {
 
 export const eventBus = new GlobalEventBus();
 
-if (typeof window !== 'undefined') {
+if (_isClient) {
     window.SmarterPokerEventBus = eventBus;
 }
 
 // ─── Staff Context Helper ──────────────────────────────────────
-// Reads staff session from localStorage once per emit for payload enrichment.
 function _getStaffCtx() {
-    if (typeof window === 'undefined') return {};
+    if (!_isClient) return {};
     try {
         const s = JSON.parse(localStorage.getItem('commander_staff') || '{}');
         return { staffId: s.id || null, venueId: s.venue_id || null, role: s.role || null, staffName: s.name || null };
     } catch { return {}; }
 }
 
-// Convenience emit functions
-export const busEmit = {
+// ─── Convenience Named Methods ─────────────────────────────────
+const _busEmitMethods = {
     // ── Training / GTO ──
     diamondsEarned: (amount, reason) =>
         eventBus.emit(EventType.DIAMONDS_EARNED, { amount, reason }, 'DiamondEngine'),
@@ -201,4 +224,35 @@ export const busEmit = {
     geevesOpened: () =>
         eventBus.emit(EventType.GEEVES_OPENED, {}, 'GeevesOrb'),
 };
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HARDENED busEmit — works as BOTH a function AND an object.
+//
+//   busEmit('training:session-complete', { game_id: 'x' })  ← WORKS (function)
+//   busEmit.diamondsEarned(100, 'streak')                   ← WORKS (method)
+//
+// This uses a Proxy that intercepts function calls (apply) and passes
+// property access through to the named methods object. If anyone calls
+// busEmit as a function, it delegates to eventBus.emit. If they access
+// busEmit.someMethod, they get the convenience method. Either way: no crash.
+// ═══════════════════════════════════════════════════════════════════════════
+
+function _busEmitFn(eventType, payload = {}, source = 'busEmit') {
+    try {
+        eventBus.emit(eventType, payload, source);
+    } catch (err) {
+        if (_isClient) console.warn('🚌 [busEmit] Error:', err);
+    }
+}
+
+// Copy all named methods onto the function so busEmit.diamondsEarned etc. work
+Object.assign(_busEmitFn, _busEmitMethods);
+
+/**
+ * @type {typeof _busEmitMethods & ((eventType: string, payload?: object, source?: string) => void)}
+ *
+ * Callable as a function OR accessible as an object of named methods.
+ * SSR-safe. Crash-proof. Will never take down the server.
+ */
+export const busEmit = _busEmitFn;
 

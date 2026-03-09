@@ -50,23 +50,29 @@ const BOUNTY_FORMATS = {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function calculateBountyEquity(format, stacks, bounties, heroStack, heroBounty, villainStack, villainBounty, pot) {
-    const totalChips = stacks.reduce((s, v) => s + v, 0);
+    const safeStacks = (stacks || []).map(s => Math.max(0, Number(s) || 0));
+    const totalChips = safeStacks.reduce((s, v) => s + v, 0) || 1; // prevent div/0
     const heroChipEV = heroStack / totalChips;
 
     let bountyEV = 0;
+    const safeBounty = Math.max(0, Number(villainBounty) || 0);
     if (format === 'ko') {
-        bountyEV = villainBounty; // Fixed
+        bountyEV = safeBounty;
     } else if (format === 'pko') {
-        bountyEV = villainBounty * 0.5; // PKO: collect half
+        bountyEV = safeBounty * 0.5;
     } else if (format === 'tko') {
-        bountyEV = villainBounty; // TKO: collect all
+        bountyEV = safeBounty;
     } else if (format === 'mystery') {
-        bountyEV = villainBounty * 1.2; // Mystery: expected value slightly higher
+        bountyEV = safeBounty * 1.2;
     }
 
-    const totalPot = pot + heroStack + villainStack;
-    const chipEquity = (heroStack + pot * 0.5) / totalPot;
-    const bountyAdjEq = chipEquity + (bountyEV / (heroStack + heroBounty + 100));
+    const safeHeroStack = Math.max(0, Number(heroStack) || 0);
+    const safeVillainStack = Math.max(0, Number(villainStack) || 0);
+    const safePot = Math.max(0, Number(pot) || 0);
+    const totalPot = safePot + safeHeroStack + safeVillainStack || 1; // prevent div/0
+    const chipEquity = (safeHeroStack + safePot * 0.5) / totalPot;
+    const denominator = safeHeroStack + (Number(heroBounty) || 0) + 100;
+    const bountyAdjEq = chipEquity + (bountyEV / (denominator || 1));
 
     return {
         chipEquity: (chipEquity * 100).toFixed(1),
@@ -146,8 +152,9 @@ export default function BountyTrainerPage() {
         try { setUser(getAuthUser()); } catch (_) { }
     }, []);
 
-    const format = BOUNTY_FORMATS[activeFormat];
-    const scenario = DRILL_SCENARIOS[drillIndex % DRILL_SCENARIOS.length];
+    const format = BOUNTY_FORMATS[activeFormat] || BOUNTY_FORMATS.pko;
+    const safeIdx = DRILL_SCENARIOS.length > 0 ? drillIndex % DRILL_SCENARIOS.length : 0;
+    const scenario = DRILL_SCENARIOS[safeIdx] || DRILL_SCENARIOS[0];
 
     const calcResult = useMemo(() =>
         calculateBountyEquity(activeFormat, [calcHeroStack, calcVillainStack], [], calcHeroStack, 0, calcVillainStack, calcBounty, calcPot),
@@ -289,11 +296,11 @@ export default function BountyTrainerPage() {
                             }}>
                                 <div style={{
                                     display: 'inline-block', padding: '3px 10px', borderRadius: 6, marginBottom: 12,
-                                    background: `${BOUNTY_FORMATS[scenario.format].color}15`,
-                                    border: `1px solid ${BOUNTY_FORMATS[scenario.format].color}40`,
-                                    fontSize: 11, fontWeight: 700, color: BOUNTY_FORMATS[scenario.format].color, letterSpacing: '0.08em',
+                                    background: `${(BOUNTY_FORMATS[scenario.format] || format).color}15`,
+                                    border: `1px solid ${(BOUNTY_FORMATS[scenario.format] || format).color}40`,
+                                    fontSize: 11, fontWeight: 700, color: (BOUNTY_FORMATS[scenario.format] || format).color, letterSpacing: '0.08em',
                                 }}>
-                                    {BOUNTY_FORMATS[scenario.format].name.toUpperCase()}
+                                    {(BOUNTY_FORMATS[scenario.format] || format).name?.toUpperCase() || 'BOUNTY'}
                                 </div>
                                 <h3 style={{ fontSize: 16, fontWeight: 700, color: '#e4e6eb', margin: '0 0 8px' }}>
                                     {scenario.title}
@@ -412,7 +419,10 @@ export default function BountyTrainerPage() {
                                         <input
                                             type="number"
                                             value={f.value}
-                                            onChange={e => f.setter(parseFloat(e.target.value) || 0)}
+                                            onChange={e => {
+                                                const v = parseFloat(e.target.value);
+                                                f.setter(Number.isFinite(v) ? Math.max(0, Math.min(v, 99999)) : 0);
+                                            }}
                                             style={{
                                                 width: '100%', padding: '8px 12px', borderRadius: 6, fontSize: 14, fontWeight: 600,
                                                 background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#e4e6eb',

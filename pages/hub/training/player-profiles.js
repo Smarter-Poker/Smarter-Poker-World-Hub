@@ -117,18 +117,33 @@ const SCENARIOS = [
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
+// SAFE HELPERS
+// ═══════════════════════════════════════════════════════════════════════════
+
+function safeNum(v, fallback = 0) {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : fallback;
+}
+function clamp(v, min, max) { return Math.max(min, Math.min(max, safeNum(v, min))); }
+
+// ═══════════════════════════════════════════════════════════════════════════
 // STAT BAR COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
 function StatBar({ label, value, gtoValue, max = 100, color }) {
-    const diff = value - gtoValue;
+    const val = safeNum(value);
+    const gto = safeNum(gtoValue);
+    const safeMax = Math.max(1, safeNum(max, 100));
+    const diff = val - gto;
     const diffColor = Math.abs(diff) < 3 ? '#22c55e' : diff > 0 ? '#f59e0b' : '#3b82f6';
+    const barWidth = clamp((val / safeMax) * 100, 0, 100);
+    const gtoMarker = clamp((gto / safeMax) * 100, 0, 100);
     return (
         <div style={{ marginBottom: 10 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                 <span style={{ fontSize: 12, color: '#b0b3b8', fontFamily: "'Rajdhani', sans-serif", fontWeight: 600 }}>{label}</span>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <span style={{ fontSize: 13, color, fontWeight: 700, fontFamily: "'Rajdhani', sans-serif" }}>{value}%</span>
+                    <span style={{ fontSize: 13, color, fontWeight: 700, fontFamily: "'Rajdhani', sans-serif" }}>{val}%</span>
                     <span style={{ fontSize: 11, color: diffColor, fontWeight: 600 }}>
                         ({diff > 0 ? '+' : ''}{diff.toFixed(1)} vs GTO)
                     </span>
@@ -137,12 +152,12 @@ function StatBar({ label, value, gtoValue, max = 100, color }) {
             <div style={{ position: 'relative', height: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 3 }}>
                 <motion.div
                     initial={{ width: 0 }}
-                    animate={{ width: `${(value / max) * 100}%` }}
+                    animate={{ width: `${barWidth}%` }}
                     transition={{ duration: 0.6, ease: 'easeOut' }}
                     style={{ position: 'absolute', top: 0, left: 0, height: '100%', background: color, borderRadius: 3 }}
                 />
                 <div style={{
-                    position: 'absolute', top: -2, left: `${(gtoValue / max) * 100}%`,
+                    position: 'absolute', top: -2, left: `${gtoMarker}%`,
                     width: 2, height: 10, background: '#22c55e', borderRadius: 1,
                 }} />
             </div>
@@ -169,9 +184,10 @@ export default function PlayerProfilesPage() {
         try { setUser(getAuthUser()); } catch (_) { }
     }, []);
 
-    const profile = PROFILES[selectedProfile];
+    const profile = PROFILES[selectedProfile] || PROFILES.gto;
     const adaptation = useMemo(() => computeAdaptation(selectedProfile), [selectedProfile]);
     const gto = PROFILES.gto.stats;
+    const safeScenarioIdx = clamp(activeScenario, 0, SCENARIOS.length - 1);
 
     const handleProfileSelect = useCallback((id) => {
         setSelectedProfile(id);
@@ -401,11 +417,11 @@ export default function PlayerProfilesPage() {
                             border: '1px solid rgba(255,255,255,0.06)',
                         }}>
                             <div style={{ fontSize: 15, fontWeight: 600, color: '#e4e6eb', marginBottom: 8 }}>
-                                {SCENARIOS[activeScenario].spot}
+                                {SCENARIOS[safeScenarioIdx]?.spot || 'Select a scenario'}
                             </div>
-                            {SCENARIOS[activeScenario].board && (
+                            {SCENARIOS[safeScenarioIdx]?.board && (
                                 <div style={{ fontSize: 13, color: '#b0b3b8', marginBottom: 12 }}>
-                                    Board: <span style={{ color: '#e4e6eb', fontWeight: 600 }}>{SCENARIOS[activeScenario].board}</span>
+                                    Board: <span style={{ color: '#e4e6eb', fontWeight: 600 }}>{SCENARIOS[safeScenarioIdx].board}</span>
                                 </div>
                             )}
                             <div style={{
@@ -413,10 +429,10 @@ export default function PlayerProfilesPage() {
                                 borderRadius: 8, borderLeft: `3px solid ${profile.color}`,
                             }}>
                                 <div style={{ fontSize: 11, fontWeight: 700, color: profile.color, letterSpacing: '0.1em', marginBottom: 4 }}>
-                                    OPTIMAL PLAY vs {profile.name.toUpperCase()}
+                                    OPTIMAL PLAY vs {(profile.name || 'OPPONENT').toUpperCase()}
                                 </div>
                                 <div style={{ fontSize: 13, color: '#e4e6eb', lineHeight: 1.5 }}>
-                                    {profile.exploits[activeScenario % profile.exploits.length] || 'Play GTO baseline.'}
+                                    {(profile.exploits || [])[safeScenarioIdx % Math.max(1, (profile.exploits || []).length)] || 'Play GTO baseline.'}
                                 </div>
                             </div>
                         </div>

@@ -248,97 +248,106 @@ const GRADE_TIERS = {
 };
 
 function gradeHand(hand) {
-    const heroActions = hand.actions.filter(a => a.isHero);
-    if (heroActions.length === 0) return { grade: 'N/A', tier: null, color: '#64748b', evLoss: 0, tips: [], position: 'UNK', street: 'preflop' };
+    // HARDENED: Full try-catch prevents crash on malformed hand data
+    try {
+        const actions = Array.isArray(hand?.actions) ? hand.actions : [];
+        const board = Array.isArray(hand?.board) ? hand.board : [];
+        const heroActions = actions.filter(a => a?.isHero);
+        if (heroActions.length === 0) return { grade: 'N/A', tier: null, color: '#64748b', evLoss: 0, tips: [], position: 'UNK', street: 'preflop' };
 
-    const folds = heroActions.filter(a => a.action === 'folds').length;
-    if (folds === 1 && heroActions.length === 1) {
-        return { grade: 'CORRECT', tier: GRADE_TIERS.CORRECT, color: GRADE_TIERS.CORRECT.color, evLoss: 0, tips: [{ text: 'Folded preflop — standard line', type: 'info' }], position: 'UNK', street: 'preflop' };
-    }
-
-    const tips = [];
-    let score = 100;
-    let evLoss = 0;
-    const calls = heroActions.filter(a => a.action === 'calls').length;
-    const raises = heroActions.filter(a => a.action === 'raises' || a.action === 'bets').length;
-    const checks = heroActions.filter(a => a.action === 'checks').length;
-    const potSize = Math.max(hand.pot, 1);
-
-    // Determine street depth for classification
-    const street = hand.board.length >= 5 ? 'river' : hand.board.length >= 4 ? 'turn' : hand.board.length >= 3 ? 'flop' : 'preflop';
-
-    // RULE 1: Passive play leak (calls without raising)
-    if (calls > 2 && raises === 0) {
-        tips.push({ text: 'Too passive — consider raising for value or as a bluff', type: 'warning' });
-        score -= 30;
-        evLoss += potSize * 0.08;
-    }
-
-    // RULE 2: Flatting preflop when 3-betting is better
-    if (raises > 0 && hand.board.length === 0 && heroActions[0]?.action === 'calls') {
-        const preRaise = hand.actions.find(a => !a.isHero && (a.action === 'raises' || a.action === 'bets'));
-        if (preRaise) {
-            tips.push({ text: 'Flatting vs raise — consider 3-betting for value or as a bluff', type: 'warning' });
-            score -= 15;
-            evLoss += potSize * 0.04;
+        const folds = heroActions.filter(a => a.action === 'folds').length;
+        if (folds === 1 && heroActions.length === 1) {
+            return { grade: 'CORRECT', tier: GRADE_TIERS.CORRECT, color: GRADE_TIERS.CORRECT.color, evLoss: 0, tips: [{ text: 'Folded preflop — standard line', type: 'info' }], position: 'UNK', street: 'preflop' };
         }
-    }
 
-    // RULE 3: Oversized bets on dry boards
-    const bigBets = heroActions.filter(a => a.amount > potSize * 0.8);
-    if (bigBets.length > 0 && hand.board.length >= 3) {
-        tips.push({ text: `Overbetting ${(bigBets[0].amount / potSize * 100).toFixed(0)}% pot — consider 33-50% on dry textures`, type: 'info' });
-        score -= 10;
-        evLoss += potSize * 0.03;
-    }
+        const tips = [];
+        let score = 100;
+        let evLoss = 0;
+        const calls = heroActions.filter(a => a.action === 'calls').length;
+        const raises = heroActions.filter(a => a.action === 'raises' || a.action === 'bets').length;
+        const checks = heroActions.filter(a => a.action === 'checks').length;
+        const potSize = Math.max(hand?.pot || 0, 1);
 
-    // RULE 4: Missed continuation bet
-    const isPreRaiser = heroActions[0]?.action === 'raises' || heroActions[0]?.action === 'bets';
-    if (isPreRaiser && checks > 0 && hand.board.length >= 3) {
-        tips.push({ text: 'Missed c-bet as preflop aggressor — GTO c-bets ~65% of flops', type: 'warning' });
-        score -= 20;
-        evLoss += potSize * 0.06;
-    }
+        // Determine street depth for classification
+        const street = board.length >= 5 ? 'river' : board.length >= 4 ? 'turn' : board.length >= 3 ? 'flop' : 'preflop';
 
-    // RULE 5: Check-call river with no showdown value
-    if (hand.board.length >= 5 && heroActions.length >= 3) {
-        const lastAction = heroActions[heroActions.length - 1];
-        if (lastAction?.action === 'calls' && hand.result === 0) {
-            tips.push({ text: 'Called river and lost — hero call may be a blunder at this frequency', type: 'warning' });
-            score -= 25;
-            evLoss += potSize * 0.12;
+        // RULE 1: Passive play leak (calls without raising)
+        if (calls > 2 && raises === 0) {
+            tips.push({ text: 'Too passive — consider raising for value or as a bluff', type: 'warning' });
+            score -= 30;
+            evLoss += potSize * 0.08;
         }
+
+        // RULE 2: Flatting preflop when 3-betting is better
+        if (raises > 0 && board.length === 0 && heroActions[0]?.action === 'calls') {
+            const preRaise = actions.find(a => !a.isHero && (a.action === 'raises' || a.action === 'bets'));
+            if (preRaise) {
+                tips.push({ text: 'Flatting vs raise — consider 3-betting for value or as a bluff', type: 'warning' });
+                score -= 15;
+                evLoss += potSize * 0.04;
+            }
+        }
+
+        // RULE 3: Oversized bets on dry boards
+        const bigBets = heroActions.filter(a => (a?.amount || 0) > potSize * 0.8);
+        if (bigBets.length > 0 && board.length >= 3) {
+            const betPct = Math.round((bigBets[0].amount || 0) / potSize * 100);
+            tips.push({ text: `Overbetting ${betPct}% pot — consider 33-50% on dry textures`, type: 'info' });
+            score -= 10;
+            evLoss += potSize * 0.03;
+        }
+
+        // RULE 4: Missed continuation bet
+        const isPreRaiser = heroActions[0]?.action === 'raises' || heroActions[0]?.action === 'bets';
+        if (isPreRaiser && checks > 0 && board.length >= 3) {
+            tips.push({ text: 'Missed c-bet as preflop aggressor — GTO c-bets ~65% of flops', type: 'warning' });
+            score -= 20;
+            evLoss += potSize * 0.06;
+        }
+
+        // RULE 5: Check-call river with no showdown value
+        if (board.length >= 5 && heroActions.length >= 3) {
+            const lastAction = heroActions[heroActions.length - 1];
+            if (lastAction?.action === 'calls' && hand?.result === 0) {
+                tips.push({ text: 'Called river and lost — hero call may be a blunder at this frequency', type: 'warning' });
+                score -= 25;
+                evLoss += potSize * 0.12;
+            }
+        }
+
+        // RULE 6: All-in preflop without premium
+        const allins = heroActions.filter(a => a.action === 'all-in');
+        if (allins.length > 0 && board.length === 0) {
+            score -= 5;
+            tips.push({ text: 'Preflop all-in — ensure this is +EV at your stack depth', type: 'info' });
+        }
+
+        // Positive detection
+        if (isPreRaiser && raises >= 2 && (hand?.result || 0) > 0) {
+            score += 10;
+            tips.push({ text: 'Aggressive value line rewarded — strong play', type: 'good' });
+        }
+        if (tips.length === 0) {
+            tips.push({ text: 'Clean line — no detectable GTO deviations', type: 'good' });
+        }
+
+        // Clamp
+        score = Math.max(0, Math.min(100, score));
+        evLoss = Math.round(evLoss * 100) / 100;
+
+        // Map to 5-tier grade
+        let gradeName, tier;
+        if (score >= 90) { gradeName = 'BEST'; tier = GRADE_TIERS.BEST; }
+        else if (score >= 75) { gradeName = 'CORRECT'; tier = GRADE_TIERS.CORRECT; }
+        else if (score >= 55) { gradeName = 'INACCURACY'; tier = GRADE_TIERS.INACCURACY; }
+        else if (score >= 30) { gradeName = 'MISTAKE'; tier = GRADE_TIERS.MISTAKE; }
+        else { gradeName = 'BLUNDER'; tier = GRADE_TIERS.BLUNDER; }
+
+        return { grade: gradeName, tier, color: tier.color, evLoss, tips, score, position: 'UNK', street };
+    } catch (err) {
+        console.warn('[HH Analyzer] gradeHand error:', err);
+        return { grade: 'CORRECT', tier: GRADE_TIERS.CORRECT, color: GRADE_TIERS.CORRECT.color, evLoss: 0, tips: [{ text: 'Analysis unavailable for this hand', type: 'info' }], score: 75, position: 'UNK', street: 'preflop' };
     }
-
-    // RULE 6: All-in preflop without premium
-    const allins = heroActions.filter(a => a.action === 'all-in');
-    if (allins.length > 0 && hand.board.length === 0) {
-        score -= 5;
-        tips.push({ text: 'Preflop all-in — ensure this is +EV at your stack depth', type: 'info' });
-    }
-
-    // Positive detection
-    if (isPreRaiser && raises >= 2 && hand.result > 0) {
-        score += 10;
-        tips.push({ text: 'Aggressive value line rewarded — strong play', type: 'good' });
-    }
-    if (tips.length === 0) {
-        tips.push({ text: 'Clean line — no detectable GTO deviations', type: 'good' });
-    }
-
-    // Clamp
-    score = Math.max(0, Math.min(100, score));
-    evLoss = Math.round(evLoss * 100) / 100;
-
-    // Map to 5-tier grade
-    let gradeName, tier;
-    if (score >= 90) { gradeName = 'BEST'; tier = GRADE_TIERS.BEST; }
-    else if (score >= 75) { gradeName = 'CORRECT'; tier = GRADE_TIERS.CORRECT; }
-    else if (score >= 55) { gradeName = 'INACCURACY'; tier = GRADE_TIERS.INACCURACY; }
-    else if (score >= 30) { gradeName = 'MISTAKE'; tier = GRADE_TIERS.MISTAKE; }
-    else { gradeName = 'BLUNDER'; tier = GRADE_TIERS.BLUNDER; }
-
-    return { grade: gradeName, tier, color: tier.color, evLoss, tips, score, position: 'UNK', street };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -346,29 +355,36 @@ function gradeHand(hand) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function LeakReport({ hands }) {
-    if (!hands || hands.length === 0) return null;
+    if (!Array.isArray(hands) || hands.length === 0) return null;
 
-    const graded = hands.map(h => gradeHand(h));
+    // HARDENED: filter out nulls and ensure each hand has minimum required shape
+    const validHands = hands.filter(h => h && typeof h === 'object');
+    if (validHands.length === 0) return null;
+
+    const graded = validHands.map(h => gradeHand(h));
     const counts = { BEST: 0, CORRECT: 0, INACCURACY: 0, MISTAKE: 0, BLUNDER: 0, 'N/A': 0 };
     let totalEVLoss = 0;
     const streetLeaks = { preflop: { count: 0, evLoss: 0 }, flop: { count: 0, evLoss: 0 }, turn: { count: 0, evLoss: 0 }, river: { count: 0, evLoss: 0 } };
 
     graded.forEach(g => {
+        if (!g || typeof g.grade !== 'string') return;
         counts[g.grade] = (counts[g.grade] || 0) + 1;
-        totalEVLoss += g.evLoss || 0;
+        totalEVLoss += (typeof g.evLoss === 'number' && isFinite(g.evLoss)) ? g.evLoss : 0;
         if (g.street && streetLeaks[g.street] && (g.grade === 'MISTAKE' || g.grade === 'BLUNDER' || g.grade === 'INACCURACY')) {
             streetLeaks[g.street].count++;
-            streetLeaks[g.street].evLoss += g.evLoss || 0;
+            streetLeaks[g.street].evLoss += (typeof g.evLoss === 'number' && isFinite(g.evLoss)) ? g.evLoss : 0;
         }
     });
 
-    const total = hands.length;
-    const accuracy = Math.round(((counts.BEST + counts.CORRECT) / Math.max(total - counts['N/A'], 1)) * 100);
-    const worstStreet = Object.entries(streetLeaks).sort((a, b) => b[1].evLoss - a[1].evLoss)[0];
+    const total = validHands.length;
+    const denominator = Math.max(total - (counts['N/A'] || 0), 1);
+    const accuracy = Math.min(100, Math.max(0, Math.round(((counts.BEST + counts.CORRECT) / denominator) * 100)));
+    const sortedStreets = Object.entries(streetLeaks).sort((a, b) => b[1].evLoss - a[1].evLoss);
+    const worstStreet = sortedStreets[0] || ['preflop', { count: 0, evLoss: 0 }];
 
     // Grade distribution bar
     const gradeBars = ['BEST', 'CORRECT', 'INACCURACY', 'MISTAKE', 'BLUNDER'].filter(g => counts[g] > 0);
-    const barTotal = gradeBars.reduce((s, g) => s + counts[g], 0);
+    const barTotal = Math.max(1, gradeBars.reduce((s, g) => s + counts[g], 0)); // HARDENED: prevent div-by-zero
 
     return (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
@@ -435,7 +451,7 @@ function LeakReport({ hands }) {
             </div>
 
             {/* Top Coaching Insight */}
-            {worstStreet[1].count > 0 && (
+            {worstStreet?.[1]?.count > 0 && (
                 <div style={{ padding: '12px 20px 16px', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
                     <div style={{ fontSize: 11, color: '#fbbf24', fontWeight: 700, marginBottom: 4 }}>💡 Primary Leak</div>
                     <div style={{ fontSize: 12, color: '#cbd5e1', lineHeight: 1.5 }}>
