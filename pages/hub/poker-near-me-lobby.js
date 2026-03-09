@@ -551,12 +551,14 @@ export default function PokerNearMeLobby() {
   // ─── Fetch series ───
   const fetchSeries = useCallback(async () => {
     try {
-      const data = await cachedFetch('/api/poker/venues?type=series');
-      if (data?.data) setSeries(data.data);
+      const data = await cachedFetch('/api/poker/venues?tournaments=true&limit=50');
+      if (data?.data) setSeries(data.data.filter(v => v.has_tournaments));
       else if (data?.series) setSeries(data.series);
       else if (Array.isArray(data)) setSeries(data);
     } catch (err) {
       console.error('Failed to fetch series:', err);
+    } finally {
+      setSeriesLoaded(true);
     }
   }, []);
 
@@ -1014,9 +1016,17 @@ export default function PokerNearMeLobby() {
         component = (
           <div style={{ display: 'grid', gap: 12 }}>
             {tours.map((t, i) => <TourCard key={t.tour_code || t.id || `tour-${i}`} tour={t} />)}
-            {tours.length === 0 && (
+            {!toursLoaded && tours.length === 0 && (
               <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>
+                <div style={{ width: 40, height: 40, border: '3px solid rgba(255,255,255,0.1)', borderTopColor: '#00D4FF', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }} />
                 Loading tours...
+              </div>
+            )}
+            {toursLoaded && tours.length === 0 && (
+              <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.5)' }}>
+                <div style={{ fontSize: 36, marginBottom: 12 }}>🏆</div>
+                <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>No Upcoming Tours</div>
+                <div style={{ fontSize: 13, color: 'rgba(200,214,229,0.4)' }}>Check back soon for poker tour schedules and events in your area.</div>
               </div>
             )}
           </div>
@@ -1027,9 +1037,17 @@ export default function PokerNearMeLobby() {
         component = (
           <div style={{ display: 'grid', gap: 12 }}>
             {series.map((s, i) => <SeriesCard key={s.series_code || s.id || `series-${i}`} series={s} />)}
-            {series.length === 0 && (
+            {!seriesLoaded && series.length === 0 && (
               <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>
+                <div style={{ width: 40, height: 40, border: '3px solid rgba(255,255,255,0.1)', borderTopColor: '#00D4FF', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }} />
                 Loading series...
+              </div>
+            )}
+            {seriesLoaded && series.length === 0 && (
+              <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.5)' }}>
+                <div style={{ fontSize: 36, marginBottom: 12 }}>🃏</div>
+                <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>No Upcoming Series</div>
+                <div style={{ fontSize: 13, color: 'rgba(200,214,229,0.4)' }}>Check back soon for poker series schedules and events in your area.</div>
               </div>
             )}
           </div>
