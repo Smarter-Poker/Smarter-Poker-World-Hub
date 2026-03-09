@@ -13,137 +13,26 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// ─── ALL lobby items — unified playing-card frames ───
-// 12 cards total, all same size, evenly spaced
-const ALL_CARD_ITEMS = [
-  // Row 1: Main navigation
-  { id: 'nearme', label: 'Poker Near Me', color: '#00d2ff', icon: '/images/lobby-pods/nearme.png' },
-  { id: 'search', label: 'Find Games', color: '#6ee7ef', icon: '/images/lobby-pods/search.png' },
-  { id: 'livegames', label: 'Live Games', color: '#ff4444', icon: '/images/lobby-pods/livegames.png' },
-  { id: 'tours', label: 'Poker Tours', color: '#c9a227', icon: '/images/lobby-pods/tours.png' },
-  // Row 2: Discovery
-  { id: 'mapview', label: 'Map View', color: '#3b82f6', icon: '/images/lobby-pods/mapview.png' },
-  { id: 'calendar', label: 'Calendar', color: '#8b5cf6', icon: '/images/lobby-pods/calendar.png' },
-  { id: 'series', label: 'Poker Series', color: '#f59e0b', icon: '/images/lobby-pods/series.png' },
-  { id: 'daily', label: 'Daily Grind', color: '#22c55e', icon: '/images/lobby-pods/daily.png' },
-  // Row 3: Tools & social
-  { id: 'roadtrip', label: 'Trip Planner', color: '#6ee7ef', icon: '/images/lobby-dock/trip-planner.png' },
-  { id: 'favorites', label: 'Saved Venues', color: '#6ee7ef', icon: '/images/lobby-dock/saved.png' },
-  { id: 'social', label: 'Friends', color: '#6ee7ef', icon: '/images/lobby-dock/friends.png' },
-  { id: 'alerts', label: 'Tournament Alerts', color: '#ff6b6b', icon: '/images/lobby-dock/alerts.png' },
+// ─── GRID HOTSPOT MAPPING ───
+// 12 clickable areas laid over the single dynamic image, in a 4×3 grid.
+// Each entry defines the pod ID that gets opened when the hotspot is tapped.
+const GRID_HOTSPOTS = [
+  // Row 1
+  { id: 'nearme', label: 'Poker Near Me' },
+  { id: 'search', label: 'Find Games' },
+  { id: 'livegames', label: 'Live Games' },
+  { id: 'tours', label: 'Poker Tours' },
+  // Row 2
+  { id: 'mapview', label: 'Map View' },
+  { id: 'calendar', label: 'Calendar' },
+  { id: 'series', label: 'Poker Series' },
+  { id: 'daily', label: 'Daily Grind' },
+  // Row 3
+  { id: 'roadtrip', label: 'Trip Planner' },
+  { id: 'favorites', label: 'Saved Venues' },
+  { id: 'social', label: 'Friends' },
+  { id: 'alerts', label: 'Tournament Alerts' },
 ];
-
-// ─── Card Item — No hover effects, no background, haptic feedback on tap ───
-function CardItem({ card, isActive, badge, onSelect }) {
-  const [imgLoaded, setImgLoaded] = useState(false);
-  const [imgError, setImgError] = useState(false);
-
-  const handleClick = () => {
-    // Mobile haptic feedback
-    try { navigator.vibrate?.(15); } catch { }
-    onSelect?.(card.id);
-  };
-
-  return (
-    <button
-      className="lobby-card-btn"
-      onClick={handleClick}
-      aria-label={`Open ${card.label}`}
-      style={{
-        position: 'relative',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        background: 'none',
-        border: 'none',
-        cursor: 'pointer',
-        padding: 0,
-        WebkitTapHighlightColor: 'transparent',
-      }}
-    >
-      {/* Icon container — forced square, uniform size, NO background */}
-      <div
-        className="lobby-card-frame"
-        style={{
-          width: '100%',
-          aspectRatio: '1 / 1',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          overflow: 'hidden',
-          borderRadius: 0,
-          background: 'none',
-          border: 'none',
-          boxShadow: 'none',
-        }}
-      >
-        {!imgError ? (
-          <img
-            src={card.icon}
-            alt={card.label}
-            loading="lazy"
-            onLoad={() => setImgLoaded(true)}
-            onError={() => setImgError(true)}
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'contain',
-              opacity: imgLoaded ? 1 : 0,
-              transition: 'opacity 0.4s ease-in',
-            }}
-          />
-        ) : (
-          <span style={{ color: `${card.color}60`, fontSize: 24 }}>?</span>
-        )}
-      </div>
-
-      {/* Label below icon — fixed height for consistent spacing */}
-      <span
-        className="lobby-card-label"
-        style={{
-          fontFamily: "'Orbitron', 'Rajdhani', sans-serif",
-          fontSize: 'clamp(11px, 1.6vw, 18px)',
-          fontWeight: 700,
-          color: isActive ? '#ffffff' : 'rgba(200, 220, 240, 0.7)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.06em',
-          textAlign: 'center',
-          textShadow: isActive
-            ? `0 0 12px ${card.color}80, 0 2px 6px rgba(0,0,0,0.9)`
-            : '0 1px 4px rgba(0,0,0,0.8)',
-          lineHeight: 1.2,
-          height: 'clamp(16px, 2.2vw, 24px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginTop: 'clamp(4px, 0.8vw, 10px)',
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          maxWidth: '100%',
-        }}
-      >
-        {card.label}
-      </span>
-
-      {/* Badge (for alerts, saved, friends) */}
-      {badge > 0 && (
-        <span className="lobby-card-badge" style={{
-          position: 'absolute', top: -6, right: -6,
-          minWidth: 28, height: 28, borderRadius: 14,
-          background: 'linear-gradient(135deg, #ff6b6b, #ee5a24)',
-          color: '#fff', fontSize: 14, fontWeight: 700,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: '0 6px',
-          boxShadow: '0 3px 12px rgba(238, 90, 36, 0.5)',
-          zIndex: 2,
-        }}>
-          {badge}
-        </span>
-      )}
-    </button>
-  );
-}
 
 // (DockItem, DockIconSVG, DOCK_ITEMS removed — unified into card grid above)
 
@@ -367,7 +256,7 @@ export default function LobbyOverlay({
         </div>
       )}
 
-      {/* ═══ CARD GRID — Full-page spread, uniform sizing ═══ */}
+      {/* ═══ SINGLE DYNAMIC IMAGE with clickable hotspot overlay ═══ */}
       <div className="lobby-card-scroll" style={{
         flex: 1,
         display: 'flex',
@@ -381,26 +270,76 @@ export default function LobbyOverlay({
         scrollbarWidth: 'none',
         msOverflowStyle: 'none',
       }}>
-        <div className="lobby-card-grid" style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: 'clamp(10px, 2.5vw, 24px)',
-          maxWidth: 1200,
-          width: '100%',
-          paddingTop: 'clamp(8px, 1.5vw, 16px)',
-          paddingBottom: 32,
-        }}>
-          {ALL_CARD_ITEMS.map((card) => (
-            <CardItem
-              key={card.id}
-              card={card}
-              isActive={activePod === card.id}
-              badge={card.id === 'alerts' ? alertCount :
-                card.id === 'favorites' ? savedCount :
-                  card.id === 'social' ? friendsNearby : 0}
-              onSelect={onPodSelect}
-            />
-          ))}
+        <div style={{ position: 'relative', maxWidth: 900, width: '100%' }}>
+          {/* The user's exact dynamic image */}
+          <img
+            src="/images/lobby-pods/poker-near-me-grid.jpg"
+            alt="Poker Near Me Feature Grid"
+            style={{
+              width: '100%',
+              height: 'auto',
+              display: 'block',
+              borderRadius: 12,
+            }}
+          />
+
+          {/* Transparent clickable hotspot grid overlaid on top of the image */}
+          <div style={{
+            position: 'absolute',
+            /* Inset to match the image's internal frame border (~4% each side, ~3% top/bottom) */
+            top: '3%',
+            left: '4%',
+            right: '4%',
+            bottom: '3%',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gridTemplateRows: 'repeat(3, 1fr)',
+            gap: 0,
+          }}>
+            {GRID_HOTSPOTS.map((hotspot) => (
+              <button
+                key={hotspot.id}
+                onClick={() => {
+                  try { navigator.vibrate?.(15); } catch { }
+                  onPodSelect?.(hotspot.id);
+                }}
+                aria-label={`Open ${hotspot.label}`}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 0,
+                  margin: 0,
+                  WebkitTapHighlightColor: 'transparent',
+                  outline: 'none',
+                }}
+              />
+            ))}
+          </div>
+
+          {/* Badge overlays for alerts, saved, friends */}
+          {alertCount > 0 && (
+            <span style={{
+              position: 'absolute', top: '69%', right: '6%',
+              minWidth: 24, height: 24, borderRadius: 12,
+              background: 'linear-gradient(135deg, #ff6b6b, #ee5a24)',
+              color: '#fff', fontSize: 12, fontWeight: 700,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: '0 5px', zIndex: 2,
+              boxShadow: '0 3px 12px rgba(238, 90, 36, 0.5)',
+            }}>{alertCount}</span>
+          )}
+          {savedCount > 0 && (
+            <span style={{
+              position: 'absolute', top: '69%', right: '55%',
+              minWidth: 24, height: 24, borderRadius: 12,
+              background: 'linear-gradient(135deg, #ff6b6b, #ee5a24)',
+              color: '#fff', fontSize: 12, fontWeight: 700,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: '0 5px', zIndex: 2,
+              boxShadow: '0 3px 12px rgba(238, 90, 36, 0.5)',
+            }}>{savedCount}</span>
+          )}
         </div>
       </div>
     </div>

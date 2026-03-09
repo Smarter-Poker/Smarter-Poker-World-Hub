@@ -53,7 +53,7 @@ function getAuthHeaders() {
 
 const GAME_TYPES = [
     { value: 'hu_cash', label: 'Cash HU', icon: '💰', description: 'Heads-Up Cash Game' },
-    { value: 'postflop_complete', label: 'Cash 6-Max', icon: '🎰', description: '6-Max Postflop' },
+    { value: 'postflop_complete', label: 'Cash 6-Max', icon: '🃏', description: '6-Max Postflop' },
     { value: 'mtt_6max_icm', label: 'MTT ICM', icon: '🏆', description: 'MTT 6-Max ICM' },
     { value: 'mtt_6max_chipev', label: 'MTT ChipEV', icon: '📊', description: 'MTT ChipEV' },
     { value: 'turn_spin', label: 'Spins', icon: '🎯', description: 'Spin & Go' },

@@ -86,7 +86,7 @@ const DEFAULT_SCENARIOS: Record<string, {
             { id: 'GRIND', label: 'Keep Grinding', icon: '💎', description: 'Run it up While Hot', emotionalType: 'aggressive' },
             { id: 'ONEHOUR', label: 'One More Hour', icon: '⏰', description: 'Set a Hard Stop', emotionalType: 'impulsive' },
             { id: 'QUIT', label: 'Book The Win', icon: '✅', description: 'Lock in Profits', emotionalType: 'rational' },
-            { id: 'MOVING', label: 'Move Up Stakes', icon: '🎰', description: 'Shot at Higher Limits', emotionalType: 'impulsive' },
+            { id: 'MOVING', label: 'Move Up Stakes', icon: '🃏', description: 'Shot at Higher Limits', emotionalType: 'impulsive' },
         ],
         correctId: 'QUIT',
     },
@@ -268,13 +268,13 @@ const MentalGym: React.FC<MentalGymProps> = ({
                                 <span style={{
                                     ...styles.emotionalTag,
                                     background: choice.emotionalType === 'rational' ? 'rgba(0, 255, 136, 0.2)' :
-                                               choice.emotionalType === 'impulsive' ? 'rgba(255, 68, 68, 0.2)' :
-                                               choice.emotionalType === 'aggressive' ? 'rgba(255, 170, 0, 0.2)' :
-                                               'rgba(100, 100, 100, 0.2)',
+                                        choice.emotionalType === 'impulsive' ? 'rgba(255, 68, 68, 0.2)' :
+                                            choice.emotionalType === 'aggressive' ? 'rgba(255, 170, 0, 0.2)' :
+                                                'rgba(100, 100, 100, 0.2)',
                                     color: choice.emotionalType === 'rational' ? '#00ff88' :
-                                           choice.emotionalType === 'impulsive' ? '#ff4444' :
-                                           choice.emotionalType === 'aggressive' ? '#ffaa00' :
-                                           '#888',
+                                        choice.emotionalType === 'impulsive' ? '#ff4444' :
+                                            choice.emotionalType === 'aggressive' ? '#ffaa00' :
+                                                '#888',
                                 }}>
                                     {choice.emotionalType}
                                 </span>

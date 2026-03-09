@@ -29,17 +29,17 @@ import { getGameStickers } from '../../lib/stickerOrchestrator';
 // VARIANT CONFIG
 // ─────────────────────────────────────────────────────────────────────
 const VC = {
-  nlh:        { label: 'NLH',   color: '#E74C3C', bg: 'linear-gradient(145deg,#1f0808,#2d0c0c)', accent: '#E74C3C' },
-  flh:        { label: 'FLH',   color: '#2ECC71', bg: 'linear-gradient(145deg,#071a0c,#0a2d14)', accent: '#2ECC71' },
-  short_deck: { label: '6+',    color: '#3498DB', bg: 'linear-gradient(145deg,#071018,#0a1e2d)', accent: '#3498DB' },
-  plo4:       { label: 'PLO',   color: '#A855F7', bg: 'linear-gradient(145deg,#13071a,#1e0a2d)', accent: '#A855F7' },
-  plo5:       { label: 'PLO5',  color: '#8B5CF6', bg: 'linear-gradient(145deg,#13071a,#1e0a2d)', accent: '#8B5CF6' },
-  plo6:       { label: 'PLO6',  color: '#7C3AED', bg: 'linear-gradient(145deg,#13071a,#1e0a2d)', accent: '#7C3AED' },
-  plo8:       { label: 'Hi/Lo', color: '#F97316', bg: 'linear-gradient(145deg,#1a0d05,#2d1a08)', accent: '#F97316' },
-  flo:        { label: 'FLO',   color: '#14B8A6', bg: 'linear-gradient(145deg,#051514,#0a2422)', accent: '#14B8A6' },
-  mixed:      { label: 'MIX',   color: '#EAB308', bg: 'linear-gradient(145deg,#1a1505,#2d2008)', accent: '#EAB308' },
-  ofc:        { label: 'OFC',   color: '#EC4899', bg: 'linear-gradient(145deg,#1a0510,#2d0a1e)', accent: '#EC4899' },
-  spin:       { label: 'SPIN',  color: '#F1C40F', bg: 'linear-gradient(145deg,#1a1505,#2d2408)', accent: '#F1C40F' },
+  nlh: { label: 'NLH', color: '#E74C3C', bg: 'linear-gradient(145deg,#1f0808,#2d0c0c)', accent: '#E74C3C' },
+  flh: { label: 'FLH', color: '#2ECC71', bg: 'linear-gradient(145deg,#071a0c,#0a2d14)', accent: '#2ECC71' },
+  short_deck: { label: '6+', color: '#3498DB', bg: 'linear-gradient(145deg,#071018,#0a1e2d)', accent: '#3498DB' },
+  plo4: { label: 'PLO', color: '#A855F7', bg: 'linear-gradient(145deg,#13071a,#1e0a2d)', accent: '#A855F7' },
+  plo5: { label: 'PLO5', color: '#8B5CF6', bg: 'linear-gradient(145deg,#13071a,#1e0a2d)', accent: '#8B5CF6' },
+  plo6: { label: 'PLO6', color: '#7C3AED', bg: 'linear-gradient(145deg,#13071a,#1e0a2d)', accent: '#7C3AED' },
+  plo8: { label: 'Hi/Lo', color: '#F97316', bg: 'linear-gradient(145deg,#1a0d05,#2d1a08)', accent: '#F97316' },
+  flo: { label: 'FLO', color: '#14B8A6', bg: 'linear-gradient(145deg,#051514,#0a2422)', accent: '#14B8A6' },
+  mixed: { label: 'MIX', color: '#EAB308', bg: 'linear-gradient(145deg,#1a1505,#2d2008)', accent: '#EAB308' },
+  ofc: { label: 'OFC', color: '#EC4899', bg: 'linear-gradient(145deg,#1a0510,#2d0a1e)', accent: '#EC4899' },
+  spin: { label: 'SPIN', color: '#F1C40F', bg: 'linear-gradient(145deg,#1a1505,#2d2408)', accent: '#F1C40F' },
 };
 const DV = { label: '?', color: '#888', bg: 'linear-gradient(145deg,#111,#1e1e1e)', accent: '#555' };
 
@@ -53,7 +53,7 @@ function fmtChips(v) {
   const n = Number(v);
   if (isNaN(n)) return '—';
   if (n >= 1000000) return (n / 1000000).toFixed(n % 1000000 === 0 ? 0 : 1) + 'M';
-  if (n >= 1000)    return (n / 1000).toFixed(n % 1000 === 0 ? 0 : 1) + 'K';
+  if (n >= 1000) return (n / 1000).toFixed(n % 1000 === 0 ? 0 : 1) + 'K';
   return n % 1 === 0 ? String(n) : n.toFixed(2).replace(/\.?0+$/, '');
 }
 
@@ -74,7 +74,7 @@ function fmtBuyRange(min, max) {
 function timeAgo(dateStr) {
   if (!dateStr) return '';
   const diff = Math.floor((Date.now() - new Date(dateStr)) / 60000);
-  if (diff < 1)  return 'just now';
+  if (diff < 1) return 'just now';
   if (diff < 60) return diff + 'm ago';
   const h = Math.floor(diff / 60);
   return h < 24 ? h + 'h ago' : Math.floor(h / 24) + 'd ago';
@@ -87,19 +87,19 @@ function getCountdown(dateStr) {
   const totalMin = Math.floor(ms / 60000);
   const h = Math.floor(totalMin / 60);
   const m = totalMin % 60;
-  if (totalMin < 1)  return { label: '< 1 min',        color: '#FF5252', urgent: true };
+  if (totalMin < 1) return { label: '< 1 min', color: '#FF5252', urgent: true };
   if (totalMin < 60) return { label: totalMin + ' min', color: totalMin < 10 ? '#FF5252' : '#FFA726', urgent: totalMin < 10 };
-  if (h < 24)        return { label: h + 'h ' + m + 'm', color: '#FFA726', urgent: false };
+  if (h < 24) return { label: h + 'h ' + m + 'm', color: '#FFA726', urgent: false };
   return { label: Math.floor(h / 24) + 'd ' + (h % 24) + 'h', color: '#78909C', urgent: false };
 }
 
 function fmtStartDate(dateStr) {
   if (!dateStr) return null;
-  const d   = new Date(dateStr);
+  const d = new Date(dateStr);
   const now = new Date();
-  const mo  = String(d.getMonth() + 1).padStart(2, '0');
-  const dy  = String(d.getDate()).padStart(2, '0');
-  const hm  = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+  const mo = String(d.getMonth() + 1).padStart(2, '0');
+  const dy = String(d.getDate()).padStart(2, '0');
+  const hm = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
   return d.toDateString() === now.toDateString()
     ? hm
     : d.getFullYear() + '-' + mo + '-' + dy + ' ' + hm;
@@ -184,20 +184,20 @@ function MiniSeatMap({ current, max, accentColor }) {
 }
 
 function CashCard({ table: t, assetMap, onPress, avgVpip }) {
-  const vc       = VC[t.game_variant] || DV;
-  const sb       = t.small_blind     ?? 0;
-  const bb       = t.big_blind       ?? 0;
-  const cur      = t.current_players ?? 0;
-  const max      = t.max_players     ?? 9;
-  const isFull   = cur >= max;
-  const isEmpty  = cur === 0;
-  const status   = t.status || 'waiting';
-  const isLive   = (status === 'running' || status === 'active') && cur > 0;
+  const vc = VC[t.game_variant] || DV;
+  const sb = t.small_blind ?? 0;
+  const bb = t.big_blind ?? 0;
+  const cur = t.current_players ?? 0;
+  const max = t.max_players ?? 9;
+  const isFull = cur >= max;
+  const isEmpty = cur === 0;
+  const status = t.status || 'waiting';
+  const isLive = (status === 'running' || status === 'active') && cur > 0;
   const stickers = getGameStickers(t, avgVpip ?? t.avg_vpip ?? null);
   const clubName = t.club_name || t.club?.name || '';
   const buyRange = fmtBuyRange(t.min_buy_in, t.max_buy_in);
   const tableName = t.name || '';
-  const ago      = timeAgo(t.created_at);
+  const ago = timeAgo(t.created_at);
   const actionSec = t.action_time_seconds || t.settings?.action_time || 30;
 
   return (
@@ -281,20 +281,20 @@ function CashCard({ table: t, assetMap, onPress, avgVpip }) {
 // TOURNAMENT / SNG / SPIN CARD
 // ─────────────────────────────────────────────────────────────────────
 function TournamentCard({ tournament: t, assetMap, onPress }) {
-  const variant  = t.game_variant || t.variant || 'nlh';
-  const isSpin   = t.type === 'spin' || variant === 'spin';
-  const isMTT    = t.type === 'mtt';
-  const vc       = isSpin ? VC.spin : (VC[variant] || DV);
+  const variant = t.game_variant || t.variant || 'nlh';
+  const isSpin = t.type === 'spin' || variant === 'spin';
+  const isMTT = t.type === 'mtt';
+  const vc = isSpin ? VC.spin : (VC[variant] || DV);
 
   const stickers = getGameStickers(t);
-  const buyIn    = t.buy_in ?? t.settings?.buy_in ?? 0;
-  const reg      = t.registered_count ?? t.current_players ?? 0;
-  const maxP     = t.max_players ?? t.settings?.max_players ?? 9;
-  const isFull   = reg >= maxP;
-  const status   = t.status || 'waiting';
-  const isLive   = status === 'active' || status === 'running';
+  const buyIn = t.buy_in ?? t.settings?.buy_in ?? 0;
+  const reg = t.registered_count ?? t.current_players ?? 0;
+  const maxP = t.max_players ?? t.settings?.max_players ?? 9;
+  const isFull = reg >= maxP;
+  const status = t.status || 'waiting';
+  const isLive = status === 'active' || status === 'running';
 
-  const name     = t.name || '';
+  const name = t.name || '';
   const clubName = t.club_name || t.club?.name || '';
   const startDate = t.scheduled_start || t.settings?.start_time || t.start_time || null;
 
@@ -339,7 +339,7 @@ function TournamentCard({ tournament: t, assetMap, onPress }) {
       {/* ROW 3 — Trophy + Name + countdown */}
       <div style={S.trophyRow}>
         <span style={{ fontSize: 20, lineHeight: 1, flexShrink: 0, filter: 'drop-shadow(0 0 5px ' + trophyGlow + '99)' }}>
-          {isSpin ? '🎰' : isMTT ? '🏆' : '🥇'}
+          {isSpin ? '♠️' : isMTT ? '🏆' : '🥇'}
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
           {!!name && (
@@ -392,7 +392,7 @@ export default function GameCard({ game, assetMap = {}, onPress, avgVpip }) {
     game.registered_count != null;
   return isTournament
     ? <TournamentCard tournament={game} assetMap={assetMap} onPress={onPress} />
-    : <CashCard       table={game}      assetMap={assetMap} onPress={onPress} avgVpip={avgVpip} />;
+    : <CashCard table={game} assetMap={assetMap} onPress={onPress} avgVpip={avgVpip} />;
 }
 
 // ─────────────────────────────────────────────────────────────────────

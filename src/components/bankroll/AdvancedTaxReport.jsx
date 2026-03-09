@@ -46,7 +46,7 @@ const FEDERAL_BRACKETS = [
 
 const DEDUCTION_CATEGORIES = [
     { id: 'travel', label: 'Travel & Lodging', icon: '✈️' },
-    { id: 'buyins', label: 'Tournament Buy-ins', icon: '🎰' },
+    { id: 'buyins', label: 'Tournament Buy-ins', icon: '🏆' },
     { id: 'coaching', label: 'Coaching & Training', icon: '📚' },
     { id: 'software', label: 'Software & Subscriptions', icon: '💻' },
     { id: 'tips', label: 'Tips & Gratuities', icon: '💵' },

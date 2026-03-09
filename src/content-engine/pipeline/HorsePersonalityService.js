@@ -69,7 +69,7 @@ const TRAIT_MODIFIERS = {
     [PERSONALITY_TYPES.GRINDER]: {
         commentPhrases: ['grind never stops', 'volume is key', 'next session', 'back at it', 'staying focused'],
         preferredCategories: ['massive_pot', 'bad_beat', 'celebrity'],
-        emoji: ['⚡', '🎰', '🃏', '💎'],
+        emoji: ['⚡', '🎲', '🃏', '💎'],
         tone: 'determined'
     }
 };

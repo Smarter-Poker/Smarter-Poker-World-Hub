@@ -21,7 +21,7 @@ const EMOJI_CATALOG = {
   reactions: ['😂', '😭', '🤣', '😎', '🤔', '😡', '🥶', '🤯', '😱', '🫠', '💀', '🤡'],
   taunts: ['👋', '👎', '🖕', '💩', '🐟', '🐑', '🤏', '🫵', '👀', '🧠', '💤', '🪦'],
   praise: ['👏', '🔥', '💪', '🏆', '⭐', '💎', '🎯', '🫡', '🤝', '❤️', '👑', '🦁'],
-  objects: ['💰', '💸', '🎰', '🃏', '♠️', '♥️', '♦️', '♣️', '🍀', '🎲', '🎪', '🚀'],
+  objects: ['💰', '💸', '🃏', '🃏', '♠️', '♥️', '♦️', '♣️', '🍀', '🎲', '🎪', '🚀'],
 };
 
 const CATEGORY_LABELS = {
@@ -170,7 +170,7 @@ function FlyingEmoji({ emoji, fromPos, toPos, onComplete }) {
 
 export function FloatingEmoji({ emoji }) {
   if (!emoji) return null;
-  
+
   return (
     <motion.div
       initial={{ scale: 0, y: 10 }}
@@ -197,9 +197,9 @@ export function FloatingEmoji({ emoji }) {
 // MAIN EXPORT — EmojiThrower manages state + integrates with table
 // ═══════════════════════════════════════════════════════════════
 
-export default function EmojiThrower({ 
-  userId, 
-  seats, 
+export default function EmojiThrower({
+  userId,
+  seats,
   seatPositions,
   onThrow,       // (emoji, targetId) => void — calls send('throw_emoji', ...)
   chatMessages,  // to receive incoming emoji events
@@ -217,18 +217,18 @@ export default function EmojiThrower({
     if (!chatMessages || chatMessages.length === 0) return;
     const last = chatMessages[chatMessages.length - 1];
     if (last?.type !== 'emoji') return;
-    
+
     // Find target seat
     const targetSeat = seats?.find(s => s.player?.id === last.targetId);
     const fromSeat = seats?.find(s => s.player?.id === last.fromId);
-    
+
     if (targetSeat) {
       const targetIdx = targetSeat.seatIndex;
       setSeatEmojis(prev => ({
         ...prev,
         [targetIdx]: { emoji: last.emoji, timestamp: Date.now() },
       }));
-      
+
       // Auto-clear after 4 seconds
       setTimeout(() => {
         setSeatEmojis(prev => {
@@ -259,7 +259,7 @@ export default function EmojiThrower({
   const handleEmojiSelect = useCallback((emoji) => {
     const now = Date.now();
     if (now - lastThrowRef.current < COOLDOWN_MS) return; // cooldown
-    
+
     setSelectedEmoji(emoji);
     setPickerOpen(false);
     setTargetMode(true);
@@ -268,10 +268,10 @@ export default function EmojiThrower({
   // Handle targeting a player seat
   const handleTargetSeat = useCallback((seatIndex) => {
     if (!targetMode || !selectedEmoji) return;
-    
+
     const target = seats?.[seatIndex];
     if (!target?.player || target.player.id === userId) return;
-    
+
     lastThrowRef.current = Date.now();
     onThrow?.(selectedEmoji, target.player.id);
     setTargetMode(false);
@@ -281,10 +281,10 @@ export default function EmojiThrower({
   // Quick throw to entire table (no specific target)
   const handleTableThrow = useCallback(() => {
     if (!selectedEmoji) return;
-    
+
     const now = Date.now();
     if (now - lastThrowRef.current < COOLDOWN_MS) return;
-    
+
     lastThrowRef.current = Date.now();
     onThrow?.(selectedEmoji, null);
     setTargetMode(false);

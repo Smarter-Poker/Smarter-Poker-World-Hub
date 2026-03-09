@@ -7,7 +7,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
 
@@ -19,7 +19,7 @@ export default async function handler(req, res) {
   // Require admin secret to prevent external abuse (phishing via branded emails).
   const adminSecret = req.headers['x-admin-secret'];
   const envSecret = process.env.ADMIN_ROUTE_SECRET;
-  
+
   if (!envSecret || !adminSecret || adminSecret !== envSecret) {
     return res.status(403).json({ success: false, error: 'This endpoint is for internal use only' });
   }
@@ -154,7 +154,7 @@ export default async function handler(req, res) {
     const data = await resend.emails.send({
       from: 'Club Commander <noreply@smarter.poker>',
       to: [to],
-      subject: `Welcome to Club Commander, ${name}! 🎰`,
+      subject: `Welcome to Club Commander, ${name}! ♠️`,
       html: emailHtml,
     });
 

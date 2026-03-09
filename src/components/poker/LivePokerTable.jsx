@@ -1541,7 +1541,7 @@ function ChatOverlay({ messages, onSend }) {
   const [showEmoji, setShowEmoji] = useState(false);
   const listRef = useRef(null);
 
-  const QUICK_EMOJIS = ['😀', '😂', '😎', '🤔', '👍', '👎', '🔥', '❤️', '💀', '🎰', '♠️', '♦️', '♣️', '♥️', '🏆', '💰', '🤑', '😱', '🤷', 'GG'];
+  const QUICK_EMOJIS = ['😀', '😂', '😎', '🤔', '👍', '👎', '🔥', '❤️', '💀', '🃏', '♠️', '♦️', '♣️', '♥️', '🏆', '💰', '🤑', '😱', '🤷', 'GG'];
 
   useEffect(() => {
     if (listRef.current) {
@@ -2812,52 +2812,52 @@ function LivePokerTable({
             zIndex: 1,
           }}
         >
-            {/* BBJ Ticker */}
-            {tableState?.config?.bbjEnabled && tableState?.clubId && (
-              <BBJTicker
-                clubId={tableState.clubId}
-                variant="table"
-                bbjWonEvent={result?.bbj || null}
-                supabase={supabase}
+          {/* BBJ Ticker */}
+          {tableState?.config?.bbjEnabled && tableState?.clubId && (
+            <BBJTicker
+              clubId={tableState.clubId}
+              variant="table"
+              bbjWonEvent={result?.bbj || null}
+              supabase={supabase}
+            />
+          )}
+
+          {/* Community cards */}
+          <CommunityCards
+            cards={tableState?.game?.communityCards || []}
+            boards={tableState?.game?.boards}
+          />
+
+          {/* Pot */}
+          <PotDisplay
+            potTotal={tableState?.game?.potTotal || 0}
+            pots={tableState?.game?.pots || []}
+          />
+
+          {/* Run It Twice/Thrice offer overlay */}
+          <AnimatePresence>
+            {result?.runItOffer && (
+              <RunItOfferOverlay
+                offer={result.runItOffer}
+                userId={userId}
+                onRespond={(choice) => send('respond_run_it', { choice })}
               />
             )}
+          </AnimatePresence>
 
-            {/* Community cards */}
-            <CommunityCards
-              cards={tableState?.game?.communityCards || []}
-              boards={tableState?.game?.boards}
+          {/* Result overlay */}
+          <AnimatePresence>
+            {result && <ResultOverlay result={result} send={send} userId={userId} />}
+          </AnimatePresence>
+
+          {/* Chip fly animation — chips fly from pot to winner seats */}
+          {result?.winners && (
+            <ChipFlyAnimation
+              winners={result.winners}
+              seatPositions={positions}
+              seats={seats}
             />
-
-            {/* Pot */}
-            <PotDisplay
-              potTotal={tableState?.game?.potTotal || 0}
-              pots={tableState?.game?.pots || []}
-            />
-
-            {/* Run It Twice/Thrice offer overlay */}
-            <AnimatePresence>
-              {result?.runItOffer && (
-                <RunItOfferOverlay
-                  offer={result.runItOffer}
-                  userId={userId}
-                  onRespond={(choice) => send('respond_run_it', { choice })}
-                />
-              )}
-            </AnimatePresence>
-
-            {/* Result overlay */}
-            <AnimatePresence>
-              {result && <ResultOverlay result={result} send={send} userId={userId} />}
-            </AnimatePresence>
-
-            {/* Chip fly animation — chips fly from pot to winner seats */}
-            {result?.winners && (
-              <ChipFlyAnimation
-                winners={result.winners}
-                seatPositions={positions}
-                seats={seats}
-              />
-            )}
+          )}
         </div>
 
         {/* Seats */}
@@ -3094,7 +3094,7 @@ function LivePokerTable({
           borderRadius: 20, padding: '3px 16px', zIndex: 55,
           display: 'flex', alignItems: 'center', gap: 6,
         }}>
-          <span style={{ fontSize: 12 }}>🎰</span>
+          <span style={{ fontSize: 12 }}>🏆</span>
           <span style={{ color: '#FFD700', fontSize: 11, fontWeight: 700 }}>
             BAD BEAT JACKPOT
           </span>
@@ -3123,7 +3123,7 @@ function LivePokerTable({
               border: '3px solid #FFD700', borderRadius: 16,
               padding: '32px 48px', textAlign: 'center', maxWidth: 460,
             }}>
-              <div style={{ fontSize: 48, marginBottom: 8 }}>🎰💰🎰</div>
+              <div style={{ fontSize: 48, marginBottom: 8 }}>🏆💰🏆</div>
               <h2 style={{ color: '#FFD700', fontSize: 26, margin: '0 0 8px', fontWeight: 800 }}>
                 BAD BEAT JACKPOT!
               </h2>

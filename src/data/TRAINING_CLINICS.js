@@ -548,7 +548,7 @@ export const TRAINING_CLINICS = [
         category: 'MTT',
         targetLeak: 'ANTE_DEFENSE',
         description: 'Correct Defense Frequencies for BB Ante Formats (67% Larger Pots)',
-        icon: '🎰',
+        icon: '🃏',
         badge: 'Ante Master',
         laws: [9, 12], // Large Pot Visual, Format Consistency
         difficulty: 3,

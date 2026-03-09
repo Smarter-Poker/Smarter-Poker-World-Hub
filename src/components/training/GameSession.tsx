@@ -954,7 +954,7 @@ const GameSession: React.FC<GameSessionProps> = ({
                             animate={{ rotate: 360 }}
                             transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                         >
-                            🎰
+                            🃏
                         </motion.div>
                         <p>Dealing Hand...</p>
                     </div>

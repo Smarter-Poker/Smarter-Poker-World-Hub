@@ -14,8 +14,8 @@ import toast from '../../stores/toastStore';
 const CATEGORY_META = {
     poker_cash: { label: 'Cash Games', icon: '🃏', color: '#22c55e' },
     poker_mtt: { label: 'Tournaments', icon: '🏆', color: '#a855f7' },
-    casino_table: { label: 'Table Games', icon: '🎰', color: '#eab308' },
-    slots: { label: 'Slots', icon: '🎰', color: '#f97316' },
+    casino_table: { label: 'Table Games', icon: '🎲', color: '#eab308' },
+    slots: { label: 'Slots', icon: '🎲', color: '#f97316' },
     sports: { label: 'Sports Betting', icon: '⚽', color: '#f97316' },
     expense: { label: 'Expenses', icon: '💸', color: '#6b7280' },
 };

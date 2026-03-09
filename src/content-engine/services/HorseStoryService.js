@@ -37,7 +37,7 @@ const STORY_ARCS = {
             { day: 3, templates: ['when does it end', 'studying tho', 'focusing on process'] },
             { day: 4, templates: ['light at the end', 'better today', 'back to normal maybe'] }
         ],
-        emojiSet: ['😤', '📉', '🎰', '💀']
+        emojiSet: ['😤', '📉', '🎲', '💀']
     },
     tournament_run: {
         name: 'Tournament Run',

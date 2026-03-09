@@ -38,7 +38,7 @@ function saveSession(payload) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(payload),
-    }).catch(() => {});
+    }).catch(() => { });
 }
 
 
@@ -49,7 +49,7 @@ function saveSession(payload) {
 const GAME_TYPES = [
     { value: 'cash_6max', label: 'Cash 6-Max', icon: '💰' },
     { value: 'mtt', label: 'MTT', icon: '🏆' },
-    { value: 'spins', label: 'Spins', icon: '🎰' },
+    { value: 'spins', label: 'Spins', icon: '♠️' },
 ];
 
 const SCENARIOS = [
@@ -161,8 +161,8 @@ export default function PreflopCharts() {
                     setCompareActions(data.range.actions);
                 } else {
                     setRangeData(data.range.gridData);
-                busEmit('training:session-complete', { game_id: 'preflop-charts', hands_played: 1 });
-                saveSession({ game_id: 'preflop-charts', hands_played: 1, accuracy: 100, correct_answers: 1, total_questions: 1 });
+                    busEmit('training:session-complete', { game_id: 'preflop-charts', hands_played: 1 });
+                    saveSession({ game_id: 'preflop-charts', hands_played: 1, accuracy: 100, correct_answers: 1, total_questions: 1 });
                     setStats(data.range.stats);
                     setActions(data.range.actions);
                 }

@@ -31,7 +31,7 @@ const FBLeftSidebar = ({ currentUser }) => (
         </div>
 
         <div className="sidebar-item">
-            <span className="sidebar-icon">🎰</span>
+            <span className="sidebar-icon">♠️</span>
             <span>Clubs</span>
         </div>
 

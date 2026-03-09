@@ -47,12 +47,12 @@ Villain shows A♠Q♣ (air)
 💰 Hero wins $1,607`,
         analysis: "Villain's line screams missed AQ/AJ. The overbet shove is desperation. Trust your read."
     },
-{
-    id: 'hand_sick_bluff_1',
+    {
+        id: 'hand_sick_bluff_1',
         category: 'sick_bluff',
-            stakes: '$5/$10',
-                title: 'Triple Barrel Bluff',
-                    hand: `$5/$10 Live
+        stakes: '$5/$10',
+        title: 'Triple Barrel Bluff',
+        hand: `$5/$10 Live
 Hero (SB): $2,500
 Villain (BTN): $3,000
 
@@ -70,14 +70,14 @@ Hero shoves $1,905
 Villain tanks for 3 minutes... folds TT face up
 
 😤 Hero takes the pot`,
-                        analysis: 'Representing the nuts on a scary board. When they tank-call twice, a third barrel can push them off medium strength.'
-},
-{
-    id: 'hand_cooler_1',
+        analysis: 'Representing the nuts on a scary board. When they tank-call twice, a third barrel can push them off medium strength.'
+    },
+    {
+        id: 'hand_cooler_1',
         category: 'cooler',
-            stakes: '$1/$3',
-                title: 'Set Over Set',
-                    hand: `$1/$3 Live
+        stakes: '$1/$3',
+        title: 'Set Over Set',
+        hand: `$1/$3 Live
 Hero (MP): $500
 Villain (BB): $400
 
@@ -93,15 +93,15 @@ Hero snap-calls
 
 Villain shows 5♦5♣
 
-🎰 Just a cooler. Nothing you can do.`,
-                        analysis: 'Classic cooler. Bottom set vs middle set. Get it in and pray they don\'t have top set.'
-},
-{
-    id: 'hand_bad_beat_1',
+🎲 Just a cooler. Nothing you can do.`,
+        analysis: 'Classic cooler. Bottom set vs middle set. Get it in and pray they don\'t have top set.'
+    },
+    {
+        id: 'hand_bad_beat_1',
         category: 'bad_beat',
-            stakes: '$2/$5',
-                title: 'One-Outer on the River',
-                    hand: `$2/$5 Live
+        stakes: '$2/$5',
+        title: 'One-Outer on the River',
+        hand: `$2/$5 Live
 Hero (UTG): $1,000
 Villain (BTN): $850
 
@@ -120,14 +120,14 @@ River: Q♠
 😱 One-outer. Quads over full house.
 
 That's poker.`,
-                        analysis: 'Nothing you could have done differently. Ship it in and accept the result.'
-},
-{
-    id: 'hand_big_pot_1',
+        analysis: 'Nothing you could have done differently. Ship it in and accept the result.'
+    },
+    {
+        id: 'hand_big_pot_1',
         category: 'big_pot',
-            stakes: '$5/$10/$25',
-                title: '$15K Pot at Commerce',
-                    hand: `$5/$10/$25 ($50 straddle)
+        stakes: '$5/$10/$25',
+        title: '$15K Pot at Commerce',
+        hand: `$5/$10/$25 ($50 straddle)
 Hero: $8,000
 Villain 1: $12,000
 Villain 2: $6,000
@@ -145,14 +145,14 @@ Turn: 2♥
 River: J♠
 
 💰 Hero drags $15,200`,
-                        analysis: 'Top set vs middle set. Dream flop. Get maximum value when you flop the nuts.'
-},
-{
-    id: 'hand_value_town_1',
+        analysis: 'Top set vs middle set. Dream flop. Get maximum value when you flop the nuts.'
+    },
+    {
+        id: 'hand_value_town_1',
         category: 'value_town',
-            stakes: '$1/$2',
-                title: 'Max Value with Top Two',
-                    hand: `$1/$2 Live
+        stakes: '$1/$2',
+        title: 'Max Value with Top Two',
+        hand: `$1/$2 Live
 Hero (CO): $350
 Villain (BB): $280
 
@@ -170,14 +170,14 @@ BB checks, Hero bets $85, BB tank-calls
 BB shows A♠8♦ (two pair, worse)
 
 💰 Hero wins $271`,
-                        analysis: 'Don\'t be afraid to go for three streets of value with a strong hand. They\'ll call with worse.'
-},
-{
-    id: 'hand_fold_equity_1',
+        analysis: 'Don\'t be afraid to go for three streets of value with a strong hand. They\'ll call with worse.'
+    },
+    {
+        id: 'hand_fold_equity_1',
         category: 'fold_equity',
-            stakes: '$2/$5',
-                title: 'Semi-Bluff Shove',
-                    hand: `$2/$5 Live
+        stakes: '$2/$5',
+        title: 'Semi-Bluff Shove',
+        hand: `$2/$5 Live
 Hero (BTN): $600
 Villain (MP): $800
 
@@ -192,8 +192,8 @@ MP checks, Hero shoves $510
 MP tanks... folds J♠J♥ face up
 
 🎯 Fold equity realized`,
-                        analysis: '15 outs (flush + straight) plus fold equity = print money. Make them make tough decisions.'
-}
+        analysis: '15 outs (flush + straight) plus fold equity = print money. Make them make tough decisions.'
+    }
 ];
 
 // Get random hand

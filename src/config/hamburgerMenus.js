@@ -186,7 +186,7 @@ export const MENU_CONFIGS = {
             ]),
             createMenuItem.divider(),
             createMenuItem.section('Dealer Tools'),
-            createMenuItem.navigation('🎰 Toke Tracker', '/hub/toke-tracker'),
+            createMenuItem.navigation('♠️ Toke Tracker', '/hub/toke-tracker'),
             createMenuItem.navigation('📋 Work Schedule & Dealer Downs', '/hub/toke-tracker'),
             createMenuItem.navigation('🎯 Set Monthly Goal', '/hub/toke-tracker/shift'),
             createMenuItem.divider(),

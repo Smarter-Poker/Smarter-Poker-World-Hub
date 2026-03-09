@@ -59,7 +59,7 @@ const AVATAR_ICONS: Record<string, string> = {
     'king': '👑',
     'queen': '👸',
     'joker': '🃏',
-    'chip': '🎰',
+    'chip': '♠️',
     'diamond': '💎',
     'spade': '♠️',
     'heart': '♥️',

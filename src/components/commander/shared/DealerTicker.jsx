@@ -154,7 +154,7 @@ export default function DealerTicker({
             bad_beat_jackpot: '💥 BAD BEAT JACKPOT',
             splash_pot: '💦 SPLASH POT',
             bonus: '🎁 BONUS',
-            freeroll: '🎰 FREEROLL',
+            freeroll: '♠️ FREEROLL',
             progressive: '📈 PROGRESSIVE',
             mystery_bounty: '🎭 MYSTERY BOUNTY',
         };

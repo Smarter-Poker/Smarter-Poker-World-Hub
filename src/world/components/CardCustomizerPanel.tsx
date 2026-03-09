@@ -11,7 +11,7 @@ import { getAuthUser } from '../../lib/authUtils';
 
 // ── Card emoji map for display ───────────────────────────────────────────────
 const CARD_EMOJI: Record<string, string> = {
-    'toke-tracker': '🎰',
+    'toke-tracker': '♠️',
 
     'club-commander': '🏢',
     'social-media': '💬',

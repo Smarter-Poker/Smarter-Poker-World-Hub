@@ -124,7 +124,7 @@ export default function BBJTicker({ clubId, variant = 'table', bbjWonEvent = nul
           userSelect: 'none',
         }}
       >
-        <span style={{ fontSize: 14 }}>🎰</span>
+        <span style={{ fontSize: 14 }}>🏆</span>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <span style={{ fontSize: 9, fontWeight: 700, color: GOLD_DARK, letterSpacing: 1.5, textTransform: 'uppercase' }}>
             BBJ

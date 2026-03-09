@@ -396,7 +396,7 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
                             transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                             style={styles.spinner}
                         >
-                            🎰
+                            🃏
                         </motion.div>
                         <p>Loading Levels...</p>
                     </div>

@@ -53,7 +53,7 @@ async function postMeme(horse) {
             grind: '💪',
             fish: '🐟',
             gto: '🤖',
-            lifestyle: '🎰',
+            lifestyle: '🎲',
             bluff: '🎭',
             cooler: '🥶'
         };

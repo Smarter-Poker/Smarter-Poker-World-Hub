@@ -236,7 +236,7 @@ function BBJOverlay({ bbjData, onDismiss }) {
         textAlign: 'center',
         maxWidth: 500,
       }}>
-        <div style={{ fontSize: 48, marginBottom: 8 }}>🎰</div>
+        <div style={{ fontSize: 48, marginBottom: 8 }}>🏆</div>
         <h2 style={{ color: T.gold, fontSize: 28, margin: '0 0 8px', fontWeight: 800 }}>
           BAD BEAT JACKPOT!
         </h2>

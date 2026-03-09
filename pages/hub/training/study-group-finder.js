@@ -20,7 +20,7 @@ import { getAccessToken } from '../../../src/lib/authUtils';
 const MOCK_GROUPS = [
     { id: 1, name: '200NL Crushers', format: 'Cash', stakes: '200NL-500NL', tz: 'EST', members: 4, max: 6, tool: 'PioSolver', focus: 'Postflop spots review', schedule: 'Mon/Wed 7PM', level: 'Advanced', avatar: '🦈' },
     { id: 2, name: 'MTT Final Tablists', format: 'Tournament', stakes: 'Mid/High', tz: 'CET', members: 8, max: 10, tool: 'ICMIZER', focus: 'ICM deep dives', schedule: 'Tue/Thu 8PM', level: 'Advanced', avatar: '🏆' },
-    { id: 3, name: 'Live 2/5 Grinders', format: 'Live Cash', stakes: '$2/$5+', tz: 'PST', members: 3, max: 5, tool: 'Smarter.Poker', focus: 'Hand history review', schedule: 'Sat 2PM', level: 'Intermediate', avatar: '🎰' },
+    { id: 3, name: 'Live 2/5 Grinders', format: 'Live Cash', stakes: '$2/$5+', tz: 'PST', members: 3, max: 5, tool: 'Smarter.Poker', focus: 'Hand history review', schedule: 'Sat 2PM', level: 'Intermediate', avatar: '🃏' },
     { id: 4, name: 'PLO Degens Anonymous', format: 'PLO', stakes: 'Micro', tz: 'GMT', members: 5, max: 8, tool: 'Vision', focus: 'Equity realization', schedule: 'Daily 6PM', level: 'Any', avatar: '🃏' },
     { id: 5, name: 'Micro Grind Academy', format: 'Cash', stakes: '2NL-25NL', tz: 'EST', members: 6, max: 8, tool: 'Smarter.Poker', focus: 'Fundamentals & leaks', schedule: 'Mon/Fri 8PM', level: 'Beginner', avatar: '📚' },
     { id: 6, name: 'Spin & Go Warriors', format: 'Spins', stakes: '$5-$25', tz: 'CET', members: 3, max: 6, tool: 'ICMIZER', focus: '3-max push/fold charts', schedule: 'Wed/Sun 4PM', level: 'Intermediate', avatar: '⚡' },

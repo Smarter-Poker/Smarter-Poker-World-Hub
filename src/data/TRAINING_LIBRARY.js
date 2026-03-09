@@ -34,7 +34,7 @@ export const GAME_ICONS = {
     value: '💎',
     // Spins Icons
     hyper: '⚡',
-    jackpot: '🎰',
+    jackpot: '🏆',
     heads_up: '👤',
     // Psychology Icons
     tilt: '😤',
@@ -89,7 +89,7 @@ export const TRAINING_LIBRARY = [
     { id: 'mtt-021', name: 'Check-Shove Power', focus: 'Postflop aggression', category: 'MTT', difficulty: 4, icon: '💪', tags: ['gto'] },
     { id: 'mtt-022', name: 'Clock Management', focus: 'Time bank strategy', category: 'MTT', difficulty: 2, icon: '⏰', tags: ['exploitative'] },
     { id: 'mtt-023', name: 'Registration Edge', focus: 'Late reg advantages', category: 'MTT', difficulty: 2, icon: '📝', tags: ['math'] },
-    { id: 'mtt-024', name: 'Triple Barrel', focus: 'MTT bluff sequences', category: 'MTT', difficulty: 4, icon: '🎰', tags: ['exploitative'] },
+    { id: 'mtt-024', name: 'Triple Barrel', focus: 'MTT bluff sequences', category: 'MTT', difficulty: 4, icon: '🃏', tags: ['exploitative'] },
     { id: 'tournament-prep', name: 'Tournament Prep', focus: 'ICM Structure Planner', category: 'MTT', difficulty: 3, icon: '📋', tags: ['math', 'gto'] },
     { id: 'final-table-sim', name: 'Final Table Sim', focus: 'ICM $Equity Analysis', category: 'MTT', difficulty: 4, icon: '🏆', tags: ['math', 'gto'] },
     { id: 'mtt-025', name: 'Level 10: MTT Champion', focus: 'Full tourney simulation', category: 'MTT', difficulty: 5, icon: '🏅', tags: ['gto', 'math', 'exploitative'], vipOnly: true },
@@ -127,7 +127,7 @@ export const TRAINING_LIBRARY = [
     // SPINS (10)
     // ═══════════════════════════════════════════════════════════════════════
     { id: 'spins-001', name: 'Hyper Opener', focus: '3-Max early game', category: 'SPINS', difficulty: 2, icon: '⚡', tags: ['gto'] },
-    { id: 'spins-002', name: 'Jackpot Pressure', focus: 'High multiplier play', category: 'SPINS', difficulty: 4, icon: '🎰', tags: ['exploitative'] },
+    { id: 'spins-002', name: 'Jackpot Pressure', focus: 'High multiplier play', category: 'SPINS', difficulty: 4, icon: '🃏', tags: ['exploitative'] },
     { id: 'spins-003', name: 'Button Limp', focus: 'Trap strategies', category: 'SPINS', difficulty: 3, icon: '🪤', tags: ['exploitative'] },
     { id: 'spins-004', name: 'SNG Endgame', focus: 'Final 2 battles', category: 'SPINS', difficulty: 3, icon: '🏁', tags: ['gto'] },
     { id: 'spins-005', name: 'Phase Shifting', focus: 'Stack depth transitions', category: 'SPINS', difficulty: 3, icon: '🔄', tags: ['gto', 'math'] },

@@ -104,7 +104,7 @@ export const CAPTION_TEMPLATES = {
     [CLIP_CATEGORIES.CELEBRITY]: ["🐐 Legend stuff", "👑 Different breed", "🏆 The GOAT doing GOAT things"],
     [CLIP_CATEGORIES.FUNNY]: ["😂 LMAOOO poker is comedy", "🤣 I cant breathe", "Peak poker content"],
     [CLIP_CATEGORIES.EDUCATIONAL]: ["📚 Great spot to study", "🧠 Pay attention to sizing", "❓ What would you do?"],
-    [CLIP_CATEGORIES.VLOG]: ["Living the dream 🎰", "This is why I play poker", "Session goals"],
+    [CLIP_CATEGORIES.VLOG]: ["Living the dream 🎲", "This is why I play poker", "Session goals"],
     [CLIP_CATEGORIES.TOURNAMENT]: ["Tournament poker hits different", "ICM nightmares", "The grind pays off 🏆"]
 };
 

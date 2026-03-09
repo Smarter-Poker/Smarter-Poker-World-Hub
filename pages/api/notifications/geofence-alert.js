@@ -55,7 +55,7 @@ export default async function handler(req, res) {
     try {
         // Emoji based on venue type
         const venueEmoji = {
-            casino: '🎰',
+            casino: '🎲',
             card_room: '♠️',
             poker_club: '🃏',
             charity: '🎗️',

@@ -219,7 +219,7 @@ export default function TripCostCalculator({ venues = [], userLocation }) {
                         </div>
 
                         <div className="tc-break-item">
-                            <div className="tc-break-icon buyin">🎰</div>
+                            <div className="tc-break-icon buyin">🎲</div>
                             <div className="tc-break-info">
                                 <span className="tc-break-label">Buy-Ins</span>
                                 <span className="tc-break-detail">${costs.typicalBuyIn} × {sessionsPerDay}/day × {days} days</span>

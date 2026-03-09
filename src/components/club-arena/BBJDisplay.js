@@ -73,7 +73,7 @@ export function BBJBanner({ amount = 0, hourlyRate = 0, onClick }) {
         boxShadow: '0 2px 12px rgba(255,215,0,0.15), inset 0 1px 0 rgba(255,215,0,0.1)',
       }}
     >
-      <span style={{ fontSize: 20 }}>🎰</span>
+      <span style={{ fontSize: 20 }}>🏆</span>
       <div style={{ textAlign: 'center' }}>
         <div style={{ fontSize: 10, fontWeight: 600, color: FB.goldDark, letterSpacing: 2, textTransform: 'uppercase' }}>
           Bad Beat Jackpot
@@ -105,7 +105,7 @@ export function BBJTicker({ amount = 0, hourlyRate = 0, onClick }) {
         boxShadow: '0 0 12px rgba(255,215,0,0.2)',
       }}
     >
-      <span style={{ fontSize: 12 }}>🎰</span>
+      <span style={{ fontSize: 12 }}>🏆</span>
       <span style={{ fontSize: 9, color: FB.goldDark, fontWeight: 700, letterSpacing: 1 }}>BBJ</span>
       <span style={{
         fontSize: 15, fontWeight: 800, color: FB.gold,
@@ -261,7 +261,7 @@ function WinnersTab({ winners }) {
   if (!winners || winners.length === 0) {
     return (
       <div style={{ textAlign: 'center', padding: '30px 0', color: FB.textSec }}>
-        <div style={{ fontSize: 32, marginBottom: 8 }}>🎰</div>
+        <div style={{ fontSize: 32, marginBottom: 8 }}>🏆</div>
         <div style={{ fontSize: 14, fontWeight: 600 }}>No jackpot winners yet</div>
         <div style={{ fontSize: 12, marginTop: 4 }}>Be the first to hit the Bad Beat!</div>
       </div>
@@ -326,9 +326,9 @@ function QualifyingTab({ hands }) {
 
   // Card display helpers
   const CARD_IMAGES = {
-    'nlh': { label: 'NLH / FLH', display: 'AAAJJ+', cards: ['A♠','A♥','A♦','J♠','J♥'] },
-    'plo4': { label: 'PLO4 / FLO4', display: 'KKKK+', cards: ['K♠','K♥','K♦','K♣'] },
-    'plo5': { label: 'PLO5 / FLO5', display: '8-high SF', cards: ['8♠','7♠','6♠','5♠','4♠'] },
+    'nlh': { label: 'NLH / FLH', display: 'AAAJJ+', cards: ['A♠', 'A♥', 'A♦', 'J♠', 'J♥'] },
+    'plo4': { label: 'PLO4 / FLO4', display: 'KKKK+', cards: ['K♠', 'K♥', 'K♦', 'K♣'] },
+    'plo5': { label: 'PLO5 / FLO5', display: '8-high SF', cards: ['8♠', '7♠', '6♠', '5♠', '4♠'] },
   };
 
   const suitColor = (s) => (s === '♥' || s === '♦') ? '#ef4444' : '#1a1a2e';
