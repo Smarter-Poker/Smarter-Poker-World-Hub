@@ -185,26 +185,32 @@ export default function GTOReportsPage() {
     const [loading, setLoading] = useState(true);
 
     // Fetch user's training sessions from Supabase
-    useEffect(() => {
-        const fetchSessions = async () => {
-            try {
-                const user = getAuthUser();
-                if (!user?.session?.access_token) { setLoading(false); return; }
+    const fetchSessions = useCallback(async () => {
+        try {
+            const user = getAuthUser();
+            if (!user?.session?.access_token) { setLoading(false); return; }
 
-                const res = await fetch('/api/training/get-sessions?limit=500', {
-                    headers: { 'Authorization': `Bearer ${getAccessToken()}` },
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    setSessions(data.sessions || []);
-                }
-            } catch (err) {
-                console.error('[GTOReports] Fetch error:', err);
+            const res = await fetch('/api/training/get-sessions?limit=500', {
+                headers: { 'Authorization': `Bearer ${getAccessToken()}` },
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setSessions(data.sessions || []);
             }
-            setLoading(false);
-        };
-        fetchSessions();
+        } catch (err) {
+            console.error('[GTOReports] Fetch error:', err);
+        }
+        setLoading(false);
     }, []);
+
+    useEffect(() => { fetchSessions(); }, [fetchSessions]);
+
+    // Bus listener — auto-refresh when a training session completes
+    useEffect(() => {
+        const onSessionComplete = () => fetchSessions();
+        window.addEventListener('training:session-complete', onSessionComplete);
+        return () => window.removeEventListener('training:session-complete', onSessionComplete);
+    }, [fetchSessions]);
 
     // Compute aggregate user stats from sessions
     const userStats = useMemo(() => {

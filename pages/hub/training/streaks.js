@@ -30,8 +30,8 @@ function busEmitSession(gameId, stats = {}) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
             body: JSON.stringify({ game_id: gameId, hands_played: 1, accuracy: 100, correct_answers: 1, total_questions: 1, ...stats }),
-        }).catch(() => {});
-    } catch {}
+        }).catch(() => { });
+    } catch { }
 }
 
 
@@ -87,6 +87,13 @@ export default function StreaksPage() {
 
     const loadStreakData = () => refreshStreak();
 
+    // Bus listener — auto-refresh streaks when a training session completes
+    useEffect(() => {
+        const onSessionComplete = () => refreshStreak();
+        window.addEventListener('training:session-complete', onSessionComplete);
+        return () => window.removeEventListener('training:session-complete', onSessionComplete);
+    }, [refreshStreak]);
+
     const claimMilestone = async (milestoneDays) => {
         if (!user) return;
         setClaiming(milestoneDays);
@@ -110,7 +117,7 @@ export default function StreaksPage() {
                 if (milestone) {
                     busEmit.diamondsEarned(milestone.diamonds, `Streak Milestone: ${milestone.name}`);
 
-        busEmitSession('streaks', {});
+                    busEmitSession('streaks', {});
                     busEmit.celebration('confetti');
                 }
             }

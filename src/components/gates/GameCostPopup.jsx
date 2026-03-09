@@ -36,6 +36,7 @@ export default function GameCostPopup({ userId, pageKey, featureKey, isVip, cost
     }, [userId, key, isVip]);
 
     const handleDismiss = async () => {
+        try { navigator.vibrate?.(10); } catch (e) { }
         setShow(false);
         setDismissed(true);
         await dismissPopup(userId, key);
@@ -43,6 +44,7 @@ export default function GameCostPopup({ userId, pageKey, featureKey, isVip, cost
     };
 
     const handleUpgrade = () => {
+        try { navigator.vibrate?.(15); } catch (e) { }
         handleDismiss();
         window.location.href = '/hub/diamond-store#vip';
     };
@@ -123,38 +125,50 @@ const s = {
         filter: 'drop-shadow(0 8px 40px rgba(35,116,225,0.25)) drop-shadow(0 2px 10px rgba(0,0,0,0.5))',
     },
 
+    // Shared: kill all hover/focus outlines on invisible hit targets
+    _hitBase: {
+        background: 'transparent',
+        border: 'none', cursor: 'pointer',
+        outline: 'none', WebkitTapHighlightColor: 'transparent',
+        touchAction: 'manipulation',
+        zIndex: 2,
+    },
+
     // ── Close "X" button hit target ────────────────────────────────
-    // Original image: X button is at roughly (730, 50) in 803×888 space
     closeHit: {
         position: 'absolute',
         top: '2.5%', right: '2%',
         width: '12%', height: '8%',
         background: 'transparent',
         border: 'none', cursor: 'pointer',
+        outline: 'none', WebkitTapHighlightColor: 'transparent',
+        touchAction: 'manipulation',
         zIndex: 2,
         borderRadius: '50%',
     },
 
     // ── "Got It!" button hit target ────────────────────────────────
-    // Original image: Got It button spans roughly x: 7%–47%, y: 87%–96%
     gotItHit: {
         position: 'absolute',
         bottom: '2.5%', left: '7%',
         width: '40%', height: '9.5%',
         background: 'transparent',
         border: 'none', cursor: 'pointer',
+        outline: 'none', WebkitTapHighlightColor: 'transparent',
+        touchAction: 'manipulation',
         zIndex: 2,
         borderRadius: 8,
     },
 
     // ── "Upgrade To VIP" button hit target ─────────────────────────
-    // Original image: Upgrade button spans roughly x: 53%–93%, y: 87%–96%
     upgradeHit: {
         position: 'absolute',
         bottom: '2.5%', right: '7%',
         width: '40%', height: '9.5%',
         background: 'transparent',
         border: 'none', cursor: 'pointer',
+        outline: 'none', WebkitTapHighlightColor: 'transparent',
+        touchAction: 'manipulation',
         zIndex: 2,
         borderRadius: 8,
     },
