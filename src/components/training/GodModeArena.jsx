@@ -1063,8 +1063,12 @@ function GodModeArenaInner({
         const isAuthError = error.toLowerCase().includes('auth') || error.toLowerCase().includes('401');
         return (
             <div style={{
-                minHeight: '100vh', background: '#121212',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+                minHeight: '100vh',
+                background: '#121212',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 20,
             }}>
                 <div style={{
                     background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',

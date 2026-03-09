@@ -1065,13 +1065,13 @@ function UniversalDynamicTable({
 
     // Core question data
     const questionText = question?.question || question?.text || 'Loading question...';
-    const rawOptions = question?.options || [];
     const correctAnswer = question?.correctAnswer || question?.correct || 'a';
 
     // BUG-A FIX: Fisher-Yates shuffle options per question to eliminate position bias
     // Uses seeded RNG so same question always shows same order (stable across re-renders)
     const options = useMemo(() => {
-        const opts = [...rawOptions];
+        const rawOpts = question?.options || [];
+        const opts = [...rawOpts];
         if (opts.length <= 1) return opts;
         // Seeded LCG RNG using questionNumber for deterministic per-question shuffle
         let seed = ((questionNumber || 1) * 2654435761) >>> 0;
@@ -1081,7 +1081,7 @@ function UniversalDynamicTable({
             [opts[i], opts[j]] = [opts[j], opts[i]];
         }
         return opts;
-    }, [rawOptions, questionNumber]);
+    }, [question?.options, questionNumber]);
 
     // Dynamic table state from question scenario
     const heroPosition = scenario.heroPosition || scenario.position || 'BTN';
@@ -1204,7 +1204,8 @@ function UniversalDynamicTable({
 
     // GAP-1: Parse action history from scenario
     const actionHistory = useMemo(() => {
-        const actions = scenario.actionHistory || scenario.actions || scenario.preflop_actions || [];
+        const scen = question?.scenario || {};
+        const actions = scen.actionHistory || scen.actions || scen.preflop_actions || [];
         if (Array.isArray(actions) && actions.length > 0) return actions;
         // Build from available data
         const built = [];
@@ -1212,7 +1213,7 @@ function UniversalDynamicTable({
             built.push({ position: villainPosition, action: villainAction });
         }
         return built;
-    }, [scenario, villainAction, villainPosition]);
+    }, [question?.scenario, villainAction, villainPosition]);
 
     // Compute simulated GTO frequencies for this question (if not passed down)
     const computedFrequencies = useMemo(() => {

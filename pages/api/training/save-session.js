@@ -29,19 +29,20 @@ export default async function handler(req, res) {
     }
 
     try {
+        // Accept both camelCase (new standard) and snake_case (legacy/existing pages)
+        const parsedGameId = req.body.gameId || req.body.game_id;
+        const parsedHandsPlayed = req.body.handsPlayed ?? req.body.hands_played ?? 0;
+        const parsedCorrectCount = req.body.correctCount ?? req.body.correct_answers ?? 0;
+        const parsedTotalEVLoss = req.body.totalEVLoss ?? req.body.ev_loss ?? 0;
+        const parsedAccuracy = req.body.accuracy ?? req.body.score ?? 0;
+        const parsedMistakeCount = req.body.mistakeCount ?? (parsedHandsPlayed - parsedCorrectCount) ?? 0;
+        const parsedGtowScore = req.body.gtowScore ?? req.body.accuracy ?? 100;
+
         const {
-            gameId,
             gameName,
-            // Core metrics
-            gtowScore,
-            totalEVLoss,
-            handsPlayed,
-            mistakeCount,
             avgEVLossPerHand,
             avgEVLossPerMistake,
             avgFrequencyDiff,
-            accuracy,
-            correctCount,
             bestStreak,
             levelPassed,
             level,
@@ -55,8 +56,8 @@ export default async function handler(req, res) {
             speedBonusDiamonds,
         } = req.body;
 
-        if (!gameId) {
-            return res.status(400).json({ success: false, error: 'gameId required' });
+        if (!parsedGameId) {
+            return res.status(400).json({ success: false, error: 'gameId or game_id required' });
         }
 
         const userId = user.id;
@@ -70,14 +71,14 @@ export default async function handler(req, res) {
         // Try to save to training_sessions if the table exists
         const detailedSession = {
             user_id: userId,
-            game_id: gameId,
-            game_name: gameName || gameId,
-            gtow_score: gtowScore || 100,
-            total_ev_loss: totalEVLoss || 0,
-            hands_played: handsPlayed || 0,
-            mistake_count: mistakeCount || 0,
-            accuracy: accuracy || 0,
-            correct_count: correctCount || 0,
+            game_id: parsedGameId,
+            game_name: gameName || parsedGameId,
+            gtow_score: parsedGtowScore,
+            total_ev_loss: parsedTotalEVLoss,
+            hands_played: parsedHandsPlayed,
+            mistake_count: parsedMistakeCount,
+            accuracy: parsedAccuracy,
+            correct_count: parsedCorrectCount,
             best_streak: bestStreak || 0,
             level_passed: levelPassed || false,
             level: level || 1,
