@@ -1282,7 +1282,7 @@ function ObserverBar({ tableState, userId, send, onClickSeat, seatOffer }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// REBUY MODAL — Cash game "Add Chips" with balance check + table-chips API
+// REBUY MODAL — Cash game "Add Chips" with balance check (chip locking handled by seat.js)
 // ═══════════════════════════════════════════════════════════════════════════
 
 function RebuyModal({ currentStack, maxBuyIn, chipBalance, loading, error, onConfirm, onCancel }) {
