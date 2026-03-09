@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ═══════════════════════════════════════════════════════════════════════════════
-# git-safe-push.sh v4.0 — Fully Autonomous Git Push for AI Agents
+# git-safe-push.sh v4.1 — Fully Autonomous Git Push for AI Agents
 # ═══════════════════════════════════════════════════════════════════════════════
 #
 # USAGE:
@@ -8,9 +8,11 @@
 #   bash scripts/git-safe-push.sh "feat: new feature"   # custom message
 #   bash scripts/git-safe-push.sh "fix: bug" develop    # custom branch
 #   bash scripts/git-safe-push.sh --dry-run "msg"       # show what would happen
+#   bash scripts/git-safe-push.sh --build-check "msg"   # build check before push
 #
 # FLAGS:
-#   --dry-run     Show what would be committed/pushed without doing it
+#   --dry-run       Show what would be committed/pushed without doing it
+#   --build-check   Run `next build` before pushing (aborts on failure)
 #
 # This script is designed to NEVER require human intervention.
 # It handles: stale locks, ghost files, dirty trees, rebase conflicts,
@@ -32,10 +34,12 @@ set -u  # Only catch unset variables
 
 # ── Parse flags ──
 DRY_RUN=false
+BUILD_CHECK=false
 POSITIONAL=()
 for arg in "$@"; do
     case "$arg" in
         --dry-run) DRY_RUN=true ;;
+        --build-check) BUILD_CHECK=true ;;
         *) POSITIONAL+=("$arg") ;;
     esac
 done
@@ -81,10 +85,13 @@ echo $$ > "$LOCK_FILE"
 trap 'rm -f "$LOCK_FILE" 2>/dev/null' EXIT INT TERM HUP
 
 echo "═══════════════════════════════════════════════════"
-echo "🤖 git-safe-push v4.0 — Autonomous Agent Push"
+echo "🤖 git-safe-push v4.1 — Autonomous Agent Push"
 echo "   Repo:    ${REPO_ROOT}"
 echo "   Message: ${MSG}"
 echo "   Target:  ${REMOTE}/${BRANCH}"
+if [ "$BUILD_CHECK" = true ]; then
+  echo "   Build:   🔨 Build gate ENABLED"
+fi
 if [ "$DRY_RUN" = true ]; then
   echo "   Mode:    🔍 DRY RUN"
 fi
@@ -224,6 +231,26 @@ if [ "$DRY_RUN" = true ]; then
 fi
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# PHASE 2.5: BUILD GATE (optional)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+if [ "$BUILD_CHECK" = true ]; then
+  echo ""
+  echo "🔨 Phase 2.5: Build gate check..."
+  BUILD_START=$(date +%s)
+  if NODE_OPTIONS='--max-old-space-size=4096' npx next build 2>&1 | tail -20; then
+    BUILD_END=$(date +%s)
+    echo "✅ Build passed ($(( BUILD_END - BUILD_START ))s)"
+  else
+    BUILD_END=$(date +%s)
+    echo "❌ BUILD FAILED ($(( BUILD_END - BUILD_START ))s) — Aborting push."
+    echo "PUSH_OK:false"
+    echo "REASON:build_failed"
+    exit 2
+  fi
+fi
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # PHASE 3: PULL-REBASE AND PUSH (with retries)
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -329,6 +356,13 @@ while [ $attempt -lt $MAX_RETRIES ]; do
     echo "PHASE3_DURATION:$(( PHASE3_END - PHASE3_START ))s"
     echo "TOTAL_DURATION:$(( TOTAL_END - TOTAL_START ))s"
     echo "═══════════════════════════════════════════════════"
+    # ── Deploy log ──
+    node "${SCRIPT_DIR}/deploy-log.js" \
+      --action push \
+      --sha "${COMMIT_SHA}" \
+      --branch "${BRANCH}" \
+      --duration "$(( TOTAL_END - TOTAL_START ))" \
+      --msg "${MSG}" 2>/dev/null || true
     exit 0
   else
     if [ $attempt -lt $MAX_RETRIES ]; then

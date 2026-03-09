@@ -1,20 +1,23 @@
 #!/usr/bin/env node
 // ═══════════════════════════════════════════════════════════════════════════════
-// antigravity_sql_push.js — Hardened Supabase SQL Migration Runner v2.0
+// antigravity_sql_push.js — Hardened Supabase SQL Migration Runner v3.0
 // ═══════════════════════════════════════════════════════════════════════════════
 //
 // USAGE:
-//   npm run db:push <path_to_sql_file_or_directory>
+//   npm run db:push -- <path_to_sql_file_or_directory>
 //   npm run db:push -- --dry-run supabase/migrations/
-//   npm run db:push -- --verbose supabase/migrations/20260309_hotfix.sql
+//   npm run db:push -- --status supabase/migrations/
+//   npm run db:push -- --verbose --force supabase/migrations/
 //
 // FLAGS:
 //   --dry-run     List files that would execute without connecting to DB
+//   --status      Show applied vs pending migrations (requires DB connection)
 //   --verbose     Print full SQL content before executing each file
 //   --no-tx       Skip transaction wrapping (run each file independently)
+//   --force       Re-run already-applied migrations (skip ledger check)
 //
 // EXIT CODES:
-//   0 = all migrations applied successfully
+//   0 = all migrations applied (or nothing to do)
 //   1 = fatal error (no files, connection failure, SQL error)
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -23,14 +26,12 @@ const path = require('path');
 const { Pool } = require('pg');
 
 // ── Load environment variables ──────────────────────────────────────────────
-// Try multiple .env files in priority order
 const dotenvPaths = [
     path.resolve(__dirname, '..', '.env.local'),
     path.resolve(__dirname, '..', '.env.prod'),
     path.resolve(__dirname, '..', '.env.production.local'),
     path.resolve(__dirname, '..', '.env.production'),
 ];
-
 try {
     const dotenv = require('dotenv');
     for (const envPath of dotenvPaths) {
@@ -39,9 +40,7 @@ try {
             break;
         }
     }
-} catch (_) {
-    // dotenv not installed — rely on process.env
-}
+} catch (_) { }
 
 // ── Parse CLI arguments ─────────────────────────────────────────────────────
 const rawArgs = process.argv.slice(2);
@@ -49,25 +48,26 @@ const flags = {
     dryRun: rawArgs.includes('--dry-run'),
     verbose: rawArgs.includes('--verbose'),
     noTx: rawArgs.includes('--no-tx'),
+    force: rawArgs.includes('--force'),
+    status: rawArgs.includes('--status'),
 };
 const positionalArgs = rawArgs.filter(a => !a.startsWith('--'));
 
 if (positionalArgs.length === 0) {
-    console.error('Usage: npm run db:push [--dry-run] [--verbose] [--no-tx] <path_to_sql_file_or_directory>');
+    console.error('Usage: npm run db:push -- [--dry-run|--status|--verbose|--no-tx|--force] <path>');
     process.exit(1);
 }
 
 // ── Resolve SQL files ───────────────────────────────────────────────────────
 const targetPath = path.resolve(positionalArgs[0]);
 let sqlFiles = [];
-
 try {
     const stat = fs.statSync(targetPath);
     if (stat.isDirectory()) {
         sqlFiles = fs.readdirSync(targetPath)
             .filter(f => f.endsWith('.sql'))
             .map(f => path.join(targetPath, f))
-            .sort(); // Alphabetical order = timestamp order
+            .sort();
     } else {
         sqlFiles = [targetPath];
     }
@@ -75,16 +75,14 @@ try {
     console.error(`❌ Path not found: ${targetPath}`);
     process.exit(1);
 }
-
 if (sqlFiles.length === 0) {
     console.error(`❌ No .sql files found at ${targetPath}`);
     process.exit(1);
 }
 
-// ── Dry-run mode ────────────────────────────────────────────────────────────
+// ── Dry-run mode (no DB connection) ─────────────────────────────────────────
 if (flags.dryRun) {
-    console.log('');
-    console.log('═══════════════════════════════════════════════════');
+    console.log('\n═══════════════════════════════════════════════════');
     console.log('🔍 DRY RUN — No database connection will be made');
     console.log('═══════════════════════════════════════════════════');
     console.log(`   Found ${sqlFiles.length} SQL file(s):\n`);
@@ -98,17 +96,13 @@ if (flags.dryRun) {
 }
 
 // ── Build connection strings ────────────────────────────────────────────────
-// Priority: env vars → hardcoded fallbacks (for backward compat)
 const projectRef = process.env.SUPABASE_PROJECT_REF || 'kuklfnapbkmacvwxktbh';
 
 function getPasswordCandidates() {
     const candidates = [];
-    // 1. Env vars (highest priority)
     if (process.env.SUPABASE_DB_PASSWORD) candidates.push(process.env.SUPABASE_DB_PASSWORD);
     if (process.env.POSTGRES_PASSWORD) candidates.push(process.env.POSTGRES_PASSWORD);
-    // 2. Hardcoded fallbacks (legacy compat, to be removed once env is standard)
     candidates.push('215SlalomCt!', 'Bek454545!!', 'gbpAM0n7jNBzY4Co');
-    // Deduplicate
     return [...new Set(candidates)];
 }
 
@@ -130,16 +124,13 @@ async function connectWithRetry() {
                     ssl: { rejectUnauthorized: false },
                     connectionTimeoutMillis: 10000,
                     idleTimeoutMillis: 30000,
-                    statement_timeout: 120000, // 2 min per statement
-                    max: 1,                    // Single connection — we don't need more
+                    statement_timeout: 120000,
+                    max: 1,
                 });
                 const client = await pool.connect();
-                // Verify the connection is alive
                 await client.query('SELECT 1');
                 return { client, pool };
-            } catch (e) {
-                // Silently try next password
-            }
+            } catch (e) { /* try next */ }
         }
         if (attempt < MAX_CONNECT_RETRIES) {
             const delay = CONNECT_RETRY_DELAY_MS * attempt;
@@ -150,16 +141,55 @@ async function connectWithRetry() {
     return null;
 }
 
-// ── Execute a single SQL file with retry ────────────────────────────────────
+// ── Migration ledger ────────────────────────────────────────────────────────
+async function ensureMigrationTable(client) {
+    try {
+        await client.query(`
+            CREATE SCHEMA IF NOT EXISTS supabase_migrations;
+            CREATE TABLE IF NOT EXISTS supabase_migrations.schema_migrations (
+                version text PRIMARY KEY,
+                name text,
+                inserted_at timestamptz DEFAULT now()
+            );
+        `);
+    } catch (e) {
+        if (flags.verbose) console.log(`   ⚠️  Could not ensure migration table: ${e.message}`);
+    }
+}
+
+async function getAppliedVersions(client) {
+    try {
+        const { rows } = await client.query(
+            'SELECT version FROM supabase_migrations.schema_migrations ORDER BY version'
+        );
+        return new Set(rows.map(r => r.version));
+    } catch (e) {
+        return new Set();
+    }
+}
+
+function extractVersion(filename) {
+    const match = path.basename(filename).match(/^(\d{8,14})/);
+    return match ? match[1] : null;
+}
+
+async function recordMigration(client, sqlFile) {
+    const version = extractVersion(sqlFile);
+    if (!version) return;
+    try {
+        await client.query(
+            `INSERT INTO supabase_migrations.schema_migrations (version, name) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+            [version, path.basename(sqlFile)]
+        );
+        console.log(`   📝 Recorded: ${version}`);
+    } catch (e) {
+        if (flags.verbose) console.log(`   ⚠️  Could not record migration: ${e.message}`);
+    }
+}
+
+// ── Execute SQL with retry ──────────────────────────────────────────────────
 const MAX_SQL_RETRIES = 3;
-const TRANSIENT_CODES = new Set([
-    '08000', // connection_exception
-    '08003', // connection_does_not_exist
-    '08006', // connection_failure
-    '57014', // query_canceled (timeout)
-    '40001', // serialization_failure
-    '40P01', // deadlock_detected
-]);
+const TRANSIENT_CODES = new Set(['08000', '08003', '08006', '57014', '40001', '40P01']);
 
 async function executeSqlFile(client, sqlFile) {
     const sql = fs.readFileSync(sqlFile, 'utf-8');
@@ -167,7 +197,8 @@ async function executeSqlFile(client, sqlFile) {
 
     if (flags.verbose) {
         console.log(`\n   ┌── SQL Content: ${basename} ──`);
-        console.log(`   │ ${sql.substring(0, 2000).split('\n').join('\n   │ ')}`);
+        const preview = sql.substring(0, 2000).split('\n').join('\n   │ ');
+        console.log(`   │ ${preview}`);
         if (sql.length > 2000) console.log(`   │ ... (${sql.length} chars total)`);
         console.log(`   └──────────────────────────────`);
     }
@@ -180,14 +211,12 @@ async function executeSqlFile(client, sqlFile) {
             console.log(`   ✅ ${basename} deployed (${elapsed}s)`);
             return true;
         } catch (e) {
-            const isTransient = TRANSIENT_CODES.has(e.code);
-            if (isTransient && attempt < MAX_SQL_RETRIES) {
+            if (TRANSIENT_CODES.has(e.code) && attempt < MAX_SQL_RETRIES) {
                 const delay = 1000 * attempt;
-                console.log(`   ⚠️  Transient error (${e.code}) on ${basename}. Retry ${attempt}/${MAX_SQL_RETRIES} in ${delay / 1000}s...`);
+                console.log(`   ⚠️  Transient error (${e.code}). Retry ${attempt}/${MAX_SQL_RETRIES} in ${delay / 1000}s...`);
                 await new Promise(r => setTimeout(r, delay));
                 continue;
             }
-            // Fatal or out of retries
             console.error(`   ❌ SQL Error in ${basename}:`);
             console.error(`      Code:     ${e.code || 'N/A'}`);
             console.error(`      Message:  ${e.message}`);
@@ -200,29 +229,23 @@ async function executeSqlFile(client, sqlFile) {
     return false;
 }
 
-// ── Record migration version ────────────────────────────────────────────────
-async function recordMigration(client, sqlFile) {
-    const versionMatch = path.basename(sqlFile).match(/^(\d{8,14})/);
-    if (!versionMatch) return;
-    const version = versionMatch[1];
+// ── Deploy log ──────────────────────────────────────────────────────────────
+function writeDeployLog(entry) {
     try {
-        // Ensure the schema_migrations table exists (safe no-op if it does)
-        await client.query(`
-            CREATE TABLE IF NOT EXISTS supabase_migrations.schema_migrations (
-                version text PRIMARY KEY,
-                inserted_at timestamptz DEFAULT now()
-            );
-        `);
-        await client.query(
-            `INSERT INTO supabase_migrations.schema_migrations (version) VALUES ($1) ON CONFLICT DO NOTHING`,
-            [version]
-        );
-        console.log(`   📝 Migration history synced: ${version}`);
-    } catch (e) {
-        // Non-fatal — schema may not have the supabase_migrations schema
-        if (flags.verbose) {
-            console.log(`   ⚠️  Could not record migration version: ${e.message}`);
+        const logDir = path.resolve(__dirname, '..', 'logs');
+        if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
+        const logFile = path.join(logDir, 'deploy-history.json');
+        let history = [];
+        if (fs.existsSync(logFile)) {
+            try { history = JSON.parse(fs.readFileSync(logFile, 'utf-8')); } catch (_) { history = []; }
         }
+        history.push(entry);
+        // Keep last 100 entries
+        if (history.length > 100) history = history.slice(-100);
+        fs.writeFileSync(logFile, JSON.stringify(history, null, 2));
+        console.log(`   📋 Deploy log updated (${history.length} entries)`);
+    } catch (e) {
+        if (flags.verbose) console.log(`   ⚠️  Could not write deploy log: ${e.message}`);
     }
 }
 
@@ -232,13 +255,13 @@ async function recordMigration(client, sqlFile) {
 async function run() {
     const totalStart = Date.now();
 
-    console.log('');
-    console.log('═══════════════════════════════════════════════════');
-    console.log('🤖 Anti-Gravity DB Push v2.0 — Hardened SQL Runner');
+    console.log('\n═══════════════════════════════════════════════════');
+    console.log('🤖 Anti-Gravity DB Push v3.0 — Hardened SQL Runner');
     console.log('═══════════════════════════════════════════════════');
     console.log(`   Files:   ${sqlFiles.length}`);
     console.log(`   Target:  db.${projectRef}.supabase.co:5432`);
     console.log(`   TX Mode: ${flags.noTx ? 'disabled' : 'enabled (multi-file)'}`);
+    console.log(`   Ledger:  ${flags.force ? 'FORCE (skip check)' : 'enabled'}`);
     console.log('═══════════════════════════════════════════════════');
 
     // ── Connect ──
@@ -253,52 +276,121 @@ async function run() {
     console.log('   ✅ Connected to production database.\n');
 
     let successCount = 0;
-    const useTransaction = sqlFiles.length > 1 && !flags.noTx;
+    let skippedCount = 0;
+    const appliedFiles = [];
 
     try {
-        // ── Begin transaction for multi-file runs ──
+        await ensureMigrationTable(client);
+        const appliedVersions = await getAppliedVersions(client);
+
+        // ── Status mode ──
+        if (flags.status) {
+            console.log('📊 MIGRATION STATUS\n');
+            console.log(`   ${'File'.padEnd(55)} ${'Version'.padEnd(16)} Status`);
+            console.log(`   ${'─'.repeat(55)} ${'─'.repeat(16)} ${'─'.repeat(10)}`);
+            for (const f of sqlFiles) {
+                const bn = path.basename(f);
+                const ver = extractVersion(f);
+                const applied = ver && appliedVersions.has(ver);
+                const status = applied ? '✅ Applied' : '⏳ Pending';
+                console.log(`   ${bn.padEnd(55)} ${(ver || 'N/A').padEnd(16)} ${status}`);
+            }
+            const pendingCount = sqlFiles.filter(f => {
+                const v = extractVersion(f);
+                return !v || !appliedVersions.has(v);
+            }).length;
+            console.log(`\n   Total: ${sqlFiles.length} | Applied: ${appliedVersions.size} | Pending: ${pendingCount}`);
+            client.release();
+            await pool.end();
+            process.exit(0);
+        }
+
+        // ── Filter out already-applied migrations ──
+        let filesToRun = sqlFiles;
+        if (!flags.force) {
+            filesToRun = sqlFiles.filter(f => {
+                const ver = extractVersion(f);
+                if (ver && appliedVersions.has(ver)) {
+                    skippedCount++;
+                    return false;
+                }
+                return true;
+            });
+            if (skippedCount > 0) {
+                console.log(`   ⏭️  Skipping ${skippedCount} already-applied migration(s)`);
+            }
+        }
+
+        if (filesToRun.length === 0) {
+            console.log('\n   ℹ️  No pending migrations to apply.');
+            client.release();
+            await pool.end();
+            writeDeployLog({
+                timestamp: new Date().toISOString(),
+                action: 'db:push',
+                result: 'no-op',
+                skipped: skippedCount,
+                total: sqlFiles.length,
+            });
+            process.exit(0);
+        }
+
+        const useTransaction = filesToRun.length > 1 && !flags.noTx;
+
+        // ── Begin transaction ──
         if (useTransaction) {
-            console.log('🔒 BEGIN TRANSACTION (multi-file atomic deploy)\n');
+            console.log('\n🔒 BEGIN TRANSACTION\n');
             await client.query('BEGIN');
         }
 
         // ── Execute each file ──
-        for (const sqlFile of sqlFiles) {
+        for (const sqlFile of filesToRun) {
             console.log(`\n▶️  Executing: ${path.basename(sqlFile)}`);
             const ok = await executeSqlFile(client, sqlFile);
             if (ok) {
                 await recordMigration(client, sqlFile);
+                appliedFiles.push(path.basename(sqlFile));
                 successCount++;
             } else if (useTransaction) {
-                // In transaction mode, one failure rolls back everything
                 console.error('\n🔙 ROLLBACK — failure in transactional batch.');
                 await client.query('ROLLBACK').catch(() => { });
                 break;
             }
         }
 
-        // ── Commit if all passed ──
-        if (useTransaction && successCount === sqlFiles.length) {
+        // ── Commit ──
+        if (useTransaction && successCount === filesToRun.length) {
             await client.query('COMMIT');
             console.log('\n🔓 COMMIT — all migrations applied atomically.');
         }
     } finally {
-        // ── Always clean up ──
         try { client.release(); } catch (_) { }
         try { await pool.end(); } catch (_) { }
     }
 
     // ── Summary ──
     const totalElapsed = ((Date.now() - totalStart) / 1000).toFixed(2);
-    console.log('');
-    console.log('═══════════════════════════════════════════════════');
-    if (successCount === sqlFiles.length) {
-        console.log(`🎉 All ${successCount} SQL migration(s) applied successfully.`);
+    const allPassed = successCount === (sqlFiles.length - skippedCount);
+
+    writeDeployLog({
+        timestamp: new Date().toISOString(),
+        action: 'db:push',
+        result: allPassed ? 'success' : 'partial',
+        applied: appliedFiles,
+        skipped: skippedCount,
+        successCount,
+        total: sqlFiles.length,
+        duration: `${totalElapsed}s`,
+    });
+
+    console.log('\n═══════════════════════════════════════════════════');
+    if (allPassed) {
+        console.log(`🎉 ${successCount} migration(s) applied. ${skippedCount} skipped (already applied).`);
         console.log(`   Duration: ${totalElapsed}s`);
         console.log('═══════════════════════════════════════════════════');
         process.exit(0);
     } else {
-        console.error(`⚠️  Finished with errors: ${successCount}/${sqlFiles.length} applied.`);
+        console.error(`⚠️  ${successCount}/${sqlFiles.length - skippedCount} applied. ${skippedCount} skipped.`);
         console.error(`   Duration: ${totalElapsed}s`);
         console.log('═══════════════════════════════════════════════════');
         process.exit(1);

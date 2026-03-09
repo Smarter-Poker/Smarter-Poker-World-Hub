@@ -269,9 +269,10 @@ export default async function handler(req, res) {
                     : qData.boardCards?.length === 4 ? 'turn' : 'river';
             }
             // ═══ SANITIZE: Clamp pot/stacks to prevent absurd values ═══
-            scenario.pot = Math.min(Math.max(scenario.pot || 0, 0), 50);
-            scenario.heroStack = Math.min(Math.max(scenario.heroStack || 1, 1), 300);
-            scenario.villainStack = Math.min(Math.max(scenario.villainStack || 1, 1), 300);
+            // IMP-4 FIX: Raised from 50/300 to 500/500 — solver 3bet/4bet pots easily exceed 50BB
+            scenario.pot = Math.min(Math.max(scenario.pot || 0, 0), 500);
+            scenario.heroStack = Math.min(Math.max(scenario.heroStack || 1, 1), 500);
+            scenario.villainStack = Math.min(Math.max(scenario.villainStack || 1, 1), 500);
             qData.scenario = scenario;
             if (!qData.source) qData.source = 'CACHED_SCENARIO';
             // IMP-5: Tag data quality for frontend confidence indicators

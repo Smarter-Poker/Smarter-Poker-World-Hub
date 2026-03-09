@@ -58,25 +58,41 @@ const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
 const SUITS = ['s', 'h', 'd', 'c'];
 
 /**
- * Parse a hand notation like "AKs" or "AA" into two card strings for display
+ * Parse a hand notation like "AKs" or "AA" into two card strings for display.
  * e.g., "AKs" → ["As", "Ks"], "AA" → ["Ah", "As"], "T9o" → ["Ts", "9h"]
+ * IMP-2 FIX: Avoids card collisions with the board.
  */
-function parseHandToCards(hand) {
+function parseHandToCards(hand, boardCards = []) {
     if (!hand || hand.length < 2) return ['As', 'Ks'];
 
     const r1 = hand[0];
     const r2 = hand[1];
     const suffix = hand.length >= 3 ? hand[2] : '';
+    const usedSuits = new Set(boardCards.map(c => (c && c.length >= 2) ? c[1].toLowerCase() : ''));
+
+    // Find an available suit that doesn't collide with board cards of the same rank
+    const findSafeSuit = (rank, preferredSuits) => {
+        for (const s of preferredSuits) {
+            const card = `${rank}${s}`.toLowerCase();
+            if (!boardCards.some(bc => bc && bc.toLowerCase() === card)) return s;
+        }
+        return preferredSuits[0]; // fallback
+    };
 
     if (r1 === r2) {
-        // Pair: use two different suits
-        return [`${r1}h`, `${r2}s`];
+        // Pair: use two different suits, avoiding board collisions
+        const s1 = findSafeSuit(r1, ['h', 's', 'd', 'c']);
+        const s2 = findSafeSuit(r2, ['s', 'h', 'd', 'c'].filter(s => s !== s1));
+        return [`${r1}${s1}`, `${r2}${s2}`];
     } else if (suffix === 's') {
-        // Suited: same suit
-        return [`${r1}s`, `${r2}s`];
+        // Suited: same suit, pick one that doesn't collide
+        const safeSuit = findSafeSuit(r1, ['s', 'h', 'd', 'c']);
+        return [`${r1}${safeSuit}`, `${r2}${safeSuit}`];
     } else {
         // Offsuit: different suits
-        return [`${r1}s`, `${r2}h`];
+        const s1 = findSafeSuit(r1, ['s', 'd', 'h', 'c']);
+        const s2 = findSafeSuit(r2, ['h', 'c', 'd', 's'].filter(s => s !== s1));
+        return [`${r1}${s1}`, `${r2}${s2}`];
     }
 }
 
@@ -191,12 +207,14 @@ export class DeterministicGTOEngine {
 
     /**
      * Generate a batch of N questions from solver data
+     * IMP-6 FIX: Strengthened dedup — rejects same heroHand+scenarioHash combos
      */
     async generateBatch({ gameId, level, count = 25, gameConfig }) {
         if (!gameConfig) return [];
 
         const questions = [];
-        const usedScenarioIds = new Set();
+        const usedQuestionIds = new Set();
+        const usedHandScenarios = new Set(); // IMP-6: track heroHand+scenario combos
 
         // Fetch a larger pool of scenarios
         const poolSize = Math.min(count * 3, 75);
@@ -204,15 +222,22 @@ export class DeterministicGTOEngine {
 
         if (!scenarios || scenarios.length === 0) return [];
 
-        for (let i = 0; i < count && i < scenarios.length; i++) {
+        // IMP-6: Iterate through MORE combinations to reach target count
+        const maxAttempts = Math.min(count * 4, scenarios.length * 3);
+        for (let i = 0; i < maxAttempts && questions.length < count; i++) {
             const scenario = scenarios[i % scenarios.length];
 
             // Pick a different hand for each question from same scenario
             const question = this.buildQuestionFromScenario(scenario, gameConfig, level, i);
-            if (question && !usedScenarioIds.has(question.id)) {
-                questions.push(question);
-                usedScenarioIds.add(question.id);
-            }
+            if (!question) continue;
+
+            // IMP-6: Reject if same heroHand+scenario already used
+            const dedupeKey = `${question.heroHand}_${scenario.scenario_hash}`;
+            if (usedQuestionIds.has(question.id) || usedHandScenarios.has(dedupeKey)) continue;
+
+            questions.push(question);
+            usedQuestionIds.add(question.id);
+            usedHandScenarios.add(dedupeKey);
         }
 
         return questions;
@@ -309,8 +334,17 @@ export class DeterministicGTOEngine {
         const scenarios = await this.fetchSolverPool(gameConfig, level, 25);
         if (!scenarios || scenarios.length === 0) return null;
 
-        // Pick a random scenario from the pool
-        const scenario = scenarios[Math.floor(Math.random() * scenarios.length)];
+        // IMP-1 FIX: Filter out scenarios that generated questions the user already saw
+        const seenSet = new Set(seenIds || []);
+        const unseenScenarios = scenarios.filter(s => {
+            // Check if any possible question ID from this scenario is in seenIds
+            const possibleId = `pio_${s.id}`;
+            return !seenIds.some(id => id.startsWith(possibleId));
+        });
+
+        // Use unseen pool if available, otherwise fall back to full pool
+        const pool = unseenScenarios.length > 0 ? unseenScenarios : scenarios;
+        const scenario = pool[Math.floor(Math.random() * pool.length)];
         return this.buildQuestionFromScenario(scenario, gameConfig, level, 0);
     }
 
@@ -472,7 +506,7 @@ export class DeterministicGTOEngine {
                 action: scenario.street !== 'preflop' ? 'Villain checks' : '',
                 isMixedStrategy,
             },
-            heroCards: parseHandToCards(heroHand),
+            heroCards: parseHandToCards(heroHand, board),
             question: `You hold ${heroHand} on the ${scenario.street}. Board: ${board.join(' ')}. What is the GTO play?`,
             options,
             correctAnswer: optimalAction,

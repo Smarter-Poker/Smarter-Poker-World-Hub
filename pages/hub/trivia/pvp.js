@@ -209,7 +209,23 @@ export default function PvPPage() {
     }
 
     async function handleFindMatch(stake) {
-        if (userDiamonds < stake) {
+        // Fresh balance check from DB to avoid stale-state false negatives
+        let freshBalance = userDiamonds;
+        try {
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('diamonds')
+                .eq('id', userId)
+                .maybeSingle();
+            if (profile) {
+                freshBalance = profile.diamonds || 0;
+                setUserDiamonds(freshBalance);
+            }
+        } catch (e) {
+            console.error('[PVP] Balance check failed:', e);
+        }
+
+        if (freshBalance < stake) {
             setShowOutOfDiamonds(true);
             return;
         }
@@ -225,7 +241,13 @@ export default function PvPPage() {
             p_description: `PvP stake — ${stake}💎 entry`,
             p_reference_id: null
         });
-        setUserDiamonds(prev => prev - stake);
+        // Refresh balance from DB after deduction
+        const { data: postDeductProfile } = await supabase
+            .from('profiles')
+            .select('diamonds')
+            .eq('id', userId)
+            .maybeSingle();
+        if (postDeductProfile) setUserDiamonds(postDeductProfile.diamonds || 0);
         busEmit.diamondsSpent(stake, 'PvP Stake Entry');
 
         // Always set 5-second horse fallback as safety net

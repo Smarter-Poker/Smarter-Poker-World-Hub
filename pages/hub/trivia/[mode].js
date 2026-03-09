@@ -465,13 +465,38 @@ export default function TriviaModePage() {
 
         // Per-game diamond deduction for paid modes (e.g., arcade=10💎)
         if (!isFreeMode && userId && !isVIP) {
+            // Fresh balance check from DB to avoid stale-state false negatives
+            try {
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('diamonds')
+                    .eq('id', userId)
+                    .maybeSingle();
+                if (profile) {
+                    const freshBalance = profile.diamonds || 0;
+                    setUserDiamonds(freshBalance);
+                    if (freshBalance < modeCost) {
+                        setShowOutOfDiamonds(true);
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.error('[mode] Balance check failed:', e);
+            }
+
             const de = new DiamondEngine(supabase, userId);
             const result = await de.deduct(modeCost, `trivia_${mode}`);
             if (!result.success) {
                 setShowOutOfDiamonds(true);
                 return;
             }
-            setUserDiamonds(prev => prev - modeCost);
+            // Refresh balance from DB after deduction
+            const { data: postProfile } = await supabase
+                .from('profiles')
+                .select('diamonds')
+                .eq('id', userId)
+                .maybeSingle();
+            if (postProfile) setUserDiamonds(postProfile.diamonds || 0);
         }
 
         setGameState('playing');

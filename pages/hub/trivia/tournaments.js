@@ -336,7 +336,23 @@ export default function TournamentsPage() {
     }
 
     async function handleRegister(tournament) {
-        if (userDiamonds < tournament.entry_fee) {
+        // Fresh balance check from DB to avoid stale-state false negatives
+        let freshBalance = userDiamonds;
+        try {
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('diamonds')
+                .eq('id', userId)
+                .maybeSingle();
+            if (profile) {
+                freshBalance = profile.diamonds || 0;
+                setUserDiamonds(freshBalance);
+            }
+        } catch (e) {
+            console.error('[Tournaments] Balance check failed:', e);
+        }
+
+        if (freshBalance < tournament.entry_fee) {
             setShowOutOfDiamonds(true);
             return;
         }

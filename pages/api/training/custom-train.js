@@ -21,10 +21,11 @@ const supabase = createClient(
 );
 
 // Map custom trainer game types to PIO solver game types in database
+// IMP-3 FIX: Expanded spins mapping to include all 6 actual spin game types
 const GAME_TYPE_TO_PIO = {
     cash: ['hu_cash', 'postflop_complete'],
     mtt: ['mtt_6max_icm', 'mtt_9max_icm', 'mtt_6max_chipev', 'river_mtt_icm', 'turn_mtt_icm'],
-    spins: ['turn_spin'],
+    spins: ['turn_spin', 'spin_3max_chipev', 'spin_3max_icm', 'spin_hu_chipev', 'spin_hu_icm', 'spin_postflop'],
 };
 
 export default async function handler(req, res) {

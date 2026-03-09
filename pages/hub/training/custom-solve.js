@@ -60,6 +60,141 @@ const PRECOMPUTED_RANGES = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
+// RANGE GRID VISUAL — Interactive 13×13 Grid for Solver Results
+// ═══════════════════════════════════════════════════════════════════════════
+
+const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
+
+function parseRangeToSet(rangeStr) {
+    if (!rangeStr) return new Set();
+    const inRange = new Set();
+    // Remove action prefixes like "Call: ...", "3-Bet: ..."
+    const cleaned = rangeStr.replace(/(Call|3-Bet|Raise|Open|Fold):\s*/gi, ', ');
+    const parts = cleaned.split(/,\s*/).map(s => s.trim()).filter(Boolean);
+
+    for (const part of parts) {
+        if (part.includes('-')) {
+            // Range expansion: AA-22, AKs-ATs, etc.
+            const [start, end] = part.split('-').map(s => s.trim());
+            if (!start || !end) { inRange.add(start || end); continue; }
+            if (start.length === 2 && start[0] === start[1]) {
+                // Pair range: AA-TT
+                const si = RANKS.indexOf(start[0]);
+                const ei = RANKS.indexOf(end[0]);
+                if (si >= 0 && ei >= 0) {
+                    for (let i = Math.min(si, ei); i <= Math.max(si, ei); i++) {
+                        inRange.add(RANKS[i] + RANKS[i]);
+                    }
+                }
+            } else {
+                // Suited/offsuit range: AKs-ATs
+                const suffix = start.endsWith('s') ? 's' : start.endsWith('o') ? 'o' : '';
+                const high = start[0];
+                const startLow = start[1];
+                const endLow = end.replace(/[so]/g, '')[1];
+                const si = RANKS.indexOf(startLow);
+                const ei = RANKS.indexOf(endLow);
+                if (si >= 0 && ei >= 0) {
+                    for (let i = Math.min(si, ei); i <= Math.max(si, ei); i++) {
+                        inRange.add(high + RANKS[i] + suffix);
+                    }
+                }
+            }
+        } else {
+            inRange.add(part);
+        }
+    }
+    return inRange;
+}
+
+function RangeGridVisual({ rangeStr, actions }) {
+    const rangeSet = React.useMemo(() => parseRangeToSet(rangeStr), [rangeStr]);
+    const [hoveredCell, setHoveredCell] = React.useState(null);
+
+    const raiseFreq = actions?.find(a => a.action === 'Raise')?.freq || 0;
+    const callFreq = actions?.find(a => a.action === 'Call')?.freq || 0;
+
+    const grid = React.useMemo(() => {
+        const cells = [];
+        for (let r = 0; r < 13; r++) {
+            for (let c = 0; c < 13; c++) {
+                const isPair = r === c;
+                const isSuited = c > r;
+                const hand = isPair
+                    ? `${RANKS[r]}${RANKS[c]}`
+                    : isSuited
+                        ? `${RANKS[r]}${RANKS[c]}s`
+                        : `${RANKS[c]}${RANKS[r]}o`;
+                const inRange = rangeSet.has(hand) || rangeSet.has(hand.replace(/[so]/, ''));
+                cells.push({ hand, inRange, isPair, isSuited, r, c });
+            }
+        }
+        return cells;
+    }, [rangeSet]);
+
+    const handsInRange = grid.filter(c => c.inRange).length;
+    const pct = ((handsInRange / 169) * 100).toFixed(1);
+
+    return (
+        <div style={{ marginTop: 12, padding: 12, borderRadius: 10, background: 'rgba(0,0,0,0.15)', border: '1px solid rgba(255,255,255,0.04)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    Range Grid — {pct}% of hands
+                </div>
+                {hoveredCell && (
+                    <div style={{ fontSize: 11, fontWeight: 700, color: '#00d4ff' }}>
+                        {hoveredCell.hand} {hoveredCell.inRange ? '✓ In Range' : '✗ Fold'}
+                    </div>
+                )}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(13, 1fr)', gap: 1 }}>
+                {grid.map((cell, i) => {
+                    let bg = 'rgba(255,255,255,0.02)';
+                    let textColor = '#333';
+                    if (cell.inRange) {
+                        // Color by dominant action
+                        if (raiseFreq > callFreq) {
+                            bg = cell.isPair ? 'rgba(239,68,68,0.5)' : cell.isSuited ? 'rgba(239,68,68,0.35)' : 'rgba(239,68,68,0.25)';
+                        } else {
+                            bg = cell.isPair ? 'rgba(34,197,94,0.5)' : cell.isSuited ? 'rgba(34,197,94,0.35)' : 'rgba(34,197,94,0.25)';
+                        }
+                        textColor = '#fff';
+                    }
+                    return (
+                        <div
+                            key={i}
+                            onMouseEnter={() => setHoveredCell(cell)}
+                            onMouseLeave={() => setHoveredCell(null)}
+                            style={{
+                                aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                borderRadius: 2, fontSize: 6, fontWeight: 600,
+                                background: bg, color: textColor, cursor: 'pointer',
+                                border: hoveredCell?.hand === cell.hand ? '1px solid #00d4ff' : '1px solid transparent',
+                                transition: 'all 0.1s',
+                            }}
+                        >
+                            {cell.hand.length <= 3 ? cell.hand : ''}
+                        </div>
+                    );
+                })}
+            </div>
+            {/* Legend */}
+            <div style={{ display: 'flex', gap: 12, marginTop: 8, justifyContent: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 9, color: '#94a3b8' }}>
+                    <div style={{ width: 8, height: 8, borderRadius: 2, background: 'rgba(239,68,68,0.4)' }} /> Raise/Open
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 9, color: '#94a3b8' }}>
+                    <div style={{ width: 8, height: 8, borderRadius: 2, background: 'rgba(34,197,94,0.4)' }} /> Call/Flat
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 9, color: '#94a3b8' }}>
+                    <div style={{ width: 8, height: 8, borderRadius: 2, background: 'rgba(255,255,255,0.04)' }} /> Fold
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // RESULT DISPLAY
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -138,10 +273,13 @@ function SolveResult({ heroPos, villainPos, config, result }) {
                 ))}
             </div>
 
-            {/* Range */}
+            {/* Range Grid Visualization */}
+            <RangeGridVisual rangeStr={result.range} actions={result.actions} />
+
+            {/* Range Text */}
             {result.range && (
                 <div style={{
-                    padding: '10px', borderRadius: 8,
+                    padding: '10px', borderRadius: 8, marginTop: 8,
                     background: 'rgba(255,255,255,0.02)',
                     border: '1px solid rgba(255,255,255,0.04)',
                 }}>

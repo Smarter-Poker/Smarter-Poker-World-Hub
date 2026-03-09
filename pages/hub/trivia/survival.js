@@ -157,6 +157,21 @@ export default function SurvivalModePage() {
     async function handleStart() {
         // Per-game diamond gate (VIP bypass)
         if (!isVip && userId) {
+            // Fresh balance check from DB to avoid stale-state false negatives
+            try {
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('diamonds')
+                    .eq('id', userId)
+                    .maybeSingle();
+                if (profile && (profile.diamonds || 0) < 10) {
+                    setShowOutOfDiamonds(true);
+                    return;
+                }
+            } catch (e) {
+                console.error('[Survival] Balance check failed:', e);
+            }
+
             const result = await DiamondEngine.deduct(10, 'trivia_survival');
             if (!result.success) {
                 setShowOutOfDiamonds(true);

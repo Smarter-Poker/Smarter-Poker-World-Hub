@@ -24,6 +24,7 @@ const MULTIWAY_SCENARIOS = {
         name: 'BTN Open → SB 3-Bet → BB Cold-Call',
         positions: ['BTN', 'SB', 'BB'],
         desc: 'Common 3-way pot scenario. BTN opens, SB 3-bets, BB decides to cold-call or fold.',
+        tip: 'BB should cold-call with pocket pairs and suited broadway that play well multiway.',
         ranges: {
             BTN: { open: 'AA-22, AKs-A2s, KQs-K9s, QJs-Q9s, JTs-J9s, T9s-T8s, 98s-97s, 87s-86s, 76s-75s, 65s-64s, 54s, AKo-ATo, KQo-KJo, QJo' },
             SB: { threeBet: 'AA-TT, AKs-AJs, KQs, AKo-AQo' },
@@ -34,6 +35,7 @@ const MULTIWAY_SCENARIOS = {
         name: 'UTG Open → MP 3-Bet → CO Decision',
         positions: ['UTG', 'MP', 'CO'],
         desc: 'Tight 3-way spot. UTG opens from early position, MP 3-bets, CO must decide with a tight range.',
+        tip: 'CO should mostly fold here — only continue with hands that dominate MP\u2019s 3-bet range.',
         ranges: {
             UTG: { open: 'AA-66, AKs-ATs, KQs-KJs, QJs, JTs, AKo-AJo, KQo' },
             MP: { threeBet: 'AA-QQ, AKs, AKo' },
@@ -44,6 +46,7 @@ const MULTIWAY_SCENARIOS = {
         name: 'CO Open → BTN Flat → BB Squeeze',
         positions: ['CO', 'BTN', 'BB'],
         desc: 'BTN flats CO open, BB has a squeeze opportunity with a polarized range.',
+        tip: 'BB squeeze range should be polarized — premiums + suited bluffs (A5s/A4s type hands).',
         ranges: {
             CO: { open: 'AA-22, AKs-A2s, KQs-K8s, QJs-Q9s, JTs-J9s, T9s, 98s, 87s, 76s, 65s, 54s, AKo-ATo, KQo-KJo, QJo' },
             BTN: { flat: 'JJ-66, AQs-ATs, KQs-KTs, QJs-QTs, JTs, T9s, 98s, 87s, 76s, AQo-AJo, KQo' },
@@ -54,10 +57,56 @@ const MULTIWAY_SCENARIOS = {
         name: 'SB Limp → BB Iso-Raise → 3-Way',
         positions: ['SB', 'BB', 'Caller'],
         desc: 'SB limps, BB iso-raises, one caller. Common 3-way limped pot scenario.',
+        tip: 'BB should iso-raise wide for value — SB limp/call range is typically weak.',
         ranges: {
             SB: { limp: 'AA-22, AKs-A2s, KQs-K6s, QJs-Q8s, JTs-J8s, T9s-T8s, 98s-97s, 87s-86s, 76s, 65s, 54s, AKo-A8o, KQo-KTo, QJo-QTo, JTo' },
             BB: { isoRaise: 'AA-77, AKs-A9s, KQs-KTs, QJs, JTs, AKo-AJo, KQo' },
             Caller: { call: 'JJ-55, AQs-ATs, KQs-KJs, QJs, JTs, T9s, AQo-AJo' },
+        },
+    },
+    'ep_open_btn_sb_bb_4way': {
+        name: 'EP Open → BTN/SB/BB All Call → 4-Way',
+        positions: ['UTG', 'BTN', 'SB', 'BB'],
+        desc: 'EP opens, BTN and both blinds all flat. 4-way pot with wide ranges.',
+        tip: 'In 4-way pots, play tighter postflop — your equity realization drops significantly.',
+        ranges: {
+            UTG: { open: 'AA-66, AKs-ATs, KQs-KJs, QJs, JTs, AKo-AJo, KQo' },
+            BTN: { flat: 'TT-55, AQs-ATs, KQs-KTs, QJs-QTs, JTs, T9s, 98s, 87s, AQo-AJo, KQo' },
+            SB: { coldCall: '99-66, AJs-ATs, KQs-KJs, QJs, JTs, T9s, AJo' },
+            BB: { call: 'TT-33, AQs-A7s, KQs-K9s, QJs-Q9s, JTs-J9s, T9s-T8s, 98s, 87s, AQo-A9o, KQo-KTo, QJo' },
+        },
+    },
+    'btn_3bet_sb_4bet_bb_cold_5bet': {
+        name: 'BTN 3-Bet → SB 4-Bet → BB 5-Bet',
+        positions: ['BTN', 'SB', 'BB'],
+        desc: 'High-stakes 3-way battle with escalating aggression. Extremely tight ranges.',
+        tip: '5-bet ranges are near-linear with premiums. Very few bluffs at these stack depths.',
+        ranges: {
+            BTN: { threeBet: 'AA-TT, AKs-AJs, KQs, AKo-AQo, A5s-A4s' },
+            SB: { fourBet: 'AA-QQ, AKs, AKo' },
+            BB: { fiveBet: 'AA-KK, AKs' },
+        },
+    },
+    'co_mp_utg_limp_chain': {
+        name: 'UTG Limp → MP Limp → CO Iso-Raise',
+        positions: ['UTG', 'MP', 'CO'],
+        desc: 'Double limp from early positions. CO has a prime iso-raise opportunity.',
+        tip: 'CO should iso-raise aggressively — limpers have weak/passive ranges.',
+        ranges: {
+            UTG: { limp: 'AA-22, AKs-A7s, KQs-K9s, QJs-Q9s, JTs-J9s, T9s, 98s, 87s, 76s, AKo-ATo, KQo-KJo, QJo' },
+            MP: { limp: 'TT-22, AQs-A7s, KQs-K9s, QJs-Q9s, JTs-J9s, T9s, 98s, 87s, AJo-A9o, KQo-KJo' },
+            CO: { isoRaise: 'AA-77, AKs-A9s, KQs-KTs, QJs, JTs, AKo-AJo, KQo' },
+        },
+    },
+    'sb_open_bb_3bet_btn_overcall': {
+        name: 'SB Open → BB 3-Bet → BTN Over-Call',
+        positions: ['SB', 'BB', 'BTN'],
+        desc: 'SB opens, BB 3-bets, BTN makes an unusual over-call creating a 3-way pot.',
+        tip: 'BTN over-call range should be hands that play well multiway — suited broadways and pairs.',
+        ranges: {
+            SB: { open: 'AA-22, AKs-A2s, KQs-K5s, QJs-Q8s, JTs-J8s, T9s-T8s, 98s-97s, 87s, 76s, 65s, AKo-A7o, KQo-K9o, QJo-QTo, JTo' },
+            BB: { threeBet: 'AA-TT, AKs-AJs, KQs, AKo-AQo, A5s-A3s' },
+            BTN: { overCall: 'JJ-66, AQs-ATs, KQs-KJs, QJs, JTs, T9s, 98s, AQo-AJo' },
         },
     },
 };
@@ -145,9 +194,34 @@ export default function MultiwayPreflopPage() {
     const router = useRouter();
     useTrainingBus('multiway-preflop');
     const [selectedScenario, setSelectedScenario] = useState('btn_open_sb_3bet_bb_cold');
+    const [quizMode, setQuizMode] = useState(false);
+    const [quizHand, setQuizHand] = useState(null);
+    const [quizAnswer, setQuizAnswer] = useState(null);
+    const [quizScore, setQuizScore] = useState({ total: 0, correct: 0 });
 
     const scenario = MULTIWAY_SCENARIOS[selectedScenario];
     const posColors = { UTG: '#ef4444', MP: '#f97316', CO: '#fbbf24', BTN: '#22c55e', SB: '#3b82f6', BB: '#a855f7', Caller: '#94a3b8' };
+
+    // Generate a random quiz hand
+    function generateQuizHand() {
+        const scenarioKeys = Object.keys(MULTIWAY_SCENARIOS);
+        const randomKey = scenarioKeys[Math.floor(Math.random() * scenarioKeys.length)];
+        const sc = MULTIWAY_SCENARIOS[randomKey];
+        const pos = sc.positions[Math.floor(Math.random() * sc.positions.length)];
+        const rangeData = sc.ranges[pos];
+        const action = Object.keys(rangeData)[0];
+        const rangeStr = Object.values(rangeData)[0];
+
+        // Generate random hand
+        const r1 = RANKS[Math.floor(Math.random() * 13)];
+        const r2 = RANKS[Math.floor(Math.random() * 13)];
+        const suited = r1 !== r2 && Math.random() > 0.5;
+        const hand = r1 === r2 ? `${r1}${r2}` : suited ? `${r1}${r2}s` : `${r1}${r2}o`;
+        const correct = isInRange(hand, rangeStr);
+
+        setQuizHand({ hand, position: pos, scenario: sc.name, scenarioKey: randomKey, action, correct });
+        setQuizAnswer(null);
+    }
 
     return (
         <>
@@ -263,6 +337,99 @@ export default function MultiwayPreflopPage() {
                                 );
                             })}
                         </div>
+                    </div>
+
+                    {/* Coaching Tip */}
+                    {scenario.tip && (
+                        <div style={{
+                            marginTop: 12, padding: '10px 14px', borderRadius: 8,
+                            background: 'rgba(0,212,255,0.05)', border: '1px solid rgba(0,212,255,0.15)',
+                            fontSize: 11, color: '#94a3b8',
+                        }}>
+                            <span style={{ fontWeight: 700, color: '#00d4ff', marginRight: 6 }}>TIP:</span>
+                            {scenario.tip}
+                        </div>
+                    )}
+
+                    {/* Quiz Mode */}
+                    <div style={{ marginTop: 20, padding: 16, borderRadius: 12, background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0' }}>Quiz Mode</div>
+                            {quizScore.total > 0 && (
+                                <span style={{ fontSize: 10, color: '#94a3b8' }}>
+                                    Score: {quizScore.correct}/{quizScore.total} ({Math.round((quizScore.correct / quizScore.total) * 100)}%)
+                                </span>
+                            )}
+                        </div>
+                        {!quizHand ? (
+                            <motion.button
+                                onClick={generateQuizHand} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                                style={{
+                                    width: '100%', padding: '12px', borderRadius: 10, border: 'none', cursor: 'pointer',
+                                    fontSize: 13, fontWeight: 700, fontFamily: "'Orbitron', monospace",
+                                    background: 'linear-gradient(135deg, #a855f7, #3b82f6)', color: '#fff',
+                                }}
+                            >START QUIZ</motion.button>
+                        ) : (
+                            <div>
+                                <div style={{ textAlign: 'center', marginBottom: 12 }}>
+                                    <div style={{ fontSize: 10, color: '#64748b', marginBottom: 4 }}>{quizHand.scenario}</div>
+                                    <div style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', marginBottom: 8 }}>
+                                        You are in <span style={{ color: posColors[quizHand.position] || '#fff', fontWeight: 800 }}>{quizHand.position}</span>
+                                    </div>
+                                    <div style={{
+                                        display: 'inline-block', padding: '14px 28px', borderRadius: 12,
+                                        background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+                                        fontSize: 28, fontWeight: 900, color: '#e2e8f0', fontFamily: "'Orbitron', monospace",
+                                        letterSpacing: 3,
+                                    }}>{quizHand.hand}</div>
+                                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 8 }}>
+                                        Should you <span style={{ fontWeight: 700, color: '#a855f7' }}>{quizHand.action.replace(/([A-Z])/g, ' $1').trim()}</span> this hand?
+                                    </div>
+                                </div>
+
+                                {quizAnswer === null ? (
+                                    <div style={{ display: 'flex', gap: 8 }}>
+                                        <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                                            onClick={() => { setQuizAnswer(true); setQuizScore(p => ({ total: p.total + 1, correct: p.correct + (quizHand.correct ? 1 : 0) })); }}
+                                            style={{
+                                                flex: 1, padding: '12px', borderRadius: 10, border: 'none', cursor: 'pointer',
+                                                fontSize: 14, fontWeight: 800, background: 'rgba(34,197,94,0.15)', color: '#22c55e',
+                                                border: '1px solid rgba(34,197,94,0.3)',
+                                            }}>YES</motion.button>
+                                        <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                                            onClick={() => { setQuizAnswer(false); setQuizScore(p => ({ total: p.total + 1, correct: p.correct + (!quizHand.correct ? 1 : 0) })); }}
+                                            style={{
+                                                flex: 1, padding: '12px', borderRadius: 10, border: 'none', cursor: 'pointer',
+                                                fontSize: 14, fontWeight: 800, background: 'rgba(239,68,68,0.15)', color: '#ef4444',
+                                                border: '1px solid rgba(239,68,68,0.3)',
+                                            }}>NO</motion.button>
+                                    </div>
+                                ) : (
+                                    <div style={{ textAlign: 'center' }}>
+                                        <div style={{
+                                            padding: '8px 16px', borderRadius: 8, marginBottom: 10, display: 'inline-block',
+                                            background: (quizAnswer === quizHand.correct) ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)',
+                                            border: `1px solid ${(quizAnswer === quizHand.correct) ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`,
+                                            fontSize: 14, fontWeight: 800,
+                                            color: (quizAnswer === quizHand.correct) ? '#22c55e' : '#ef4444',
+                                        }}>
+                                            {(quizAnswer === quizHand.correct) ? 'CORRECT!' : 'WRONG!'}
+                                        </div>
+                                        <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 12 }}>
+                                            {quizHand.hand} is {quizHand.correct ? 'IN' : 'NOT IN'} the {quizHand.position} {quizHand.action.replace(/([A-Z])/g, ' $1').trim()} range
+                                        </div>
+                                        <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                                            onClick={generateQuizHand}
+                                            style={{
+                                                padding: '10px 24px', borderRadius: 10, border: 'none', cursor: 'pointer',
+                                                fontSize: 13, fontWeight: 700, background: 'rgba(168,85,247,0.15)', color: '#a855f7',
+                                                border: '1px solid rgba(168,85,247,0.3)',
+                                            }}>NEXT HAND</motion.button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

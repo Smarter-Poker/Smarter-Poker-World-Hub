@@ -8,7 +8,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useTrainingSettings } from '../../contexts/TrainingSettingsContext';
 import { formatScenario } from '../../utils/formatScenario';
 
@@ -192,6 +192,19 @@ export default function GTOQuestionCard({
     const [selectedId, setSelectedId] = useState(null);
     const { viewMode } = useTrainingSettings();
 
+    // BUG-D FIX: Fisher-Yates shuffle options per question to eliminate position bias
+    const shuffledOptions = useMemo(() => {
+        const opts = [...(question?.options || [])];
+        if (opts.length <= 1) return opts;
+        let seed = ((questionNumber || 1) * 2654435761) >>> 0;
+        const rng = () => { seed = ((seed * 1103515245) + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+        for (let i = opts.length - 1; i > 0; i--) {
+            const j = Math.floor(rng() * (i + 1));
+            [opts[i], opts[j]] = [opts[j], opts[i]];
+        }
+        return opts;
+    }, [question?.options, questionNumber]);
+
     const handleSelect = (optionId) => {
         if (showFeedback) return; // Disable during feedback
         setSelectedId(optionId);
@@ -255,7 +268,7 @@ export default function GTOQuestionCard({
             {/* Answer Buttons */}
             <div style={styles.answersArea}>
                 <div style={styles.answersGrid}>
-                    {(question.options || []).map((option, index) => (
+                    {shuffledOptions.map((option, index) => (
                         <button
                             key={option.id}
                             style={getButtonStyle(option, index)}

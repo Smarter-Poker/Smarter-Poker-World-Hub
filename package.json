@@ -11,8 +11,12 @@
     "ingest:us-events": "npx ts-node --esm src/ingest_us_events/run.ts",
     "warm-geeves": "node scripts/warmGeevesCache.js",
     "db:push": "node scripts/antigravity_sql_push.js",
+    "db:status": "node scripts/antigravity_sql_push.js --status supabase/migrations/",
     "deploy": "bash scripts/antigravity-deploy.sh",
+    "deploy:log": "node scripts/deploy-log.js --show",
     "push": "bash scripts/git-safe-push.sh",
+    "verify": "node scripts/verify-deploy.js",
+    "postinstall": "bash scripts/install-hooks.sh 2>/dev/null || true",
     "lint": "next lint"
   },
   "dependencies": {

@@ -64,7 +64,7 @@ export default async function handler(req, res) {
             else { deadCards.add(`${r1}s`); deadCards.add(`${r2}h`); }
         }
 
-        // Deal new card
+        // Deal new card — IMP-5 FIX: Use deterministic seeded RNG for consistent scenarios
         const allCards = [];
         for (const r of RANKS) {
             for (const s of SUITS) {
@@ -73,7 +73,14 @@ export default async function handler(req, res) {
                 }
             }
         }
-        const newCard = allCards[Math.floor(Math.random() * allCards.length)];
+        // Seeded hash based on hero hand + board state for deterministic dealing
+        let cardSeed = 0;
+        const seedStr = `${heroHand || ''}_${boardCards}_${street}`;
+        for (let i = 0; i < seedStr.length; i++) {
+            cardSeed = ((cardSeed << 5) - cardSeed + seedStr.charCodeAt(i)) | 0;
+        }
+        const cardIdx = Math.abs(cardSeed) % allCards.length;
+        const newCard = allCards[cardIdx];
         const newBoardCards = [...parsedBoardCards, newCard];
 
         // Query solver for this street

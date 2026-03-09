@@ -1049,6 +1049,13 @@ function GodModeArenaInner({
         return opts; // standard + expert show all
     }, [currentQuestion, difficulty]);
 
+    // BUG-C FIX: Inject filteredOptions into question so GameUIRouter/UDT receives them
+    const questionWithFilteredOptions = useMemo(() => {
+        if (!currentQuestion) return null;
+        if (filteredOptions === currentQuestion.options) return currentQuestion;
+        return { ...currentQuestion, options: filteredOptions };
+    }, [currentQuestion, filteredOptions]);
+
     // ═══════════════════════════════════════════════════════════════════════
     // ERROR STATE — Graceful fallback when API fails (auth, network, etc.)
     // ═══════════════════════════════════════════════════════════════════════
@@ -1698,7 +1705,7 @@ function GodModeArenaInner({
                                     gameId={gameId}
                                     gameName={gameName}
                                     streak={streak}
-                                    question={currentQuestion}
+                                    question={questionWithFilteredOptions}
                                     level={currentLevel}
                                     questionNumber={questionNumber}
                                     totalQuestions={totalQuestions}
@@ -1753,7 +1760,7 @@ function GodModeArenaInner({
                         gameId={gameId}
                         gameName={gameName}
                         streak={streak}
-                        question={currentQuestion}
+                        question={questionWithFilteredOptions}
                         level={currentLevel}
                         questionNumber={questionNumber}
                         totalQuestions={totalQuestions}

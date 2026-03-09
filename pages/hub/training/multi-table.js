@@ -50,6 +50,8 @@ export default function MultiTablePage() {
         totalHands: 0, totalCorrect: 0, totalEVLoss: 0, tablesCompleted: 0,
     });
     const [isAutoAdvance, setIsAutoAdvance] = useState(false);
+    const [completedTables, setCompletedTables] = useState(new Set());
+    const [showSummary, setShowSummary] = useState(false);
 
     // Listen for session-complete events from each table
     useEffect(() => {
@@ -110,6 +112,7 @@ export default function MultiTablePage() {
                 }
             };
             saveMultiSession();
+            setShowSummary(true);
         }
     }, [completedTables.size, tableCount, isStarted, combinedStats]);
 
@@ -129,7 +132,76 @@ export default function MultiTablePage() {
                 background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
                 color: '#e2e8f0', fontFamily: "'Inter', -apple-system, sans-serif",
             }}>
-                {!isStarted ? (
+                {showSummary ? (
+                    /* Results Summary Screen */
+                    <div style={{ padding: '40px 20px', maxWidth: 500, margin: '0 auto', textAlign: 'center' }}>
+                        <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 200, damping: 15 }}>
+                            {(() => {
+                                const accuracy = combinedStats.totalHands > 0
+                                    ? Math.round((combinedStats.totalCorrect / combinedStats.totalHands) * 100) : 0;
+                                const grade = accuracy >= 90 ? 'A' : accuracy >= 80 ? 'B' : accuracy >= 70 ? 'C' : accuracy >= 60 ? 'D' : 'F';
+                                const gradeColor = { A: '#22c55e', B: '#3b82f6', C: '#fbbf24', D: '#f97316', F: '#ef4444' }[grade];
+                                return (
+                                    <>
+                                        <div style={{
+                                            width: 100, height: 100, borderRadius: '50%', margin: '0 auto 20px',
+                                            background: `linear-gradient(135deg, ${gradeColor}30, ${gradeColor}15)`,
+                                            border: `3px solid ${gradeColor}60`,
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            fontSize: 48, fontWeight: 900, color: gradeColor,
+                                            fontFamily: "'Orbitron', monospace",
+                                        }}>{grade}</div>
+                                        <h2 style={{
+                                            fontSize: 22, fontWeight: 800, color: '#e2e8f0', marginBottom: 4,
+                                            fontFamily: "'Orbitron', monospace"
+                                        }}>SESSION COMPLETE</h2>
+                                        <p style={{ fontSize: 12, color: '#94a3b8', marginBottom: 24 }}>
+                                            {tableCount} tables · {combinedStats.totalHands} total decisions
+                                        </p>
+
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 24 }}>
+                                            {[
+                                                { label: 'Accuracy', value: `${accuracy}%`, color: gradeColor },
+                                                { label: 'EV Loss', value: `${combinedStats.totalEVLoss.toFixed(1)}bb`, color: combinedStats.totalEVLoss < 5 ? '#22c55e' : '#ef4444' },
+                                                { label: 'Correct', value: `${combinedStats.totalCorrect}/${combinedStats.totalHands}`, color: '#00d4ff' },
+                                                { label: 'Tables Done', value: `${combinedStats.tablesCompleted}/${tableCount}`, color: '#a855f7' },
+                                            ].map((s, i) => (
+                                                <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                                                    transition={{ delay: 0.2 + i * 0.1 }}
+                                                    style={{
+                                                        padding: '14px 10px', borderRadius: 12, textAlign: 'center',
+                                                        background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.06)',
+                                                    }}>
+                                                    <div style={{ fontSize: 22, fontWeight: 800, color: s.color, fontFamily: "'Orbitron', monospace" }}>{s.value}</div>
+                                                    <div style={{ fontSize: 9, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 1, marginTop: 4 }}>{s.label}</div>
+                                                </motion.div>
+                                            ))}
+                                        </div>
+
+                                        <div style={{ display: 'flex', gap: 10 }}>
+                                            <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                                                onClick={() => { setShowSummary(false); setCompletedTables(new Set()); setCombinedStats({ totalHands: 0, totalCorrect: 0, totalEVLoss: 0, tablesCompleted: 0 }); }}
+                                                style={{
+                                                    flex: 1, padding: '14px', borderRadius: 12, border: 'none', cursor: 'pointer',
+                                                    fontSize: 14, fontWeight: 800, fontFamily: "'Orbitron', monospace",
+                                                    background: 'linear-gradient(135deg, #00d4ff, #a855f7)', color: '#fff',
+                                                    boxShadow: '0 4px 20px rgba(0,212,255,0.3)',
+                                                }}>PLAY AGAIN</motion.button>
+                                            <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                                                onClick={() => { setShowSummary(false); setIsStarted(false); setCompletedTables(new Set()); setCombinedStats({ totalHands: 0, totalCorrect: 0, totalEVLoss: 0, tablesCompleted: 0 }); }}
+                                                style={{
+                                                    flex: 1, padding: '14px', borderRadius: 12, cursor: 'pointer',
+                                                    fontSize: 13, fontWeight: 700,
+                                                    background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)',
+                                                    color: '#94a3b8',
+                                                }}>CHANGE CONFIG</motion.button>
+                                        </div>
+                                    </>
+                                );
+                            })()}
+                        </motion.div>
+                    </div>
+                ) : !isStarted ? (
                     /* Setup Screen */
                     <div style={{ padding: '60px 20px', maxWidth: 500, margin: '0 auto', textAlign: 'center' }}>
                         <div style={{ fontSize: 48, marginBottom: 16 }}>🎯</div>

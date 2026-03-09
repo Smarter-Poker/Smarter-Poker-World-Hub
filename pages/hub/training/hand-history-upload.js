@@ -257,13 +257,76 @@ function MiniCard({ card }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ANALYZED HAND ROW
+// GTO COACHING ENGINE — Analyze hero actions against GTO baselines
+// ═══════════════════════════════════════════════════════════════════════════
+
+function gradeHand(hand) {
+    const heroActions = hand.actions.filter(a => a.isHero);
+    if (heroActions.length === 0) return { grade: 'N/A', color: '#64748b', tips: [] };
+
+    const tips = [];
+    let score = 80; // Start at "good"
+
+    // Check for passive play (too many calls, no raises)
+    const calls = heroActions.filter(a => a.action === 'calls').length;
+    const raises = heroActions.filter(a => a.action === 'raises' || a.action === 'bets').length;
+    const folds = heroActions.filter(a => a.action === 'folds').length;
+
+    if (calls > 2 && raises === 0) {
+        tips.push({ text: 'Too passive — consider raising for value or as a bluff', type: 'warning' });
+        score -= 20;
+    }
+
+    if (raises > 0 && hand.board.length === 0 && heroActions[0]?.action === 'calls') {
+        tips.push({ text: 'Flatting preflop when raising may be better (especially in position)', type: 'info' });
+        score -= 10;
+    }
+
+    // Check for large flop/turn bets
+    const bigBets = heroActions.filter(a => a.amount > hand.pot * 0.8);
+    if (bigBets.length > 0 && hand.board.length >= 3) {
+        tips.push({ text: 'Large bet sizing detected — consider smaller bets on dry boards', type: 'info' });
+        score -= 5;
+    }
+
+    // Check for preflop 3-bet opportunities
+    const preRaise = hand.actions.find(a => !a.isHero && (a.action === 'raises' || a.action === 'bets'));
+    const heroPreResponse = heroActions[0];
+    if (preRaise && heroPreResponse?.action === 'calls' && hand.board.length === 0) {
+        tips.push({ text: 'Facing a raise — consider 3-betting with strong hands', type: 'tip' });
+    }
+
+    // Check for missed c-bet spots
+    const isPreRaiser = heroActions[0]?.action === 'raises' || heroActions[0]?.action === 'bets';
+    const flopActions = hand.actions.filter(a => a.isHero && hand.board.length >= 3);
+    if (isPreRaiser && flopActions.length > 0 && flopActions[0]?.action === 'checks') {
+        tips.push({ text: 'Missed c-bet opportunity as preflop aggressor — GTO continuation-bets ~65% of the time', type: 'warning' });
+        score -= 15;
+    }
+
+    // Good play detection
+    if (tips.length === 0) {
+        tips.push({ text: 'Clean line — no major deviations from GTO detected', type: 'good' });
+    }
+
+    if (folds.length === 1 && heroActions.length === 1) {
+        return { grade: 'OK', color: '#94a3b8', tips: [{ text: 'Folded preflop — standard', type: 'info' }] };
+    }
+
+    const grade = score >= 80 ? 'GTO' : score >= 60 ? 'OK' : 'LEAK';
+    const color = score >= 80 ? '#22c55e' : score >= 60 ? '#fbbf24' : '#ef4444';
+    return { grade, color, tips };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ANALYZED HAND ROW (with GTO Coaching)
 // ═══════════════════════════════════════════════════════════════════════════
 
 function AnalyzedHandRow({ hand, index }) {
     const [expanded, setExpanded] = useState(false);
     const heroActions = hand.actions.filter(a => a.isHero);
     const heroActionSummary = heroActions.map(a => a.action).join(' → ') || 'N/A';
+    const coaching = gradeHand(hand);
 
     return (
         <motion.div
@@ -288,11 +351,12 @@ function AnalyzedHandRow({ hand, index }) {
             >
                 <div style={{
                     width: 28, height: 28, borderRadius: '50%',
-                    background: 'rgba(0,212,255,0.1)',
+                    background: `${coaching.color}15`,
+                    border: `1px solid ${coaching.color}40`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 11, fontWeight: 700, color: '#00d4ff',
+                    fontSize: 8, fontWeight: 800, color: coaching.color, letterSpacing: 0.3,
                 }}>
-                    {index + 1}
+                    {coaching.grade}
                 </div>
                 <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', gap: 4, marginBottom: 3 }}>
@@ -325,10 +389,12 @@ function AnalyzedHandRow({ hand, index }) {
                         exit={{ height: 0, opacity: 0 }}
                         style={{ padding: '0 14px 12px', overflow: 'hidden' }}
                     >
+                        {/* Action Sequence */}
                         <div style={{
                             padding: '10px 12px', borderRadius: 8,
                             background: 'rgba(255,255,255,0.03)',
                             border: '1px solid rgba(255,255,255,0.05)',
+                            marginBottom: 8,
                         }}>
                             <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', letterSpacing: 0.5, marginBottom: 6 }}>
                                 ACTION SEQUENCE
@@ -344,6 +410,37 @@ function AnalyzedHandRow({ hand, index }) {
                                     </span>
                                     <span style={{ textTransform: 'uppercase', fontWeight: 600 }}>{a.action}</span>
                                     {a.amount > 0 && <span>${a.amount.toFixed(2)}</span>}
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* GTO Coaching Panel */}
+                        <div style={{
+                            padding: '10px 12px', borderRadius: 8,
+                            background: `${coaching.color}08`,
+                            border: `1px solid ${coaching.color}20`,
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                                <div style={{
+                                    padding: '2px 8px', borderRadius: 4, fontSize: 9, fontWeight: 800,
+                                    background: `${coaching.color}20`, color: coaching.color,
+                                    letterSpacing: 0.5,
+                                }}>
+                                    {coaching.grade === 'GTO' ? 'GTO APPROVED' : coaching.grade === 'OK' ? 'QUESTIONABLE' : coaching.grade === 'LEAK' ? 'MAJOR LEAK' : 'STANDARD'}
+                                </div>
+                                <div style={{ fontSize: 9, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                                    COACHING
+                                </div>
+                            </div>
+                            {coaching.tips.map((tip, i) => (
+                                <div key={i} style={{
+                                    display: 'flex', gap: 6, padding: '4px 0', fontSize: 10,
+                                    color: tip.type === 'good' ? '#22c55e' : tip.type === 'warning' ? '#fbbf24' : '#94a3b8',
+                                }}>
+                                    <span style={{ fontSize: 8 }}>
+                                        {tip.type === 'good' ? '✓' : tip.type === 'warning' ? '⚠' : tip.type === 'tip' ? '💡' : 'ℹ'}
+                                    </span>
+                                    <span>{tip.text}</span>
                                 </div>
                             ))}
                         </div>
