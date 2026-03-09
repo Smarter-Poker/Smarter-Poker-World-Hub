@@ -4,7 +4,7 @@
    Theme: Futuristic Metal — deep ocean tech aesthetic
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
