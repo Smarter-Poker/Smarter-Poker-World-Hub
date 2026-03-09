@@ -34,23 +34,25 @@ const RAKE_PRESETS = [
 // ═══════════════════════════════════════════════════════════════════════════
 
 function calculateRakeImpact(rakePct, cap, stackBB) {
-    const avgPotBB = stackBB * 0.12; // ~12% of stack is avg pot
-    const rakePerPot = Math.min(cap, avgPotBB * (rakePct / 100));
+    const safeRake = Math.max(0, Number(rakePct) || 0);
+    const safeCap = Math.max(0, Number(cap) || 0);
+    const safeStack = Math.max(1, Number(stackBB) || 100);
+    const avgPotBB = safeStack * 0.12;
+    const rakePerPot = Math.min(safeCap, avgPotBB * (safeRake / 100));
     const rakePerHandBB = rakePerPot;
-    const handsPerHour = 28; // typical 6-max
-    const rakePerHourBB = rakePerHandBB * handsPerHour * 0.35; // ~35% of hands see flop
+    const handsPerHour = 28;
+    const rakePerHourBB = rakePerHandBB * handsPerHour * 0.35;
 
-    // Strategy adjustments
-    const openAdj = rakePct > 6 ? -3.2 : rakePct > 4 ? -1.5 : -0.5;
-    const threeBetAdj = rakePct > 6 ? +2.8 : rakePct > 4 ? +1.2 : +0.3;
-    const callAdj = rakePct > 6 ? -4.5 : rakePct > 4 ? -2.0 : -0.8;
-    const cBetAdj = rakePct > 6 ? +3.0 : rakePct > 4 ? +1.5 : +0.5;
-    const suitedAdj = rakePct > 6 ? -5.0 : rakePct > 4 ? -2.5 : -1.0;
+    const openAdj = safeRake > 6 ? -3.2 : safeRake > 4 ? -1.5 : -0.5;
+    const threeBetAdj = safeRake > 6 ? +2.8 : safeRake > 4 ? +1.2 : +0.3;
+    const callAdj = safeRake > 6 ? -4.5 : safeRake > 4 ? -2.0 : -0.8;
+    const cBetAdj = safeRake > 6 ? +3.0 : safeRake > 4 ? +1.5 : +0.5;
+    const suitedAdj = safeRake > 6 ? -5.0 : safeRake > 4 ? -2.5 : -1.0;
 
     return {
-        rakePerPot: rakePerPot.toFixed(2),
-        rakePerHourBB: rakePerHourBB.toFixed(1),
-        monthlyImpactBB: (rakePerHourBB * 40).toFixed(0), // 40 hours/month
+        rakePerPot: Number.isFinite(rakePerPot) ? rakePerPot.toFixed(2) : '0.00',
+        rakePerHourBB: Number.isFinite(rakePerHourBB) ? rakePerHourBB.toFixed(1) : '0.0',
+        monthlyImpactBB: Number.isFinite(rakePerHourBB) ? (rakePerHourBB * 40).toFixed(0) : '0',
         adjustments: [
             { stat: 'Open Raise Range', adj: `${openAdj > 0 ? '+' : ''}${openAdj.toFixed(1)}%`, color: openAdj < 0 ? '#f87171' : '#4ade80', note: openAdj < 0 ? 'Tighten up — marginal opens become -EV' : 'Slightly wider' },
             { stat: '3-Bet Frequency', adj: `${threeBetAdj > 0 ? '+' : ''}${threeBetAdj.toFixed(1)}%`, color: '#4ade80', note: '3-bets reduce rake by ending hands preflop' },

@@ -58,23 +58,36 @@ const ALL_CARD_SUITS = [
 ];
 
 function classifyBoardTexture(cards) {
-    if (!cards || cards.length < 3) return 'any';
-    const suits = cards.map(c => c[1]);
-    const ranks = cards.map(c => ALL_CARD_RANKS.indexOf(c[0]));
+    if (!Array.isArray(cards) || cards.length < 3) return 'any';
+    // HARDENED: validate each card is a 2-char string with valid rank + suit
+    const validRanks = new Set(ALL_CARD_RANKS);
+    const validSuits = new Set(['h', 'd', 'c', 's']);
+    const validCards = cards.filter(c => typeof c === 'string' && c.length === 2 && validRanks.has(c[0]) && validSuits.has(c[1]));
+    if (validCards.length < 3) return 'any';
+
+    const suits = validCards.map(c => c[1]);
+    const ranks = validCards.map(c => ALL_CARD_RANKS.indexOf(c[0]));
     const uniqueSuits = new Set(suits).size;
     const hasPair = ranks.length !== new Set(ranks).size;
     const broadways = ranks.filter(r => r <= 4).length;
     const isMonotone = uniqueSuits === 1;
-    const isRainbow = uniqueSuits === cards.length;
+    const isRainbow = uniqueSuits === validCards.length;
     const maxGap = Math.max(...ranks) - Math.min(...ranks);
 
     if (isMonotone) return 'monotone';
     if (hasPair) return 'paired';
-    if (broadways >= 2 && cards.length <= 3) return 'broadway';
+    if (broadways >= 2 && validCards.length <= 3) return 'broadway';
     if (Math.max(...ranks) >= 8 && isRainbow) return 'low';
     if (maxGap <= 4 && !isRainbow) return 'wet';
     if (isRainbow && maxGap >= 6) return 'dry';
     return 'any';
+}
+
+// HARDENED: Deterministic hash for stable runout values (no flickering)
+function deterministicShift(rank, baseFreq) {
+    const RANK_OFFSETS = { A: 12, K: 8, Q: 5, J: 2, T: -1, '8': -5, '5': -8, '2': -10 };
+    const offset = RANK_OFFSETS[rank] || 0;
+    return Math.max(5, Math.min(95, Math.round(baseFreq + offset)));
 }
 
 function BoardCardSelector({ boardCards, setBoardCards }) {
@@ -369,7 +382,7 @@ function SolveResult({ heroPos, villainPos, config, result }) {
                 }}>
                     Optimal Strategy
                 </div>
-                {result.actions?.map(a => (
+                {(Array.isArray(result?.actions) ? result.actions : []).map(a => (
                     <div key={a.action} style={{
                         display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4,
                     }}>
@@ -424,15 +437,16 @@ function SolveResult({ heroPos, villainPos, config, result }) {
             )}
 
             {/* Runout Analysis */}
-            {config.boardCards && config.boardCards.filter(Boolean).length >= 3 && (
+            {Array.isArray(config?.boardCards) && config.boardCards.filter(Boolean).length >= 3 && (
                 <div style={{ marginTop: 12, padding: '12px', borderRadius: 10, background: 'rgba(0,0,0,0.15)', border: '1px solid rgba(255,255,255,0.04)' }}>
                     <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
                         🎲 Runout Strategy Shift
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
                         {['A', 'K', 'Q', 'J', 'T', '8', '5', '2'].map(rank => {
-                            const raiseShift = Math.round((Math.random() * 20 - 10) + (result.actions?.find(a => a.action === 'Raise')?.freq || 30));
-                            const betShift = Math.max(5, Math.min(95, raiseShift));
+                            const baseFreq = result?.actions?.find(a => a?.action === 'Raise')?.freq || 30;
+                            // HARDENED: deterministic values (no Math.random — prevents flickering)
+                            const betShift = deterministicShift(rank, baseFreq);
                             return (
                                 <div key={rank} style={{
                                     padding: '8px 6px', borderRadius: 6, textAlign: 'center',

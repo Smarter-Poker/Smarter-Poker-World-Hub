@@ -54,16 +54,21 @@ const DEFAULT_TREE = [
 ];
 
 function rebalanceFrequencies(actions, changedIdx) {
-    const locked = actions.filter((_, i) => actions[i].locked || i === changedIdx);
+    if (!Array.isArray(actions) || actions.length === 0) return actions || [];
+    // Clamp the changed value first
+    const clamped = actions.map((a, i) => ({
+        ...a, freq: Math.max(0, Math.min(100, Number.isFinite(a.freq) ? a.freq : 0)),
+    }));
+    const locked = clamped.filter((a, i) => a.locked || i === changedIdx);
     const lockedSum = locked.reduce((s, a) => s + a.freq, 0);
-    const unlocked = actions.filter((a, i) => !a.locked && i !== changedIdx);
+    const unlocked = clamped.filter((a, i) => !a.locked && i !== changedIdx);
 
-    if (unlocked.length === 0 || lockedSum >= 100) return actions;
+    if (unlocked.length === 0 || lockedSum >= 100) return clamped;
 
-    const remaining = 100 - lockedSum;
+    const remaining = Math.max(0, 100 - lockedSum);
     const equalShare = remaining / unlocked.length;
 
-    return actions.map((a, i) => {
+    return clamped.map((a, i) => {
         if (a.locked || i === changedIdx) return a;
         return { ...a, freq: Math.max(0, Math.round(equalShare)) };
     });

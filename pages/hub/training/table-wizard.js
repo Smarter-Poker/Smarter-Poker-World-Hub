@@ -61,7 +61,9 @@ function generateTables() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function SeatMap({ players, maxPlayers }) {
-    const seats = Array.from({ length: maxPlayers }, (_, i) => i < players);
+    const safePlayers = Math.max(0, Math.min(Number(players) || 0, 10));
+    const safeMax = Math.max(1, Math.min(Number(maxPlayers) || 9, 10));
+    const seats = Array.from({ length: safeMax }, (_, i) => i < safePlayers);
     return (
         <div style={{ display: 'flex', gap: 3 }}>
             {seats.map((occupied, i) => (
