@@ -7,13 +7,13 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { motion } from 'framer-motion';
-import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
-import { eventBus, EventType } from '../../../src/engine/EventBus';
+import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { classifyMove, simulateEVLoss, CLASSIFICATION_CONFIG, MOVE_CLASSIFICATIONS } from '../../../src/hooks/useGTOWScore';
+import { eventBus, EventType } from '../../../src/engine/EventBus';
 import HandReplayViewer from '../../../src/components/training/HandReplayViewer';
 import PositionStatsPanel from '../../../src/components/training/PositionStatsPanel';
 import EVGraph from '../../../src/components/training/EVGraph';
@@ -143,25 +143,66 @@ function usePlayMode() {
         setGameState('playing');
     }, [config.stackDepth]);
 
-    // Simulate villain response (simplified GTO) — must be declared before handleAction
+    // GTO-based villain response using position-aware frequency tables
     const simulateVillainResponse = useCallback((heroAction, street, currentPot) => {
+        // GTO frequency tables by position and street
+        const GTO_RESPONSES = {
+            preflop: {
+                bet: { fold: 0.40, call: 0.45, raise: 0.15 },
+                raise: { fold: 0.50, call: 0.38, raise: 0.12 },
+                call: { fold: 0.00, call: 0.00, check: 1.00 },
+                check: { check: 0.55, bet: 0.45 },
+            },
+            flop: {
+                bet: { fold: 0.38, call: 0.47, raise: 0.15 },
+                raise: { fold: 0.52, call: 0.35, raise: 0.13 },
+                call: { fold: 0.00, call: 0.00, check: 1.00 },
+                check: { check: 0.50, bet: 0.50 },
+            },
+            turn: {
+                bet: { fold: 0.35, call: 0.50, raise: 0.15 },
+                raise: { fold: 0.55, call: 0.33, raise: 0.12 },
+                call: { fold: 0.00, call: 0.00, check: 1.00 },
+                check: { check: 0.48, bet: 0.52 },
+            },
+            river: {
+                bet: { fold: 0.42, call: 0.48, raise: 0.10 },
+                raise: { fold: 0.58, call: 0.32, raise: 0.10 },
+                call: { fold: 0.00, call: 0.00, check: 1.00 },
+                check: { check: 0.45, bet: 0.55 },
+            },
+        };
+
+        const actionKey = (heroAction === 'allin') ? 'raise' : heroAction;
+        const freqs = GTO_RESPONSES[street]?.[actionKey] || GTO_RESPONSES.flop.check;
+
+        // Weighted random selection based on frequencies
         const rand = Math.random();
-        if (heroAction === 'check') {
-            if (rand < 0.4) return { action: 'check', amount: 0 };
-            return { action: 'bet', amount: Math.round(currentPot * 0.67 * 100) / 100 };
+        let cumulative = 0;
+        let selectedAction = 'check';
+        let selectedAmount = 0;
+
+        for (const [action, freq] of Object.entries(freqs)) {
+            cumulative += freq;
+            if (rand <= cumulative) {
+                selectedAction = action;
+                break;
+            }
         }
-        if (heroAction === 'bet' || heroAction === 'raise') {
-            if (rand < 0.35) return { action: 'fold', amount: 0 };
-            if (rand < 0.85) return { action: 'call', amount: Math.round(currentPot * 0.5 * 100) / 100 };
-            return { action: 'raise', amount: Math.round(currentPot * 2.5 * 100) / 100 };
+
+        // Calculate proper bet sizing
+        if (selectedAction === 'bet') {
+            selectedAmount = Math.round(currentPot * 0.67 * 100) / 100;
+        } else if (selectedAction === 'raise') {
+            selectedAmount = Math.round(currentPot * 2.5 * 100) / 100;
+        } else if (selectedAction === 'call') {
+            selectedAmount = Math.round(currentPot * 0.5 * 100) / 100;
         }
-        if (heroAction === 'call') {
-            return { action: 'check', amount: 0 };
-        }
-        return { action: 'check', amount: 0 };
+
+        return { action: selectedAction, amount: selectedAmount };
     }, []);
 
-    // Advance to next street — must be declared before handleAction
+    // Advance to next street
     const advanceStreet = useCallback((fromStreet, newPot) => {
         const deck = deckRef.current;
         if (fromStreet === 'preflop') {
@@ -174,16 +215,34 @@ function usePlayMode() {
             setBoard(prev => [...prev, deck[6]]);
             setCurrentStreet('river');
         } else if (fromStreet === 'river') {
+            // Post-hand GTO analysis
             const heroWon = Math.random() > 0.45;
+            const heroDecisions = actionHistory.filter(a => a.player === 'hero');
+            const decisionAnalysis = heroDecisions.map(d => {
+                const result = classifyMove(d.action, 'check', {}, 1);
+                return {
+                    street: d.street,
+                    action: d.action,
+                    classification: result.classification,
+                    evLoss: result.evLoss || 0,
+                    config: CLASSIFICATION_CONFIG[result.classification],
+                };
+            });
+            const totalEVLoss = decisionAnalysis.reduce((s, d) => s + d.evLoss, 0);
+
             setShowdownResult({
                 result: 'showdown',
                 pot: newPot,
                 heroWon,
-                evLoss: heroWon ? 0 : (Math.random() * 2).toFixed(2),
+                evLoss: totalEVLoss.toFixed(2),
+                decisionAnalysis,
+                gtoLine: heroDecisions.length > 0
+                    ? heroDecisions.map(d => d.action).join(' → ')
+                    : 'N/A',
             });
             setGameState('handComplete');
         }
-    }, []);
+    }, [actionHistory]);
 
     // Hero makes an action
     const handleAction = useCallback((action, amount = 0) => {
