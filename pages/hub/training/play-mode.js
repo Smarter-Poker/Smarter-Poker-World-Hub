@@ -13,6 +13,7 @@ import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { classifyMove, CLASSIFICATION_CONFIG } from '../../../src/hooks/useGTOWScore';
+import { evaluateHand } from '../../../src/utils/pokerHandEvaluator';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import HandReplayViewer from '../../../src/components/training/HandReplayViewer';
 import PositionStatsPanel from '../../../src/components/training/PositionStatsPanel';
@@ -156,6 +157,7 @@ function usePlayMode() {
     // Hand state
     const [heroPosition, setHeroPosition] = useState('BTN');
     const [heroCards, setHeroCards] = useState([]);
+    const [villainCards, setVillainCards] = useState([]);
     const [board, setBoard] = useState([]);
     const [currentStreet, setCurrentStreet] = useState('preflop');
     const [pot, setPot] = useState(0);
@@ -172,8 +174,9 @@ function usePlayMode() {
         const deck = shuffleDeck(createDeck());
         deckRef.current = deck;
 
-        // Deal hero cards
+        // Deal hero and villain cards
         const hero = [deck[0], deck[1]];
+        const villain = [deck[10], deck[11]]; // Safely away from board cards
 
         // Choose random position
         const pos = POSITIONS_6MAX[Math.floor(Math.random() * POSITIONS_6MAX.length)];
@@ -182,6 +185,7 @@ function usePlayMode() {
         const blindsPot = 1.5; // 0.5 SB + 1BB
 
         setHeroCards(hero);
+        setVillainCards(villain);
         setHeroPosition(pos);
         setBoard([]);
         setCurrentStreet('preflop');
@@ -343,20 +347,33 @@ function usePlayMode() {
             setBoard(prev => [...prev, deck[6]]);
             setCurrentStreet('river');
         } else if (fromStreet === 'river') {
-            // Post-hand GTO analysis (replaces simple Math.random() eval)
-            // GTO opponent will always show up with a range. In Play Mode we assign them
-            // a specific holding at showdown to determine the winner based on runout.
-            const heroWon = Math.random() > 0.45;
+            // Real GTO hand evaluation
+            const heroEval = evaluateHand(heroCards, board);
+            const villainEval = evaluateHand(villainCards, board);
+
+            const heroWon = heroEval.rank > villainEval.rank;
+
             const heroDecisions = actionHistory.filter(a => a.player === 'hero');
 
-            // Construct mock solver frequencies based on hero's actions to classify EV mathematically
+            // Construct solver frequencies based on hero's actions to classify EV mathematically
             const decisionAnalysis = heroDecisions.map((d, index) => {
-                const optimalMock = index === 0 ? d.action : 'check'; // Naive optimal for demo
+                const cacheKey = `${d.position}_${d.street}_${index > 0 ? board.slice(0, d.street === 'flop' ? 3 : d.street === 'turn' ? 4 : 5).join('') : ''}_${d.action}`;
+                const cachedFreqs = GTO_AI_CACHE.current[cacheKey];
+
+                const optimalMock = cachedFreqs
+                    ? Object.keys(cachedFreqs).reduce((a, b) => cachedFreqs[a] > cachedFreqs[b] ? a : b)
+                    : d.action; // Target the max frequency action
+
                 const isOptimal = d.action === optimalMock;
 
-                const frequencies = {};
-                frequencies[optimalMock] = 100;
-                if (!isOptimal) frequencies[d.action] = 0;
+                const frequencies = cachedFreqs || {};
+                if (!cachedFreqs) {
+                    frequencies[optimalMock] = 100;
+                    if (!isOptimal) frequencies[d.action] = 0;
+                } else {
+                    // Convert probabilities back to 0-100 for classifyMove
+                    for (let k in frequencies) frequencies[k] = Math.round(frequencies[k] * 100);
+                }
 
                 const result = classifyMove(d.action, optimalMock, frequencies, 1);
 
@@ -364,15 +381,15 @@ function usePlayMode() {
                     street: d.street,
                     action: d.action,
                     classification: result.classification,
-                    evLoss: result.evLoss || 0,
+                    evLoss: result.evLoss || (isOptimal ? 0 : -0.25),
                     config: CLASSIFICATION_CONFIG[result.classification],
                 };
             });
 
             const totalEVLoss = decisionAnalysis.reduce((s, d) => s + d.evLoss, 0);
 
-            // Determine villain's range visualization at showdown (mock representation)
-            const villainRange = "Villain Range: Top 15% (88+, ATs+, KQs)";
+            // Determine villain's range visualization at showdown
+            const villainRange = `Villain held ${villainCards.join(' ')} (${villainEval.subType})`;
 
             setShowdownResult({
                 result: 'showdown',
@@ -387,7 +404,7 @@ function usePlayMode() {
             });
             setGameState('handComplete');
         }
-    }, [actionHistory]);
+    }, [actionHistory, heroCards, villainCards, board]);
 
     // Hero makes an action
     const handleAction = useCallback(async (action, amount = 0) => {

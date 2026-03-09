@@ -336,10 +336,8 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                 const newLevel = Math.min(10, level + 1);
                 setLevel(newLevel);
                 setAdaptiveLevelChange({ from: level, to: newLevel, direction: 'up' });
-                if (typeof window !== 'undefined') {
-                    window.dispatchEvent(new CustomEvent('adaptiveDifficultyChange', {
-                        detail: { from: level, to: newLevel, direction: 'up' }
-                    }));
+                if (typeof window !== 'undefined' && window.eventBus) {
+                    window.eventBus.emit('adaptiveDifficultyChange', { from: level, to: newLevel, direction: 'up' });
                 }
                 console.log(`[GTOTrainer] 📈 Adaptive: Level ${level} → ${newLevel} (accuracy ${recentAccuracy}%)`);
             } else if (recentAccuracy < 50 && level > 1) {
@@ -347,10 +345,8 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                 const newLevel = Math.max(1, level - 1);
                 setLevel(newLevel);
                 setAdaptiveLevelChange({ from: level, to: newLevel, direction: 'down' });
-                if (typeof window !== 'undefined') {
-                    window.dispatchEvent(new CustomEvent('adaptiveDifficultyChange', {
-                        detail: { from: level, to: newLevel, direction: 'down' }
-                    }));
+                if (typeof window !== 'undefined' && window.eventBus) {
+                    window.eventBus.emit('adaptiveDifficultyChange', { from: level, to: newLevel, direction: 'down' });
                 }
                 console.log(`[GTOTrainer] 📉 Adaptive: Level ${level} → ${newLevel} (accuracy ${recentAccuracy}%)`);
             }

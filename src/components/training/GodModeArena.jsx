@@ -898,8 +898,8 @@ function GodModeArena({
 
     // Phase 8: Listen for adaptive difficulty changes
     useEffect(() => {
-        const handler = (e) => {
-            const { from, to, direction } = e.detail;
+        const handler = (eventData) => {
+            const { from, to, direction } = eventData || {};
             setAdaptiveToast({
                 message: direction === 'up'
                     ? `Difficulty increased! Level ${from} → ${to}`
@@ -908,8 +908,10 @@ function GodModeArena({
             });
             setTimeout(() => setAdaptiveToast(null), 3000);
         };
-        window.addEventListener('adaptiveDifficultyChange', handler);
-        return () => window.removeEventListener('adaptiveDifficultyChange', handler);
+        if (typeof window !== 'undefined' && window.eventBus) {
+            window.eventBus.on('adaptiveDifficultyChange', handler);
+            return () => window.eventBus.off('adaptiveDifficultyChange', handler);
+        }
     }, []);
 
     // Auto-transition to review when game completes + emit bus event
