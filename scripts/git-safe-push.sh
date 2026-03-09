@@ -1,19 +1,23 @@
 #!/usr/bin/env bash
 # ═══════════════════════════════════════════════════════════════════════════════
-# git-safe-push.sh — Fully Autonomous Git Push for AI Agents
+# git-safe-push.sh v4.0 — Fully Autonomous Git Push for AI Agents
 # ═══════════════════════════════════════════════════════════════════════════════
 #
 # USAGE:
-#   bash scripts/git-safe-push.sh                     # defaults: "Daily update", main, origin
-#   bash scripts/git-safe-push.sh "feat: new feature" # custom message
-#   bash scripts/git-safe-push.sh "fix: bug" develop  # custom branch
+#   bash scripts/git-safe-push.sh                       # defaults: "Daily update", main, origin
+#   bash scripts/git-safe-push.sh "feat: new feature"   # custom message
+#   bash scripts/git-safe-push.sh "fix: bug" develop    # custom branch
+#   bash scripts/git-safe-push.sh --dry-run "msg"       # show what would happen
+#
+# FLAGS:
+#   --dry-run     Show what would be committed/pushed without doing it
 #
 # This script is designed to NEVER require human intervention.
 # It handles: stale locks, ghost files, dirty trees, rebase conflicts,
-# push rejections, and concurrent agent collisions.
+# push rejections, concurrent agent collisions, and .env leak prevention.
 #
 # EXIT CODES:
-#   0 = success
+#   0 = success (or dry-run complete)
 #   1 = fatal error (not a git repo)
 #   2 = push failed after all retries
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -26,11 +30,22 @@
 # Using set -e would cause premature script termination on expected outcomes.
 set -u  # Only catch unset variables
 
-MSG="${1:-Daily update}"
-BRANCH="${2:-main}"
-REMOTE="${3:-origin}"
+# ── Parse flags ──
+DRY_RUN=false
+POSITIONAL=()
+for arg in "$@"; do
+    case "$arg" in
+        --dry-run) DRY_RUN=true ;;
+        *) POSITIONAL+=("$arg") ;;
+    esac
+done
+
+MSG="${POSITIONAL[0]:-Daily update}"
+BRANCH="${POSITIONAL[1]:-main}"
+REMOTE="${POSITIONAL[2]:-origin}"
 MAX_RETRIES=5
 LOCK_FILE=""
+TOTAL_START=$(date +%s)
 
 # ── Resolve repo root and cd into it ──
 # The script may be called from any directory (e.g. /tmp by an agent).
@@ -52,9 +67,9 @@ if [ -f "$LOCK_FILE" ]; then
   existing_pid="$(cat "$LOCK_FILE" 2>/dev/null || echo "")"
   # Check if the process that created the lock is still alive
   if [ -n "$existing_pid" ] && kill -0 "$existing_pid" 2>/dev/null; then
-    echo "⏳ Another git-safe-push is running (PID ${existing_pid}). Waiting up to 30s..."
+    echo "⏳ Another git-safe-push is running (PID ${existing_pid}). Waiting up to 60s..."
     wait_count=0
-    while [ -f "$LOCK_FILE" ] && kill -0 "$existing_pid" 2>/dev/null && [ $wait_count -lt 15 ]; do
+    while [ -f "$LOCK_FILE" ] && kill -0 "$existing_pid" 2>/dev/null && [ $wait_count -lt 30 ]; do
       sleep 2
       wait_count=$((wait_count + 1))
     done
@@ -66,15 +81,51 @@ echo $$ > "$LOCK_FILE"
 trap 'rm -f "$LOCK_FILE" 2>/dev/null' EXIT INT TERM HUP
 
 echo "═══════════════════════════════════════════════════"
-echo "🤖 git-safe-push v3.0 — Autonomous Agent Push"
+echo "🤖 git-safe-push v4.0 — Autonomous Agent Push"
 echo "   Repo:    ${REPO_ROOT}"
 echo "   Message: ${MSG}"
 echo "   Target:  ${REMOTE}/${BRANCH}"
+if [ "$DRY_RUN" = true ]; then
+  echo "   Mode:    🔍 DRY RUN"
+fi
 echo "═══════════════════════════════════════════════════"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PHASE 0: .ENV SAFETY CHECK
+# ═══════════════════════════════════════════════════════════════════════════════
+
+echo ""
+echo "🛡️  Phase 0: .env safety check..."
+
+# Check if .env files are staged for commit
+ENV_STAGED=$(git diff --cached --name-only 2>/dev/null | grep -E '\.env(\.|$)' || true)
+
+if [ -n "$ENV_STAGED" ]; then
+    echo "⚠️  WARNING: .env files are staged for commit:"
+    echo "   $ENV_STAGED"
+    echo "   Unstaging .env files to prevent credential leaks..."
+    echo "$ENV_STAGED" | while IFS= read -r f; do
+        [ -n "$f" ] && git reset HEAD "$f" 2>/dev/null || true
+    done
+fi
+
+# Verify .gitignore contains .env patterns
+if [ -f ".gitignore" ]; then
+    if ! grep -q '\.env' .gitignore 2>/dev/null; then
+        echo "⚠️  WARNING: .gitignore does not contain .env patterns!"
+        echo "   Consider adding: .env*"
+    fi
+fi
+
+echo "✅ .env safety check passed"
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # PHASE 1: CLEAN THE ENVIRONMENT
 # ═══════════════════════════════════════════════════════════════════════════════
+
+PHASE1_START=$(date +%s)
+echo ""
+echo "🧹 Phase 1: Cleaning environment..."
 
 # 1a. Remove stale lock files from crashed git processes
 for lock in "${GIT_DIR}/HEAD.lock" "${GIT_DIR}/index.lock"; do
@@ -109,27 +160,37 @@ if [ -f "${GIT_DIR}/CHERRY_PICK_HEAD" ]; then
   git cherry-pick --abort 2>/dev/null || true
 fi
 
-echo "✅ Environment clean"
+PHASE1_END=$(date +%s)
+echo "✅ Environment clean ($(( PHASE1_END - PHASE1_START ))s)"
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # PHASE 2: STAGE AND COMMIT EVERYTHING
 # ═══════════════════════════════════════════════════════════════════════════════
 
+PHASE2_START=$(date +%s)
 echo ""
-echo "🔄 Staging all changes..."
+echo "🔄 Phase 2: Staging and committing..."
 git add -A
 
 # Check if there's actually anything to commit
 if git diff --cached --quiet 2>/dev/null; then
   echo "ℹ️  No staged changes to commit."
 else
-  echo "💾 Committing: ${MSG}"
-  GIT_EDITOR=true git commit -m "${MSG}" 2>/dev/null || echo "ℹ️  Commit returned non-zero (may be empty)"
+  if [ "$DRY_RUN" = true ]; then
+    echo "🔍 [DRY RUN] Would commit with message: ${MSG}"
+    echo "   Changed files:"
+    git diff --cached --stat 2>/dev/null | sed 's/^/   /'
+    # Unstage so we don't leave the repo in a dirty cached state
+    git reset HEAD 2>/dev/null || true
+  else
+    echo "💾 Committing: ${MSG}"
+    GIT_EDITOR=true git commit -m "${MSG}" 2>/dev/null || echo "ℹ️  Commit returned non-zero (may be empty)"
+  fi
 fi
 
 # 2b. Ghost file sweep — catch files regenerated between add and commit
 #     (e.g., service workers, .next build cache, etc.)
-if [ -n "$(git status --porcelain 2>/dev/null)" ]; then
+if [ "$DRY_RUN" = false ] && [ -n "$(git status --porcelain 2>/dev/null)" ]; then
   echo "👻 Ghost files detected after commit. Re-staging..."
   git add -A
   # Amend if we have a commit, otherwise create new
@@ -140,17 +201,33 @@ if [ -n "$(git status --porcelain 2>/dev/null)" ]; then
 fi
 
 # 2c. FINAL dirty check — if STILL dirty (rogue file watcher), force clean
-if [ -n "$(git status --porcelain 2>/dev/null)" ]; then
+if [ "$DRY_RUN" = false ] && [ -n "$(git status --porcelain 2>/dev/null)" ]; then
   echo "👻 Persistent ghost files. Adding to temporary stash..."
   git stash push -u -m "git-safe-push-auto-$(date +%s)" 2>/dev/null || true
 fi
 
-echo "✅ Working tree clean"
+PHASE2_END=$(date +%s)
+echo "✅ Working tree clean ($(( PHASE2_END - PHASE2_START ))s)"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DRY RUN EXIT
+# ═══════════════════════════════════════════════════════════════════════════════
+if [ "$DRY_RUN" = true ]; then
+  COMMIT_SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "N/A")
+  echo ""
+  echo "═══════════════════════════════════════════════════"
+  echo "🔍 DRY RUN COMPLETE — No push was made"
+  echo "   HEAD:    ${COMMIT_SHA}"
+  echo "   Target:  ${REMOTE}/${BRANCH}"
+  echo "═══════════════════════════════════════════════════"
+  exit 0
+fi
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # PHASE 3: PULL-REBASE AND PUSH (with retries)
 # ═══════════════════════════════════════════════════════════════════════════════
 
+PHASE3_START=$(date +%s)
 attempt=0
 
 while [ $attempt -lt $MAX_RETRIES ]; do
@@ -237,9 +314,20 @@ while [ $attempt -lt $MAX_RETRIES ]; do
   # ── PUSH ──
   echo "🚀 Pushing to ${REMOTE}/${BRANCH}..."
   if git push "${REMOTE}" "${BRANCH}" 2>&1; then
+    PHASE3_END=$(date +%s)
+    TOTAL_END=$(date +%s)
+    COMMIT_SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "N/A")
     echo ""
     echo "═══════════════════════════════════════════════════"
     echo "✅ Push successful!"
+    echo "═══════════════════════════════════════════════════"
+    echo "PUSH_OK:true"
+    echo "COMMIT_SHA:${COMMIT_SHA}"
+    echo "BRANCH:${BRANCH}"
+    echo "PHASE1_DURATION:$(( PHASE1_END - PHASE1_START ))s"
+    echo "PHASE2_DURATION:$(( PHASE2_END - PHASE2_START ))s"
+    echo "PHASE3_DURATION:$(( PHASE3_END - PHASE3_START ))s"
+    echo "TOTAL_DURATION:$(( TOTAL_END - TOTAL_START ))s"
     echo "═══════════════════════════════════════════════════"
     exit 0
   else
@@ -251,8 +339,11 @@ while [ $attempt -lt $MAX_RETRIES ]; do
   fi
 done
 
+TOTAL_END=$(date +%s)
 echo ""
 echo "═══════════════════════════════════════════════════"
 echo "❌ Push failed after ${MAX_RETRIES} attempts."
+echo "PUSH_OK:false"
+echo "TOTAL_DURATION:$(( TOTAL_END - TOTAL_START ))s"
 echo "═══════════════════════════════════════════════════"
 exit 2

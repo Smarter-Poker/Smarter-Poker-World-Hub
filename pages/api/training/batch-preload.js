@@ -8,6 +8,9 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { deterministicEngine } from '../../../src/engines/DeterministicGTOEngine';
+import { pioQueryService } from '../../../src/services/PIOQueryService';
+import { getGameConfig as getGameCfg } from '../../../src/config/gameConfigs';
 
 // ── Deterministic hash for seeded fallback data (avoids Math.random in data gen) ──
 function hashSeed(str) {
@@ -61,15 +64,84 @@ export default async function handler(req, res) {
 
         if (error) {
             console.error('[BatchPreload] Supabase error:', error);
-            return res.status(500).json({ success: false, error: 'Failed to fetch questions' });
+            // Don't return 500 — fall through to solver engine
         }
 
-        if (!questions || questions.length === 0) {
+        // ═══════════════════════════════════════════════════════════════════
+        // SOLVER ENGINE FALLBACK: If cache is empty or insufficient,
+        // generate LIVE questions from DeterministicGTOEngine (187k+ records)
+        // ═══════════════════════════════════════════════════════════════════
+        const cachedQuestions = questions || [];
+        let solverQuestions = [];
+
+        if (cachedQuestions.length < questionCount) {
+            const pioConfig = pioQueryService.getGameConfig(gameId);
+            const gameCfg = getGameCfg(gameId);
+
+            if (pioConfig && pioConfig.sourceOfTruth !== 'SCENARIO') {
+                // PIO/CHART ENGINE: Generate from real solver data
+                try {
+                    const needed = questionCount - cachedQuestions.length;
+                    const batch = await deterministicEngine.generateBatch({
+                        gameId,
+                        level: gameLevel,
+                        count: needed,
+                        gameConfig: pioConfig,
+                    });
+                    if (batch && batch.length > 0) {
+                        solverQuestions = batch.map(q => ({ question_data: q }));
+                        console.log(`[BatchPreload] ✅ DeterministicEngine generated ${batch.length} solver questions for ${gameId}`);
+                    }
+                } catch (solverErr) {
+                    console.error('[BatchPreload] ⚠️ Solver engine failed:', solverErr.message);
+                }
+            } else if (gameCfg?.engine === 'SCENARIO' || pioConfig?.sourceOfTruth === 'SCENARIO') {
+                // SCENARIO/PSYCHOLOGY: Generate via Grok AI when cache is empty
+                try {
+                    const { getGrokClient } = await import('../../../src/lib/grokClient');
+                    const grok = getGrokClient();
+                    const TRAINING_LIBRARY = require('../../../src/data/TRAINING_LIBRARY').default;
+                    const game = TRAINING_LIBRARY.find(g => g.id === gameId);
+                    const gameName = game?.name || 'Training Game';
+                    const gameFocus = game?.focus || 'poker psychology';
+                    const needed = questionCount - cachedQuestions.length;
+
+                    for (let i = 0; i < Math.min(needed, 10); i++) {
+                        try {
+                            const prompt = `You are an elite poker mental game coach. Generate a unique PSYCHOLOGY training question #${i + 1} for "${gameName}" focusing on: ${gameFocus}. Difficulty: ${gameLevel}/10.\n\nGenerate in this EXACT JSON format (no markdown):\n{"id":"grok_${gameId}_${Date.now()}_${i}","type":"SCENARIO","source":"GROK_GTO","question":"...","scenario":{"title":"${gameName}","context":"...","isPsychology":true,"heroPosition":"BTN","villainPosition":"BB","pot":12,"heroStack":100,"villainStack":100,"street":"flop"},"options":[{"id":"a","text":"..."},{"id":"b","text":"..."},{"id":"c","text":"..."},{"id":"d","text":"..."}],"correctAnswer":"b","explanation":"..."}`;
+                            const resp = await grok.chat.completions.create({
+                                model: 'grok-3', messages: [{ role: 'user', content: prompt }],
+                                temperature: 0.9, max_tokens: 600,
+                            });
+                            const content = resp.choices[0]?.message?.content || '';
+                            const jsonMatch = content.match(/\{[\s\S]*\}/);
+                            if (jsonMatch) {
+                                const parsed = JSON.parse(jsonMatch[0]);
+                                if (parsed.scenario) parsed.scenario.isPsychology = true;
+                                solverQuestions.push({ question_data: parsed });
+                            }
+                        } catch (grokErr) {
+                            console.warn('[BatchPreload] Grok question gen failed:', grokErr.message);
+                        }
+                    }
+                    if (solverQuestions.length > 0) {
+                        console.log(`[BatchPreload] ✅ Grok generated ${solverQuestions.length} psychology questions for ${gameId}`);
+                    }
+                } catch (grokImportErr) {
+                    console.error('[BatchPreload] ⚠️ Grok import failed:', grokImportErr.message);
+                }
+            }
+        }
+
+        // Merge cached + solver-generated questions
+        const allQuestions = [...cachedQuestions, ...solverQuestions];
+
+        if (allQuestions.length === 0) {
             return res.status(404).json({ success: false, error: 'No questions available for this game/level' });
         }
 
         // BUG-03 FIX: Use Fisher-Yates shuffle (sort-based shuffle is biased in V8 TimSort)
-        const shuffled = [...questions];
+        const shuffled = [...allQuestions];
         for (let i = shuffled.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];

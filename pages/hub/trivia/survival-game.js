@@ -369,11 +369,33 @@ export default function SurvivalGamePage() {
     async function startLevel(level) {
         // Per-game diamond gate (VIP bypass) — only charge on level 1 (start of a new run)
         if (level === 1 && !isVip && userId) {
+            // Fresh balance check from DB to avoid stale-state false negatives
+            let freshBalance = userDiamonds;
+            try {
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('diamonds')
+                    .eq('id', userId)
+                    .maybeSingle();
+                if (profile) {
+                    freshBalance = profile.diamonds || 0;
+                    setUserDiamonds(freshBalance);
+                }
+            } catch (e) {
+                console.error('[Survival] Balance check failed:', e);
+            }
+
+            if (freshBalance < 10) {
+                setShowOutOfDiamonds(true);
+                return;
+            }
+
             const result = await DiamondEngine.deduct(10, 'trivia_survival_game');
             if (!result.success) {
                 setShowOutOfDiamonds(true);
                 return;
             }
+            if (result.balance !== undefined) setUserDiamonds(result.balance);
         }
         setCurrentLevel(level);
         setCurrentQuestionIndex(0);
@@ -447,7 +469,7 @@ export default function SurvivalGamePage() {
     async function useSkipQuestion() {
         if (showResult || skipUsedThisQuestion) return;
         if (lifelinesUsedThisLevel >= MAX_LIFELINES_PER_LEVEL) {
-            alert(`Lifeline limit reached! Only ${MAX_LIFELINES_PER_LEVEL} lifelines per level.`);
+            // Lifeline limit reached — silently prevent
             return;
         }
         if (userDiamonds < LIFELINE_COST) {
@@ -494,7 +516,7 @@ export default function SurvivalGamePage() {
     async function useDoubleChance() {
         if (showResult || doubleChanceUsedThisQuestion || doubleChanceActive) return;
         if (lifelinesUsedThisLevel >= MAX_LIFELINES_PER_LEVEL) {
-            alert(`Lifeline limit reached! Only ${MAX_LIFELINES_PER_LEVEL} lifelines per level.`);
+            // Lifeline limit reached — silently prevent
             return;
         }
         if (userDiamonds < LIFELINE_COST) {

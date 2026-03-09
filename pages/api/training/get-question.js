@@ -118,14 +118,8 @@ export default async function handler(req, res) {
                 // SCENARIO ENGINE: Mental Game / Psychology - Uses Grok AI
                 question = await generateQuestionWithGrok(gameId, 'SCENARIO', level, gameType, game, gameConfig);
 
-            } else if (preferredEngine === 'CHART') {
-                // CHART ENGINE: Push/Fold Charts - Uses memory_charts_gold
-                question = await generateQuestionFromChart(gameId, level, game, stackDepth);
-
-                // Fallback to Grok for ICM/push-fold questions if no chart data
-                if (!question) {
-                    question = await generateChartQuestionWithGrok(gameId, level, game, gameConfig);
-                }
+                // CHART ENGINE: Handled by DeterministicGTOEngine.generateFromCharts() in STEP 3
+                // (Legacy generateQuestionFromChart/generateChartQuestionWithGrok were removed in Phase 28)
 
             } else {
                 // PIO ENGINE: GTO Solver Data (Default)

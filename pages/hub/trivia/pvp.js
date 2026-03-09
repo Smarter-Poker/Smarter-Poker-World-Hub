@@ -56,6 +56,7 @@ export default function PvPPage() {
     const [opponent, setOpponent] = useState(null);
     const [result, setResult] = useState(null);
     const [stats, setStats] = useState({ wins: 0, losses: 0 });
+    const [showOutOfDiamonds, setShowOutOfDiamonds] = useState(false);
     const [matchId, setMatchId] = useState(null);
     const [isPlayer1, setIsPlayer1] = useState(false);
 
@@ -209,7 +210,7 @@ export default function PvPPage() {
 
     async function handleFindMatch(stake) {
         if (userDiamonds < stake) {
-            alert('Not enough diamonds!');
+            setShowOutOfDiamonds(true);
             return;
         }
 
@@ -416,7 +417,7 @@ export default function PvPPage() {
 
         await leaveMatchmakingQueue(userId);
         setGameState('lobby');
-        alert('Unable to start match. Please try again!');
+        console.error('[PVP] Unable to start match — returned to lobby.');
     }
 
     async function handleCancelSearch() {
@@ -727,6 +728,21 @@ export default function PvPPage() {
             <div className="pvp-page">
                 <div className="bg-overlay" />
                 <UniversalHeader pageDepth={2} />
+
+                {/* Out of Diamonds Modal */}
+                {showOutOfDiamonds && (
+                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div style={{ background: '#1a1a2e', borderRadius: 16, padding: 32, maxWidth: 340, textAlign: 'center', border: '1px solid rgba(0,212,255,0.3)' }}>
+                            <div style={{ fontSize: 48, marginBottom: 16 }}>💎</div>
+                            <h3 style={{ color: '#fff', margin: '0 0 12px' }}>Not Enough Diamonds</h3>
+                            <p style={{ color: 'rgba(255,255,255,0.6)', margin: '0 0 20px', fontSize: 14 }}>You don't have enough diamonds for this stake. Visit the Diamond Store to get more!</p>
+                            <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+                                <button onClick={() => setShowOutOfDiamonds(false)} style={{ padding: '10px 20px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, color: '#fff', cursor: 'pointer' }}>Close</button>
+                                <button onClick={() => router.push('/hub/diamond-store')} style={{ padding: '10px 20px', background: 'linear-gradient(135deg, #00D4FF, #7B2FFF)', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', fontWeight: 600 }}>Get Diamonds</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <div className="content">
                     {/* Stats Bar - only visible during gameplay */}

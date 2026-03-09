@@ -213,6 +213,7 @@ export default function StrategyTrivia({ mode }) {
 
     // Game state
     const [gameState, setGameState] = useState('lobby'); // lobby, playing, results
+    const [showOutOfDiamonds, setShowOutOfDiamonds] = useState(false);
     const [questions, setQuestions] = useState([]);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [selectedAnswer, setSelectedAnswer] = useState(null);
@@ -489,12 +490,44 @@ export default function StrategyTrivia({ mode }) {
     }
 
     async function startGame() {
-        // Per-game diamond cost for non-VIP users
-        if (!isVip && userId) {
+        // ═══════════════════════════════════════════════════════════════
+        // HOTFIX: Check if this game was already paid for via TriviaLobby
+        // payment modal. If so, skip the deduction and clear the flag.
+        // ═══════════════════════════════════════════════════════════════
+        const alreadyPaid = sessionStorage.getItem('trivia_paid') === 'true'
+            && sessionStorage.getItem('trivia_mode') === mode;
+        if (alreadyPaid) {
+            sessionStorage.removeItem('trivia_paid');
+            sessionStorage.removeItem('trivia_mode');
+        }
+
+        // Per-game diamond cost for non-VIP users (skip if already paid)
+        if (!alreadyPaid && !isVip && userId) {
+            // Fresh balance check from DB to avoid stale-state false negatives
+            let freshBalance = userDiamonds;
+            try {
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('diamonds')
+                    .eq('id', userId)
+                    .maybeSingle();
+                if (profile) {
+                    freshBalance = profile.diamonds || 0;
+                    setUserDiamonds(freshBalance);
+                }
+            } catch (e) {
+                console.error('[StrategyTrivia] Balance check failed:', e);
+            }
+
+            if (freshBalance < GAME_DIAMOND_COST) {
+                setShowOutOfDiamonds(true);
+                return;
+            }
+
             await DiamondEngine.init(userId);
             const result = await DiamondEngine.deduct(GAME_DIAMOND_COST, 'game_cost', { mode, game: 'trivia' });
             if (!result.success) {
-                alert(`Not enough diamonds! You need ${GAME_DIAMOND_COST}💎 to play. Visit the Diamond Store to get more.`);
+                setShowOutOfDiamonds(true);
                 return;
             }
             if (result.balance !== undefined) setUserDiamonds(result.balance);
@@ -628,7 +661,7 @@ export default function StrategyTrivia({ mode }) {
     async function useFiftyFifty() {
         if (fiftyFiftyUsed || lifelinesUsedCount >= MAX_LIFELINES) return;
         if (userDiamonds < LIFELINE_COST) {
-            alert('Not enough diamonds!');
+            setShowOutOfDiamonds(true);
             return;
         }
 
@@ -665,7 +698,7 @@ export default function StrategyTrivia({ mode }) {
     async function useSkip() {
         if (skipUsed || lifelinesUsedCount >= MAX_LIFELINES) return;
         if (userDiamonds < LIFELINE_COST) {
-            alert('Not enough diamonds!');
+            setShowOutOfDiamonds(true);
             return;
         }
 
@@ -725,6 +758,21 @@ export default function StrategyTrivia({ mode }) {
 
             <div className="strategy-trivia">
                 <UniversalHeader pageDepth={2} />
+
+                {/* Out of Diamonds Modal */}
+                {showOutOfDiamonds && (
+                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div style={{ background: '#1a1a2e', borderRadius: 16, padding: 32, maxWidth: 340, textAlign: 'center', border: '1px solid rgba(0,212,255,0.3)' }}>
+                            <div style={{ fontSize: 48, marginBottom: 16 }}>💎</div>
+                            <h3 style={{ color: '#fff', margin: '0 0 12px' }}>Not Enough Diamonds</h3>
+                            <p style={{ color: 'rgba(255,255,255,0.6)', margin: '0 0 20px', fontSize: 14 }}>You need {GAME_DIAMOND_COST}💎 to play. Visit the Diamond Store to get more!</p>
+                            <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+                                <button onClick={() => setShowOutOfDiamonds(false)} style={{ padding: '10px 20px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, color: '#fff', cursor: 'pointer' }}>Close</button>
+                                <button onClick={() => router.push('/hub/diamond-store')} style={{ padding: '10px 20px', background: 'linear-gradient(135deg, #00D4FF, #7B2FFF)', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', fontWeight: 600 }}>Get Diamonds</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* One-time diamond cost popup for non-VIP users */}
                 <GameCostPopup

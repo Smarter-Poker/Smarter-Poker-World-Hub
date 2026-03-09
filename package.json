@@ -10,7 +10,10 @@
     "start": "next start",
     "ingest:us-events": "npx ts-node --esm src/ingest_us_events/run.ts",
     "warm-geeves": "node scripts/warmGeevesCache.js",
-    "db:push": "node scripts/antigravity_sql_push.js"
+    "db:push": "node scripts/antigravity_sql_push.js",
+    "deploy": "bash scripts/antigravity-deploy.sh",
+    "push": "bash scripts/git-safe-push.sh",
+    "lint": "next lint"
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",

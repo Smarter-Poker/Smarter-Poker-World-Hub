@@ -360,6 +360,17 @@ export class PIOQueryService {
             'adv-018': { id: 'adv-018', sourceOfTruth: 'PioSOLVER', pioGameType: 'postflop_complete', pioStackDepth: 100 }, // Alpha Bluffs
             'adv-019': { id: 'adv-019', sourceOfTruth: 'PioSOLVER', pioGameType: 'postflop_complete', pioStackDepth: 100 }, // Solver Scripts
             'adv-020': { id: 'adv-020', sourceOfTruth: 'PioSOLVER', pioGameType: 'postflop_complete', pioStackDepth: 100 }, // GTO Apex
+
+            // ═══════════════════════════════════════════════════════════════
+            // SPECIAL GAMES (Additional games in TRAINING_LIBRARY)
+            // ═══════════════════════════════════════════════════════════════
+            'tournament-prep': { id: 'tournament-prep', sourceOfTruth: 'PioSOLVER', pioGameType: 'mtt_9max_icm', pioStackDepth: 40 }, // ICM Structure Planner
+            'final-table-sim': { id: 'final-table-sim', sourceOfTruth: 'PioSOLVER', pioGameType: 'mtt_9max_icm', pioStackDepth: 60 }, // ICM $Equity Analysis
+            'quiz-gauntlet': { id: 'quiz-gauntlet', sourceOfTruth: 'PioSOLVER', pioGameType: 'postflop_complete', pioStackDepth: 100 }, // High-speed GTO blitz
+            'hand-lab': { id: 'hand-lab', sourceOfTruth: 'PioSOLVER', pioGameType: 'postflop_complete', pioStackDepth: 100 }, // Interactive Equity Builder
+            'bluff-catcher': { id: 'bluff-catcher', sourceOfTruth: 'PioSOLVER', pioGameType: 'postflop_complete', pioStackDepth: 100 }, // MDF & Hand Reading
+            'mixed-strategy-lab': { id: 'mixed-strategy-lab', sourceOfTruth: 'PioSOLVER', pioGameType: 'postflop_complete', pioStackDepth: 100 }, // Frequency EV Visualizer
+            'study-group': { id: 'study-group', sourceOfTruth: 'PioSOLVER', pioGameType: 'postflop_complete', pioStackDepth: 100 }, // Collaborative Hand Review
         };
 
         return configs[gameId] || null;

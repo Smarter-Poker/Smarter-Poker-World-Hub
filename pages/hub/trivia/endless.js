@@ -217,11 +217,33 @@ export default function EndlessModePage() {
     async function startGame() {
         // Per-game diamond gate (VIP bypass)
         if (!isVip && userId) {
+            // Fresh balance check from DB to avoid stale-state false negatives
+            let freshBalance = userDiamonds;
+            try {
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('diamonds')
+                    .eq('id', userId)
+                    .maybeSingle();
+                if (profile) {
+                    freshBalance = profile.diamonds || 0;
+                    setUserDiamonds(freshBalance);
+                }
+            } catch (e) {
+                console.error('[Endless] Balance check failed:', e);
+            }
+
+            if (freshBalance < 10) {
+                setShowOutOfDiamonds(true);
+                return;
+            }
+
             const result = await DiamondEngine.deduct(10, 'trivia_endless');
             if (!result.success) {
                 setShowOutOfDiamonds(true);
                 return;
             }
+            if (result.balance !== undefined) setUserDiamonds(result.balance);
         }
         setGameState('playing');
         setStreak(0);
@@ -372,7 +394,7 @@ export default function EndlessModePage() {
     async function useSkipQuestion() {
         if (showResult || skipUsedThisQuestion) return;
         if (lifelinesUsedThisGame >= MAX_LIFELINES_PER_GAME) {
-            alert(`Lifeline limit reached! Only ${MAX_LIFELINES_PER_GAME} lifelines per game.`);
+            // Lifeline limit reached — silently prevent
             return;
         }
         if (userDiamonds < LIFELINE_COST) {
@@ -418,7 +440,7 @@ export default function EndlessModePage() {
     async function useDoubleChance() {
         if (showResult || doubleChanceUsedThisQuestion || doubleChanceActive) return;
         if (lifelinesUsedThisGame >= MAX_LIFELINES_PER_GAME) {
-            alert(`Lifeline limit reached! Only ${MAX_LIFELINES_PER_GAME} lifelines per game.`);
+            // Lifeline limit reached — silently prevent
             return;
         }
         if (userDiamonds < LIFELINE_COST) {

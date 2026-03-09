@@ -1,73 +1,109 @@
 #!/bin/bash
 # ═══════════════════════════════════════════════════════════════════════════
-# ANTI-GRAVITY AUTO-DEPLOY SCRIPT
+# ANTI-GRAVITY AUTO-DEPLOY SCRIPT v2.0
 # ═══════════════════════════════════════════════════════════════════════════
-# Atomic deployment across: Supabase, GitHub, Vercel, DigitalOcean
+# Atomic deployment across: Supabase SQL, GitHub, Vercel
+# Delegates to hardened sub-scripts for reliability.
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# USAGE:
+#   bash scripts/antigravity-deploy.sh                          # full deploy
+#   bash scripts/antigravity-deploy.sh "feat: my feature"       # custom commit msg
+#   bash scripts/antigravity-deploy.sh --skip-sql               # skip DB phase
+#   bash scripts/antigravity-deploy.sh --skip-vercel            # skip Vercel phase
+#
+# EXIT CODES:
+#   0 = all phases passed
+#   1 = one or more phases failed (see summary)
 # ═══════════════════════════════════════════════════════════════════════════
 
-set -e  # Exit on any error
+# Do NOT use set -e — we handle errors per-phase
+set -u
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="${SCRIPT_DIR}/.."
+TOTAL_START=$(date +%s)
+
+# ── Parse args ──
+COMMIT_MSG=""
+SKIP_SQL=false
+SKIP_VERCEL=false
+for arg in "$@"; do
+    case "$arg" in
+        --skip-sql) SKIP_SQL=true ;;
+        --skip-vercel) SKIP_VERCEL=true ;;
+        *) [ -z "$COMMIT_MSG" ] && COMMIT_MSG="$arg" ;;
+    esac
+done
+COMMIT_MSG="${COMMIT_MSG:-chore: Anti-Gravity auto-deploy $(date +%Y%m%d-%H%M%S)}"
+
+# ── Status tracking ──
+SQL_OK="skipped"
+GIT_OK="false"
+VERCEL_OK="skipped"
 
 echo "═══════════════════════════════════════════════════════════════"
-echo "🚀 ANTI-GRAVITY AUTO-DEPLOY INITIATED"
+echo "🚀 ANTI-GRAVITY AUTO-DEPLOY v2.0"
 echo "═══════════════════════════════════════════════════════════════"
-echo "Timestamp: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+echo "   Timestamp: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+echo "   Project:   ${PROJECT_ROOT}"
+echo "   Message:   ${COMMIT_MSG}"
+echo "═══════════════════════════════════════════════════════════════"
 echo ""
 
 # ═══════════════════════════════════════════════════════════════════════════
-# PHASE 1: SUPABASE MIGRATION
+# PHASE 1: SUPABASE SQL MIGRATION
 # ═══════════════════════════════════════════════════════════════════════════
-echo "📊 PHASE 1: SUPABASE MIGRATION"
+echo "📊 PHASE 1: SUPABASE SQL MIGRATION"
 echo "───────────────────────────────────────────────────────────────"
 
-# Check if migration file exists
-MIGRATION_FILE="/Users/smarter.poker/Documents/hub-vanguard/migrations/create_posts_tables.sql"
-
-if [ -f "$MIGRATION_FILE" ]; then
-    echo "✓ Migration file found: $MIGRATION_FILE"
-    echo "Executing SQL via Supabase API..."
-    
-    # Use Supabase REST API to execute SQL
-    SUPABASE_URL="https://kuklfnapbkmacvwxktbh.supabase.co"
-    SUPABASE_SERVICE_KEY="${SUPABASE_SERVICE_ROLE_KEY:-}"
-    
-    if [ -z "$SUPABASE_SERVICE_KEY" ]; then
-        echo "⚠ SUPABASE_SERVICE_ROLE_KEY not set - Skipping direct SQL execution"
-        echo "  Migration SQL is ready at: $MIGRATION_FILE"
-    else
-        curl -X POST "$SUPABASE_URL/rest/v1/rpc/exec_sql" \
-            -H "apikey: $SUPABASE_SERVICE_KEY" \
-            -H "Authorization: Bearer $SUPABASE_SERVICE_KEY" \
-            -H "Content-Type: application/json" \
-            -d "{\"query\": \"$(cat $MIGRATION_FILE | tr '\n' ' ')\"}"
-        echo "✅ Supabase migration executed"
-    fi
+if [ "$SKIP_SQL" = true ]; then
+    echo "   ⏭️  Skipped (--skip-sql)"
 else
-    echo "⚠ No migration file found at $MIGRATION_FILE"
+    # Look for pending migrations in the standard locations
+    MIGRATION_DIRS=(
+        "${PROJECT_ROOT}/supabase/migrations"
+        "${PROJECT_ROOT}/database/migrations"
+        "${PROJECT_ROOT}/migrations"
+    )
+
+    FOUND_MIGRATIONS=false
+    for mdir in "${MIGRATION_DIRS[@]}"; do
+        if [ -d "$mdir" ]; then
+            SQL_COUNT=$(find "$mdir" -name '*.sql' -maxdepth 1 2>/dev/null | wc -l | tr -d ' ')
+            if [ "$SQL_COUNT" -gt 0 ]; then
+                echo "   Found ${SQL_COUNT} SQL file(s) in ${mdir}"
+                if node "${SCRIPT_DIR}/antigravity_sql_push.js" "$mdir"; then
+                    SQL_OK="true"
+                else
+                    SQL_OK="false"
+                    echo "   ⚠️  SQL migration had errors (non-fatal, continuing)"
+                fi
+                FOUND_MIGRATIONS=true
+                break
+            fi
+        fi
+    done
+
+    if [ "$FOUND_MIGRATIONS" = false ]; then
+        echo "   ℹ️  No pending SQL migrations found."
+        SQL_OK="none"
+    fi
 fi
 echo ""
 
 # ═══════════════════════════════════════════════════════════════════════════
-# PHASE 2: GITHUB SYNC
+# PHASE 2: GITHUB SYNC (via git-safe-push.sh)
 # ═══════════════════════════════════════════════════════════════════════════
 echo "📦 PHASE 2: GITHUB SYNC"
 echo "───────────────────────────────────────────────────────────────"
 
-cd /Users/smarter.poker/Documents/hub-vanguard
-
-# Stage all changes
-git add .
-
-# Check if there are changes to commit
-if git diff --cached --quiet; then
-    echo "✓ No new changes to commit"
+if bash "${SCRIPT_DIR}/git-safe-push.sh" "${COMMIT_MSG}"; then
+    GIT_OK="true"
 else
-    git commit -m "chore: Anti-Gravity auto-deploy $(date +%Y%m%d-%H%M%S)"
-    echo "✅ Changes committed"
+    GIT_OK="false"
+    echo "   ⚠️  Git push failed"
 fi
-
-# Push to GitHub
-git push origin main
-echo "✅ GitHub sync complete"
 echo ""
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -76,49 +112,42 @@ echo ""
 echo "🌐 PHASE 3: VERCEL DEPLOYMENT"
 echo "───────────────────────────────────────────────────────────────"
 
-vercel --prod --yes
-echo "✅ Vercel deployment complete"
-echo ""
-
-# ═══════════════════════════════════════════════════════════════════════════
-# PHASE 4: DIGITALOCEAN SNGINE SYNC
-# ═══════════════════════════════════════════════════════════════════════════
-echo "🖥️  PHASE 4: DIGITALOCEAN SNGINE SYNC"
-echo "───────────────────────────────────────────────────────────────"
-
-DO_HOST="165.227.14.95"
-DO_PASS="SmarterSocial2026!Prod"
-
-# Verify Sngine is running
-echo "Checking Sngine status..."
-SNGINE_STATUS=$(sshpass -p "$DO_PASS" ssh -o StrictHostKeyChecking=no root@$DO_HOST 'curl -s -o /dev/null -w "%{http_code}" https://social.smarter.poker/')
-
-if [ "$SNGINE_STATUS" = "200" ]; then
-    echo "✅ Sngine is ONLINE (HTTP 200)"
+if [ "$SKIP_VERCEL" = true ]; then
+    echo "   ⏭️  Skipped (--skip-vercel)"
+elif ! command -v vercel &> /dev/null; then
+    echo "   ⚠️  Vercel CLI not installed. Relying on GitHub Actions auto-deploy."
+    VERCEL_OK="github-actions"
 else
-    echo "⚠ Sngine returned HTTP $SNGINE_STATUS - Attempting restart..."
-    sshpass -p "$DO_PASS" ssh -o StrictHostKeyChecking=no root@$DO_HOST 'systemctl restart apache2'
-    echo "Apache restarted"
+    if vercel --prod --yes 2>&1; then
+        VERCEL_OK="true"
+    else
+        VERCEL_OK="false"
+        echo "   ⚠️  Vercel deploy failed. GitHub Actions may still deploy from the push."
+    fi
 fi
-
-# Verify key services
-echo "Verifying MySQL..."
-sshpass -p "$DO_PASS" ssh -o StrictHostKeyChecking=no root@$DO_HOST 'systemctl is-active mysql' || echo "MySQL may need attention"
-
-echo "✅ DigitalOcean sync complete"
 echo ""
 
 # ═══════════════════════════════════════════════════════════════════════════
 # DEPLOYMENT SUMMARY
 # ═══════════════════════════════════════════════════════════════════════════
+TOTAL_END=$(date +%s)
+COMMIT_SHA=$(cd "$PROJECT_ROOT" && git rev-parse --short HEAD 2>/dev/null || echo "N/A")
+
 echo "═══════════════════════════════════════════════════════════════"
 echo "📊 ANTI-GRAVITY DEPLOYMENT PROOF"
 echo "═══════════════════════════════════════════════════════════════"
-echo "GITHUB_OK:true"
-echo "VERCEL_OK:true"
-echo "DIGITALOCEAN_OK:true"
-echo "SUPABASE_MIGRATION:ready"
+echo "SQL_OK:${SQL_OK}"
+echo "GIT_OK:${GIT_OK}"
+echo "VERCEL_OK:${VERCEL_OK}"
+echo "COMMIT_SHA:${COMMIT_SHA}"
 echo "TIMESTAMP:$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+echo "TOTAL_DURATION:$(( TOTAL_END - TOTAL_START ))s"
 echo "═══════════════════════════════════════════════════════════════"
-echo "🟢 ANTI-GRAVITY DEPLOYMENT COMPLETE"
-echo "═══════════════════════════════════════════════════════════════"
+
+if [ "$GIT_OK" = "true" ]; then
+    echo "🟢 ANTI-GRAVITY DEPLOYMENT COMPLETE"
+    exit 0
+else
+    echo "🔴 DEPLOYMENT HAD ERRORS — review output above"
+    exit 1
+fi

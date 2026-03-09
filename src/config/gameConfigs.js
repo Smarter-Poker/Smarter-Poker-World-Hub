@@ -129,6 +129,17 @@ export const GAME_CONFIGS = {
     'adv-018': { players: 6, format: '6-Max Cash', stackDepth: '100BB', gameType: 'cash', engine: 'PIO' }, // Polarity index
     'adv-019': { players: 6, format: '6-Max Cash', stackDepth: '100BB', gameType: 'cash', engine: 'PIO' }, // Solver scripts
     'adv-020': { players: 6, format: '6-Max Cash', stackDepth: '100BB', gameType: 'cash', engine: 'PIO' }, // GTO apex
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // SPECIAL GAMES (Additional games in TRAINING_LIBRARY)
+    // ═══════════════════════════════════════════════════════════════════════
+    'tournament-prep': { players: 9, format: '9-Max Tournament', stackDepth: '40BB', gameType: 'tournament', engine: 'PIO' }, // ICM Structure Planner
+    'final-table-sim': { players: 9, format: 'Final Table (9-Max)', stackDepth: '60BB', gameType: 'tournament', engine: 'PIO' }, // ICM $Equity Analysis
+    'quiz-gauntlet': { players: 6, format: '6-Max Cash', stackDepth: '100BB', gameType: 'cash', engine: 'PIO' }, // High-speed GTO blitz
+    'hand-lab': { players: 6, format: '6-Max Cash', stackDepth: '100BB', gameType: 'cash', engine: 'PIO' }, // Interactive Equity Builder
+    'bluff-catcher': { players: 6, format: '6-Max Cash', stackDepth: '100BB', gameType: 'cash', engine: 'PIO' }, // MDF & Hand Reading
+    'mixed-strategy-lab': { players: 6, format: '6-Max Cash', stackDepth: '100BB', gameType: 'cash', engine: 'PIO' }, // Frequency EV Visualizer
+    'study-group': { players: 6, format: '6-Max Cash', stackDepth: '100BB', gameType: 'cash', engine: 'PIO' }, // Collaborative Hand Review
 };
 
 /**

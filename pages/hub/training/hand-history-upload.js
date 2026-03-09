@@ -438,42 +438,51 @@ export default function HandHistoryUploadPage() {
     }, []);
 
     const handleFile = useCallback(async (file) => {
-        if (!file) return;
+        if (!file) return [];
         const text = await file.text();
+        return parseHandHistory(text);
+    }, []);
+
+    const handleFiles = useCallback(async (files) => {
+        if (!files || files.length === 0) return;
         setIsAnalyzing(true);
-        setUploadProgress({ current: 0, total: 1, currentFile: file.name });
+        const fileList = Array.from(files);
+        let accumulated = [...parsedHands];
 
-        const hands = parseHandHistory(text);
-        setParsedHands(prev => [...prev, ...hands]);
-        setUploadProgress({ current: 1, total: 1, currentFile: file.name });
+        for (let i = 0; i < fileList.length; i++) {
+            setUploadProgress({ current: i, total: fileList.length, currentFile: fileList[i].name });
+            const hands = await handleFile(fileList[i]);
+            accumulated = [...accumulated, ...hands];
+            setParsedHands([...accumulated]);
+        }
 
-        const allHands = [...parsedHands, ...hands];
-        const totalHands = allHands.length;
-        const heroActions = allHands.reduce((sum, h) => sum + h.actions.filter(a => a.isHero).length, 0);
-        const withShowdown = allHands.filter(h => h.board.length >= 3).length;
-        const detectedSite = hands[0]?.site || 'Unknown';
+        setUploadProgress({ current: fileList.length, total: fileList.length, currentFile: 'Complete' });
+
+        const totalHands = accumulated.length;
+        const heroActions = accumulated.reduce((sum, h) => sum + h.actions.filter(a => a.isHero).length, 0);
+        const withShowdown = accumulated.filter(h => h.board.length >= 3).length;
+        const detectedSite = accumulated[0]?.site || 'Unknown';
 
         setStats({
             totalHands,
             heroActions,
             withShowdown,
-            avgPot: totalHands > 0 ? allHands.reduce((s, h) => s + h.pot, 0) / totalHands : 0,
+            avgPot: totalHands > 0 ? accumulated.reduce((s, h) => s + h.pot, 0) / totalHands : 0,
             detectedSite,
         });
 
-        // Auto-save session
-        await saveAnalyzedSession(allHands);
+        await saveAnalyzedSession(accumulated);
 
         setIsAnalyzing(false);
         setUploadProgress(null);
-    }, [parsedHands, saveAnalyzedSession]);
+    }, [parsedHands, handleFile, saveAnalyzedSession]);
 
     const onDrop = useCallback((e) => {
         e.preventDefault();
         setDragOver(false);
-        const file = e.dataTransfer?.files?.[0];
-        if (file) handleFile(file);
-    }, [handleFile]);
+        const files = e.dataTransfer?.files;
+        if (files && files.length > 0) handleFiles(files);
+    }, [handleFiles]);
 
     return (
         <>
@@ -624,7 +633,7 @@ export default function HandHistoryUploadPage() {
                                         {isAnalyzing ? 'Analyzing...' : 'Drop Hand History File Here'}
                                     </div>
                                     <div style={{ fontSize: 12, color: '#64748b' }}>
-                                        Supports .txt files from PokerStars, GGPoker, ACR
+                                        Supports .txt files from PokerStars, GGPoker, 888, ACR — drop multiple files at once
                                     </div>
                                     <div style={{
                                         marginTop: 20, padding: '10px 24px', borderRadius: 10,
@@ -639,7 +648,8 @@ export default function HandHistoryUploadPage() {
                                         ref={fileInputRef}
                                         type="file"
                                         accept=".txt,.log"
-                                        onChange={(e) => handleFile(e.target.files?.[0])}
+                                        multiple
+                                        onChange={(e) => handleFiles(e.target.files)}
                                         style={{ display: 'none' }}
                                     />
                                 </motion.div>
