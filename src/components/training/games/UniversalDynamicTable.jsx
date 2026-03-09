@@ -937,6 +937,62 @@ function UniversalDynamicTable({
         return evaluateHandStrength(heroCards, boardCards);
     }, [heroCards, boardCards, showFeedback]);
 
+    // PHASE 6: Bookmark System (localStorage-backed)
+    const [bookmarkedHands, setBookmarkedHands] = React.useState(() => {
+        try { return JSON.parse(localStorage.getItem('sp_bookmarked_hands') || '[]'); } catch { return []; }
+    });
+    const isCurrentBookmarked = useMemo(() => {
+        if (!question) return false;
+        return bookmarkedHands.some(b => b.questionId === (question.id || question.scenario?.id));
+    }, [bookmarkedHands, question]);
+    const toggleBookmark = useCallback(() => {
+        if (!question) return;
+        const qId = question.id || question.scenario?.id || `q-${questionNumber}`;
+        setBookmarkedHands(prev => {
+            const exists = prev.some(b => b.questionId === qId);
+            const next = exists
+                ? prev.filter(b => b.questionId !== qId)
+                : [...prev, {
+                    questionId: qId,
+                    heroCards,
+                    boardCards,
+                    heroPosition,
+                    villainPosition,
+                    selectedAnswer,
+                    correctAnswer: question?.correctAnswer,
+                    classification: moveClassification,
+                    evLoss,
+                    timestamp: Date.now(),
+                    gameTitle,
+                }];
+            try { localStorage.setItem('sp_bookmarked_hands', JSON.stringify(next)); } catch { }
+            return next;
+        });
+    }, [question, questionNumber, heroCards, boardCards, heroPosition, villainPosition, selectedAnswer, moveClassification, evLoss, gameTitle]);
+
+    // PHASE 6: Session Mistakes Tracker
+    const sessionMistakesListRef = useRef([]);
+    useEffect(() => {
+        if (showFeedback && moveClassification && question) {
+            const isMistake = moveClassification === 'wrong' || moveClassification === 'blunder' || moveClassification === 'inaccuracy';
+            if (isMistake) {
+                sessionMistakesListRef.current = [...sessionMistakesListRef.current, {
+                    questionId: question.id || question.scenario?.id,
+                    heroCards,
+                    boardCards,
+                    heroPosition,
+                    selectedAnswer,
+                    correctAnswer: question?.correctAnswer,
+                    classification: moveClassification,
+                    evLoss,
+                    explanation: explanation || null,
+                }];
+            }
+        }
+    }, [showFeedback, moveClassification, question, heroCards, boardCards, heroPosition, selectedAnswer, evLoss, explanation]);
+    const [showMistakeReview, setShowMistakeReview] = React.useState(false);
+    const [mistakeReviewIndex, setMistakeReviewIndex] = React.useState(0);
+
     // PHASE 5: Adaptive Difficulty Level (computed from session accuracy)
     const computedDifficulty = useMemo(() => {
         const accuracy = questionNumber > 0 ? ((questionNumber - sessionMistakes) / questionNumber) * 100 : 100;
@@ -2669,6 +2725,24 @@ function UniversalDynamicTable({
                                         Retry
                                     </motion.button>
                                 )}
+                                {/* PHASE 6: Bookmark Button */}
+                                <motion.button
+                                    onClick={toggleBookmark}
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    transition={{ delay: 0.6 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    style={{
+                                        padding: '8px 16px', borderRadius: 8,
+                                        border: isCurrentBookmarked ? '1px solid rgba(251, 191, 36, 0.4)' : '1px solid rgba(255,255,255,0.1)',
+                                        background: isCurrentBookmarked ? 'rgba(251, 191, 36, 0.1)' : 'rgba(255,255,255,0.03)',
+                                        color: isCurrentBookmarked ? '#fbbf24' : '#94a3b8',
+                                        fontSize: 11, fontWeight: 600,
+                                        cursor: 'pointer',
+                                    }}
+                                >
+                                    {isCurrentBookmarked ? '★ Saved' : '☆ Save'}
+                                </motion.button>
                             </>
                         ) : (
                             /* PHASE 5: Post-Session Summary Dashboard */
@@ -2703,6 +2777,25 @@ function UniversalDynamicTable({
                                 <div style={{ fontSize: 10, color: '#475569', fontWeight: 600 }}>
                                     {computedDifficulty.label} difficulty • Next hand in 2s...
                                 </div>
+                                {/* PHASE 6: Review Mistakes Button */}
+                                {sessionMistakesListRef.current.length > 0 && (
+                                    <motion.button
+                                        onClick={() => { setShowMistakeReview(true); setMistakeReviewIndex(0); }}
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        transition={{ delay: 0.3 }}
+                                        whileTap={{ scale: 0.96 }}
+                                        style={{
+                                            padding: '8px 20px', borderRadius: 8,
+                                            border: '1px solid rgba(239, 68, 68, 0.4)',
+                                            background: 'rgba(239, 68, 68, 0.1)',
+                                            color: '#f87171', fontSize: 11, fontWeight: 700,
+                                            cursor: 'pointer', letterSpacing: 0.5, marginTop: 4,
+                                        }}
+                                    >
+                                        Review {sessionMistakesListRef.current.length} Mistake{sessionMistakesListRef.current.length > 1 ? 's' : ''}
+                                    </motion.button>
+                                )}
                             </motion.div>
                         )}
                     </div>
