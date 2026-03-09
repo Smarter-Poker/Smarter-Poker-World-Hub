@@ -90,6 +90,8 @@ export const TRAINING_LIBRARY = [
     { id: 'mtt-022', name: 'Clock Management', focus: 'Time bank strategy', category: 'MTT', difficulty: 2, icon: '⏰', tags: ['exploitative'] },
     { id: 'mtt-023', name: 'Registration Edge', focus: 'Late reg advantages', category: 'MTT', difficulty: 2, icon: '📝', tags: ['math'] },
     { id: 'mtt-024', name: 'Triple Barrel', focus: 'MTT bluff sequences', category: 'MTT', difficulty: 4, icon: '🎰', tags: ['exploitative'] },
+    { id: 'tournament-prep', name: 'Tournament Prep', focus: 'ICM Structure Planner', category: 'MTT', difficulty: 3, icon: '📋', tags: ['math', 'gto'] },
+    { id: 'final-table-sim', name: 'Final Table Sim', focus: 'ICM $Equity Analysis', category: 'MTT', difficulty: 4, icon: '🏆', tags: ['math', 'gto'] },
     { id: 'mtt-025', name: 'Level 10: MTT Champion', focus: 'Full tourney simulation', category: 'MTT', difficulty: 5, icon: '🏅', tags: ['gto', 'math', 'exploitative'], vipOnly: true },
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -182,6 +184,10 @@ export const TRAINING_LIBRARY = [
     { id: 'adv-017', name: 'Capped Ranges', focus: 'Playing condensed', category: 'ADVANCED', difficulty: 4, icon: '📦', tags: ['gto'] },
     { id: 'adv-018', name: 'Polarity Index', focus: 'Range splitting', category: 'ADVANCED', difficulty: 5, icon: '🧲', tags: ['gto'], vipOnly: true },
     { id: 'adv-019', name: 'Solver Scripts', focus: 'Sim interpretation', category: 'ADVANCED', difficulty: 5, icon: '💻', tags: ['gto'], vipOnly: true },
+    { id: 'hand-lab', name: 'Hand Lab V2', focus: 'Interactive Equity Builder', category: 'ADVANCED', difficulty: 4, icon: '🧪', tags: ['math', 'gto'] },
+    { id: 'bluff-catcher', name: 'Bluff Catcher', focus: 'MDF & Hand Reading', category: 'ADVANCED', difficulty: 4, icon: '🎣', tags: ['math', 'exploitative'] },
+    { id: 'mixed-strategy-lab', name: 'Mixed Strategy Lab', focus: 'Frequency EV Visualizer', category: 'ADVANCED', difficulty: 5, icon: '📊', tags: ['math', 'gto'] },
+    { id: 'study-group', name: 'Study Group', focus: 'Collaborative Hand Review', category: 'ADVANCED', difficulty: 3, icon: '👥', tags: ['gto'] },
     { id: 'adv-020', name: 'Level 10: GTO Apex', focus: 'Ultimate theory test', category: 'ADVANCED', difficulty: 5, icon: '🏛️', tags: ['gto', 'math', 'exploitative'], vipOnly: true },
 ];
 
