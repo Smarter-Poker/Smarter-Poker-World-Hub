@@ -22,7 +22,7 @@ import { busEmit, eventBus } from '../../../src/engine/EventBus';
 const getAccessToken = () => {
     try {
         const cached = localStorage.getItem('smarter-poker-auth');
-        if (cached) { const p = JSON.parse(cached); if (p?.access_token) return p.access_token; }
+        if (cached) { try { const p = JSON.parse(cached); if (p?.access_token) return p.access_token; } catch(e) { /* */ } }
     } catch (_) { }
     return null;
 };

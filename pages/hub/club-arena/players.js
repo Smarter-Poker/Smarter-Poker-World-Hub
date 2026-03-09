@@ -124,7 +124,7 @@ const router = useRouter();
                     // Load my notes for all members in bulk
                     if (authUser && memberData.length > 0) {
                         const token = localStorage.getItem('smarter-poker-auth');
-                        const accessToken = token ? JSON.parse(token)?.access_token : null;
+                        let accessToken = null; try { accessToken = token ? JSON.parse(token)?.access_token : null; } catch(e) { /* */ }
                         if (accessToken) {
                             fetch('/api/club-arena/player-notes', {
                                 method: 'POST',
@@ -563,7 +563,7 @@ const router = useRouter();
                                 setNoteSaving(true);
                                 try {
                                     const token = localStorage.getItem('smarter-poker-auth');
-                                    const accessToken = token ? JSON.parse(token)?.access_token : null;
+                                    let accessToken = null; try { accessToken = token ? JSON.parse(token)?.access_token : null; } catch(e) { /* */ }
                                     await fetch('/api/club-arena/player-notes', {
                                         method: 'POST',
                                         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
@@ -582,7 +582,7 @@ const router = useRouter();
                                     setNoteSaving(true);
                                     try {
                                         const token = localStorage.getItem('smarter-poker-auth');
-                                        const accessToken = token ? JSON.parse(token)?.access_token : null;
+                                        let accessToken = null; try { accessToken = token ? JSON.parse(token)?.access_token : null; } catch(e) { /* */ }
                                         await fetch('/api/club-arena/player-notes', {
                                             method: 'POST',
                                             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },

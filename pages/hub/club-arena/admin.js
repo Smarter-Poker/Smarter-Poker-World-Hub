@@ -37,11 +37,13 @@ const getAuthToken = async () => {
     // 1. Fast path: read from localStorage cache (instant, no network round-trip)
     //    'smarter-poker-auth' is the storageKey configured in supabase.ts
     try {
-        const cached = localStorage.getItem('smarter-poker-auth');
-        if (cached) {
-            const parsed = JSON.parse(cached);
-            if (parsed?.access_token) return parsed.access_token;
-        }
+        try {
+            const cached = localStorage.getItem('smarter-poker-auth');
+            if (cached) {
+                const parsed = JSON.parse(cached);
+                if (parsed?.access_token) return parsed.access_token;
+            }
+        } catch(e) { /* corrupted auth cache */ }
     } catch (_) { /* localStorage unavailable (incognito, quota) */ }
 
     // 2. Slow path: ask Supabase (handles token refresh, also writes back to localStorage)
@@ -61,7 +63,8 @@ const apiCall = async (endpoint, body) => {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(body),
     });
-    const data = await res.json();
+    let data;
+    try { data = await res.json(); } catch(e) { throw new Error('Server returned invalid response'); }
     if (!res.ok) throw new Error(data.error || 'API call failed');
     return data;
 };
@@ -70,7 +73,8 @@ const apiGet = async (url) => {
     const token = await getAuthToken();
     if (!token) throw new Error('Not authenticated');
     const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-    const data = await res.json();
+    let data;
+    try { data = await res.json(); } catch(e) { throw new Error('Server returned invalid response'); }
     if (!res.ok) throw new Error(data.error || 'API call failed');
     return data;
 };

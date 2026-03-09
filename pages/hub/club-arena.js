@@ -38,7 +38,8 @@ const apiCall = async (endpoint, body) => {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(body),
     });
-    const data = await res.json();
+    let data;
+    try { data = await res.json(); } catch(e) { throw new Error('Server returned invalid response'); }
     if (!res.ok) throw new Error(data.error || 'API call failed');
     return data;
 };
@@ -482,17 +483,24 @@ export default function ClubArenaPage() {
         }
     }
 
+    const [tosError, setTosError] = useState(false);
+
     const handleAcceptTOS = async () => {
+        setTosError(false);
         try {
             const token = getAccessToken();
+            if (!token) { setTosError(true); return; }
             const res = await fetch('/api/club-arena/accept-tos', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
             });
+            if (!res.ok) { setTosError(true); return; }
             const d = await res.json();
             if (d.success) setTosAccepted(true);
+            else setTosError(true);
         } catch (e) {
             console.error('[TOS] Accept failed:', e);
+            setTosError(true);
         }
     };
 
@@ -857,6 +865,11 @@ export default function ClubArenaPage() {
                                 >
                                     I Agree — Enter Club Arena
                                 </button>
+                                {tosError && (
+                                    <p style={{ color: '#FA383E', fontSize: 12, marginTop: 8 }}>
+                                        Failed to save acceptance. Please check your connection and try again.
+                                    </p>
+                                )}
                                 <p style={{ color: '#555', fontSize: 11, marginTop: 10 }}>By clicking above, you accept the Club Arena Terms of Service.</p>
                             </div>
                         </div>

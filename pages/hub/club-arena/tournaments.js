@@ -34,14 +34,22 @@ const STATUS_COLORS = {
 // Migrated to async getSession() so tournament API calls include a valid token.
 async function api(action, params) {
   const token = getAccessToken();
-  return fetch('/api/club-arena/tournaments', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify({ action, ...params }),
-  }).then(r => r.json());
+  try {
+    const res = await fetch('/api/club-arena/tournaments', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ action, ...params }),
+    });
+    let data;
+    try { data = await res.json(); } catch(e) { return { success: false, error: 'Server returned invalid response' }; }
+    if (!res.ok && !data.error) data.error = `Request failed (${res.status})`;
+    return data;
+  } catch(e) {
+    return { success: false, error: e.message || 'Network error' };
+  }
 }
 
 export default function TournamentsPage() {

@@ -37,11 +37,13 @@ const CASHOUT_PRESETS = [100, 500, 1000, 'All'];
 const getAuthToken = async () => {
     // 1. Fast path: read from localStorage cache (instant, no network round-trip)
     try {
-        const cached = localStorage.getItem('smarter-poker-auth');
-        if (cached) {
-            const parsed = JSON.parse(cached);
-            if (parsed?.access_token) return parsed.access_token;
-        }
+        try {
+            const cached = localStorage.getItem('smarter-poker-auth');
+            if (cached) {
+                const parsed = JSON.parse(cached);
+                if (parsed?.access_token) return parsed.access_token;
+            }
+        } catch(e) { /* corrupted auth cache */ }
     } catch (_) { /* localStorage unavailable */ }
 
     // 2. Slow path: ask Supabase (handles token refresh)
@@ -61,7 +63,8 @@ const apiCall = async (endpoint, body) => {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(body),
     });
-    const data = await res.json();
+    let data;
+    try { data = await res.json(); } catch(e) { throw new Error('Server returned invalid response'); }
     if (!res.ok) throw new Error(data.error || 'API call failed');
     return data;
 };

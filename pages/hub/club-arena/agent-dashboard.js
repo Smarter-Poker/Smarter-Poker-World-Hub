@@ -40,7 +40,8 @@ const apiCall = async (endpoint, body) => {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(body),
     });
-    const data = await res.json();
+    let data;
+    try { data = await res.json(); } catch(e) { throw new Error('Server returned invalid response'); }
     if (!res.ok) throw new Error(data.error || 'API call failed');
     return data;
 };
@@ -51,7 +52,8 @@ const apiGet = async (url) => {
     const res = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
     });
-    const data = await res.json();
+    let data;
+    try { data = await res.json(); } catch(e) { throw new Error('Server returned invalid response'); }
     if (!res.ok) throw new Error(data.error || 'API call failed');
     return data;
 };
