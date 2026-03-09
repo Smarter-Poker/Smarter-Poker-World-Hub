@@ -4,6 +4,7 @@
  * Auth: Bearer token (any authenticated user)
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { getServerUser } from '../../../src/lib/serverAuth';
 
 const supabaseAdmin = createClient(
@@ -13,6 +14,7 @@ const supabaseAdmin = createClient(
 
 export default async function handler(req, res) {
     if (req.method !== 'GET') return res.status(405).json({ error: 'GET only' });
+  if (!applyRateLimit(req, res, LIMITS.read)) return;
 
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ error: 'No auth token' });

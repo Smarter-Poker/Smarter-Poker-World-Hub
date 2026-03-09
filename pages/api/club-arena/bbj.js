@@ -5,6 +5,7 @@
    ═══════════════════════════════════════════════════════════════════ */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -37,6 +38,7 @@ const GENERAL_RULES = [
 
 export default async function handler(req, res) {
   if (req.method === 'GET') {
+  if (!applyRateLimit(req, res, LIMITS.read)) return;
     const { clubId } = req.query;
     if (!clubId) return res.status(400).json({ error: 'clubId required' });
 
