@@ -11,7 +11,7 @@ import { motion } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { eventBus, EventType } from '../../../src/engine/EventBus';
+import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { getAuthUser } from '../../../src/lib/authUtils';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -75,12 +75,16 @@ export default function CustomRakePage() {
 
     useTrainingBus('custom-rake');
 
-    useEffect(() => { getAuthUser().then(u => setUser(u)).catch(() => { }); }, []);
+    useEffect(() => { try { setUser(getAuthUser()); } catch (_) { } }, []);
 
     const rakePct = preset.id === 'custom' ? customPct : preset.pct;
     const rakeCap = preset.id === 'custom' ? customCap : preset.cap;
 
-    const impact = useMemo(() => calculateRakeImpact(rakePct, rakeCap, stackDepth), [rakePct, rakeCap, stackDepth]);
+    const impact = useMemo(() => {
+        const result = calculateRakeImpact(rakePct, rakeCap, stackDepth);
+        busEmit('training:session-complete', { game_id: 'custom-rake', accuracy: 100, correct_answers: 1, total_questions: 1, hands_played: 1 });
+        return result;
+    }, [rakePct, rakeCap, stackDepth]);
 
     return (
         <>

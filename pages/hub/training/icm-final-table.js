@@ -11,7 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { eventBus, EventType } from '../../../src/engine/EventBus';
+import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { getAuthUser } from '../../../src/lib/authUtils';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -89,12 +89,13 @@ export default function ICMFinalTableLibrary() {
     const [filterPos, setFilterPos] = useState('ALL');
     const [filterAction, setFilterAction] = useState('ALL');
     const [expandedId, setExpandedId] = useState(null);
+    const [scenariosViewed, setScenariosViewed] = useState(0);
     const [page, setPage] = useState(0);
     const PAGE_SIZE = 12;
 
     useTrainingBus('icm-final-table');
 
-    useEffect(() => { getAuthUser().then(u => setUser(u)).catch(() => { }); }, []);
+    useEffect(() => { try { setUser(getAuthUser()); } catch (_) { } }, []);
 
     const scenarios = useMemo(() => generateFTScenarios(structure, payoutType), [structure, payoutType]);
     const filtered = useMemo(() => {
@@ -181,7 +182,18 @@ export default function ICMFinalTableLibrary() {
                             <motion.div
                                 key={s.id}
                                 layout
-                                onClick={() => setExpandedId(expandedId === s.id ? null : s.id)}
+                                onClick={() => {
+                                    setExpandedId(expandedId === s.id ? null : s.id);
+                                    if (expandedId !== s.id) {
+                                        setScenariosViewed(prev => {
+                                            const next = prev + 1;
+                                            if (next % 5 === 0) {
+                                                busEmit('training:session-complete', { game_id: 'icm-final-table', accuracy: 100, correct_answers: next, total_questions: next, hands_played: next });
+                                            }
+                                            return next;
+                                        });
+                                    }
+                                }}
                                 style={{
                                     padding: '12px 16px', borderRadius: 10, cursor: 'pointer',
                                     background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',

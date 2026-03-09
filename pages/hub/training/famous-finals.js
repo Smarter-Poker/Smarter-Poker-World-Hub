@@ -14,7 +14,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { eventBus, EventType } from '../../../src/engine/EventBus';
+import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { getAccessToken } from '../../../src/lib/authUtils';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -294,6 +294,10 @@ export default function FamousFinalsPage() {
                     questionsAnswered: total,
                     questionsCorrect: correct,
                 }, 'famous-finals');
+                busEmit('training:session-complete', {
+                    game_id: 'famous-finals', accuracy: Math.round((correct / total) * 100),
+                    correct_answers: correct, total_questions: total, hands_played: total,
+                });
             } catch (e) { console.error(e); }
         }
     }, [spotIndex, activeEvent, results, showFeedback, selectedAnswer, currentSpot]);

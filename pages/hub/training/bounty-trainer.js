@@ -11,7 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { eventBus, EventType } from '../../../src/engine/EventBus';
+import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { getAuthUser } from '../../../src/lib/authUtils';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -143,7 +143,7 @@ export default function BountyTrainerPage() {
     useTrainingBus('bounty-trainer');
 
     useEffect(() => {
-        getAuthUser().then(u => setUser(u)).catch(() => { });
+        try { setUser(getAuthUser()); } catch (_) { }
     }, []);
 
     const format = BOUNTY_FORMATS[activeFormat];
@@ -173,6 +173,10 @@ export default function BountyTrainerPage() {
         eventBus.emit(EventType.SESSION_END, {
             source: 'BountyTrainer', score, totalAnswered, format: activeFormat,
         }, 'BountyTrainer');
+        busEmit('training:session-complete', {
+            game_id: 'bounty-trainer', accuracy: totalAnswered ? Math.round((score / totalAnswered) * 100) : 0,
+            correct_answers: score, total_questions: totalAnswered, hands_played: totalAnswered,
+        });
     }, [score, totalAnswered, activeFormat]);
 
     return (

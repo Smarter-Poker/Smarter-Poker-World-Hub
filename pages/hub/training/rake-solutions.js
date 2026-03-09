@@ -13,7 +13,7 @@ import { motion } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { eventBus, EventType } from '../../../src/engine/EventBus';
+import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { getAccessToken } from '../../../src/lib/authUtils';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -121,6 +121,7 @@ export default function RakeSolutionsPage() {
                 });
             }
             eventBus.emit(EventType.SESSION_END, { accuracy: 100, questionsAnswered: 1, questionsCorrect: 1 }, 'rake-solutions');
+            busEmit('training:session-complete', { game_id: 'rake-solutions', accuracy: 100, correct_answers: 1, total_questions: 1, hands_played: 1 });
         } catch (e) { }
     };
 

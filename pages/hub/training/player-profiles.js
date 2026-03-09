@@ -11,7 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { eventBus, EventType } from '../../../src/engine/EventBus';
+import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { getAuthUser } from '../../../src/lib/authUtils';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -166,7 +166,7 @@ export default function PlayerProfilesPage() {
     useTrainingBus('player-profiles');
 
     useEffect(() => {
-        getAuthUser().then(u => setUser(u)).catch(() => { });
+        try { setUser(getAuthUser()); } catch (_) { }
     }, []);
 
     const profile = PROFILES[selectedProfile];
@@ -180,6 +180,7 @@ export default function PlayerProfilesPage() {
         eventBus.emit(EventType.SESSION_END, {
             source: 'PlayerProfiles', action: 'profile_selected', profileId: id,
         }, 'PlayerProfiles');
+        busEmit('training:session-complete', { game_id: 'player-profiles', accuracy: 100, correct_answers: 1, total_questions: 1, hands_played: 1 });
     }, []);
 
     return (
