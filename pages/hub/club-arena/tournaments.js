@@ -283,42 +283,30 @@ export default function TournamentsPage() {
         )}
       </div>
 
-      {t.scheduled_start && (
-        <div style={{ fontSize: 12, color: FB.dim, marginTop: 4 }}>
-          Starts: {new Date(t.scheduled_start).toLocaleString()}
-        </div>
+      {/* Create Tournament Modal */}
+      {showCreate && <CreateTournamentModal clubId={clubId} onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); loadData(); showToast('Tournament created!'); busEmit.dataMutated('tournament_created'); }} onError={(msg) => showToast(msg, 'error')} />}
+
+      {/* Tournament Detail Modal */}
+      {selectedTournament && (
+        <TournamentDetailModal
+          tournament={selectedTournament}
+          chipBalance={chipBalance}
+          userId={user?.id}
+          isAdmin={isAdmin}
+          onRegister={handleRegister}
+          onUnregister={handleUnregister}
+          onClose={() => setSelectedTournament(null)}
+          onStart={async () => {
+            await api('start', { tournamentId: selectedTournament.id });
+            loadData();
+            setSelectedTournament(null);
+          }}
+        />
       )}
+
+      {/* Bottom Navigation */}
+      <ClubArenaBottomNav clubId={clubId} activePage="tournaments" userRole={isAdmin ? 'admin' : 'player'} />
     </div>
-  ))
-}
-      </div >
-
-  {/* Create Tournament Modal */ }
-{ showCreate && <CreateTournamentModal clubId={clubId} onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); loadData(); showToast('Tournament created!'); busEmit.dataMutated('tournament_created'); }} onError={(msg) => showToast(msg, 'error')} /> }
-
-{/* Tournament Detail Modal */ }
-{
-  selectedTournament && (
-    <TournamentDetailModal
-      tournament={selectedTournament}
-      chipBalance={chipBalance}
-      userId={user?.id}
-      isAdmin={isAdmin}
-      onRegister={handleRegister}
-      onUnregister={handleUnregister}
-      onClose={() => setSelectedTournament(null)}
-      onStart={async () => {
-        await api('start', { tournamentId: selectedTournament.id });
-        loadData();
-        setSelectedTournament(null);
-      }}
-    />
-  )
-}
-
-{/* Bottom Navigation */ }
-<ClubArenaBottomNav clubId={clubId} activePage="tournaments" userRole={isAdmin ? 'admin' : 'player'} />
-    </div >
   );
 }
 

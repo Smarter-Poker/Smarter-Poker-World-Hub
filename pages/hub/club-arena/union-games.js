@@ -14,6 +14,11 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 const SkeletonDark = dynamic(() => import('../../../src/components/ui/SkeletonDark'), { ssr: false });
 
+const DynamicWallet = dynamic(
+  () => import('../../../src/components/club-arena/DynamicWallet'),
+  { ssr: false, loading: () => null }
+);
+
 const FB = {
   bg: '#18191A', card: '#242526', text: '#E4E6EB', dim: '#B0B3B8',
   border: '#3E4042', primary: '#2374E1', green: '#31A24C', red: '#FA383E',
@@ -73,6 +78,8 @@ export default function UnionGames() {
   const [showCreateTable, setShowCreateTable] = useState(false);
   const [selectedTournament, setSelectedTournament] = useState(null);
   const [searchQuery, setSearchQuery] = useState(''); // filter tournaments/tables by name
+  const [showWallet, setShowWallet] = useState(false);
+  const [unionWallet, setUnionWallet] = useState({ diamonds: 0, bbj: 0, bank: 0, clubsWallet: 0, promo: 0, backupBbj: 0 });
 
   useEffect(() => {
     const authUser = getAuthUser();
@@ -96,6 +103,17 @@ export default function UnionGames() {
         });
         const d = await res.json();
         if (d.union) setUnionInfo(d.union);
+        // Extract union wallet data for DynamicWallet
+        if (d.wallets || d.stats) {
+          setUnionWallet({
+            diamonds: d.wallets?.diamond_balance || 0,
+            bbj: d.wallets?.bbj_wallet || 0,
+            bank: d.wallets?.chip_balance || 0,
+            clubsWallet: d.stats?.totalTreasury || 0,
+            promo: d.wallets?.promo_wallet || 0,
+            backupBbj: d.wallets?.backup_bbj_balance || 0,
+          });
+        }
       } catch (e) {
         if (e.name !== 'AbortError') console.error('[union-games] union info load:', e);
       }
@@ -354,6 +372,9 @@ export default function UnionGames() {
           <span style={{ color: FB.dim, fontSize: 13 }}>{unionInfo?.name || 'Loading...'} — {clubs.length} clubs</span>
         </div>
         <div style={{ flex: 1 }} />
+        <button onClick={() => setShowWallet(prev => !prev)} style={{ background: showWallet ? FB.primary : 'transparent', border: `1px solid ${showWallet ? FB.primary : FB.border}`, color: showWallet ? '#fff' : FB.dim, padding: '6px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+          💰 {showWallet ? 'Hide' : 'Wallet'}
+        </button>
         {tab === 'tournaments' && clubs.length > 0 && (
           <button onClick={() => setShowCreateTournament(true)} style={{
             background: FB.green, color: '#fff', border: 'none', padding: '8px 20px',
@@ -367,6 +388,27 @@ export default function UnionGames() {
           }}>+ Create Table</button>
         )}
       </div>
+
+      {showWallet && (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 16px 12px', background: FB.card, borderBottom: `1px solid ${FB.border}` }}>
+          <DynamicWallet
+            variant="union"
+            diamondBalance={unionWallet.diamonds}
+            bbjAmount={unionWallet.bbj}
+            unionBankBalance={unionWallet.bank}
+            clubsWalletBalance={unionWallet.clubsWallet}
+            promoBalance={unionWallet.promo}
+            backupBbjBalance={unionWallet.backupBbj}
+            onOpenBBJ={() => { }}
+            onBuyDiamonds={() => router.push('/hub/diamond-store')}
+            onTapSlot={(slot) => {
+              if (slot === 'unionBank' || slot === 'clubsWallet' || slot === 'promo') {
+                router.push(`/hub/club-arena/union-dashboard?union=${unionId}`);
+              }
+            }}
+          />
+        </div>
+      )}
 
       {/* Main tabs */}
       <div style={{ display: 'flex', gap: 0, borderBottom: `1px solid ${FB.border}`, background: FB.card }}>
