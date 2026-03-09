@@ -16,15 +16,13 @@ import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 
 let _supabase = null;
 function getSupabase() {
-  if (!_supabase && typeof window !== 'undefined') {
+  if (typeof window === 'undefined') return null;
+  if (!_supabase) {
     const { createClient } = require('@supabase/supabase-js');
-    _supabase =
-      typeof window !== 'undefined'
-        ? createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-          )
-        : null;
+    _supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    );
   }
   return _supabase;
 }
