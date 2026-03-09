@@ -137,14 +137,14 @@ export default async function handler(req, res) {
         // Upsert into a simple lifetime_stats concept in training_progress
         // We use training_progress metadata for now
 
-        console.log(`[SaveSession] Saved session for ${userId}: ${gameId} | GTOW ${gtowScore}% | ${handsPlayed} hands | -${totalEVLoss?.toFixed(1) || 0} EV`);
+        console.log(`[SaveSession] Saved session for ${userId}: ${parsedGameId} | GTOW ${parsedGtowScore}% | ${parsedHandsPlayed} hands | -${parsedTotalEVLoss?.toFixed?.(1) || 0} EV`);
 
         return res.status(200).json({
             success: true,
             saved: {
-                gtowScore,
-                handsPlayed,
-                totalEVLoss,
+                gtowScore: parsedGtowScore,
+                handsPlayed: parsedHandsPlayed,
+                totalEVLoss: parsedTotalEVLoss,
             },
         });
 

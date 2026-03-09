@@ -1007,6 +1007,14 @@ function UniversalDynamicTable({
         };
     }, [showFeedback, onNextHand]);
 
+    const handleAnswer = useCallback((answerId) => {
+        if (showFeedback) return;
+        setSelectedAnswer(answerId);
+        // Speed bonus tracking
+        const elapsed = (Date.now() - answerStartTime.current) / 1000;
+        if (onAnswer) onAnswer(answerId, { answerTimeSeconds: elapsed });
+    }, [showFeedback, onAnswer, options]);
+
     // Phase 25: Keyboard Shortcuts — UNIFIED handler (1-4, F/C/R, Space/Enter, Esc)
     // This is the SINGLE keyboard handler. Do NOT add duplicates.
     useEffect(() => {
@@ -1028,7 +1036,7 @@ function UniversalDynamicTable({
                 const keyNum = parseInt(key);
                 if (keyNum >= 1 && keyNum <= 4) {
                     e.preventDefault();
-                    const opts = question?.options || [];
+                    const opts = options || []; // Use SHUFFLED options
                     if (opts[keyNum - 1]) {
                         const optId = opts[keyNum - 1].id || opts[keyNum - 1];
                         handleAnswer(optId);
@@ -1038,17 +1046,17 @@ function UniversalDynamicTable({
                 // F/C/R shortcuts for fold/check-call/raise
                 const lower = key.toLowerCase();
                 if (lower === 'f') {
-                    const opts = question?.options || [];
-                    const foldOpt = opts.find(o => /fold/i.test(o.text || ''));
-                    if (foldOpt) handleAnswer(foldOpt.id);
+                    const opts = options || [];
+                    const foldOpt = opts.find(o => /fold/i.test(o.text || o.label || ''));
+                    if (foldOpt) handleAnswer(foldOpt.id || foldOpt);
                 } else if (lower === 'c') {
-                    const opts = question?.options || [];
-                    const checkCallOpt = opts.find(o => /check|call/i.test(o.text || ''));
-                    if (checkCallOpt) handleAnswer(checkCallOpt.id);
+                    const opts = options || [];
+                    const checkCallOpt = opts.find(o => /check|call/i.test(o.text || o.label || ''));
+                    if (checkCallOpt) handleAnswer(checkCallOpt.id || checkCallOpt);
                 } else if (lower === 'r') {
-                    const opts = question?.options || [];
-                    const raiseOpt = opts.find(o => /raise|bet|all.in|shove/i.test(o.text || ''));
-                    if (raiseOpt) handleAnswer(raiseOpt.id);
+                    const opts = options || [];
+                    const raiseOpt = opts.find(o => /raise|bet|all.in|shove/i.test(o.text || o.label || ''));
+                    if (raiseOpt) handleAnswer(raiseOpt.id || raiseOpt);
                 }
             }
         };
@@ -1237,13 +1245,7 @@ function UniversalDynamicTable({
         setSelectedAnswer(null);
     }, [questionNumber]);
 
-    const handleAnswer = useCallback((answerId) => {
-        if (showFeedback) return;
-        setSelectedAnswer(answerId);
-        // Speed bonus tracking
-        const elapsed = (Date.now() - answerStartTime.current) / 1000;
-        onAnswer(answerId, { answerTimeSeconds: elapsed });
-    }, [showFeedback, onAnswer]);
+
 
     // Speed bonus toast on correct feedback
     useEffect(() => {

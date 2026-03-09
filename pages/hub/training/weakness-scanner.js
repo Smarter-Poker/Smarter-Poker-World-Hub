@@ -18,25 +18,71 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 function analyzeData(sessions) {
     if (!sessions || sessions.length === 0) return null;
 
-    // Mocks for demonstration since we don't have deeply categorized accuracy in simple session data
-    // In a real app, we'd parse hand-level logs. Here we simulate insights based on overall stats mixed with deterministic noise
-
     let totalHands = 0, totalCorrect = 0;
+    const gameAccMap = {};
+
     sessions.forEach(s => {
-        totalHands += (s.hands_played || s.total_questions || 0);
-        totalCorrect += (s.correct_count || s.correct_answers || 0);
+        // Handle varying payload structures historically used across the platform
+        const q = Number(s.total_questions || s.questions_answered || 0);
+        const c = Number(s.correct_count || s.questions_correct || 0);
+
+        // Some tools (like Focus Timer) log sessions but don't output "questions". Count them as 1 volume unit.
+        const vol = q > 0 ? q : 1;
+
+        totalHands += vol;
+        totalCorrect += c;
+
+        const gId = s.game_id || s.gameId || 'unknown';
+
+        // Exclude non-scoring tools from accuracy metrics
+        if (!['focus-timer', 'risk-analyzer', 'gto-preloader'].includes(gId) && q > 0) {
+            if (!gameAccMap[gId]) gameAccMap[gId] = { q: 0, c: 0 };
+            gameAccMap[gId].q += q;
+            gameAccMap[gId].c += c;
+        }
     });
 
     const overallAcc = totalHands > 0 ? (totalCorrect / totalHands) * 100 : 0;
-    const isPro = overallAcc >= 80;
+    const leaks = [];
+    let idCounter = 1;
 
-    const leaks = [
-        { id: 1, cat: 'Preflop', area: 'SB vs BB', acc: isPro ? 72 : 54, sample: 120, tip: 'You are folding too much from the SB. Construct a 3-bet or fold strategy, no flatting.', sev: isPro ? 'Medium' : 'High' },
-        { id: 2, cat: 'Preflop', area: 'UTG Opening', acc: isPro ? 88 : 68, sample: 154, tip: 'Opening too wide from early position. Stick to 15-18% of hands.', sev: isPro ? 'Low' : 'High' },
-        { id: 3, cat: 'Postflop', area: 'Turn Second Barrels', acc: isPro ? 65 : 45, sample: 89, tip: 'Under-bluffing the turn after flop c-bets. Add more semi-bluffs to your turn barrel range.', sev: 'High' },
-        { id: 4, cat: 'Postflop', area: 'River Value Sizing', acc: isPro ? 75 : 62, sample: 45, tip: 'Missing thin value on the river. Start betting 33-50% pot with medium-strong hands instead of checking.', sev: 'Medium' },
-        { id: 5, cat: 'Math', area: 'Pot Odds Calling', acc: isPro ? 82 : 58, sample: 210, tip: 'Over-folding to half-pot bets. You only need 25% equity to call profitably.', sev: isPro ? 'Low' : 'High' },
-    ];
+    for (const [gId, stats] of Object.entries(gameAccMap)) {
+        if (stats.q < 3) continue; // Need minimum sample size to flag a leak
+
+        const acc = (stats.c / stats.q) * 100;
+        if (acc <= 85) { // Anything 85% or below is considered an active leak
+            let tip, cat, area;
+            area = gId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+            if (gId.includes('preflop')) {
+                cat = 'Preflop'; tip = `Your accuracy in ${area} is sub-optimal (${Math.round(acc)}%). Review your opening ranges and 3-bet frequencies to plug this leak.`;
+            } else if (gId.includes('icm') || gId.includes('tournament')) {
+                cat = 'ICM / Math'; tip = `You are losing EV in high-pressure ${area} spots. Tighten your calling ranges near the bubble.`;
+            } else if (gId.includes('ev') || gId.includes('geometry') || gId.includes('odds')) {
+                cat = 'Postflop Math'; tip = `Miscalculating pot odds and SPR. Re-drill ${area} to ensure you are getting the right mathematical price.`;
+            } else if (gId.includes('short-deck')) {
+                cat = 'Variant Rules'; tip = `Short Deck equities differ drastically from NLHE. You are overvaluing top pair and undervaluing straight draws.`;
+            } else {
+                cat = 'General Tactics'; tip = `Statistical weakness detected in ${area}. Replay this specific module repeatedly until your accuracy climbs above 90%.`;
+            }
+
+            leaks.push({
+                id: idCounter++,
+                cat, area, acc: Math.round(acc), sample: stats.q,
+                tip,
+                sev: acc < 65 ? 'High' : 'Medium'
+            });
+        }
+    }
+
+    // Default state if they are performing perfectly or playing low sample size
+    if (leaks.length === 0 && totalHands > 0) {
+        leaks.push({
+            id: 999, cat: 'System Intel', area: 'Sample Size Too Small', acc: Math.round(overallAcc), sample: totalHands,
+            tip: 'Your accuracy is solid, or we need more data. Keep drilling across different categories to uncover hidden leaks.',
+            sev: 'Low'
+        });
+    }
 
     leaks.sort((a, b) => a.acc - b.acc);
 

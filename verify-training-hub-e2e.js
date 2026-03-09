@@ -20,6 +20,11 @@ const fs = require('fs');
             }
         });
 
+        page.on('pageerror', exception => {
+            console.log(`❌ BROWSER UNCAUGHT EXCEPTION: ${exception.message}`);
+            console.log(exception.stack);
+        });
+
         // Set local storage item to bypass diamond check if necessary, or just rely on the local stub
         log('Test 1: Check BUG-B (Arena Redirect) - Skipping as we found it is deprecated for inline Arena');
 
@@ -117,8 +122,12 @@ const fs = require('fs');
         await page.waitForTimeout(1000); // animations
 
         const getButtonTexts = async () => {
-            return await page.$$eval('#action-button-container button, div[class*="options"] button',
-                btns => btns.map(b => b.innerText.trim()).filter(t => t.length > 0)
+            return await page.$$eval('button',
+                btns => {
+                    const excluded = ['Quit', 'Exit', 'RNG ON', 'RNG OFF', 'STUDY ON', 'STUDY OFF', 'Next Hand', 'Next', 'Continue'];
+                    return btns.map(b => b.innerText.replace(/\n|1|2|3|4/g, '').trim())
+                        .filter(t => t.length > 0 && !excluded.some(ex => t.includes(ex)));
+                }
             );
         };
 
