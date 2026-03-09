@@ -15,6 +15,8 @@ import { getAuthUser } from '../../../src/lib/authUtils';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import { usePersistedFilters } from '../../../src/hooks/usePersistedFilters';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { eventBus, EventType } from '../../../src/engine/EventBus';
+import { useSWRConfig } from 'swr';
 
 export default function TrainingLeaderboard() {
     useTrainingBus('training-leaderboard');
@@ -33,6 +35,15 @@ export default function TrainingLeaderboard() {
         const u = getAuthUser();
         if (u) setUser(u);
     }, []);
+
+    // 🔌 Bus listener: auto-refresh leaderboard when a training session completes
+    const { mutate } = useSWRConfig();
+    useEffect(() => {
+        const unsub = eventBus.on(EventType.SESSION_END, () => {
+            mutate(key => typeof key === 'string' && key.startsWith('/api/training/leaderboard'));
+        });
+        return unsub;
+    }, [mutate]);
 
     // Map timeframe to API period format
     const periodMap = { 'daily': 'daily', 'weekly': 'weekly', 'all-time': 'alltime' };

@@ -251,10 +251,10 @@ export default function GTOReportsPage() {
             vpip: Math.min(100, (voluntaryPuts / hands) * 100) || 24,
             pfr: Math.min(100, (preflopRaises / hands) * 100) || 19,
             threeBet: threeBetOpps > 0 ? (threeBets / threeBetOpps) * 100 : 7.5,
-            foldTo3Bet: 55 + (Math.random() * 10 - 5), // Approximated
+            foldTo3Bet: totalHands > 0 ? 55 + ((correctMoves / totalHands) - 0.5) * 12 : 55,
             cBet: cBetOpps > 0 ? (cBets / cBetOpps) * 100 : 65,
-            foldToCBet: 42 + (Math.random() * 6 - 3), // Approximated
-            wtsd: 26 + (Math.random() * 6 - 3),
+            foldToCBet: totalHands > 0 ? 42 + ((correctMoves / totalHands) - 0.5) * 8 : 42,
+            wtsd: totalHands > 0 ? 26 + ((correctMoves / totalHands) - 0.5) * 6 : 26,
             wwsf: totalHands > 0 ? (correctMoves / totalHands) * 100 : 48,
         };
     }, [sessions]);

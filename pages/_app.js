@@ -386,6 +386,8 @@ function NavigationGuard({ children }) {
       // Remove the hiding class
       document.body.classList.remove('page-transitioning');
       setIsNavigating(false);
+      // Scroll to the very top so the global header is always visible
+      window.scrollTo(0, 0);
     };
 
     router.events.on('routeChangeStart', handleStart);

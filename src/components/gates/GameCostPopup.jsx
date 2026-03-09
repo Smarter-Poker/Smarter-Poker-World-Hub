@@ -137,8 +137,8 @@ const s = {
     // ── Close "X" button hit target ────────────────────────────────
     closeHit: {
         position: 'absolute',
-        top: '2.5%', right: '2%',
-        width: '12%', height: '8%',
+        top: '8.5%', right: '5%',
+        width: '11%', height: '7%',
         background: 'transparent',
         border: 'none', cursor: 'pointer',
         outline: 'none', WebkitTapHighlightColor: 'transparent',
@@ -150,8 +150,8 @@ const s = {
     // ── "Got It!" button hit target ────────────────────────────────
     gotItHit: {
         position: 'absolute',
-        bottom: '2.5%', left: '7%',
-        width: '40%', height: '9.5%',
+        bottom: '9%', left: '8%',
+        width: '38%', height: '8.5%',
         background: 'transparent',
         border: 'none', cursor: 'pointer',
         outline: 'none', WebkitTapHighlightColor: 'transparent',
@@ -163,8 +163,8 @@ const s = {
     // ── "Upgrade To VIP" button hit target ─────────────────────────
     upgradeHit: {
         position: 'absolute',
-        bottom: '2.5%', right: '7%',
-        width: '40%', height: '9.5%',
+        bottom: '9%', right: '8%',
+        width: '38%', height: '8.5%',
         background: 'transparent',
         border: 'none', cursor: 'pointer',
         outline: 'none', WebkitTapHighlightColor: 'transparent',

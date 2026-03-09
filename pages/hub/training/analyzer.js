@@ -12,6 +12,8 @@ import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import { parseHandHistories, getHeroDecisions, cardsToNotation } from '../../../src/utils/handHistoryParser';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { classifyMove, simulateEVLoss, CLASSIFICATION_CONFIG, MOVE_CLASSIFICATIONS } from '../../../src/hooks/useGTOWScore';
+import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CLASSIFICATION HELPERS
@@ -156,49 +158,62 @@ function HandCard({ hand, index, isExpanded, onToggle }) {
                                     )}
                                 </div>
 
-                                {streetEntry.actions.map((action, ai) => (
-                                    <div
-                                        key={ai}
-                                        style={{
-                                            display: 'flex', alignItems: 'center', gap: 8,
-                                            padding: '3px 0',
-                                            background: action.isHero ? 'rgba(0,212,255,0.05)' : 'transparent',
-                                            borderLeft: action.isHero ? '3px solid #00d4ff' : '3px solid transparent',
-                                            paddingLeft: action.isHero ? 8 : 11,
-                                            borderRadius: 4,
-                                        }}
-                                    >
-                                        <span style={{
-                                            fontSize: 10, color: '#64748b', width: 40,
-                                            fontFamily: "'Orbitron', monospace", fontWeight: 600,
-                                        }}>
-                                            {action.position}
-                                        </span>
-                                        <span style={{
-                                            fontSize: 11, fontWeight: 700,
-                                            color: ACTION_MAP[action.action]?.color || '#94a3b8',
-                                        }}>
-                                            {ACTION_MAP[action.action]?.label || action.action}
-                                        </span>
-                                        {action.amount > 0 && (
+                                {streetEntry.actions.map((action, ai) => {
+                                    // EV Loss classification for hero actions
+                                    const heroClassification = action.isHero
+                                        ? classifyMove(action.action, 'check', {}, 1)
+                                        : null;
+                                    const classConfig = heroClassification
+                                        ? CLASSIFICATION_CONFIG[heroClassification.classification]
+                                        : null;
+
+                                    return (
+                                        <div
+                                            key={ai}
+                                            style={{
+                                                display: 'flex', alignItems: 'center', gap: 8,
+                                                padding: '3px 0',
+                                                background: action.isHero ? 'rgba(0,212,255,0.05)' : 'transparent',
+                                                borderLeft: action.isHero ? `3px solid ${classConfig?.color || '#00d4ff'}` : '3px solid transparent',
+                                                paddingLeft: action.isHero ? 8 : 11,
+                                                borderRadius: 4,
+                                            }}
+                                        >
                                             <span style={{
-                                                fontSize: 10, color: '#e2e8f0', fontWeight: 600,
-                                                fontFamily: "'Orbitron', monospace",
+                                                fontSize: 10, color: '#64748b', width: 40,
+                                                fontFamily: "'Orbitron', monospace", fontWeight: 600,
                                             }}>
-                                                ${action.amount.toFixed(2)}
+                                                {action.position}
                                             </span>
-                                        )}
-                                        {action.isHero && (
                                             <span style={{
-                                                fontSize: 8, color: '#00d4ff', fontWeight: 700,
-                                                padding: '1px 6px', borderRadius: 8,
-                                                background: 'rgba(0,212,255,0.1)',
+                                                fontSize: 11, fontWeight: 700,
+                                                color: ACTION_MAP[action.action]?.color || '#94a3b8',
                                             }}>
-                                                HERO
+                                                {ACTION_MAP[action.action]?.label || action.action}
                                             </span>
-                                        )}
-                                    </div>
-                                ))}
+                                            {action.amount > 0 && (
+                                                <span style={{
+                                                    fontSize: 10, color: '#e2e8f0', fontWeight: 600,
+                                                    fontFamily: "'Orbitron', monospace",
+                                                }}>
+                                                    ${action.amount.toFixed(2)}
+                                                </span>
+                                            )}
+                                            {action.isHero && classConfig && (
+                                                <span style={{
+                                                    fontSize: 8, fontWeight: 700,
+                                                    padding: '1px 6px', borderRadius: 8,
+                                                    background: classConfig.bgColor,
+                                                    color: classConfig.color,
+                                                    border: `1px solid ${classConfig.borderColor}40`,
+                                                }}>
+                                                    {classConfig.label}
+                                                    {heroClassification.evLoss > 0 && ` (-${heroClassification.evLoss.toFixed(1)}bb)`}
+                                                </span>
+                                            )}
+                                        </div>
+                                    );
+                                })}
                             </div>
                         ))}
 
@@ -235,23 +250,36 @@ function AggregateStats({ hands }) {
 
         const positionCounts = {};
         const streetActionCounts = { preflop: {}, flop: {}, turn: {}, river: {} };
+        const streetEVLoss = { preflop: 0, flop: 0, turn: 0, river: 0 };
+        const classificationCounts = {};
         let totalDecisions = 0;
+        let totalEVLoss = 0;
 
         hands.forEach(hand => {
-            // Position frequency
             const pos = hand.heroPosition || 'UNK';
             positionCounts[pos] = (positionCounts[pos] || 0) + 1;
 
-            // Action frequency per street
             const decisions = getHeroDecisions(hand);
             decisions.forEach(d => {
                 totalDecisions++;
                 if (!streetActionCounts[d.street]) streetActionCounts[d.street] = {};
                 streetActionCounts[d.street][d.action] = (streetActionCounts[d.street][d.action] || 0) + 1;
+
+                // EV Loss classification
+                const result = classifyMove(d.action, 'check', {}, 1);
+                const classification = result.classification || MOVE_CLASSIFICATIONS.CORRECT;
+                classificationCounts[classification] = (classificationCounts[classification] || 0) + 1;
+                const evLoss = result.evLoss || 0;
+                totalEVLoss += evLoss;
+                if (streetEVLoss[d.street] !== undefined) streetEVLoss[d.street] += evLoss;
             });
         });
 
-        return { positionCounts, streetActionCounts, totalDecisions, totalHands: hands.length };
+        return {
+            positionCounts, streetActionCounts, totalDecisions, totalHands: hands.length,
+            totalEVLoss, avgEVLoss: totalDecisions > 0 ? totalEVLoss / totalDecisions : 0,
+            streetEVLoss, classificationCounts,
+        };
     }, [hands]);
 
     if (!stats) return null;
@@ -274,7 +302,8 @@ function AggregateStats({ hands }) {
                 {[
                     { label: 'Hands', value: stats.totalHands, color: '#00d4ff' },
                     { label: 'Decisions', value: stats.totalDecisions, color: '#22c55e' },
-                    { label: 'Positions', value: Object.keys(stats.positionCounts).length, color: '#7c3aed' },
+                    { label: 'EV Lost', value: `${stats.totalEVLoss.toFixed(1)}bb`, color: stats.totalEVLoss > 5 ? '#ef4444' : '#22c55e' },
+                    { label: 'Avg EV/Dec', value: `${stats.avgEVLoss.toFixed(2)}bb`, color: stats.avgEVLoss > 0.5 ? '#eab308' : '#22c55e' },
                 ].map(m => (
                     <div key={m.label} style={{
                         flex: 1, textAlign: 'center',
