@@ -240,6 +240,24 @@ class TournamentBridge {
       this._broadcastTournament('mystery_bounty_awarded', data);
       await this._persistBountyAward(data);
 
+      // Phase 7: Broadcast mystery bounty to all tournament tables' chat
+      if (this.supabase && data.reveal) {
+        const chatMsg = `🎰 ${data.playerName} pulled a ${data.reveal.tierLabel} Mystery Bounty (${data.amount.toLocaleString()} chips) for knocking out ${data.eliminatedName}!`;
+        for (const [tableId] of this.tournament.tables) {
+          try {
+            const tableChannel = this.supabase.channel(`table:${tableId}`);
+            await tableChannel.send({
+              type: 'broadcast',
+              event: 'chat_message',
+              payload: { type: 'system', message: chatMsg }
+            });
+            this.supabase.removeChannel(tableChannel);
+          } catch (e) {
+            console.error('[TournamentBridge] Chat broadcast failed for table', tableId, e.message);
+          }
+        }
+      }
+
       // Phase 7: Club-wide announcement for Jackpot bounties
       if (data.reveal?.isJackpot && this.supabase && this.tournament.clubId) {
         try {

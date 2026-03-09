@@ -277,6 +277,19 @@ export async function notifyClubAnnouncement(userIds, clubName, message) {
 }
 
 /**
+ * Send Jackpot Bounty notification
+ */
+export async function notifyJackpotBounty(userIds, clubName, tournamentName, winnerName, amount, tierLabel) {
+  return sendPushNotification({
+    externalUserIds: userIds,
+    title: `🎰 ${tierLabel} Bounty in ${clubName}!`,
+    message: `${winnerName} just pulled a ${amount.toLocaleString()} chip Mystery Bounty in ${tournamentName}!`,
+    url: '/hub/club-arena',
+    data: { type: 'jackpot_bounty', amount }
+  });
+}
+
+/**
  * Send venue-wide announcement
  */
 export async function notifyVenueAnnouncement(venueName, message) {
