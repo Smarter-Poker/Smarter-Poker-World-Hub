@@ -40,6 +40,7 @@ export default function useTrainingBus(pageName, context = {}) {
                 timestamp: new Date().toISOString(),
             }, pageName);
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [pageName]); // Only on mount/unmount
 
     // ─── Decision Emitters ───────────────────────────────────────────

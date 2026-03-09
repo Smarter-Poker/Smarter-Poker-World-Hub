@@ -28,6 +28,7 @@ import Confetti from 'react-confetti';
 import TRAINING_CONFIG from '../../config/trainingConfig';
 import { getGameById } from '../../data/TRAINING_LIBRARY';
 import { enqueueMutation } from '../../engine/OfflineSyncQueue';
+import { busEmit } from '../../engine/EventBus';
 
 // ALL GAMES use full-screen immersive UI with GameUIRouter
 const FULL_SCREEN_UI_GAMES = [
@@ -698,6 +699,8 @@ function DailyChallengeBanner({ gtowScore, targetScore = 85 }) {
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
+const TIMER_DURATIONS = { relaxed: 0, standard: 60, blitz: 15 };
+
 function GodModeArenaInner({
     userId,
     gameId,
@@ -777,7 +780,6 @@ function GodModeArenaInner({
     useEffect(() => { if (typeof window !== 'undefined') localStorage.setItem('gma_difficulty', difficulty); }, [difficulty]);
 
     // ═══ QW-2: TIMER MODE (relaxed/standard/blitz) ═══
-    const TIMER_DURATIONS = { relaxed: 0, standard: 60, blitz: 15 };
     const [timerMode, setTimerMode] = useState(() => {
         if (typeof window !== 'undefined') return localStorage.getItem('gma_timer') || 'standard';
         return 'standard';
@@ -827,26 +829,7 @@ function GodModeArenaInner({
         if (showFeedback && timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     }, [showFeedback]);
 
-    // ═══ QW-2 / T2-2: KEYBOARD SHORTCUTS ═══
-    useEffect(() => {
-        const handler = (e) => {
-            if (showFeedback && e.key === ' ') {
-                e.preventDefault();
-                handleNextQuestion();
-                return;
-            }
-            if (!showFeedback && currentQuestion?.options) {
-                const idx = parseInt(e.key) - 1;
-                if (idx >= 0 && idx < currentQuestion.options.length) {
-                    e.preventDefault();
-                    const opt = currentQuestion.options[idx];
-                    submitAnswer(opt.id || opt);
-                }
-            }
-        };
-        window.addEventListener('keydown', handler);
-        return () => window.removeEventListener('keydown', handler);
-    }, [showFeedback, currentQuestion, submitAnswer, handleNextQuestion]);
+
 
     // ═══ Phase 21: Game Phase State Machine ═══
     const [gamePhase, setGamePhase] = useState('splash'); // 'splash' | 'playing' | 'review'
@@ -995,6 +978,13 @@ function GodModeArenaInner({
                 if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
                 console.log('[GodModeArena] Session saved directly to database');
 
+                // Emitting real-time updates so other pages (Hub/Stats) update instantly
+                busEmit.sessionEnd('Training Arena');
+                busEmit.dataMutated('training_sessions');
+                if (speedBonusDiamonds > 0) {
+                    busEmit.diamondsEarned(speedBonusDiamonds, 'Training Speed Bonus');
+                }
+
             } catch (e) {
                 console.warn('[GodModeArena] Network save failed, queueing to OfflineSyncQueue:', e.message);
                 // payload is now accessible here — no more ReferenceError
@@ -1004,7 +994,7 @@ function GodModeArenaInner({
             }
         };
         saveSession();
-    }, [gameComplete, gameId, gameName, gtowScore, totalEVLoss, totalQuestions, sessionMistakes, correctCount, bestStreak, levelPassed, currentLevel, handHistory, avgEVLossPerHand, avgEVLossPerMistake, avgFrequencyDiff, trainerConfig]);
+    }, [gameComplete, gameId, gameName, gtowScore, totalEVLoss, totalQuestions, sessionMistakes, correctCount, bestStreak, levelPassed, currentLevel, handHistory, avgEVLossPerHand, avgEVLossPerMistake, avgFrequencyDiff, trainerConfig, speedBonusDiamonds]);
 
     // Wrapped nextQuestion with transition guard
     const handleNextQuestion = useCallback(() => {
@@ -1016,6 +1006,27 @@ function GodModeArenaInner({
             setIsTransitioning(false);
         }, 350);
     }, [nextQuestion, isTransitioning]);
+
+    // ═══ QW-2 / T2-2: KEYBOARD SHORTCUTS ═══
+    useEffect(() => {
+        const handler = (e) => {
+            if (showFeedback && e.key === ' ') {
+                e.preventDefault();
+                handleNextQuestion();
+                return;
+            }
+            if (!showFeedback && currentQuestion?.options) {
+                const idx = parseInt(e.key) - 1;
+                if (idx >= 0 && idx < currentQuestion.options.length) {
+                    e.preventDefault();
+                    const opt = currentQuestion.options[idx];
+                    submitAnswer(opt.id || opt);
+                }
+            }
+        };
+        window.addEventListener('keydown', handler);
+        return () => window.removeEventListener('keydown', handler);
+    }, [showFeedback, currentQuestion, submitAnswer, handleNextQuestion]);
 
     // F5: Mixed strategy adherence tracking
     const mixedStrategyScore = useMemo(() => {

@@ -133,6 +133,8 @@ export default function DiamondArcade() {
     const duelPollRef = useRef(null);
     const questionStartTime = useRef(0);
     const [menuOpen, setMenuOpen] = useState(false);
+    const [showOutOfDiamondsModal, setShowOutOfDiamondsModal] = useState(false);
+    const [attemptedGameCharge, setAttemptedGameCharge] = useState(10);
 
     // Hamburger menu preferences
     const [preferences, setPreferences] = useState({
@@ -246,8 +248,22 @@ export default function DiamondArcade() {
             alert('Game not found!');
             return;
         }
-        if (balance < game.entryFee) {
-            alert(`Not enough diamonds! Need ${game.entryFee}, you have ${balance}`);
+        // ═══════════════════════════════════════════════════════════════════
+        // HARDENED: Verify real balance from database before starting game
+        // ═══════════════════════════════════════════════════════════════════
+        let currentBalance = balance;
+        if (game.entryFee > 0 && user?.id) {
+            try {
+                const { data } = await supabase.from('profiles').select('diamonds').eq('id', user.id).maybeSingle();
+                if (data) currentBalance = data.diamonds || 0;
+            } catch (e) {
+                console.warn('DB balance check failed, falling back to local');
+            }
+        }
+
+        if (currentBalance < game.entryFee) {
+            setAttemptedGameCharge(game.entryFee);
+            setShowOutOfDiamondsModal(true);
             return;
         }
 
@@ -954,6 +970,13 @@ export default function DiamondArcade() {
                     </AnimatePresence>
                 </div>
             </div>
+
+            <OutOfDiamondsModal
+                isOpen={showOutOfDiamondsModal}
+                onClose={() => setShowOutOfDiamondsModal(false)}
+                gameCost={attemptedGameCharge}
+                isVIP={false}
+            />
         </>
     );
 }
@@ -1630,3 +1653,136 @@ const styles = {
         boxShadow: '0 4px 20px rgba(59, 130, 246, 0.4)',
     },
 };
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 💎 OUT OF DIAMONDS MODAL
+// ═══════════════════════════════════════════════════════════════════════════
+function OutOfDiamondsModal({ isOpen, onClose, gameCost = 5, isVIP = false }) {
+    if (!isOpen) return null;
+
+    return (
+        <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.85)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10000,
+        }}>
+            <div style={{
+                background: 'linear-gradient(135deg, #1a0a2a, #0a0a12)',
+                borderRadius: 24,
+                padding: 32,
+                maxWidth: 420,
+                width: '90%',
+                textAlign: 'center',
+                border: '2px solid rgba(255, 107, 0, 0.5)',
+                boxShadow: '0 0 60px rgba(255, 107, 0, 0.3)',
+            }}>
+                <div style={{ fontSize: 64, marginBottom: 16 }}><svg width='64' height='64' viewBox='0 0 24 24' fill='none'><path d='M12 2L2 9l10 13 10-13L12 2z' fill='#00D4FF' /><path d='M12 2L2 9h20L12 2z' fill='#00B8E6' /></svg></div>
+                <h2 style={{
+                    fontFamily: 'Orbitron, sans-serif',
+                    fontSize: 28,
+                    fontWeight: 900,
+                    color: '#ff6b00',
+                    marginBottom: 8,
+                }}>OUT OF DIAMONDS</h2>
+                <p style={{
+                    color: 'rgba(255,255,255,0.7)',
+                    fontSize: 16,
+                    marginBottom: 24,
+                    lineHeight: 1.6,
+                }}>
+                    You need <strong style={{ color: '#FFD700' }}>{gameCost} diamonds</strong> to play this game.
+                </p>
+
+                {!isVIP && (
+                    <div style={{
+                        background: 'linear-gradient(135deg, rgba(138, 43, 226, 0.2), rgba(0, 212, 255, 0.2))',
+                        borderRadius: 16,
+                        padding: 20,
+                        marginBottom: 24,
+                        border: '1px solid rgba(138, 43, 226, 0.3)',
+                    }}>
+                        <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>
+                            GET VIP FOR
+                        </div>
+                        <div style={{
+                            fontFamily: 'Orbitron, sans-serif',
+                            fontSize: 32,
+                            fontWeight: 900,
+                            color: '#fff',
+                            marginBottom: 4,
+                        }}>
+                            150 💎<span style={{ fontSize: 16, opacity: 0.7 }}>/day</span>
+                        </div>
+                        <div style={{ color: '#00ff88', fontSize: 14, fontWeight: 600 }}>
+                            UNLIMITED ACCESS • No diamonds needed
+                        </div>
+                    </div>
+                )}
+
+                <div style={{ display: 'flex', gap: 12 }}>
+                    <button
+                        onClick={onClose}
+                        style={{
+                            flex: 1,
+                            padding: '16px',
+                            background: 'rgba(255,255,255,0.05)',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            borderRadius: 12,
+                            color: '#fff',
+                            fontFamily: 'Orbitron, sans-serif',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                        }}
+                    >
+                        CANCEL
+                    </button>
+                    <button
+                        onClick={() => {
+                            window.location.href = '/hub/diamond-store?tab=vip';
+                        }}
+                        style={{
+                            flex: 1,
+                            padding: '16px',
+                            background: 'linear-gradient(180deg, #8a2be2 0%, #4b0082 100%)',
+                            border: 'none',
+                            borderRadius: 12,
+                            color: '#fff',
+                            fontFamily: 'Orbitron, sans-serif',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            boxShadow: '0 4px 15px rgba(138, 43, 226, 0.4)',
+                        }}
+                    >
+                        GET VIP
+                    </button>
+                    <button
+                        onClick={() => {
+                            window.location.href = '/hub/diamond-store';
+                        }}
+                        style={{
+                            flex: 1,
+                            padding: '16px',
+                            background: 'linear-gradient(180deg, #00D4FF 0%, #0088CC 100%)',
+                            border: 'none',
+                            borderRadius: 12,
+                            color: '#fff',
+                            fontFamily: 'Orbitron, sans-serif',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            boxShadow: '0 4px 15px rgba(0, 212, 255, 0.4)',
+                        }}
+                    >
+                        STORE
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}

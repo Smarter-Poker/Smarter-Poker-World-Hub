@@ -68,6 +68,52 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
     const userId = getAuthUser()?.id;
 
     /**
+     * FALLBACK: Fetch single question via deterministic batch-preload (count=1)
+     * Eliminates all Grok AI dependency — pure solver data only
+     */
+    const fetchSingleQuestion = useCallback(async () => {
+        if (!gameId) return;
+
+        setLoading(true);
+        setError(null);
+        setShowFeedback(false);
+
+        try {
+            const params = new URLSearchParams({
+                gameId,
+                level: level.toString(),
+                count: '1',
+            });
+
+            const token = getSessionToken();
+            const response = await fetch(`/api/training/batch-preload?${params}`, {
+                headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+            });
+
+            // Safe JSON parsing
+            let data;
+            const textResponse = await response.text();
+            try {
+                data = JSON.parse(textResponse);
+            } catch (e) {
+                if (response.status === 401) throw new Error('Auth required');
+                throw new Error(`Server error (${response.status})`);
+            }
+
+            if (!response.ok || !data.questions || data.questions.length === 0) {
+                throw new Error(data.error || 'No solver data available');
+            }
+
+            setCurrentQuestion(data.questions[0]);
+        } catch (err) {
+            console.error('[GTOTrainer] Fetch error:', err);
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    }, [gameId, level]);
+
+    /**
      * 🚀 BATCH PRE-LOAD ALL QUESTIONS AT ONCE
      * Fetches all 25 questions when game starts
      * No more individual loading - instant question serving
@@ -160,53 +206,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
             setLoading(false);
             return fetchSingleQuestion();
         }
-    }, [gameId, level, trainerConfig, effectiveQuestionsPerLevel]);
-
-    /**
-     * FALLBACK: Fetch single question via deterministic batch-preload (count=1)
-     * Eliminates all Grok AI dependency — pure solver data only
-     */
-    const fetchSingleQuestion = useCallback(async () => {
-        if (!gameId) return;
-
-        setLoading(true);
-        setError(null);
-        setShowFeedback(false);
-
-        try {
-            const params = new URLSearchParams({
-                gameId,
-                level: level.toString(),
-                count: '1',
-            });
-
-            const token = getSessionToken();
-            const response = await fetch(`/api/training/batch-preload?${params}`, {
-                headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-            });
-
-            // Safe JSON parsing
-            let data;
-            const textResponse = await response.text();
-            try {
-                data = JSON.parse(textResponse);
-            } catch (e) {
-                if (response.status === 401) throw new Error('Auth required');
-                throw new Error(`Server error (${response.status})`);
-            }
-
-            if (!response.ok || !data.questions || data.questions.length === 0) {
-                throw new Error(data.error || 'No solver data available');
-            }
-
-            setCurrentQuestion(data.questions[0]);
-        } catch (err) {
-            console.error('[GTOTrainer] Fetch error:', err);
-            setError(err.message);
-        } finally {
-            setLoading(false);
-        }
-    }, [gameId, level]);
+    }, [gameId, level, trainerConfig, effectiveQuestionsPerLevel, fetchSingleQuestion]);
 
 
     /**
@@ -481,7 +481,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
         } catch (err) {
             console.warn('[GTOTrainer] Save progress error:', err);
         }
-    }, [userId, gameId, level, correctCount, bestStreak, totalXP, gtowScoring, trainerConfig]);
+    }, [userId, gameId, level, correctCount, bestStreak, totalXP, gtowScoring, effectiveQuestionsPerLevel]);
 
     /**
      * Advance to next question or complete level
@@ -554,7 +554,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                 fetchSingleQuestion();
             }
         }
-    }, [questionNumber, correctCount, level, preloadComplete, preloadedQuestions, saveProgress, fetchSingleQuestion, isMultiStreetActive, advanceToNextStreet, lastSelectedAction]);
+    }, [questionNumber, correctCount, level, preloadComplete, preloadedQuestions, saveProgress, fetchSingleQuestion, isMultiStreetActive, advanceToNextStreet, lastSelectedAction, effectiveQuestionsPerLevel]);
 
     /**
      * Start next level (if passed)
@@ -611,7 +611,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
         if (gameId) {
             preloadAllQuestions();
         }
-    }, [gameId]); // Only pre-load on gameId change
+    }, [gameId, preloadAllQuestions]); // Only pre-load on gameId change
 
     return {
         // Current state

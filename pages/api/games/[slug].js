@@ -18,7 +18,9 @@ export default async function handler(req, res) {
     }
 
     try {
+        console.log(`[API GAMES] Request received for slug: ${slug}`);
         // Try to find game by slug
+        console.log(`[API GAMES] Querying Supabase for slug...`);
         const { data: game, error } = await supabase
             .from('game_registry')
             .select('*')

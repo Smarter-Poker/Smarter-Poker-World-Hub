@@ -16,22 +16,11 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 
-// ═══════════════════════════════════════════════════════════════════════════
-// LEADERBOARD DATA (simulated + real user mixed)
-// ═══════════════════════════════════════════════════════════════════════════
+import useSWR, { useSWRConfig } from 'swr';
 
-function seededRand(seed) {
-    const x = Math.sin(seed * 9301 + 49297) * 49241;
-    return x - Math.floor(x);
-}
-
-const PLAYER_POOL = [
-    'PokerPro_Mike', 'AceHunter99', 'GTO_Sarah', 'Riverbluff_Dan',
-    'ChipStack_King', 'FlushDraw_Amy', 'RangeWizard', 'NittyGritty',
-    'SolverPro101', 'EquityQueen', 'BluffCatcher42', 'PotOddsKing',
-    'StackOff_Phil', 'ThreeBet_Tom', 'PositionPro', 'BarrelMaster',
-    'ICM_Warrior', 'EVMaximizer', 'SharkMode_On', 'GrinderElite',
-];
+// ═══════════════════════════════════════════════════════════════════════════
+// CATEGORIES
+// ═══════════════════════════════════════════════════════════════════════════
 
 const CATEGORIES = [
     { id: 'overall', label: 'Overall', icon: '🏆' },
@@ -40,61 +29,11 @@ const CATEGORIES = [
     { id: 'streaks', label: 'Streaks', icon: '🔥' },
 ];
 
-function buildLeaderboard(userSessions, category, period) {
-    const daySeed = Math.floor(Date.now() / 86400000);
-    const entries = [];
-
-    // Generate simulated players
-    PLAYER_POOL.forEach((name, i) => {
-        const baseSeed = daySeed + i + (category === 'preflop' ? 100 : category === 'postflop' ? 200 : 0);
-        const accuracy = Math.floor(seededRand(baseSeed) * 25) + 65;
-        const sessions = Math.floor(seededRand(baseSeed + 1) * 40) + 5;
-        const hands = sessions * (Math.floor(seededRand(baseSeed + 2) * 15) + 10);
-        const streak = Math.floor(seededRand(baseSeed + 3) * 20) + 1;
-
-        entries.push({
-            id: `player-${i}`,
-            name,
-            isYou: false,
-            accuracy,
-            sessions,
-            hands,
-            streak,
-            score: category === 'streaks' ? streak : accuracy,
-            avatarColor: `hsl(${(i * 43) % 360}, 55%, 50%)`,
-        });
-    });
-
-    // Add real user
-    if (userSessions && userSessions.length > 0) {
-        let totalH = 0, totalC = 0;
-        const periodSessions = period === 'weekly'
-            ? userSessions.filter(s => Date.now() - new Date(s.created_at).getTime() < 604800000)
-            : userSessions;
-
-        periodSessions.forEach(s => {
-            totalH += (s.hands_played || s.total_questions || 0);
-            totalC += (s.correct_count || s.correct_answers || 0);
-        });
-
-        const userAccuracy = totalH > 0 ? Math.round((totalC / totalH) * 100) : 0;
-        entries.push({
-            id: 'you',
-            name: 'You',
-            isYou: true,
-            accuracy: userAccuracy,
-            sessions: periodSessions.length,
-            hands: totalH,
-            streak: periodSessions.length,
-            score: category === 'streaks' ? periodSessions.length : userAccuracy,
-            avatarColor: '#00d4ff',
-        });
-    }
-
-    // Sort and rank
-    return entries
-        .sort((a, b) => b.score - a.score)
-        .map((e, i) => ({ ...e, rank: i + 1 }));
+function getAvatarColor(str) {
+    if (!str) return '#00d4ff';
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    return `hsl(${Math.abs(hash) % 360}, 55%, 50%)`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -104,44 +43,54 @@ function buildLeaderboard(userSessions, category, period) {
 export default function CommunityLeaderboardPage() {
     const router = useRouter();
     useTrainingBus('community-leaderboard');
-    const [loading, setLoading] = useState(true);
-    const [entries, setEntries] = useState([]);
+    const [user, setUser] = useState(null);
     const [category, setCategory] = useState('overall');
     const [period, setPeriod] = useState('weekly');
-    const [sessions, setSessions] = useState([]);
+    const [mounted, setMounted] = useState(false);
 
-    const fetchData = useCallback(async () => {
-        const user = getAuthUser();
-        try {
-            if (user?.id) {
-                const token = getAccessToken();
-                const res = await fetch(`/api/training/get-sessions?limit=200`, {
-                    headers: token ? { Authorization: `Bearer ${token}` } : {},
-                });
-                const data = await res.json();
-                if (data.success) setSessions(data.sessions || []);
-            }
-        } catch (e) {
-            console.error('[Leaderboard] Error:', e);
-        }
-        setLoading(false);
+    useEffect(() => {
+        setMounted(true);
+        const u = getAuthUser();
+        if (u) setUser(u);
     }, []);
 
-    useEffect(() => { fetchData(); }, [fetchData]);
-
+    // 🔌 Bus listener: auto-refresh leaderboard when a training session completes
+    const { mutate } = useSWRConfig();
     useEffect(() => {
-        const unsub = eventBus.on(EventType.SESSION_END, () => fetchData());
+        const unsub = eventBus.on(EventType.SESSION_END, () => {
+            mutate(key => typeof key === 'string' && key.startsWith('/api/training/leaderboard'));
+        });
         return unsub;
-    }, [fetchData]);
+    }, [mutate]);
 
-    // Rebuild leaderboard when filters or sessions change
-    useEffect(() => {
-        setEntries(buildLeaderboard(sessions, category, period));
-    }, [sessions, category, period]);
+    // Fetch real leaderboard data
+    const swrKey = `/api/training/leaderboard?period=${period === 'weekly' ? 'weekly' : 'alltime'}&limit=50`;
+    const { data: swrData, isLoading: loading } = useSWR(swrKey, (url) =>
+        fetch(url).then(r => r.json()).then(data => {
+            if (!data.success) throw new Error('Failed to load leaderboard');
+            return data.leaderboard.map(entry => ({
+                id: entry.userId,
+                name: entry.username || 'Anonymous',
+                accuracy: entry.accuracy || 0,
+                sessions: entry.sessionsCompleted || 0,
+                hands: entry.questionsCorrect || 0, // Approx
+                streak: entry.bestStreak || 0,
+                score: category === 'streaks' ? (entry.bestStreak || 0) : (entry.accuracy || 0),
+                avatarColor: getAvatarColor(entry.userId),
+            }));
+        })
+    );
+
+    // Sort and rank entries
+    const entries = (swrData || [])
+        .sort((a, b) => b.score - a.score)
+        .map((e, i) => ({ ...e, rank: i + 1, isYou: user?.id === e.id }));
 
     const userEntry = entries.find(e => e.isYou);
     const topThree = entries.slice(0, 3);
     const restEntries = entries.slice(3);
+
+    if (!mounted) return null;
 
     return (
         <>
@@ -220,7 +169,7 @@ export default function CommunityLeaderboardPage() {
                     </div>
 
                     {/* Top 3 Podium */}
-                    {!loading && topThree.length >= 3 && (
+                    {!loading && topThree.length > 0 && (
                         <div style={{
                             display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
                             gap: 6, marginBottom: 20,
@@ -228,9 +177,12 @@ export default function CommunityLeaderboardPage() {
                             {[topThree[1], topThree[0], topThree[2]].map((p, i) => {
                                 const heights = [80, 100, 65];
                                 const medals = ['🥈', '🥇', '🥉'];
+
+                                if (!p) return <div key={`empty-podium-${i}`} style={{ flex: 1 }} />;
+
                                 return (
                                     <motion.div
-                                        key={p.id}
+                                        key={p.id || `podium-slot-${i}`}
                                         initial={{ opacity: 0, y: 20 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ delay: i * 0.1 }}

@@ -101,6 +101,10 @@ class GlobalEventBus {
 
 export const eventBus = new GlobalEventBus();
 
+if (typeof window !== 'undefined') {
+    window.SmarterPokerEventBus = eventBus;
+}
+
 // ─── Staff Context Helper ──────────────────────────────────────
 // Reads staff session from localStorage once per emit for payload enrichment.
 function _getStaffCtx() {

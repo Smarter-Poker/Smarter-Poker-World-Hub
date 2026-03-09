@@ -13,37 +13,56 @@
  */
 
 if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-    const RELOAD_KEY = '__hmr_reload_count';
-    const RELOAD_TS_KEY = '__hmr_reload_ts';
-    const MAX_RELOADS = 3;
-    const WINDOW_MS = 10000; // 10 seconds
+  const RELOAD_KEY = '__hmr_reload_count';
+  const RELOAD_TS_KEY = '__hmr_reload_ts';
+  const MAX_RELOADS = 3;
+  const WINDOW_MS = 10000; // 10 seconds
 
-    const now = Date.now();
-    const lastTs = parseInt(sessionStorage.getItem(RELOAD_TS_KEY) || '0', 10);
-    let count = parseInt(sessionStorage.getItem(RELOAD_KEY) || '0', 10);
+  const now = Date.now();
+  let lastTs = 0;
+  let count = 0;
+  let storageAvailable = false;
 
+  try {
+    storageAvailable = typeof sessionStorage !== 'undefined';
+    if (storageAvailable) {
+      lastTs = parseInt(sessionStorage.getItem(RELOAD_TS_KEY) || '0', 10);
+      count = parseInt(sessionStorage.getItem(RELOAD_KEY) || '0', 10);
+    }
+  } catch (e) {
+    // Agent headless browsers might throw SecurityError when accessing storage
+    console.warn('[HMR Guard] sessionStorage access blocked, disabling infinite reload guard');
+    storageAvailable = false;
+  }
+
+  if (storageAvailable) {
     // Reset counter if outside the window
     if (now - lastTs > WINDOW_MS) {
-        count = 0;
+      count = 0;
     }
 
     count++;
-    sessionStorage.setItem(RELOAD_KEY, String(count));
-    sessionStorage.setItem(RELOAD_TS_KEY, String(now));
+    try {
+      sessionStorage.setItem(RELOAD_KEY, String(count));
+      sessionStorage.setItem(RELOAD_TS_KEY, String(now));
+    } catch (e) {
+      // Ignore
+    }
+  }
 
-    if (count > MAX_RELOADS) {
-        // Stop the infinite reload — show banner instead
-        console.warn(`[HMR Guard] Detected ${count} reloads in ${WINDOW_MS / 1000}s — stopping reload loop`);
+  if (storageAvailable && count > MAX_RELOADS) {
+    // Stop the infinite reload — show banner instead
+    console.warn(`[HMR Guard] Detected ${count} reloads in ${WINDOW_MS / 1000}s — stopping reload loop`);
 
-        // Reset counter so next manual reload works
-        sessionStorage.removeItem(RELOAD_KEY);
-        sessionStorage.removeItem(RELOAD_TS_KEY);
+    // Reset counter so next manual reload works
+    sessionStorage.removeItem(RELOAD_KEY);
+    sessionStorage.removeItem(RELOAD_TS_KEY);
 
-        // Inject a reconnect banner
-        window.addEventListener('DOMContentLoaded', () => {
-            const banner = document.createElement('div');
-            banner.id = 'hmr-reconnect-banner';
-            banner.innerHTML = `
+    // Inject a reconnect banner
+    window.addEventListener('DOMContentLoaded', () => {
+      const banner = document.createElement('div');
+      banner.id = 'hmr-reconnect-banner';
+      banner.innerHTML = `
         <div style="
           position: fixed; top: 0; left: 0; right: 0; z-index: 99999;
           background: linear-gradient(135deg, #1a1a2e, #16213e);
@@ -66,29 +85,29 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
           </button>
         </div>
       `;
-            document.body.prepend(banner);
-        });
+      document.body.prepend(banner);
+    });
 
-        // Also prevent any further programmatic reloads for 5 seconds
-        const origReload = window.location.reload.bind(window.location);
-        let blocked = true;
-        window.location.reload = function () {
-            if (blocked) {
-                console.warn('[HMR Guard] Blocked programmatic reload');
-                return;
-            }
-            return origReload();
-        };
-        setTimeout(() => { blocked = false; }, 5000);
+    // Also prevent any further programmatic reloads for 5 seconds
+    const origReload = window.location.reload.bind(window.location);
+    let blocked = true;
+    window.location.reload = function () {
+      if (blocked) {
+        console.warn('[HMR Guard] Blocked programmatic reload');
+        return;
+      }
+      return origReload();
+    };
+    setTimeout(() => { blocked = false; }, 5000);
 
-    } else {
-        // Normal load — clear counter after successful page load
-        window.addEventListener('load', () => {
-            // If the page loaded successfully and stayed for 5 seconds, reset the counter
-            setTimeout(() => {
-                sessionStorage.removeItem(RELOAD_KEY);
-                sessionStorage.removeItem(RELOAD_TS_KEY);
-            }, 5000);
-        });
-    }
+  } else {
+    // Normal load — clear counter after successful page load
+    window.addEventListener('load', () => {
+      // If the page loaded successfully and stayed for 5 seconds, reset the counter
+      setTimeout(() => {
+        sessionStorage.removeItem(RELOAD_KEY);
+        sessionStorage.removeItem(RELOAD_TS_KEY);
+      }, 5000);
+    });
+  }
 }

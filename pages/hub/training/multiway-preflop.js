@@ -300,7 +300,8 @@ export default function MultiwayPreflopPage() {
         const isPair = highIdx === lowIdx;
         const suited = !isPair && Math.random() > 0.5;
         const hand = isPair ? `${r1}${r2}` : suited ? `${r1}${r2}s` : `${r1}${r2}o`;
-        const correct = isInRange(hand, rangeStr);
+        const rangeSet = parseRangeToSet(rangeStr);
+        const correct = rangeSet.has(hand) || rangeSet.has(hand.replace(/[so]/, '')) || rangeSet.has(hand.substring(0, 2));
 
         setQuizHand({ hand, position: pos, scenario: sc.name, scenarioKey: randomKey, action, correct });
         setQuizAnswer(null);

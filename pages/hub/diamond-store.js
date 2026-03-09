@@ -250,6 +250,14 @@ const DIAMOND_PACKAGES = [
 // VIP MEMBERSHIP — $19.99/month for all features
 // ═══════════════════════════════════════════════════════════════════════════
 const VIP_MEMBERSHIP = {
+    daily: {
+        id: 'vip-daily',
+        name: 'VIP Daily Pass',
+        price: 150,
+        interval: 'day',
+        isDiamondCost: true,
+        popular: false,
+    },
     monthly: {
         id: 'vip-monthly',
         name: 'VIP Monthly',
@@ -575,9 +583,15 @@ function VIPCard({ plan, isSelected, onSelect }) {
                     {plan.name}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                    <span style={{ fontSize: 28, fontWeight: 700, color: '#FFFFFF' }}>
-                        ${plan.price.toFixed(2)}
-                    </span>
+                    {plan.isDiamondCost ? (
+                        <span style={{ fontSize: 24, fontWeight: 700, color: '#00D4FF' }}>
+                            {plan.price} 💎
+                        </span>
+                    ) : (
+                        <span style={{ fontSize: 28, fontWeight: 700, color: '#FFFFFF' }}>
+                            ${plan.price.toFixed(2)}
+                        </span>
+                    )}
                     <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>
                         /{plan.interval}
                     </span>
@@ -791,12 +805,42 @@ export default function DiamondStorePage() {
     };
 
     // VIP subscription — adds to cart (allows monthly→annual upgrade)
-    const handleVIPSubscribe = () => {
-        const plan = selectedVIP === 'vip-monthly' ? VIP_MEMBERSHIP.monthly : VIP_MEMBERSHIP.annual;
+    const handleVIPSubscribe = async () => {
+        const plan = selectedVIP === 'vip-daily' ? VIP_MEMBERSHIP.daily :
+            selectedVIP === 'vip-monthly' ? VIP_MEMBERSHIP.monthly : VIP_MEMBERSHIP.annual;
 
         // Haptic feedback
         if (typeof navigator !== 'undefined' && navigator.vibrate) {
             navigator.vibrate(50);
+        }
+
+        if (plan.isDiamondCost) {
+            const token = getAccessToken();
+            if (!token || !user?.id) {
+                alert('Please sign in to purchase VIP.');
+                return;
+            }
+            if (confirm(`Purchase 1-Day VIP Access for ${plan.price} Diamonds?`)) {
+                setIsProcessing(true);
+                try {
+                    const res = await fetch('/api/store/purchase-daily-vip', {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        alert('VIP Daily Pass Activated! 💎');
+                        setIsVip(true);
+                    } else {
+                        alert(`Failed: ${data.error}`);
+                    }
+                } catch (e) {
+                    alert('Error purchasing VIP pass: ' + e.message);
+                } finally {
+                    setIsProcessing(false);
+                }
+            }
+            return;
         }
 
         addItem({
@@ -1077,6 +1121,11 @@ export default function DiamondStorePage() {
 
                                 {/* VIP Plan Selection */}
                                 <div style={styles.vipPlansRow}>
+                                    <VIPCard
+                                        plan={VIP_MEMBERSHIP.daily}
+                                        isSelected={selectedVIP === 'vip-daily'}
+                                        onSelect={setSelectedVIP}
+                                    />
                                     <VIPCard
                                         plan={VIP_MEMBERSHIP.monthly}
                                         isSelected={selectedVIP === 'vip-monthly'}

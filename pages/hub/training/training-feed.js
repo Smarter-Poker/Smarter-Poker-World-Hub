@@ -305,9 +305,31 @@ export default function TrainingFeedPage() {
 
     useEffect(() => { fetchFeed(); }, [fetchFeed]);
 
-    // Bus listener — refresh feed when a training session completes
+    // Bus listener — refresh feed when a training session completes or inject payload directly
     useEffect(() => {
-        const unsub = eventBus.on(EventType.SESSION_END, () => fetchFeed());
+        const unsub = eventBus.on(EventType.SESSION_END, (event) => {
+            const { source, payload } = event;
+            if (payload && typeof payload === 'object') {
+                // If a payload is provided directly on the bus, inject it immediately
+                const liveItem = {
+                    id: `live-${Date.now()}`,
+                    type: 'session',
+                    user: 'You',
+                    isYou: true,
+                    game: typeof source === 'string' ? source.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'GTO Training',
+                    accuracy: payload.accuracy || (payload.questionsAnswered > 0 ? Math.round((payload.questionsCorrect / payload.questionsAnswered) * 100) : 0),
+                    handsPlayed: payload.questionsAnswered || payload.total_questions || 0,
+                    timestamp: Date.now(),
+                    avatarColor: '#00d4ff',
+                    isLiveInjection: true
+                };
+
+                setFeedItems(prev => [liveItem, ...prev]);
+            } else {
+                // Fallback to full fetch if no payload
+                fetchFeed();
+            }
+        });
         return unsub;
     }, [fetchFeed]);
 
