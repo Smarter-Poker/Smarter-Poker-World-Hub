@@ -116,7 +116,7 @@ export default async function handler(req, res) {
                         .from('profiles')
                         .select('diamond_balance')
                         .eq('id', userId)
-                        .single();
+                        .maybeSingle();
 
                     if (profile) {
                         await supabase
