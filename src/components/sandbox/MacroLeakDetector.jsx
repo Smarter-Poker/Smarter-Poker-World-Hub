@@ -2,8 +2,9 @@
  * MACRO LEAK DETECTOR (W6-4)
  * Analyzes large sample sets (up to 1,000 hands) to identify systemic flaws.
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
+import useTrainingBus from '../../hooks/useTrainingBus';
 
 const M = {
     bg: '#18191A', card: '#242526', border: '#3E4042',
@@ -15,29 +16,35 @@ export default function MacroLeakDetector() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    useEffect(() => {
-        async function fetchAnalysis() {
-            try {
-                const token = typeof window !== 'undefined' ? localStorage.getItem('supabase.auth.token') : null;
-                let headers = {};
-                if (token) {
-                    try {
-                        const parsed = JSON.parse(token);
-                        headers.Authorization = `Bearer ${parsed.currentSession?.access_token}`;
-                    } catch (e) { }
-                }
-
-                const res = await fetch('/api/sandbox/macro-analysis', { headers });
-                const json = await res.json();
-                if (json.success) setData(json);
-                else setError(json.error);
-            } catch (err) {
-                setError(err.message);
+    const fetchAnalysis = useCallback(async () => {
+        try {
+            const token = typeof window !== 'undefined' ? localStorage.getItem('supabase.auth.token') : null;
+            let headers = {};
+            if (token) {
+                try {
+                    const parsed = JSON.parse(token);
+                    headers.Authorization = `Bearer ${parsed.currentSession?.access_token}`;
+                } catch (e) { }
             }
-            setLoading(false);
+
+            const res = await fetch('/api/sandbox/macro-analysis', { headers });
+            const json = await res.json();
+            if (json.success) setData(json);
+            else setError(json.error);
+        } catch (err) {
+            setError(err.message);
         }
-        fetchAnalysis();
+        setLoading(false);
     }, []);
+
+    useEffect(() => {
+        fetchAnalysis();
+    }, [fetchAnalysis]);
+
+    useTrainingBus('sandbox-coach-result-saved', () => {
+        // Refresh analysis in the background without setting loading=true
+        fetchAnalysis();
+    });
 
     if (loading) return (
         <div style={{ padding: 20, background: M.card, borderRadius: 12, border: `1px solid ${M.border}`, textAlign: 'center', color: M.sub }}>

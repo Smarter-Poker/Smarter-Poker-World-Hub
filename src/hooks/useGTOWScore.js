@@ -27,42 +27,42 @@ export const MOVE_CLASSIFICATIONS = {
 export const CLASSIFICATION_CONFIG = {
     [MOVE_CLASSIFICATIONS.BEST]: {
         label: 'Best Move',
-        color: '#22c55e',       // Bright green
+        color: '#22c55e',       // Green
         bgColor: 'rgba(34, 197, 94, 0.15)',
         borderColor: '#22c55e',
-        icon: 'star',           // SVG rendered at component level
+        icon: 'star',
         scoreImpact: { min: 3, max: 5 },
     },
     [MOVE_CLASSIFICATIONS.CORRECT]: {
-        label: 'Correct',
-        color: '#4ade80',       // Green
-        bgColor: 'rgba(74, 222, 128, 0.12)',
-        borderColor: '#4ade80',
-        icon: 'check',          // SVG rendered at component level
+        label: 'Excellent',
+        color: '#84cc16',       // Yellow-Green
+        bgColor: 'rgba(132, 204, 22, 0.12)',
+        borderColor: '#84cc16',
+        icon: 'check',
         scoreImpact: { min: 1, max: 2 },
     },
     [MOVE_CLASSIFICATIONS.INACCURACY]: {
         label: 'Inaccuracy',
-        color: '#fbbf24',       // Yellow/Amber
-        bgColor: 'rgba(251, 191, 36, 0.12)',
-        borderColor: '#fbbf24',
-        icon: 'alert',          // SVG rendered at component level
+        color: '#facc15',       // Yellow
+        bgColor: 'rgba(250, 204, 21, 0.12)',
+        borderColor: '#facc15',
+        icon: 'alert',
         scoreImpact: { min: -1, max: -2 },
     },
     [MOVE_CLASSIFICATIONS.WRONG]: {
-        label: 'Wrong',
-        color: '#ef4444',       // Red
-        bgColor: 'rgba(239, 68, 68, 0.12)',
-        borderColor: '#ef4444',
-        icon: 'x',              // SVG rendered at component level
+        label: 'Mistake',
+        color: '#f97316',       // Orange
+        bgColor: 'rgba(249, 115, 22, 0.12)',
+        borderColor: '#f97316',
+        icon: 'x',
         scoreImpact: { min: -3, max: -5 },
     },
     [MOVE_CLASSIFICATIONS.BLUNDER]: {
         label: 'Blunder',
-        color: '#b91c1c',       // Dark Red
-        bgColor: 'rgba(185, 28, 28, 0.15)',
-        borderColor: '#b91c1c',
-        icon: 'warning',        // SVG rendered at component level
+        color: '#ef4444',       // Red
+        bgColor: 'rgba(239, 68, 68, 0.15)',
+        borderColor: '#ef4444',
+        icon: 'warning',
         scoreImpact: { min: -8, max: -10 },
     },
 };
@@ -266,6 +266,19 @@ export function classifyMove(selectedAnswer, correctAnswer, gtoFrequencies = {},
         if (realLoss !== null) {
             evLoss = realLoss;
             isRealData = true;
+
+            // Phase 38 Upgrade: If we have real EV loss, override classification based on strict BB thresholds
+            if (selectedNorm === correctNorm || evLoss <= 0) {
+                classification = MOVE_CLASSIFICATIONS.BEST;
+            } else if (evLoss < 0.1) {
+                classification = MOVE_CLASSIFICATIONS.CORRECT; // "Excellent"
+            } else if (evLoss < 0.5) {
+                classification = MOVE_CLASSIFICATIONS.INACCURACY;
+            } else if (evLoss < 1.5) {
+                classification = MOVE_CLASSIFICATIONS.WRONG; // "Mistake"
+            } else {
+                classification = MOVE_CLASSIFICATIONS.BLUNDER;
+            }
         }
     }
 

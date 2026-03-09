@@ -2,8 +2,9 @@
  * STUDY FOLDERS BROWSER (W6-1)
  * Browses all saved hands by folder, allowing users to reload them into the Sandbox.
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import useTrainingBus from '../../hooks/useTrainingBus';
 
 const M = {
     bg: 'rgba(11,13,17,0.95)',
@@ -20,34 +21,39 @@ export default function StudyFolders({ onClose, onLoadTarget }) {
     const [loading, setLoading] = useState(true);
     const [activeFolder, setActiveFolder] = useState(null);
 
-    useEffect(() => {
-        async function fetchHands() {
-            try {
-                const token = typeof window !== 'undefined' ? localStorage.getItem('supabase.auth.token') : null;
-                let headers = {};
-                if (token) {
-                    try {
-                        const parsed = JSON.parse(token);
-                        headers.Authorization = `Bearer ${parsed.currentSession?.access_token}`;
-                    } catch (e) { }
-                }
-
-                const res = await fetch('/api/sandbox/saved-hands', { headers });
-                const json = await res.json();
-                if (json.success) {
-                    setHands(json.hands);
-                    if (json.hands.length > 0) {
-                        const folders = [...new Set(json.hands.map(h => h.folder_name))];
-                        setActiveFolder(folders[0]);
-                    }
-                }
-            } catch (err) {
-                console.error(err);
+    const fetchHands = useCallback(async () => {
+        try {
+            const token = typeof window !== 'undefined' ? localStorage.getItem('supabase.auth.token') : null;
+            let headers = {};
+            if (token) {
+                try {
+                    const parsed = JSON.parse(token);
+                    headers.Authorization = `Bearer ${parsed.currentSession?.access_token}`;
+                } catch (e) { }
             }
-            setLoading(false);
+
+            const res = await fetch('/api/sandbox/saved-hands', { headers });
+            const json = await res.json();
+            if (json.success) {
+                setHands(json.hands);
+                if (json.hands.length > 0 && !activeFolder) {
+                    const folders = [...new Set(json.hands.map(h => h.folder_name))];
+                    setActiveFolder(folders[0]);
+                }
+            }
+        } catch (err) {
+            console.error(err);
         }
+        setLoading(false);
+    }, [activeFolder]);
+
+    useEffect(() => {
         fetchHands();
-    }, []);
+    }, [fetchHands]);
+
+    useTrainingBus('sandbox-hand-saved', () => {
+        fetchHands();
+    });
 
     const folders = [...new Set(hands.map(h => h.folder_name))];
     const filteredHands = hands.filter(h => h.folder_name === activeFolder);
