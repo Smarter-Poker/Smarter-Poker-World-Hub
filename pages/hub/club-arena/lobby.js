@@ -292,7 +292,10 @@ const router = useRouter();
                 // Supabase v2 uses 'event' not 'eventType' for postgres_changes
                 const eventType = payload.event || payload.eventType;
                 if (eventType === 'INSERT') {
-                    setTables(prev => [...prev, payload.new]);
+                    // Guard: don't add closed or deleted tables to lobby
+                    if (payload.new?.status !== 'closed' && payload.new?.status !== 'deleted') {
+                        setTables(prev => [...prev, payload.new]);
+                    }
                 } else if (eventType === 'UPDATE') {
                     setTables(prev => prev.map(t => t.id === payload.new.id ? { ...t, ...payload.new } : t));
                 } else if (eventType === 'DELETE') {

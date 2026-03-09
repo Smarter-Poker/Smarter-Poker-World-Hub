@@ -826,13 +826,33 @@ const router = useRouter();
                         <div style={S.modalBody}>
                             <div style={S.chipMemberSelect}>
                                 <label style={S.formLabel}>Select Member</label>
+                                <input
+                                    type="text"
+                                    placeholder="Search members..."
+                                    style={{ ...S.formInput, marginBottom: 8 }}
+                                    onChange={e => {
+                                        const q = e.target.value.toLowerCase();
+                                        // Filter is applied inline to the select options below
+                                        e.target.dataset.search = q;
+                                        // Force re-render by toggling a trivial state
+                                        setChipAmount(prev => prev);
+                                    }}
+                                    id="chip-member-search"
+                                />
                                 <select
                                     style={{ ...S.formInput, marginBottom: 0 }}
                                     value={selectedMember?.user_id || ''}
                                     onChange={e => setSelectedMember(members.find(m => m.user_id === e.target.value))}
                                 >
                                     <option value="">Choose A Member...</option>
-                                    {members.map(m => (
+                                    {members.filter(m => {
+                                        const searchEl = typeof document !== 'undefined' && document.getElementById('chip-member-search');
+                                        const q = searchEl?.dataset?.search || '';
+                                        if (!q) return true;
+                                        const name = (m.profiles?.display_name || m.profiles?.username || '').toLowerCase();
+                                        const num = String(m.profiles?.player_number || '');
+                                        return name.includes(q) || num.includes(q);
+                                    }).map(m => (
                                         <option key={m.user_id} value={m.user_id}>
                                             {m.profiles?.display_name || m.profiles?.username} ({(m.chip_balance || 0).toLocaleString()} chips)
                                         </option>
