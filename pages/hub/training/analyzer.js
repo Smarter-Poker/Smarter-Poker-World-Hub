@@ -12,7 +12,7 @@ import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import { parseHandHistories, getHeroDecisions, cardsToNotation } from '../../../src/utils/handHistoryParser';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { classifyMove, simulateEVLoss, CLASSIFICATION_CONFIG, MOVE_CLASSIFICATIONS } from '../../../src/hooks/useGTOWScore';
+import { classifyMove, CLASSIFICATION_CONFIG, MOVE_CLASSIFICATIONS } from '../../../src/hooks/useGTOWScore';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -411,6 +411,15 @@ export default function HandAnalyzer() {
         setParsedHands(hands);
         setIsParsed(true);
         if (hands.length > 0) setExpandedHand(0);
+
+        // Notify other pages via EventBus
+        if (typeof eventBus !== 'undefined' && eventBus.emit) {
+            eventBus.emit(EventType?.TRAINING_SESSION_COMPLETE || 'training:session-complete', {
+                game_id: 'hand-analyzer',
+                hands_played: hands.length,
+                timestamp: new Date().toISOString(),
+            });
+        }
     }, [rawText]);
 
     const handleFileUpload = useCallback((e) => {

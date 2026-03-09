@@ -12,7 +12,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { classifyMove, simulateEVLoss, CLASSIFICATION_CONFIG, MOVE_CLASSIFICATIONS } from '../../../src/hooks/useGTOWScore';
+import { classifyMove, CLASSIFICATION_CONFIG } from '../../../src/hooks/useGTOWScore';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import HandReplayViewer from '../../../src/components/training/HandReplayViewer';
 import PositionStatsPanel from '../../../src/components/training/PositionStatsPanel';
