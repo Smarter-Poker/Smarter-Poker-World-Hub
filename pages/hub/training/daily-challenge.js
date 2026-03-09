@@ -151,6 +151,7 @@ export default function DailyChallengePage() {
             if (data.success) {
                 setChallenge(data.question);
                 setExpiresAt(data.expiresAt);
+                answerStartRef.current = Date.now(); // Reset timer when challenge loads
 
                 // Check local storage for prior completion today
                 const today = new Date().toISOString().split('T')[0];
@@ -259,7 +260,7 @@ export default function DailyChallengePage() {
             eventBus.emit('training:daily-challenge-completed', { accuracy: isCorrect ? 100 : 0, responseTimeMs }, 'DailyChallenge');
             busEmit.sessionEnd('DailyChallenge');
         } catch (_) { /* SSG guard */ }
-    }, [challenge]);
+    }, [challenge, bus]);
 
     // Derive question data
     const options = challenge?.options

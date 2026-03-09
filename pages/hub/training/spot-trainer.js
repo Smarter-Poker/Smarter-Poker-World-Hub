@@ -142,6 +142,7 @@ export default function SpotTrainerPage() {
 
             if (data.success) {
                 setSpot(data.spot);
+                questionStartRef.current = Date.now(); // Reset answer timer when spot loads
             } else if (data.retry) {
                 // Spot had no data, retry
                 setTimeout(fetchSpot, 200);
