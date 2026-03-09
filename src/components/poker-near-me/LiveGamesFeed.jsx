@@ -23,7 +23,9 @@ const GAME_QUALITY_COLORS = {
 };
 
 function formatTimeAgo(dateString) {
+    if (!dateString) return 'Recently';
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Recently';
     const now = new Date();
     const diffMs = now - date;
     const diffMins = Math.floor(diffMs / 60000);
@@ -112,7 +114,7 @@ function LiveGameCard({ game, onConfirm, onReport, user }) {
                     fontSize: '13px',
                     fontWeight: 600
                 }}>
-                    ${game.stakes}
+                    ${game.stakes || 'TBD'}
                 </span>
                 {game.table_count > 1 && (
                     <span style={{

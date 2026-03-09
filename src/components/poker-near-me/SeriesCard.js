@@ -14,10 +14,10 @@ export default function SeriesCard({ series: s, index, isFavorited, onFavorite, 
             </button>
             <div className="card-header">
                 <TourBadge tourCode={s.tour_code || s.short_name} size="small" />
-                <span className="badge series-type">{s.series_type}</span>
+                {s.series_type && <span className="badge series-type">{s.series_type}</span>}
             </div>
             <h4>{s.name}</h4>
-            <p className="card-location">{s.location || ((s.city || s.venue) + ', ' + (s.state || ''))}</p>
+            <p className="card-location">{s.location || (((s.city || s.venue || '') + (s.state ? ', ' + s.state : '')) || 'Location TBD')}</p>
             <p className="card-dates">{formatDate(s.start_date)} - {formatDate(s.end_date)}</p>
             <div className="card-tags">
                 {s.total_events && <span className="tag events">{s.total_events} Events</span>}
