@@ -124,7 +124,9 @@ function StreakCalendar({ completedDays }) {
 
 export default function DailyChallengePage() {
     const router = useRouter();
-    useTrainingBus('daily-challenge');
+    const bus = useTrainingBus('daily-challenge');
+
+    const answerStartRef = useRef(Date.now());
 
     const [challenge, setChallenge] = useState(null);
     const [expiresAt, setExpiresAt] = useState(null);
@@ -240,7 +242,21 @@ export default function DailyChallengePage() {
 
         // Emit bus events
         try {
-            eventBus.emit('training:daily-challenge-completed', { accuracy: isCorrect ? 100 : 0 }, 'DailyChallenge');
+            const responseTimeMs = Date.now() - answerStartRef.current;
+
+            // Answer speed for Leak Detection telemetry
+            if (bus?.emitAnswerSpeed) bus.emitAnswerSpeed(responseTimeMs, { is_correct: isCorrect });
+
+            // Streak update propagation
+            if (bus?.emitStreakUpdate) {
+                const streakData = JSON.parse(localStorage.getItem('daily-challenge-streak') || '[]');
+                bus.emitStreakUpdate(streakData.length);
+            }
+
+            // Card exposure tracking
+            if (bus?.emitCardViewed && challenge?.board_cards) bus.emitCardViewed(challenge.board_cards);
+
+            eventBus.emit('training:daily-challenge-completed', { accuracy: isCorrect ? 100 : 0, responseTimeMs }, 'DailyChallenge');
             busEmit.sessionEnd('DailyChallenge');
         } catch (_) { /* SSG guard */ }
     }, [challenge]);
