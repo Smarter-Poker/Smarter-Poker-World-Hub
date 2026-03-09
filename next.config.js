@@ -64,6 +64,20 @@ const nextConfig = {
     maxInactiveAge: 30 * 1000,    // Dispose compiled pages after 30s of inactivity (default: 60s)
     pagesBufferLength: 3,         // Only keep 3 pages hot in memory (default: 5)
   },
+
+  // ─── Webpack Dev Stability Fix ─────────────────────────────────────────────
+  // PERMANENT FIX: Disable webpack filesystem persistent cache in dev mode.
+  // Without this, stale HMR hashes from old browser tabs cause the dev server to
+  // try to load .pack.gz files that no longer exist after a .next nuke, creating a
+  // crash loop. Memory-only cache is fast enough for dev and immune to corruption.
+  webpack: (config, { dev }) => {
+    if (dev) {
+      config.cache = {
+        type: 'memory',
+      };
+    }
+    return config;
+  },
   swcMinify: true, // SWC minifier uses less memory than Terser
 
   // Force complete cache invalidation - v20 Diamond Arcade Deploy
@@ -102,13 +116,13 @@ const nextConfig = {
   async redirects() {
     return [
       // Short-form auth URLs → canonical auth routes
-      { source: '/login',         destination: '/auth/login',  permanent: true },
-      { source: '/signup',        destination: '/auth/signup', permanent: true },
-      { source: '/register',      destination: '/auth/signup', permanent: true },
+      { source: '/login', destination: '/auth/login', permanent: true },
+      { source: '/signup', destination: '/auth/signup', permanent: true },
+      { source: '/register', destination: '/auth/signup', permanent: true },
       // Privacy/legal routes → terms page (no separate privacy page exists)
-      { source: '/privacy',       destination: '/terms',        permanent: true },
-      { source: '/legal/privacy', destination: '/terms',        permanent: true },
-      { source: '/legal/terms',   destination: '/terms',        permanent: true },
+      { source: '/privacy', destination: '/terms', permanent: true },
+      { source: '/legal/privacy', destination: '/terms', permanent: true },
+      { source: '/legal/terms', destination: '/terms', permanent: true },
       // Live help → messenger with Jarvis
       { source: '/hub/live-help', destination: '/hub/messenger?chat=jarvis', permanent: false },
       // Poker Near Me — redirect old flat page to new 3D lobby
