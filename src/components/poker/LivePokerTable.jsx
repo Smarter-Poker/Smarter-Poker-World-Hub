@@ -2657,6 +2657,7 @@ function LivePokerTable({
   }, [send, buyInSeat, displayName, avatarUrl]);
 
   const [sessionSummary, setSessionSummary] = useState(null);
+  const pendingLeaveRef = useRef(false);
   const handleStandUp = useCallback(() => {
     // Calculate session summary before leaving
     const stats = sessionStats;
@@ -2668,8 +2669,21 @@ function LivePokerTable({
       setSessionSummary({ pnl, hands: stats.handsPlayed, hrs, message: `Session: ${sign}${pnl.toLocaleString()} chips | ${stats.handsPlayed} hands | ${hrs}hr` });
       setTimeout(() => setSessionSummary(null), 8000);
     }
+    pendingLeaveRef.current = true;
     send('stand_up', {});
   }, [send, sessionStats, mySeat?.stack]);
+
+  // Auto-complete pending leave after hand ends
+  // When player clicks Leave during a hand, engine returns pending: true.
+  // After hand_complete, player is sitting_out but still at table.
+  // This effect re-issues stand_up to complete departure.
+  useEffect(() => {
+    if (!pendingLeaveRef.current) return;
+    if (isSittingOut && (!tableState?.game?.phase || tableState.game.phase === 'idle')) {
+      pendingLeaveRef.current = false;
+      send('stand_up', {});
+    }
+  }, [isSittingOut, tableState?.game?.phase, send]);
   const handleSitOut = useCallback(() => send('sit_out', {}), [send]);
   const handleSitIn = useCallback(() => send('sit_in', {}), [send]);
   const [straddleOn, setStraddleOn] = useState(false);
