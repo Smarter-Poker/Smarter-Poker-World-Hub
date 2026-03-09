@@ -9,7 +9,7 @@
  */
 
 import { useRouter } from 'next/router';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 import { supabase } from '../../../../src/lib/supabase';
@@ -139,6 +139,48 @@ function Card({ rank, suit, isRed, size = 'normal' }) {
     );
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// SVG CIRCULAR TIMER COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════
+
+function SVGCircularTimer({ timeLeft, totalTime = 15, size = 50 }) {
+    const strokeWidth = Math.max(3, size * 0.08);
+    const radius = (size - strokeWidth) / 2;
+    const circumference = radius * 2 * Math.PI;
+    const strokeDashoffset = circumference - (timeLeft / totalTime) * circumference;
+    const isWarning = timeLeft <= 5;
+    const color = isWarning ? '#ef4444' : '#00d4ff';
+
+    return (
+        <div style={{ position: 'relative', width: size, height: size, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width={size} height={size} style={{ transform: 'rotate(-90deg)', position: 'absolute' }}>
+                <circle
+                    cx={size / 2} cy={size / 2} r={radius}
+                    fill="transparent" stroke="rgba(255,255,255,0.1)" strokeWidth={strokeWidth}
+                />
+                <circle
+                    cx={size / 2} cy={size / 2} r={radius}
+                    fill="transparent"
+                    stroke={color} strokeWidth={strokeWidth}
+                    strokeDasharray={circumference} strokeDashoffset={strokeDashoffset}
+                    strokeLinecap="round"
+                    style={{ transition: 'stroke-dashoffset 1s linear, stroke 0.3s' }}
+                />
+            </svg>
+            <div style={{
+                fontSize: size * 0.35, fontWeight: 800, color, fontFamily: "'Orbitron', monospace",
+                animation: isWarning ? 'pulse 1s infinite' : 'none',
+                zIndex: 1
+            }}>
+                {timeLeft}
+            </div>
+            <style jsx>{`
+                @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+            `}</style>
+        </div>
+    );
+}
+
 export default function TrainingArenaPage() {
     const router = useRouter();
     useTrainingBus('training-arena');
@@ -197,22 +239,69 @@ export default function TrainingArenaPage() {
         init();
     }, [gameId]);
 
+    const heartbeatIntervalRef = useRef(null);
+    const settings = { haptics: true, audio: true, screenShake: true, intensity: 'high' };
+
     useEffect(() => {
         if (loading) return;
+
+        const intensityMultiplier = 1.0;
+
         const interval = setInterval(() => {
             setTimer(prev => {
-                if (prev === 5) busEmit.timerWarning();
-                if (prev === 3) busEmit.screenShake('light');
-                if (prev <= 0) {
+                const newTime = prev - 1;
+
+                if (settings.haptics && 'vibrate' in navigator) {
+                    const baseVibration = newTime <= 3 ? 100 : newTime <= 8 ? 50 : 20;
+                    navigator.vibrate(Math.round(baseVibration * intensityMultiplier));
+                }
+
+                if (newTime === 5) busEmit.timerWarning();
+                if (newTime === 3) busEmit.screenShake('light');
+                if (newTime <= 0) {
                     busEmit.timerExpired();
                     busEmit.screenShake('heavy');
+                    if ('vibrate' in navigator) navigator.vibrate([200, 100, 200]);
                     return 15;
                 }
-                return prev - 1;
+                return newTime;
             });
         }, 1000);
         return () => clearInterval(interval);
     }, [loading]);
+
+    useEffect(() => {
+        if (loading) return;
+
+        if (settings.audio && timer <= 8 && timer > 0) {
+            const playHeartbeat = () => {
+                try {
+                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.frequency.value = 80;
+                    osc.type = 'sine';
+                    const volume = 0.3;
+                    gain.gain.setValueAtTime(volume, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+                    osc.start(ctx.currentTime);
+                    osc.stop(ctx.currentTime + 0.15);
+                } catch (e) { }
+            };
+            const speed = Math.max(200, 600 - ((8 - timer) * 50));
+            if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
+            heartbeatIntervalRef.current = setInterval(playHeartbeat, speed);
+            playHeartbeat();
+        } else {
+            if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
+        }
+
+        return () => {
+            if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
+        };
+    }, [timer, loading]);
     // Realtime subscription — live updates
     useEffect(() => {
         if (!gameId) return;
@@ -386,8 +475,8 @@ export default function TrainingArenaPage() {
                         </div>
 
                         {/* Timer - Bottom left of table */}
-                        <div className="timer">
-                            <span>{timer}</span>
+                        <div style={{ position: 'absolute', bottom: '6%', left: '8%', zIndex: 25 }}>
+                            <SVGCircularTimer timeLeft={timer} totalTime={15} size={50} />
                         </div>
 
                         {/* Question Counter - Bottom right of table */}
@@ -397,12 +486,12 @@ export default function TrainingArenaPage() {
                     </div>
                 </div>
 
-                {/* ACTION BUTTONS - 2x2 Grid */}
+                {/* ACTION BUTTONS - Polished Grid */}
                 <div className="action-bar">
-                    <button className="action-btn fold" onClick={() => handleAction('FOLD')}>Fold</button>
-                    <button className="action-btn call" onClick={() => handleAction('CALL')}>Call</button>
-                    <button className="action-btn raise" onClick={() => handleAction('RAISE')}>Raise to 8BB</button>
-                    <button className="action-btn allin" onClick={() => handleAction('ALLIN')}>All-In</button>
+                    <button className="action-btn fold" onClick={() => handleAction('FOLD')}>FOLD</button>
+                    <button className="action-btn call" onClick={() => handleAction('CALL')}>CALL</button>
+                    <button className="action-btn raise" onClick={() => handleAction('RAISE')}>RAISE to 8BB</button>
+                    <button className="action-btn allin" onClick={() => handleAction('ALLIN')}>ALL-IN</button>
                 </div>
             </div>
 
@@ -551,22 +640,7 @@ export default function TrainingArenaPage() {
                     z-index: 25;
                 }
 
-                /* Timer - Bottom left */
-                .timer {
-                    position: absolute;
-                    bottom: 5%;
-                    left: 5%;
-                    width: 44px;
-                    height: 44px;
-                    background: rgba(0,0,0,0.9);
-                    border: 2px solid #dc2626;
-                    border-radius: 8px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    z-index: 25;
-                }
-                .timer span { font-size: 20px; font-weight: 800; color: #dc2626; }
+                /* Removed old timer class as we use SVGCircULAR timer now inline */
 
                 /* Question Counter - Bottom right */
                 .q-counter {
@@ -594,25 +668,41 @@ export default function TrainingArenaPage() {
                 .action-btn {
                     padding: 14px;
                     border: none;
-                    border-radius: 10px;
+                    border-radius: 12px;
                     font-size: 14px;
-                    font-weight: 700;
+                    font-weight: 800;
                     cursor: pointer;
-                    font-family: inherit;
-                    transition: transform 0.1s, box-shadow 0.1s;
+                    font-family: 'Orbitron', monospace;
+                    transition: transform 0.1s, box-shadow 0.1s, filter 0.2s;
+                    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
                 }
                 .action-btn:active {
-                    transform: scale(0.97);
+                    transform: scale(0.95);
+                    filter: brightness(1.2);
                 }
                 .fold {
-                    background: linear-gradient(180deg, #374151 0%, #1f2937 100%);
-                    color: #fff;
+                    background: linear-gradient(180deg, #475569 0%, #334155 100%);
+                    color: #e2e8f0;
                     border: 1px solid rgba(255,255,255,0.1);
+                    box-shadow: inset 0 1px 1px rgba(255,255,255,0.1), 0 4px 6px rgba(0,0,0,0.4);
                 }
-                .call, .raise, .allin {
-                    background: linear-gradient(180deg, #2d7ad4 0%, #1e5fa8 100%);
+                .call {
+                    background: linear-gradient(180deg, #22c55e 0%, #166534 100%);
                     color: #fff;
-                    box-shadow: 0 3px 8px rgba(30,95,168,0.4);
+                    border: 1px solid rgba(34,197,94,0.4);
+                    box-shadow: inset 0 1px 1px rgba(255,255,255,0.2), 0 4px 10px rgba(22,101,52,0.5);
+                }
+                .raise {
+                    background: linear-gradient(180deg, #ef4444 0%, #991b1b 100%);
+                    color: #fff;
+                    border: 1px solid rgba(239,68,68,0.4);
+                    box-shadow: inset 0 1px 1px rgba(255,255,255,0.2), 0 4px 10px rgba(153,27,27,0.5);
+                }
+                .allin {
+                    background: linear-gradient(180deg, #f59e0b 0%, #b45309 100%);
+                    color: #fff;
+                    border: 1px solid rgba(245,158,11,0.4);
+                    box-shadow: inset 0 1px 1px rgba(255,255,255,0.2), 0 4px 10px rgba(180,83,9,0.5);
                 }
             `}</style>
         </>
