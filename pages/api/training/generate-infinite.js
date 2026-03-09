@@ -39,9 +39,10 @@ function getRandomElement(arr) {
 }
 
 function generateVariationSeed(gameType) {
+    const hp = getRandomElement(POSITIONS);
     return {
-        heroPosition: getRandomElement(POSITIONS),
-        villainPosition: getRandomElement(POSITIONS.filter(p => p !== this?.heroPosition)),
+        heroPosition: hp,
+        villainPosition: getRandomElement(POSITIONS.filter(p => p !== hp)),
         heroStack: getRandomElement(STACKS[gameType] || STACKS.cash),
         villainStack: getRandomElement(STACKS[gameType] || STACKS.cash),
         boardTexture: getRandomElement(BOARD_TEXTURES),
@@ -99,9 +100,9 @@ Generate a realistic GTO scenario matching these parameters. The question should
 
 RESPOND IN THIS EXACT JSON FORMAT:
 {
-    "id": "grok_${seed.uniqueId}",
-    "type": "PIO",
-    "question": "Specific question about the GTO play",
+    "id": "scenario_${seed.uniqueId}",
+    "type": "multiple_choice",
+    "question": "You are playing ${gameType} sitting ${seed.heroPosition}. You have [Hero Cards]... What is your GTO action?",
     "heroCards": ["As", "Kd"],
     "boardCards": ["Js", "Ts", "2d"],
     "scenario": {
@@ -152,7 +153,33 @@ CRITICAL: Make this a genuinely challenging and realistic scenario.
         // Extract JSON
         const jsonMatch = content.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
-            const question = JSON.parse(jsonMatch[0]);
+            let question = JSON.parse(jsonMatch[0]);
+
+            // Phase 36: GTO Engine Identical/Collision Check
+            let seenCards = new Set();
+            let collision = false;
+
+            // Extract from heroHand or heroCards string
+            const heroCardsList = (question.heroCards ? question.heroCards.join(' ') : (question.scenario?.heroHand || '')).split(' ').filter(Boolean);
+            heroCardsList.forEach(c => {
+                if (seenCards.has(c)) collision = true;
+                seenCards.add(c);
+            });
+
+            // Extract from boardCards or board string
+            const boardCardsList = (question.boardCards ? question.boardCards.join(' ') : (question.scenario?.board || '')).split(' ').filter(Boolean);
+            boardCardsList.forEach(c => {
+                if (seenCards.has(c)) collision = true;
+                seenCards.add(c);
+            });
+
+            if (collision) {
+                console.warn('[Infinite Gen] AI hallucinated duplicate cards! Fallback triggered.');
+                question.scenario.heroHand = 'As Ks';
+                question.scenario.board = question.scenario.board ? '2d 7c 9h' : '';
+                question.heroCards = ['As', 'Ks'];
+                question.boardCards = question.scenario.board ? ['2d', '7c', '9h'] : [];
+            }
 
             return res.status(200).json({
                 success: true,

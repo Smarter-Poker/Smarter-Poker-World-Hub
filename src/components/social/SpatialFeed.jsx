@@ -249,12 +249,11 @@ export const SpatialFeed = ({
 
         {/* Initial Loading */}
         {feedState.isLoading && feedState.posts.length === 0 && (
-          <WarpLoader
-            message="Loading Feed..."
-            subMessage="Fetching latest posts"
-            variant="pulse"
-            size="inline"
-          />
+          <div className="feed-initial-loading" style={{ textAlign: 'center', padding: '40px 20px', color: '#9ca3af' }}>
+            <div className="loading-spinner" style={{ margin: '0 auto 16px', width: 32, height: 32, borderWidth: 3 }}></div>
+            <h3>Loading Feed...</h3>
+            <p style={{ fontSize: 14 }}>Fetching latest posts</p>
+          </div>
         )}
 
         {/* Error State */}

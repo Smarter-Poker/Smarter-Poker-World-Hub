@@ -74,6 +74,42 @@ function computeVerticalSeatPositions(maxSeats) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// SUBCOMPONENTS TO PREVENT CONDITIONAL HOOK VIOLATION
+// ═══════════════════════════════════════════════════════════════════════════
+
+function BoardCardItem({ card, i, onRemove, onTap }) {
+    const lp = useLongPress(() => onRemove?.(i));
+    return (
+        <motion.div
+            {...lp}
+            onClick={onTap}
+            initial={{ y: -15, opacity: 0, scale: 0.5 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            transition={{ type: 'spring', stiffness: 180, damping: 12, delay: i * 0.1 }}
+            style={{ cursor: onTap ? 'pointer' : 'default' }}
+        >
+            <TableCard card={card} style={{ width: 32, height: 45 }} />
+        </motion.div>
+    );
+}
+
+function HeroCardItem({ card, i, onRemove, onTap }) {
+    const lp = useLongPress(() => onRemove?.(i));
+    return (
+        <motion.div
+            {...lp}
+            onClick={onTap}
+            initial={{ y: 20, opacity: 0, rotateY: 90 }}
+            animate={{ y: 0, opacity: 1, rotateY: 0, rotate: i === 0 ? -5 : 5 }}
+            transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.15 + i * 0.12 }}
+            style={{ marginLeft: i > 0 ? -6 : 0, cursor: 'pointer', perspective: 800 }}
+        >
+            <TableCard card={card} style={{ width: 34, height: 48 }} />
+        </motion.div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // MAIN TABLE — Vertical portrait orientation
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -216,22 +252,15 @@ export default function SandboxPokerTable({
                         transform: 'translateX(-50%)', display: 'flex', gap: 2, zIndex: 10,
                     }}
                 >
-                    {communityCards.map((card, i) => {
-                        const lp = useLongPress(() => onRemoveBoardCard?.(i));
-                        return (
-                            <motion.div
-                                key={card || i}
-                                {...lp}
-                                onClick={onTapBoard}
-                                initial={{ y: -15, opacity: 0, scale: 0.5 }}
-                                animate={{ y: 0, opacity: 1, scale: 1 }}
-                                transition={{ type: 'spring', stiffness: 180, damping: 12, delay: i * 0.1 }}
-                                style={{ cursor: onTapBoard ? 'pointer' : 'default' }}
-                            >
-                                <TableCard card={card} style={{ width: 32, height: 45 }} />
-                            </motion.div>
-                        );
-                    })}
+                    {communityCards.map((card, i) => (
+                        <BoardCardItem
+                            key={card || i}
+                            card={card}
+                            i={i}
+                            onRemove={onRemoveBoardCard}
+                            onTap={onTapBoard}
+                        />
+                    ))}
                 </div>
             )}
 
@@ -351,22 +380,15 @@ export default function SandboxPokerTable({
                         display: 'flex', zIndex: 150,
                     }}
                 >
-                    {heroCards.map((card, i) => {
-                        const lp = useLongPress(() => onRemoveHeroCard?.(i));
-                        return (
-                            <motion.div
-                                key={card || i}
-                                {...lp}
-                                onClick={onTapHeroCards}
-                                initial={{ y: 20, opacity: 0, rotateY: 90 }}
-                                animate={{ y: 0, opacity: 1, rotateY: 0, rotate: i === 0 ? -5 : 5 }}
-                                transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.15 + i * 0.12 }}
-                                style={{ marginLeft: i > 0 ? -6 : 0, cursor: 'pointer', perspective: 800 }}
-                            >
-                                <TableCard card={card} style={{ width: 34, height: 48 }} />
-                            </motion.div>
-                        );
-                    })}
+                    {heroCards.map((card, i) => (
+                        <HeroCardItem
+                            key={card || i}
+                            card={card}
+                            i={i}
+                            onRemove={onRemoveHeroCard}
+                            onTap={onTapHeroCards}
+                        />
+                    ))}
                 </div>
             )}
 

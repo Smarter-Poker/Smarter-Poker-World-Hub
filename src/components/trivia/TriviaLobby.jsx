@@ -913,36 +913,33 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
 
                 /* Hitbox regions (percentages tuned to the 946x1024 image) */
                 .dm-close {
-                    top: 15%;
-                    right: 14%;
-                    width: 12%;
-                    height: 10%;
+                    top: 15.5%;
+                    right: 20%;
+                    width: 9%;
+                    height: 8.5%;
                     border-radius: 50%;
                 }
 
                 .dm-vip {
-                    top: 69.5%;
+                    top: 71%;
                     left: 20%;
                     width: 29%;
-                    height: 9%;
+                    height: 8%;
                     border-radius: 12px;
                 }
 
                 .dm-accept {
-                    top: 69.5%;
+                    top: 71%;
                     right: 18%;
-                    width: 32%;
-                    height: 9%;
+                    width: 31%;
+                    height: 8%;
                     border-radius: 12px;
-                }
-                .dm-accept:disabled {
-                    cursor: wait;
                 }
 
                 /* Dynamic Balance Box */
                 .dm-balance {
                     position: absolute;
-                    bottom: 12.5%;
+                    bottom: 11.5%;
                     left: 50%;
                     transform: translateX(-50%);
                     width: 45%;

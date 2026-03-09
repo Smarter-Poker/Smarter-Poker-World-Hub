@@ -674,36 +674,54 @@ function enrichGrokQuestion(q, gameConfig, level, gameType) {
         }
     }
 
+    // 2.5. Phase 36: GTO Engine Identical/Collision Check
+    let seenCards = new Set();
+    let collision = false;
+    (q.heroCards || []).forEach(c => {
+        if (seenCards.has(c)) collision = true;
+        seenCards.add(c);
+    });
+    (q.boardCards || []).forEach(c => {
+        if (seenCards.has(c)) collision = true;
+        seenCards.add(c);
+    });
+
+    if (collision) {
+        console.warn('[GetQuestion] AI hallucinated duplicate cards! Fallback triggered.');
+        q.heroCards = ['As', 'Ks'];
+        q.boardCards = q.boardCards.length ? ['2d', '7c', '9h'].slice(0, q.boardCards.length) : [];
+        q.scenario.heroHand = 'As Ks';
+        q.scenario.board = q.boardCards.join(' ');
+    }
+
     // 3. Ensure gtoFrequencies exist (map option ids to 0-100 percentages)
     if (!q.gtoFrequencies || Object.keys(q.gtoFrequencies).length === 0) {
         q.gtoFrequencies = {};
-        const optsLen = options.length;
         let remaining = 100;
 
-        options.forEach((opt, i) => {
-            const optId = opt.id || String.fromCharCode(97 + i);
-            const isCorrect = optId === correctAnswer;
+        // Map options safely
+        const mappedOptions = options.map((opt, idx) => ({
+            id: opt.id || String.fromCharCode(97 + idx),
+            isCorrect: (opt.id || String.fromCharCode(97 + idx)) === correctAnswer
+        }));
 
-            if (isCorrect) {
-                // Correct answer gets dominant frequency
-                // Higher levels = more mixed strategy (lower dominance)
-                const dominance = Math.max(35, 80 - (level * 4)) + (hashSeed(optId + (q.id || '')) % 10);
-                q.gtoFrequencies[optId] = Math.min(dominance, remaining);
-                remaining -= q.gtoFrequencies[optId];
-            }
-        });
+        const correctOpt = mappedOptions.find(o => o.isCorrect);
+        if (correctOpt) {
+            const dominance = Math.max(35, 80 - (level * 4)) + (hashSeed(correctOpt.id + (q.id || '')) % 10);
+            q.gtoFrequencies[correctOpt.id] = Math.min(dominance, remaining);
+            remaining -= q.gtoFrequencies[correctOpt.id];
+        }
 
         // Distribute remaining evenly/deterministically among incorrect options
-        const incorrectOpts = options.filter(opt => (opt.id || '') !== correctAnswer);
+        const incorrectOpts = mappedOptions.filter(o => !o.isCorrect);
         incorrectOpts.forEach((opt, idx) => {
-            const optId = opt.id || String.fromCharCode(97 + idx);
             const isLast = idx === incorrectOpts.length - 1;
             if (isLast) {
-                q.gtoFrequencies[optId] = Math.max(0, remaining);
+                q.gtoFrequencies[opt.id] = Math.max(0, remaining);
             } else {
-                const share = Math.floor(remaining / (incorrectOpts.length - idx)) + (hashSeed(optId) % 5) - 2;
+                const share = Math.floor(remaining / (incorrectOpts.length - idx)) + (hashSeed(opt.id) % 5) - 2;
                 const clampedShare = Math.max(0, Math.min(share, remaining));
-                q.gtoFrequencies[optId] = clampedShare;
+                q.gtoFrequencies[opt.id] = clampedShare;
                 remaining -= clampedShare;
             }
         });

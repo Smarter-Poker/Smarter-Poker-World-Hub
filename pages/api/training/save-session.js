@@ -105,9 +105,9 @@ export default async function handler(req, res) {
         if (speedBonusDiamonds && speedBonusDiamonds > 0) {
             try {
                 // Use RPC to atomically increment diamonds
-                const { error: rpcErr } = await supabase.rpc('increment_diamonds', {
-                    user_id_input: userId,
-                    amount: speedBonusDiamonds,
+                const { error: rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
+                    p_user_id: userId,
+                    p_amount: speedBonusDiamonds,
                 });
 
                 if (rpcErr) {

@@ -77,9 +77,9 @@ async function upsertLeaderboard(sb, userId, gameId, diamondsEarned, accuracy, p
 }
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+        if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
 
     // Require JWT auth for write operations
     if (req.method !== 'GET') {
@@ -173,6 +173,15 @@ export default async function handler(req, res) {
                 console.warn('Leaderboard upsert failed:', lbError.message);
             }
 
+            // 4. Award diamonds to profile balance
+            if (diamondsEarned > 0) {
+                try {
+                    await supabase.rpc('add_diamonds_to_balance', { p_user_id: userId, p_amount: diamondsEarned });
+                } catch (e) {
+                    console.warn('[SaveProgress] Diamond award failed:', e.message);
+                }
+            }
+
             return res.status(200).json({
                 success: true,
                 progress: updatedProgress,
@@ -212,6 +221,15 @@ export default async function handler(req, res) {
                 await upsertLeaderboard(supabase, userId, gameId, diamondsEarned, accuracy, passed);
             } catch (lbError) {
                 console.warn('Leaderboard upsert failed:', lbError.message);
+            }
+
+            // 4. Award diamonds to profile balance
+            if (diamondsEarned > 0) {
+                try {
+                    await supabase.rpc('add_diamonds_to_balance', { p_user_id: userId, p_amount: diamondsEarned });
+                } catch (e) {
+                    console.warn('[SaveProgress] Diamond award failed:', e.message);
+                }
             }
 
             return res.status(200).json({

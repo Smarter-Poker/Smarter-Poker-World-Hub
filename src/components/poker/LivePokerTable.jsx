@@ -725,24 +725,13 @@ function ActionPanel({ actions, onAction, stack, currentBet, bigBlind, potTotal 
   const [betAmount, setBetAmount] = useState(0);
   const [showSlider, setShowSlider] = useState(false);
 
-  if (!actions || actions.length === 0) return null;
-
-  const canFold = actions.some(a => a.type === 'fold');
-  const canCheck = actions.some(a => a.type === 'check');
-  const canCall = actions.find(a => a.type === 'call');
-  const canBet = actions.find(a => a.type === 'bet');
-  const canRaise = actions.find(a => a.type === 'raise');
-  const canAllIn = actions.some(a => a.type === 'all_in');
-  const betOrRaise = canBet || canRaise;
-
-  const minBet = betOrRaise?.minAmount || bigBlind;
-  const maxBet = betOrRaise?.maxAmount || stack;
-
   // Reset bet when actions change
   useEffect(() => {
     setBetAmount(minBet);
     setShowSlider(false);
   }, [actions, minBet]);
+
+  if (!actions || actions.length === 0) return null;
 
   const presets = betOrRaise ? [
     { label: '½ Pot', amount: Math.max(minBet, Math.floor((potTotal || bigBlind * 2) * 0.5)) },
@@ -2080,15 +2069,16 @@ function SmallButton({ label, onClick, color }) {
 // RUN IT OFFER OVERLAY — Consent dialog for run-it-twice/thrice
 // ═══════════════════════════════════════════════════════
 function RunItOfferOverlay({ offer, userId, onRespond }) {
-  if (!offer || !offer.playerIds?.includes(userId)) return null;
   const [responded, setResponded] = useState(false);
-  const [countdown, setCountdown] = useState(offer.deadline || 15);
+  const [countdown, setCountdown] = useState(offer?.deadline || 15);
 
   useEffect(() => {
     if (countdown <= 0) return;
     const t = setTimeout(() => setCountdown(c => c - 1), 1000);
     return () => clearTimeout(t);
   }, [countdown]);
+
+  if (!offer || !offer.playerIds?.includes(userId)) return null;
 
   const handleChoice = (choice) => {
     if (responded) return;

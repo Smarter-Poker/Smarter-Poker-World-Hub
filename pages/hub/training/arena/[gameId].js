@@ -13,8 +13,9 @@ import { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 import { supabase } from '../../../../src/lib/supabase';
-import { busEmit } from '../../../../src/engine/EventBus';
+import { busEmit, eventBus, EventType } from '../../../../src/engine/EventBus';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
+import { getAuthUser, getAccessToken } from '../../../../src/lib/authUtils';
 
 // Villain avatars in seat order (1-8)
 const VILLAIN_AVATARS = [
@@ -188,10 +189,15 @@ export default function TrainingArenaPage() {
     const { gameId, level = 1 } = router.query;
 
     const [loading, setLoading] = useState(true);
+    const [gameState, setGameState] = useState('playing'); // 'playing' | 'sessionComplete'
     const [gameName, setGameName] = useState('Training Game');
     const [handNumber, setHandNumber] = useState(1);
     const [totalHands] = useState(20);
     const [timer, setTimer] = useState(15);
+
+    // Performance Tracking
+    const [correctCount, setCorrectCount] = useState(0);
+    const [mistakeCount, setMistakeCount] = useState(0);
 
     const [heroCards, setHeroCards] = useState([]);
     const [board, setBoard] = useState([]);
@@ -314,17 +320,72 @@ export default function TrainingArenaPage() {
         return () => { supabase.removeChannel(_ch); };
     }, [gameId]);
 
+    const saveSession = async (finalCorrect, finalMistakes) => {
+        try {
+            const authUser = getAuthUser();
+            if (!authUser?.session?.access_token) return;
+
+            const totalPlayed = finalCorrect + finalMistakes;
+            const accuracy = Math.round((finalCorrect / totalPlayed) * 100) || 0;
+
+            const payload = {
+                gameId: gameId,
+                gameName: gameName,
+                gtowScore: accuracy, // Using accuracy as proxy for Arena
+                totalEVLoss: 0,      // Arena doesn't calculate EV loss yet
+                handsPlayed: totalPlayed,
+                mistakeCount: finalMistakes,
+                accuracy: accuracy,
+                correctCount: finalCorrect,
+                bestStreak: 0,
+                levelPassed: accuracy >= 50,
+                level: level,
+            };
+
+            await fetch('/api/training/save-session', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${await getAccessToken()}`,
+                },
+                body: JSON.stringify(payload),
+            });
+
+            console.log('[TrainingArena] Session saved successfully');
+            eventBus.emit(EventType.SESSION_END, { gameId, handsPlayed: totalPlayed });
+            busEmit.sessionEnd(gameId);
+            if (accuracy >= 80) busEmit.celebration('confetti');
+
+        } catch (error) {
+            console.error('[TrainingArena] Failed to save session:', error);
+        }
+    };
+
     const handleAction = async (action) => {
-        // Emit decision events based on action
-        if (action === 'FOLD') {
+        let isCorrect = action !== 'FOLD'; // Placeholder logic
+
+        let newCorrect = correctCount;
+        let newMistakes = mistakeCount;
+
+        if (!isCorrect) {
             busEmit.decisionIncorrect(false);
             busEmit.screenFlash('#EF4444', 200);
+            newMistakes += 1;
+            setMistakeCount(newMistakes);
         } else {
             busEmit.decisionCorrect(handNumber);
             busEmit.screenFlash('#22C55E', 200);
+            newCorrect += 1;
+            setCorrectCount(newCorrect);
         }
-        setHandNumber(prev => Math.min(prev + 1, totalHands));
-        setTimer(15);
+
+        if (handNumber >= totalHands) {
+            setGameState('sessionComplete');
+            saveSession(newCorrect, newMistakes);
+        } else {
+            setHandNumber(prev => Math.min(prev + 1, totalHands));
+            setTimer(15);
+        }
     };
 
     if (loading) {
@@ -359,10 +420,16 @@ export default function TrainingArenaPage() {
                 {/* HEADER - Universal Header matching Social Hub style */}
                 <UniversalHeader pageDepth={2} />
 
-                {/* QUESTION PROMPT */}
-                <div className="question-bar">
-                    <p>{question}</p>
-                </div>
+                {/* QUESTION PROMPT / HEADER AREA */}
+                {gameState === 'playing' ? (
+                    <div className="question-bar">
+                        <p>{question}</p>
+                    </div>
+                ) : (
+                    <div className="question-bar" style={{ background: 'rgba(34,197,94,0.2)', borderBottomColor: 'rgba(34,197,94,0.4)' }}>
+                        <p style={{ color: '#4ade80', fontSize: 14 }}>Session Complete!</p>
+                    </div>
+                )}
 
                 {/* TABLE AREA - Centered with aspect ratio lock */}
                 <div className="table-area">
@@ -486,13 +553,43 @@ export default function TrainingArenaPage() {
                     </div>
                 </div>
 
-                {/* ACTION BUTTONS - Polished Grid */}
-                <div className="action-bar">
-                    <button className="action-btn fold" onClick={() => handleAction('FOLD')}>FOLD</button>
-                    <button className="action-btn call" onClick={() => handleAction('CALL')}>CALL</button>
-                    <button className="action-btn raise" onClick={() => handleAction('RAISE')}>RAISE to 8BB</button>
-                    <button className="action-btn allin" onClick={() => handleAction('ALLIN')}>ALL-IN</button>
-                </div>
+                {/* ACTION BUTTONS OR SUMMARY */}
+                {gameState === 'playing' ? (
+                    <div className="action-bar">
+                        <button className="action-btn fold" onClick={() => handleAction('FOLD')}>FOLD</button>
+                        <button className="action-btn call" onClick={() => handleAction('CALL')}>CALL</button>
+                        <button className="action-btn raise" onClick={() => handleAction('RAISE')}>RAISE to 8BB</button>
+                        <button className="action-btn allin" onClick={() => handleAction('ALLIN')}>ALL-IN</button>
+                    </div>
+                ) : (
+                    <div className="action-bar" style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center', paddingBottom: 32 }}>
+                        <div style={{ display: 'flex', gap: 24, marginBottom: 8 }}>
+                            <div style={{ textAlign: 'center' }}>
+                                <div style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1 }}>Accuracy</div>
+                                <div style={{ fontSize: 28, fontWeight: 800, color: '#38bdf8', fontFamily: "'Orbitron', monospace" }}>
+                                    {Math.round((correctCount / totalHands) * 100)}%
+                                </div>
+                            </div>
+                            <div style={{ width: 1, background: 'rgba(255,255,255,0.1)' }}></div>
+                            <div style={{ textAlign: 'center' }}>
+                                <div style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1 }}>Score</div>
+                                <div style={{ fontSize: 28, fontWeight: 800, color: '#22c55e', fontFamily: "'Orbitron', monospace" }}>
+                                    {correctCount}/{totalHands}
+                                </div>
+                            </div>
+                        </div>
+                        <button
+                            className="action-btn"
+                            onClick={() => router.push('/hub/training')}
+                            style={{
+                                width: '100%', maxWidth: 300,
+                                background: 'linear-gradient(135deg, #00d4ff, #7c3aed)', color: '#fff'
+                            }}
+                        >
+                            RETURN TO TRAINING HUB →
+                        </button>
+                    </div>
+                )}
             </div>
 
             <style jsx>{`

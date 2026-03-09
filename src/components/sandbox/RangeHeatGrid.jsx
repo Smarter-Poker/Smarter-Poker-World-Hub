@@ -47,8 +47,6 @@ function getHeatColor(strength) {
 }
 
 export default function RangeHeatGrid({ boardCards = [], isOpen, onClose }) {
-    if (!isOpen) return null;
-
     const boardRanks = useMemo(() => boardCards.map(c => c?.[0]).filter(Boolean), [boardCards]);
 
     const grid = useMemo(() => {
@@ -62,6 +60,8 @@ export default function RangeHeatGrid({ boardCards = [], isOpen, onClose }) {
             })
         );
     }, [boardRanks]);
+
+    if (!isOpen) return null;
 
     return (
         <>

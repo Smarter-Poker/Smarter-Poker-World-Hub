@@ -135,31 +135,36 @@ export default async function handler(req, res) {
                 if (!qData.gtoFrequencies || Object.keys(qData.gtoFrequencies).length === 0) {
                     qData.gtoFrequencies = {};
                     let remaining = 100;
-                    options.forEach((opt, idx) => {
-                        const optId = opt.id || String.fromCharCode(97 + idx);
-                        if (optId === Object.keys(qData.gtoFrequencies).length === 0 && optId === correctAnswer) {
-                            const dominance = 55 + (hashSeed(optId + (q.id || '')) % 25);
-                            qData.gtoFrequencies[optId] = dominance;
-                            remaining -= dominance;
-                        } else if (optId === correctAnswer) {
-                            const dominance = 55 + (hashSeed(optId + (q.id || '')) % 25);
-                            qData.gtoFrequencies[optId] = dominance;
-                            remaining -= dominance;
-                        }
-                    });
-                    const incorrectOpts = options.filter(opt => (opt.id || '') !== correctAnswer);
+
+                    // Map options directly to their intended string IDs based on source indices
+                    const mappedOptions = options.map((opt, idx) => ({
+                        id: opt.id || String.fromCharCode(97 + idx),
+                        isCorrect: (opt.id || String.fromCharCode(97 + idx)) === correctAnswer
+                    }));
+
+                    // 1. Target the correct answer
+                    const correctOpt = mappedOptions.find(o => o.isCorrect);
+                    if (correctOpt) {
+                        const dominance = 55 + (hashSeed(correctOpt.id + (q.id || '')) % 25);
+                        qData.gtoFrequencies[correctOpt.id] = dominance;
+                        remaining -= dominance;
+                    }
+
+                    // 2. Diffuse the remaining percentages across incorrect targets
+                    const incorrectOpts = mappedOptions.filter(o => !o.isCorrect);
                     incorrectOpts.forEach((opt, idx) => {
-                        const optId = opt.id || String.fromCharCode(97 + idx);
                         const isLast = idx === incorrectOpts.length - 1;
                         if (isLast) {
-                            qData.gtoFrequencies[optId] = Math.max(0, remaining);
+                            qData.gtoFrequencies[opt.id] = Math.max(0, remaining);
                         } else {
-                            const share = Math.floor(remaining / (incorrectOpts.length - idx)) + (hashSeed(optId) % 5) - 2;
+                            const share = Math.floor(remaining / (incorrectOpts.length - idx)) + (hashSeed(opt.id) % 5) - 2;
                             const clampedShare = Math.max(0, Math.min(share, remaining));
-                            qData.gtoFrequencies[optId] = clampedShare;
+                            qData.gtoFrequencies[opt.id] = clampedShare;
                             remaining -= clampedShare;
                         }
                     });
+
+                    // 3. Absolute Checksum enforcement over the real target string
                     const sum = Object.values(qData.gtoFrequencies).reduce((s, v) => s + v, 0);
                     if (sum !== 100 && correctAnswer) {
                         qData.gtoFrequencies[correctAnswer] = (qData.gtoFrequencies[correctAnswer] || 0) + (100 - sum);

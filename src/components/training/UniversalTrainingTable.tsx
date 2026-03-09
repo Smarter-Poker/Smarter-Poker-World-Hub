@@ -97,26 +97,6 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
     // PHASE 1: DATA LOCK - Find the clinic
     const clinic = TRAINING_CLINICS.find(c => c.id === gameId) as Clinic | undefined;
 
-    // PHASE 1: FORCE CHECK - Fail fast if clinic not found
-    if (!clinic) {
-        return (
-            <div style={{
-                width: '100%',
-                height: '100vh',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: '#0f172a',
-                color: '#fff'
-            }}>
-                <div style={{ textAlign: 'center' }}>
-                    <h1 style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 16 }}>Error: Clinic Not Found</h1>
-                    <p style={{ color: '#9ca3af' }}>Game ID: {gameId}</p>
-                </div>
-            </div>
-        );
-    }
-
     // PHASE 2: STATE ENGINE
     const [gamePhase, setGamePhase] = useState<GamePhase>(GamePhase.IDLE);
     const [heroCards, setHeroCards] = useState<string[]>(['??', '??']);
@@ -175,9 +155,9 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
     });
 
     // Get questions from current level or legacy questions array
-    const totalLevels = clinic.levels?.length || 1;
-    const currentLevel = clinic.levels?.[levelIndex] || null;
-    const questions = currentLevel?.questions || clinic.questions || [];
+    const totalLevels = clinic?.levels?.length || 1;
+    const currentLevel = clinic?.levels?.[levelIndex] || null;
+    const questions = currentLevel?.questions || clinic?.questions || [];
 
     // PHASE 3: CINEMATIC DEAL SEQUENCE
     useEffect(() => {
@@ -199,9 +179,9 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
         const dealTimer = setTimeout(() => {
             setGamePhase(GamePhase.DEALING);
             // Use per-question heroCards if available, fallback to startingState
-            setHeroCards(question.heroCards || clinic.startingState?.heroCards || ['Ah', 'Kh']);
-            setPot(question.stackDepth || clinic.startingState?.pot || 12);
-            setBoardCards(clinic.startingState?.board || []);
+            setHeroCards(question.heroCards || clinic?.startingState?.heroCards || ['Ah', 'Kh']);
+            setPot(question.stackDepth || clinic?.startingState?.pot || 12);
+            setBoardCards(clinic?.startingState?.board || []);
             // playSound('deal'); // TODO: Add audio
         }, 500);
 
@@ -358,6 +338,26 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
     const buttonsActive = gamePhase === GamePhase.PLAYER_TURN;
 
     // RENDER
+
+    // EARLY RETURN FLAG: Fail fast if clinic not found (must occur AFTER all hooks)
+    if (!clinic) {
+        return (
+            <div style={{
+                width: '100%',
+                height: '100vh',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: '#0f172a',
+                color: '#fff'
+            }}>
+                <div style={{ textAlign: 'center' }}>
+                    <h1 style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 16 }}>Error: Clinic Not Found</h1>
+                    <p style={{ color: '#9ca3af' }}>Game ID: {gameId}</p>
+                </div>
+            </div>
+        );
+    }
 
     // PHASE 6: VICTORY SCREEN
     if (sessionComplete) {
@@ -582,7 +582,7 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
                 zIndex: 50
             }}>
                 <h1 style={{ fontSize: 20, fontWeight: 'bold', color: '#fff' }}>
-                    {clinic.title || clinic.name}
+                    {clinic?.title || clinic?.name}
                 </h1>
                 <div style={{
                     display: 'flex',

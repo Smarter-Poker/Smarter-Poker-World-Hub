@@ -397,6 +397,8 @@ export function OnboardingTour({ isVisible, onClose, onNext, step = 0 }) {
 // SHARE MODAL
 // ═══════════════════════════════════════════════════════════════════════
 export function ShareAnalysisModal({ isOpen, onClose, results, scenario }) {
+    const [isPosting, setIsPosting] = useState(false);
+
     if (!isOpen || !results) return null;
 
     const shareText = `GTO Analysis: ${results.heroHand || 'Hand'} on ${scenario?.board || 'Board'}\n` +
@@ -404,8 +406,6 @@ export function ShareAnalysisModal({ isOpen, onClose, results, scenario }) {
         `${results.isMixed ? 'Mixed Strategy' : 'Pure Strategy'}\n` +
         `Source: ${results.source}\n` +
         `Analyze your hands at Smarter.Poker`;
-
-    const [isPosting, setIsPosting] = useState(false);
 
     const handleNativeShare = async () => {
         try {
@@ -1114,9 +1114,10 @@ export function ActionReplayBar({ actions, replayIndex, onReplayTo, onExitReplay
 // Download PNG + Post to Smarter.Poker profile + Native share sheet
 // ═══════════════════════════════════════════════════════════════════════════
 export function ShareHandModal({ isOpen, onClose, results, scenario, heroHand, board, cardRef }) {
-    if (!isOpen || !results) return null;
     const [isPosting, setIsPosting] = useState(false);
     const [capturedUrl, setCapturedUrl] = useState(null);
+
+    if (!isOpen || !results) return null;
 
     const captureCanvas = async () => {
         if (!cardRef?.current) return null;

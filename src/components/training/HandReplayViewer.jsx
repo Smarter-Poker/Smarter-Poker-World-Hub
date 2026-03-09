@@ -43,8 +43,6 @@ export default function HandReplayViewer({ handHistory, onClose }) {
     const [selectedHandIndex, setSelectedHandIndex] = useState(0);
     const [viewMode, setViewMode] = useState('list'); // 'list' or 'detail'
 
-    if (!handHistory || handHistory.length === 0) return null;
-
     const selectedHand = handHistory[selectedHandIndex];
     const handData = selectedHand?.handData || selectedHand || {};
     const config = CLASSIFICATION_CONFIG[selectedHand?.classification] || CLASSIFICATION_CONFIG[MOVE_CLASSIFICATIONS.WRONG];
@@ -71,6 +69,8 @@ export default function HandReplayViewer({ handHistory, onClose }) {
 
     // GTO frequencies from hand data
     const gtoFreqs = handData.gtoFrequencies || {};
+
+    if (!handHistory || handHistory.length === 0) return null;
 
     return (
         <div style={styles.container}>
