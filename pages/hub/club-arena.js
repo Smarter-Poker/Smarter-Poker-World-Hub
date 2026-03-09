@@ -293,6 +293,9 @@ export default function ClubArenaPage() {
     const [unionApplying, setUnionApplying] = useState(false);
     const [unionApplyResult, setUnionApplyResult] = useState(null);
 
+    // Terms of Service — null=loading, false=not accepted, true=accepted
+    const [tosAccepted, setTosAccepted] = useState(null);
+
     // Auto-open join modal if ?agent= URL param present (agent's player_number)
     useEffect(() => {
         const { agent } = router.query;
@@ -395,6 +398,13 @@ export default function ClubArenaPage() {
 
             if (authUser) {
                 setUser(authUser);
+                // Check TOS acceptance (one-time per account)
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('club_arena_tos_accepted_at')
+                    .eq('id', authUser.id)
+                    .maybeSingle();
+                setTosAccepted(!!profile?.club_arena_tos_accepted_at);
                 // Parallel load: clubs, unions, AND shark stats all at once
                 await Promise.all([
                     loadClubs(authUser.id),
@@ -471,6 +481,20 @@ export default function ClubArenaPage() {
             console.error('[ClubArena] Failed to load unions:', err);
         }
     }
+
+    const handleAcceptTOS = async () => {
+        try {
+            const token = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}')?.access_token;
+            const res = await fetch('/api/club-arena/accept-tos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+            });
+            const d = await res.json();
+            if (d.success) setTosAccepted(true);
+        } catch (e) {
+            console.error('[TOS] Accept failed:', e);
+        }
+    };
 
     const handleClubCreated = (club) => {
         const newClub = { ...club, userRole: 'owner' };
@@ -779,6 +803,42 @@ export default function ClubArenaPage() {
                 {/* Modals */}
                 {showCreateClub && <CreateClubModal user={user} onClose={() => setShowCreateClub(false)} onCreated={handleClubCreated} />}
                 {showJoinClub && <JoinClubModal user={user} onClose={() => setShowJoinClub(false)} onJoined={handleClubJoined} initialAgentCode={initialAgentCode} />}
+
+                {/* ═══ TERMS OF SERVICE GATE — shown once per account ═══ */}
+                {user && tosAccepted === false && (
+                    <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+                        <div style={{ background: '#1c1c1e', borderRadius: 16, maxWidth: 480, width: '100%', maxHeight: '90vh', overflow: 'auto', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 0 60px rgba(0,0,0,0.5)' }}>
+                            <div style={{ padding: '24px 24px 0', textAlign: 'center' }}>
+                                <div style={{ fontSize: 40, marginBottom: 8 }}>🃏</div>
+                                <h2 style={{ color: '#fff', fontSize: 22, fontWeight: 800, marginBottom: 4 }}>Club Arena Terms of Service</h2>
+                                <p style={{ color: '#8e8e93', fontSize: 13, marginBottom: 20 }}>Please read and accept before continuing</p>
+                            </div>
+                            <div style={{ padding: '0 24px', color: '#b0b0b0', fontSize: 13, lineHeight: 1.7 }}>
+                                <p style={{ marginBottom: 12 }}><strong style={{ color: '#fff' }}>1. Virtual Chips Only</strong> — Club Arena uses virtual chips with no real-money value. Chips cannot be redeemed for cash, cryptocurrency, or any item of value. No gambling takes place on this platform.</p>
+                                <p style={{ marginBottom: 12 }}><strong style={{ color: '#fff' }}>2. Age Requirement</strong> — You must be at least 18 years old (or the legal age in your jurisdiction) to use Club Arena.</p>
+                                <p style={{ marginBottom: 12 }}><strong style={{ color: '#fff' }}>3. Fair Play</strong> — You agree not to use bots, collusion, multi-accounting, or any form of cheating. Violations result in permanent account suspension.</p>
+                                <p style={{ marginBottom: 12 }}><strong style={{ color: '#fff' }}>4. Club Responsibility</strong> — Club owners and agents are responsible for their club's operations. Smarter Poker provides the platform infrastructure only.</p>
+                                <p style={{ marginBottom: 12 }}><strong style={{ color: '#fff' }}>5. Account Security</strong> — You are responsible for maintaining the security of your account credentials. Do not share your login with others.</p>
+                                <p style={{ marginBottom: 12 }}><strong style={{ color: '#fff' }}>6. Privacy</strong> — Your gameplay data, hand histories, and statistics are stored securely. We do not sell personal information to third parties.</p>
+                                <p style={{ marginBottom: 16 }}><strong style={{ color: '#fff' }}>7. Modifications</strong> — Smarter Poker reserves the right to modify these terms at any time. Continued use of Club Arena constitutes acceptance of updated terms.</p>
+                            </div>
+                            <div style={{ padding: '16px 24px 24px', textAlign: 'center' }}>
+                                <button
+                                    onClick={handleAcceptTOS}
+                                    style={{
+                                        width: '100%', padding: '14px 0', fontSize: 16, fontWeight: 800,
+                                        background: 'linear-gradient(135deg, #2374E1, #1a5bb8)',
+                                        color: '#fff', border: 'none', borderRadius: 10, cursor: 'pointer',
+                                        boxShadow: '0 4px 15px rgba(35,116,225,0.4)',
+                                    }}
+                                >
+                                    I Agree — Enter Club Arena
+                                </button>
+                                <p style={{ color: '#555', fontSize: 11, marginTop: 10 }}>By clicking above, you accept the Club Arena Terms of Service.</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
                 {showFindPlayer && <FindPlayerModal onClose={() => setShowFindPlayer(false)} />}
 
                 {/* Midway Union Application Modal */}

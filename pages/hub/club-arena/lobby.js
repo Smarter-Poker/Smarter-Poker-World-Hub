@@ -402,7 +402,19 @@ const router = useRouter();
         try {
             // Load user (Supabase session only)
             const authUser = getAuthUser();
-            if (authUser) setUser(authUser);
+            if (authUser) {
+                setUser(authUser);
+                // TOS gate — redirect to main Club Arena page if not accepted
+                const { data: tosProfile } = await supabase
+                    .from('profiles')
+                    .select('club_arena_tos_accepted_at')
+                    .eq('id', authUser.id)
+                    .maybeSingle();
+                if (!tosProfile?.club_arena_tos_accepted_at) {
+                    router.replace('/hub/club-arena');
+                    return;
+                }
+            }
 
             // Load club by club_id
             const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clubIdParam);
