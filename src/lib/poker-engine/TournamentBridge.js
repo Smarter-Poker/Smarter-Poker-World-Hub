@@ -272,9 +272,36 @@ class TournamentBridge {
             pinned: false
           });
 
-          // Optionally notify clients via realtime if they are listening to the club table,
-          // but ClubAnnouncementBanner already listens to CLUB_ANNOUNCEMENT_REFRESH internally or polls.
-          // We can broadcast a trigger to the club channel:
+          // Phase 8: Push Notifications for massive wins
+          // Dynamically import to handle ESM/CJS interop in the NextJS API environment
+          try {
+            const { notifyJackpotBounty } = await import('../commander/pushNotifications.js');
+            // Get all player IDs in the tournament for the push push notification audience
+            const tournamentPlayerIds = Array.from(this.tournament.entries.keys());
+            if (tournamentPlayerIds.length > 0) {
+              // Note: We need the club name. We can fetch it, or just use 'The Club' as fallback.
+              let clubName = 'The Club';
+              const { data: clubData } = await this.supabase
+                .from('clubs')
+                .select('name')
+                .eq('id', this.tournament.clubId)
+                .maybeSingle();
+              if (clubData) clubName = clubData.name;
+
+              await notifyJackpotBounty(
+                tournamentPlayerIds,
+                clubName,
+                this.tournament.name || 'a Tournament',
+                data.playerName,
+                data.amount,
+                data.reveal.tierLabel
+              );
+            }
+          } catch (pushErr) {
+            console.error('[TournamentBridge] Push notification failed:', pushErr.message);
+          }
+
+          // Broadcast a trigger to the club channel:
           const clubChannel = this.supabase.channel(`club:${this.tournament.clubId}`);
           await clubChannel.send({
             type: 'broadcast',

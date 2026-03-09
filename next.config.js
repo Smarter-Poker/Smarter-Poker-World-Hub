@@ -57,7 +57,7 @@ const nextConfig = {
   // condition where vendor chunks get deleted mid-request, triggering
   // "Cannot find module './chunks/vendor-chunks/next.js'" 500 errors.
   experimental: {
-    workerThreads: false, // TEMPORARY FIX: Avoids 'unlink ENOENT' race condition in Next.js 14 during final build step
+    workerThreads: process.env.NODE_ENV === 'production',
     cpus: process.env.NODE_ENV === 'production' ? 4 : undefined,
   },
   // ─── Dev Server Memory Management ──────────────────────────────────────────
