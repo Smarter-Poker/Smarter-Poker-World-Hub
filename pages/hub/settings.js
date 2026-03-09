@@ -1177,6 +1177,12 @@ export default function SettingsPage() {
                                         onChange={(v) => updateSetting('tournamentAlerts', v)}
                                     />
                                     <Toggle
+                                        label="Jackpot Bounty Alerts"
+                                        description="Get Notified About Massive Mystery Bounties"
+                                        value={settings.bountyAlerts !== false}
+                                        onChange={(v) => updateSetting('bountyAlerts', v)}
+                                    />
+                                    <Toggle
                                         label="Friend Activity"
                                         description="See When Friends Are Online"
                                         value={settings.friendActivity}

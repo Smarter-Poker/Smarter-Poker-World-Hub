@@ -41,7 +41,7 @@ const DynamicWallet = dynamic(
 );
 const ClubAnnouncementBanner = dynamic(
     () => import('../../../src/components/club-arena/ClubAnnouncementBanner'),
-    { ssr: false, loading: () => null }
+    { ssr: false }
 );
 
 // ═══════════════════════════════════════════════════════════════════════════

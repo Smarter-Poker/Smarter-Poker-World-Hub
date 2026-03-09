@@ -72,9 +72,8 @@ export default function ClubAnnouncementBanner({ clubId, userRole }) {
 
     // Listen for EventBus refresh
     useEffect(() => {
-        const handler = () => loadAnnouncements();
-        eventBus.on('CLUB_ANNOUNCEMENT_REFRESH', handler);
-        return () => eventBus.off('CLUB_ANNOUNCEMENT_REFRESH', handler);
+        const unsub = eventBus.on('CLUB_ANNOUNCEMENT_REFRESH', () => loadAnnouncements());
+        return () => unsub();
     }, [loadAnnouncements]);
 
     // ── Create announcement ─────────────────────────────────────────────

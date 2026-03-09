@@ -277,7 +277,25 @@ class TournamentBridge {
           try {
             const { notifyJackpotBounty } = await import('../commander/pushNotifications.js');
             // Get all player IDs in the tournament for the push push notification audience
-            const tournamentPlayerIds = Array.from(this.tournament.entries.keys());
+            const allPlayerIds = Array.from(this.tournament.entries.keys());
+            let tournamentPlayerIds = [];
+
+            if (allPlayerIds.length > 0) {
+              // Filter out players who opted out of bounty alerts
+              const { data: profiles } = await this.supabase
+                .from('profiles')
+                .select('id, settings')
+                .in('id', allPlayerIds);
+
+              if (profiles) {
+                tournamentPlayerIds = profiles
+                  .filter(p => !p.settings || p.settings.bountyAlerts !== false)
+                  .map(p => p.id);
+              } else {
+                tournamentPlayerIds = allPlayerIds; // Fallback to all if query fails
+              }
+            }
+
             if (tournamentPlayerIds.length > 0) {
               // Note: We need the club name. We can fetch it, or just use 'The Club' as fallback.
               let clubName = 'The Club';
