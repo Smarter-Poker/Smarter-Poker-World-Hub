@@ -186,21 +186,50 @@ export default function VillainRange() {
 
     const GTO_BASELINE = { vpip: 24, pfr: 19, threeBet: 7.5, foldTo3Bet: 55, cBet: 65, foldToCBet: 42, aggFactor: 2.5 };
 
-    // Load saved profiles on mount
+    // Load saved profiles on mount — HARDENED: corruption recovery
     useEffect(() => {
         if (typeof window === 'undefined') return;
         try {
-            const saved = JSON.parse(localStorage.getItem('sp_villain_profiles') || '[]');
-            setSavedProfiles(saved);
-        } catch { /* ignore */ }
+            const raw = localStorage.getItem('sp_villain_profiles');
+            if (!raw) return;
+            const parsed = JSON.parse(raw);
+            if (!Array.isArray(parsed)) {
+                console.warn('[Profiles] Corrupt localStorage data, resetting');
+                localStorage.removeItem('sp_villain_profiles');
+                return;
+            }
+            // HARDENED: validate each profile has minimum required shape
+            const validated = parsed.filter(p => p && typeof p === 'object' && typeof p.id === 'string' && typeof p.name === 'string' && p.stats);
+            // Clamp stats to valid ranges on load
+            validated.forEach(p => {
+                if (p.stats) {
+                    Object.keys(p.stats).forEach(k => {
+                        const v = parseFloat(p.stats[k]);
+                        p.stats[k] = (isNaN(v) || !isFinite(v)) ? (GTO_BASELINE[k] || 0) : k === 'aggFactor' ? Math.max(0.5, Math.min(6, v)) : Math.max(0, Math.min(100, v));
+                    });
+                }
+            });
+            setSavedProfiles(validated);
+        } catch (err) {
+            console.warn('[Profiles] localStorage parse error, resetting:', err);
+            try { localStorage.removeItem('sp_villain_profiles'); } catch { /* ignore */ }
+        }
     }, []);
 
     const saveProfile = useCallback(() => {
-        if (!profileName.trim()) return;
+        // HARDENED: sanitize name (trim, max 50 chars, strip HTML)
+        const sanitizedName = (profileName || '').replace(/<[^>]*>/g, '').trim().slice(0, 50);
+        if (!sanitizedName) return;
+        // HARDENED: clamp all stats to valid ranges
+        const clampedStats = {};
+        Object.keys(profileStats).forEach(k => {
+            const v = parseFloat(profileStats[k]);
+            clampedStats[k] = (isNaN(v) || !isFinite(v)) ? (GTO_BASELINE[k] || 0) : k === 'aggFactor' ? Math.max(0.5, Math.min(6, v)) : Math.max(0, Math.min(100, v));
+        });
         const profile = {
             id: editingProfile?.id || `vp-${Date.now()}`,
-            name: profileName.trim(),
-            stats: { ...profileStats },
+            name: sanitizedName,
+            stats: clampedStats,
             createdAt: editingProfile?.createdAt || new Date().toISOString(),
             updatedAt: new Date().toISOString(),
         };
@@ -208,7 +237,7 @@ export default function VillainRange() {
             ? savedProfiles.map(p => p.id === editingProfile.id ? profile : p)
             : [profile, ...savedProfiles];
         setSavedProfiles(updated);
-        try { localStorage.setItem('sp_villain_profiles', JSON.stringify(updated)); } catch { /* ignore */ }
+        try { localStorage.setItem('sp_villain_profiles', JSON.stringify(updated)); } catch (err) { console.warn('[Profiles] localStorage save error:', err); }
         // Save to Supabase
         const token = getAuthToken();
         if (token) {
@@ -221,7 +250,7 @@ export default function VillainRange() {
                 trainerConfig: { action: 'save-profile', profile },
             });
         }
-        busEmit('training:profile-saved', profile);
+        try { busEmit('training:profile-saved', profile); } catch { /* safe */ }
         setEditingProfile(null);
         setProfileName('');
         setProfileStats({ ...GTO_BASELINE });
@@ -230,13 +259,14 @@ export default function VillainRange() {
     const deleteProfile = useCallback((id) => {
         const updated = savedProfiles.filter(p => p.id !== id);
         setSavedProfiles(updated);
-        try { localStorage.setItem('sp_villain_profiles', JSON.stringify(updated)); } catch { /* ignore */ }
+        try { localStorage.setItem('sp_villain_profiles', JSON.stringify(updated)); } catch (err) { console.warn('[Profiles] localStorage delete error:', err); }
     }, [savedProfiles]);
 
     const editProfile = useCallback((profile) => {
         setEditingProfile(profile);
-        setProfileName(profile.name);
-        setProfileStats({ ...profile.stats });
+        setProfileName(profile?.name || '');
+        // HARDENED: fallback to GTO baseline if stats are missing/corrupt
+        setProfileStats({ ...GTO_BASELINE, ...(profile?.stats || {}) });
     }, []);
 
     const currentBoard = QUIZ_BOARDS[quizBoardIdx % QUIZ_BOARDS.length];
