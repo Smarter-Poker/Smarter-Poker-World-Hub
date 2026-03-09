@@ -134,7 +134,7 @@ export default async function handler(req, res) {
           const controller = await getController();
           const entry = controller.lobby?.tables?.get(tableId);
           if (entry) {
-            entry.table.status = 'PAUSED';
+            entry.table.status = 'paused';
             entry.table.emit('table_paused', { by: user.id });
           }
         } catch (_) { /* intentionally silent */ }
@@ -158,8 +158,10 @@ export default async function handler(req, res) {
           const controller = await getController();
           const entry = controller.lobby?.tables?.get(tableId);
           if (entry) {
-            entry.table.status = 'RUNNING';
+            entry.table.status = 'running';
             entry.table.emit('table_resumed', { by: user.id });
+            // Trigger auto-start to begin dealing hands again
+            entry.table._checkAutoStart?.();
           }
         } catch (_) { /* intentionally silent */ }
 

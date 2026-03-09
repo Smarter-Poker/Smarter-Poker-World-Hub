@@ -32,7 +32,23 @@ function evaluateBest(holeCards, board) {
   const all = [...holeCards, ...board];
   if (all.length < 5) return null;
 
-  // Generate all C(n,5) combinations
+  // Omaha: must use exactly 2 hole cards + 3 board cards
+  if (holeCards.length > 2 && board.length >= 3) {
+    const holeCombos = combinations(holeCards, 2);
+    const boardCombos = combinations(board, 3);
+    let best = null;
+    for (const h of holeCombos) {
+      for (const b of boardCombos) {
+        const result = evaluate5([...h, ...b]);
+        if (!best || result.score > best.score) {
+          best = result;
+        }
+      }
+    }
+    return best;
+  }
+
+  // Hold'em (2 hole cards): best 5 from all 7
   const combos = combinations(all, 5);
   let best = null;
 
