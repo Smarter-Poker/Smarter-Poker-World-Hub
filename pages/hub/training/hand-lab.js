@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
@@ -75,6 +75,18 @@ export default function HandLabV2() {
             setEquity(generatedEquity.toFixed(1));
             setAnalyzing(false);
 
+            // Simulate new results structure
+            setResults({
+                position: 'BTN',
+                street: 'Flop',
+                board: 'AhKcQd',
+                actions: [
+                    { action: 'Bet 1/2 Pot', ev: 12.5 },
+                    { action: 'Check', ev: 8.2 },
+                    { action: 'Fold', ev: -5.0 }
+                ]
+            });
+
             // Save via session protocol
             fetch('/api/training/save-session', {
                 method: 'POST',
@@ -91,10 +103,16 @@ export default function HandLabV2() {
         }, 1500);
     };
 
+    const saveScenario = () => {
+        console.log('Scenario saved!');
+        // Implement actual save logic here
+    };
+
     const clearAll = () => {
         setHeroCards(['', '']);
         setBoardCards(['', '', '', '', '']);
         setEquity(null);
+        setResults(null); // Clear results on clearAll
         setSelectedSlot('hero1');
     };
 
@@ -171,6 +189,7 @@ export default function HandLabV2() {
                                 {analyzing ? 'RUNNING MONTE CARLO (10k Iterations)...' : 'ANALYZE EQUITY'}
                             </motion.button>
 
+                            {/* Results */}
                             {equity && !analyzing && (
                                 <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} style={styles.resultsBox}>
                                     <div style={{ fontSize: 14, color: '#94a3b8', fontWeight: 700 }}>HERO EQUITY VS {villainRange.toUpperCase()}</div>
@@ -181,6 +200,22 @@ export default function HandLabV2() {
                                         <div style={{ width: `${equity}%`, background: '#4ade80' }} />
                                         <div style={{ width: `${100 - equity}%`, background: '#ef4444' }} />
                                     </div>
+                                </motion.div>
+                            )}
+
+                            {results && (
+                                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                                        <div style={{ fontSize: 12, fontWeight: 700 }}>EV Analysis: {results.position} | {results.street} | {results.board}</div>
+                                        <motion.button whileTap={{ scale: 0.9 }} onClick={saveScenario} style={{ padding: '4px 10px', borderRadius: 6, background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)', color: '#fbbf24', fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>Save</motion.button>
+                                    </div>
+                                    {results.actions.map((a, i) => (
+                                        <div key={a.action} style={{ display: 'flex', alignItems: 'center', padding: '10px 12px', borderRadius: 8, marginBottom: 4, background: i === 0 ? 'rgba(34,197,94,0.06)' : 'rgba(0,0,0,0.15)', border: `1px solid ${i === 0 ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.03)'}` }}>
+                                            {i === 0 && <span style={{ fontSize: 12, marginRight: 8 }}>⭐</span>}
+                                            <div style={{ flex: 1, fontSize: 12, fontWeight: 600, color: i === 0 ? '#4ade80' : '#94a3b8' }}>{a.action}</div>
+                                            <div style={{ fontSize: 14, fontWeight: 800, color: a.ev > 0 ? '#4ade80' : a.ev < 0 ? '#f87171' : '#64748b' }}>{a.ev > 0 ? '+' : ''}{a.ev}</div>
+                                        </div>
+                                    ))}
                                 </motion.div>
                             )}
                         </div>

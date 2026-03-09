@@ -24,9 +24,7 @@ const CARDS = [
     { id: 7, cat: 'Math', q: 'What is the Rule of 2 and 4?', a: 'Multiply outs by 2 on the flop (1 card) or 4 (2 cards) for approximate equity percentage.' },
     { id: 8, cat: 'Postflop', q: 'What is SPR?', a: 'Stack-to-Pot Ratio = Effective Stack / Pot Size. Low SPR (<3) favors commitment, high SPR (>10) favors drawing hands.' },
     { id: 9, cat: 'Postflop', q: 'When should you c-bet at a high frequency?', a: 'On dry, disconnected boards (e.g., K-7-2 rainbow) where the preflop raiser has a range advantage.' },
-    {
-        id: 10, cat: 'Postflop', q: 'What does "range advantage" mean?', a: "When your range of possible hands is stronger than your opponent's on a given board texture."
-    },
+    { id: 10, cat: 'Postflop', q: 'What does "range advantage" mean?', a: "When your range of possible hands is stronger than your opponent's on a given board texture." },
     { id: 11, cat: 'Theory', q: 'What is a polarized range?', a: 'A range containing only very strong hands (value) and bluffs, with no medium-strength hands.' },
     { id: 12, cat: 'Theory', q: 'What is a merged (linear) range?', a: 'A range of strong to medium-strength hands betting for value, without pure bluffs.' },
     { id: 13, cat: 'Theory', q: 'What is a balanced strategy?', a: 'A strategy that is unexploitable — opponent cannot gain EV by adjusting their strategy against it.' },
@@ -42,15 +40,11 @@ const CARDS = [
     { id: 23, cat: 'Theory', q: 'What is a node in a game tree?', a: 'A decision point where a player must choose an action (bet, check, fold, etc.).' },
     { id: 24, cat: 'Math', q: 'What equity does top pair typically have vs a flush draw on the flop?', a: 'Approximately 65% vs 35% (flush draw has ~9 outs = ~35% to complete by river).' },
     { id: 25, cat: 'Postflop', q: 'When should you use an overbet?', a: 'On turns/rivers that heavily favor your range (nut advantage), especially with polarized hands.' },
-    {
-        id: 26, cat: 'Theory', q: 'What is nodelocking?', a: "Fixing an opponent's strategy at a specific node to see how the GTO solution changes for the other player."
-    },
+    { id: 26, cat: 'Theory', q: 'What is nodelocking?', a: "Fixing an opponent's strategy at a specific node to see how the GTO solution changes for the other player." },
     { id: 27, cat: 'Preflop', q: 'What is the BTN opening range in 6-max?', a: 'Approximately 45-50% of hands — the widest opening range at the table.' },
     { id: 28, cat: 'Math', q: 'What is the breakeven percentage for a pot-sized bluff?', a: '50%. You risk the pot to win the pot: pot / (pot + pot) = 50%.' },
     { id: 29, cat: 'Math', q: 'How do you calculate EV?', a: 'EV = (Win% × $ Won) - (Lose% × $ Lost). Positive EV = profitable long-term.' },
-    {
-        id: 30, cat: 'Theory', q: 'What is an exploitative adjustment?', a: "Deviating from GTO to target a specific opponent's mistakes for higher EV."
-    },
+    { id: 30, cat: 'Theory', q: 'What is an exploitative adjustment?', a: "Deviating from GTO to target a specific opponent's mistakes for higher EV." },
 
     // New 20 Cards
     { id: 31, cat: 'Theory', q: 'What is the definition of a mixed frequency strategy?', a: 'Taking different actions (e.g., betting vs checking) with the exact same hand to remain balanced and unexploitable.' },
@@ -67,9 +61,7 @@ const CARDS = [
     { id: 42, cat: 'Math', q: 'How do you calculate pot odds as a ratio?', a: 'Amount to call : Current pot size + amount to call. E.g. call $10 to win $30 total pot = 10:30 or 1:3 = 25%.' },
     { id: 43, cat: 'Preflop', q: 'Why do we use a smaller opening size (e.g. 2x) in tournaments compared to cash games?', a: 'Shallower effective stacks in MTTs make smaller sizes mathematically superior for risk-to-reward on steals.' },
     { id: 44, cat: 'Postflop', q: 'In a 3-bet pot, why do we use smaller c-bet sizes on average?', a: 'The SPR is lower, so less money is needed to commit stacks by the river; smaller bets achieve the necessary leverage.' },
-    {
-        id: 45, cat: 'Theory', q: 'What is the concept of "equity realization" (EQR)?', a: "How much of a hand's raw equity can actually be captured in a game due to postflop playability, position, and skill."
-    },
+    { id: 45, cat: 'Theory', q: 'What is the concept of "equity realization" (EQR)?', a: "How much of a hand's raw equity can actually be captured in a game due to postflop playability, position, and skill." },
     { id: 46, cat: 'Postflop', q: 'What is "floating"?', a: 'Calling a bet with a weak hand/draw with the intention of taking the pot away on a later street.' },
     { id: 47, cat: 'Theory', q: 'Why is A-K offsuit less valuable than A-K suited?', a: 'Suitedness adds about 2-3% raw equity but significantly increases EQR and playability postflop due to flush potential.' },
     { id: 48, cat: 'Math', q: 'What is the required success frequency for a 1/2 pot bluff to break even?', a: '33.3% (0.5 / 1.5).' },
