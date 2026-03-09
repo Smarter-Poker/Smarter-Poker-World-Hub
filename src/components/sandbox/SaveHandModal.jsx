@@ -4,7 +4,7 @@
  */
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useTrainingBus } from '../../../src/contexts/TrainingBusContext';
+import useTrainingBus from '../../hooks/useTrainingBus';
 
 const M = {
     bg: 'rgba(11,13,17,0.95)',
