@@ -5,6 +5,7 @@
    FIX: Global navigation guard to prevent loading freeze on back button
    ═══════════════════════════════════════════════════════════════════════════ */
 
+import '../src/lib/server-stability'; // Server-side crash prevention (dev mode only)
 import '../src/index.css';
 import '../src/styles/premium.css';
 import '../src/styles/global-tokens.css';
