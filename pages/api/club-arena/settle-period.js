@@ -14,6 +14,7 @@
  * Auth: Bearer token (club owner or union admin)
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { notifyUser } from '../../../src/lib/club-arena/notify';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 
 const supabaseAdmin = createClient(
@@ -610,6 +611,20 @@ export default async function handler(req, res) {
         .filter(c => paidIds.includes(c.id))
         .reduce((sum, c) => sum + c.commission_amount, 0);
       const skipped = pending.length - paidIds.length;
+
+      // Notify each paid agent (fire-and-forget)
+      for (const cr of pending.filter(c => paidIds.includes(c.id) && c.commission_amount > 0)) {
+        const { data: ag } = await supabaseAdmin.from('agents').select('user_id').eq('id', cr.agent_id).maybeSingle();
+        if (ag?.user_id) {
+          notifyUser(supabaseAdmin, {
+            userId: ag.user_id, type: 'commission_paid',
+            title: `💵 Commission Paid: ${cr.commission_amount.toLocaleString()}`,
+            message: `Your commission of ${cr.commission_amount.toLocaleString()} chips has been paid.`,
+            data: { clubId, amount: cr.commission_amount },
+            pushUrl: `/hub/club-arena/agent-dashboard?club=${clubId}`,
+          }).catch(() => {});
+        }
+      }
 
       return res.status(200).json({
         success: true,

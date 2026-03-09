@@ -25,6 +25,7 @@
  * Auth: Bearer token (any authenticated user)
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { notifyClubAdmins } from '../../../src/lib/club-arena/notify';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 
 const supabaseAdmin = createClient(
@@ -178,6 +179,16 @@ export default async function handler(req, res) {
                 .update({ member_count: count || 0 })
                 .eq('id', club.id);
         });
+
+        // Notify club admins of new member
+        notifyClubAdmins(supabaseAdmin, {
+          clubId: club.id,
+          type: 'member_joined',
+          title: '👤 New Member Joined',
+          message: `A new player has joined ${club.name}.`,
+          data: { clubName: club.name, newUserId: user.id },
+          excludeUserId: user.id,
+        }).catch(() => {});
 
         return res.status(200).json({
             success: true,

@@ -8,6 +8,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
+import { notifyUser } from '../../../src/lib/club-arena/notify';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -127,6 +128,16 @@ export default async function handler(req, res) {
     if (!result?.success) {
       return res.status(400).json({ success: false, error: result?.error || 'Distribution failed', details: result });
     }
+
+    // Fire-and-forget: notify recipient
+    notifyUser(supabaseAdmin, {
+      userId: toUserId,
+      type: 'chip_distribution',
+      title: `💰 ${amount.toLocaleString()} Chips Received`,
+      message: `You received ${amount.toLocaleString()} chips${notes ? ` — ${notes}` : ''}.`,
+      data: { clubId, amount },
+      pushUrl: `/hub/club-arena/cashier?club=${clubId}`,
+    }).catch(() => {});
 
     return res.status(200).json({
       success: true,

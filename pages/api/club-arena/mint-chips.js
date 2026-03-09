@@ -7,6 +7,7 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
+import { notifyClubAdmins } from '../../../src/lib/club-arena/notify';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 
 const supabaseAdmin = createClient(
@@ -81,6 +82,15 @@ export default async function handler(req, res) {
     if (!result?.success) {
       return res.status(400).json({ success: false, error: result?.error || 'Mint failed' });
     }
+
+    // Notify club admins
+    notifyClubAdmins(supabaseAdmin, {
+      clubId, type: 'chips_minted',
+      title: `🪙 ${amount.toLocaleString()} Chips Minted`,
+      message: `${amount.toLocaleString()} chips minted to treasury${notes ? ` — ${notes}` : ''}.`,
+      data: { amount },
+      excludeUserId: user.id,
+    }).catch(() => {});
 
     return res.status(200).json({
       success: true,

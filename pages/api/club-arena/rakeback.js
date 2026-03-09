@@ -13,6 +13,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { notifyUser } from '../../../src/lib/club-arena/notify';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -244,6 +245,17 @@ export default async function handler(req, res) {
           .from('rakeback_periods')
           .update({ status: 'closed', period_end: new Date().toISOString() })
           .eq('id', openPeriod.id);
+
+        // Notify players with rakeback available (fire-and-forget)
+        for (const ins of inserts.filter(i => i.rakeback_amount > 0)) {
+          notifyUser(supabaseAdmin, {
+            userId: ins.player_id, type: 'rakeback_available',
+            title: `🎁 Rakeback Available: ${ins.rakeback_amount.toLocaleString()}`,
+            message: `You have ${ins.rakeback_amount.toLocaleString()} chips in unclaimed rakeback. Claim now in the cashier!`,
+            data: { clubId, amount: ins.rakeback_amount },
+            pushUrl: `/hub/club-arena/cashier?club=${clubId}`,
+          }).catch(() => {});
+        }
 
         return res.status(200).json({
           success: true,

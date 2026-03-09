@@ -7,6 +7,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
+import { notifyUser, notifyClubMembers } from '../../../src/lib/club-arena/notify';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 
 const supabaseAdmin = createClient(
@@ -374,6 +375,15 @@ export default async function handler(req, res) {
           }
         }
 
+        // Notify registrant
+        notifyUser(supabaseAdmin, {
+          userId: user.id, type: 'tournament_registered',
+          title: `🏆 Registered: ${tourn.name}`,
+          message: `You're registered for ${tourn.name}. ${currentCount}/${tourn.max_players} players.`,
+          data: { tournamentId, clubId: tourn.club_id, tournamentName: tourn.name },
+          pushUrl: `/hub/club-arena/tournaments?club=${tourn.club_id}`,
+        }).catch(() => {});
+
         return res.json({ success: true, registeredCount: currentCount });
       }
 
@@ -513,6 +523,15 @@ export default async function handler(req, res) {
             .eq('id', tournamentId);
           return res.status(500).json({ success: false, error: 'Engine failed to start tournament. Please try again.' });
         }
+
+        // Notify all club members that tournament started
+        notifyClubMembers(supabaseAdmin, {
+          clubId: tourn.club_id, type: 'tournament_started',
+          title: `🏆 Tournament Starting: ${tourn.name}`,
+          message: `${tourn.name} is now live with ${tourn.registered_count} players!`,
+          data: { tournamentId, tournamentName: tourn.name },
+          pushUrl: `/hub/club-arena/tournaments?club=${tourn.club_id}`,
+        }).catch(() => {});
 
         return res.json({ success: true });
       }
