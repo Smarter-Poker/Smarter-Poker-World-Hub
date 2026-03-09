@@ -63,6 +63,7 @@ import GodModePanel from '../../../src/components/sandbox/GodModePanel';
 import ExternalSolverImport from '../../../src/components/sandbox/ExternalSolverImport';
 import EquityHeatmapOverlay from '../../../src/components/sandbox/EquityHeatmapOverlay';
 import NodeLockExploits from '../../../src/components/sandbox/NodeLockExploits';
+import ImportHHModal from '../../../src/components/sandbox/ImportHHModal';
 import { idbSaveSessionLog, idbLoadSessionLog, idbSyncSavedHands, idbGetSavedHands } from '../../../src/utils/indexeddb-pwa';
 
 // ═══════════════════════════════════════════════════════════════
@@ -679,7 +680,6 @@ export default function VirtualSandbox() {
   // ═══════════════════════════════════════════════════════════
   const { soundEnabled, toggleSound, playCardDeal, playChipClick, playAnalysisDing } = useSandboxSounds();
   const [showHHImport, setShowHHImport] = useState(false);
-  const [hhText, setHHText] = useState('');
   const [showTemplates, setShowTemplates] = useState(false);
   const [templates, setTemplates] = useState([]);
   const [showRangeGrid, setShowRangeGrid] = useState(false);
@@ -875,20 +875,7 @@ export default function VirtualSandbox() {
   }, [router.query.loadShared]);
 
   // Handle board card pickmport
-  const importHandHistory = useCallback(() => {
-    const result = parseHandHistory(hhText);
-    if (!result) { alert('Could not parse hand history. Supported: PokerStars, GGPoker, 888poker'); return; }
-    pushUndo();
-    if (result.heroHand) setHeroHand(result.heroHand);
-    if (result.heroPosition) setHeroPosition(result.heroPosition);
-    if (result.heroStack) setHeroStack(result.heroStack);
-    if (result.gameType) setGameType(result.gameType);
-    if (result.board) setBoard(result.board);
-    if (result.villains?.length) setVillains(result.villains);
-    if (result.actionHistory?.length) setActionHistory(result.actionHistory);
-    setShowHHImport(false);
-    setHHText('');
-  }, [hhText]);
+  // Handle board card pickmport
 
   // Templates
   const loadTemplates = useCallback(async () => {
@@ -1873,44 +1860,21 @@ export default function VirtualSandbox() {
         pickProgress={heroPickStep}
       />
 
-      {/* ═══ HAND HISTORY IMPORT MODAL ═══ */}
-      <AnimatePresence>
-        {showHHImport && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            style={{ position: 'fixed', inset: 0, zIndex: 80, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}
-              style={{ background: '#242526', borderRadius: 16, padding: 16, width: '100%', maxWidth: 400, border: '1px solid #3A3B3C' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <h3 style={{ fontSize: 14, fontWeight: 700, color: '#E4E6EB', margin: 0 }}>Import Hand History</h3>
-                <button onClick={() => setShowHHImport(false)} style={{ background: 'none', border: 'none', color: '#B0B3B8', fontSize: 18, cursor: 'pointer' }}>x</button>
-              </div>
-              <p style={{ fontSize: 11, color: '#B0B3B8', marginBottom: 8 }}>
-                Paste a hand history from PokerStars, GGPoker, or 888poker
-              </p>
-              <textarea
-                value={hhText}
-                onChange={e => setHHText(e.target.value)}
-                placeholder="Paste hand history here..."
-                style={{
-                  width: '100%', minHeight: 160, padding: 10, borderRadius: 8, fontSize: 11,
-                  background: '#18191A', border: '1px solid #3A3B3C', color: '#E4E6EB',
-                  resize: 'vertical', fontFamily: 'monospace', boxSizing: 'border-box',
-                }}
-              />
-              <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                <button onClick={importHandHistory} disabled={!hhText.trim()}
-                  style={{ flex: 1, padding: 10, borderRadius: 8, fontSize: 12, fontWeight: 700, background: hhText.trim() ? 'linear-gradient(135deg,#2374E1,#4599FF)' : '#3A3B3C', border: 'none', color: hhText.trim() ? '#fff' : '#65676B', cursor: hhText.trim() ? 'pointer' : 'default' }}>
-                  Import
-                </button>
-                <button onClick={() => setShowHHImport(false)}
-                  style={{ flex: 1, padding: 10, borderRadius: 8, fontSize: 12, fontWeight: 600, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#B0B3B8', cursor: 'pointer' }}>
-                  Cancel
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* ═══ HAND HISTORY IMPORT MODAL (W8-1) ═══ */}
+      <ImportHHModal
+        isVisible={showHHImport}
+        onClose={() => setShowHHImport(false)}
+        onImport={(parsed) => {
+          pushUndo();
+          if (parsed.heroHand) setHeroHand(parsed.heroHand);
+          if (parsed.heroPosition) setHeroPosition(parsed.heroPosition);
+          if (parsed.heroStack) setHeroStack(parsed.heroStack);
+          if (parsed.gameType) setGameType(parsed.gameType);
+          if (parsed.board) setBoard(parsed.board);
+          if (parsed.villains?.length) setVillains(parsed.villains);
+          if (parsed.actionHistory?.length) setActionHistory(parsed.actionHistory);
+        }}
+      />
 
       {/* ═══ RANGE EXPLORER MODAL (W4-2) ═══ */}
       {showRangeExplorer && (

@@ -384,8 +384,8 @@ export default function SolutionsBrowser() {
         loadBookmarks();
 
         // Listen for external bookmark updates (e.g. from Sandbox)
-        window.addEventListener('pa-data-updated', loadBookmarks);
-        return () => window.removeEventListener('pa-data-updated', loadBookmarks);
+        eventBus.on('pa-data-updated', loadBookmarks);
+        return () => eventBus.off('pa-data-updated', loadBookmarks);
     }, []);
 
     // Toggle bookmark
