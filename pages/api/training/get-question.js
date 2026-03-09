@@ -651,14 +651,8 @@ function enrichGrokQuestion(q, gameConfig, level, gameType) {
             q.heroCards = [heroHand.substring(0, 2), heroHand.substring(2, 4)];
         } else {
             // Deterministic fallback cards based on question id hash
-            const ranks = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
-            const suits = ['h', 'd', 'c', 's'];
             const seed = hashSeed(q.id || q.questionId || 'fallback');
-            const r1 = ranks[seed % 6]; // premium range
-            const s1 = suits[(seed >> 3) % 4];
-            const r2 = ranks[(seed >> 6) % 8];
-            const s2 = suits[(seed >> 9) % 4];
-            q.heroCards = [r1 + s1, r2 + s2];
+            q.heroCards = _getDeterministicCards(seed, 2);
         }
     }
 
@@ -672,9 +666,11 @@ function enrichGrokQuestion(q, gameConfig, level, gameType) {
             for (let i = 0; i < clean.length; i += 2) {
                 if (i + 1 < clean.length) cards.push(clean.substring(i, i + 2));
             }
-            q.boardCards = cards.length >= 3 ? cards : generateRandomBoard();
+            const seed = hashSeed(q.id || 'board_fallback');
+            q.boardCards = cards.length >= 3 ? cards : _getDeterministicCards(seed, 3, q.heroCards);
         } else {
-            q.boardCards = generateRandomBoard();
+            const seed = hashSeed(q.id || 'board_fallback');
+            q.boardCards = _getDeterministicCards(seed, 3, q.heroCards);
         }
     }
 
@@ -693,20 +689,25 @@ function enrichGrokQuestion(q, gameConfig, level, gameType) {
                 // Higher levels = more mixed strategy (lower dominance)
                 const dominance = Math.max(35, 80 - (level * 4)) + (hashSeed(optId + (q.id || '')) % 10);
                 q.gtoFrequencies[optId] = Math.min(dominance, remaining);
-            } else {
-                // Distribute remaining among incorrect options
-                const share = 5 + (hashSeed(optId + i) % 18);
-                q.gtoFrequencies[optId] = share;
+                remaining -= q.gtoFrequencies[optId];
             }
         });
 
-        // Normalize to 100%
-        const total = Object.values(q.gtoFrequencies).reduce((s, v) => s + v, 0);
-        if (total > 0) {
-            Object.keys(q.gtoFrequencies).forEach(k => {
-                q.gtoFrequencies[k] = Math.round((q.gtoFrequencies[k] / total) * 100);
-            });
-        }
+        // Distribute remaining evenly/deterministically among incorrect options
+        const incorrectOpts = options.filter(opt => (opt.id || '') !== correctAnswer);
+        incorrectOpts.forEach((opt, idx) => {
+            const optId = opt.id || String.fromCharCode(97 + idx);
+            const isLast = idx === incorrectOpts.length - 1;
+            if (isLast) {
+                q.gtoFrequencies[optId] = Math.max(0, remaining);
+            } else {
+                const share = Math.floor(remaining / (incorrectOpts.length - idx)) + (hashSeed(optId) % 5) - 2;
+                const clampedShare = Math.max(0, Math.min(share, remaining));
+                q.gtoFrequencies[optId] = clampedShare;
+                remaining -= clampedShare;
+            }
+        });
+
         const sum = Object.values(q.gtoFrequencies).reduce((s, v) => s + v, 0);
         if (sum !== 100 && correctAnswer) {
             q.gtoFrequencies[correctAnswer] = (q.gtoFrequencies[correctAnswer] || 0) + (100 - sum);
@@ -749,23 +750,28 @@ function enrichGrokQuestion(q, gameConfig, level, gameType) {
     return q;
 }
 
-/**
- * Generate a random realistic poker board (3 cards)
- */
-function generateRandomBoard() {
-    const ranks = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
-    const suits = ['h', 'd', 'c', 's'];
-    const used = new Set();
-    const cards = [];
-    while (cards.length < 3) {
-        const card = ranks[Math.floor(Math.random() * ranks.length)] +
-            suits[Math.floor(Math.random() * suits.length)];
-        if (!used.has(card)) {
-            used.add(card);
-            cards.push(card);
-        }
+/** Generate deterministic cards, preventing collisions */
+function _getDeterministicCards(seed, count, exclude = []) {
+    const deck = [
+        '2c', '3c', '4c', '5c', '6c', '7c', '8c', '9c', 'Tc', 'Jc', 'Qc', 'Kc', 'Ac',
+        '2d', '3d', '4d', '5d', '6d', '7d', '8d', '9d', 'Td', 'Jd', 'Qd', 'Kd', 'Ad',
+        '2h', '3h', '4h', '5h', '6h', '7h', '8h', '9h', 'Th', 'Jh', 'Qh', 'Kh', 'Ah',
+        '2s', '3s', '4s', '5s', '6s', '7s', '8s', '9s', 'Ts', 'Js', 'Qs', 'Ks', 'As'
+    ];
+    const excludeSet = new Set(exclude.map(c => c.toLowerCase()));
+    const available = deck.filter(c => !excludeSet.has(c.toLowerCase()));
+    let a = seed || Date.now();
+    const rng = () => {
+        let t = a += 0x6D2B79F5;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+    for (let i = available.length - 1; i > 0; i--) {
+        const j = Math.floor(rng() * (i + 1));
+        [available[i], available[j]] = [available[j], available[i]];
     }
-    return cards;
+    return available.slice(0, count);
 }
 
 /**

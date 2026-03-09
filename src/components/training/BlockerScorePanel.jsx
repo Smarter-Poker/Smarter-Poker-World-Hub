@@ -22,7 +22,7 @@ const SUITS = ['s', 'h', 'd', 'c'];
  * For suited: 4 total combos, each held card removes 1 matching suit.
  * For offsuit: 12 total combos, each held card removes 3 or 4 combos.
  */
-function countBlockedCombos(handClass, heldCards) {
+export function countBlockedCombos(handClass, heldCards) {
     if (!handClass || !heldCards || heldCards.length === 0) return { total: 0, blocked: 0 };
 
     const r1 = handClass[0];

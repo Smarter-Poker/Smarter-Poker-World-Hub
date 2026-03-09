@@ -69,12 +69,60 @@ CREATE TABLE IF NOT EXISTS public.sandbox_shared_scenarios (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 7. Wave 5: Sandbox Bookmarks (Quick save feature from the PA sandbox)
+CREATE TABLE IF NOT EXISTS public.sandbox_bookmarks (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES auth.users NOT NULL,
+    label TEXT NOT NULL,
+    hero_hand TEXT,
+    hero_position TEXT,
+    hero_stack NUMERIC,
+    game_type TEXT,
+    board_flop TEXT,
+    board_turn TEXT,
+    board_river TEXT,
+    villains JSONB DEFAULT '[]'::jsonb,
+    action_history JSONB DEFAULT '[]'::jsonb,
+    pot_size_bb NUMERIC,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_sandbox_bookmarks_user ON public.sandbox_bookmarks(user_id);
+-- 8. Wave 5: Equity History (Per-street EV snapshots)
+CREATE TABLE IF NOT EXISTS public.sandbox_equity_history (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES auth.users NOT NULL,
+    session_id UUID,
+    hero_hand TEXT NOT NULL,
+    villain_range TEXT,
+    street TEXT NOT NULL,
+    equity_pct NUMERIC,
+    ev_hero NUMERIC,
+    board_cards TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_sandbox_equity_user ON public.sandbox_equity_history(user_id);
+
+-- 9. Wave 5: Coach Accuracy View
+CREATE OR REPLACE VIEW public.sandbox_coach_accuracy AS
+SELECT 
+    user_id,
+    COUNT(*) as total_hands,
+    SUM(CASE WHEN is_correct THEN 1 ELSE 0 END) as correct_count,
+    SUM(CASE WHEN NOT is_correct THEN 1 ELSE 0 END) as incorrect_count,
+    ROUND((SUM(CASE WHEN is_correct THEN 1 ELSE 0 END)::numeric / NULLIF(COUNT(*), 0) * 100), 2) as accuracy_pct,
+    ROUND(AVG(CASE WHEN NOT is_correct THEN ev_delta ELSE 0 END), 2) as avg_leak_ev
+FROM public.sandbox_coach_results
+GROUP BY user_id;
+
 -- RLS & Security setup (Optional: Assumes restrictive defaults unless configured elsewhere)
 ALTER TABLE public.sandbox_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.sandbox_quiz_results ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.sandbox_coach_results ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.sandbox_saved_hands ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.sandbox_shared_scenarios ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.sandbox_bookmarks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.sandbox_equity_history ENABLE ROW LEVEL SECURITY;
 
 -- Note: Ensure write/read policies align with your current auth definitions. 
 -- Most API routes access these via the Service Role Key bypassing RLS, but client calls require policies.

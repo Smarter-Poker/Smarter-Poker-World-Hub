@@ -703,6 +703,7 @@ function GodModeArena({
     sessionId,
     onComplete,
     onExit,
+    autoAdvance = false,
 }) {
     // ═══════════════════════════════════════════════════════════════════════════
     // SPECIALIZED TRAINERS (Phase 14)
@@ -815,7 +816,17 @@ function GodModeArena({
             });
         }, 1000);
         return () => clearInterval(timerIntervalRef.current);
-    }, [currentQuestion, timerMode, showFeedback, gameComplete]);
+    }, [timerMode, currentQuestion, showFeedback, gameComplete, submitAnswer]);
+
+    // ═══ AUTO-ADVANCE FOR MULTI-TABLE BLITZ ═══
+    useEffect(() => {
+        if (autoAdvance && showFeedback && !gameComplete) {
+            const timerId = setTimeout(() => {
+                nextQuestion();
+            }, 800);
+            return () => clearTimeout(timerId);
+        }
+    }, [autoAdvance, showFeedback, gameComplete, nextQuestion]);
 
     // Pause timer during feedback
     useEffect(() => {

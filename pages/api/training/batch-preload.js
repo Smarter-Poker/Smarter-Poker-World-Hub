@@ -96,14 +96,8 @@ export default async function handler(req, res) {
                 if (heroHand && heroHand.length >= 4) {
                     qData.heroCards = [heroHand.substring(0, 2), heroHand.substring(2, 4)];
                 } else {
-                    // Deterministic fallback cards based on question hash
-                    const ranks = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6'];
-                    const suits = ['h', 'd', 'c', 's'];
-                    const seed = hashSeed(q.id || q.game_id || `q${i}`);
-                    qData.heroCards = [
-                        ranks[seed % 6] + suits[(seed >> 3) % 4],
-                        ranks[(seed >> 6) % 8] + suits[(seed >> 9) % 4]
-                    ];
+                    const seed = hashSeed(q.id || q.game_id || `q${qData.id || Math.random()}`);
+                    qData.heroCards = _getDeterministicCards(seed, 2);
                     dataQuality = 'SIMULATED';
                 }
             }
@@ -116,10 +110,12 @@ export default async function handler(req, res) {
                     for (let i = 0; i < boardStr.length; i += 2) {
                         if (i + 1 < boardStr.length) cards.push(boardStr.substring(i, i + 2));
                     }
-                    qData.boardCards = cards.length >= 3 ? cards : _randomBoard(qData.heroCards);
+                    const seed = hashSeed(q.id || `board${qData.id || Math.random()}`);
+                    qData.boardCards = cards.length >= 3 ? cards : _getDeterministicCards(seed, 3, qData.heroCards);
                     if (cards.length < 3) dataQuality = 'SIMULATED';
                 } else {
-                    qData.boardCards = _randomBoard(qData.heroCards);
+                    const seed = hashSeed(q.id || `board${qData.id || Math.random()}`);
+                    qData.boardCards = _getDeterministicCards(seed, 3, qData.heroCards);
                     dataQuality = 'SIMULATED';
                 }
             }
@@ -138,21 +134,32 @@ export default async function handler(req, res) {
                 // If still empty, generate deterministic defaults based on action type
                 if (!qData.gtoFrequencies || Object.keys(qData.gtoFrequencies).length === 0) {
                     qData.gtoFrequencies = {};
-                    const numOpts = options.length || 3;
+                    let remaining = 100;
                     options.forEach((opt, idx) => {
                         const optId = opt.id || String.fromCharCode(97 + idx);
-                        // Correct answer gets 55-70%, others split remaining
-                        qData.gtoFrequencies[optId] = optId === correctAnswer
-                            ? Math.round(55 + (hashSeed(optId + (q.id || '')) % 16))
-                            : Math.round((100 - 62) / Math.max(numOpts - 1, 1));
+                        if (optId === Object.keys(qData.gtoFrequencies).length === 0 && optId === correctAnswer) {
+                            const dominance = 55 + (hashSeed(optId + (q.id || '')) % 25);
+                            qData.gtoFrequencies[optId] = dominance;
+                            remaining -= dominance;
+                        } else if (optId === correctAnswer) {
+                            const dominance = 55 + (hashSeed(optId + (q.id || '')) % 25);
+                            qData.gtoFrequencies[optId] = dominance;
+                            remaining -= dominance;
+                        }
                     });
-                    // Normalize to 100%
-                    const total = Object.values(qData.gtoFrequencies).reduce((s, v) => s + v, 0);
-                    if (total > 0) {
-                        Object.keys(qData.gtoFrequencies).forEach(k => {
-                            qData.gtoFrequencies[k] = Math.round((qData.gtoFrequencies[k] / total) * 100);
-                        });
-                    }
+                    const incorrectOpts = options.filter(opt => (opt.id || '') !== correctAnswer);
+                    incorrectOpts.forEach((opt, idx) => {
+                        const optId = opt.id || String.fromCharCode(97 + idx);
+                        const isLast = idx === incorrectOpts.length - 1;
+                        if (isLast) {
+                            qData.gtoFrequencies[optId] = Math.max(0, remaining);
+                        } else {
+                            const share = Math.floor(remaining / (incorrectOpts.length - idx)) + (hashSeed(optId) % 5) - 2;
+                            const clampedShare = Math.max(0, Math.min(share, remaining));
+                            qData.gtoFrequencies[optId] = clampedShare;
+                            remaining -= clampedShare;
+                        }
+                    });
                     const sum = Object.values(qData.gtoFrequencies).reduce((s, v) => s + v, 0);
                     if (sum !== 100 && correctAnswer) {
                         qData.gtoFrequencies[correctAnswer] = (qData.gtoFrequencies[correctAnswer] || 0) + (100 - sum);
@@ -211,16 +218,26 @@ export default async function handler(req, res) {
     }
 }
 
-/** Generate a random 3-card board, excluding hero cards */
-function _randomBoard(heroCards = []) {
-    const ranks = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
-    const suits = ['h', 'd', 'c', 's'];
-    const used = new Set(heroCards.map(c => c.toLowerCase()));
-    const cards = [];
-    while (cards.length < 3) {
-        const c = ranks[Math.floor(Math.random() * ranks.length)] +
-            suits[Math.floor(Math.random() * suits.length)];
-        if (!used.has(c.toLowerCase())) { used.add(c.toLowerCase()); cards.push(c); }
+/** Generate deterministic cards, preventing collisions */
+function _getDeterministicCards(seed, count, exclude = []) {
+    const deck = [
+        '2c', '3c', '4c', '5c', '6c', '7c', '8c', '9c', 'Tc', 'Jc', 'Qc', 'Kc', 'Ac',
+        '2d', '3d', '4d', '5d', '6d', '7d', '8d', '9d', 'Td', 'Jd', 'Qd', 'Kd', 'Ad',
+        '2h', '3h', '4h', '5h', '6h', '7h', '8h', '9h', 'Th', 'Jh', 'Qh', 'Kh', 'Ah',
+        '2s', '3s', '4s', '5s', '6s', '7s', '8s', '9s', 'Ts', 'Js', 'Qs', 'Ks', 'As'
+    ];
+    const excludeSet = new Set(exclude.map(c => c.toLowerCase()));
+    const available = deck.filter(c => !excludeSet.has(c.toLowerCase()));
+    let a = seed || Date.now();
+    const rng = () => {
+        let t = a += 0x6D2B79F5;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+    for (let i = available.length - 1; i > 0; i--) {
+        const j = Math.floor(rng() * (i + 1));
+        [available[i], available[j]] = [available[j], available[i]];
     }
-    return cards;
+    return available.slice(0, count);
 }

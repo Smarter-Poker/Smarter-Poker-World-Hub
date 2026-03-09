@@ -4,7 +4,6 @@
  */
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import useTrainingBus from '../../hooks/useTrainingBus';
 
 const M = {
     bg: 'rgba(11,13,17,0.95)',
@@ -17,7 +16,6 @@ const M = {
 };
 
 export default function SaveHandModal({ onClose, sandboxState, onSaveComplete }) {
-    const { busEmit } = useTrainingBus();
     const [folder, setFolder] = useState('');
     const [tagsInput, setTagsInput] = useState('');
     const [existingFolders, setExistingFolders] = useState([]);
@@ -81,7 +79,7 @@ export default function SaveHandModal({ onClose, sandboxState, onSaveComplete })
 
             const json = await res.json();
             if (json.success) {
-                busEmit('sandbox-hand-saved', json.hand);
+                window.dispatchEvent(new CustomEvent('sandbox-hand-saved', { detail: { hand: json.hand } }));
                 if (onSaveComplete) onSaveComplete(json.hand);
                 onClose();
             } else {

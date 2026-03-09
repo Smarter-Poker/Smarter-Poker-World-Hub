@@ -17,6 +17,7 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import HandReplayViewer from '../../../src/components/training/HandReplayViewer';
 import PositionStatsPanel from '../../../src/components/training/PositionStatsPanel';
 import EVGraph from '../../../src/components/training/EVGraph';
+import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONFIG
@@ -51,42 +52,91 @@ function shuffleDeck(deck) {
     return d;
 }
 
-// Card component
-function Card({ card, size = 40 }) {
+function Card({ card, size = 40, delay = 0 }) {
     if (!card) return null;
     const rank = card[0] === 'T' ? '10' : card[0].toUpperCase();
     const suit = card[card.length - 1];
     return (
-        <div style={{
-            width: size, height: size * 1.4,
-            background: 'linear-gradient(145deg, #fff 0%, #e8e8e8 100%)',
-            borderRadius: Math.max(3, size * 0.08),
-            display: 'flex', flexDirection: 'column',
-            alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.35)',
-            fontWeight: 800, lineHeight: 1,
-        }}>
+        <motion.div
+            initial={{ opacity: 0, y: -40, rotateY: 180, scale: 0.8 }}
+            animate={{ opacity: 1, y: 0, rotateY: 0, scale: 1 }}
+            transition={{ delay, type: 'spring', stiffness: 200, damping: 20 }}
+            style={{
+                width: size, height: size * 1.4,
+                background: 'linear-gradient(145deg, #fff 0%, #e8e8e8 100%)',
+                borderRadius: Math.max(3, size * 0.08),
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+                fontWeight: 800, lineHeight: 1,
+                zIndex: 10, position: 'relative'
+            }}>
             <span style={{ fontSize: size * 0.38, color: SUIT_COLORS[suit] }}>{rank}</span>
             <span style={{ fontSize: size * 0.3, color: SUIT_COLORS[suit] }}>{SUIT_SYMBOLS[suit]}</span>
-        </div>
+        </motion.div>
     );
 }
 
-// Face-down card
-function FaceDownCard({ size = 40 }) {
+function FaceDownCard({ size = 40, delay = 0 }) {
     return (
-        <div style={{
-            width: size, height: size * 1.4, borderRadius: Math.max(3, size * 0.08),
-            background: 'linear-gradient(145deg, #1e3a5f, #0f2744)',
-            border: '1px solid #2d5a8b',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.35)',
-        }}>
+        <motion.div
+            initial={{ opacity: 0, y: -40, scale: 0.8 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ delay, type: 'spring', stiffness: 200, damping: 20 }}
+            style={{
+                width: size, height: size * 1.4, borderRadius: Math.max(3, size * 0.08),
+                background: 'linear-gradient(145deg, #1e3a5f, #0f2744)',
+                border: '1px solid #2d5a8b',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+            }}>
             <div style={{
                 width: size * 0.6, height: size * 0.9,
                 borderRadius: Math.max(2, size * 0.05),
                 background: 'repeating-linear-gradient(45deg, #1e3a5f, #1e3a5f 2px, #2d5a8b 2px, #2d5a8b 4px)',
             }} />
+        </motion.div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SVG CIRCULAR TIMER COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════
+
+function SVGCircularTimer({ timeLeft, totalTime = 24, size = 50 }) {
+    const strokeWidth = Math.max(3, size * 0.08);
+    const radius = (size - strokeWidth) / 2;
+    const circumference = radius * 2 * Math.PI;
+    const strokeDashoffset = circumference - (timeLeft / totalTime) * circumference;
+    const isWarning = timeLeft <= 5;
+    const color = isWarning ? '#ef4444' : '#00d4ff';
+
+    return (
+        <div style={{ position: 'relative', width: size, height: size, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width={size} height={size} style={{ transform: 'rotate(-90deg)', position: 'absolute' }}>
+                <circle
+                    cx={size / 2} cy={size / 2} r={radius}
+                    fill="transparent" stroke="rgba(255,255,255,0.1)" strokeWidth={strokeWidth}
+                />
+                <circle
+                    cx={size / 2} cy={size / 2} r={radius}
+                    fill="transparent"
+                    stroke={color} strokeWidth={strokeWidth}
+                    strokeDasharray={circumference} strokeDashoffset={strokeDashoffset}
+                    strokeLinecap="round"
+                    style={{ transition: 'stroke-dashoffset 1s linear, stroke 0.3s' }}
+                />
+            </svg>
+            <div style={{
+                fontSize: size * 0.35, fontWeight: 800, color, fontFamily: "'Orbitron', monospace",
+                animation: isWarning ? 'pulse 1s infinite' : 'none',
+                zIndex: 1
+            }}>
+                {timeLeft}
+            </div>
+            <style jsx>{`
+                @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+            `}</style>
         </div>
     );
 }
@@ -141,6 +191,13 @@ function usePlayMode() {
         setShowdownResult(null);
         setHandNumber(prev => prev + 1);
         setGameState('playing');
+
+        // Reset and start timer
+        setTimeLeft(24);
+        setIsTimerRunning(true);
+        setScreenShake(false);
+        setSpeedBonus(0);
+        setShowSpeedBonus(false);
     }, [config.stackDepth]);
 
     // GTO-based villain response using position-aware frequency tables
@@ -339,9 +396,21 @@ function usePlayMode() {
         newPot += villainAction.amount;
         setPot(newPot);
 
+        // Record speed
+        const answerTime = 24 - timeLeft;
+        if (answerTime < 10 && action !== 'fold' && villainAction.action !== 'fold') {
+            const bonus = answerTime <= 3 ? 3 : answerTime <= 5 ? 2 : 1;
+            setSpeedBonus(bonus);
+            setShowSpeedBonus(true);
+            setTimeout(() => setShowSpeedBonus(false), 1500);
+        }
+
+        // Reset timer for next street
+        setTimeLeft(24);
+
         // Advance to next street
         advanceStreet(currentStreet, newPot);
-    }, [currentStreet, pot, heroStack, heroPosition, simulateVillainResponse, advanceStreet]);
+    }, [currentStreet, pot, heroStack, heroPosition, simulateVillainResponse, advanceStreet, timeLeft]);
 
     // Save hand result and advance
     const nextHand = useCallback(() => {
@@ -463,12 +532,91 @@ function usePlayMode() {
         saveSession();
     }, [gameState, handResults]);
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // SENSORY ENGINE (Timer, Haptics, Audio)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    const [timeLeft, setTimeLeft] = useState(24);
+    const [isTimerRunning, setIsTimerRunning] = useState(false);
+    const [screenShake, setScreenShake] = useState(false);
+    const [speedBonus, setSpeedBonus] = useState(0);
+    const [showSpeedBonus, setShowSpeedBonus] = useState(false);
+
+    const timerRef = useRef(null);
+    const heartbeatIntervalRef = useRef(null);
+
+    // Audio/Vibration Settings
+    const settings = { haptics: true, audio: true, screenShake: true, intensity: 'high' };
+
+    useEffect(() => {
+        if (!isTimerRunning || gameState !== 'playing') {
+            if (timerRef.current) clearInterval(timerRef.current);
+            if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
+            setScreenShake(false);
+            return;
+        }
+
+        const intensityMultiplier = 1.0;
+
+        timerRef.current = setInterval(() => {
+            setTimeLeft(prev => {
+                const newTime = prev - 1;
+
+                if (settings.haptics && 'vibrate' in navigator) {
+                    const baseVibration = newTime <= 3 ? 100 : newTime <= 8 ? 50 : 20;
+                    navigator.vibrate(Math.round(baseVibration * intensityMultiplier));
+                }
+
+                if (settings.screenShake && newTime <= 3 && newTime > 0) setScreenShake(true);
+                else setScreenShake(false);
+
+                if (newTime <= 0) {
+                    clearInterval(timerRef.current);
+                    clearInterval(heartbeatIntervalRef.current);
+                    handleAction('fold'); // Auto fold on timeout
+                    if ('vibrate' in navigator) navigator.vibrate([200, 100, 200]);
+                    return 0;
+                }
+                return newTime;
+            });
+        }, 1000);
+
+        if (settings.audio && timeLeft <= 8 && timeLeft > 0) {
+            const playHeartbeat = () => {
+                try {
+                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.frequency.value = 80;
+                    osc.type = 'sine';
+                    const volume = 0.3 * intensityMultiplier;
+                    gain.gain.setValueAtTime(volume, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+                    osc.start(ctx.currentTime);
+                    osc.stop(ctx.currentTime + 0.15);
+                } catch (e) { }
+            };
+            const speed = Math.max(200, 600 - ((8 - timeLeft) * 50));
+            if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
+            heartbeatIntervalRef.current = setInterval(playHeartbeat, speed);
+            playHeartbeat();
+        }
+
+        return () => {
+            if (timerRef.current) clearInterval(timerRef.current);
+            if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
+        };
+    }, [isTimerRunning, gameState, timeLeft]);
+
     return {
         gameState, config, setConfig,
         heroPosition, heroCards, board, currentStreet,
         pot, heroStack, actionHistory,
         handNumber, handResults, showdownResult,
         handleAction, nextHand, startSession, resetSession,
+        timeLeft, screenShake, speedBonus, showSpeedBonus
     };
 }
 
@@ -646,6 +794,10 @@ export default function PlayModePage() {
     const router = useRouter();
     const game = usePlayMode();
     const bus = useTrainingBus('play-mode', { format: game.config?.format });
+
+    // Bet Slider State
+    const [isBetting, setIsBetting] = useState(false);
+    const [betAmount, setBetAmount] = useState(0);
 
     return (
         <>
@@ -836,18 +988,11 @@ export default function PlayModePage() {
                                 }}>
                                     {game.board.length > 0 ? (
                                         game.board.map((c, i) => (
-                                            <motion.div
-                                                key={i}
-                                                initial={{ rotateY: 180, opacity: 0 }}
-                                                animate={{ rotateY: 0, opacity: 1 }}
-                                                transition={{ delay: i * 0.15 }}
-                                            >
-                                                <Card card={c} size={44} />
-                                            </motion.div>
+                                            <Card key={i} card={c} size={44} delay={i * 0.1} />
                                         ))
                                     ) : (
                                         <div style={{ display: 'flex', gap: 4 }}>
-                                            {[0, 1, 2].map(i => <FaceDownCard key={i} size={44} />)}
+                                            {[0, 1, 2].map(i => <FaceDownCard key={i} size={44} delay={i * 0.1} />)}
                                         </div>
                                     )}
                                 </div>
@@ -861,18 +1006,30 @@ export default function PlayModePage() {
                                         YOUR HAND ({game.heroPosition})
                                     </div>
                                     <div style={{
-                                        display: 'flex', justifyContent: 'center', gap: 4,
+                                        display: 'flex', justifyContent: 'center', gap: 4, position: 'relative'
                                     }}>
                                         {game.heroCards.map((c, i) => (
-                                            <motion.div
-                                                key={i}
-                                                initial={{ y: 30, opacity: 0 }}
-                                                animate={{ y: 0, opacity: 1 }}
-                                                transition={{ delay: 0.3 + i * 0.15 }}
-                                            >
-                                                <Card card={c} size={52} />
-                                            </motion.div>
+                                            <Card key={i} card={c} size={52} delay={0.3 + i * 0.15} />
                                         ))}
+
+                                        {/* Speed Bonus Animation */}
+                                        <AnimatePresence>
+                                            {game.showSpeedBonus && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: 10, scale: 0.5 }}
+                                                    animate={{ opacity: 1, y: -40, scale: 1.2 }}
+                                                    exit={{ opacity: 0, scale: 1.5 }}
+                                                    transition={{ duration: 0.5, ease: 'easeOut' }}
+                                                    style={{
+                                                        position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
+                                                        color: '#f59e0b', fontSize: 16, fontWeight: 900, textShadow: '0 2px 10px rgba(0,0,0,0.8)',
+                                                        zIndex: 20, whiteSpace: 'nowrap', fontFamily: "'Orbitron', monospace",
+                                                    }}
+                                                >
+                                                    ⚡ +{game.speedBonus} DIAMONDS
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
                                     </div>
                                     <div style={{
                                         fontSize: 11, color: '#94a3b8', marginTop: 6,
@@ -881,36 +1038,100 @@ export default function PlayModePage() {
                                         Stack: {game.heroStack.toFixed(1)} BB
                                     </div>
                                 </div>
+
+                                {/* Timer */}
+                                <div style={{ position: 'absolute', top: 16, right: 16 }}>
+                                    <SVGCircularTimer timeLeft={game.timeLeft} totalTime={24} size={44} />
+                                </div>
                             </div>
 
-                            {/* Action Buttons */}
-                            <div style={{
-                                display: 'flex', gap: 8, justifyContent: 'center',
-                            }}>
-                                {[
-                                    { action: 'fold', label: 'FOLD', color: '#64748b', bg: 'rgba(100,116,139,0.15)' },
-                                    { action: 'check', label: game.currentStreet === 'preflop' && game.heroPosition !== 'BB' ? null : 'CHECK', color: '#3b82f6', bg: 'rgba(59,130,246,0.15)' },
-                                    { action: 'call', label: 'CALL', color: '#22c55e', bg: 'rgba(34,197,94,0.15)' },
-                                    { action: 'bet', label: game.currentStreet === 'preflop' ? 'RAISE' : 'BET', color: '#ef4444', bg: 'rgba(239,68,68,0.15)' },
-                                    { action: 'allin', label: 'ALL-IN', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)' },
-                                ].filter(a => a.label).map(a => (
-                                    <motion.button
-                                        key={a.action}
-                                        onClick={() => game.handleAction(a.action)}
-                                        whileHover={{ scale: 1.06, y: -2 }}
-                                        whileTap={{ scale: 0.94 }}
-                                        style={{
-                                            padding: '12px 20px', borderRadius: 10,
-                                            border: `1px solid ${a.color}40`,
-                                            background: a.bg, color: a.color,
-                                            fontSize: 13, fontWeight: 800, cursor: 'pointer',
-                                            fontFamily: "'Orbitron', monospace",
-                                        }}
+                            {/* Action Buttons / Bet Sizer */}
+                            <AnimatePresence mode="wait">
+                                {isBetting ? (
+                                    <motion.div
+                                        key="bet-sizer"
+                                        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
+                                        style={{ background: 'rgba(0,0,0,0.4)', borderRadius: 16, padding: 16, border: '1px solid #ef444440' }}
                                     >
-                                        {a.label}
-                                    </motion.button>
-                                ))}
-                            </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+                                            <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>Set Bet Size</span>
+                                            <span style={{ fontSize: 16, color: '#ef4444', fontWeight: 800, fontFamily: "'Orbitron', monospace" }}>{betAmount.toFixed(1)} BB</span>
+                                        </div>
+
+                                        <input
+                                            type="range"
+                                            min={game.pot * 0.1} max={game.heroStack} step={0.5}
+                                            value={betAmount}
+                                            onChange={(e) => setBetAmount(parseFloat(e.target.value))}
+                                            style={{ width: '100%', marginBottom: 16, accentColor: '#ef4444' }}
+                                        />
+
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6, marginBottom: 16 }}>
+                                            {[{ l: '25%', v: 0.25 }, { l: '50%', v: 0.50 }, { l: '75%', v: 0.75 }, { l: '100%', v: 1.0 }, { l: 'MAX', v: 'max' }].map(b => (
+                                                <button
+                                                    key={b.l}
+                                                    onClick={() => setBetAmount(b.v === 'max' ? game.heroStack : game.pot * b.v)}
+                                                    style={{
+                                                        padding: '8px 0', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
+                                                        color: '#fca5a5', borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer'
+                                                    }}
+                                                >{b.l}</button>
+                                            ))}
+                                        </div>
+
+                                        <div style={{ display: 'flex', gap: 8 }}>
+                                            <button
+                                                onClick={() => setIsBetting(false)}
+                                                style={{ flex: 1, padding: 12, background: 'rgba(255,255,255,0.05)', color: '#94a3b8', border: 'none', borderRadius: 10, fontWeight: 700, cursor: 'pointer' }}
+                                            >Cancel</button>
+                                            <button
+                                                onClick={() => {
+                                                    game.handleAction('bet', betAmount);
+                                                    setIsBetting(false);
+                                                }}
+                                                style={{ flex: 2, padding: 12, background: 'linear-gradient(135deg, #ef4444, #b91c1c)', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 800, fontFamily: "'Orbitron', monospace", cursor: 'pointer' }}
+                                            >CONFIRM {betAmount.toFixed(1)} BB</button>
+                                        </div>
+                                    </motion.div>
+                                ) : (
+                                    <motion.div
+                                        key="action-buttons"
+                                        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
+                                        style={{ display: 'flex', gap: 8, justifyContent: 'center' }}
+                                    >
+                                        {[
+                                            { action: 'fold', label: 'FOLD', color: '#64748b', bg: 'rgba(100,116,139,0.15)' },
+                                            { action: 'check', label: game.currentStreet === 'preflop' && game.heroPosition !== 'BB' ? null : 'CHECK', color: '#3b82f6', bg: 'rgba(59,130,246,0.15)' },
+                                            { action: 'call', label: 'CALL', color: '#22c55e', bg: 'rgba(34,197,94,0.15)' },
+                                            { action: 'bet', label: game.currentStreet === 'preflop' ? 'RAISE' : 'BET', color: '#ef4444', bg: 'rgba(239,68,68,0.15)' },
+                                            { action: 'allin', label: 'ALL-IN', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)' },
+                                        ].filter(a => a.label).map(a => (
+                                            <motion.button
+                                                key={a.action}
+                                                onClick={() => {
+                                                    if (a.action === 'bet') {
+                                                        setBetAmount(game.pot * 0.5); // Default half pot
+                                                        setIsBetting(true);
+                                                    } else {
+                                                        game.handleAction(a.action);
+                                                    }
+                                                }}
+                                                whileHover={{ scale: 1.06, y: -2 }}
+                                                whileTap={{ scale: 0.94 }}
+                                                style={{
+                                                    padding: '12px 20px', borderRadius: 10,
+                                                    border: `1px solid ${a.color}40`,
+                                                    background: a.bg, color: a.color,
+                                                    fontSize: 13, fontWeight: 800, cursor: 'pointer',
+                                                    fontFamily: "'Orbitron', monospace",
+                                                }}
+                                            >
+                                                {a.label}
+                                            </motion.button>
+                                        ))}
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
 
                             {/* Action History */}
                             {game.actionHistory.length > 0 && (
@@ -1008,8 +1229,8 @@ export default function PlayModePage() {
                             onExit={() => router.push('/hub/training')}
                         />
                     )}
-                </div>
-            </div>
+                </div >
+            </div >
         </>
     );
 }

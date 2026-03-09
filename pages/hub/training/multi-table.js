@@ -46,10 +46,10 @@ export default function MultiTablePage() {
     const [tableCount, setTableCount] = useState(2);
     const [isStarted, setIsStarted] = useState(false);
     const [selectedGames, setSelectedGames] = useState(['cash-002', 'cash-003', 'cash-004', 'cash-005']);
-    const [completedTables, setCompletedTables] = useState(new Set());
     const [combinedStats, setCombinedStats] = useState({
         totalHands: 0, totalCorrect: 0, totalEVLoss: 0, tablesCompleted: 0,
     });
+    const [isAutoAdvance, setIsAutoAdvance] = useState(false);
 
     // Listen for session-complete events from each table
     useEffect(() => {
@@ -167,6 +167,28 @@ export default function MultiTablePage() {
                             </div>
                         </div>
 
+                        {/* Auto-Advance Toggle */}
+                        <div style={{ marginBottom: 28 }}>
+                            <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 10 }}>
+                                BLITZ MODE
+                            </div>
+                            <div
+                                onClick={() => setIsAutoAdvance(!isAutoAdvance)}
+                                style={{
+                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px',
+                                    borderRadius: 12, cursor: 'pointer',
+                                    background: isAutoAdvance ? 'rgba(34,197,94,0.1)' : 'rgba(255,255,255,0.03)',
+                                    border: `1px solid ${isAutoAdvance ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.06)'}`,
+                                }}
+                            >
+                                <div style={{ textAlign: 'left' }}>
+                                    <div style={{ fontSize: 13, fontWeight: 700, color: isAutoAdvance ? '#22c55e' : '#e2e8f0' }}>Auto-Advance Hands</div>
+                                    <div style={{ fontSize: 11, color: '#94a3b8' }}>Automatically deal next hand after answering</div>
+                                </div>
+                                <div style={{ fontSize: 18 }}>{isAutoAdvance ? '⚡' : '🔄'}</div>
+                            </div>
+                        </div>
+
                         {/* Game Selection Grid */}
                         <div style={{ marginBottom: 28 }}>
                             <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 10 }}>
@@ -279,6 +301,7 @@ export default function MultiTablePage() {
                                             gameId={gameId}
                                             gameName={MULTI_TABLE_GAMES.find(g => g.id === gameId)?.name || gameId}
                                             level={1}
+                                            autoAdvance={isAutoAdvance}
                                             onComplete={() => { }}
                                             onExit={() => setCompletedTables(prev => new Set([...prev, gameId]))}
                                         />

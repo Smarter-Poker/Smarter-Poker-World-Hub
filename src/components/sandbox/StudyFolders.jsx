@@ -4,7 +4,6 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import useTrainingBus from '../../hooks/useTrainingBus';
 
 const M = {
     bg: 'rgba(11,13,17,0.95)',
@@ -49,11 +48,11 @@ export default function StudyFolders({ onClose, onLoadTarget }) {
 
     useEffect(() => {
         fetchHands();
-    }, [fetchHands]);
 
-    useTrainingBus('sandbox-hand-saved', () => {
-        fetchHands();
-    });
+        const handleHandSaved = () => fetchHands();
+        window.addEventListener('sandbox-hand-saved', handleHandSaved);
+        return () => window.removeEventListener('sandbox-hand-saved', handleHandSaved);
+    }, [fetchHands]);
 
     const folders = [...new Set(hands.map(h => h.folder_name))];
     const filteredHands = hands.filter(h => h.folder_name === activeFolder);

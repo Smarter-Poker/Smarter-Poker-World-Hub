@@ -825,6 +825,12 @@ export default function TrainingPage() {
     // Handle game click - Show intro video first, then navigate
     const handleGameClick = async (game) => {
 
+        if (game.vipOnly && !isVIP) {
+            toast.error("This advanced tool is restricted to VIP members. Please upgrade.");
+            router.push('/hub/diamond-store?tab=vip');
+            return;
+        }
+
         // Check diamond access - VIP plays free, others pay 10 diamonds
         if (!isVIP) {
             const result = await DiamondEngine.deduct(GAME_COST);
@@ -833,6 +839,12 @@ export default function TrainingPage() {
                 return;
             }
             setDiamondBalance(result.balance);
+        }
+
+        // SPECIAL ROUTING FOR STANDALONE PAGES
+        if (game.id === 'adv-003') {
+            router.push('/hub/training/nodelocking');
+            return;
         }
 
         // Check if game was just mastered (trigger celebration)

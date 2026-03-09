@@ -185,7 +185,7 @@ export function calculateRealEVLoss(evData, selectedAction, optimalAction, rawFr
     // BUG-B FIX: Better EV loss approximation when per-action EV data isn't available.
     // Use (1 - selectedFreq) as the primary signal — actions with 0% solver frequency
     // have maximum EV loss, while actions with 40% frequency have minimal EV loss.
-    const selectedFreqNorm = selectedFreq; // 0.0 - 1.0 from rawFrequencies
+    const selectedFreqNorm = (rawFrequencies && rawFrequencies[selectedAction]) ? rawFrequencies[selectedAction] : 0;
     const potFactor = Math.max(1, pot / 10);
 
     // Non-linear scaling: near-zero frequency actions lose much more EV

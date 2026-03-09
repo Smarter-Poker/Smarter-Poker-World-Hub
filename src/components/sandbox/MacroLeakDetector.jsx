@@ -4,7 +4,6 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import useTrainingBus from '../../hooks/useTrainingBus';
 
 const M = {
     bg: '#18191A', card: '#242526', border: '#3E4042',
@@ -39,12 +38,11 @@ export default function MacroLeakDetector() {
 
     useEffect(() => {
         fetchAnalysis();
-    }, [fetchAnalysis]);
 
-    useTrainingBus('sandbox-coach-result-saved', () => {
-        // Refresh analysis in the background without setting loading=true
-        fetchAnalysis();
-    });
+        const handleCoachResult = () => fetchAnalysis();
+        window.addEventListener('sandbox-coach-result-saved', handleCoachResult);
+        return () => window.removeEventListener('sandbox-coach-result-saved', handleCoachResult);
+    }, [fetchAnalysis]);
 
     if (loading) return (
         <div style={{ padding: 20, background: M.card, borderRadius: 12, border: `1px solid ${M.border}`, textAlign: 'center', color: M.sub }}>

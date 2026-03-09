@@ -53,7 +53,7 @@ function generateVariationSeed(gameType) {
 }
 
 export default async function handler(req, res) {
-  if (!applyRateLimit(req, res, LIMITS.read)) return;
+    if (!applyRateLimit(req, res, LIMITS.read)) return;
 
     if (req.method !== 'GET') {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
@@ -102,13 +102,15 @@ RESPOND IN THIS EXACT JSON FORMAT:
     "id": "grok_${seed.uniqueId}",
     "type": "PIO",
     "question": "Specific question about the GTO play",
+    "heroCards": ["As", "Kd"],
+    "boardCards": ["Js", "Ts", "2d"],
     "scenario": {
         "heroPosition": "${seed.heroPosition}",
         "villainPosition": "${seed.villainPosition}",
         "heroStack": ${seed.heroStack},
         "villainStack": ${seed.villainStack},
-        "heroHand": "[Generate appropriate hand]",
-        "board": "[Generate ${seed.street === 'preflop' ? 'null' : `${seed.boardTexture} board for ${seed.street}`}]",
+        "heroHand": "AsKd",
+        "board": "Js Ts 2d",
         "pot": ${seed.potSize},
         "action": "[Previous action]",
         "gameType": "${gameType}"
@@ -119,11 +121,24 @@ RESPOND IN THIS EXACT JSON FORMAT:
         {"id": "c", "text": "[Option 3]"},
         {"id": "d", "text": "[Option 4]"}
     ],
-    "correctAnswer": "[a/b/c/d]",
+    "gtoFrequencies": {
+        "a": 15,
+        "b": 60,
+        "c": 25,
+        "d": 0
+    },
+    "evData": {
+        "heroHandEV": 12.5,
+        "optimalEV": 14.0
+    },
+    "correctAnswer": "b",
     "explanation": "Detailed GTO reasoning for the correct answer"
 }
 
-CRITICAL: Make this a genuinely challenging and realistic scenario. Include specific bet sizes and GTO frequencies in the explanation.`;
+CRITICAL: Make this a genuinely challenging and realistic scenario. 
+1. The gtoFrequencies MUST map to exact integers summing perfectly to 100.
+2. heroCards MUST be an array of exactly 2 cards (e.g. ["As", "Kd"]).
+3. boardCards MUST be an array of 3-5 cards (or empty if preflop).`;
 
         const response = await grok.chat.completions.create({
             model: 'grok-3',

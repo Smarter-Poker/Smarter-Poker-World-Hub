@@ -12,6 +12,8 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
+import { DiamondEngine } from '../../../src/services/DiamondEngine';
+import { getAuthUser } from '../../../src/lib/authUtils';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // VILLAIN PROFILES
@@ -207,6 +209,29 @@ export default function NodelockingPage() {
     const router = useRouter();
     useTrainingBus('nodelocking');
 
+    const [isCheckingVIP, setIsCheckingVIP] = useState(true);
+
+    useEffect(() => {
+        const checkVIP = async () => {
+            const user = getAuthUser();
+            if (!user) {
+                router.push('/login');
+                return;
+            }
+            await DiamondEngine.init(user.id);
+            const isVIP = await DiamondEngine.isVIP();
+            if (!isVIP) {
+                if (typeof window !== 'undefined') {
+                    // Slight delay so toast from routing can show if applicable
+                    setTimeout(() => router.push('/hub/diamond-store?tab=vip'), 500);
+                }
+                return;
+            }
+            setIsCheckingVIP(false);
+        };
+        checkVIP();
+    }, [router]);
+
     // Persist last-used profile in localStorage
     const [selectedProfile, setSelectedProfile] = useState('nit');
     const [customTendencies, setCustomTendencies] = useState(null);
@@ -237,6 +262,14 @@ export default function NodelockingPage() {
         const base = VILLAIN_PROFILES[selectedProfile].tendencies;
         setCustomTendencies(prev => ({ ...(prev || base), [key]: Math.max(0, Math.min(100, parseFloat(value) || 0)) }));
     }, [selectedProfile]);
+
+    if (isCheckingVIP) {
+        return (
+            <div style={{ minHeight: '100vh', background: '#0a0a12', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ color: '#00d4ff', fontFamily: 'Orbitron, sans-serif', fontSize: 24, fontWeight: 900 }}>Verifying VIP Status...</div>
+            </div>
+        );
+    }
 
     return (
         <>

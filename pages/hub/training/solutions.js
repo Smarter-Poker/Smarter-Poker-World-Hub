@@ -1150,11 +1150,29 @@ export default function SolutionsBrowser() {
                                     </div>
                                 ) : activeTab === 'blockers' ? (
                                     <div style={{ width: '100%' }}>
+                                        <div style={{
+                                            fontSize: 12, fontWeight: 700, color: '#ef4444',
+                                            fontFamily: "'Orbitron', monospace", marginBottom: 12,
+                                            textTransform: 'uppercase', letterSpacing: 1,
+                                        }}>Card Removal Heatmap</div>
+                                        <RangeGrid
+                                            gridData={spotDetail.gridData}
+                                            actions={spotDetail.actions}
+                                            cellSize={34}
+                                            colorMode="blocker"
+                                            heldCardsForBlockers={spotDetail.heroCards ? spotDetail.heroCards : (spotDetail.board ? spotDetail.board.slice(0, 2) : [])}
+                                        />
+                                        <div style={{
+                                            marginTop: 10, padding: '8px 12px', borderRadius: 8,
+                                            background: 'rgba(255,255,255,0.02)', fontSize: 10, color: '#64748b', marginBottom: 16
+                                        }}>
+                                            Displays the percentage of combos in villain's range blocked by hero's cards. Red = Heavily Blocked.
+                                        </div>
                                         <BlockerScorePanel
                                             board={spotDetail.board}
                                             gridData={spotDetail.gridData}
                                             actions={spotDetail.actions}
-                                            heldCards={spotDetail.heroCards || (spotDetail.board || []).slice(0, 2)}
+                                            heldCards={spotDetail.heroCards ? spotDetail.heroCards : (spotDetail.board ? spotDetail.board.slice(0, 2) : [])}
                                         />
                                     </div>
                                 ) : activeTab === 'tree' ? (

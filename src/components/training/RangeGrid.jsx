@@ -17,6 +17,7 @@
 import React, { useState, useMemo, memo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getClassificationColor } from '../../utils/pokerHandEvaluator';
+import { countBlockedCombos } from './BlockerScorePanel';
 
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 
@@ -105,15 +106,26 @@ function getDominantAction(handFreqs) {
 }
 
 // Cell component with hover tooltip
-const GridCell = memo(({ hand, handType, freqs, isSelected, isHero, onClick, size, classificationInfo, colorMode, handEV, isLocked, showEVOverlay }) => {
+const GridCell = memo(({ hand, handType, freqs, isSelected, isHero, onClick, size, classificationInfo, colorMode, handEV, isLocked, showEVOverlay, blockerScore }) => {
     const [hovered, setHovered] = React.useState(false);
     const { color: actionColor, opacity: actionOpacity, isMixed, maxFreq } = getDominantAction(freqs);
     const hasData = freqs !== null && freqs !== undefined;
 
-    // Classification mode: use hand classification color
+    // Mode handling
     const useClassification = colorMode === 'classification' && classificationInfo;
-    const color = useClassification ? getClassificationColor(classificationInfo.classification) : actionColor;
-    const baseOpacity = useClassification ? 0.85 : actionOpacity;
+    const useBlocker = colorMode === 'blocker' && blockerScore !== null;
+
+    let color = actionColor;
+    let baseOpacity = actionOpacity;
+
+    if (useBlocker) {
+        color = blockerScore > 0 ? '#ef4444' : '#1a1a2e';
+        baseOpacity = blockerScore > 0 ? Math.max(0.2, blockerScore) : 0.15;
+    } else if (useClassification) {
+        color = getClassificationColor(classificationInfo.classification);
+        baseOpacity = 0.85;
+    }
+
     // Range locking: fade non-locked hands
     const opacity = isLocked === false ? 0.1 : baseOpacity;
 
@@ -146,7 +158,7 @@ const GridCell = memo(({ hand, handType, freqs, isSelected, isHero, onClick, siz
             }}
         >
             {hand}
-            {showEVOverlay && hasData && handEV !== undefined && handEV !== null && (
+            {showEVOverlay && hasData && handEV !== undefined && handEV !== null && !useBlocker && (
                 <div style={{
                     position: 'absolute', bottom: 1, right: 3,
                     fontSize: '0.65em', fontWeight: 800,
@@ -156,7 +168,16 @@ const GridCell = memo(({ hand, handType, freqs, isSelected, isHero, onClick, siz
                     {handEV > 0 ? '+' : ''}{handEV.toFixed(2)}
                 </div>
             )}
-            {isMixed && hasData && !showEVOverlay && (
+            {useBlocker && blockerScore > 0 && hasData && (
+                <div style={{
+                    position: 'absolute', bottom: 1, right: 1, width: '100%', textAlign: 'center',
+                    fontSize: '0.65em', fontWeight: 800,
+                    opacity: 0.9, color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.8)'
+                }}>
+                    {Math.round(blockerScore * 100)}%
+                </div>
+            )}
+            {isMixed && hasData && !showEVOverlay && !useBlocker && (
                 <div style={{
                     position: 'absolute', bottom: 1, right: 1,
                     width: 4, height: 4, borderRadius: '50%',
@@ -190,12 +211,17 @@ const GridCell = memo(({ hand, handType, freqs, isSelected, isHero, onClick, siz
                             {classificationInfo.subType || classificationInfo.classification}
                         </div>
                     )}
-                    {handEV !== undefined && handEV !== null && (
+                    {handEV !== undefined && handEV !== null && !useBlocker && (
                         <div style={{ fontSize: 9, color: handEV >= 0 ? '#4ade80' : '#f87171', fontWeight: 600 }}>
                             EV: {handEV >= 0 ? '+' : ''}{(typeof handEV === 'number' ? handEV.toFixed(2) : handEV)} BB
                         </div>
                     )}
-                    {freqs && (
+                    {useBlocker && blockerScore !== null && (
+                        <div style={{ fontSize: 9, color: '#f87171', fontWeight: 600 }}>
+                            Blocked: {Math.round(blockerScore * 100)}% combos
+                        </div>
+                    )}
+                    {freqs && !useBlocker && (
                         <div style={{ marginTop: 3, borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 3 }}>
                             {Object.entries(freqs).filter(([_, f]) => f > 0).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([act, freq]) => {
                                 const d = ACTION_DISPLAY[act] || { label: act, short: act, color: '#888' };
@@ -407,7 +433,7 @@ function HandDetail({ hand, freqs, onClose, classificationInfo, handEV }) {
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
-export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHandSelect, heroHand = null, compact = false, classificationData = null, colorMode = 'action', handEVs = null, lockedClassifications = null, showEVOverlay = false }) {
+export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHandSelect, heroHand = null, compact = false, classificationData = null, colorMode = 'action', handEVs = null, lockedClassifications = null, showEVOverlay = false, heldCardsForBlockers = null }) {
     const [selectedHand, setSelectedHand] = useState(null);
 
     // heroGlow keyframes injected once
@@ -437,6 +463,14 @@ export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHan
                 const isLocked = lockedClassifications && lockedClassifications.length > 0
                     ? lockedClassifications.includes(classInfo?.classification)
                     : null; // null = no locking active
+
+                // Blocker Score overlay
+                let blockerScore = null;
+                if (colorMode === 'blocker' && heldCardsForBlockers?.length > 0) {
+                    const { total, blocked } = countBlockedCombos(hand, heldCardsForBlockers);
+                    if (total > 0) blockerScore = blocked / total;
+                }
+
                 cells.push(
                     <GridCell
                         key={hand}
@@ -452,6 +486,7 @@ export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHan
                         handEV={ev}
                         isLocked={isLocked}
                         showEVOverlay={showEVOverlay}
+                        blockerScore={blockerScore}
                     />
                 );
             }
