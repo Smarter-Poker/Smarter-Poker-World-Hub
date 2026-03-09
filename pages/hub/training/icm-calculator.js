@@ -394,7 +394,7 @@ export default function ICMCalculatorPage() {
                 setResults(data);
                 calcCountRef.current += 1;
                 // Standard session-complete + legacy icm-calculated events
-                busEmit('training:session-complete', {
+                eventBus.emit('training:session-complete', {
                     game_id: 'icm-calculator',
                     accuracy: 100,
                     hands_played: calcCountRef.current,

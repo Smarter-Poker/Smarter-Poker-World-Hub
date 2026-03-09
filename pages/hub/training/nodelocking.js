@@ -286,7 +286,7 @@ export default function NodelockingPage() {
                 });
             }
             eventBus.emit(EventType.SESSION_END, { accuracy: 100, questionsAnswered: exploits.length, questionsCorrect: exploits.length }, 'nodelocking');
-            busEmit('training:session-complete', { game_id: 'nodelocking', accuracy: 100, correct_answers: exploits.length, total_questions: exploits.length, hands_played: exploits.length });
+            eventBus.emit('training:session-complete', { game_id: 'nodelocking', accuracy: 100, correct_answers: exploits.length, total_questions: exploits.length, hands_played: exploits.length });
         } catch (e) { console.error('[Nodelocking] Save error:', e); }
     }, [selectedProfile, activeProfile, exploits, totalEV]);
 

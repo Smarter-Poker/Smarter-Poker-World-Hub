@@ -105,7 +105,7 @@ export default function SPRTrainer() {
         setStats(prev => {
             const next = { correct: prev.correct + (isCorrect ? 1 : 0), total: prev.total + 1 };
             const accuracy = Math.round((next.correct / next.total) * 100);
-            busEmit('training:session-complete', { game_id: 'spr-trainer', accuracy, correct_answers: next.correct, total_questions: next.total });
+            eventBus.emit('training:session-complete', { game_id: 'spr-trainer', accuracy, correct_answers: next.correct, total_questions: next.total });
             saveSession({ game_id: 'spr-trainer', accuracy, hands_played: next.total, correct_answers: next.correct, total_questions: next.total });
             return next;
         });

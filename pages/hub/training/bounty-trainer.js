@@ -173,7 +173,7 @@ export default function BountyTrainerPage() {
         eventBus.emit(EventType.SESSION_END, {
             source: 'BountyTrainer', score, totalAnswered, format: activeFormat,
         }, 'BountyTrainer');
-        busEmit('training:session-complete', {
+        eventBus.emit('training:session-complete', {
             game_id: 'bounty-trainer', accuracy: totalAnswered ? Math.round((score / totalAnswered) * 100) : 0,
             correct_answers: score, total_questions: totalAnswered, hands_played: totalAnswered,
         });

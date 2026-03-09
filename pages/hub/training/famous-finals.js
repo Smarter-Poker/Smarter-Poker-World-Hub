@@ -272,7 +272,7 @@ export default function FamousFinalsPage() {
                     questionsAnswered: total,
                     questionsCorrect: correct,
                 }, 'famous-finals');
-                busEmit('training:session-complete', {
+                eventBus.emit('training:session-complete', {
                     game_id: 'famous-finals', accuracy: Math.round((correct / total) * 100),
                     correct_answers: correct, total_questions: total, hands_played: total,
                 });

@@ -149,7 +149,7 @@ export default function FrequencyLockingPage() {
     const handleReset = useCallback(() => {
         setTree(DEFAULT_TREE);
         eventBus.emit(EventType.SESSION_END, { source: 'FrequencyLocking', action: 'reset' }, 'FrequencyLocking');
-        busEmit('training:session-complete', { game_id: 'frequency-locking', accuracy: 100, correct_answers: 1, total_questions: 1, hands_played: 1 });
+        eventBus.emit('training:session-complete', { game_id: 'frequency-locking', accuracy: 100, correct_answers: 1, total_questions: 1, hands_played: 1 });
     }, []);
 
     const lockedCount = tree.reduce((s, n) => s + n.actions.filter(a => a.locked).length, 0);

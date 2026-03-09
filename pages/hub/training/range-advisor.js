@@ -166,7 +166,7 @@ export default function RangeAdvisor() {
         setPosition(pos);
         const n = studyCount + 1;
         setStudyCount(n);
-        busEmit('training:session-complete', { game_id: 'range-advisor', accuracy: 100, hands_played: n, correct_answers: n, total_questions: n });
+        eventBus.emit('training:session-complete', { game_id: 'range-advisor', accuracy: 100, hands_played: n, correct_answers: n, total_questions: n });
     }, [studyCount]);
 
     const handleHover = useCallback((key, act, label) => setHovered({ key, act, label }), []);

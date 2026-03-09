@@ -112,7 +112,7 @@ export default function TableWizardPage() {
         eventBus.emit(EventType.SESSION_END, {
             source: 'TableWizard', action: 'table_joined', tableId,
         }, 'TableWizard');
-        busEmit('training:session-complete', { game_id: 'table-wizard', accuracy: 100, correct_answers: 1, total_questions: 1, hands_played: 1 });
+        eventBus.emit('training:session-complete', { game_id: 'table-wizard', accuracy: 100, correct_answers: 1, total_questions: 1, hands_played: 1 });
     }, []);
 
     const handleRefresh = useCallback(() => {

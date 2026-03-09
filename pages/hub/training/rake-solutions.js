@@ -121,7 +121,7 @@ export default function RakeSolutionsPage() {
                 });
             }
             eventBus.emit(EventType.SESSION_END, { accuracy: 100, questionsAnswered: 1, questionsCorrect: 1 }, 'rake-solutions');
-            busEmit('training:session-complete', { game_id: 'rake-solutions', accuracy: 100, correct_answers: 1, total_questions: 1, hands_played: 1 });
+            eventBus.emit('training:session-complete', { game_id: 'rake-solutions', accuracy: 100, correct_answers: 1, total_questions: 1, hands_played: 1 });
         } catch (e) { }
     };
 

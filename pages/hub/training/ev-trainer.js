@@ -203,7 +203,7 @@ export default function EVTrainer() {
             const accuracy = Math.round((next.correct / next.total) * 100);
 
             // Emit to training event bus
-            busEmit('training:session-complete', {
+            eventBus.emit('training:session-complete', {
                 game_id: 'ev-trainer',
                 accuracy,
                 correct_answers: next.correct,

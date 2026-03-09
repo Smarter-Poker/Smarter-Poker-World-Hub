@@ -376,7 +376,7 @@ export default function HandComparison() {
             setIsRunning(false);
 
             // Emit to training event bus
-            busEmit('training:session-complete', {
+            eventBus.emit('training:session-complete', {
                 game_id: 'hand-comparison',
                 winner: eq.equityA > eq.equityB ? 'A' : eq.equityB > eq.equityA ? 'B' : 'TIE',
                 equityA: eq.equityA,

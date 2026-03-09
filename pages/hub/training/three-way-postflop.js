@@ -118,7 +118,7 @@ export default function ThreeWayPostflopPage() {
         setSolvesRun(prev => {
             const next = prev + 1;
             if (next > 1 && next % 3 === 0) {
-                busEmit('training:session-complete', { game_id: 'three-way-postflop', accuracy: 100, correct_answers: next, total_questions: next, hands_played: next });
+                eventBus.emit('training:session-complete', { game_id: 'three-way-postflop', accuracy: 100, correct_answers: next, total_questions: next, hands_played: next });
             }
             return next;
         });

@@ -120,7 +120,7 @@ export default function QuizGauntlet() {
                 const correct = next.filter(e => e.isCorrect).length;
                 const score = next.reduce((s, e) => s + e.score, 0);
                 const accuracy = Math.round((correct / TOTAL_Q) * 100);
-                busEmit('training:session-complete', { game_id: 'quiz-gauntlet', accuracy, correct_answers: correct, total_questions: TOTAL_Q, score });
+                eventBus.emit('training:session-complete', { game_id: 'quiz-gauntlet', accuracy, correct_answers: correct, total_questions: TOTAL_Q, score });
                 saveSession({ game_id: 'quiz-gauntlet', accuracy, hands_played: TOTAL_Q, correct_answers: correct, total_questions: TOTAL_Q });
                 setTimeout(() => setPhase('results'), 800);
             } else {

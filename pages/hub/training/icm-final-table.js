@@ -188,7 +188,7 @@ export default function ICMFinalTableLibrary() {
                                         setScenariosViewed(prev => {
                                             const next = prev + 1;
                                             if (next % 5 === 0) {
-                                                busEmit('training:session-complete', { game_id: 'icm-final-table', accuracy: 100, correct_answers: next, total_questions: next, hands_played: next });
+                                                eventBus.emit('training:session-complete', { game_id: 'icm-final-table', accuracy: 100, correct_answers: next, total_questions: next, hands_played: next });
                                             }
                                             return next;
                                         });

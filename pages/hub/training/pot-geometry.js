@@ -135,7 +135,7 @@ export default function PotGeometry() {
             streakRef.current = 0;
             setStreak(0);
         }
-        busEmit('training:session-complete', {
+        eventBus.emit('training:session-complete', {
             game_id: 'pot-geometry',
             accuracy: Math.round((newCorrect / newTotal) * 100),
             hands_played: newTotal,

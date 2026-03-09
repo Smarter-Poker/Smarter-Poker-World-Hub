@@ -275,7 +275,7 @@ export default function VillainRange() {
 
         const accuracy = Math.round((newStats.correct / newStats.total) * 100);
         // Emit to training bus
-        busEmit('training:session-complete', {
+        eventBus.emit('training:session-complete', {
             game_id: 'villain-range',
             correct_answers: newStats.correct,
             total_questions: newStats.total,

@@ -161,7 +161,7 @@ export default function PreflopCharts() {
                     setCompareActions(data.range.actions);
                 } else {
                     setRangeData(data.range.gridData);
-                    busEmit('training:session-complete', { game_id: 'preflop-charts', hands_played: 1 });
+                    eventBus.emit('training:session-complete', { game_id: 'preflop-charts', hands_played: 1 });
                     saveSession({ game_id: 'preflop-charts', hands_played: 1, accuracy: 100, correct_answers: 1, total_questions: 1 });
                     setStats(data.range.stats);
                     setActions(data.range.actions);
