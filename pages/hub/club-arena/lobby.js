@@ -3,14 +3,13 @@
    Shows club info, tables, tournaments, and club navigation
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import Link from 'next/link';
 import { usePersistedFilters } from '../../../src/hooks/usePersistedFilters';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
-import { getSafeUser, getAuthUser } from '../../../src/lib/authUtils';
+import { getAuthUser } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
@@ -641,6 +640,7 @@ const router = useRouter();
                                         ))}
                                     </div>
                                 )}
+                            </div>
 
                             {filteredTables.length === 0 && !(membership?.role === 'owner' || membership?.role === 'admin') && (
                                 <div style={styles.emptyState}>
