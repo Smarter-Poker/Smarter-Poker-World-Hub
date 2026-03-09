@@ -430,7 +430,7 @@ export default function Players() {
                                 >
                                     <div style={S.avatarWrapper}>
                                         <div style={{ ...S.avatar, background: ROLE_COLORS[member.role] || FB.primary }}>
-                                            <Image src={resolveAvatarDisplay(member.profiles?.avatar_url, member.user_id)} alt="" fill style={{ objectFit: 'cover' }} />
+                                            <Image src={resolveAvatarDisplay(member.profiles?.avatar_url, member.user_id)} alt="" fill style={{ objectFit: 'cover' }} unoptimized onError={(e) => { e.target.src = '/avatars/table/free_shark.png'; }} />
                                         </div>
                                         <div style={{ ...S.onlineIndicator, background: online ? FB.success : FB.textSecondary }} />
                                     </div>
@@ -483,7 +483,7 @@ export default function Players() {
                         </div>
                         <div style={S.modalBody}>
                             <div style={{ ...S.modalAvatar, background: ROLE_COLORS[selectedPlayer.role] || FB.primary }}>
-                                <Image src={resolveAvatarDisplay(selectedPlayer.profiles?.avatar_url, selectedPlayer.user_id)} alt="" fill style={{ objectFit: 'cover' }} />
+                                <Image src={resolveAvatarDisplay(selectedPlayer.profiles?.avatar_url, selectedPlayer.user_id)} alt="" fill style={{ objectFit: 'cover' }} unoptimized onError={(e) => { e.target.src = '/avatars/table/free_shark.png'; }} />
                             </div>
                             <div style={S.modalName}>
                                 {selectedPlayer.profiles?.display_name || selectedPlayer.profiles?.username || 'Player'}

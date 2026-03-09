@@ -18,6 +18,7 @@ import useWalletData from '../../../src/hooks/useWalletData';
 import dynamic from 'next/dynamic';
 const DynamicWallet = dynamic(() => import('../../../src/components/club-arena/DynamicWallet'), { ssr: false });
 const MysteryBountyReveal = dynamic(() => import('../../../src/components/club-arena/MysteryBountyReveal'), { ssr: false });
+const GameCard = dynamic(() => import('../../../src/components/club-arena/GameCard'), { ssr: false });
 
 const FB = {
   bg: '#18191A', card: '#242526', text: '#E4E6EB', dim: '#B0B3B8',
@@ -156,7 +157,9 @@ export default function TournamentsPage() {
     });
     const unsub2 = eventBus.on(EventType.TOURNAMENT_STARTED, () => loadData());
     const unsub3 = eventBus.on(EventType.TOURNAMENT_LEVEL_CHANGE, () => loadData());
-    return () => { unsub1(); unsub2(); unsub3(); };
+    const unsub4 = eventBus.on(EventType.BOUNTY_AWARDED, () => loadData());
+    const unsub5 = eventBus.on(EventType.TOURNAMENT_COMPLETE, () => loadData());
+    return () => { unsub1(); unsub2(); unsub3(); unsub4(); unsub5(); };
   }, [loadData]);
 
   // Register
@@ -253,7 +256,7 @@ export default function TournamentsPage() {
         ))}
       </div>
 
-      {/* Tournament List */}
+      {/* Tournament List — Poker Table Cards (2-col grid) */}
       <div style={{ padding: 16, maxWidth: 800, margin: '0 auto' }}>
         {loading && <div style={{ color: FB.dim, textAlign: 'center', padding: 40 }}>Loading...</div>}
 
@@ -263,78 +266,59 @@ export default function TournamentsPage() {
           </div>
         )}
 
-        {tournaments.map(t => (
-          <div key={t.id} onClick={() => setSelectedTournament(t)} style={{
-            background: FB.card, borderRadius: 12, padding: 16, marginBottom: 12,
-            border: `1px solid ${FB.border}`, cursor: 'pointer',
-            transition: 'background 0.2s',
+        {!loading && tournaments.length > 0 && (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: 10,
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-              <span style={{
-                background: STATUS_COLORS[t.status] || FB.dim,
-                color: '#fff', fontSize: 10, fontWeight: 700, padding: '2px 8px',
-                borderRadius: 4, textTransform: 'uppercase',
-              }}>{t.status}</span>
-              <span style={{
-                background: FB.primary + '30', color: FB.primary,
-                fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4,
-              }}>{TYPE_LABELS[t.type] || t.type}</span>
-              <span style={{ color: FB.dim, fontSize: 12 }}>{t.variant?.toUpperCase()}</span>
-              {t.settings?.bounty_type && t.settings.bounty_type !== 'none' && (
-                <span style={{
-                  background: t.settings.bounty_type === 'mystery' ? '#9333ea30' : t.settings.bounty_type === 'pko' ? '#ea580c30' : '#dc262630',
-                  color: t.settings.bounty_type === 'mystery' ? '#c084fc' : t.settings.bounty_type === 'pko' ? '#fb923c' : '#fca5a5',
-                  fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4,
-                }}>
-                  {t.settings.bounty_type === 'mystery' ? '🎭 Mystery' : t.settings.bounty_type === 'pko' ? '📈 PKO' : '🎯 KO'}
-                </span>
-              )}
-            </div>
-
-            <h3 style={{ margin: '0 0 4px', fontSize: 16 }}>{t.name}</h3>
-
-            <div style={{ display: 'flex', gap: 24, fontSize: 13, color: FB.dim }}>
-              <span>Buy-in: <strong style={{ color: FB.text }}>{Number(t.buy_in).toLocaleString()}</strong></span>
-              <span>Players: <strong style={{ color: FB.text }}>{t.registered_count}/{t.max_players}</strong></span>
-              <span>Prize Pool: <strong style={{ color: FB.gold }}>
-                {Math.max(Number(t.prize_pool), Number(t.guaranteed_prize)).toLocaleString()}
-                {Number(t.guaranteed_prize) > Number(t.prize_pool) ? ' GTD' : ''}
-              </strong></span>
-            </div>
-
-            {t.scheduled_start && (
-              <div style={{ fontSize: 12, color: FB.dim, marginTop: 4 }}>
-                Starts: {new Date(t.scheduled_start).toLocaleString()}
-              </div>
-            )}
+            {tournaments.map(t => (
+              <GameCard
+                key={t.id}
+                game={{ ...t, game_type: t.type || t.game_type || 'mtt', game_variant: t.variant || t.game_variant || 'nlh' }}
+                onPress={() => setSelectedTournament(t)}
+              />
+            ))}
           </div>
-        ))}
+        )}
       </div>
 
-      {/* Create Tournament Modal */}
-      {showCreate && <CreateTournamentModal clubId={clubId} onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); loadData(); showToast('Tournament created!'); busEmit.dataMutated('tournament_created'); }} onError={(msg) => showToast(msg, 'error')} />}
-
-      {/* Tournament Detail Modal */}
-      {selectedTournament && (
-        <TournamentDetailModal
-          tournament={selectedTournament}
-          chipBalance={chipBalance}
-          userId={user?.id}
-          isAdmin={isAdmin}
-          onRegister={handleRegister}
-          onUnregister={handleUnregister}
-          onClose={() => setSelectedTournament(null)}
-          onStart={async () => {
-            await api('start', { tournamentId: selectedTournament.id });
-            loadData();
-            setSelectedTournament(null);
-          }}
-        />
+      {t.scheduled_start && (
+        <div style={{ fontSize: 12, color: FB.dim, marginTop: 4 }}>
+          Starts: {new Date(t.scheduled_start).toLocaleString()}
+        </div>
       )}
-
-      {/* Bottom Navigation */}
-      <ClubArenaBottomNav clubId={clubId} activePage="tournaments" userRole={isAdmin ? 'admin' : 'player'} />
     </div>
+  ))
+}
+      </div >
+
+  {/* Create Tournament Modal */ }
+{ showCreate && <CreateTournamentModal clubId={clubId} onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); loadData(); showToast('Tournament created!'); busEmit.dataMutated('tournament_created'); }} onError={(msg) => showToast(msg, 'error')} /> }
+
+{/* Tournament Detail Modal */ }
+{
+  selectedTournament && (
+    <TournamentDetailModal
+      tournament={selectedTournament}
+      chipBalance={chipBalance}
+      userId={user?.id}
+      isAdmin={isAdmin}
+      onRegister={handleRegister}
+      onUnregister={handleUnregister}
+      onClose={() => setSelectedTournament(null)}
+      onStart={async () => {
+        await api('start', { tournamentId: selectedTournament.id });
+        loadData();
+        setSelectedTournament(null);
+      }}
+    />
+  )
+}
+
+{/* Bottom Navigation */ }
+<ClubArenaBottomNav clubId={clubId} activePage="tournaments" userRole={isAdmin ? 'admin' : 'player'} />
+    </div >
   );
 }
 
@@ -635,6 +619,17 @@ function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, on
         // Trigger mystery bounty reveal animation
         if (evt === 'mystery_bounty_awarded' && payload.payload?.reveal) {
           setBountyReveal(payload.payload.reveal);
+          busEmit.mysteryBountyRevealed(
+            payload.payload.reveal?.playerName, payload.payload.reveal?.amount, payload.payload.reveal?.tierLabel
+          );
+        }
+        // Emit bus events for cross-page reactivity
+        if (evt === 'bounty_awarded' && payload.payload) {
+          busEmit.bountyAwarded(payload.payload.playerName, payload.payload.amount, payload.payload.type);
+        }
+        if (evt === 'tournament_complete' && payload.payload) {
+          busEmit.tournamentComplete(t.name, payload.payload.winner?.playerName);
+          busEmit.dataMutated('tournament_complete');
         }
       });
     }
