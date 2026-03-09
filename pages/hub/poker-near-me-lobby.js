@@ -577,16 +577,7 @@ export default function PokerNearMeLobby() {
     }
   }, [userLocation]);
 
-  // ─── Fetch live games ───
-  const fetchLiveGames = useCallback(async () => {
-    try {
-      const data = await cachedFetch('/api/public/live-games/nearby', 30000);
-      if (data?.data) setLiveGames(data.data);
-      else if (data?.games) setLiveGames(data.games);
-    } catch (err) {
-      console.error('Failed to fetch live games:', err);
-    }
-  }, []);
+  // ─── Live games are fetched by <LiveGamesFeed> component directly ───
 
   // ─── Fetch search history ───
   const fetchSearchHistory = useCallback(async () => {
@@ -622,7 +613,6 @@ export default function PokerNearMeLobby() {
     fetchTours();
     fetchSeries();
     fetchDaily();
-    fetchLiveGames();
     fetchFavorites();
     fetchSearchHistory();
     fetchPreferences();
