@@ -1297,7 +1297,7 @@ class GameStateMachine {
     if (rakePercent > 0 && flopSeen) {
       const hasMultiple = pots.some(p => p.eligible.size > 1);
       if (hasMultiple) {
-        rake = Math.min(Math.floor(totalPot * rakePercent / 100), rakeCap > 0 ? rakeCap : Infinity);
+        rake = Math.min(Math.round(totalPot * rakePercent / 100), rakeCap > 0 ? rakeCap : Infinity);
       }
     }
 
@@ -1661,7 +1661,7 @@ class GameStateMachine {
       // Calculate rake on full pot ("no flop, no drop")
       const flopSeen = this.currentHand.communityCards.length >= 3;
       const rakeAmount = flopSeen ? Math.min(
-        Math.floor(totalPot * (this.config.rakePercent || 0) / 100),
+        Math.round(totalPot * (this.config.rakePercent || 0) / 100),
         this.config.rakeCap || Infinity
       ) : 0;
 

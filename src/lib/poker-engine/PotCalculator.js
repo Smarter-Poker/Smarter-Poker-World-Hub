@@ -261,7 +261,7 @@ class PotCalculator {
       const hasMultiple = pots.some(p => p.eligible.size > 1);
       if (hasMultiple) {
         totalRake = Math.min(
-          Math.floor(totalPotAmount * rakePercent / 100),
+          Math.round(totalPotAmount * rakePercent / 100),
           rakeCap === Infinity ? Infinity : rakeCap
         );
       }
@@ -408,7 +408,7 @@ class PotCalculator {
     // "No flop, no drop" — standard poker rule.
     // Rake is only taken if a flop was dealt.
     if (rakePercent > 0 && flopSeen) {
-      rake = Math.min(Math.floor(total * rakePercent / 100), rakeCap);
+      rake = Math.min(Math.round(total * rakePercent / 100), rakeCap);
     }
     
     const payouts = new Map();
