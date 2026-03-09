@@ -46,7 +46,7 @@ import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import ClubArenaBottomNav from '../../src/components/club-arena/ClubArenaBottomNav';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getAccessToken } from '../../src/lib/authUtils';
-import { eventBus, EventType } from '../../src/engine/EventBus';
+import { eventBus, EventType, busEmit } from '../../src/engine/EventBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // IMAGE PATHS (proxied from club-arena.vercel.app via next.config.js rewrites)
@@ -80,6 +80,7 @@ function CreateClubModal({ onClose, onCreated, user }) {
         setError('');
         try {
             const result = await apiCall('/api/club-arena/create-club', { name: clubName.trim() });
+            busEmit.dataMutated('club_created');
             onCreated(result.club);
             onClose();
         } catch (err) {
@@ -137,6 +138,7 @@ function JoinClubModal({ onClose, onJoined, user, initialAgentCode }) {
                 clubCode: clubCode.trim(),
                 ...(agentPlayerNumber.trim() ? { agentPlayerNumber: agentPlayerNumber.trim() } : {}),
             });
+            busEmit.dataMutated('club_joined');
             onJoined(result.club);
             onClose();
         } catch (err) {
@@ -338,7 +340,7 @@ export default function ClubArenaPage() {
     // EventBus — refresh on cross-page mutations (club created, joined, chips changed)
     useEffect(() => {
         const unsub = eventBus.on(EventType.DATA_MUTATED, (e) => {
-            const relevant = ['tournament_created', 'chips_minted', 'union_club_added', 'union_club_removed'];
+            const relevant = ['tournament_created', 'chips_minted', 'union_club_added', 'union_club_removed', 'club_created', 'club_joined', 'union_application_submitted'];
             if (relevant.includes(e?.payload?.entity)) loadUserData();
         });
         return () => unsub();
@@ -438,7 +440,7 @@ export default function ClubArenaPage() {
                                 body: JSON.stringify({ action: 'status', clubId: ownerClub.id }),
                             }).then(r => r.json()).then(d => {
                                 setUnionApplicationStatus(d.application?.status || null);
-                            }).catch(() => {});
+                            }).catch(() => { });
                         }
                     }
                 }
@@ -590,6 +592,7 @@ export default function ClubArenaPage() {
                                     setSharkJoining(true);
                                     try {
                                         await apiCall('/api/club-arena/join-club', { clubId: '25450' });
+                                        busEmit.dataMutated('club_joined');
                                         setSharkJoinSent(true);
                                         // Reload clubs to pick up the new membership
                                         const token = await getAuthToken();
@@ -852,6 +855,7 @@ export default function ClubArenaPage() {
                                                             });
                                                             const data = await res.json();
                                                             if (data.success) {
+                                                                busEmit.dataMutated('union_application_submitted');
                                                                 setUnionApplicationStatus('pending');
                                                                 setUnionApplyResult(data.message);
                                                             } else {
