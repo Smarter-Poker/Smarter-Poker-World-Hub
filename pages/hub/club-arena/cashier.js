@@ -96,6 +96,13 @@ const router = useRouter();
     const [cashoutHistory, setCashoutHistory] = useState([]);
     const [rakebackInfo, setRakebackInfo] = useState(null); // { pendingRakeback, rakebackRate }
 
+    // Transfer chips state
+    const [showTransferModal, setShowTransferModal] = useState(false);
+    const [transferRecipient, setTransferRecipient] = useState('');
+    const [transferAmount, setTransferAmount] = useState('');
+    const [transferNote, setTransferNote] = useState('');
+    const [clubMembers, setClubMembers] = useState([]);
+
     // Real-time wallet data
     const walletData = useWalletData({ supabase, userId: user?.id, clubId: club?.id });
 
@@ -401,6 +408,38 @@ const router = useRouter();
         }
     };
 
+    // ── Transfer chips handler ─────────────────────────────────────────────
+    const handleTransfer = async () => {
+        if (!transferRecipient || !transferAmount) return;
+        const amount = Math.floor(Number(transferAmount));
+        if (!amount || amount <= 0) { showToast('Enter a valid amount', 'error'); return; }
+        if (amount > (chipBalance || 0)) { showToast('Insufficient chips', 'error'); return; }
+
+        setProcessing(true);
+        try {
+            const result = await apiCall('/api/club-arena/transfer-chips', {
+                clubId: club.id, toUserId: transferRecipient, amount,
+                note: transferNote.trim() || undefined,
+            });
+            showToast(`${amount.toLocaleString()} chips sent!`, 'success');
+            busEmit.dataMutated('chips_distributed');
+            setShowTransferModal(false);
+            setTransferRecipient(''); setTransferAmount(''); setTransferNote('');
+            loadData();
+        } catch (e) {
+            showToast(e.message || 'Transfer failed', 'error');
+        } finally { setProcessing(false); }
+    };
+
+    const loadTransferMembers = async () => {
+        if (!club?.id) return;
+        const { data } = await supabase
+            .from('club_members')
+            .select('user_id, role, profiles(display_name, player_number)')
+            .eq('club_id', club.id).eq('status', 'active').limit(100);
+        setClubMembers((data || []).filter(m => m.user_id !== user?.id));
+    };
+
     // ═══════════════════════════════════════════════════════════════════════════
     // STYLES
     // ═══════════════════════════════════════════════════════════════════════════
@@ -650,6 +689,21 @@ const router = useRouter();
                                 </div>
                             )}
 
+                            {/* Send Chips to Another Player */}
+                            <div style={{ marginBottom: '24px' }}>
+                                <h2 style={S.sectionTitle}>Send Chips</h2>
+                                <button
+                                    onClick={() => { setShowTransferModal(true); loadTransferMembers(); }}
+                                    style={{
+                                        width: '100%', padding: '14px', borderRadius: '10px',
+                                        background: 'rgba(35,116,225,0.08)', border: '1px solid rgba(35,116,225,0.25)',
+                                        color: '#2374E1', fontSize: '14px', fontWeight: 700, cursor: 'pointer',
+                                    }}
+                                >
+                                    💸 Send Chips to a Club Member
+                                </button>
+                            </div>
+
                             {/* Transaction History */}
                             <h2 style={S.sectionTitle}>Transaction History</h2>
                             {transactions.length > 0 ? transactions.map((tx, i) => {
@@ -724,6 +778,68 @@ const router = useRouter();
                 </div>
             )}
             </div>
+
+            {/* ═══════════════════════════════════════════════════════════════════════
+ TRANSFER CHIPS MODAL
+ ═══════════════════════════════════════════════════════════════════════ */}
+            {showTransferModal && (
+                <div style={S.modalOverlay} onClick={() => !processing && setShowTransferModal(false)}>
+                    <div style={S.modal} onClick={e => e.stopPropagation()}>
+                        <div style={S.modalHeader}>
+                            <span style={S.modalTitle}>Send Chips</span>
+                            <button style={S.modalClose} onClick={() => !processing && setShowTransferModal(false)}>&times;</button>
+                        </div>
+                        <div style={S.modalBody}>
+                            <label style={S.modalLabel}>Recipient</label>
+                            <select
+                                value={transferRecipient}
+                                onChange={e => setTransferRecipient(e.target.value)}
+                                style={{ ...S.modalInput, padding: '12px', cursor: 'pointer' }}
+                            >
+                                <option value="">Select a member...</option>
+                                {clubMembers.map(m => (
+                                    <option key={m.user_id} value={m.user_id}>
+                                        {m.profiles?.display_name || 'Player'} {m.profiles?.player_number ? `#${m.profiles.player_number}` : ''} ({m.role})
+                                    </option>
+                                ))}
+                            </select>
+
+                            <label style={{ ...S.modalLabel, marginTop: 12 }}>Amount</label>
+                            <input
+                                type="number"
+                                value={transferAmount}
+                                onChange={e => setTransferAmount(e.target.value)}
+                                placeholder="Enter Amount"
+                                style={S.modalInput}
+                                min="1"
+                                max={chipBalance || 0}
+                            />
+                            <div style={{ fontSize: 11, color: FB.textSecondary, marginTop: 4, marginBottom: 8 }}>
+                                Available: {(chipBalance || 0).toLocaleString()} chips
+                            </div>
+
+                            <label style={S.modalLabel}>Note (optional)</label>
+                            <input
+                                type="text"
+                                value={transferNote}
+                                onChange={e => setTransferNote(e.target.value)}
+                                placeholder="What's this for?"
+                                style={S.modalInput}
+                                maxLength={100}
+                            />
+                        </div>
+                        <div style={S.modalFooter}>
+                            <button
+                                style={{ ...S.modalSubmit, opacity: (processing || !transferRecipient || !transferAmount) ? 0.5 : 1 }}
+                                onClick={handleTransfer}
+                                disabled={processing || !transferRecipient || !transferAmount}
+                            >
+                                {processing ? 'Sending...' : `Send ${transferAmount ? Number(transferAmount).toLocaleString() : '0'} Chips`}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* ═══════════════════════════════════════════════════════════════════════
  BUY-IN MODAL

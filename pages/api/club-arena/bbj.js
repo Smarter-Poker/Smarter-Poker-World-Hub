@@ -71,7 +71,7 @@ export default async function handler(req, res) {
       // Get pool
       const { data: pool } = await supabaseAdmin
         .from('bbj_pools')
-        .select('id')
+        .select('id, pool_amount, hands_contributed, last_hit_at, last_hit_amount')
         .eq('club_id', clubId)
         .maybeSingle();
 

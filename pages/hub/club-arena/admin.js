@@ -119,6 +119,8 @@ const router = useRouter();
     // Settings form
     const [clubName, setClubName] = useState('');
     const [clubDescription, setClubDescription] = useState('');
+    const [isPublic, setIsPublic] = useState(false);
+    const [requiresApproval, setRequiresApproval] = useState(true);
 
     // Toast
     const [toast, setToast] = useState(null);
@@ -175,6 +177,8 @@ const router = useRouter();
                 setClub(clubData);
                 setClubName(clubData.name || '');
                 setClubDescription(clubData.description || '');
+                setIsPublic(clubData.is_public || false);
+                setRequiresApproval(clubData.requires_approval !== false);
 
                 // Check if user is admin/owner of this club
                 if (authUser) {
@@ -522,6 +526,8 @@ const router = useRouter();
                 clubId: club.id,
                 name: clubName.trim(),
                 description: clubDescription.trim(),
+                isPublic,
+                requiresApproval,
             });
             showToast('Settings saved');
             loadData();
@@ -917,6 +923,59 @@ const router = useRouter();
                                     </div>
                                 )}
                             </div>
+
+                            {/* ─── Settlement Report Export ─── */}
+                            <div style={{ marginTop: 20 }}>
+                                <div style={{ fontSize: 13, fontWeight: 700, color: '#A855F7', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    📊 Settlement Export
+                                </div>
+                                <button
+                                    disabled={processing}
+                                    onClick={async () => {
+                                        setProcessing(true);
+                                        try {
+                                            const { data: records } = await supabase
+                                                .from('commission_records')
+                                                .select('id, agent_id, commission_amount, rake_attributed, status, paid_at, period_id, created_at')
+                                                .eq('club_id', club.id)
+                                                .order('created_at', { ascending: false })
+                                                .limit(500);
+
+                                            if (!records || records.length === 0) {
+                                                showToast('No settlement records found', 'info');
+                                                setProcessing(false);
+                                                return;
+                                            }
+
+                                            const header = 'Date,Agent ID,Rake Attributed,Commission,Status,Paid At\n';
+                                            const rows = records.map(r => {
+                                                const date = r.created_at ? new Date(r.created_at).toLocaleDateString() : '';
+                                                const paidAt = r.paid_at ? new Date(r.paid_at).toLocaleDateString() : '';
+                                                return `${date},${r.agent_id?.slice(0, 8) || ''},${r.rake_attributed || 0},${r.commission_amount || 0},${r.status || 'pending'},${paidAt}`;
+                                            }).join('\n');
+
+                                            const blob = new Blob([header + rows], { type: 'text/csv' });
+                                            const url = URL.createObjectURL(blob);
+                                            const a = document.createElement('a');
+                                            a.href = url;
+                                            a.download = `settlement-${(club.name || 'club').replace(/\s+/g, '-')}-${new Date().toISOString().slice(0, 10)}.csv`;
+                                            a.click();
+                                            URL.revokeObjectURL(url);
+                                            showToast('Settlement report downloaded');
+                                        } catch (e) {
+                                            showToast(e.message || 'Export failed', 'error');
+                                        } finally { setProcessing(false); }
+                                    }}
+                                    style={{
+                                        width: '100%', padding: '12px', background: '#A855F720',
+                                        border: '1px solid #A855F740', borderRadius: 8,
+                                        color: '#A855F7', fontSize: 13, fontWeight: 700,
+                                        cursor: 'pointer', opacity: processing ? 0.5 : 1,
+                                    }}
+                                >
+                                    {processing ? 'Exporting...' : '⬇ Download Settlement CSV'}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -948,6 +1007,50 @@ const router = useRouter();
                                 onChange={e => setClubDescription(e.target.value)}
                                 placeholder="Enter Club Description"
                             />
+
+                            {/* Public/Private Toggle */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderTop: `1px solid ${FB.border}` }}>
+                                <div>
+                                    <div style={{ fontSize: 14, fontWeight: 600, color: FB.textPrimary }}>Public Club</div>
+                                    <div style={{ fontSize: 11, color: FB.textSecondary }}>Visible in club discovery for anyone to find</div>
+                                </div>
+                                <button
+                                    onClick={() => setIsPublic(!isPublic)}
+                                    style={{
+                                        width: 48, height: 26, borderRadius: 13, border: 'none', cursor: 'pointer',
+                                        background: isPublic ? '#31A24C' : '#3E4042', position: 'relative',
+                                        transition: 'background 0.2s',
+                                    }}
+                                >
+                                    <div style={{
+                                        width: 20, height: 20, borderRadius: '50%', background: '#fff',
+                                        position: 'absolute', top: 3, left: isPublic ? 25 : 3,
+                                        transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                                    }} />
+                                </button>
+                            </div>
+
+                            {/* Require Approval Toggle */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderTop: `1px solid ${FB.border}` }}>
+                                <div>
+                                    <div style={{ fontSize: 14, fontWeight: 600, color: FB.textPrimary }}>Require Approval</div>
+                                    <div style={{ fontSize: 11, color: FB.textSecondary }}>New members need owner approval to join</div>
+                                </div>
+                                <button
+                                    onClick={() => setRequiresApproval(!requiresApproval)}
+                                    style={{
+                                        width: 48, height: 26, borderRadius: 13, border: 'none', cursor: 'pointer',
+                                        background: requiresApproval ? '#31A24C' : '#3E4042', position: 'relative',
+                                        transition: 'background 0.2s',
+                                    }}
+                                >
+                                    <div style={{
+                                        width: 20, height: 20, borderRadius: '50%', background: '#fff',
+                                        position: 'absolute', top: 3, left: requiresApproval ? 25 : 3,
+                                        transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                                    }} />
+                                </button>
+                            </div>
                         </div>
                         <div style={S.modalFooter}>
                             <button
