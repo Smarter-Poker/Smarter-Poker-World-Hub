@@ -284,6 +284,7 @@ function combineLiveAndTrainingStats(live, train) {
 
   return {
     handsPlayed: live.handsPlayed + train.handsPlayed,
+    _isTrainingDominant: trainWt > 0.5,
     vpip: live.vpip || train.vpip, // Mostly rely on live for foundational
     pfr: live.pfr || train.pfr,
     limpFreq: weighted('limpFreq'),
@@ -513,6 +514,7 @@ export default async function handler(req, res) {
           leak_category: pattern.category,
           situation_class: pattern.name,
           status,
+          source_system: stats._isTrainingDominant ? 'training_arena' : 'live_play',
           confidence: stats.handsPlayed > 1000 ? 'high' : stats.handsPlayed > 500 ? 'medium' : 'low',
           avg_ev_loss_bb: pattern.evImpact,
           occurrence_count: existingLeak ? existingLeak.occurrence_count + 1 : 1,

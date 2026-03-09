@@ -141,10 +141,6 @@ function LeakStatusBadge({ status }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// CONFIDENCE BADGE
-// ═══════════════════════════════════════════════════════════════════════════
-
 function ConfidenceBadge({ confidence }) {
   const colors = {
     high: '#64b5f6',
@@ -165,6 +161,35 @@ function ConfidenceBadge({ confidence }) {
       color: colors[confidence] || colors.medium,
     }}>
       {confidence === 'high' ? 'High Confidence' : confidence === 'medium' ? 'Medium' : 'Low'}
+    </span>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SOURCE BADGE
+// ═══════════════════════════════════════════════════════════════════════════
+
+function SourceBadge({ source }) {
+  const isTraining = source === 'training_arena';
+  const c = isTraining
+    ? { color: '#60a5fa', bg: 'rgba(96, 165, 250, 0.15)', label: 'Training Arena', icon: '🎯' }
+    : { color: '#c084fc', bg: 'rgba(192, 132, 252, 0.15)', label: 'Live Play', icon: '♠️' };
+
+  return (
+    <span style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 4,
+      padding: '4px 10px',
+      background: c.bg,
+      border: `1px solid ${c.color}40`,
+      borderRadius: 4,
+      fontSize: 11,
+      fontWeight: 600,
+      color: c.color,
+    }}>
+      <span style={{ fontSize: 10 }}>{c.icon}</span>
+      {c.label}
     </span>
   );
 }
@@ -315,7 +340,10 @@ function LeakDetailView({ leak, onPracticeSandbox, onTrainDrills }) {
     <div style={detailStyles.container}>
       {/* Header */}
       <div style={detailStyles.header}>
-        <h2 style={detailStyles.title}>{leak.title}</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+          <h2 style={{ ...detailStyles.title, marginBottom: 0 }}>{leak.title}</h2>
+          {leak.sourceSystem && <SourceBadge source={leak.sourceSystem} />}
+        </div>
         <div style={detailStyles.badges}>
           <LeakStatusBadge status={leak.status} />
           <ConfidenceBadge confidence={leak.confidence} />
@@ -755,6 +783,7 @@ export default function LeakFinderPage() {
                     </div>
                     <div style={styles.leakCardMeta}>
                       <LeakStatusBadge status={leak.status} />
+                      {leak.sourceSystem && <SourceBadge source={leak.sourceSystem} />}
                       <span style={styles.leakCardConfidence}>
                         {'*'.repeat(leak.confidence === 'high' ? 3 : leak.confidence === 'medium' ? 2 : 1)}
                         {leak.confidence === 'high' ? ' High' : leak.confidence === 'medium' ? ' Medium' : ' Low'}
@@ -774,7 +803,10 @@ export default function LeakFinderPage() {
                 {pastLeaks.map((leak) => (
                   <div key={leak.id} style={styles.pastLeakCard}>
                     <div style={styles.pastLeakHeader}>
-                      <LeakStatusBadge status={leak.status} />
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                        <LeakStatusBadge status={leak.status} />
+                        {leak.sourceSystem && <SourceBadge source={leak.sourceSystem} />}
+                      </div>
                       <span style={styles.pastLeakTitle}>{leak.title}</span>
                       <span style={styles.pastLeakArrow}>&#8250;</span>
                     </div>

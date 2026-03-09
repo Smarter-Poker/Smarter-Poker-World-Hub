@@ -109,6 +109,7 @@ export function useLeaks(statusFilter = null) {
           trendData: leak.trend_data || [],
           explanation: leak.explanation,
           whyLeakingEv: leak.why_leaking_ev,
+          sourceSystem: leak.source_system || (leak.leak_category === 'training' ? 'training_arena' : 'live_play'),
         }));
         setLeaks(formattedLeaks);
       }
