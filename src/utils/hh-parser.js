@@ -22,35 +22,38 @@ export function parseHandHistory(rawText) {
         const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
         let heroName = 'Hero';
 
+        // Enforce exact case standard for S.P graphics engine (e.g. "ah" -> "Ah")
+        const fmtCard = (c) => c ? c.charAt(0).toUpperCase() + c.charAt(1).toLowerCase() : null;
+
         // 1. Find Hero Cards
         const dealtMatch = rawText.match(/Dealt to (.*?) \[([2-9TJQKA][shdc]) ([2-9TJQKA][shdc])\]/i);
         if (dealtMatch) {
             heroName = dealtMatch[1].trim();
-            result.heroHand.card1 = dealtMatch[2];
-            result.heroHand.card2 = dealtMatch[3];
+            result.heroHand.card1 = fmtCard(dealtMatch[2]);
+            result.heroHand.card2 = fmtCard(dealtMatch[3]);
         } else {
             // Ignition style
             const ignMatch = rawText.match(/(?:Hero|You) \[(.*?) (.*?)\]/i);
             if (ignMatch) {
-                result.heroHand.card1 = ignMatch[1];
-                result.heroHand.card2 = ignMatch[2];
+                result.heroHand.card1 = fmtCard(ignMatch[1]);
+                result.heroHand.card2 = fmtCard(ignMatch[2]);
             }
         }
 
         // 2. Find Board Cards
         const flopMatch = rawText.match(/\*\*\* FLOP \*\*\* \[([2-9TJQKA][shdc]) ([2-9TJQKA][shdc]) ([2-9TJQKA][shdc])\]/i) || rawText.match(/Flop: \[([2-9TJQKA][shdc]), ([2-9TJQKA][shdc]), ([2-9TJQKA][shdc])\]/i);
         if (flopMatch) {
-            result.board.flop = [flopMatch[1], flopMatch[2], flopMatch[3]];
+            result.board.flop = [fmtCard(flopMatch[1]), fmtCard(flopMatch[2]), fmtCard(flopMatch[3])];
         }
 
         const turnMatch = rawText.match(/\*\*\* TURN \*\*\* .*? \[([2-9TJQKA][shdc])\]/i) || rawText.match(/Turn: .*? \[([2-9TJQKA][shdc])\]/i);
         if (turnMatch) {
-            result.board.turn = turnMatch[1];
+            result.board.turn = fmtCard(turnMatch[1]);
         }
 
         const riverMatch = rawText.match(/\*\*\* RIVER \*\*\* .*? \[([2-9TJQKA][shdc])\]/i) || rawText.match(/River: .*? \[([2-9TJQKA][shdc])\]/i);
         if (riverMatch) {
-            result.board.river = riverMatch[1];
+            result.board.river = fmtCard(riverMatch[1]);
         }
 
         // 3. Estimate Pot Size (Naive Collect - Look for 'Total pot' or sum bets)

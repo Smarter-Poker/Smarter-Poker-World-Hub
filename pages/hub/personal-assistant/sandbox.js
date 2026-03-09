@@ -1873,6 +1873,11 @@ export default function VirtualSandbox() {
           if (parsed.board) setBoard(parsed.board);
           if (parsed.villains?.length) setVillains(parsed.villains);
           if (parsed.actionHistory?.length) setActionHistory(parsed.actionHistory);
+
+          // 📢 Dispatch BUS LISTENER update for cross-component reactivity so Analysis auto-updates
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('pa-sandbox-updated', { detail: { type: 'import_hh' } }));
+          }
         }}
       />
 

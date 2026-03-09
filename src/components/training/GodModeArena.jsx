@@ -18,6 +18,8 @@ import PositionStatsPanel from './PositionStatsPanel';
 import PreflopRangeTrainer from './PreflopRangeTrainer';
 import SPRTrainer from '../../../pages/hub/training/spr-trainer';
 import QuizGauntlet from '../../../pages/hub/training/quiz-gauntlet';
+import LifetimeStatsCard from './LifetimeStatsCard';
+import SessionHistoryList from './SessionHistoryList';
 
 // Components defined locally within this file or in other imports
 import useGTOTrainer from '../../hooks/useGTOTrainer';
@@ -461,16 +463,17 @@ function ClassificationDonut({ handHistory, gtowScore }) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function EVLossGraph({ handHistory }) {
-    if (!handHistory || handHistory.length < 2) return null;
-
     // Build cumulative EV loss data points
     const dataPoints = useMemo(() => {
+        if (!handHistory || handHistory.length < 2) return [];
         let cumulative = 0;
         return handHistory.map((h, i) => {
             cumulative += (h.evLoss || 0);
             return cumulative;
         });
     }, [handHistory]);
+
+    if (!handHistory || handHistory.length < 2) return null;
 
     const maxLoss = Math.max(...dataPoints, 0.1);
     const graphHeight = 60;
@@ -695,7 +698,7 @@ function DailyChallengeBanner({ gtowScore, targetScore = 85 }) {
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
-function GodModeArena({
+function GodModeArenaInner({
     userId,
     gameId,
     gameName,
@@ -706,17 +709,8 @@ function GodModeArena({
     autoAdvance = false,
 }) {
     // ═══════════════════════════════════════════════════════════════════════════
-    // SPECIALIZED TRAINERS (Phase 14)
+    // SPECIALIZED TRAINERS (Phase 14) -> Safely moved to exported wrapper
     // ═══════════════════════════════════════════════════════════════════════════
-    if (gameId === 'cash-001') {
-        return <PreflopRangeTrainer onExit={onExit} />;
-    }
-    if (gameId === 'adv-011') {
-        return <SPRTrainer onExit={onExit} />;
-    }
-    if (gameId === 'quiz-gauntlet') {
-        return <QuizGauntlet onExit={onExit} />;
-    }
 
     const engineType = getEngineType(gameId);
 
@@ -2149,5 +2143,13 @@ const styles = {
         background: 'linear-gradient(90deg, #3b82f6, #8b5cf6)',
     },
 };
+
+function GodModeArena(props) {
+    const { gameId, onExit } = props;
+    if (gameId === 'cash-001') return <PreflopRangeTrainer onExit={onExit} />;
+    if (gameId === 'adv-011') return <SPRTrainer onExit={onExit} />;
+    if (gameId === 'quiz-gauntlet') return <QuizGauntlet onExit={onExit} />;
+    return <GodModeArenaInner {...props} />;
+}
 
 export default memo(GodModeArena);

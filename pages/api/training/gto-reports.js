@@ -134,7 +134,8 @@ export default async function handler(req, res) {
             const hhs = session.hand_history || [];
             if (Array.isArray(hhs)) {
                 hhs.forEach(hand => {
-                    if (hand.actionHistory) {
+                    // ARRAY TYPE GUARD REQUIRED to prevent older session JSON layouts from throwing .filter is not a function
+                    if (Array.isArray(hand.actionHistory)) {
                         totalPreflopHands++;
 
                         // Parse preflop hero actions

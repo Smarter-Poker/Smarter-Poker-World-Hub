@@ -59,6 +59,7 @@
     "pg": "^8.20.0",
     "phaser": "^3.90.0",
     "phaser3-rex-plugins": "^1.80.17",
+    "playwright": "^1.58.2",
     "puppeteer": "^24.36.0",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2",

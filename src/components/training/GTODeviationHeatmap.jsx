@@ -8,9 +8,13 @@ import { motion } from 'framer-motion';
  * Renders a horizontal split-bar highlighting under-performance (blue) or over-performance (red),
  * with perfect GTO alignment sitting near the center (green).
  */
-export default function GTODeviationHeatmap({ label, actualPct, gtoPct, description }) {
+export default function GTODeviationHeatmap({ label, actualPct = 0, gtoPct = 0, description }) {
+    // Safety boundary for NaN or undefined to prevent .toFixed() crashes
+    const safeActual = isNaN(actualPct) || actualPct === null ? 0 : Number(actualPct);
+    const safeGto = isNaN(gtoPct) || gtoPct === null ? 0 : Number(gtoPct);
+
     // Calculate the difference (delta). Positive means user is acting MORE frequently than GTO.
-    const delta = actualPct - gtoPct;
+    const delta = safeActual - safeGto;
     const absDelta = Math.abs(delta);
 
     // Determine the color severity based on the deviation magnitude
@@ -46,8 +50,8 @@ export default function GTODeviationHeatmap({ label, actualPct, gtoPct, descript
                 </div>
                 <div style={{ textAlign: 'right' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <span style={{ fontSize: 11, color: '#94a3b8' }}>GTO: <strong style={{ color: '#00d4ff' }}>{gtoPct.toFixed(1)}%</strong></span>
-                        <span style={{ fontSize: 18, fontWeight: 800, color: '#fff', fontFamily: "'Orbitron', monospace" }}>{actualPct.toFixed(1)}%</span>
+                        <span style={{ fontSize: 11, color: '#94a3b8' }}>GTO: <strong style={{ color: '#00d4ff' }}>{safeGto.toFixed(1)}%</strong></span>
+                        <span style={{ fontSize: 18, fontWeight: 800, color: '#fff', fontFamily: "'Orbitron', monospace" }}>{safeActual.toFixed(1)}%</span>
                     </div>
                 </div>
             </div>
