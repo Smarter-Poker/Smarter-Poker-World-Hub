@@ -637,6 +637,10 @@ export default function ClubArenaPage() {
                                         await apiCall('/api/club-arena/join-club', { clubCode: '25450' });
                                         busEmit.dataMutated('club_joined');
                                         setSharkJoinSent(true);
+                                        // Auto-navigate to lobby after brief confirmation
+                                        setTimeout(() => {
+                                            router.push('/hub/club-arena/lobby?club=25450');
+                                        }, 1200);
                                         // Reload clubs to pick up the new membership
                                         const token = await getAuthToken();
                                         const { data: memberships } = await supabase

@@ -704,6 +704,33 @@ const router = useRouter();
                             </div>
 
                             {/* Quick Actions */}
+                            {/* Zero-chips welcome banner — nudges new members to the cashier */}
+                            {membership && chipBalance === 0 && !isLoading && (
+                                <div style={{
+                                    background: 'linear-gradient(135deg, rgba(35,116,225,0.15), rgba(147,51,234,0.1))',
+                                    border: '1px solid rgba(35,116,225,0.3)', borderRadius: 12,
+                                    padding: '14px 16px', marginBottom: 10, textAlign: 'center',
+                                }}>
+                                    <div style={{ color: '#E4E6EB', fontSize: 14, fontWeight: 700, marginBottom: 4 }}>
+                                        Welcome to {club?.name || 'the club'}!
+                                    </div>
+                                    <div style={{ color: '#B0B3B8', fontSize: 12, marginBottom: 10 }}>
+                                        You need chips to play. Visit the Cashier to buy chips or contact your agent.
+                                    </div>
+                                    <button
+                                        onClick={() => router.push(`/hub/club-arena/cashier?club=${club?.club_id || clubIdParam}`)}
+                                        style={{
+                                            background: 'linear-gradient(135deg, #2374E1, #1a5bb8)',
+                                            color: '#fff', border: 'none', borderRadius: 8,
+                                            padding: '8px 24px', fontSize: 13, fontWeight: 700,
+                                            cursor: 'pointer', boxShadow: '0 2px 10px rgba(35,116,225,0.3)',
+                                        }}
+                                    >
+                                        Go to Cashier
+                                    </button>
+                                </div>
+                            )}
+
                             <div style={styles.heroActions}>
                                 {(membership?.role === 'owner' || membership?.role === 'admin') && (
                                     <button
