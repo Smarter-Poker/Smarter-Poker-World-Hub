@@ -155,18 +155,260 @@ function parsePokerStarsHand(text) {
     return hand;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// GGPoker PARSER
+// ═══════════════════════════════════════════════════════════════════════════
+
+function parseGGPokerHand(text) {
+    const hand = {
+        site: 'GGPoker', handId: null, gameType: 'cash', stakes: '',
+        players: [], heroName: null, heroPosition: null, heroCards: [],
+        board: { flop: [], turn: null, river: null },
+        streets: [], pot: 0, rake: 0,
+    };
+
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    let currentStreet = 'preflop';
+
+    for (const line of lines) {
+        // Hand ID — GGPoker format: "Poker Hand #RC1234567890:"
+        const handIdMatch = line.match(/Hand #([A-Z0-9]+)/i);
+        if (handIdMatch) hand.handId = handIdMatch[1];
+
+        if (line.includes('Tournament')) hand.gameType = 'tournament';
+
+        const stakesMatch = line.match(/\$?([\d.]+)\/\$?([\d.]+)/);
+        if (stakesMatch) hand.stakes = `${stakesMatch[1]}/${stakesMatch[2]}`;
+
+        // Seat info — "Seat 1: Player ($100.00 in chips)"
+        const seatMatch = line.match(/^Seat (\d+): (.+?) \(\$?([\d,.]+)/);
+        if (seatMatch) {
+            hand.players.push({
+                seat: parseInt(seatMatch[1]),
+                name: seatMatch[2].trim(),
+                stack: parseFloat(seatMatch[3].replace(',', '')),
+            });
+        }
+
+        // Button
+        const btnMatch = line.match(/Seat #(\d+) is the button/);
+        if (btnMatch) {
+            const btnSeat = parseInt(btnMatch[1]);
+            const btnIdx = hand.players.findIndex(p => p.seat === btnSeat);
+            if (btnIdx >= 0) {
+                const n = hand.players.length;
+                const posMapAdjusted = ['BTN', 'SB', 'BB', 'UTG', 'MP', 'CO', 'HJ', 'UTG+1', 'MP+1'].slice(0, n);
+                hand.players.forEach((p, i) => {
+                    const relIdx = (i - btnIdx + n) % n;
+                    p.position = posMapAdjusted[relIdx] || `Seat${p.seat}`;
+                });
+            }
+        }
+
+        // Hero cards — "Dealt to Hero [Ah Ks]"
+        const holeMatch = line.match(/^Dealt to (.+?) \[(.+?)\]/);
+        if (holeMatch) {
+            hand.heroName = holeMatch[1].trim();
+            hand.heroCards = holeMatch[2].split(' ').map(c => c.trim());
+            const heroPlayer = hand.players.find(p => p.name === hand.heroName);
+            if (heroPlayer) hand.heroPosition = heroPlayer.position;
+        }
+
+        // Street markers (GGPoker uses same format as PS)
+        if (line.includes('*** FLOP ***')) {
+            currentStreet = 'flop';
+            const boardMatch = line.match(/\[(.+?)\]/);
+            if (boardMatch) hand.board.flop = boardMatch[1].split(' ').map(c => c.trim());
+        } else if (line.includes('*** TURN ***')) {
+            currentStreet = 'turn';
+            const turnMatch = line.match(/\] \[(.+?)\]/);
+            if (turnMatch) hand.board.turn = turnMatch[1].trim();
+        } else if (line.includes('*** RIVER ***')) {
+            currentStreet = 'river';
+            const riverMatch = line.match(/\] \[(.+?)\]/);
+            if (riverMatch) hand.board.river = riverMatch[1].trim();
+        }
+
+        // Actions
+        const actionMatch = line.match(/^(.+?): (folds|checks|calls|bets|raises)(?: \$?([\d,.]+))?(?: to \$?([\d,.]+))?/);
+        if (actionMatch) {
+            const playerName = actionMatch[1].trim();
+            const actionType = actionMatch[2].toLowerCase();
+            const amount = actionMatch[3] ? parseFloat(actionMatch[3].replace(',', '')) : 0;
+            const toAmount = actionMatch[4] ? parseFloat(actionMatch[4].replace(',', '')) : 0;
+            const player = hand.players.find(p => p.name === playerName);
+            let streetEntry = hand.streets.find(s => s.street === currentStreet);
+            if (!streetEntry) { streetEntry = { street: currentStreet, actions: [] }; hand.streets.push(streetEntry); }
+            streetEntry.actions.push({
+                player: playerName, position: player?.position || 'UNK',
+                action: actionType.replace(/s$/, ''), // folds→fold
+                amount: toAmount || amount, isHero: playerName === hand.heroName, street: currentStreet,
+            });
+        }
+
+        const potMatch = line.match(/Total pot \$?([\d,.]+)/);
+        if (potMatch) hand.pot = parseFloat(potMatch[1].replace(',', ''));
+        const rakeMatch = line.match(/Rake \$?([\d,.]+)/);
+        if (rakeMatch) hand.rake = parseFloat(rakeMatch[1].replace(',', ''));
+    }
+
+    return hand;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 888poker PARSER
+// ═══════════════════════════════════════════════════════════════════════════
+
+function parse888Hand(text) {
+    const hand = {
+        site: '888poker', handId: null, gameType: 'cash', stakes: '',
+        players: [], heroName: null, heroPosition: null, heroCards: [],
+        board: { flop: [], turn: null, river: null },
+        streets: [], pot: 0, rake: 0,
+    };
+
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    let currentStreet = 'preflop';
+
+    for (const line of lines) {
+        // 888 format: "#Game No : 12345678"
+        const handIdMatch = line.match(/Game No\s*:\s*(\d+)/i) || line.match(/#(\d{6,})/);
+        if (handIdMatch) hand.handId = handIdMatch[1];
+
+        if (line.includes('Tournament')) hand.gameType = 'tournament';
+
+        const stakesMatch = line.match(/\$?([\d.]+)\/\$?([\d.]+)/);
+        if (stakesMatch) hand.stakes = `${stakesMatch[1]}/${stakesMatch[2]}`;
+
+        // 888 seat: "Seat 1: Player ( $100 )"
+        const seatMatch = line.match(/^Seat (\d+): (.+?) \(\s*\$?([\d,.]+)/);
+        if (seatMatch) {
+            hand.players.push({
+                seat: parseInt(seatMatch[1]),
+                name: seatMatch[2].trim(),
+                stack: parseFloat(seatMatch[3].replace(',', '')),
+            });
+        }
+
+        // Dealer/Button
+        const btnMatch = line.match(/Seat (\d+) is the button/) || line.match(/Seat #(\d+) is the button/);
+        if (btnMatch) {
+            const btnSeat = parseInt(btnMatch[1]);
+            const btnIdx = hand.players.findIndex(p => p.seat === btnSeat);
+            if (btnIdx >= 0) {
+                const n = hand.players.length;
+                const posMapAdjusted = ['BTN', 'SB', 'BB', 'UTG', 'MP', 'CO', 'HJ', 'UTG+1', 'MP+1'].slice(0, n);
+                hand.players.forEach((p, i) => {
+                    const relIdx = (i - btnIdx + n) % n;
+                    p.position = posMapAdjusted[relIdx] || `Seat${p.seat}`;
+                });
+            }
+        }
+
+        // Hero cards — "Dealt to Player [Ah, Ks]" (888 uses comma)
+        const holeMatch = line.match(/^Dealt to (.+?) \[(.+?)\]/);
+        if (holeMatch) {
+            hand.heroName = holeMatch[1].trim();
+            hand.heroCards = holeMatch[2].replace(/,/g, ' ').split(/\s+/).map(c => c.trim()).filter(Boolean);
+            const heroPlayer = hand.players.find(p => p.name === hand.heroName);
+            if (heroPlayer) hand.heroPosition = heroPlayer.position;
+        }
+
+        // Streets — 888 uses "** Dealing flop ** [Ah, Kd, 7c]"
+        if (line.match(/dealing flop/i) || line.includes('*** FLOP ***')) {
+            currentStreet = 'flop';
+            const boardMatch = line.match(/\[(.+?)\]/);
+            if (boardMatch) hand.board.flop = boardMatch[1].replace(/,/g, ' ').split(/\s+/).map(c => c.trim()).filter(Boolean);
+        } else if (line.match(/dealing turn/i) || line.includes('*** TURN ***')) {
+            currentStreet = 'turn';
+            const turnMatch = line.match(/\[(.+?)\](?:.*\[(.+?)\])?/);
+            if (turnMatch) hand.board.turn = (turnMatch[2] || turnMatch[1]).trim();
+        } else if (line.match(/dealing river/i) || line.includes('*** RIVER ***')) {
+            currentStreet = 'river';
+            const riverMatch = line.match(/\[(.+?)\](?:.*\[(.+?)\])?/);
+            if (riverMatch) hand.board.river = (riverMatch[2] || riverMatch[1]).trim();
+        }
+
+        // Actions
+        const actionMatch = line.match(/^(.+?) (folds|checks|calls|bets|raises)(?: \[?\$?([\d,.]+)\]?)?(?: to \[?\$?([\d,.]+)\]?)?/);
+        if (actionMatch && !line.startsWith('Seat') && !line.startsWith('**') && !line.startsWith('#')) {
+            const playerName = actionMatch[1].trim();
+            const actionType = actionMatch[2].toLowerCase();
+            const amount = actionMatch[3] ? parseFloat(actionMatch[3].replace(',', '')) : 0;
+            const toAmount = actionMatch[4] ? parseFloat(actionMatch[4].replace(',', '')) : 0;
+            const player = hand.players.find(p => p.name === playerName);
+            if (player) {
+                let streetEntry = hand.streets.find(s => s.street === currentStreet);
+                if (!streetEntry) { streetEntry = { street: currentStreet, actions: [] }; hand.streets.push(streetEntry); }
+                streetEntry.actions.push({
+                    player: playerName, position: player?.position || 'UNK',
+                    action: actionType.replace(/s$/, ''),
+                    amount: toAmount || amount, isHero: playerName === hand.heroName, street: currentStreet,
+                });
+            }
+        }
+
+        const potMatch = line.match(/Total pot\s*\$?([\d,.]+)/i);
+        if (potMatch) hand.pot = parseFloat(potMatch[1].replace(',', ''));
+        const rakeMatch = line.match(/Rake\s*\$?([\d,.]+)/i);
+        if (rakeMatch) hand.rake = parseFloat(rakeMatch[1].replace(',', ''));
+    }
+
+    return hand;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// WPN (Winning Poker Network) PARSER
+// ═══════════════════════════════════════════════════════════════════════════
+
+function parseWPNHand(text) {
+    // WPN uses a format very similar to PokerStars with minor differences
+    const hand = parsePokerStarsHand(text);
+    hand.site = 'WPN';
+    // WPN markers: "Game started at:", "Game ID:"
+    const gameIdMatch = text.match(/Game ID:\s*(\d+)/i) || text.match(/Game started at/i);
+    if (gameIdMatch && gameIdMatch[1]) hand.handId = gameIdMatch[1];
+    return hand;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SITE AUTO-DETECTION
+// ═══════════════════════════════════════════════════════════════════════════
+
+function detectSite(text) {
+    const lower = text.toLowerCase();
+    if (lower.includes('pokerstars')) return 'PokerStars';
+    if (lower.includes('ggpoker') || lower.includes('ggnetwork') || lower.includes('natural8')) return 'GGPoker';
+    if (lower.includes('888poker') || lower.includes('pacific poker')) return '888poker';
+    if (lower.includes('winning poker') || lower.includes('wpn') || lower.includes('americas cardroom') || lower.includes('bovada') || lower.includes('ignition')) return 'WPN';
+    if (lower.includes('clubgg')) return 'GGPoker'; // ClubGG uses GG format
+    // Default to PokerStars format (most common)
+    return 'PokerStars';
+}
+
+function parseHandBySite(block, site) {
+    switch (site) {
+        case 'GGPoker': return parseGGPokerHand(block);
+        case '888poker': return parse888Hand(block);
+        case 'WPN': return parseWPNHand(block);
+        default: return parsePokerStarsHand(block);
+    }
+}
+
 // Parse multiple hands from a text block
 export function parseHandHistories(text) {
     if (!text || text.trim().length === 0) return [];
 
+    const site = detectSite(text);
+
     // Split by hand markers
-    const handBlocks = text.split(/(?=PokerStars|Hand #|888poker|GGPoker)/g)
+    const handBlocks = text.split(/(?=PokerStars|Hand #|888poker|GGPoker|Game No|Game started at|Poker Hand #)/gi)
         .filter(b => b.trim().length > 50);
 
     const hands = [];
     for (const block of handBlocks) {
         try {
-            const parsed = parsePokerStarsHand(block);
+            const parsed = parseHandBySite(block, site);
             if (parsed.handId && parsed.heroCards.length >= 2) {
                 hands.push(parsed);
             }
@@ -177,6 +419,7 @@ export function parseHandHistories(text) {
 
     return hands;
 }
+
 
 // Convert hero cards to hand notation (e.g., ["As", "Kh"] → "AKo")
 export function cardsToNotation(cards) {
