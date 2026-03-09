@@ -62,6 +62,8 @@ import CustomDrillBuilder from '../../../src/components/sandbox/CustomDrillBuild
 import GodModePanel from '../../../src/components/sandbox/GodModePanel';
 import ExternalSolverImport from '../../../src/components/sandbox/ExternalSolverImport';
 import EquityHeatmapOverlay from '../../../src/components/sandbox/EquityHeatmapOverlay';
+import NodeLockExploits from '../../../src/components/sandbox/NodeLockExploits';
+import { idbSaveSessionLog, idbLoadSessionLog, idbSyncSavedHands, idbGetSavedHands } from '../../../src/utils/indexeddb-pwa';
 
 // ═══════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -703,9 +705,10 @@ export default function VirtualSandbox() {
   const [drillParams, setDrillParams] = useState(null);
   const [recentResults, setRecentResults] = useState([]);
 
-  // ── Wave 7: Professional Integration (W7-1 & W7-2) ─────────────────────────────
+  // ── Wave 7: Professional Integration (W7-1 & W7-2 & W7-3) ─────────────────────────
   const [showSolverImport, setShowSolverImport] = useState(false);
   const [showHeatmap, setShowHeatmap] = useState(false);
+  const [showNodeLocks, setShowNodeLocks] = useState(false);
 
   // ─── WAVE 2: Socratic Coach Mode (Feature 6) ─────────────────────────────
   const [coachMode, setCoachMode] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('sandbox-coach-mode') === 'true' : false);
@@ -949,6 +952,40 @@ export default function VirtualSandbox() {
   ];
 
   // Leak tracker
+  // Sync sessions locally via PWA IndexedDB (W7-4)
+  const fetchSessions = useCallback(async () => {
+    try {
+      const user = getAuthUser(); // Assuming getAuthUser is synchronous or returns a cached user
+      if (!user) {
+        const offlineData = await idbLoadSessionLog();
+        if (offlineData && offlineData.length > 0) setSessionLog(offlineData);
+        return;
+      }
+      const token = typeof window !== 'undefined' ? localStorage.getItem('supabase.auth.token') : null;
+      let headers = {};
+      if (token) {
+        try {
+          const parsed = JSON.parse(token);
+          headers.Authorization = `Bearer ${parsed.currentSession?.access_token}`;
+        } catch (e) { }
+      }
+      const res = await fetch('/api/sandbox/sessions', { headers });
+      const json = await res.json();
+      if (json.success) {
+        setSessionLog(json.sessions);
+        idbSaveSessionLog(json.sessions); // Background sync W7-4
+      }
+    } catch (err) {
+      console.error('[Sandbox] session fetch error (falling back to IDB):', err);
+      const offlineData = await idbLoadSessionLog();
+      if (offlineData && offlineData.length > 0) setSessionLog(offlineData);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSessions();
+  }, [fetchSessions]);
+
   const loadLeakStats = useCallback(async () => {
     try {
       const user = getAuthUser();
@@ -1070,7 +1107,7 @@ export default function VirtualSandbox() {
         return;
       }
       setSaveStatus('saving');
-      const { error } = await supabase.from('sandbox_bookmarks').insert({
+      const payload = {
         user_id: user.id,
         hero_hand: `${heroHand.card1 || ''}${heroHand.card2 || ''}`,
         hero_position: heroPosition, hero_stack: heroStack, game_type: gameType,
@@ -1078,7 +1115,8 @@ export default function VirtualSandbox() {
         villains: JSON.stringify(villains), action_history: JSON.stringify(actionHistory),
         pot_size_bb: potSize,
         label: `${heroPosition} ${heroHand.card1 || '?'}${heroHand.card2 || '?'} on ${board.flop.join('')}`,
-      });
+      };
+      const { error } = await supabase.from('sandbox_bookmarks').insert(payload);
       if (error) {
         console.warn('[Sandbox] Bookmark save error (table may not exist yet):', error.message);
         setSaveStatus('error');
@@ -1089,9 +1127,14 @@ export default function VirtualSandbox() {
           window.dispatchEvent(new CustomEvent('pa-data-updated'));
         }
       }
-    } catch (e) {
-      console.error('Bookmark save error:', e);
-      setSaveStatus('error');
+    } catch (err) {
+      console.error('[Sandbox] Sync error (caching offline):', err);
+      // Fallback: W7-4 push to top of local index
+      const offlineLog = await idbLoadSessionLog();
+      const updatedLog = [payload, ...offlineLog].slice(0, 100);
+      idbSaveSessionLog(updatedLog);
+      setSessionLog(updatedLog);
+      return payload;
     } finally {
       setTimeout(() => setSaveStatus(null), 2000);
     }
@@ -1492,6 +1535,7 @@ export default function VirtualSandbox() {
               <button onClick={() => { setShowGodMode(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.4)', color: '#c4b5fd', cursor: 'pointer' }}>⚡ God Mode</button>
               <button onClick={() => { setShowSolverImport(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(245,166,35,0.15)', border: '1px solid rgba(245,166,35,0.4)', color: '#F5A623', cursor: 'pointer' }}>📥 Pro Import</button>
               <button onClick={() => { setShowHeatmap(!showHeatmap); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: showHeatmap ? 'rgba(34,197,94,0.2)' : '#3A3B3C', border: `1px solid ${showHeatmap ? 'rgba(34,197,94,0.3)' : '#4E4F50'}`, color: showHeatmap ? '#4ade80' : '#E4E6EB', cursor: 'pointer' }}>🌡️ Heatmap {showHeatmap ? 'ON' : 'OFF'}</button>
+              <button onClick={() => { setShowNodeLocks(!showNodeLocks); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: showNodeLocks ? 'rgba(167,139,250,0.2)' : '#3A3B3C', border: `1px solid ${showNodeLocks ? 'rgba(167,139,250,0.3)' : '#4E4F50'}`, color: showNodeLocks ? '#a78bfa' : '#E4E6EB', cursor: 'pointer' }}>🔒 Node Locks</button>
               <button onClick={() => { setShowHHImport(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', cursor: 'pointer' }}>Import HH</button>
               {/* Felt color dots row */}
               <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 8, paddingTop: 4 }}>
@@ -1967,8 +2011,22 @@ export default function VirtualSandbox() {
       {showGodMode && (
         <GodModePanel
           onClose={() => setShowGodMode(false)}
-          setResults={setResults}
-          sandboxState={{ board, heroHand, heroPosition, villains, potSize, effStack }}
+          setResults={(heroHand, opponents, finalBoard, potSize, effStack, action) => {
+            const gtoResult = evaluateHandAndRanges(heroHand, opponents, finalBoard, potSize, effStack);
+
+            // W7-3: Apply Heuristic Exploit Node-Locking Modifiers if active
+            let finalEV = gtoResult.ev;
+            opponents.forEach(v => {
+              if (v.nodeLock === 'Overfold' && action === 'bet') finalEV += 15.5; // Hero bets gain huge EV
+              if (v.nodeLock === 'CallingStation' && action === 'bet') finalEV -= 5.2; // Bluffs lose heavily
+              if (v.nodeLock === 'Maniac' && action === 'check') finalEV += 10.1; // Trap lines increase EV
+            });
+
+            setMockEvCache(prev => ({
+              ...prev,
+              [action]: finalEV
+            }));
+          }}
         />
       )}
 
@@ -2139,7 +2197,19 @@ export default function VirtualSandbox() {
               <div className="results-drag-handle" style={{ display: 'none', justifyContent: 'center', marginBottom: '10px' }}>
                 <div style={{ width: 40, height: 4, borderRadius: 2, background: '#4E4F50' }} />
               </div>
-              {/* Close button */}
+
+              {/* WAVE 7-3 NODE LOCK EXPLOITS */}
+              <NodeLockExploits
+                isVisible={showNodeLocks}
+                villains={villains}
+                updateVillainLock={(vid, lockType) => {
+                  setVillains(v => v.map(villain => villain.id === vid ? { ...villain, nodeLock: lockType } : villain));
+                  // Force recalculation of local heuristics
+                  updateMockEVs(heroHand, villains.map(villain => villain.id === vid ? { ...villain, nodeLock: lockType } : villain));
+                }}
+              />
+
+              {/* ══ ACTION BUTTONS ══ */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <h3 style={{ color: '#E4E6EB', fontSize: 14, textTransform: 'uppercase', letterSpacing: 1.5, margin: 0, fontWeight: 700 }}>
                   Analysis Results {comparePosition ? `(${comparePosition})` : ''}
