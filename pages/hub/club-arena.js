@@ -4,7 +4,7 @@
    Theme: Futuristic Metal — deep ocean tech aesthetic
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -22,10 +22,10 @@ const getAuthToken = async () => {
         }
     } catch (_) { /* localStorage unavailable (incognito, quota) */ }
 
-    // 2. Slow path: ask Supabase (handles token refresh, also writes back to localStorage)
+    // 2. Slow path: ask Supabase helper
     try {
         const token = getAccessToken();
-        return session?.access_token || null;
+        return token || null;
     } catch (_) {
         return null;
     }
@@ -46,6 +46,7 @@ import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import ClubArenaBottomNav from '../../src/components/club-arena/ClubArenaBottomNav';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getAccessToken } from '../../src/lib/authUtils';
+import { eventBus, EventType } from '../../src/engine/EventBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // IMAGE PATHS (proxied from club-arena.vercel.app via next.config.js rewrites)
@@ -308,6 +309,11 @@ export default function ClubArenaPage() {
 
     // Live Supabase stats for Shark Club card
     const [sharkClubStats, setSharkClubStats] = useState({ totalMembers: 0, clubLevel: 1, activePlayers: 0 });
+    const [sharkJoinSent, setSharkJoinSent] = useState(false);
+    const [sharkJoining, setSharkJoining] = useState(false);
+
+    // Is user already a Shark Club member?
+    const isSharkMember = clubs.some(c => String(c.club_id) === '25450');
 
     useEffect(() => {
         loadUserData();
@@ -328,6 +334,15 @@ export default function ClubArenaPage() {
             });
         return () => { supabase.removeChannel(_ch); };
     }, [user?.id]);
+
+    // EventBus — refresh on cross-page mutations (club created, joined, chips changed)
+    useEffect(() => {
+        const unsub = eventBus.on(EventType.DATA_MUTATED, (e) => {
+            const relevant = ['tournament_created', 'chips_minted', 'union_club_added', 'union_club_removed'];
+            if (relevant.includes(e?.payload?.entity)) loadUserData();
+        });
+        return () => unsub();
+    }, []);
 
     // Fetch real stats from Supabase for the Shark Club card
     async function fetchSharkClubStats(signal) {
@@ -540,15 +555,17 @@ export default function ClubArenaPage() {
                     <div
                         style={S.sharkClubWrapper}
                         onClick={() => {
-                            // Navigate to Shark Club lobby (club_id 25450 is the featured Shark Club)
-                            router.push('/hub/club-arena/lobby?club=25450');
+                            if (isSharkMember) {
+                                router.push('/hub/club-arena/lobby?club=25450');
+                            }
+                            // Non-members: join button handles it
                         }}
                     >
                         <img
                             src={IMAGES.sharkClub}
                             alt="SHARK CLUB"
                             style={S.sharkClubImage} loading="lazy" />
-                        {/* Dynamic stats overlay — matches ClubStatsPanel exactly */}
+                        {/* Dynamic stats overlay */}
                         <div style={S.statsOverlay}>
                             <div style={{ ...S.statItem, left: '20%', transform: 'translateX(-50%)' }}>
                                 <div style={S.statLabel}>TOTAL<br />MEMBERS</div>
@@ -563,7 +580,132 @@ export default function ClubArenaPage() {
                                 <div style={S.statValue}>{(sharkClubStats.activePlayers || 0).toLocaleString()}</div>
                             </div>
                         </div>
+                        {/* Request to Join — for non-members */}
+                        {user && !isSharkMember && (
+                            <button
+                                disabled={sharkJoining || sharkJoinSent}
+                                onClick={async (e) => {
+                                    e.stopPropagation();
+                                    if (!user) { alert('Please sign in first'); return; }
+                                    setSharkJoining(true);
+                                    try {
+                                        await apiCall('/api/club-arena/join-club', { clubId: '25450' });
+                                        setSharkJoinSent(true);
+                                        // Reload clubs to pick up the new membership
+                                        const token = await getAuthToken();
+                                        const { data: memberships } = await supabase
+                                            .from('club_members').select('club_id, role, clubs(*)').eq('user_id', user.id).eq('status', 'active');
+                                        if (memberships) {
+                                            const userClubs = memberships.map(m => ({ ...m.clubs, userRole: m.role })).filter(c => c && c.status === 'active');
+                                            setClubs(userClubs);
+                                            if (!activeClub && userClubs.length > 0) setActiveClub(userClubs[0]);
+                                        }
+                                    } catch (err) {
+                                        alert(err.message || 'Failed to join');
+                                    } finally { setSharkJoining(false); }
+                                }}
+                                style={{
+                                    position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)',
+                                    background: sharkJoinSent ? '#31A24C' : 'linear-gradient(135deg, #2374E1, #1a5bb8)',
+                                    color: '#fff', border: 'none', borderRadius: 24, padding: '10px 28px',
+                                    fontSize: 14, fontWeight: 800, cursor: sharkJoinSent ? 'default' : 'pointer',
+                                    boxShadow: '0 4px 20px rgba(35,116,225,0.5)', letterSpacing: 0.5,
+                                    opacity: sharkJoining ? 0.6 : 1, zIndex: 10, whiteSpace: 'nowrap',
+                                }}
+                            >
+                                {sharkJoinSent ? '✓ Joined!' : sharkJoining ? 'Joining...' : '⚡ Request to Join'}
+                            </button>
+                        )}
                     </div>
+
+                    {/* ═══════════════════════════════════════════════════════════════════
+                        MY CLUBS — Horizontal Scroll Cards
+                    ═══════════════════════════════════════════════════════════════════ */}
+                    {clubs.length > 0 && (
+                        <div style={{ marginBottom: 16 }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: '#B0B3B8', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10, paddingLeft: 4 }}>
+                                My Clubs
+                            </div>
+                            <div style={{
+                                display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8,
+                                scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch',
+                                scrollbarWidth: 'none', msOverflowStyle: 'none',
+                            }}>
+                                {clubs.map(club => {
+                                    const isActive = activeClub?.id === club.id;
+                                    const roleColors = { owner: '#FFD700', admin: '#2374E1', agent: '#FF9500', player: '#31A24C' };
+                                    const roleLabel = { owner: 'Owner', admin: 'Admin', agent: 'Agent', player: 'Player' };
+                                    return (
+                                        <div
+                                            key={club.id}
+                                            onClick={() => { setActiveClub(club); router.push(`/hub/club-arena/lobby?club=${club.club_id}`); }}
+                                            style={{
+                                                flex: '0 0 200px', scrollSnapAlign: 'start',
+                                                background: isActive
+                                                    ? 'linear-gradient(135deg, #1a2744 0%, #0f3460 100%)'
+                                                    : 'linear-gradient(135deg, #1e1e2e 0%, #242436 100%)',
+                                                borderRadius: 14, padding: '16px 18px', cursor: 'pointer',
+                                                border: isActive ? '2px solid #2374E1' : '1px solid #3E4042',
+                                                position: 'relative', overflow: 'hidden',
+                                                transition: 'transform 0.15s',
+                                            }}
+                                        >
+                                            {/* Role badge */}
+                                            <div style={{
+                                                position: 'absolute', top: 8, right: 10,
+                                                background: roleColors[club.userRole] || '#65676B',
+                                                color: club.userRole === 'owner' ? '#000' : '#fff',
+                                                fontSize: 9, fontWeight: 800, padding: '2px 8px',
+                                                borderRadius: 10, textTransform: 'uppercase', letterSpacing: 0.5,
+                                            }}>
+                                                {roleLabel[club.userRole] || 'Member'}
+                                            </div>
+
+                                            {/* Club name */}
+                                            <div style={{
+                                                fontSize: 16, fontWeight: 800, color: '#E4E6EB',
+                                                marginBottom: 6, paddingRight: 50,
+                                                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                                            }}>
+                                                {club.name}
+                                            </div>
+
+                                            {/* Club ID */}
+                                            <div style={{ fontSize: 11, color: '#65676B', marginBottom: 10 }}>
+                                                ID: {club.club_id}
+                                            </div>
+
+                                            {/* Stats row */}
+                                            <div style={{ display: 'flex', gap: 16, fontSize: 11 }}>
+                                                <div>
+                                                    <div style={{ color: '#65676B' }}>Members</div>
+                                                    <div style={{ color: '#E4E6EB', fontWeight: 700 }}>{club.member_count || 0}</div>
+                                                </div>
+                                                {club.union_id && (
+                                                    <div>
+                                                        <div style={{ color: '#65676B' }}>Union</div>
+                                                        <div style={{ color: '#2374E1', fontWeight: 700 }}>✓</div>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Active indicator */}
+                                            {isActive && (
+                                                <div style={{
+                                                    position: 'absolute', bottom: 0, left: 0, right: 0,
+                                                    height: 3, background: '#2374E1', borderRadius: '0 0 14px 14px',
+                                                }} />
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            {/* Hide scrollbar CSS */}
+                            <style>{`
+                                .ca-container div::-webkit-scrollbar { display: none; }
+                            `}</style>
+                        </div>
+                    )}
 
                     {/* ═══════════════════════════════════════════════════════════════════
                         MY UNIONS — Union Owner/Admin Cards

@@ -27,6 +27,7 @@ export default function useWalletData({ supabase, userId, clubId }) {
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState('player');
   const bbjTimeoutRef = useRef(null);
+  const bbjAmountRef = useRef(0); // track last BBJ amount to detect real changes
 
   // ── Initial data fetch ───────────────────────────────────────────────
   const loadWalletData = useCallback(async () => {
@@ -59,7 +60,9 @@ export default function useWalletData({ supabase, userId, clubId }) {
 
       // BBJ pool
       if (bbjRes.status === 'fulfilled' && bbjRes.value?.data) {
-        setBbjAmount(bbjRes.value.data.pool_amount || 0);
+        const amt = bbjRes.value.data.pool_amount || 0;
+        setBbjAmount(amt);
+        bbjAmountRef.current = amt;
       }
 
       // Agent balance (null for non-agents)
@@ -110,7 +113,8 @@ export default function useWalletData({ supabase, userId, clubId }) {
         filter: `club_id=eq.${clubId}`,
       }, (payload) => {
         const newAmount = payload.new?.pool_amount;
-        if (newAmount !== undefined && newAmount !== bbjAmount) {
+        if (newAmount !== undefined && newAmount !== bbjAmountRef.current) {
+          bbjAmountRef.current = newAmount;
           setBbjAmount(newAmount);
           setBbjAnimating(true);
           if (bbjTimeoutRef.current) clearTimeout(bbjTimeoutRef.current);

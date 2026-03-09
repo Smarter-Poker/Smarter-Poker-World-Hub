@@ -16,6 +16,20 @@
 
 import { useState, useEffect, useRef } from 'react';
 
+// ─── Inject BBJ pulse keyframes ONCE globally ─────────────────────────
+let _injected = false;
+function ensureKeyframes() {
+  if (_injected || typeof document === 'undefined') return;
+  const style = document.createElement('style');
+  style.textContent = `@keyframes walletBbjPulse {
+    0% { transform: scale(1); filter: brightness(1); }
+    30% { transform: scale(1.08); filter: brightness(1.4); }
+    100% { transform: scale(1); filter: brightness(1); }
+  }`;
+  document.head.appendChild(style);
+  _injected = true;
+}
+
 // ─── Animated counter ──────────────────────────────────────────────────
 function AnimatedCounter({ value, duration = 800, prefix = '' }) {
   const [display, setDisplay] = useState(value);
@@ -116,6 +130,9 @@ export default function DynamicWallet({
   const containerW = Math.round(286 * scale);
   const fs = (b) => Math.round(b * scale);
 
+  // Inject keyframes once globally
+  useEffect(() => { ensureKeyframes(); }, []);
+
   // ═══ UNION LAYOUT (6 slots) ═════════════════════════════════════════
   if (isUnion) return (
     <div style={{ position: 'relative', width: containerW, aspectRatio: bg.ar,
@@ -154,11 +171,6 @@ export default function DynamicWallet({
       <BBJSlot top="80%" left="12%" width="76%" height="7%" value={backupBbjBalance || 0}
         animating={false} fontSize={fs(15)} onClick={onOpenBBJ} />
 
-      <style>{`@keyframes walletBbjPulse {
-        0% { transform: scale(1); filter: brightness(1); }
-        30% { transform: scale(1.08); filter: brightness(1.4); }
-        100% { transform: scale(1); filter: brightness(1); }
-      }`}</style>
     </div>
   );
 
@@ -201,11 +213,6 @@ export default function DynamicWallet({
       <Slot top="82.5%" value={promoBalance} color={promoBalance > 0 ? '#4ECDC4' : '#65676B'}
         glow={promoBalance > 0} fontSize={fs(14)} onClick={() => onTapSlot?.('promo')} />
 
-      <style>{`@keyframes walletBbjPulse {
-        0% { transform: scale(1); filter: brightness(1); }
-        30% { transform: scale(1.08); filter: brightness(1.4); }
-        100% { transform: scale(1); filter: brightness(1); }
-      }`}</style>
     </div>
   );
 }
