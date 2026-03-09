@@ -230,7 +230,7 @@ function CardPicker({ value, onChange, onClear, label, color, allSelected }) {
             >
                 {value ? (
                     <>
-                        <Card rank={rank} suit={suit} size="medium" />
+                        <Card rank={rank} suit={suit} size="small" />
                         <span style={{ position: 'absolute', top: 2, right: 5, fontSize: 10, color: '#64748b' }}>✕</span>
                     </>
                 ) : (
