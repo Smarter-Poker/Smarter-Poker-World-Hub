@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
+import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 const SUITS = ['♠', '♥', '♦', '♣'];
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
@@ -15,8 +16,8 @@ export default function HandLabV2() {
 
     useEffect(() => {
         const h = () => { };
-        window.addEventListener('training:session-complete', h);
-        return () => window.removeEventListener('training:session-complete', h);
+        eventBus.on(EventType?.SESSION_END || 'training:session-complete', h);
+        return () => eventBus.off(EventType?.SESSION_END || 'training:session-complete', h);
     }, []);
 
     // UI States

@@ -14,6 +14,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
+import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 
 function buildHeatmap(sessions) {
@@ -110,8 +111,8 @@ export default function TrainingCalendarPage() {
     useEffect(() => { fetchData(); }, [fetchData]);
     useEffect(() => {
         const h = () => fetchData();
-        window.addEventListener('training:session-complete', h);
-        return () => window.removeEventListener('training:session-complete', h);
+        eventBus.on(EventType?.SESSION_END || 'training:session-complete', h);
+        return () => eventBus.off(EventType?.SESSION_END || 'training:session-complete', h);
     }, [fetchData]);
 
     // Generate calendar grid (last 16 weeks)

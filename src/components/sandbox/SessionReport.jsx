@@ -18,8 +18,11 @@ function pctColor(pct) {
     return M.red;
 }
 
-export default function SessionReport({ sessionLog = [], coachStreak = 0, onClose }) {
+export default function SessionReport({ sessionLog, resultsRaw, onClose }) {
     const [exporting, setExporting] = useState(false);
+    const [sharing, setSharing] = useState(false);
+    const [shareSuccess, setShareSuccess] = useState(false);
+    const chartRef = useRef(null);
     const reportRef = useRef(null);
 
     const totalHands = sessionLog.length;
@@ -94,6 +97,48 @@ export default function SessionReport({ sessionLog = [], coachStreak = 0, onClos
             console.warn('[SessionReport] Share error:', e);
         }
     }, [accuracy, totalHands]);
+
+    const handlePostToHub = useCallback(async () => {
+        if (!reportRef.current) return;
+        setSharing(true);
+        try {
+            const { default: html2canvas } = await import('html2canvas');
+            const canvas = await html2canvas(reportRef.current, {
+                backgroundColor: '#1a1d21',
+                scale: 2,
+            });
+            const imageData = canvas.toDataURL('image/png');
+
+            const response = await fetch('/api/social/post-report', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    imageData,
+                    accuracy,
+                    totalHands,
+                    // Add other relevant data from the report if needed
+                }),
+            });
+
+            if (response.ok) {
+                setShareSuccess(true);
+                // Optionally, vibrate on success
+                try { navigator.vibrate?.(15); } catch (e) { }
+            } else {
+                console.error('Failed to post report to hub:', await response.text());
+                alert('Failed to post report. Please try again.');
+            }
+        } catch (e) {
+            console.warn('[SessionReport] Post to Hub error:', e);
+            alert('An error occurred while posting. Please try again.');
+        } finally {
+            setSharing(false);
+        }
+    }, [accuracy, totalHands]);
+
+    const downloadReport = useCallback(() => {
+        handleExport();
+    }, [handleExport]);
 
     return (
         <div style={s.overlay} onClick={onClose}>

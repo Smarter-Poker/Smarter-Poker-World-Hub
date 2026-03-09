@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 const TREES = [
     { id: '100bb-6max', label: '100bb 6-Max Cash', size: '1.2 GB', desc: 'Core solver paths for standard online 6-max.', time: 'Complete' },
@@ -28,8 +29,8 @@ export default function GtoPreloaderPage() {
 
     useEffect(() => {
         const h = () => { };
-        window.addEventListener('training:session-complete', h);
-        return () => window.removeEventListener('training:session-complete', h);
+        eventBus.on(EventType?.SESSION_END || 'training:session-complete', h);
+        return () => eventBus.off(EventType?.SESSION_END || 'training:session-complete', h);
     }, []);
 
     useEffect(() => {

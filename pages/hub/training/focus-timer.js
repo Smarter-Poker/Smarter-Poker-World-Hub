@@ -12,6 +12,7 @@ import { motion } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 const PHASES = {
     FOCUS: { id: 'focus', label: 'Focus Block', mins: 25, color: '#3b82f6' },
@@ -34,8 +35,8 @@ export default function FocusTimerPage() {
 
     useEffect(() => {
         const h = () => { };
-        window.addEventListener('training:session-complete', h);
-        return () => window.removeEventListener('training:session-complete', h);
+        eventBus.on(EventType?.SESSION_END || 'training:session-complete', h);
+        return () => eventBus.off(EventType?.SESSION_END || 'training:session-complete', h);
     }, []);
 
     useEffect(() => {

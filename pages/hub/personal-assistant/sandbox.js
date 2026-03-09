@@ -59,6 +59,7 @@ import StudyFolders from '../../../src/components/sandbox/StudyFolders';
 import SaveHandModal from '../../../src/components/sandbox/SaveHandModal';
 import ShareScenarioModal from '../../../src/components/sandbox/ShareScenarioModal';
 import CustomDrillBuilder from '../../../src/components/sandbox/CustomDrillBuilder';
+import GodModePanel from '../../../src/components/sandbox/GodModePanel';
 
 // ═══════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -696,6 +697,7 @@ export default function VirtualSandbox() {
   const [showSaveHand, setShowSaveHand] = useState(false);
   const [showShareScenario, setShowShareScenario] = useState(false);
   const [showCustomDrill, setShowCustomDrill] = useState(false);
+  const [showGodMode, setShowGodMode] = useState(false);
   const [drillParams, setDrillParams] = useState(null);
   const [recentResults, setRecentResults] = useState([]);
 
@@ -1481,6 +1483,7 @@ export default function VirtualSandbox() {
               <button onClick={() => { setShowSaveHand(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(0,230,118,0.12)', border: '1px solid rgba(0,230,118,0.3)', color: '#00E676', cursor: 'pointer' }}>💾 Save Spot</button>
               <button onClick={() => { setShowShareScenario(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(236,72,153,0.12)', border: '1px solid rgba(236,72,153,0.3)', color: '#ec4899', cursor: 'pointer' }}>🔗 Share</button>
 
+              <button onClick={() => { setShowGodMode(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.4)', color: '#c4b5fd', cursor: 'pointer' }}>⚡ God Mode</button>
               <button onClick={() => { setShowHHImport(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', cursor: 'pointer' }}>Import HH</button>
               {/* Felt color dots row */}
               <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 8, paddingTop: 4 }}>
@@ -1951,6 +1954,14 @@ export default function VirtualSandbox() {
         <ShareScenarioModal
           sandboxState={{ board, heroHand, heroPosition, villains, potSize, effStack }}
           onClose={() => setShowShareScenario(false)} />
+      )}
+
+      {showGodMode && (
+        <GodModePanel
+          onClose={() => setShowGodMode(false)}
+          setResults={setResults}
+          sandboxState={{ board, heroHand, heroPosition, villains, potSize, effStack }}
+        />
       )}
 
       {showSessionReport && (

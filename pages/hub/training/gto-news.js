@@ -12,6 +12,7 @@ import { motion } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 const ARTICLES = [
     { id: 1, cat: 'Preflop', title: 'Why 2.5x Is the Standard Open Size', body: 'Using a consistent 2.5x open raise prevents opponents from exploiting sizing tells. Larger opens from EP are outdated — they risk more for the same result. A 2.5x open gives you better pot odds on steals and keeps your range disguised.', date: '2026-03-09' },
@@ -48,8 +49,8 @@ export default function GtoNewsPage() {
 
     useEffect(() => {
         const h = () => { };
-        window.addEventListener('training:session-complete', h);
-        return () => window.removeEventListener('training:session-complete', h);
+        eventBus.on(EventType?.SESSION_END || 'training:session-complete', h);
+        return () => eventBus.off(EventType?.SESSION_END || 'training:session-complete', h);
     }, []);
 
     const toggleBookmark = (id) => {

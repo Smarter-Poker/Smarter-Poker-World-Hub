@@ -872,14 +872,14 @@ function GodModeArena({
         if (gameComplete && gamePhase === 'playing') {
             setGamePhase('review');
             // Phase 2: Emit session-complete bus event
-            if (typeof window !== 'undefined') {
-                window.dispatchEvent(new CustomEvent('training:session-complete', {
-                    detail: {
-                        gameId, gameName, gtowScore, totalEVLoss,
-                        totalQuestions, sessionMistakes, correctCount,
-                        bestStreak, speedBonusDiamonds,
-                    }
-                }));
+            if (typeof window !== 'undefined' && window.eventBus) {
+                window.eventBus.emit(window.EventType?.SESSION_END || 'training:session-complete', {
+                    gameId: String(gameId),
+                    score: Number(newScore),
+                    totalHands: handsPlayed,
+                    durationSeconds: sessionTime,
+                    perfectActionCount: perfectHandsCount
+                }, 'GodModeArena');
             }
         }
     }, [gameComplete, gamePhase, gameId, gameName, gtowScore, totalEVLoss, totalQuestions, sessionMistakes, correctCount, bestStreak, speedBonusDiamonds]);

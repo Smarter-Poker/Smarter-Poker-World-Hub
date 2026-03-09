@@ -13,6 +13,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
+import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 const TIERS = {
     Bronze: { color: '#cd7f32', bg: 'rgba(205,127,50,0.1)', reward: '+50 Diamonds' },
@@ -128,8 +129,8 @@ export default function MilestonesPage() {
     useEffect(() => { fetchData(); }, [fetchData]);
     useEffect(() => {
         const h = () => fetchData();
-        window.addEventListener('training:session-complete', h);
-        return () => window.removeEventListener('training:session-complete', h);
+        eventBus.on(EventType?.SESSION_END || 'training:session-complete', h);
+        return () => eventBus.off(EventType?.SESSION_END || 'training:session-complete', h);
     }, [fetchData]);
 
     const processed = useMemo(() => {

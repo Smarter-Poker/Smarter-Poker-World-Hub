@@ -116,16 +116,21 @@ export default function useTrainingProgress() {
 
     // Load on mount and listen to global events
     useEffect(() => {
-        loadProgress();
+        const handleReload = () => {
+            console.log('[useTrainingProgress] Caught trainingSessionSaved bus event, re-hydrating...');
+            loadProgress();
+        };
+        const eventBus = typeof window !== 'undefined' ? window.eventBus : null;
+        const eventType = typeof window !== 'undefined' && window.EventType ? window.EventType.TRAINING_SESSION_SAVED : 'trainingSessionSaved';
 
-        if (typeof window !== 'undefined') {
-            const handleReload = () => {
-                console.log('[useTrainingProgress] Caught trainingSessionSaved bus event, re-hydrating...');
-                loadProgress();
-            };
-            window.addEventListener('trainingSessionSaved', handleReload);
-            return () => window.removeEventListener('trainingSessionSaved', handleReload);
+        let unsub = null;
+        if (eventBus) {
+            unsub = eventBus.on(eventType, handleReload);
         }
+
+        return () => {
+            if (unsub) unsub();
+        };
     }, [loadProgress]);
 
     // Save to localStorage on change

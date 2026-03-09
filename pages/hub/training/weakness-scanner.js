@@ -13,6 +13,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
+import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 function analyzeData(sessions) {
     if (!sessions || sessions.length === 0) return null;
@@ -65,8 +66,8 @@ export default function WeaknessScannerPage() {
     useEffect(() => { fetchData(); }, [fetchData]);
     useEffect(() => {
         const h = () => fetchData();
-        window.addEventListener('training:session-complete', h);
-        return () => window.removeEventListener('training:session-complete', h);
+        eventBus.on(EventType?.SESSION_END || 'training:session-complete', h);
+        return () => eventBus.off(EventType?.SESSION_END || 'training:session-complete', h);
     }, [fetchData]);
 
     return (

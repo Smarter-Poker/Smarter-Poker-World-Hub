@@ -473,11 +473,13 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
             // NOTE: save-session is handled by GodModeArena's auto-save useEffect
             // to avoid duplicate training_sessions rows.
 
-            // Dispatch event bus for real-time updates across pages
-            if (typeof window !== 'undefined') {
-                window.dispatchEvent(new CustomEvent('trainingSessionSaved', {
-                    detail: { gameId, gtowScore: gtowScoring.gtowScore, handsPlayed: gtowScoring.handsPlayed },
-                }));
+            // Use EventBus instead of window event
+            if (typeof window !== 'undefined' && window.eventBus) {
+                window.eventBus.emit(window.EventType?.TRAINING_SESSION_SAVED || 'trainingSessionSaved', {
+                    gameId: gameId,
+                    gtowScore: gtowScoring.gtowScore,
+                    handsPlayed: gtowScoring.handsPlayed
+                }, 'useGTOTrainer');
             }
 
         } catch (err) {
