@@ -141,6 +141,8 @@ const router = useRouter();
 
     // Filter tables by game type, search, and sort
     const filteredTables = tables.filter(table => {
+        // Exclude closed/deleted tables (belt-and-suspenders with DB filter)
+        if (table.status === 'closed' || table.status === 'deleted') return false;
         // Type filter
         if (activeFilter !== 'ALL') {
             if (activeFilter === 'nlh' && table.game_variant !== 'nlh' && table.game_variant !== 'short_deck' && table.game_variant !== 'pineapple') return false;
@@ -248,6 +250,7 @@ const router = useRouter();
                 .select('id, current_players, status, name, game_variant, big_blind, small_blind, max_players, settings')
                 .eq('club_id', club.id)
                 .neq('status', 'deleted')
+                .neq('status', 'closed')
                 .limit(100)
                 .then(({ data }) => {
                     if (data?.length) setTables(data);
@@ -328,6 +331,7 @@ const router = useRouter();
                     .select('id, current_players, status')
                     .eq('club_id', club.id)
                     .neq('status', 'deleted')
+                    .neq('status', 'closed')
                     .limit(100) // lobby tables;
                 if (data) {
                     setTables(prev => prev.map(t => {
@@ -335,7 +339,7 @@ const router = useRouter();
                         return fresh ? { ...t, current_players: fresh.current_players, status: fresh.status } : t;
                     }).filter(t => {
                         const fresh = data.find(d => d.id === t.id);
-                        return fresh && fresh.status !== 'deleted';
+                        return fresh && fresh.status !== 'deleted' && fresh.status !== 'closed';
                     }));
                 }
             } catch (_) { }
@@ -409,7 +413,7 @@ const router = useRouter();
 
                 // Parallelize: tables + tournaments + announcements + membership all fire at once
                 const [tableResult, tournResult, annResult, memberResult] = await Promise.allSettled([
-                    supabase.from('tables').select('*').eq('club_id', clubData.id).neq('status', 'deleted').limit(100),
+                    supabase.from('tables').select('*').eq('club_id', clubData.id).neq('status', 'deleted').neq('status', 'closed').limit(100),
                     (async () => {
                         const token = await getAuthToken().catch(() => null);
                         if (!token) return { tournaments: [] };

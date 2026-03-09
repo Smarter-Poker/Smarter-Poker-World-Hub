@@ -28,6 +28,13 @@ export default async function handler(req, res) {
     if (!clubId) return res.status(400).json({ error: 'clubId required' });
 
     try {
+        // Load club info (needed for BBJ config + union admin fallback)
+        const { data: clubInfo } = await supabaseAdmin
+            .from('clubs')
+            .select('union_id, bbj_enabled')
+            .eq('id', clubId)
+            .maybeSingle();
+
         // Verify role
         const { data: member } = await supabaseAdmin
             .from('club_members')
@@ -38,7 +45,6 @@ export default async function handler(req, res) {
 
         if (!member || !['owner', 'admin'].includes(member.role)) {
             // Union admin fallback
-            const { data: clubInfo } = await supabaseAdmin.from('clubs').select('union_id, bbj_enabled').eq('id', clubId).maybeSingle();
             let unionAuth = false;
             if (clubInfo?.union_id) {
                 const { data: ua } = await supabaseAdmin.from('union_admins').select('role').eq('union_id', clubInfo.union_id).eq('user_id', user.id).maybeSingle();
