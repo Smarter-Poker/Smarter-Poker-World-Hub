@@ -23,7 +23,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { getGameStickers } from '@/lib/stickerOrchestrator';
+import { getGameStickers } from '../../lib/stickerOrchestrator';
 
 // ─────────────────────────────────────────────────────────────────────
 // VARIANT CONFIG
