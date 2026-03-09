@@ -14,14 +14,19 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 
-
 let _supabase = null;
 function getSupabase() {
-    if (!_supabase && typeof window !== 'undefined') {
-        const { createClient } = require('@supabase/supabase-js');
-        _supabase = typeof window !== 'undefined' ? createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) : null;
-    }
-    return _supabase;
+  if (!_supabase && typeof window !== 'undefined') {
+    const { createClient } = require('@supabase/supabase-js');
+    _supabase =
+      typeof window !== 'undefined'
+        ? createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+          )
+        : null;
+  }
+  return _supabase;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -29,63 +34,105 @@ function getSupabase() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 const PRESETS = [
-    {
-        id: 'bb-defense',
-        name: 'BB Defense',
-        desc: 'Practice defending your Big-Blind vs opens',
-        config: { format: 'cash', positions: ['BB'], streets: ['preflop'], stackMin: 80, stackMax: 200, scenarios: ['vs_raise'] },
-        color: '#3b82f6',
+  {
+    id: 'bb-defense',
+    name: 'BB Defense',
+    desc: 'Practice defending your Big-Blind vs opens',
+    config: {
+      format: 'cash',
+      positions: ['BB'],
+      streets: ['preflop'],
+      stackMin: 80,
+      stackMax: 200,
+      scenarios: ['vs_raise'],
     },
-    {
-        id: 'btn-opens',
-        name: 'BTN Opens',
-        desc: 'Master your button opening range',
-        config: { format: 'cash', positions: ['BTN'], streets: ['preflop'], stackMin: 80, stackMax: 200, scenarios: ['rfi'] },
-        color: '#22c55e',
+    color: '#3b82f6',
+  },
+  {
+    id: 'btn-opens',
+    name: 'BTN Opens',
+    desc: 'Master your button opening range',
+    config: {
+      format: 'cash',
+      positions: ['BTN'],
+      streets: ['preflop'],
+      stackMin: 80,
+      stackMax: 200,
+      scenarios: ['rfi'],
     },
-    {
-        id: '3bet-pots',
-        name: '3-Bet Pots',
-        desc: 'Navigate postflop in 3-bet pots',
-        config: { format: 'cash', positions: [], streets: ['flop', 'turn'], stackMin: 80, stackMax: 200, scenarios: ['3bet_pot'] },
-        color: '#a855f7',
+    color: '#22c55e',
+  },
+  {
+    id: '3bet-pots',
+    name: '3-Bet Pots',
+    desc: 'Navigate postflop in 3-bet pots',
+    config: {
+      format: 'cash',
+      positions: [],
+      streets: ['flop', 'turn'],
+      stackMin: 80,
+      stackMax: 200,
+      scenarios: ['3bet_pot'],
     },
-    {
-        id: 'cbet-spots',
-        name: 'C-Bet Spots',
-        desc: 'Learn when to continuation bet and when to check',
-        config: { format: 'cash', positions: [], streets: ['flop'], stackMin: 80, stackMax: 200, scenarios: ['cbet'] },
-        color: '#f97316',
+    color: '#a855f7',
+  },
+  {
+    id: 'cbet-spots',
+    name: 'C-Bet Spots',
+    desc: 'Learn when to continuation bet and when to check',
+    config: {
+      format: 'cash',
+      positions: [],
+      streets: ['flop'],
+      stackMin: 80,
+      stackMax: 200,
+      scenarios: ['cbet'],
     },
-    {
-        id: 'mtt-push-fold',
-        name: 'MTT Push/Fold',
-        desc: 'Short stack tournament shove or fold decisions',
-        config: { format: 'mtt', positions: [], streets: ['preflop'], stackMin: 5, stackMax: 20, scenarios: ['push_fold'] },
-        color: '#ef4444',
+    color: '#f97316',
+  },
+  {
+    id: 'mtt-push-fold',
+    name: 'MTT Push/Fold',
+    desc: 'Short stack tournament shove or fold decisions',
+    config: {
+      format: 'mtt',
+      positions: [],
+      streets: ['preflop'],
+      stackMin: 5,
+      stackMax: 20,
+      scenarios: ['push_fold'],
     },
-    {
-        id: 'river-decisions',
-        name: 'River Decisions',
-        desc: 'Tough river spots: value bet, bluff, or give up',
-        config: { format: 'cash', positions: [], streets: ['river'], stackMin: 50, stackMax: 200, scenarios: ['river'] },
-        color: '#fbbf24',
+    color: '#ef4444',
+  },
+  {
+    id: 'river-decisions',
+    name: 'River Decisions',
+    desc: 'Tough river spots: value bet, bluff, or give up',
+    config: {
+      format: 'cash',
+      positions: [],
+      streets: ['river'],
+      stackMin: 50,
+      stackMax: 200,
+      scenarios: ['river'],
     },
+    color: '#fbbf24',
+  },
 ];
 
 const FORMATS = [
-    { id: 'cash', label: 'Cash Game' },
-    { id: 'mtt', label: 'Tournament' },
-    { id: 'spins', label: 'Spins' },
+  { id: 'cash', label: 'Cash Game' },
+  { id: 'mtt', label: 'Tournament' },
+  { id: 'spins', label: 'Spins' },
 ];
 
 const POSITIONS = ['BTN', 'CO', 'HJ', 'MP', 'UTG', 'SB', 'BB'];
 
 const STREETS = [
-    { id: 'preflop', label: 'Preflop' },
-    { id: 'flop', label: 'Flop' },
-    { id: 'turn', label: 'Turn' },
-    { id: 'river', label: 'River' },
+  { id: 'preflop', label: 'Preflop' },
+  { id: 'flop', label: 'Flop' },
+  { id: 'turn', label: 'Turn' },
+  { id: 'river', label: 'River' },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -93,22 +140,25 @@ const STREETS = [
 // ═══════════════════════════════════════════════════════════════════════════
 
 function Chip({ label, selected, onClick, color = '#00d4ff' }) {
-    return (
-        <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={onClick}
-            style={{
-                padding: '8px 16px', borderRadius: 8,
-                border: `1px solid ${selected ? `${color}55` : 'rgba(255,255,255,0.08)'}`,
-                background: selected ? `${color}15` : 'rgba(255,255,255,0.03)',
-                color: selected ? color : '#94a3b8',
-                fontSize: 13, fontWeight: 600,
-                cursor: 'pointer', transition: 'all 0.15s ease',
-            }}
-        >
-            {label}
-        </motion.button>
-    );
+  return (
+    <motion.button
+      whileTap={{ scale: 0.95 }}
+      onClick={onClick}
+      style={{
+        padding: '8px 16px',
+        borderRadius: 8,
+        border: `1px solid ${selected ? `${color}55` : 'rgba(255,255,255,0.08)'}`,
+        background: selected ? `${color}15` : 'rgba(255,255,255,0.03)',
+        color: selected ? color : '#94a3b8',
+        fontSize: 13,
+        fontWeight: 600,
+        cursor: 'pointer',
+        transition: 'all 0.15s ease',
+      }}
+    >
+      {label}
+    </motion.button>
+  );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -116,372 +166,494 @@ function Chip({ label, selected, onClick, color = '#00d4ff' }) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default function DrillBuilderPage() {
-    const router = useRouter();
-    useTrainingBus('drill-builder');
-    const [drillName, setDrillName] = useState('');
-    const [format, setFormat] = useState('cash');
-    const [selectedPositions, setSelectedPositions] = useState([]);
-    const [selectedStreets, setSelectedStreets] = useState([]);
-    const [stackMin, setStackMin] = useState(80);
-    const [stackMax, setStackMax] = useState(200);
-    const [savedDrills, setSavedDrills] = useState([]);
-    const [saving, setSaving] = useState(false);
+  const router = useRouter();
+  useTrainingBus('drill-builder');
+  const [drillName, setDrillName] = useState('');
+  const [format, setFormat] = useState('cash');
+  const [selectedPositions, setSelectedPositions] = useState([]);
+  const [selectedStreets, setSelectedStreets] = useState([]);
+  const [stackMin, setStackMin] = useState(80);
+  const [stackMax, setStackMax] = useState(200);
+  const [savedDrills, setSavedDrills] = useState([]);
+  const [saving, setSaving] = useState(false);
 
-    // Load saved drills
-    const loadDrills = async () => {
-        if (!getSupabase()) return;
-        try {
-            const { data: userData } = await getSupabase().auth.getUser();
-            if (!userData?.user) return;
-            const { data } = await getSupabase()
-                .from('training_custom_drills')
-                .select('*')
-                .eq('user_id', userData.user.id)
-                .order('created_at', { ascending: false })
-                .limit(20);
-            if (data) setSavedDrills(data);
-        } catch (e) {
-            console.log('[DrillBuilder] No saved drills:', e.message);
-        }
-    };
+  // Load saved drills
+  const loadDrills = async () => {
+    if (!getSupabase()) return;
+    try {
+      const { data: userData } = await getSupabase().auth.getUser();
+      if (!userData?.user) return;
+      const { data } = await getSupabase()
+        .from('training_custom_drills')
+        .select('*')
+        .eq('user_id', userData.user.id)
+        .order('created_at', { ascending: false })
+        .limit(20);
+      if (data) setSavedDrills(data);
+    } catch (e) {
+      console.log('[DrillBuilder] No saved drills:', e.message);
+    }
+  };
 
-    useEffect(() => {
-        loadDrills();
-    }, []);
+  useEffect(() => {
+    loadDrills();
+  }, []);
 
-    // Bus Listeners — refresh drills when session completes
-    useEffect(() => {
-        const unsub = eventBus.on(EventType.SESSION_END, () => loadDrills());
-        return unsub;
-    }, []);
+  // Bus Listeners — refresh drills when session completes
+  useEffect(() => {
+    const unsub = eventBus.on(EventType?.SESSION_END || 'session:end', () => loadDrills());
+    return unsub;
+  }, []);
 
-    const togglePosition = (pos) => {
-        setSelectedPositions(prev =>
-            prev.includes(pos) ? prev.filter(p => p !== pos) : [...prev, pos]
-        );
-    };
-
-    const toggleStreet = (street) => {
-        setSelectedStreets(prev =>
-            prev.includes(street) ? prev.filter(s => s !== street) : [...prev, street]
-        );
-    };
-
-    const applyPreset = (preset) => {
-        setDrillName(preset.name);
-        setFormat(preset.config.format);
-        setSelectedPositions(preset.config.positions);
-        setSelectedStreets(preset.config.streets);
-        setStackMin(preset.config.stackMin);
-        setStackMax(preset.config.stackMax);
-    };
-
-    const saveDrill = async () => {
-        if (!drillName.trim()) return;
-        setSaving(true);
-        try {
-            const { data: userData } = await getSupabase().auth.getUser();
-            if (!userData?.user) return;
-
-            const config = {
-                format,
-                positions: selectedPositions,
-                streets: selectedStreets,
-                stackMin, stackMax,
-            };
-
-            const { error } = await getSupabase()
-                .from('training_custom_drills')
-                .insert({
-                    user_id: userData.user.id,
-                    name: drillName.trim(),
-                    config,
-                });
-
-            if (!error) {
-                setSavedDrills(prev => [{ name: drillName, config, created_at: new Date().toISOString() }, ...prev]);
-                setDrillName('');
-                // Bus Event — notify other pages
-                eventBus.emit('training:drill-saved', { name: drillName.trim(), config }, 'DrillBuilder');
-            }
-        } catch (e) {
-            console.error('[DrillBuilder] Save error:', e);
-        }
-        setSaving(false);
-    };
-
-    const startDrill = (config) => {
-        // Navigate to arena with drill config as query params
-        const params = new URLSearchParams({
-            format: config.format || 'cash',
-            positions: (config.positions || []).join(','),
-            streets: (config.streets || []).join(','),
-            stackMin: config.stackMin || 80,
-            stackMax: config.stackMax || 200,
-        });
-        router.push(`/hub/training/arena/spot-trainer?${params.toString()}`);
-    };
-
-    return (
-        <>
-            <Head>
-                <title>Drill Builder | Smarter.Poker GTO Training</title>
-            </Head>
-            <div style={{
-                minHeight: '100vh',
-                background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
-                color: '#e2e8f0',
-                fontFamily: "'Inter', -apple-system, sans-serif",
-            }}>
-                {/* Header */}
-                <div style={{
-                    padding: '16px 20px',
-                    borderBottom: '1px solid rgba(255,255,255,0.06)',
-                    display: 'flex', alignItems: 'center', gap: 12,
-                }}>
-                    <button
-                        onClick={() => router.push('/hub/training')}
-                        style={{
-                            background: 'rgba(255,255,255,0.05)', border: 'none',
-                            color: '#94a3b8', fontSize: 18, cursor: 'pointer',
-                            width: 36, height: 36, borderRadius: 8,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        }}
-                    >
-                        \u2190
-                    </button>
-                    <div>
-                        <div style={{ fontSize: 16, fontWeight: 700, color: '#e2e8f0' }}>
-                            Custom Drill Builder
-                        </div>
-                        <div style={{ fontSize: 11, color: '#64748b' }}>
-                            Create focused practice sessions
-                        </div>
-                    </div>
-                </div>
-
-                <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
-
-                    {/* Quick Presets */}
-                    <div style={{ marginBottom: 24 }}>
-                        <div style={{
-                            fontSize: 11, fontWeight: 700, color: '#64748b',
-                            textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10,
-                        }}>
-                            Quick Presets
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
-                            {PRESETS.map(preset => (
-                                <motion.button
-                                    key={preset.id}
-                                    whileTap={{ scale: 0.97 }}
-                                    onClick={() => applyPreset(preset)}
-                                    style={{
-                                        padding: '14px 12px', borderRadius: 10, textAlign: 'left',
-                                        background: 'rgba(0,0,0,0.2)',
-                                        border: `1px solid ${preset.color}22`,
-                                        cursor: 'pointer',
-                                    }}
-                                >
-                                    <div style={{ fontSize: 13, fontWeight: 700, color: preset.color, marginBottom: 2 }}>
-                                        {preset.name}
-                                    </div>
-                                    <div style={{ fontSize: 10, color: '#64748b' }}>
-                                        {preset.desc}
-                                    </div>
-                                </motion.button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Custom Builder */}
-                    <div style={{
-                        padding: '20px 16px', borderRadius: 12,
-                        background: 'rgba(0,0,0,0.2)',
-                        border: '1px solid rgba(255,255,255,0.05)',
-                        marginBottom: 24,
-                    }}>
-                        {/* Drill Name */}
-                        <div style={{ marginBottom: 16 }}>
-                            <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>
-                                Drill Name
-                            </div>
-                            <input
-                                value={drillName}
-                                onChange={e => setDrillName(e.target.value)}
-                                placeholder="e.g., SB vs BB 3-Bet Defense"
-                                style={{
-                                    width: '100%', padding: '10px 12px', borderRadius: 8,
-                                    background: 'rgba(255,255,255,0.03)',
-                                    border: '1px solid rgba(255,255,255,0.08)',
-                                    color: '#e2e8f0', fontSize: 13, outline: 'none',
-                                    fontFamily: "'Inter', -apple-system, sans-serif",
-                                }}
-                            />
-                        </div>
-
-                        {/* Format */}
-                        <div style={{ marginBottom: 16 }}>
-                            <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>
-                                Format
-                            </div>
-                            <div style={{ display: 'flex', gap: 8 }}>
-                                {FORMATS.map(f => (
-                                    <Chip
-                                        key={f.id}
-                                        label={f.label}
-                                        selected={format === f.id}
-                                        onClick={() => setFormat(f.id)}
-                                    />
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Positions */}
-                        <div style={{ marginBottom: 16 }}>
-                            <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>
-                                Positions (empty = all)
-                            </div>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                                {POSITIONS.map(pos => (
-                                    <Chip
-                                        key={pos}
-                                        label={pos}
-                                        selected={selectedPositions.includes(pos)}
-                                        onClick={() => togglePosition(pos)}
-                                        color="#a855f7"
-                                    />
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Streets */}
-                        <div style={{ marginBottom: 16 }}>
-                            <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>
-                                Streets (empty = all)
-                            </div>
-                            <div style={{ display: 'flex', gap: 8 }}>
-                                {STREETS.map(s => (
-                                    <Chip
-                                        key={s.id}
-                                        label={s.label}
-                                        selected={selectedStreets.includes(s.id)}
-                                        onClick={() => toggleStreet(s.id)}
-                                        color="#22c55e"
-                                    />
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Stack Range */}
-                        <div style={{ marginBottom: 16 }}>
-                            <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>
-                                Stack Depth (BB)
-                            </div>
-                            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                <input
-                                    type="number"
-                                    value={stackMin}
-                                    onChange={e => setStackMin(Number(e.target.value))}
-                                    style={{
-                                        width: 80, padding: '8px 10px', borderRadius: 8,
-                                        background: 'rgba(255,255,255,0.03)',
-                                        border: '1px solid rgba(255,255,255,0.08)',
-                                        color: '#e2e8f0', fontSize: 13, textAlign: 'center', outline: 'none',
-                                    }}
-                                />
-                                <span style={{ color: '#475569' }}>to</span>
-                                <input
-                                    type="number"
-                                    value={stackMax}
-                                    onChange={e => setStackMax(Number(e.target.value))}
-                                    style={{
-                                        width: 80, padding: '8px 10px', borderRadius: 8,
-                                        background: 'rgba(255,255,255,0.03)',
-                                        border: '1px solid rgba(255,255,255,0.08)',
-                                        color: '#e2e8f0', fontSize: 13, textAlign: 'center', outline: 'none',
-                                    }}
-                                />
-                                <span style={{ fontSize: 11, color: '#475569' }}>BB</span>
-                            </div>
-                        </div>
-
-                        {/* Actions */}
-                        <div style={{ display: 'flex', gap: 8 }}>
-                            <motion.button
-                                whileTap={{ scale: 0.97 }}
-                                onClick={saveDrill}
-                                disabled={saving || !drillName.trim()}
-                                style={{
-                                    flex: 1, padding: '12px 0', borderRadius: 10,
-                                    border: '1px solid rgba(255,255,255,0.1)',
-                                    background: 'rgba(255,255,255,0.05)',
-                                    color: drillName.trim() ? '#e2e8f0' : '#475569',
-                                    fontSize: 13, fontWeight: 700, cursor: 'pointer',
-                                }}
-                            >
-                                {saving ? 'Saving...' : 'Save Drill'}
-                            </motion.button>
-                            <motion.button
-                                whileTap={{ scale: 0.97 }}
-                                onClick={() => startDrill({ format, positions: selectedPositions, streets: selectedStreets, stackMin, stackMax })}
-                                style={{
-                                    flex: 1, padding: '12px 0', borderRadius: 10,
-                                    border: '1px solid rgba(0,212,255,0.3)',
-                                    background: 'linear-gradient(180deg, rgba(0,212,255,0.15) 0%, rgba(0,212,255,0.05) 100%)',
-                                    color: '#00d4ff', fontSize: 13, fontWeight: 700,
-                                    cursor: 'pointer',
-                                }}
-                            >
-                                Start Drill
-                            </motion.button>
-                        </div>
-                    </div>
-
-                    {/* Saved Drills */}
-                    {savedDrills.length > 0 && (
-                        <div>
-                            <div style={{
-                                fontSize: 11, fontWeight: 700, color: '#64748b',
-                                textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10,
-                            }}>
-                                Saved Drills
-                            </div>
-                            {savedDrills.map((drill, i) => (
-                                <motion.button
-                                    key={drill.id || i}
-                                    whileTap={{ scale: 0.98 }}
-                                    onClick={() => startDrill(drill.config)}
-                                    style={{
-                                        width: '100%', padding: '14px', borderRadius: 10, marginBottom: 8,
-                                        background: 'rgba(0,0,0,0.2)',
-                                        border: '1px solid rgba(255,255,255,0.06)',
-                                        cursor: 'pointer', textAlign: 'left',
-                                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                    }}
-                                >
-                                    <div>
-                                        <div style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0' }}>
-                                            {drill.name}
-                                        </div>
-                                        <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>
-                                            {drill.config?.format?.toUpperCase()} | {(drill.config?.positions || []).join(', ') || 'All Positions'} | {(drill.config?.streets || []).join(', ') || 'All Streets'}
-                                        </div>
-                                    </div>
-                                    <span style={{
-                                        padding: '4px 12px', borderRadius: 6,
-                                        background: 'rgba(0,212,255,0.08)',
-                                        border: '1px solid rgba(0,212,255,0.15)',
-                                        color: '#00d4ff', fontSize: 11, fontWeight: 700,
-                                    }}>
-                                        Play
-                                    </span>
-                                </motion.button>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            </div>
-        </>
+  const togglePosition = (pos) => {
+    setSelectedPositions((prev) =>
+      prev.includes(pos) ? prev.filter((p) => p !== pos) : [...prev, pos]
     );
+  };
+
+  const toggleStreet = (street) => {
+    setSelectedStreets((prev) =>
+      prev.includes(street) ? prev.filter((s) => s !== street) : [...prev, street]
+    );
+  };
+
+  const applyPreset = (preset) => {
+    setDrillName(preset.name);
+    setFormat(preset.config.format);
+    setSelectedPositions(preset.config.positions);
+    setSelectedStreets(preset.config.streets);
+    setStackMin(preset.config.stackMin);
+    setStackMax(preset.config.stackMax);
+  };
+
+  const saveDrill = async () => {
+    if (!drillName.trim()) return;
+    setSaving(true);
+    try {
+      const { data: userData } = await getSupabase().auth.getUser();
+      if (!userData?.user) return;
+
+      const config = {
+        format,
+        positions: selectedPositions,
+        streets: selectedStreets,
+        stackMin,
+        stackMax,
+      };
+
+      const { error } = await getSupabase().from('training_custom_drills').insert({
+        user_id: userData.user.id,
+        name: drillName.trim(),
+        config,
+      });
+
+      if (!error) {
+        setSavedDrills((prev) => [
+          { name: drillName, config, created_at: new Date().toISOString() },
+          ...prev,
+        ]);
+        setDrillName('');
+        // Bus Event — notify other pages
+        eventBus?.emit?.(
+          'training:drill-saved',
+          { name: drillName.trim(), config },
+          'DrillBuilder'
+        );
+      }
+    } catch (e) {
+      console.error('[DrillBuilder] Save error:', e);
+    }
+    setSaving(false);
+  };
+
+  const startDrill = (config) => {
+    // Navigate to arena with drill config as query params
+    const params = new URLSearchParams({
+      format: config.format || 'cash',
+      positions: (config.positions || []).join(','),
+      streets: (config.streets || []).join(','),
+      stackMin: config.stackMin || 80,
+      stackMax: config.stackMax || 200,
+    });
+    router.push(`/hub/training/arena/spot-trainer?${params.toString()}`);
+  };
+
+  return (
+    <>
+      <Head>
+        <title>Drill Builder | Smarter.Poker GTO Training</title>
+      </Head>
+      <div
+        style={{
+          minHeight: '100vh',
+          background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
+          color: '#e2e8f0',
+          fontFamily: "'Inter', -apple-system, sans-serif",
+        }}
+      >
+        {/* Header */}
+        <div
+          style={{
+            padding: '16px 20px',
+            borderBottom: '1px solid rgba(255,255,255,0.06)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+          }}
+        >
+          <button
+            onClick={() => router.push('/hub/training')}
+            style={{
+              background: 'rgba(255,255,255,0.05)',
+              border: 'none',
+              color: '#94a3b8',
+              fontSize: 18,
+              cursor: 'pointer',
+              width: 36,
+              height: 36,
+              borderRadius: 8,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            \u2190
+          </button>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#e2e8f0' }}>
+              Custom Drill Builder
+            </div>
+            <div style={{ fontSize: 11, color: '#64748b' }}>Create focused practice sessions</div>
+          </div>
+        </div>
+
+        <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
+          {/* Quick Presets */}
+          <div style={{ marginBottom: 24 }}>
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: '#64748b',
+                textTransform: 'uppercase',
+                letterSpacing: 1,
+                marginBottom: 10,
+              }}
+            >
+              Quick Presets
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+              {PRESETS.map((preset) => (
+                <motion.button
+                  key={preset.id}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => applyPreset(preset)}
+                  style={{
+                    padding: '14px 12px',
+                    borderRadius: 10,
+                    textAlign: 'left',
+                    background: 'rgba(0,0,0,0.2)',
+                    border: `1px solid ${preset.color}22`,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <div
+                    style={{ fontSize: 13, fontWeight: 700, color: preset.color, marginBottom: 2 }}
+                  >
+                    {preset.name}
+                  </div>
+                  <div style={{ fontSize: 10, color: '#64748b' }}>{preset.desc}</div>
+                </motion.button>
+              ))}
+            </div>
+          </div>
+
+          {/* Custom Builder */}
+          <div
+            style={{
+              padding: '20px 16px',
+              borderRadius: 12,
+              background: 'rgba(0,0,0,0.2)',
+              border: '1px solid rgba(255,255,255,0.05)',
+              marginBottom: 24,
+            }}
+          >
+            {/* Drill Name */}
+            <div style={{ marginBottom: 16 }}>
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: '#64748b',
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.5,
+                  marginBottom: 6,
+                }}
+              >
+                Drill Name
+              </div>
+              <input
+                value={drillName}
+                onChange={(e) => setDrillName(e.target.value)}
+                placeholder="e.g., SB vs BB 3-Bet Defense"
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  borderRadius: 8,
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  color: '#e2e8f0',
+                  fontSize: 13,
+                  outline: 'none',
+                  fontFamily: "'Inter', -apple-system, sans-serif",
+                }}
+              />
+            </div>
+
+            {/* Format */}
+            <div style={{ marginBottom: 16 }}>
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: '#64748b',
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.5,
+                  marginBottom: 6,
+                }}
+              >
+                Format
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {FORMATS.map((f) => (
+                  <Chip
+                    key={f.id}
+                    label={f.label}
+                    selected={format === f.id}
+                    onClick={() => setFormat(f.id)}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Positions */}
+            <div style={{ marginBottom: 16 }}>
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: '#64748b',
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.5,
+                  marginBottom: 6,
+                }}
+              >
+                Positions (empty = all)
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {POSITIONS.map((pos) => (
+                  <Chip
+                    key={pos}
+                    label={pos}
+                    selected={selectedPositions.includes(pos)}
+                    onClick={() => togglePosition(pos)}
+                    color="#a855f7"
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Streets */}
+            <div style={{ marginBottom: 16 }}>
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: '#64748b',
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.5,
+                  marginBottom: 6,
+                }}
+              >
+                Streets (empty = all)
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {STREETS.map((s) => (
+                  <Chip
+                    key={s.id}
+                    label={s.label}
+                    selected={selectedStreets.includes(s.id)}
+                    onClick={() => toggleStreet(s.id)}
+                    color="#22c55e"
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Stack Range */}
+            <div style={{ marginBottom: 16 }}>
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: '#64748b',
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.5,
+                  marginBottom: 6,
+                }}
+              >
+                Stack Depth (BB)
+              </div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <input
+                  type="number"
+                  value={stackMin}
+                  onChange={(e) => setStackMin(Number(e.target.value))}
+                  style={{
+                    width: 80,
+                    padding: '8px 10px',
+                    borderRadius: 8,
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    color: '#e2e8f0',
+                    fontSize: 13,
+                    textAlign: 'center',
+                    outline: 'none',
+                  }}
+                />
+                <span style={{ color: '#475569' }}>to</span>
+                <input
+                  type="number"
+                  value={stackMax}
+                  onChange={(e) => setStackMax(Number(e.target.value))}
+                  style={{
+                    width: 80,
+                    padding: '8px 10px',
+                    borderRadius: 8,
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    color: '#e2e8f0',
+                    fontSize: 13,
+                    textAlign: 'center',
+                    outline: 'none',
+                  }}
+                />
+                <span style={{ fontSize: 11, color: '#475569' }}>BB</span>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                onClick={saveDrill}
+                disabled={saving || !drillName.trim()}
+                style={{
+                  flex: 1,
+                  padding: '12px 0',
+                  borderRadius: 10,
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  background: 'rgba(255,255,255,0.05)',
+                  color: drillName.trim() ? '#e2e8f0' : '#475569',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                {saving ? 'Saving...' : 'Save Drill'}
+              </motion.button>
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                onClick={() =>
+                  startDrill({
+                    format,
+                    positions: selectedPositions,
+                    streets: selectedStreets,
+                    stackMin,
+                    stackMax,
+                  })
+                }
+                style={{
+                  flex: 1,
+                  padding: '12px 0',
+                  borderRadius: 10,
+                  border: '1px solid rgba(0,212,255,0.3)',
+                  background:
+                    'linear-gradient(180deg, rgba(0,212,255,0.15) 0%, rgba(0,212,255,0.05) 100%)',
+                  color: '#00d4ff',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                Start Drill
+              </motion.button>
+            </div>
+          </div>
+
+          {/* Saved Drills */}
+          {savedDrills.length > 0 && (
+            <div>
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: '#64748b',
+                  textTransform: 'uppercase',
+                  letterSpacing: 1,
+                  marginBottom: 10,
+                }}
+              >
+                Saved Drills
+              </div>
+              {savedDrills.map((drill, i) => (
+                <motion.button
+                  key={drill.id || i}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => startDrill(drill.config)}
+                  style={{
+                    width: '100%',
+                    padding: '14px',
+                    borderRadius: 10,
+                    marginBottom: 8,
+                    background: 'rgba(0,0,0,0.2)',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0' }}>
+                      {drill.name}
+                    </div>
+                    <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>
+                      {drill.config?.format?.toUpperCase()} |{' '}
+                      {(drill.config?.positions || []).join(', ') || 'All Positions'} |{' '}
+                      {(drill.config?.streets || []).join(', ') || 'All Streets'}
+                    </div>
+                  </div>
+                  <span
+                    style={{
+                      padding: '4px 12px',
+                      borderRadius: 6,
+                      background: 'rgba(0,212,255,0.08)',
+                      border: '1px solid rgba(0,212,255,0.15)',
+                      color: '#00d4ff',
+                      fontSize: 11,
+                      fontWeight: 700,
+                    }}
+                  >
+                    Play
+                  </span>
+                </motion.button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
 }
