@@ -12,6 +12,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -73,6 +74,16 @@ export default function AggregateReports() {
 
     useEffect(() => {
         fetchReport();
+    }, [fetchReport]);
+
+    // Bus listener — auto-refresh when other training completes
+    useEffect(() => {
+        const unsub = eventBus.on(EventType.SESSION_END, () => fetchReport());
+        window.addEventListener('training:session-complete', fetchReport);
+        return () => {
+            if (typeof unsub === 'function') unsub();
+            window.removeEventListener('training:session-complete', fetchReport);
+        };
     }, [fetchReport]);
 
     const maxCbet = useMemo(() => {

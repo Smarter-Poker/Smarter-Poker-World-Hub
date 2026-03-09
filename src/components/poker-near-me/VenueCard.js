@@ -65,7 +65,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 <span className="trust-badge" style={{ color: trust.color }}>Trust: {trust.label} ({venue.trust_score || '-'})</span>
                 <div className="card-actions">
                     {venue.website && (
-                        <a href={venue.website} target="_blank" rel="noopener noreferrer" className="action-btn" onClick={e => e.stopPropagation()}>Web</a>
+                        <a href={venue.website.startsWith('http') ? venue.website : 'https://' + venue.website} target="_blank" rel="noopener noreferrer" className="action-btn" onClick={e => e.stopPropagation()}>Web</a>
                     )}
                     {venue.phone && <a href={'tel:' + venue.phone} className="action-btn" onClick={e => e.stopPropagation()}>Call</a>}
                     <a href={'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent((venue.address || '') + ' ' + venue.name + ' ' + venue.city + ' ' + venue.state)}

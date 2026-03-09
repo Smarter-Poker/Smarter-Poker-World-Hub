@@ -13,6 +13,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 function busEmitSession(gameId, stats = {}) {
     if (typeof window !== 'undefined') {
@@ -28,8 +29,8 @@ function busEmitSession(gameId, stats = {}) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
             body: JSON.stringify({ game_id: gameId, hands_played: 1, accuracy: 100, correct_answers: 1, total_questions: 1, ...stats }),
-        }).catch(() => {});
-    } catch {}
+        }).catch(() => { });
+    } catch { }
 }
 
 
@@ -173,9 +174,8 @@ export default function PositionMasteryPage() {
 
     // Bus listener — refresh when training completes
     useEffect(() => {
-        const onComplete = () => fetchData();
-        window.addEventListener('training:session-complete', onComplete);
-        return () => window.removeEventListener('training:session-complete', onComplete);
+        const unsub = eventBus.on(EventType.SESSION_END, () => fetchData());
+        return unsub;
     }, [fetchData]);
 
     // Compute per-position data from progress

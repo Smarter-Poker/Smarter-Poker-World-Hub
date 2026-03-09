@@ -46,6 +46,8 @@ import {
 } from '../../../src/components/sandbox/SandboxComponents';
 import { ExportCard } from '../../../src/components/sandbox/ExportCard';
 import RangeExplorer from '../../../src/components/sandbox/RangeExplorer';
+import QuickSpotDrill from '../../../src/components/sandbox/QuickSpotDrill';
+import SessionReport from '../../../src/components/sandbox/SessionReport';
 
 // ═══════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -673,6 +675,8 @@ export default function VirtualSandbox() {
   const [sessionLog, setSessionLog] = useState([]);
   const [showSessionLog, setShowSessionLog] = useState(false);
   const [showRangeExplorer, setShowRangeExplorer] = useState(false);
+  const [showQuickDrill, setShowQuickDrill] = useState(false);
+  const [showSessionReport, setShowSessionReport] = useState(false);
 
   // ─── WAVE 2: Socratic Coach Mode (Feature 6) ─────────────────────────────
   const [coachMode, setCoachMode] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('sandbox-coach-mode') === 'true' : false);
@@ -1412,6 +1416,8 @@ export default function VirtualSandbox() {
               <button onClick={() => { toggleSound(); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: soundEnabled ? 'rgba(34,197,94,0.15)' : '#3A3B3C', border: `1px solid ${soundEnabled ? 'rgba(34,197,94,0.3)' : '#4E4F50'}`, color: soundEnabled ? '#4ade80' : '#E4E6EB', cursor: 'pointer' }}>Sound {soundEnabled ? 'ON' : 'OFF'}</button>
               <button onClick={() => { setShowTemplates(true); loadTemplates(); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', cursor: 'pointer' }}>Templates</button>
               <button onClick={() => { setShowRangeExplorer(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(245,166,35,0.12)', border: '1px solid rgba(245,166,35,0.3)', color: '#F5A623', cursor: 'pointer' }}>🎯 Ranges</button>
+              <button onClick={() => { setShowQuickDrill(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(0,230,118,0.12)', border: '1px solid rgba(0,230,118,0.3)', color: '#00E676', cursor: 'pointer' }}>⚡ Drill</button>
+              <button onClick={() => { setShowSessionReport(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(69,153,255,0.12)', border: '1px solid rgba(69,153,255,0.3)', color: '#4599FF', cursor: 'pointer' }}>📋 Report</button>
               <button onClick={() => { setShowHHImport(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', cursor: 'pointer' }}>Import HH</button>
               {/* Felt color dots row */}
               <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 8, paddingTop: 4 }}>
@@ -1799,6 +1805,20 @@ export default function VirtualSandbox() {
             }
           }}
           onClose={() => setShowRangeExplorer(false)}
+        />
+      )}
+
+      {/* ═══ QUICK-SPOT DRILL MODAL (W4-4) ═══ */}
+      {showQuickDrill && (
+        <QuickSpotDrill onClose={() => setShowQuickDrill(false)} />
+      )}
+
+      {/* ═══ SESSION REPORT MODAL (W4-6) ═══ */}
+      {showSessionReport && (
+        <SessionReport
+          sessionLog={sessionLog}
+          coachStreak={coachStreak}
+          onClose={() => setShowSessionReport(false)}
         />
       )}
 

@@ -14,6 +14,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
+import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TILT DETECTION
@@ -207,9 +208,8 @@ export default function TiltGuardPage() {
     useEffect(() => { fetchData(); }, [fetchData]);
 
     useEffect(() => {
-        const onSessionComplete = () => fetchData();
-        window.addEventListener('training:session-complete', onSessionComplete);
-        return () => window.removeEventListener('training:session-complete', onSessionComplete);
+        const unsub = eventBus.on(EventType.SESSION_END, () => fetchData());
+        return unsub;
     }, [fetchData]);
 
     const riskColors = { high: '#ef4444', medium: '#fbbf24', low: '#22c55e', none: '#64748b' };

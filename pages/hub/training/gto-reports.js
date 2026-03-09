@@ -209,9 +209,8 @@ export default function GTOReportsPage() {
 
     // Bus listener — auto-refresh when a training session completes
     useEffect(() => {
-        const onSessionComplete = () => fetchSessions();
-        window.addEventListener('training:session-complete', onSessionComplete);
-        return () => window.removeEventListener('training:session-complete', onSessionComplete);
+        const unsub = eventBus.on(EventType.SESSION_END, () => fetchSessions());
+        return unsub;
     }, [fetchSessions]);
 
     // Compute aggregate user stats from sessions

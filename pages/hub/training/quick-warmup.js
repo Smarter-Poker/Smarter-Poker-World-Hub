@@ -15,6 +15,7 @@ import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
+import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 const GodModeArena = dynamic(
     () => import('../../../src/components/training/GodModeArena'),
@@ -107,9 +108,8 @@ export default function QuickWarmupPage() {
 
     // Bus listener
     useEffect(() => {
-        const onSessionComplete = () => fetchSessions();
-        window.addEventListener('training:session-complete', onSessionComplete);
-        return () => window.removeEventListener('training:session-complete', onSessionComplete);
+        const unsub = eventBus.on(EventType.SESSION_END, () => fetchSessions());
+        return unsub;
     }, [fetchSessions]);
 
     // Timer countdown

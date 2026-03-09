@@ -14,6 +14,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
+import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // QUIZ TEMPLATES
@@ -193,9 +194,8 @@ export default function QuizBuilderPage() {
 
     // Bus listener
     useEffect(() => {
-        const onSessionComplete = () => { };
-        window.addEventListener('training:session-complete', onSessionComplete);
-        return () => window.removeEventListener('training:session-complete', onSessionComplete);
+        const unsub = eventBus.on(EventType.SESSION_END, () => { });
+        return unsub;
     }, []);
 
     const addQuestion = () => {

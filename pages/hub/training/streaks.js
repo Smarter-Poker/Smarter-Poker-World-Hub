@@ -15,7 +15,7 @@ import { supabase } from '../../../src/lib/supabase';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { getAuthUser } from '../../../src/lib/authUtils';
-import { busEmit } from '../../../src/engine/EventBus';
+import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 function busEmitSession(gameId, stats = {}) {
@@ -89,9 +89,8 @@ export default function StreaksPage() {
 
     // Bus listener — auto-refresh streaks when a training session completes
     useEffect(() => {
-        const onSessionComplete = () => refreshStreak();
-        window.addEventListener('training:session-complete', onSessionComplete);
-        return () => window.removeEventListener('training:session-complete', onSessionComplete);
+        const unsub = eventBus.on(EventType.SESSION_END, () => refreshStreak());
+        return unsub;
     }, [refreshStreak]);
 
     const claimMilestone = async (milestoneDays) => {
