@@ -1946,35 +1946,33 @@ function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, is
         left: 0,
         right: 0,
         display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '8px 16px',
+        flexDirection: 'column',
         background: 'rgba(0,0,0,0.6)',
         backdropFilter: 'blur(8px)',
         borderBottom: '1px solid rgba(255,255,255,0.05)',
         zIndex: 30,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <span style={{ color: T.accent, fontWeight: 800, fontSize: 14 }}>
+      {/* Row 1 — Table info */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', flexWrap: 'wrap' }}>
+        <span style={{ color: T.accent, fontWeight: 800, fontSize: 13, maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {tableState?.config?.tableName || tableState.tableId?.slice(0, 8)}
         </span>
-        {/* Tournament badge — shows tournament name and buy-in when applicable */}
+        {/* Tournament badge */}
         {tableState?.config?.isTournament && (
           <span style={{
-            color: '#fbbf24', fontSize: 11, fontWeight: 700,
-            padding: '2px 8px', borderRadius: 4,
+            color: '#fbbf24', fontSize: 10, fontWeight: 700,
+            padding: '1px 6px', borderRadius: 4,
             background: 'rgba(251,191,36,0.15)',
             border: '1px solid rgba(251,191,36,0.3)',
-            maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
             {tableState.config.tournamentName || 'Tournament'}
-            {tableState.config.buyIn ? ` — ${tableState.config.buyIn.toLocaleString()}` : ''}
           </span>
         )}
         <span style={{
-          color: '#fff', fontSize: 11, fontWeight: 700,
-          padding: '2px 8px', borderRadius: 4,
+          color: '#fff', fontSize: 10, fontWeight: 700,
+          padding: '1px 6px', borderRadius: 4,
           background: ({
             holdem: '#22c55e', omaha4: '#f59e0b', omaha5: '#e67e22',
             omaha6: '#e74c3c', omaha_hilo: '#ef4444', short_deck: '#8b5cf6',
@@ -1985,48 +1983,36 @@ function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, is
             omaha_hilo: 'PLO8', short_deck: '6+',
           })[tableState?.config?.variant] || 'NLH'}
         </span>
-        <span style={{ color: T.textSecondary, fontSize: 12, fontWeight: 600 }}>
-          {tableState?.config?.isTournament
-            ? `Blinds ${tableState?.config?.smallBlind || 1}/${tableState?.config?.bigBlind || 2}`
-            : `${tableState?.config?.smallBlind || 1}/${tableState?.config?.bigBlind || 2}`
-          }
+        <span style={{ color: T.textSecondary, fontSize: 11, fontWeight: 600 }}>
+          {tableState?.config?.smallBlind || 1}/{tableState?.config?.bigBlind || 2}
         </span>
-        <span style={{ color: T.textMuted, fontSize: 12, fontFamily: 'monospace', letterSpacing: '0.03em' }}>
-          {game?.handId ? game.handId : (game?.handNumber ? `H${String(game.handNumber).padStart(6, '0')}` : 'H------')}
+        <span style={{ color: T.textMuted, fontSize: 10, fontFamily: 'monospace' }}>
+          {game?.handNumber ? `#${game.handNumber}` : ''}
+        </span>
+        <span style={{
+          color: game?.phase === 'idle' ? T.textMuted : T.callGreen,
+          fontSize: 10, padding: '1px 5px', borderRadius: 4,
+          background: 'rgba(255,255,255,0.05)',
+        }}>
+          {game?.phase?.toUpperCase() || 'WAITING'}
         </span>
 
-        {/* Mixed game rotation indicator */}
-        {tableState?.config?.mixedGame && tableState?.config?.variantRotation && (
-          <span style={{ color: '#e1bee7', fontSize: 10, padding: '2px 6px', borderRadius: 4, background: 'rgba(156,39,176,0.2)', border: '1px solid rgba(156,39,176,0.3)' }}>
-            {(tableState.config.currentVariantIndex || 0) + 1}/{tableState.config.variantRotation.length}
-          </span>
-        )}
-
-        {/* Session P&L */}
+        {/* Session P&L — inline on same row */}
         {isSitting && sessionStats?.initialBuyIn > 0 && (() => {
           const pnl = myStack - sessionStats.initialBuyIn - (sessionStats.totalAdded || 0);
           const color = pnl > 0 ? '#4caf50' : pnl < 0 ? '#ef5350' : T.textMuted;
           const hrs = sessionStats.sessionStart ? ((Date.now() - sessionStats.sessionStart) / 3600000).toFixed(1) : '0';
           return (
-            <span style={{ color, fontSize: 11, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: 'rgba(255,255,255,0.05)' }}>
-              {pnl >= 0 ? '+' : ''}{pnl.toLocaleString()} • {sessionStats.handsPlayed}h • {hrs}hr
+            <span style={{ color, fontSize: 10, fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: 'rgba(255,255,255,0.05)', marginLeft: 'auto' }}>
+              {pnl >= 0 ? '+' : ''}{pnl.toLocaleString()} • {sessionStats.handsPlayed} hands • {hrs}hr
             </span>
           );
         })()}
-
-        <span style={{
-          color: game?.phase === 'idle' ? T.textMuted : T.callGreen,
-          fontSize: 11,
-          padding: '2px 6px',
-          borderRadius: 4,
-          background: 'rgba(255,255,255,0.05)',
-        }}>
-          {game?.phase?.toUpperCase() || 'WAITING'}
-        </span>
       </div>
 
+      {/* Row 2 — Action buttons (only when seated) */}
       {isSitting && (
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div style={{ display: 'flex', gap: 5, padding: '3px 12px 6px', overflowX: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
           <SmallButton
             label={isSittingOut ? 'Sit In' : 'Sit Out'}
             onClick={isSittingOut ? onSitIn : onSitOut}
@@ -3510,10 +3496,24 @@ function LivePokerTable({
         )}
       </AnimatePresence>
 
+      {/* ═══════════ QUICK SOUND TOGGLE ═══════════ */}
+      <button
+        onClick={() => setSoundEnabled(prev => !prev)}
+        style={{
+          position: 'fixed', top: 8, right: 8, zIndex: 250,
+          background: 'rgba(0,0,0,0.6)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: 8, padding: '6px 10px', fontSize: 14, cursor: 'pointer',
+          backdropFilter: 'blur(8px)',
+        }}
+        title={soundEnabled ? 'Mute' : 'Unmute'}
+      >
+        {soundEnabled ? '🔊' : '🔇'}
+      </button>
+
       {/* ═══════════ ADMIN TABLE PANEL ═══════════ */}
       {isAdmin && (
         <button onClick={() => setShowAdminPanel(!showAdminPanel)} style={{
-          position: 'fixed', top: 8, right: 48, zIndex: 250,
+          position: 'fixed', top: 8, right: 52, zIndex: 250,
           background: showAdminPanel ? '#FA383E' : 'rgba(35,116,225,0.85)',
           color: '#fff', border: 'none', borderRadius: 8, padding: '6px 12px',
           fontSize: 12, fontWeight: 700, cursor: 'pointer',

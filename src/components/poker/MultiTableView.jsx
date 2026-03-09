@@ -81,7 +81,7 @@ function TableSlot({ supabase, tableId, userId, displayName, avatarUrl, isVisibl
 // ═══════════════════════════════════════════════════════
 // Tab Bar Component
 // ═══════════════════════════════════════════════════════
-function TabBar({ tables, activeIndex, actionNeeded, onSwitch, onClose, viewMode, onToggleView, canOpenMore }) {
+function TabBar({ tables, activeIndex, actionNeeded, onSwitch, onClose, viewMode, onToggleView, canOpenMore, onExit }) {
   return (
     <div style={{
       display: 'flex',
@@ -94,6 +94,20 @@ function TabBar({ tables, activeIndex, actionNeeded, onSwitch, onClose, viewMode
       zIndex: 100,
       flexShrink: 0,
     }}>
+      {/* Back to lobby button */}
+      <button
+        onClick={onExit}
+        style={{
+          background: 'none', border: 'none', color: T.tabText,
+          cursor: 'pointer', padding: '4px 8px', fontSize: 13,
+          fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4,
+          opacity: 0.7, borderRight: `1px solid ${T.tabInactive}`,
+          marginRight: 4, paddingRight: 12,
+        }}
+        title="Back to Lobby"
+      >
+        ← Lobby
+      </button>
       {tables.map((table, idx) => {
         const isActive = idx === activeIndex;
         const needsAction = actionNeeded.has(table.tableId);
@@ -348,6 +362,7 @@ export default function MultiTableView({ supabase, userId, initialTable, onExit 
           viewMode={viewMode}
           onToggleView={toggleView}
           canOpenMore={canOpenMore}
+          onExit={onExit}
         />
       )}
 

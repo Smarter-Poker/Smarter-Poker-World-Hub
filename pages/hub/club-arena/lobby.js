@@ -714,7 +714,10 @@ const router = useRouter();
                                         if (openTable) {
                                             router.push(`/hub/club-arena/table/${openTable.id}`);
                                         } else if (filteredTables.length > 0) {
-                                            showToast('All tables are full — join a waitlist or create a new table.', 'info');
+                                            // All full — navigate to most active table to join waitlist
+                                            const busiest = [...filteredTables].sort((a, b) => (b.current_players || 0) - (a.current_players || 0))[0];
+                                            router.push(`/hub/club-arena/table/${busiest.id}`);
+                                            showToast('Table is full — you can join the waitlist!', 'info');
                                         } else {
                                             showToast('No tables available yet. Create one!', 'info');
                                         }
