@@ -406,7 +406,7 @@ export default function SurvivalGamePage() {
         if (needsToPay) {
             // Check if user has enough diamonds
             if (userDiamonds < 5) {
-                alert('Not enough diamonds! You need 5💎 for an additional 50/50.');
+                setShowOutOfDiamonds(true);
                 return;
             }
             // Deduct diamonds via audit-safe RPC
@@ -451,7 +451,7 @@ export default function SurvivalGamePage() {
             return;
         }
         if (userDiamonds < LIFELINE_COST) {
-            alert(`Not enough diamonds! You need ${LIFELINE_COST}💎 to skip.`);
+            setShowOutOfDiamonds(true);
             return;
         }
 
@@ -498,7 +498,7 @@ export default function SurvivalGamePage() {
             return;
         }
         if (userDiamonds < LIFELINE_COST) {
-            alert(`Not enough diamonds! You need ${LIFELINE_COST}💎 for Double Chance.`);
+            setShowOutOfDiamonds(true);
             return;
         }
 
