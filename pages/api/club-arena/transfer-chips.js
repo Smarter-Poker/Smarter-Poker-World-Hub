@@ -58,31 +58,27 @@ export default async function handler(req, res) {
       });
     }
 
-    // Atomic transfer via two updates (FOR UPDATE row lock via RPC would be ideal,
-    // but we use optimistic locking with a guard on the sender's balance)
-    const { error: deductErr } = await supabaseAdmin
-      .from('club_members')
-      .update({ chip_balance: (sender.chip_balance || 0) - amount })
-      .eq('club_id', clubId).eq('user_id', user.id)
-      .gte('chip_balance', amount); // Guard: only deduct if balance still >= amount
+    // Atomic transfer via Supabase RPC (SELECT FOR UPDATE + atomic balance changes)
+    const { data: rpcResult, error: rpcErr } = await supabaseAdmin
+      .rpc('fn_transfer_chips', {
+        p_club_id: clubId,
+        p_from_user_id: user.id,
+        p_to_user_id: toUserId,
+        p_amount: amount,
+      });
 
-    if (deductErr) throw deductErr;
-
-    const { error: creditErr } = await supabaseAdmin
-      .from('club_members')
-      .update({ chip_balance: (receiver.chip_balance || 0) + amount })
-      .eq('club_id', clubId).eq('user_id', toUserId);
-
-    if (creditErr) {
-      // Rollback sender deduction
-      await supabaseAdmin.from('club_members')
-        .update({ chip_balance: sender.chip_balance })
-        .eq('club_id', clubId).eq('user_id', user.id);
-      throw creditErr;
+    if (rpcErr) throw rpcErr;
+    if (!rpcResult?.success) {
+      const status = rpcResult?.error === 'Insufficient balance' ? 400
+        : rpcResult?.error?.includes('not found') ? 404 : 500;
+      return res.status(status).json({
+        success: false, error: rpcResult?.error || 'Transfer failed',
+        available: rpcResult?.available, requested: rpcResult?.requested,
+      });
     }
 
-    // Record transactions
-    await supabaseAdmin.from('chip_transactions').insert([
+    // Record transactions (fire-and-forget — transfer already atomic)
+    supabaseAdmin.from('chip_transactions').insert([
       {
         club_id: clubId, from_user_id: user.id, to_user_id: toUserId,
         amount: -amount, transaction_type: 'transfer_out',
@@ -93,7 +89,7 @@ export default async function handler(req, res) {
         amount, transaction_type: 'transfer_in',
         notes: note || `Transfer from player`,
       },
-    ]);
+    ]).then(() => {}).catch(() => {});
 
     // Notify recipient
     notifyUser(supabaseAdmin, {
@@ -107,7 +103,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       success: true,
       transferred: amount,
-      senderBalance: (sender.chip_balance || 0) - amount,
+      senderBalance: rpcResult.sender_balance,
     });
   } catch (err) {
     console.error('[transfer-chips]', err);

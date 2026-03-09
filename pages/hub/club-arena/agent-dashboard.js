@@ -227,7 +227,7 @@ const router = useRouter();
     // ── Event Bus: refresh on cross-page mutations (admin mints, cashouts, etc.) ──
     useEffect(() => {
         const unsub = eventBus.on(EventType.DATA_MUTATED, (e) => {
-            const relevant = ['chips_minted', 'chips_distributed', 'cashout_approved', 'cashout_requested', 'rakeback_distributed', 'marketplace_purchase'];
+            const relevant = ['chips_minted', 'chips_distributed', 'cashout_approved', 'cashout_requested', 'cashout_cancelled', 'rakeback_distributed', 'marketplace_purchase'];
             if (relevant.includes(e?.payload?.entity)) loadDashboard();
         });
         return () => unsub();
