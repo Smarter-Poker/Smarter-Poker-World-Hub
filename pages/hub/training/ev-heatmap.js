@@ -40,6 +40,16 @@ export default function EvHeatmapPage() {
     const router = useRouter();
     useTrainingBus('ev-heatmap');
 
+    // Listen for session events from other training modules
+    useEffect(() => {
+        const unsub = eventBus.on(EventType.SESSION_END, (event) => {
+            const source = event?.source;
+            if (source === 'ev-heatmap') return; // Ignore own emits
+            console.log('[EV Heatmap] Received SESSION_END from:', source);
+        });
+        return unsub;
+    }, []);
+
     const [selectedCell, setSelectedCell] = useState(null);
     const [activeFilter, setActiveFilter] = useState('NLHE Cash');
 
