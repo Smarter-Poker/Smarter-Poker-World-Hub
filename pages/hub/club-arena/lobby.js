@@ -3,7 +3,8 @@
    Shows club info, tables, tournaments, and club navigation
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { usePersistedFilters } from '../../../src/hooks/usePersistedFilters';
@@ -18,6 +19,13 @@ import { BBJBanner, BBJModal, useBBJ } from '../../../src/components/club-arena/
 import useDebounce from '../../../src/hooks/useDebounce';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../src/engine/EventBus';
+import { buildStickerAssetMap } from '../../../src/lib/stickerOrchestrator';
+
+// Dynamic import — GameCard uses @/ aliases + browser APIs, must be client-only
+const GameCard = dynamic(
+    () => import('../../../src/components/club-arena/GameCard'),
+    { ssr: false, loading: () => null }
+);
 
 const getAuthToken = async () => {
     // 1. Fast path: read from localStorage cache (instant, no network round-trip)
@@ -69,6 +77,8 @@ const router = useRouter();
     const [user, setUser] = useState(null);
     const [club, setClub] = useState(null);
     const [tables, setTables] = useState([]);
+    const [tournaments, setTournaments] = useState([]);
+    const [stickerAssetMap, setStickerAssetMap] = useState({});
     const [isLoading, setIsLoading] = useState(true);
     const [menuOpen, setMenuOpen] = useState(false);
     const { filters: _lobbyFilters, setFilter: _setLobbyFilter } = usePersistedFilters('club-arena-lobby', { activeFilter: 'ALL', sortBy: 'players' });
@@ -95,6 +105,22 @@ const router = useRouter();
 
     // BBJ pool data (realtime)
     const { bbjData, loading: bbjLoading } = useBBJ(club?.id, supabase);
+
+    // Load sticker asset map once on mount (one-shot, very cheap)
+    useEffect(() => {
+        (async () => {
+            try {
+                const token = await getAuthToken();
+                if (!token) return;
+                const res = await fetch('/api/club-arena/sticker-assets', {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                if (!res.ok) return;
+                const d = await res.json();
+                setStickerAssetMap(buildStickerAssetMap(d.stickers || []));
+            } catch (_) { /* stickers optional — fail silently */ }
+        })();
+    }, []);
 
     // Filter tables by game type, search, and sort
     const filteredTables = tables.filter(table => {
@@ -294,9 +320,19 @@ const router = useRouter();
             if (clubData) {
                 setClub(clubData);
 
-                // Parallelize: tables + announcements + membership all fire at once
-                const [tableResult, annResult, memberResult] = await Promise.allSettled([
+                // Parallelize: tables + tournaments + announcements + membership all fire at once
+                const [tableResult, tournResult, annResult, memberResult] = await Promise.allSettled([
                     supabase.from('tables').select('*').eq('club_id', clubData.id).neq('status', 'deleted').limit(100),
+                    (async () => {
+                        const token = await getAuthToken().catch(() => null);
+                        if (!token) return { tournaments: [] };
+                        const res = await fetch('/api/club-arena/tournaments', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                            body: JSON.stringify({ action: 'list', clubId: clubData.id, status: ['scheduled', 'registering', 'running'] }),
+                        });
+                        return res.ok ? res.json() : { tournaments: [] };
+                    })(),
                     apiGet(`/api/club-arena/announcements?clubId=${clubData.id}`).catch(() => ({})),
                     authUser
                         ? supabase.from('club_members').select('chip_balance, role').eq('club_id', clubData.id).eq('user_id', authUser.id).maybeSingle()
@@ -304,6 +340,7 @@ const router = useRouter();
                 ]);
 
                 if (tableResult.status === 'fulfilled') setTables(tableResult.value?.data || []);
+                if (tournResult.status === 'fulfilled') setTournaments(tournResult.value?.tournaments || tournResult.value?.data || []);
                 if (annResult.status === 'fulfilled') setAnnouncements(annResult.value?.announcements || []);
                 if (memberResult.status === 'fulfilled' && memberResult.value?.data) {
                     setMembership(memberResult.value.data);
@@ -586,132 +623,61 @@ const router = useRouter();
                                     </div>
                                 )}
 
-                                {/* Table Icons */}
-                                {filteredTables.map(table => {
-                                    const variant = (table.game_variant || 'nlh').toUpperCase();
-                                    const gameLabel = variant.startsWith('PLO') ? 'PLO' : variant === 'SHORT_DECK' ? 'SD' : 'NLH';
-                                    const typeLabel = table.game_type === 'tournament' || table.table_type === 'tournament' ? 'XMTT' : '';
-                                    const displayType = typeLabel ? `${typeLabel} ${gameLabel}` : gameLabel;
-                                    const sb = table.small_blind || parseFloat(table.stakes?.split('/')[0]) || 1;
-                                    const bb = table.big_blind || parseFloat(table.stakes?.split('/')[1]) || 2;
-                                    const stakesLabel = `${sb}/${bb}`;
-                                    const isGold = bb >= 50;
-
-                                    // Outer gradient logic based on stakes
-                                    const outerBg = isGold
-                                        ? 'linear-gradient(145deg, #FFEF96 0%, #D4AF37 40%, #FFF5C3 60%, #AA801E 100%)'
-                                        : 'linear-gradient(145deg, #E0E0E0 0%, #8A95A5 40%, #C0C8D0 60%, #5A6A7A 100%)';
-
-                                    const dateStr = table.created_at ? new Date(table.created_at).toISOString().replace('T', ' ').substring(0, 19) : '2026-02-24 19:00:00';
-
-                                    // Status badge
-                                    const statusColors = {
-                                        running: { bg: '#31A24C', label: '● LIVE' },
-                                        waiting: { bg: '#2374E1', label: '○ OPEN' },
-                                        paused: { bg: '#ea580c', label: 'PAUSED' },
-                                        closed: { bg: '#666', label: 'CLOSED' },
-                                    };
-                                    const statusInfo = statusColors[table.status] || statusColors.waiting;
-
-                                    return (
-                                        <div key={table.id} style={styles.iconItemWrapper} onClick={() => router.push(`/hub/club-arena/table/${table.id}`)}>
-                                            <div style={{ ...styles.pillOuter, background: outerBg }}>
-                                                <div style={styles.pillInner}>
-                                                    <div style={styles.pushPin}></div>
-
-                                                    {/* Status badge */}
-                                                    <div style={{
-                                                        position: 'absolute', top: 4, right: 4, zIndex: 5,
-                                                        background: statusInfo.bg, color: '#fff',
-                                                        fontSize: 8, fontWeight: 800, padding: '2px 6px',
-                                                        borderRadius: 4, letterSpacing: 0.3,
-                                                        boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
-                                                    }}>{statusInfo.label}</div>
-
-                                                    {/* Left Graphic */}
-                                                    <div style={styles.pillLeftArt}>
-                                                        <span style={styles.trophyEmoji}>{typeLabel ? '' : ''}</span>
-                                                        <div style={styles.artTextOverlay}>{displayType}</div>
-                                                    </div>
-
-                                                    {/* Right Stats */}
-                                                    <div style={styles.pillRightStats}>
-                                                        <div style={styles.statsTopRow}>
-                                                            <div style={styles.buyInStack}>
-                                                                <span style={styles.buyInLabel}>Stakes</span>
-                                                                <span style={styles.buyInValue}>{stakesLabel}</span>
-                                                            </div>
-                                                            <div style={styles.maxBadge}>{table.max_players || 9} Max</div>
-                                                        </div>
-
-                                                        <div style={styles.statsBottomRow}>
-                                                            <div style={styles.statItem}>
-                                                                <span style={styles.statIcon}></span>
-                                                                {table.action_time_seconds || 30}s
-                                                            </div>
-                                                            <div style={styles.statItem}>
-                                                                <span style={styles.statIcon}></span>
-                                                                {table.current_players || 0}/{table.max_players || 9}
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Mini seat map */}
-                                                        <div style={{ display: 'flex', gap: 2, marginTop: 4, justifyContent: 'center' }}>
-                                                            {Array.from({ length: table.max_players || 9 }).map((_, si) => {
-                                                                const filled = si < (table.current_players || 0);
-                                                                return (
-                                                                    <div key={si} style={{
-                                                                        width: 8, height: 8, borderRadius: '50%',
-                                                                        background: filled ? '#31A24C' : 'rgba(255,255,255,0.12)',
-                                                                        border: filled ? '1px solid #4caf50' : '1px solid rgba(255,255,255,0.08)',
-                                                                        transition: 'all 0.3s',
-                                                                    }} />
-                                                                );
-                                                            })}
-                                                        </div>
-
-                                                        {/* Game mode badges */}
-                                                        {table.settings && (
-                                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 4 }}>
-                                                                {table.settings.bomb_pot_enabled && <span style={styles.modeBadge} title="Bomb Pot"></span>}
-                                                                {table.settings.seven_deuce && <span style={styles.modeBadge} title="7-2 Game">7</span>}
-                                                                {table.settings.double_board && <span style={styles.modeBadge} title="Double Board">2</span>}
-                                                                {table.settings.triple_board && <span style={styles.modeBadge} title="Triple Board">3</span>}
-                                                                {table.settings.straddle_enabled && <span style={styles.modeBadge} title="Straddle"></span>}
-                                                                {table.settings.run_it_twice && <span style={styles.modeBadge} title="Run It Twice"></span>}
-                                                                {table.settings.insurance && <span style={styles.modeBadge} title="Insurance"></span>}
-                                                                {table.settings.private_game && <span style={styles.modeBadge} title="Private"></span>}
-                                                                {table.settings.anonymous_table && <span style={styles.modeBadge} title="Anonymous"></span>}
-                                                                {table.settings.nit_game && <span style={styles.modeBadge} title={`VPIP ${table.settings.maintain_percent}%+`}></span>}
-                                                                {table.settings.mixed_game && <span style={styles.modeBadge} title="Mixed Game Rotation"></span>}
-                                                                {table.settings.cap && <span style={styles.modeBadge} title={`Cap ${table.settings.cap_amount}`}></span>}
-                                                                {table.settings.no_rathole && <span style={styles.modeBadge} title="No Rathole"></span>}
-                                                                {table.settings.pineapple && <span style={styles.modeBadge} title="Pineapple"></span>}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-
-                                                {/* Bottom Ribbon */}
-                                                <div style={styles.ribbonWrapper}>
-                                                    <div style={styles.ribbonBody}>
-                                                        <span style={styles.ribbonIcon}></span>
-                                                        <span style={styles.ribbonText}>{table.name}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* Date Box Below */}
-                                            <div style={styles.dateBox}>{dateStr}</div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
+                                {/* ── CASH GAME CARDS (GameCard 2-col grid) ── */}
+                                {filteredTables.length > 0 && (
+                                    <div style={{
+                                        display: 'grid',
+                                        gridTemplateColumns: '1fr 1fr',
+                                        gap: 10,
+                                        marginBottom: 16,
+                                    }}>
+                                        {filteredTables.map(table => (
+                                            <GameCard
+                                                key={table.id}
+                                                game={table}
+                                                assetMap={stickerAssetMap}
+                                                onPress={() => router.push(`/hub/club-arena/table/${table.id}`)}
+                                            />
+                                        ))}
+                                    </div>
+                                )}
 
                             {filteredTables.length === 0 && !(membership?.role === 'owner' || membership?.role === 'admin') && (
                                 <div style={styles.emptyState}>
                                     <p>No Active Tables</p>
                                     <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>Check Back Later Or Start A New Table!</p>
+                                </div>
+                            )}
+
+                            {/* ── UPCOMING TOURNAMENTS (GameCard 2-col grid) ── */}
+                            {tournaments.length > 0 && (
+                                <div style={{ marginTop: 8 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                                        <div style={{ fontSize: 13, fontWeight: 800, color: '#B0B3B8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                            🏆 Tournaments
+                                        </div>
+                                        {club && (
+                                            <button
+                                                onClick={() => router.push(`/hub/club-arena/tournaments?club=${club.id}`)}
+                                                style={{
+                                                    fontSize: 12, fontWeight: 600, color: '#2374E1',
+                                                    background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                                                }}
+                                            >
+                                                See All →
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                                        {tournaments.slice(0, 6).map(t => (
+                                            <GameCard
+                                                key={t.id}
+                                                game={{ ...t, game_type: t.type || t.game_type || 'mtt' }}
+                                                assetMap={stickerAssetMap}
+                                                onPress={() => router.push(`/hub/club-arena/tournaments?club=${club?.id}&highlight=${t.id}`)}
+                                            />
+                                        ))}
+                                    </div>
                                 </div>
                             )}
 
