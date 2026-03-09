@@ -77,6 +77,7 @@ class GameStateMachine {
       bigBlindAnte: config.bigBlindAnte || false,
       rakePercent: config.rakePercent || 0,
       rakeCap: config.rakeCap || Infinity,
+      bbjEnabled: config.bbjEnabled || false,
       runItTwice: config.runItTwice || false,
       runItThrice: config.runItThrice || false,
       // Run-it mode: 'none' | 'player_choice' | 'mandatory_twice' | 'mandatory_thrice'

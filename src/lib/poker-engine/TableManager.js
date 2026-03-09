@@ -100,6 +100,7 @@ class TableManager {
       bigBlindAnte: config.bigBlindAnte || false,
       rakePercent: config.rakePercent || 0,
       rakeCap: config.rakeCap || Infinity,
+      bbjEnabled: config.bbjEnabled || false,
       runItTwice: config.runItTwice || false,
       runItThrice: config.runItThrice || false,
       insurance: config.insurance || false,
