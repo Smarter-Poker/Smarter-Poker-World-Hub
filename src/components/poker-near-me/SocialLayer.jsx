@@ -41,21 +41,30 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
 
     // Fetch friends list
     const fetchFriends = useCallback(async () => {
-        if (!userId || !authToken) return;
+        if (!userId) {
+            setLoading(false);
+            return;
+        }
         try {
-            const res = await fetch(`/api/friends/list?user_id=${userId}`, {
-                headers: { 'Authorization': `Bearer ${authToken}` }
-            });
+            const headers = {};
+            if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+            const res = await fetch(`/api/friends/list?user_id=${userId}`, { headers });
+            if (!res.ok) {
+                // API may not exist yet or user has no friends — show empty state
+                setLoading(false);
+                return;
+            }
             const data = await res.json();
             setFriendsList(data.friends || data.data || []);
         } catch (err) {
             console.error('Failed to fetch friends:', err);
+            setLoading(false);
         }
     }, [userId, authToken]);
 
     // Fetch recent check-ins from friends
     const fetchFriendCheckins = useCallback(async () => {
-        if (!userId || !authToken) return;
+        if (!userId) return;
         try {
             // Get all recent checkins and filter to friends
             const friendIds = friendsList.map(f => f.friend_id || f.id);
@@ -106,7 +115,7 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
         } finally {
             setLoading(false);
         }
-    }, [userId, authToken, friendsList, venues]);
+    }, [userId, friendsList, venues]);
 
     useEffect(() => {
         fetchFriends();

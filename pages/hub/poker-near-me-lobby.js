@@ -1095,7 +1095,7 @@ export default function PokerNearMeLobby() {
       }
 
       case 'social':
-        component = <SocialLayer userId={userId} />;
+        component = <SocialLayer userId={userId} venues={venues} userLocation={userLocation} />;
         break;
 
       case 'alerts':
