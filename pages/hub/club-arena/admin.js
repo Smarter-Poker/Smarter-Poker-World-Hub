@@ -11,7 +11,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 import { getAccessToken } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { busEmit } from '../../../src/engine/EventBus';
+import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 
 // SmarterPoker Dark Color Scheme
 const FB = {
@@ -283,6 +283,15 @@ const router = useRouter();
             });
         return () => { supabase.removeChannel(ch); };
     }, [club?.id, loadData]);
+
+    // ── Event Bus: refresh admin on cross-page mutations ──────────────────
+    useEffect(() => {
+        const unsub = eventBus.on(EventType.DATA_MUTATED, (e) => {
+            const relevant = ['tournament_created', 'tournament_registration', 'chips_distributed', 'cashout_requested', 'cashout_approved', 'marketplace_purchase', 'union_club_added'];
+            if (relevant.includes(e?.payload?.entity)) loadData();
+        });
+        return () => unsub();
+    }, [loadData]);
 
     // Load announcements or shop items when those modals open
     useEffect(() => {

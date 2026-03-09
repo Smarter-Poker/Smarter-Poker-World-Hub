@@ -11,7 +11,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import dynamic from 'next/dynamic';
 import usePersistedFilters from '../../../src/hooks/usePersistedFilters';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { busEmit } from '../../../src/engine/EventBus';
+import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 const SkeletonDark = dynamic(() => import('../../../src/components/ui/SkeletonDark'), { ssr: false });
 
 const FB = {
@@ -209,6 +209,18 @@ const router = useRouter();
       clearInterval(poll);
     };
   }, [unionId, user, clubs.length, tab, loadTournaments, loadTables]);
+
+  // ── Event Bus: refresh on cross-page mutations ──────────────────────
+  useEffect(() => {
+    const unsub1 = eventBus.on(EventType.DATA_MUTATED, (e) => {
+      const relevant = ['union_tournament_created', 'tournament_created', 'tournament_registration', 'tournament_complete', 'chips_minted', 'chips_distributed'];
+      if (relevant.includes(e?.payload?.entity)) loadData();
+    });
+    const unsub2 = eventBus.on(EventType.TABLE_OPENED, () => loadData());
+    const unsub3 = eventBus.on(EventType.TABLE_CLOSED, () => loadData());
+    const unsub4 = eventBus.on(EventType.TOURNAMENT_STARTED, () => loadData());
+    return () => { unsub1(); unsub2(); unsub3(); unsub4(); };
+  }, [loadData]);
 
   // Filtered lists based on search
   const filteredTournaments = searchQuery.trim()

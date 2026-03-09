@@ -17,7 +17,7 @@ import { createRingTone } from '../../../src/utils/ringTone';
 import useDebounce from '../../../src/hooks/useDebounce';
 import usePersistedState from '../../../src/hooks/usePersistedState';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { busEmit } from '../../../src/engine/EventBus';
+import { busEmit, eventBus } from '../../../src/engine/EventBus';
 // Local helper — reads token from localStorage (same pattern as other club-arena pages)
 const getAccessToken = () => {
     try {

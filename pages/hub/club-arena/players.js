@@ -12,7 +12,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 import usePersistedFilters from '../../../src/hooks/usePersistedFilters';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { busEmit } from '../../../src/engine/EventBus';
+import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 
 // SmarterPoker Dark Color Scheme
 const FB = {
@@ -165,6 +165,15 @@ const router = useRouter();
             });
         return () => { supabase.removeChannel(ch); };
     }, [clubIdParam, loadData]);
+
+    // ── Event Bus: refresh on cross-page data mutations ───────────────────
+    useEffect(() => {
+        const unsub = eventBus.on(EventType.DATA_MUTATED, (e) => {
+            const relevant = ['chips_distributed', 'cashout_approved', 'player_note_saved', 'union_club_added', 'union_club_removed'];
+            if (relevant.includes(e?.payload?.entity)) loadData();
+        });
+        return () => unsub();
+    }, [loadData]);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // FILTER & SORT

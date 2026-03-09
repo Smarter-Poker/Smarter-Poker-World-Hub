@@ -8,10 +8,11 @@ import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 import dynamic from 'next/dynamic';
 import usePersistedState from '../../../src/hooks/usePersistedState';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { busEmit } from '../../../src/engine/EventBus';
+import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 const SkeletonDark = dynamic(() => import('../../../src/components/ui/SkeletonDark'), { ssr: false });
 
 const FB = {
@@ -359,6 +360,15 @@ const router = useRouter();
             clearInterval(poll);
         };
     }, [unionIdParam, user?.id, loadDashboard]);
+
+    // ── Event Bus: refresh on cross-page mutations ────────────────────────
+    useEffect(() => {
+        const unsub = eventBus.on(EventType.DATA_MUTATED, (e) => {
+            const relevant = ['union_club_added', 'union_club_removed', 'union_announcement', 'chips_minted', 'chips_distributed', 'cashout_approved', 'tournament_created', 'union_tournament_created'];
+            if (relevant.includes(e?.payload?.entity)) loadDashboard();
+        });
+        return () => unsub();
+    }, [loadDashboard]);
 
     // Wallet loading
     const loadWallets = async (txFilter = 'all') => {

@@ -10,7 +10,7 @@ import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { busEmit } from '../../../src/engine/EventBus';
+import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 
 // SmarterPoker Dark Color Scheme
 const FB = {
@@ -283,6 +283,15 @@ const router = useRouter();
             }
         };
     }, [club?.id, user?.id]);
+
+    // ── Event Bus: refresh on cross-page mutations ────────────────────────
+    useEffect(() => {
+        const unsub = eventBus.on(EventType.DATA_MUTATED, (e) => {
+            const relevant = ['chips_distributed', 'chips_minted', 'cashout_approved', 'marketplace_purchase', 'rakeback_distributed'];
+            if (relevant.includes(e?.payload?.entity)) loadData();
+        });
+        return () => unsub();
+    }, [loadData]);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // BUY-IN: Diamonds * Club Chips

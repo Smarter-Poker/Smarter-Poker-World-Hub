@@ -11,6 +11,7 @@ import { getAuthUser } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 // SmarterPoker Dark Color Scheme
 const FB = {
@@ -220,6 +221,17 @@ const router = useRouter();
             });
         return () => { supabase.removeChannel(ch); };
     }, [clubIdParam, loadData]);
+
+    // ── Event Bus: refresh when other pages mutate data (hand complete, etc.) ──
+    useEffect(() => {
+        const unsub1 = eventBus.on(EventType.DATA_MUTATED, (e) => {
+            if (['hand_complete', 'tournament_complete', 'cashout_approved'].includes(e?.payload?.entity)) {
+                setPage(0); loadData(true);
+            }
+        });
+        const unsub2 = eventBus.on(EventType.HAND_COMPLETE, () => { setPage(0); loadData(true); });
+        return () => { unsub1(); unsub2(); };
+    }, [loadData]);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // CARD RENDERING

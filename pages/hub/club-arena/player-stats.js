@@ -11,6 +11,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 import usePersistedState from '../../../src/hooks/usePersistedState';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 // SmarterPoker Dark Color Scheme
 const FB = {
@@ -332,6 +333,16 @@ const router = useRouter();
             });
         return () => { supabase.removeChannel(ch); };
     }, [clubIdParam, loadData]);
+
+    // ── Event Bus: refresh stats on cross-page data mutations ──────────────
+    useEffect(() => {
+        const unsub = eventBus.on(EventType.DATA_MUTATED, (e) => {
+            const relevant = ['hand_complete', 'chips_distributed', 'cashout_approved', 'cashout_requested', 'rakeback_distributed', 'marketplace_purchase'];
+            if (relevant.includes(e?.payload?.entity)) loadData();
+        });
+        const unsub2 = eventBus.on(EventType.HAND_COMPLETE, () => loadData());
+        return () => { unsub(); unsub2(); };
+    }, [loadData]);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // STYLES

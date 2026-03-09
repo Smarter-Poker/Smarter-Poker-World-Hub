@@ -14,7 +14,7 @@ import InviteFriendsModal from '../../../src/components/ui/InviteFriendsModal';
 import useDebounce from '../../../src/hooks/useDebounce';
 import usePersistedState from '../../../src/hooks/usePersistedState';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { busEmit } from '../../../src/engine/EventBus';
+import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 
 const FB = {
     primary: '#2374E1', background: '#18191A', cardBg: '#242526',
@@ -217,6 +217,15 @@ const router = useRouter();
             supabase.removeChannel(agentChannel);
         };
     }, [clubIdParam, user?.id]);
+
+    // ── Event Bus: refresh on cross-page mutations (admin mints, cashouts, etc.) ──
+    useEffect(() => {
+        const unsub = eventBus.on(EventType.DATA_MUTATED, (e) => {
+            const relevant = ['chips_minted', 'chips_distributed', 'cashout_approved', 'cashout_requested', 'rakeback_distributed', 'marketplace_purchase'];
+            if (relevant.includes(e?.payload?.entity)) loadDashboard();
+        });
+        return () => unsub();
+    }, [loadDashboard]);
 
     // ─── Auto-load sub-agents when tab selected ────────────────
     useEffect(() => {

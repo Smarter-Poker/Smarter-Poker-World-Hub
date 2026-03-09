@@ -11,7 +11,9 @@ import { getAuthUser } from '../../../src/lib/authUtils';
 import usePersistedState from '../../../src/hooks/usePersistedState';
 import { getAccessToken } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { busEmit } from '../../../src/engine/EventBus';
+import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
+import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 
 const FB = {
   bg: '#18191A', card: '#242526', text: '#E4E6EB', dim: '#B0B3B8',
@@ -131,6 +133,17 @@ const router = useRouter();
       supabase.removeChannel(channel);
     };
   }, [loadData, clubId]);
+
+  // ── Event Bus: refresh tournaments on cross-page mutations ────────────
+  useEffect(() => {
+    const unsub1 = eventBus.on(EventType.DATA_MUTATED, (e) => {
+      const relevant = ['tournament_created', 'tournament_registration', 'tournament_complete', 'chips_minted', 'chips_distributed'];
+      if (relevant.includes(e?.payload?.entity)) loadData();
+    });
+    const unsub2 = eventBus.on(EventType.TOURNAMENT_STARTED, () => loadData());
+    const unsub3 = eventBus.on(EventType.TOURNAMENT_LEVEL_CHANGE, () => loadData());
+    return () => { unsub1(); unsub2(); unsub3(); };
+  }, [loadData]);
 
   // Register
   const handleRegister = async (tournamentId) => {
@@ -281,6 +294,9 @@ const router = useRouter();
           }}
         />
       )}
+
+      {/* Bottom Navigation */}
+      <ClubArenaBottomNav clubId={clubId} activePage="tournaments" />
     </div>
   );
 }
