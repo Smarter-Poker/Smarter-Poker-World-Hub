@@ -634,7 +634,7 @@ export default function ClubArenaPage() {
                                     if (!user) { alert('Please sign in first'); return; }
                                     setSharkJoining(true);
                                     try {
-                                        await apiCall('/api/club-arena/join-club', { clubId: '25450' });
+                                        await apiCall('/api/club-arena/join-club', { clubCode: '25450' });
                                         busEmit.dataMutated('club_joined');
                                         setSharkJoinSent(true);
                                         // Reload clubs to pick up the new membership

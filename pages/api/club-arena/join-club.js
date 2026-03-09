@@ -45,13 +45,14 @@ export default async function handler(req, res) {
     // agentPlayerNumber is the agent's profiles.player_number.
     // Same number as the platform referral code, but here it means:
     // "attach me to this agent in the club" — no diamonds, no reward claim.
-    const { clubCode, agentPlayerNumber, agentUserId: explicitAgentUserId } = req.body;
-    if (!clubCode) return res.status(400).json({ success: false, error: 'Club code required' });
+    const { clubCode, clubId, agentPlayerNumber, agentUserId: explicitAgentUserId } = req.body;
+    const resolvedCode = clubCode || clubId; // Accept either param name
+    if (!resolvedCode) return res.status(400).json({ success: false, error: 'Club code required' });
 
     // Rate limit — prevent brute-force of club codes
     if (!applyRateLimit(req, res, 'club-arena/join-club')) return;
 
-    const codeNum = parseInt(clubCode);
+    const codeNum = parseInt(resolvedCode);
     if (!Number.isFinite(codeNum) || codeNum <= 0) {
         return res.status(400).json({ success: false, error: 'Invalid club code' });
     }
