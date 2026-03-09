@@ -8,7 +8,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useMemo } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -108,6 +108,213 @@ function getAuthHeaders() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// ICM PREFLOP RANGES COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════
+
+const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
+const ICM_POSITIONS = ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
+
+// Pre-computed ICM push/fold ranges by number of BB
+const ICM_PUSH_RANGES = {
+    5: { UTG: 22, MP: 28, CO: 35, BTN: 48, SB: 55, BB: 100 },
+    8: { UTG: 15, MP: 20, CO: 28, BTN: 38, SB: 45, BB: 80 },
+    12: { UTG: 10, MP: 14, CO: 20, BTN: 28, SB: 35, BB: 55 },
+    15: { UTG: 8, MP: 11, CO: 16, BTN: 22, SB: 28, BB: 45 },
+    20: { UTG: 6, MP: 8, CO: 12, BTN: 18, SB: 22, BB: 35 },
+    25: { UTG: 5, MP: 7, CO: 10, BTN: 14, SB: 18, BB: 28 },
+};
+
+const RISK_PREMIUM = {
+    2: { UTG: 0, MP: 0, CO: 0, BTN: 1.02, SB: 1.12, BB: 1.18 },
+    3: { UTG: 0, MP: 0, CO: 1.05, BTN: 1.08, SB: 1.15, BB: 1.22 },
+    4: { UTG: 0, MP: 1.03, CO: 1.08, BTN: 1.12, SB: 1.20, BB: 1.28 },
+    5: { UTG: 1.02, MP: 1.06, CO: 1.10, BTN: 1.15, SB: 1.25, BB: 1.35 },
+    6: { UTG: 1.05, MP: 1.08, CO: 1.12, BTN: 1.18, SB: 1.28, BB: 1.38 },
+    7: { UTG: 1.08, MP: 1.10, CO: 1.15, BTN: 1.22, SB: 1.32, BB: 1.42 },
+    8: { UTG: 1.10, MP: 1.12, CO: 1.18, BTN: 1.25, SB: 1.35, BB: 1.48 },
+    9: { UTG: 1.12, MP: 1.15, CO: 1.20, BTN: 1.28, SB: 1.38, BB: 1.52 },
+};
+
+function ICMPreflopRanges({ playerCount = 6, bountyFormat = 'Regular' }) {
+    const [selectedBB, setSelectedBB] = React.useState(12);
+    const [selectedPosition, setSelectedPosition] = React.useState('BTN');
+
+    const positions = React.useMemo(() => {
+        const count = Math.min(playerCount, 6);
+        return ICM_POSITIONS.slice(Math.max(0, 6 - count));
+    }, [playerCount]);
+
+    const pushRange = React.useMemo(() => {
+        const ranges = ICM_PUSH_RANGES[selectedBB] || ICM_PUSH_RANGES[12];
+        let rangePct = ranges[selectedPosition] || 15;
+
+        // Bounty format adjustments
+        if (bountyFormat === 'KO') rangePct = Math.min(100, Math.round(rangePct * 1.15));
+        if (bountyFormat === 'PKO') rangePct = Math.min(100, Math.round(rangePct * 1.10));
+
+        return rangePct;
+    }, [selectedBB, selectedPosition, bountyFormat]);
+
+    const riskPremium = React.useMemo(() => {
+        const premiums = RISK_PREMIUM[Math.min(playerCount, 9)] || RISK_PREMIUM[6];
+        return premiums[selectedPosition] || 1.0;
+    }, [playerCount, selectedPosition]);
+
+    // Generate the 13x13 range grid with ICM-adjusted colors
+    const gridCells = React.useMemo(() => {
+        const cells = [];
+        const totalCombos = 169;
+        const pushCombos = Math.round((pushRange / 100) * totalCombos);
+
+        // Simplified hand strength ordering (top left = strongest)
+        let comboIndex = 0;
+        for (let r = 0; r < 13; r++) {
+            for (let c = 0; c < 13; c++) {
+                comboIndex++;
+                const isPush = comboIndex <= pushCombos;
+                const isPair = r === c;
+                const isSuited = c > r;
+                const label = isPair
+                    ? `${RANKS[r]}${RANKS[c]}`
+                    : (isSuited ? `${RANKS[r]}${RANKS[c]}s` : `${RANKS[c]}${RANKS[r]}o`);
+
+                cells.push({
+                    key: `${r}-${c}`,
+                    label,
+                    isPush,
+                    isPair,
+                    isSuited,
+                });
+            }
+        }
+        return cells;
+    }, [pushRange]);
+
+    return (
+        <div style={{
+            background: 'rgba(0,0,0,0.2)',
+            border: '1px solid rgba(255,255,255,0.06)',
+            borderRadius: 12, padding: 16,
+        }}>
+            {/* BB Selector */}
+            <div style={{ marginBottom: 12 }}>
+                <div style={{
+                    fontSize: 10, fontWeight: 700, color: '#64748b',
+                    textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6,
+                }}>
+                    Effective Stack (BB)
+                </div>
+                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                    {[5, 8, 12, 15, 20, 25].map(bb => (
+                        <button
+                            key={bb}
+                            onClick={() => setSelectedBB(bb)}
+                            style={{
+                                padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 700,
+                                cursor: 'pointer', border: 'none',
+                                background: selectedBB === bb ? 'rgba(168,85,247,0.2)' : 'rgba(255,255,255,0.04)',
+                                color: selectedBB === bb ? '#a855f7' : '#94a3b8',
+                                fontFamily: "'Orbitron', monospace",
+                            }}
+                        >
+                            {bb}BB
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Position Selector */}
+            <div style={{ marginBottom: 12 }}>
+                <div style={{
+                    fontSize: 10, fontWeight: 700, color: '#64748b',
+                    textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6,
+                }}>
+                    Position (Push Range: {pushRange}%)
+                </div>
+                <div style={{ display: 'flex', gap: 4 }}>
+                    {positions.map(pos => (
+                        <button
+                            key={pos}
+                            onClick={() => setSelectedPosition(pos)}
+                            style={{
+                                padding: '6px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700,
+                                cursor: 'pointer', border: 'none',
+                                background: selectedPosition === pos ? 'linear-gradient(135deg, #a855f7, #6366f1)' : 'rgba(255,255,255,0.04)',
+                                color: selectedPosition === pos ? '#fff' : '#94a3b8',
+                            }}
+                        >
+                            {pos}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Risk Premium */}
+            <div style={{
+                display: 'flex', gap: 12, marginBottom: 14,
+                padding: '8px 12px', borderRadius: 8,
+                background: 'rgba(168,85,247,0.05)',
+                border: '1px solid rgba(168,85,247,0.15)',
+            }}>
+                <div>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Risk Premium</div>
+                    <div style={{
+                        fontSize: 16, fontWeight: 900, color: riskPremium > 1.2 ? '#ef4444' : riskPremium > 1.1 ? '#eab308' : '#22c55e',
+                        fontFamily: "'Orbitron', monospace",
+                    }}>
+                        {riskPremium.toFixed(2)}x
+                    </div>
+                </div>
+                <div>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Push Range</div>
+                    <div style={{ fontSize: 16, fontWeight: 900, color: '#a855f7', fontFamily: "'Orbitron', monospace" }}>
+                        {pushRange}%
+                    </div>
+                </div>
+                <div>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Format</div>
+                    <div style={{ fontSize: 16, fontWeight: 900, color: '#00d4ff', fontFamily: "'Orbitron', monospace" }}>
+                        {bountyFormat}
+                    </div>
+                </div>
+            </div>
+
+            {/* 13x13 Range Grid */}
+            <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(13, 1fr)',
+                gap: 1,
+                maxWidth: 460,
+                margin: '0 auto',
+            }}>
+                {gridCells.map(cell => (
+                    <div
+                        key={cell.key}
+                        style={{
+                            aspectRatio: '1',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 7, fontWeight: 700,
+                            borderRadius: 2,
+                            background: cell.isPush
+                                ? (cell.isPair ? 'rgba(168,85,247,0.35)' : cell.isSuited ? 'rgba(34,197,94,0.25)' : 'rgba(59,130,246,0.2)')
+                                : 'rgba(255,255,255,0.03)',
+                            color: cell.isPush ? '#e2e8f0' : '#334155',
+                            border: `1px solid ${cell.isPush ? 'rgba(168,85,247,0.3)' : 'rgba(255,255,255,0.04)'}`,
+                        }}
+                    >
+                        {cell.label}
+                    </div>
+                ))}
+            </div>
+
+            <div style={{ marginTop: 10, fontSize: 9, color: '#64748b', textAlign: 'center' }}>
+                Purple = Pairs &bull; Green = Suited &bull; Blue = Offsuit &bull; Gray = Fold
+            </div>
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // PAGE COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -122,6 +329,8 @@ export default function ICMCalculatorPage() {
     const [results, setResults] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [icmView, setIcmView] = useState('calculator');
+    const [bountyFormat, setBountyFormat] = useState('Regular');
 
     // Update a single stack
     const updateStack = useCallback((idx, val) => {
@@ -663,6 +872,67 @@ export default function ICMCalculatorPage() {
                             </motion.div>
                         )}
                     </AnimatePresence>
+
+                    {/* ICM Preflop Ranges Tab */}
+                    <div style={{ marginTop: 20 }}>
+                        <div style={{
+                            display: 'flex', gap: 6, marginBottom: 12,
+                        }}>
+                            {[
+                                { key: 'calculator', label: 'ICM Calculator' },
+                                { key: 'ranges', label: 'ICM Push/Fold Ranges' },
+                            ].map(tab => (
+                                <button
+                                    key={tab.key}
+                                    onClick={() => setIcmView(tab.key)}
+                                    style={{
+                                        padding: '8px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700,
+                                        cursor: 'pointer', border: 'none', transition: 'all 0.15s',
+                                        background: icmView === tab.key
+                                            ? 'linear-gradient(135deg, #a855f7, #6366f1)'
+                                            : 'rgba(255,255,255,0.06)',
+                                        color: icmView === tab.key ? '#fff' : '#94a3b8',
+                                    }}
+                                >
+                                    {tab.label}
+                                </button>
+                            ))}
+
+                            {/* Bounty Format Toggle */}
+                            <div style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}>
+                                {['Regular', 'KO', 'PKO'].map(fmt => (
+                                    <button
+                                        key={fmt}
+                                        onClick={() => setBountyFormat(fmt)}
+                                        style={{
+                                            padding: '5px 10px', borderRadius: 6, fontSize: 10, fontWeight: 700,
+                                            cursor: 'pointer', border: 'none',
+                                            background: bountyFormat === fmt ? 'rgba(168,85,247,0.2)' : 'rgba(255,255,255,0.04)',
+                                            color: bountyFormat === fmt ? '#a855f7' : '#64748b',
+                                        }}
+                                    >
+                                        {fmt}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <AnimatePresence mode="wait">
+                            {icmView === 'ranges' && (
+                                <motion.div
+                                    key="icm-ranges"
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -10 }}
+                                >
+                                    <ICMPreflopRanges
+                                        playerCount={stacks.length || 6}
+                                        bountyFormat={bountyFormat}
+                                    />
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
 
                     {/* About */}
                     <div style={{

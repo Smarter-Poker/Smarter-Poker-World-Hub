@@ -9,12 +9,13 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
+import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 const GodModeArena = dynamic(
     () => import('../../../src/components/training/GodModeArena'),
@@ -121,11 +122,15 @@ export default function AutopilotPage() {
 
     useEffect(() => { fetchAndAnalyze(); }, [fetchAndAnalyze]);
 
-    // Bus listener
+    // Bus listeners — refresh weak spot analysis when a session completes
     useEffect(() => {
+        const unsub = eventBus.on(EventType.SESSION_END, () => fetchAndAnalyze());
         const onSessionComplete = () => fetchAndAnalyze();
         window.addEventListener('training:session-complete', onSessionComplete);
-        return () => window.removeEventListener('training:session-complete', onSessionComplete);
+        return () => {
+            unsub();
+            window.removeEventListener('training:session-complete', onSessionComplete);
+        };
     }, [fetchAndAnalyze]);
 
     const startAutopilot = () => {

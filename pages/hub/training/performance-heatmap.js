@@ -14,6 +14,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
+import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // GRID DEFINITIONS
@@ -298,11 +299,10 @@ export default function PerformanceHeatmapPage() {
         fetchData();
     }, [fetchData]);
 
-    // Bus listener
+    // Bus listener — refresh heatmap when a training session completes
     useEffect(() => {
-        const onSessionComplete = () => fetchData();
-        window.addEventListener('training:session-complete', onSessionComplete);
-        return () => window.removeEventListener('training:session-complete', onSessionComplete);
+        const unsub = eventBus.on(EventType.SESSION_END, () => fetchData());
+        return unsub;
     }, [fetchData]);
 
     const handlePractice = (cell) => {

@@ -11,6 +11,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { eventBus, EventType } from '../../../src/engine/EventBus';
+import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // HAND HISTORY PARSERS — Multi-Site Support (PokerStars, GGPoker, 888, WPN)
@@ -364,27 +366,90 @@ export default function HandHistoryUploadPage() {
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [stats, setStats] = useState(null);
     const [dragOver, setDragOver] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(null); // { current, total, currentFile }
+    const [savedSessions, setSavedSessions] = useState([]);
+    const [activeView, setActiveView] = useState('upload'); // 'upload' | 'history'
 
-    // Bus Listener — listen for session-complete to allow re-upload flow
+    // Load saved session history on mount
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        try {
+            const saved = JSON.parse(localStorage.getItem('hh_sessions') || '[]');
+            setSavedSessions(saved);
+        } catch { /* ignore */ }
+    }, []);
+
+    // Bus Listener
     useEffect(() => {
         const onSessionComplete = () => {
-            // If returning from a training session, could prompt for re-analysis
             console.log('[HandHistoryUpload] Session complete event received');
         };
         window.addEventListener('training:session-complete', onSessionComplete);
         return () => window.removeEventListener('training:session-complete', onSessionComplete);
     }, []);
 
+    // Save session to Supabase and localStorage
+    const saveAnalyzedSession = useCallback(async (hands) => {
+        if (!hands || hands.length === 0) return;
+        const sessionData = {
+            id: `hh-${Date.now()}`,
+            game_id: 'hand-history-review',
+            timestamp: new Date().toISOString(),
+            totalHands: hands.length,
+            heroActions: hands.reduce((s, h) => s + h.actions.filter(a => a.isHero).length, 0),
+            withShowdown: hands.filter(h => h.board.length >= 3).length,
+            avgPot: hands.reduce((s, h) => s + h.pot, 0) / hands.length,
+            site: hands[0]?.site || 'Unknown',
+        };
+
+        // Save to localStorage
+        try {
+            const prev = JSON.parse(localStorage.getItem('hh_sessions') || '[]');
+            const updated = [sessionData, ...prev].slice(0, 20); // Keep last 20
+            localStorage.setItem('hh_sessions', JSON.stringify(updated));
+            setSavedSessions(updated);
+        } catch { /* ignore */ }
+
+        // Save to Supabase
+        try {
+            const token = await getAccessToken();
+            if (token) {
+                await fetch('/api/training/save-session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({
+                        game_id: 'hand-history-review',
+                        score: sessionData.totalHands,
+                        accuracy: sessionData.withShowdown / Math.max(sessionData.totalHands, 1) * 100,
+                        hands_played: sessionData.totalHands,
+                        ev_loss: 0,
+                        metadata: sessionData,
+                    }),
+                });
+            }
+        } catch { /* Supabase save optional */ }
+
+        // EventBus emit
+        if (typeof eventBus !== 'undefined' && eventBus.emit) {
+            eventBus.emit(EventType?.TRAINING_SESSION_COMPLETE || 'training:session-complete', sessionData);
+        }
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('training:hand-history-uploaded', {
+                detail: sessionData,
+            }));
+        }
+    }, []);
+
     const handleFile = useCallback(async (file) => {
         if (!file) return;
         const text = await file.text();
         setIsAnalyzing(true);
+        setUploadProgress({ current: 0, total: 1, currentFile: file.name });
 
-        // Parse hands using auto-detect multi-site parser
         const hands = parseHandHistory(text);
         setParsedHands(prev => [...prev, ...hands]);
+        setUploadProgress({ current: 1, total: 1, currentFile: file.name });
 
-        // Compute stats
         const allHands = [...parsedHands, ...hands];
         const totalHands = allHands.length;
         const heroActions = allHands.reduce((sum, h) => sum + h.actions.filter(a => a.isHero).length, 0);
@@ -399,16 +464,12 @@ export default function HandHistoryUploadPage() {
             detectedSite,
         });
 
-        // Bus Event — notify other pages that hand history was uploaded
-
-        if (typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('training:hand-history-uploaded', {
-                detail: { totalHands, heroActions, withShowdown },
-            }));
-        }
+        // Auto-save session
+        await saveAnalyzedSession(allHands);
 
         setIsAnalyzing(false);
-    }, []);
+        setUploadProgress(null);
+    }, [parsedHands, saveAnalyzedSession]);
 
     const onDrop = useCallback((e) => {
         e.preventDefault();
@@ -456,113 +517,199 @@ export default function HandHistoryUploadPage() {
                 </div>
 
                 <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
-                    {/* Upload Zone */}
-                    {parsedHands.length === 0 && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                            onDragLeave={() => setDragOver(false)}
-                            onDrop={onDrop}
-                            onClick={() => fileInputRef.current?.click()}
-                            style={{
-                                padding: '60px 30px',
-                                borderRadius: 16,
-                                border: `2px dashed ${dragOver ? '#00d4ff' : 'rgba(255,255,255,0.1)'}`,
-                                background: dragOver ? 'rgba(0,212,255,0.05)' : 'rgba(0,0,0,0.2)',
-                                textAlign: 'center',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s ease',
-                            }}
-                        >
-                            <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.3 }}>
-                                {isAnalyzing ? '\u23F3' : '\uD83D\uDCC2'}
-                            </div>
-                            <div style={{ fontSize: 16, fontWeight: 700, color: '#e2e8f0', marginBottom: 8 }}>
-                                {isAnalyzing ? 'Analyzing...' : 'Drop Hand History File Here'}
-                            </div>
-                            <div style={{ fontSize: 12, color: '#64748b' }}>
-                                Supports .txt files from PokerStars, GGPoker, ACR
-                            </div>
-                            <div style={{
-                                marginTop: 20, padding: '10px 24px', borderRadius: 10,
-                                background: 'rgba(0,212,255,0.1)',
-                                border: '1px solid rgba(0,212,255,0.2)',
-                                color: '#00d4ff', fontSize: 13, fontWeight: 700,
-                                display: 'inline-block',
-                            }}>
-                                Browse Files
-                            </div>
-                            <input
-                                ref={fileInputRef}
-                                type="file"
-                                accept=".txt,.log"
-                                onChange={(e) => handleFile(e.target.files?.[0])}
-                                style={{ display: 'none' }}
-                            />
-                        </motion.div>
-                    )}
+                    {/* View Tabs */}
+                    <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+                        {[
+                            { key: 'upload', label: 'Upload & Analyze' },
+                            { key: 'history', label: `History (${savedSessions.length})` },
+                        ].map(tab => (
+                            <button
+                                key={tab.key}
+                                onClick={() => setActiveView(tab.key)}
+                                style={{
+                                    padding: '8px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700,
+                                    cursor: 'pointer', border: 'none', transition: 'all 0.15s',
+                                    background: activeView === tab.key
+                                        ? 'linear-gradient(135deg, #00d4ff, #7c3aed)'
+                                        : 'rgba(255,255,255,0.06)',
+                                    color: activeView === tab.key ? '#fff' : '#94a3b8',
+                                }}
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
 
-                    {/* Stats Summary */}
-                    {stats && (
+                    {/* Upload Progress Bar */}
+                    {uploadProgress && (
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             style={{
-                                display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8,
-                                marginBottom: 16,
+                                marginBottom: 12, padding: '10px 14px', borderRadius: 10,
+                                background: 'rgba(0,212,255,0.05)',
+                                border: '1px solid rgba(0,212,255,0.2)',
                             }}
                         >
-                            {[
-                                { label: 'Hands', value: stats.totalHands, color: '#00d4ff' },
-                                { label: 'Actions', value: stats.heroActions, color: '#a855f7' },
-                                { label: 'Showdowns', value: stats.withShowdown, color: '#22c55e' },
-                                { label: 'Avg Pot', value: `$${stats.avgPot.toFixed(0)}`, color: '#fbbf24' },
-                            ].map((s, i) => (
-                                <div key={i} style={{
-                                    padding: '12px 8px', borderRadius: 10, textAlign: 'center',
-                                    background: 'rgba(0,0,0,0.2)',
-                                    border: '1px solid rgba(255,255,255,0.06)',
-                                }}>
-                                    <div style={{ fontSize: 18, fontWeight: 800, color: s.color }}>{s.value}</div>
-                                    <div style={{ fontSize: 9, fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5 }}>{s.label}</div>
-                                </div>
-                            ))}
+                            <div style={{ fontSize: 11, fontWeight: 700, color: '#00d4ff', marginBottom: 6 }}>
+                                Parsing: {uploadProgress.currentFile}
+                            </div>
+                            <div style={{ height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.06)' }}>
+                                <motion.div
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${(uploadProgress.current / uploadProgress.total) * 100}%` }}
+                                    style={{ height: '100%', borderRadius: 2, background: '#00d4ff' }}
+                                />
+                            </div>
+                            <div style={{ fontSize: 9, color: '#64748b', marginTop: 4 }}>
+                                {uploadProgress.current} / {uploadProgress.total} files processed
+                            </div>
                         </motion.div>
                     )}
 
-                    {/* Parsed Hands List */}
-                    {parsedHands.length > 0 && (
-                        <>
-                            <div style={{
-                                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                marginBottom: 12,
-                            }}>
-                                <div style={{ fontSize: 14, fontWeight: 700, color: '#e2e8f0' }}>
-                                    {parsedHands.length} Hands Parsed
+                    {/* Session History View */}
+                    {activeView === 'history' ? (
+                        <div>
+                            {savedSessions.length === 0 ? (
+                                <div style={{ textAlign: 'center', padding: 40, color: '#475569', fontSize: 12 }}>
+                                    No saved sessions yet. Upload hand histories to get started.
                                 </div>
-                                <button
-                                    onClick={() => { setParsedHands([]); setStats(null); }}
+                            ) : savedSessions.map((session, i) => (
+                                <div key={session.id || i} style={{
+                                    marginBottom: 8, padding: '12px 14px', borderRadius: 10,
+                                    background: 'rgba(0,0,0,0.25)',
+                                    border: '1px solid rgba(255,255,255,0.06)',
+                                }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div>
+                                            <div style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0' }}>
+                                                {session.totalHands} hands from {session.site}
+                                            </div>
+                                            <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>
+                                                {new Date(session.timestamp).toLocaleDateString()} • {session.heroActions} decisions • Avg pot ${session.avgPot?.toFixed(0) || 'N/A'}
+                                            </div>
+                                        </div>
+                                        <div style={{
+                                            fontSize: 14, fontWeight: 800, color: '#00d4ff',
+                                            fontFamily: "'Orbitron', monospace",
+                                        }}>
+                                            {session.withShowdown || 0} SD
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <>
+                            {/* Upload Zone */}
+                            {parsedHands.length === 0 && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                                    onDragLeave={() => setDragOver(false)}
+                                    onDrop={onDrop}
+                                    onClick={() => fileInputRef.current?.click()}
                                     style={{
-                                        padding: '6px 14px', borderRadius: 8,
-                                        border: '1px solid rgba(255,255,255,0.1)',
-                                        background: 'rgba(255,255,255,0.03)',
-                                        color: '#94a3b8', fontSize: 11, fontWeight: 600,
+                                        padding: '60px 30px',
+                                        borderRadius: 16,
+                                        border: `2px dashed ${dragOver ? '#00d4ff' : 'rgba(255,255,255,0.1)'}`,
+                                        background: dragOver ? 'rgba(0,212,255,0.05)' : 'rgba(0,0,0,0.2)',
+                                        textAlign: 'center',
                                         cursor: 'pointer',
+                                        transition: 'all 0.2s ease',
                                     }}
                                 >
-                                    Upload New File
-                                </button>
-                            </div>
-                            {parsedHands.slice(0, 50).map((hand, i) => (
-                                <AnalyzedHandRow key={hand.id} hand={hand} index={i} />
-                            ))}
-                            {parsedHands.length > 50 && (
-                                <div style={{ textAlign: 'center', padding: 12, color: '#64748b', fontSize: 12 }}>
-                                    Showing first 50 of {parsedHands.length} hands
-                                </div>
+                                    <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.3 }}>
+                                        {isAnalyzing ? '\u23F3' : '\uD83D\uDCC2'}
+                                    </div>
+                                    <div style={{ fontSize: 16, fontWeight: 700, color: '#e2e8f0', marginBottom: 8 }}>
+                                        {isAnalyzing ? 'Analyzing...' : 'Drop Hand History File Here'}
+                                    </div>
+                                    <div style={{ fontSize: 12, color: '#64748b' }}>
+                                        Supports .txt files from PokerStars, GGPoker, ACR
+                                    </div>
+                                    <div style={{
+                                        marginTop: 20, padding: '10px 24px', borderRadius: 10,
+                                        background: 'rgba(0,212,255,0.1)',
+                                        border: '1px solid rgba(0,212,255,0.2)',
+                                        color: '#00d4ff', fontSize: 13, fontWeight: 700,
+                                        display: 'inline-block',
+                                    }}>
+                                        Browse Files
+                                    </div>
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept=".txt,.log"
+                                        onChange={(e) => handleFile(e.target.files?.[0])}
+                                        style={{ display: 'none' }}
+                                    />
+                                </motion.div>
                             )}
-                        </>
+
+                            {/* Stats Summary */}
+                            {stats && (
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    style={{
+                                        display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8,
+                                        marginBottom: 16,
+                                    }}
+                                >
+                                    {[
+                                        { label: 'Hands', value: stats.totalHands, color: '#00d4ff' },
+                                        { label: 'Actions', value: stats.heroActions, color: '#a855f7' },
+                                        { label: 'Showdowns', value: stats.withShowdown, color: '#22c55e' },
+                                        { label: 'Avg Pot', value: `$${stats.avgPot.toFixed(0)}`, color: '#fbbf24' },
+                                    ].map((s, i) => (
+                                        <div key={i} style={{
+                                            padding: '12px 8px', borderRadius: 10, textAlign: 'center',
+                                            background: 'rgba(0,0,0,0.2)',
+                                            border: '1px solid rgba(255,255,255,0.06)',
+                                        }}>
+                                            <div style={{ fontSize: 18, fontWeight: 800, color: s.color }}>{s.value}</div>
+                                            <div style={{ fontSize: 9, fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5 }}>{s.label}</div>
+                                        </div>
+                                    ))}
+                                </motion.div>
+                            )}
+
+                            {/* Parsed Hands List */}
+                            {parsedHands.length > 0 && (
+                                <>
+                                    <div style={{
+                                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                        marginBottom: 12,
+                                    }}>
+                                        <div style={{ fontSize: 14, fontWeight: 700, color: '#e2e8f0' }}>
+                                            {parsedHands.length} Hands Parsed
+                                        </div>
+                                        <button
+                                            onClick={() => { setParsedHands([]); setStats(null); }}
+                                            style={{
+                                                padding: '6px 14px', borderRadius: 8,
+                                                border: '1px solid rgba(255,255,255,0.1)',
+                                                background: 'rgba(255,255,255,0.03)',
+                                                color: '#94a3b8', fontSize: 11, fontWeight: 600,
+                                                cursor: 'pointer',
+                                            }}
+                                        >
+                                            Upload New File
+                                        </button>
+                                    </div>
+                                    {parsedHands.slice(0, 50).map((hand, i) => (
+                                        <AnalyzedHandRow key={hand.id} hand={hand} index={i} />
+                                    ))}
+                                    {parsedHands.length > 50 && (
+                                        <div style={{ textAlign: 'center', padding: 12, color: '#64748b', fontSize: 12 }}>
+                                            Showing first 50 of {parsedHands.length} hands
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </> /* end activeView === 'upload' */
                     )}
                 </div>
             </div>

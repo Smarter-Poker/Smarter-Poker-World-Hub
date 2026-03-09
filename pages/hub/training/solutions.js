@@ -15,6 +15,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
+import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
 import RangeGrid from '../../../src/components/training/RangeGrid';
 import CardSelectorModal from '../../../src/components/training/CardSelectorModal';
@@ -25,6 +26,10 @@ import SolverLineSummary from '../../../src/components/training/SolverLineSummar
 import { classifyAllHands, groupByClassification } from '../../../src/utils/pokerHandEvaluator';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import usePersistedFilters from '../../../src/hooks/usePersistedFilters';
+
+// Dynamic imports for new Phase 34 components (avoid SSR issues)
+const BlockerScorePanel = dynamic(() => import('../../../src/components/training/BlockerScorePanel'), { ssr: false });
+const SolverTreeViewer = dynamic(() => import('../../../src/components/training/SolverTreeViewer'), { ssr: false });
 
 // ═══════════════════════════════════════════════════════════════════════════
 // AUTH HELPER — Retrieve Bearer token from localStorage
@@ -934,8 +939,13 @@ export default function SolutionsBrowser() {
                                     <div style={{ display: 'flex', gap: 4 }}>
                                         {[
                                             { key: 'grid', label: '13×13 Grid' },
-                                            { key: 'runout', label: 'Runout Analysis' },
-                                            { key: 'report', label: 'Range Report' },
+                                            { key: 'ev', label: 'EV View' },
+                                            { key: 'equity', label: 'Equity' },
+                                            { key: 'eqr', label: 'EQR' },
+                                            { key: 'runout', label: 'Runout' },
+                                            { key: 'blockers', label: 'Blockers' },
+                                            { key: 'tree', label: 'Tree' },
+                                            { key: 'report', label: 'Report' },
                                         ].map(tab => (
                                             <button
                                                 key={tab.key}
@@ -1057,6 +1067,86 @@ export default function SolutionsBrowser() {
                                         loading={loadingRunout}
                                         onCardClick={(card) => navigateToChild(card)}
                                     />
+                                ) : activeTab === 'ev' ? (
+                                    <div style={{ width: '100%' }}>
+                                        <div style={{
+                                            fontSize: 12, fontWeight: 700, color: '#00d4ff',
+                                            fontFamily: "'Orbitron', monospace", marginBottom: 12,
+                                            textTransform: 'uppercase', letterSpacing: 1,
+                                        }}>EV by Action (BB)</div>
+                                        <RangeGrid
+                                            gridData={spotDetail.gridData}
+                                            actions={spotDetail.actions}
+                                            cellSize={34}
+                                            colorMode="ev"
+                                            handEVs={spotDetail.handEVs || null}
+                                        />
+                                        <div style={{
+                                            marginTop: 10, padding: '8px 12px', borderRadius: 8,
+                                            background: 'rgba(255,255,255,0.02)', fontSize: 10, color: '#64748b',
+                                        }}>
+                                            Green = positive EV, Red = negative. Values in big blinds.
+                                        </div>
+                                    </div>
+                                ) : activeTab === 'equity' ? (
+                                    <div style={{ width: '100%' }}>
+                                        <div style={{
+                                            fontSize: 12, fontWeight: 700, color: '#22c55e',
+                                            fontFamily: "'Orbitron', monospace", marginBottom: 12,
+                                            textTransform: 'uppercase', letterSpacing: 1,
+                                        }}>Raw Equity %</div>
+                                        <RangeGrid
+                                            gridData={spotDetail.gridData}
+                                            actions={spotDetail.actions}
+                                            cellSize={34}
+                                            colorMode="equity"
+                                            handEVs={spotDetail.handEVs || null}
+                                        />
+                                        <div style={{
+                                            marginTop: 10, padding: '8px 12px', borderRadius: 8,
+                                            background: 'rgba(255,255,255,0.02)', fontSize: 10, color: '#64748b',
+                                        }}>
+                                            Shows raw pot equity per hand combo against villain's range.
+                                        </div>
+                                    </div>
+                                ) : activeTab === 'eqr' ? (
+                                    <div style={{ width: '100%' }}>
+                                        <div style={{
+                                            fontSize: 12, fontWeight: 700, color: '#a855f7',
+                                            fontFamily: "'Orbitron', monospace", marginBottom: 12,
+                                            textTransform: 'uppercase', letterSpacing: 1,
+                                        }}>Equity Realization Ratio</div>
+                                        <RangeGrid
+                                            gridData={spotDetail.gridData}
+                                            actions={spotDetail.actions}
+                                            cellSize={34}
+                                            colorMode="eqr"
+                                            handEVs={spotDetail.handEVs || null}
+                                        />
+                                        <div style={{
+                                            marginTop: 10, padding: '8px 12px', borderRadius: 8,
+                                            background: 'rgba(255,255,255,0.02)', fontSize: 10, color: '#64748b',
+                                        }}>
+                                            EQR = EV / Equity. Values &gt;1.0 overperform, &lt;1.0 underperform.
+                                        </div>
+                                    </div>
+                                ) : activeTab === 'blockers' ? (
+                                    <div style={{ width: '100%' }}>
+                                        <BlockerScorePanel
+                                            board={spotDetail.board}
+                                            gridData={spotDetail.gridData}
+                                            actions={spotDetail.actions}
+                                            heldCards={spotDetail.heroCards || (spotDetail.board || []).slice(0, 2)}
+                                        />
+                                    </div>
+                                ) : activeTab === 'tree' ? (
+                                    <div style={{ width: '100%' }}>
+                                        <SolverTreeViewer
+                                            spotDetail={spotDetail}
+                                            width={Math.min(800, typeof window !== 'undefined' ? window.innerWidth - 100 : 600)}
+                                            height={400}
+                                        />
+                                    </div>
                                 ) : activeTab === 'report' ? (
                                     <RangeReport
                                         classificationGroups={classificationGroups}

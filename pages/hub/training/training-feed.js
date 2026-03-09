@@ -9,11 +9,12 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
+import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // FEED EVENT TYPES
@@ -28,8 +29,14 @@ const EVENT_TYPES = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// MOCK FEED ENGINE (uses local + simulated friend data)
+// FEED ENGINE (real user data + simulated community activity)
 // ═══════════════════════════════════════════════════════════════════════════
+
+// Simple seed-based pseudo-random to avoid Math.random() flicker on re-renders
+function seededRandom(seed) {
+    const x = Math.sin(seed * 9301 + 49297) * 49241;
+    return x - Math.floor(x);
+}
 
 const FRIEND_NAMES = [
     'PokerPro_Mike', 'AceHunter99', 'GTO_Sarah', 'Riverbluff_Dan',
@@ -63,32 +70,34 @@ function generateFeedItems(userSessions) {
         });
     }
 
-    // Generate simulated friend activity
+    // Generate simulated community activity (seeded for deterministic renders)
+    const daySeed = Math.floor(now / 86400000); // changes once per day
     for (let i = 0; i < 12; i++) {
         const friendName = FRIEND_NAMES[i % FRIEND_NAMES.length];
-        const minutesAgo = Math.floor(Math.random() * 1440) + 5; // 5 min to 24h ago
+        const minutesAgo = Math.floor(seededRandom(daySeed + i) * 1440) + 5;
         const type = i < 6 ? 'session' : i < 9 ? 'streak' : i < 11 ? 'achievement' : 'mastery';
 
         const item = {
-            id: `friend-${i}`,
+            id: `community-${i}`,
             type,
             user: friendName,
             isYou: false,
+            simulated: true,
             timestamp: now - (minutesAgo * 60000),
             avatarColor: `hsl(${(i * 47) % 360}, 60%, 55%)`,
         };
 
         if (type === 'session') {
             item.game = GAME_NAMES[i % GAME_NAMES.length];
-            item.accuracy = Math.floor(Math.random() * 30) + 65; // 65-95%
-            item.handsPlayed = Math.floor(Math.random() * 20) + 10;
+            item.accuracy = Math.floor(seededRandom(daySeed + i + 100) * 30) + 65;
+            item.handsPlayed = Math.floor(seededRandom(daySeed + i + 200) * 20) + 10;
         } else if (type === 'streak') {
-            item.streakDays = Math.floor(Math.random() * 25) + 3;
+            item.streakDays = Math.floor(seededRandom(daySeed + i + 300) * 25) + 3;
         } else if (type === 'achievement') {
             item.badge = ['First Blood', 'Streak Master', 'GTO Expert', 'Iron Will', 'Diamond Grinder'][i % 5];
         } else if (type === 'mastery') {
             item.game = GAME_NAMES[i % GAME_NAMES.length];
-            item.level = Math.floor(Math.random() * 3) + 1;
+            item.level = Math.floor(seededRandom(daySeed + i + 400) * 3) + 1;
         }
 
         items.push(item);
@@ -225,6 +234,17 @@ function FeedItem({ item, onChallenge }) {
                     }}>
                         {eventType.icon} {eventType.label}
                     </span>
+                    {item.simulated && (
+                        <span style={{
+                            padding: '1px 5px', borderRadius: 3,
+                            background: 'rgba(100,116,139,0.1)',
+                            border: '1px solid rgba(100,116,139,0.15)',
+                            color: '#475569', fontSize: 8, fontWeight: 600,
+                            letterSpacing: 0.3,
+                        }}>
+                            COMMUNITY
+                        </span>
+                    )}
                     <span style={{ fontSize: 10, color: '#475569' }}>
                         {formatTimeAgo(item.timestamp)}
                     </span>
@@ -285,11 +305,15 @@ export default function TrainingFeedPage() {
 
     useEffect(() => { fetchFeed(); }, [fetchFeed]);
 
-    // Bus listener
+    // Bus listeners — refresh feed when a training session completes
     useEffect(() => {
+        const unsub = eventBus.on(EventType.SESSION_END, () => fetchFeed());
         const onSessionComplete = () => fetchFeed();
         window.addEventListener('training:session-complete', onSessionComplete);
-        return () => window.removeEventListener('training:session-complete', onSessionComplete);
+        return () => {
+            unsub();
+            window.removeEventListener('training:session-complete', onSessionComplete);
+        };
     }, [fetchFeed]);
 
     const handleChallenge = (username) => {
