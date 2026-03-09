@@ -6,8 +6,8 @@
  * Fetches all wallet balances for the current user in a club, then subscribes
  * to Supabase Realtime for live updates (chip changes, BBJ growth, promo, etc.).
  *
- * Returns: { diamondBalance, bbjAmount, chipBalance, agentBalance, promoBalance,
- *            bbjAnimating, loading, role }
+ * Returns: { diamondBalance, bbjAmount, chipBalance, clubBankBalance,
+ *            agentBalance, promoBalance, bbjAnimating, loading, role }
  *
  * Usage:
  *   const wallet = useWalletData({ supabase, userId, clubId });
@@ -20,6 +20,7 @@ export default function useWalletData({ supabase, userId, clubId }) {
   const [diamondBalance, setDiamondBalance] = useState(0);
   const [bbjAmount, setBbjAmount] = useState(0);
   const [chipBalance, setChipBalance] = useState(0);
+  const [clubBankBalance, setClubBankBalance] = useState(null); // club treasury (owner view)
   const [agentBalance, setAgentBalance] = useState(null);
   const [promoBalance, setPromoBalance] = useState(0);
   const [bbjAnimating, setBbjAnimating] = useState(false);
@@ -32,25 +33,28 @@ export default function useWalletData({ supabase, userId, clubId }) {
     if (!supabase || !userId || !clubId) return;
 
     try {
-      // Parallel fetch: profile diamonds, club membership, BBJ pool, agent record
-      const [profileRes, memberRes, bbjRes, agentRes] = await Promise.allSettled([
+      // Parallel fetch: profile, membership, BBJ, agent, club treasury
+      const [profileRes, memberRes, bbjRes, agentRes, clubRes] = await Promise.allSettled([
         supabase.from('profiles').select('diamond_balance').eq('id', userId).maybeSingle(),
         supabase.from('club_members').select('chip_balance, promo_balance, role').eq('club_id', clubId).eq('user_id', userId).maybeSingle(),
         supabase.from('bbj_pools').select('pool_amount').eq('club_id', clubId).maybeSingle(),
         supabase.from('agents').select('business_balance, status').eq('club_id', clubId).eq('user_id', userId).eq('status', 'active').maybeSingle(),
+        supabase.from('clubs').select('chip_treasury').eq('id', clubId).maybeSingle(),
       ]);
 
-      // Diamonds (global, not per-club)
+      // Diamonds (global)
       if (profileRes.status === 'fulfilled' && profileRes.value?.data) {
         setDiamondBalance(profileRes.value.data.diamond_balance || 0);
       }
 
       // Club membership
+      let userRole = 'player';
       if (memberRes.status === 'fulfilled' && memberRes.value?.data) {
         const m = memberRes.value.data;
         setChipBalance(m.chip_balance || 0);
         setPromoBalance(m.promo_balance || 0);
-        setRole(m.role || 'player');
+        userRole = m.role || 'player';
+        setRole(userRole);
       }
 
       // BBJ pool
@@ -63,6 +67,13 @@ export default function useWalletData({ supabase, userId, clubId }) {
         setAgentBalance(agentRes.value.data.business_balance || 0);
       } else {
         setAgentBalance(null);
+      }
+
+      // Club treasury (only relevant for owner/admin)
+      if (['owner', 'admin'].includes(userRole) && clubRes.status === 'fulfilled' && clubRes.value?.data) {
+        setClubBankBalance(clubRes.value.data.chip_treasury || 0);
+      } else {
+        setClubBankBalance(null);
       }
     } catch (e) {
       console.error('[useWalletData] Load error:', e);
@@ -91,7 +102,7 @@ export default function useWalletData({ supabase, userId, clubId }) {
       })
       .subscribe();
 
-    // 2. BBJ pool changes (any player in the club sees it grow)
+    // 2. BBJ pool changes (any player sees it grow)
     const bbjCh = supabase
       .channel(`wallet-bbj:${clubId}`)
       .on('postgres_changes', {
@@ -101,7 +112,6 @@ export default function useWalletData({ supabase, userId, clubId }) {
         const newAmount = payload.new?.pool_amount;
         if (newAmount !== undefined && newAmount !== bbjAmount) {
           setBbjAmount(newAmount);
-          // Trigger pulse animation
           setBbjAnimating(true);
           if (bbjTimeoutRef.current) clearTimeout(bbjTimeoutRef.current);
           bbjTimeoutRef.current = setTimeout(() => setBbjAnimating(false), 800);
@@ -122,7 +132,7 @@ export default function useWalletData({ supabase, userId, clubId }) {
       })
       .subscribe();
 
-    // 4. Agent balance changes (only if user is an agent)
+    // 4. Agent balance changes
     const agentCh = supabase
       .channel(`wallet-agent:${clubId}:${userId}`)
       .on('postgres_changes', {
@@ -135,17 +145,32 @@ export default function useWalletData({ supabase, userId, clubId }) {
       })
       .subscribe();
 
+    // 5. Club treasury changes (owner/admin — Club Bank)
+    const clubCh = supabase
+      .channel(`wallet-treasury:${clubId}`)
+      .on('postgres_changes', {
+        event: 'UPDATE', schema: 'public', table: 'clubs',
+        filter: `id=eq.${clubId}`,
+      }, (payload) => {
+        if (payload.new?.chip_treasury !== undefined) {
+          setClubBankBalance(payload.new.chip_treasury);
+        }
+      })
+      .subscribe();
+
     return () => {
       supabase.removeChannel(memberCh);
       supabase.removeChannel(bbjCh);
       supabase.removeChannel(diamondCh);
       supabase.removeChannel(agentCh);
+      supabase.removeChannel(clubCh);
       if (bbjTimeoutRef.current) clearTimeout(bbjTimeoutRef.current);
     };
   }, [supabase, userId, clubId]);
 
   return {
-    diamondBalance, bbjAmount, chipBalance, agentBalance, promoBalance,
-    bbjAnimating, loading, role, reload: loadWalletData,
+    diamondBalance, bbjAmount, chipBalance, clubBankBalance,
+    agentBalance, promoBalance, bbjAnimating, loading, role,
+    reload: loadWalletData,
   };
 }

@@ -222,15 +222,7 @@ const router = useRouter();
       {/* Wallet Panel */}
       {showWallet && (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0', background: FB.bg }}>
-          <DynamicWallet
-            diamondBalance={walletData.diamondBalance}
-            bbjAmount={walletData.bbjAmount}
-            chipBalance={walletData.chipBalance || chipBalance}
-            agentBalance={walletData.agentBalance}
-            promoBalance={walletData.promoBalance}
-            bbjAnimating={walletData.bbjAnimating}
-            compact
-          />
+          <DynamicWallet {...walletData} chipBalance={walletData.chipBalance || chipBalance} compact />
         </div>
       )}
 

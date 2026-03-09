@@ -464,15 +464,7 @@ const router = useRouter();
                 {activeTab === 'overview' && (
                     <>
                     <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 12px' }}>
-                        <DynamicWallet
-                            diamondBalance={walletData.diamondBalance}
-                            bbjAmount={walletData.bbjAmount}
-                            chipBalance={walletData.chipBalance}
-                            agentBalance={walletData.agentBalance}
-                            promoBalance={walletData.promoBalance}
-                            bbjAnimating={walletData.bbjAnimating}
-                            compact
-                        />
+                        <DynamicWallet {...walletData} compact />
                     </div>
                     <OverviewTab stats={stats} myAgent={myAgent} clawbackCount={clawbackEligible.length} pendingCashouts={pendingCashouts}
                         playerNumber={myPlayerNumber}
