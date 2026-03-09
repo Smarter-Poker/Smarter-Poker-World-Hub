@@ -8,7 +8,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
@@ -73,21 +73,23 @@ function calculateGTOProximity(userStats, baselines) {
 // STAT CARD
 // ═══════════════════════════════════════════════════════════════════════════
 
-function StatCard({ statKey, userVal, gtoVal, index }) {
+function StatCard({ statKey, userVal, gtoVal, index, onClick, isActive }) {
     const meta = STAT_LABELS[statKey] || { label: statKey, desc: '', icon: '📊' };
     const dev = getDeviationColor(userVal, gtoVal);
     const diff = userVal - gtoVal;
-    const direction = diff > 0 ? 'high' : diff < 0 ? 'low' : 'optimal';
 
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.05 }}
+            onClick={onClick}
             style={{
-                padding: '14px 16px', borderRadius: 12,
-                background: dev.bg,
-                border: `1px solid ${dev.text}33`,
+                padding: '14px 16px', borderRadius: 12, cursor: 'pointer',
+                background: isActive ? `${dev.text}25` : dev.bg,
+                border: `1px solid ${isActive ? dev.text : `${dev.text}33`}`,
+                transform: isActive ? 'scale(1.02)' : 'scale(1)',
+                transition: 'transform 0.15s, border-color 0.15s',
             }}
         >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
@@ -109,7 +111,6 @@ function StatCard({ statKey, userVal, gtoVal, index }) {
                         GTO: {gtoVal.toFixed(1)}% ({diff > 0 ? '+' : ''}{diff.toFixed(1)}%)
                     </div>
                 </div>
-                {/* Visual bar comparing user vs GTO */}
                 <div style={{ width: 80, height: 32 }}>
                     <div style={{ display: 'flex', alignItems: 'flex-end', height: '100%', gap: 3 }}>
                         <div style={{ flex: 1, background: dev.text, borderRadius: 3, height: `${Math.min(100, (userVal / Math.max(gtoVal, 1)) * 100)}%`, opacity: 0.8 }} />
@@ -121,7 +122,12 @@ function StatCard({ statKey, userVal, gtoVal, index }) {
                     </div>
                 </div>
             </div>
-            <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 6 }}>{meta.desc}</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
+                <span style={{ fontSize: 9, color: '#94a3b8' }}>{meta.desc}</span>
+                <span style={{ fontSize: 9, color: isActive ? dev.text : '#64748b', fontWeight: 600 }}>
+                    {isActive ? 'VIEWING HANDS ▲' : 'CLICK TO DRILL DOWN ▼'}
+                </span>
+            </div>
         </motion.div>
     );
 }
@@ -184,6 +190,7 @@ export default function GTOReportsPage() {
     useTrainingBus('gto-reports');
     const [sessions, setSessions] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [drillDown, setDrillDown] = useState(null); // stat key being drilled into
 
     // Fetch user's training sessions from Supabase
     const fetchSessions = useCallback(async () => {
@@ -367,10 +374,10 @@ export default function GTOReportsPage() {
                                 </div>
                             </motion.div>
 
-                            {/* Stat Cards Grid */}
+                            {/* Stat Cards Grid — Click to Drill Down */}
                             <div style={{
                                 display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-                                gap: 10, marginBottom: 20,
+                                gap: 10, marginBottom: 10,
                             }}>
                                 {Object.entries(GTO_BASELINES.overall).map(([key, gtoVal], i) => (
                                     <StatCard
@@ -379,9 +386,80 @@ export default function GTOReportsPage() {
                                         userVal={userStats[key] || 0}
                                         gtoVal={gtoVal}
                                         index={i}
+                                        isActive={drillDown === key}
+                                        onClick={() => setDrillDown(drillDown === key ? null : key)}
                                     />
                                 ))}
                             </div>
+
+                            {/* Drill-Down Panel */}
+                            <AnimatePresence>
+                                {drillDown && (
+                                    <motion.div
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: 'auto' }}
+                                        exit={{ opacity: 0, height: 0 }}
+                                        style={{ overflow: 'hidden', marginBottom: 20 }}
+                                    >
+                                        <div style={{
+                                            padding: 16, borderRadius: 12,
+                                            background: 'rgba(99,102,241,0.05)',
+                                            border: '1px solid rgba(99,102,241,0.2)',
+                                        }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                                                <div>
+                                                    <div style={{ fontSize: 13, fontWeight: 700, color: '#a5b4fc' }}>
+                                                        Drill-Down: {(STAT_LABELS[drillDown] || {}).label || drillDown}
+                                                    </div>
+                                                    <div style={{ fontSize: 11, color: '#64748b' }}>
+                                                        Sessions contributing to this stat
+                                                    </div>
+                                                </div>
+                                                <button onClick={() => setDrillDown(null)} style={{
+                                                    padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                                                    background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+                                                    color: '#b0b3b8', cursor: 'pointer',
+                                                }}>Close</button>
+                                            </div>
+                                            {sessions.length === 0 ? (
+                                                <div style={{ fontSize: 12, color: '#64748b', padding: '10px 0' }}>
+                                                    No session data yet. Complete training sessions to see drill-down details.
+                                                    Sample data is being displayed above.
+                                                </div>
+                                            ) : (
+                                                <div style={{ maxHeight: 300, overflowY: 'auto' }}>
+                                                    {sessions.slice(0, 20).map((s, i) => {
+                                                        const acc = (s.accuracy || 0);
+                                                        const hands = s.hands_played || s.handsPlayed || 0;
+                                                        const gtoVal = GTO_BASELINES.overall[drillDown] || 0;
+                                                        const dev = getDeviationColor(acc, 70);
+                                                        return (
+                                                            <div key={i} style={{
+                                                                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                                                padding: '8px 12px', marginBottom: 4, borderRadius: 6,
+                                                                background: 'rgba(0,0,0,0.2)', borderLeft: `3px solid ${dev.text}`,
+                                                            }}>
+                                                                <div>
+                                                                    <div style={{ fontSize: 12, fontWeight: 600, color: '#e2e8f0' }}>
+                                                                        {s.game_mode || s.gameMode || 'Training Session'}
+                                                                    </div>
+                                                                    <div style={{ fontSize: 10, color: '#64748b' }}>
+                                                                        {hands} hands | {new Date(s.created_at || s.createdAt || Date.now()).toLocaleDateString()}
+                                                                    </div>
+                                                                </div>
+                                                                <div style={{ textAlign: 'right' }}>
+                                                                    <div style={{ fontSize: 14, fontWeight: 700, color: dev.text }}>{acc.toFixed(0)}%</div>
+                                                                    <div style={{ fontSize: 9, color: '#64748b' }}>accuracy</div>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
 
                             {/* Position Heatmap */}
                             <PositionHeatmap userByPosition={userByPosition} />

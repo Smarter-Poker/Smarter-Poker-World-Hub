@@ -45,9 +45,9 @@ const api = async (action, params) => {
 };
 
 export default function UnionGames() {
-      useTrainingBus('club-arena-union-games');
+  useTrainingBus('club-arena-union-games');
 
-const router = useRouter();
+  const router = useRouter();
   const unionId = router.query?.union || null;
 
   const [user, setUser] = useState(null);
@@ -135,7 +135,7 @@ const router = useRouter();
       // Pass statusFilter so API queries only what we need (no client-side filtering needed)
       const statusFilter = tableFilter === 'active' ? 'active'
         : tableFilter === 'closed' ? 'closed'
-        : 'all';
+          : 'all';
       const res = await api('list_tables', { unionId, statusFilter });
       if (res.success) {
         setTables(res.tables || []);
@@ -308,7 +308,7 @@ const router = useRouter();
     return (
       <div style={{ background: FB.bg, minHeight: '100vh' }}>
         <SEOHead title="Union Games | Club Arena" />
-        <UniversalHeader />
+        <UniversalHeader pageDepth={2} />
         <div style={{ maxWidth: 800, margin: '0 auto', padding: '20px 16px' }}>
           <SkeletonDark variant="table-rows" rows={6} />
         </div>
@@ -321,7 +321,7 @@ const router = useRouter();
     return (
       <div style={{ background: FB.bg, minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
         <SEOHead title="Union Games | Club Arena" />
-        <UniversalHeader />
+        <UniversalHeader pageDepth={2} />
         <div style={{ color: '#FA383E', fontSize: 16 }}>No union specified.</div>
         <button onClick={() => router.push('/hub/club-arena')}
           style={{ background: FB.primary, color: '#fff', border: 'none', padding: '10px 24px', borderRadius: 8, cursor: 'pointer', fontWeight: 700 }}>
@@ -334,7 +334,7 @@ const router = useRouter();
   return (
     <div style={{ background: FB.bg, minHeight: '100vh', color: FB.text }}>
       <SEOHead title={`Games | ${unionInfo?.name || 'Union'}`} />
-      <UniversalHeader />
+      <UniversalHeader pageDepth={2} />
 
       {/* Toast */}
       {toast && (
@@ -808,7 +808,7 @@ function CreateTournamentModal({ unionId, clubs, onClose, onCreated }) {
                   background: form.selectedClubs.includes(c.id) ? FB.green + '20' : 'transparent',
                 }}>
                   <span style={{ fontSize: 15 }}>{form.selectedClubs.includes(c.id) ? '' : '⬜'}</span>
-                  {c.logo_url && <img src={c.logo_url} alt="" style={{ width: 18, height: 18, borderRadius: '50%' }}  loading="lazy" />}
+                  {c.logo_url && <img src={c.logo_url} alt="" style={{ width: 18, height: 18, borderRadius: '50%' }} loading="lazy" />}
                   <span style={{ fontSize: 13, color: FB.text }}>{c.name}</span>
                   {c.id === form.hostClubId && <span style={{ fontSize: 10, color: FB.gold, fontWeight: 700 }}>HOST</span>}
                 </div>

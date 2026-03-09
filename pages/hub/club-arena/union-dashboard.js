@@ -74,9 +74,9 @@ const ALL_TABS = [
 ];
 
 export default function UnionDashboard() {
-        useTrainingBus('club-arena-union-dashboard');
+    useTrainingBus('club-arena-union-dashboard');
 
-const router = useRouter();
+    const router = useRouter();
     const unionIdParam = router.query?.union || null;
 
     const [user, setUser] = useState(null);
@@ -194,8 +194,8 @@ const router = useRouter();
             setDashboard(data);
             if (data.union) {
                 // Only pre-fill name/desc on first load — don't overwrite unsaved user edits
-            setUnionName(prev => prev || (data.union.name || ''));
-            setUnionDesc(prev => prev || (data.union.description || ''));
+                setUnionName(prev => prev || (data.union.name || ''));
+                setUnionDesc(prev => prev || (data.union.description || ''));
                 setUnionHoldRate(String(((data.union.settings?.union_rake_hold || 0.10) * 100).toFixed(0)));
                 setBbjMainPct(String(data.union.settings?.bbj_main_pct || 40));
                 setBbjBackupPct(String(data.union.settings?.bbj_backup_pct || 30));
@@ -551,7 +551,7 @@ const router = useRouter();
         return (
             <div style={{ background: FB.background, minHeight: '100vh' }}>
                 <SEOHead title="Union Dashboard | Club Arena" />
-                <UniversalHeader />
+                <UniversalHeader pageDepth={2} />
                 <div style={{ maxWidth: 900, margin: '0 auto', padding: '20px 16px' }}>
                     <SkeletonDark variant="stat-cards" count={4} />
                     <div style={{ marginTop: 16 }}>
@@ -568,7 +568,7 @@ const router = useRouter();
             return (
                 <div style={{ background: FB.background, minHeight: '100vh' }}>
                     <SEOHead title="Create Union | Club Arena" />
-                    <UniversalHeader />
+                    <UniversalHeader pageDepth={2} />
                     <div style={{ maxWidth: 500, margin: '0 auto', padding: '60px 16px' }}>
                         <h1 style={{ fontFamily: 'Inter, sans-serif', fontSize: 24, fontWeight: 800, color: FB.gold, margin: '0 0 8px', textAlign: 'center' }}>
                             Create a Union
@@ -635,7 +635,7 @@ const router = useRouter();
         return (
             <div style={{ background: FB.background, minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
                 <SEOHead title="Union Dashboard | Club Arena" />
-                <UniversalHeader />
+                <UniversalHeader pageDepth={2} />
                 <div style={{ color: FB.danger, fontSize: 18 }}>Failed to load union dashboard</div>
                 <button onClick={() => router.push('/hub/club-arena')}
                     style={{ background: FB.primary, color: '#fff', border: 'none', padding: '10px 24px', borderRadius: 8, cursor: 'pointer' }}>
@@ -664,7 +664,7 @@ const router = useRouter();
     return (
         <div style={{ background: FB.background, minHeight: '100vh' }}>
             <SEOHead title={`${union?.name || 'Union'} Dashboard | Club Arena`} />
-            <UniversalHeader />
+            <UniversalHeader pageDepth={2} />
 
             <div style={{ maxWidth: 900, margin: '0 auto', padding: '20px 16px 120px' }}>
                 {/* Header */}
@@ -1384,17 +1384,17 @@ const router = useRouter();
                                                     {settleStatusData.pendingCommissions.length} Pending Commission{settleStatusData.pendingCommissions.length !== 1 ? 's' : ''}
                                                 </div>
                                                 {settleStatusData.pendingCommissions.map(c => {
-                                                        // Resolve agent name from loaded agents list
-                                                        const agentRecord = agents.find(a => a.id === c.agent_id || a.user_id === c.agents?.user_id);
-                                                        const agentName = agentRecord?.profile?.display_name || agentRecord?.profile?.username
-                                                            || c.agents?.display_name || c.agents?.username
-                                                            || (c.agents?.user_id ? c.agents.user_id.slice(0, 8) : c.agent_id?.slice?.(0, 8) || 'Unknown Agent');
-                                                        return (
-                                                            <div key={c.id} style={{ fontSize: 12, color: FB.textSecondary, marginBottom: 2 }}>
-                                                                {agentName} — {(c.commission_amount || 0).toLocaleString()} chips pending
-                                                            </div>
-                                                        );
-                                                    })}
+                                                    // Resolve agent name from loaded agents list
+                                                    const agentRecord = agents.find(a => a.id === c.agent_id || a.user_id === c.agents?.user_id);
+                                                    const agentName = agentRecord?.profile?.display_name || agentRecord?.profile?.username
+                                                        || c.agents?.display_name || c.agents?.username
+                                                        || (c.agents?.user_id ? c.agents.user_id.slice(0, 8) : c.agent_id?.slice?.(0, 8) || 'Unknown Agent');
+                                                    return (
+                                                        <div key={c.id} style={{ fontSize: 12, color: FB.textSecondary, marginBottom: 2 }}>
+                                                            {agentName} — {(c.commission_amount || 0).toLocaleString()} chips pending
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
                                         )}
                                         {settleStatusData.pendingCommissions?.length === 0 && (
@@ -1683,61 +1683,61 @@ const router = useRouter();
 
                         {/* ── Leave Requests ── */}
                         <div style={{ marginTop: 20 }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                                    <h3 style={{ fontSize: 15, fontWeight: 700, color: FB.danger, margin: 0 }}>
-                                        Leave Requests
-                                        <span style={{ marginLeft: 8, background: FB.danger, color: '#fff', borderRadius: 12, padding: '1px 8px', fontSize: 11, fontWeight: 700 }}>
-                                            {dashboard.pendingLeaveRequests}
-                                        </span>
-                                    </h3>
-                                    <button onClick={loadLeaveRequests} disabled={leaveLoading} style={{ background: 'transparent', color: FB.textSecondary, border: `1px solid ${FB.border}`, borderRadius: 6, padding: '4px 12px', fontSize: 12, cursor: 'pointer' }}>
-                                        {leaveLoading ? 'Loading...' : 'Refresh'}
-                                    </button>
-                                </div>
-                                {leaveRequests === null ? (
-                                    <div style={{ color: FB.textSecondary, fontSize: 13, textAlign: 'center', padding: '16px 0' }}>
-                                        {leaveLoading ? 'Loading...' : 'Click Refresh to load leave requests.'}
-                                    </div>
-                                ) : leaveRequests.length === 0 ? (
-                                    <div style={{ color: FB.textSecondary, fontSize: 13, textAlign: 'center', padding: '16px 0' }}>No pending leave requests.</div>
-                                ) : leaveRequests.map(req => (
-                                    <div key={req.id} style={{ background: FB.cardBg, borderRadius: 10, padding: 14, border: '1px solid rgba(250,56,62,0.25)', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <div>
-                                            <div style={{ fontWeight: 700, color: FB.textPrimary, fontSize: 14 }}>{req.club_name || req.club_id}</div>
-                                            <div style={{ fontSize: 12, color: FB.textSecondary, marginTop: 2 }}>
-                                                Requested {new Date(req.requested_at || req.created_at).toLocaleDateString()}
-                                                {req.reason && ` · "${req.reason}"`}
-                                            </div>
-                                        </div>
-                                        <div style={{ display: 'flex', gap: 6 }}>
-                                            <button disabled={leaveProcessing[req.id]} onClick={async () => {
-                                                setLeaveProcessing(prev => ({ ...prev, [req.id]: 'approve' }));
-                                                try {
-                                                    await apiCall('/api/club-arena/manage-union', { action: 'approve_leave', leaveRequestId: req.id, unionId: unionIdParam });
-                                                    showToast(`${req.club_name} approved to leave`);
-                                                    setLeaveRequests(prev => prev.filter(r => r.id !== req.id));
-                                                    loadDashboard();
-                                                } catch (e) { showToast(e.message, 'error'); }
-                                                finally { setLeaveProcessing(prev => ({ ...prev, [req.id]: null })); }
-                                            }} style={{ background: FB.success, color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer', opacity: leaveProcessing[req.id] ? 0.6 : 1 }}>
-                                                {leaveProcessing[req.id] === 'approve' ? '...' : 'Approve'}
-                                            </button>
-                                            <button disabled={leaveProcessing[req.id]} onClick={async () => {
-                                                setLeaveProcessing(prev => ({ ...prev, [req.id]: 'deny' }));
-                                                try {
-                                                    await apiCall('/api/club-arena/manage-union', { action: 'deny_leave', leaveRequestId: req.id, unionId: unionIdParam });
-                                                    showToast(`${req.club_name} leave request denied`);
-                                                    setLeaveRequests(prev => prev.filter(r => r.id !== req.id));
-                                                    loadDashboard();
-                                                } catch (e) { showToast(e.message, 'error'); }
-                                                finally { setLeaveProcessing(prev => ({ ...prev, [req.id]: null })); }
-                                            }} style={{ background: 'transparent', color: FB.danger, border: `1px solid ${FB.danger}`, borderRadius: 6, padding: '5px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: leaveProcessing[req.id] ? 0.6 : 1 }}>
-                                                {leaveProcessing[req.id] === 'deny' ? '...' : 'Deny'}
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                                <h3 style={{ fontSize: 15, fontWeight: 700, color: FB.danger, margin: 0 }}>
+                                    Leave Requests
+                                    <span style={{ marginLeft: 8, background: FB.danger, color: '#fff', borderRadius: 12, padding: '1px 8px', fontSize: 11, fontWeight: 700 }}>
+                                        {dashboard.pendingLeaveRequests}
+                                    </span>
+                                </h3>
+                                <button onClick={loadLeaveRequests} disabled={leaveLoading} style={{ background: 'transparent', color: FB.textSecondary, border: `1px solid ${FB.border}`, borderRadius: 6, padding: '4px 12px', fontSize: 12, cursor: 'pointer' }}>
+                                    {leaveLoading ? 'Loading...' : 'Refresh'}
+                                </button>
                             </div>
+                            {leaveRequests === null ? (
+                                <div style={{ color: FB.textSecondary, fontSize: 13, textAlign: 'center', padding: '16px 0' }}>
+                                    {leaveLoading ? 'Loading...' : 'Click Refresh to load leave requests.'}
+                                </div>
+                            ) : leaveRequests.length === 0 ? (
+                                <div style={{ color: FB.textSecondary, fontSize: 13, textAlign: 'center', padding: '16px 0' }}>No pending leave requests.</div>
+                            ) : leaveRequests.map(req => (
+                                <div key={req.id} style={{ background: FB.cardBg, borderRadius: 10, padding: 14, border: '1px solid rgba(250,56,62,0.25)', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div>
+                                        <div style={{ fontWeight: 700, color: FB.textPrimary, fontSize: 14 }}>{req.club_name || req.club_id}</div>
+                                        <div style={{ fontSize: 12, color: FB.textSecondary, marginTop: 2 }}>
+                                            Requested {new Date(req.requested_at || req.created_at).toLocaleDateString()}
+                                            {req.reason && ` · "${req.reason}"`}
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 6 }}>
+                                        <button disabled={leaveProcessing[req.id]} onClick={async () => {
+                                            setLeaveProcessing(prev => ({ ...prev, [req.id]: 'approve' }));
+                                            try {
+                                                await apiCall('/api/club-arena/manage-union', { action: 'approve_leave', leaveRequestId: req.id, unionId: unionIdParam });
+                                                showToast(`${req.club_name} approved to leave`);
+                                                setLeaveRequests(prev => prev.filter(r => r.id !== req.id));
+                                                loadDashboard();
+                                            } catch (e) { showToast(e.message, 'error'); }
+                                            finally { setLeaveProcessing(prev => ({ ...prev, [req.id]: null })); }
+                                        }} style={{ background: FB.success, color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer', opacity: leaveProcessing[req.id] ? 0.6 : 1 }}>
+                                            {leaveProcessing[req.id] === 'approve' ? '...' : 'Approve'}
+                                        </button>
+                                        <button disabled={leaveProcessing[req.id]} onClick={async () => {
+                                            setLeaveProcessing(prev => ({ ...prev, [req.id]: 'deny' }));
+                                            try {
+                                                await apiCall('/api/club-arena/manage-union', { action: 'deny_leave', leaveRequestId: req.id, unionId: unionIdParam });
+                                                showToast(`${req.club_name} leave request denied`);
+                                                setLeaveRequests(prev => prev.filter(r => r.id !== req.id));
+                                                loadDashboard();
+                                            } catch (e) { showToast(e.message, 'error'); }
+                                            finally { setLeaveProcessing(prev => ({ ...prev, [req.id]: null })); }
+                                        }} style={{ background: 'transparent', color: FB.danger, border: `1px solid ${FB.danger}`, borderRadius: 6, padding: '5px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: leaveProcessing[req.id] ? 0.6 : 1 }}>
+                                            {leaveProcessing[req.id] === 'deny' ? '...' : 'Deny'}
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
 
                         {/* ── Union Announcement Broadcast ── */}
                         {isLead && (

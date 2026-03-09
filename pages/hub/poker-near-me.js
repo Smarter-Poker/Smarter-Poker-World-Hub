@@ -112,7 +112,7 @@ const POPULAR_CITIES = [
     { name: 'Charlotte', state: 'NC' }, { name: 'Sacramento', state: 'CA' },
 ];
 const GEOFENCE_ALERT_TIMEOUT_MS = 30000;
-const TOTAL_VENUES = 483;
+const TOTAL_VENUES = 484;
 
 
 const VENUE_TYPE_LABELS = {

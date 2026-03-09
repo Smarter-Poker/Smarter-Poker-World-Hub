@@ -86,9 +86,9 @@ function Toast({ message, type }) {
 // ═══════════════════════════════════════════════════════════════
 
 export default function AgentDashboard() {
-        useTrainingBus('club-arena-agent-dashboard');
+    useTrainingBus('club-arena-agent-dashboard');
 
-const router = useRouter();
+    const router = useRouter();
     const clubIdParam = router.query?.club || null;
 
     const [user, setUser] = useState(null);
@@ -153,7 +153,7 @@ const router = useRouter();
             if (authUser?.player_number) setMyPlayerNumber(authUser.player_number);
             else if (data.myProfile?.player_number) setMyPlayerNumber(data.myProfile.player_number);
         } catch (err) {
-            
+
             showToast(err.message, 'error');
         } finally {
             setIsLoading(false);
@@ -178,7 +178,7 @@ const router = useRouter();
             })
             .subscribe((status) => {
                 if (status !== 'SUBSCRIBED') {
-                    
+
                 }
             });
 
@@ -195,7 +195,7 @@ const router = useRouter();
             })
             .subscribe((status) => {
                 if (status !== 'SUBSCRIBED') {
-                    
+
                 }
             });
 
@@ -213,7 +213,7 @@ const router = useRouter();
             })
             .subscribe((status) => {
                 if (status !== 'SUBSCRIBED') {
-                    
+
                 }
             });
 
@@ -358,7 +358,7 @@ const router = useRouter();
         return (
             <div style={{ background: FB.background, minHeight: '100vh' }}>
                 <SEOHead title="Agent Dashboard | Club Arena" />
-                <UniversalHeader />
+                <UniversalHeader pageDepth={2} />
                 <div style={{ textAlign: 'center', padding: '80px 20px', color: FB.textSecondary }}>
                     <div style={{ fontSize: 18, marginBottom: 12 }}>No club specified.</div>
                     <button onClick={() => router.push('/hub/club-arena')} style={{ background: FB.primary, color: '#fff', border: 'none', padding: '10px 24px', borderRadius: 8, cursor: 'pointer', fontWeight: 700 }}>
@@ -373,7 +373,7 @@ const router = useRouter();
         return (
             <div style={{ background: FB.background, minHeight: '100vh' }}>
                 <SEOHead title="Agent Dashboard | Club Arena" />
-                <UniversalHeader />
+                <UniversalHeader pageDepth={2} />
                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
                     <div style={{ color: FB.textSecondary, fontSize: 16 }}>Loading agent dashboard...</div>
                 </div>
@@ -385,7 +385,7 @@ const router = useRouter();
         return (
             <div style={{ background: FB.background, minHeight: '100vh' }}>
                 <SEOHead title="Agent Dashboard | Club Arena" />
-                <UniversalHeader />
+                <UniversalHeader pageDepth={2} />
                 <div style={{ textAlign: 'center', padding: '80px 20px', color: FB.textSecondary }}>
                     Failed to load dashboard. You may not be an agent in this club.
                     <div style={{ marginTop: 16 }}>
@@ -420,7 +420,7 @@ const router = useRouter();
     return (
         <div style={{ background: FB.background, minHeight: '100vh' }}>
             <SEOHead title="Agent Dashboard | Club Arena" />
-            <UniversalHeader />
+            <UniversalHeader pageDepth={2} />
             <Toast message={toast.message} type={toast.type} />
 
             {/* Header */}
@@ -433,9 +433,9 @@ const router = useRouter();
                         <span style={{ fontSize: 12, color: FB.primary, fontWeight: 600, textTransform: 'uppercase' }}>
                             {role === 'owner' ? 'Owner View'
                                 : role === 'admin' ? 'Admin View'
-                                : role === 'super_agent' ? '⭐ Super Agent'
-                                : role === 'sub_agent' ? 'Sub Agent'
-                                : 'Agent View'}
+                                    : role === 'super_agent' ? '⭐ Super Agent'
+                                        : role === 'sub_agent' ? 'Sub Agent'
+                                            : 'Agent View'}
                         </span>
                     </div>
                     <button onClick={loadDashboard} style={{ ...btnStyle, padding: '6px 14px', fontSize: 12 }}>
@@ -463,16 +463,16 @@ const router = useRouter();
             <div style={{ padding: '0 20px 100px' }}>
                 {activeTab === 'overview' && (
                     <>
-                    <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 12px' }}>
-                        <DynamicWallet {...walletData} compact
-                            onBuyDiamonds={() => router.push('/hub/diamond-store')}
-                            onOpenBBJ={() => router.push(`/hub/club-arena/lobby?club=${clubIdParam}#bbj`)}
+                        <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 12px' }}>
+                            <DynamicWallet {...walletData} compact
+                                onBuyDiamonds={() => router.push('/hub/diamond-store')}
+                                onOpenBBJ={() => router.push(`/hub/club-arena/lobby?club=${clubIdParam}#bbj`)}
+                            />
+                        </div>
+                        <OverviewTab stats={stats} myAgent={myAgent} clawbackCount={clawbackEligible.length} pendingCashouts={pendingCashouts}
+                            playerNumber={myPlayerNumber}
+                            onShareInvite={() => setShowInviteModal(true)}
                         />
-                    </div>
-                    <OverviewTab stats={stats} myAgent={myAgent} clawbackCount={clawbackEligible.length} pendingCashouts={pendingCashouts}
-                        playerNumber={myPlayerNumber}
-                        onShareInvite={() => setShowInviteModal(true)}
-                    />
                     </>
                 )}
                 {activeTab === 'players' && (
@@ -1328,7 +1328,7 @@ function PromoWalletTab({ dashboard, clubId, userId, apiCall, showToast, players
                 setPromoHistory(histData?.history || []);
                 setLoaded(true);
             } catch (e) {
-                
+
                 setLoaded(true);
             }
         })();

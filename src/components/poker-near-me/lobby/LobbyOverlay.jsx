@@ -14,42 +14,40 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // ─── ALL lobby items — unified playing-card frames ───
-// 12 cards total (removed Rewards & Calculator), all same size, evenly spaced
+// 12 cards total, all same size, evenly spaced
 const ALL_CARD_ITEMS = [
   // Row 1: Main navigation
-  { id: 'nearme',    label: 'Near Me',       color: '#00d2ff', icon: '/images/lobby-pods/nearme.png' },
-  { id: 'search',    label: 'Search',        color: '#6ee7ef', icon: '/images/lobby-pods/search.png' },
-  { id: 'livegames', label: 'Live Games',    color: '#ff4444', icon: '/images/lobby-pods/livegames.png' },
-  { id: 'tours',     label: 'Tours',         color: '#c9a227', icon: '/images/lobby-pods/tours.png' },
+  { id: 'nearme', label: 'Poker Near Me', color: '#00d2ff', icon: '/images/lobby-pods/nearme.png' },
+  { id: 'search', label: 'Find Games', color: '#6ee7ef', icon: '/images/lobby-pods/search.png' },
+  { id: 'livegames', label: 'Live Games', color: '#ff4444', icon: '/images/lobby-pods/livegames.png' },
+  { id: 'tours', label: 'Poker Tours', color: '#c9a227', icon: '/images/lobby-pods/tours.png' },
   // Row 2: Discovery
-  { id: 'mapview',   label: 'Map View',      color: '#3b82f6', icon: '/images/lobby-pods/mapview.png' },
-  { id: 'calendar',  label: 'Calendar',      color: '#8b5cf6', icon: '/images/lobby-pods/calendar.png' },
-  { id: 'series',    label: 'Series',        color: '#f59e0b', icon: '/images/lobby-pods/series.png' },
-  { id: 'daily',     label: 'Daily',         color: '#22c55e', icon: '/images/lobby-pods/daily.png' },
+  { id: 'mapview', label: 'Map View', color: '#3b82f6', icon: '/images/lobby-pods/mapview.png' },
+  { id: 'calendar', label: 'Calendar', color: '#8b5cf6', icon: '/images/lobby-pods/calendar.png' },
+  { id: 'series', label: 'Poker Series', color: '#f59e0b', icon: '/images/lobby-pods/series.png' },
+  { id: 'daily', label: 'Daily Grind', color: '#22c55e', icon: '/images/lobby-pods/daily.png' },
   // Row 3: Tools & social
-  { id: 'roadtrip',   label: 'Trip Planner', color: '#6ee7ef', icon: '/images/lobby-dock/trip-planner.png' },
-  { id: 'favorites',  label: 'Saved',        color: '#6ee7ef', icon: '/images/lobby-dock/saved.png' },
-  { id: 'social',     label: 'Friends',      color: '#6ee7ef', icon: '/images/lobby-dock/friends.png' },
-  { id: 'alerts',     label: 'Alerts',       color: '#ff6b6b', icon: '/images/lobby-dock/alerts.png' },
+  { id: 'roadtrip', label: 'Trip Planner', color: '#6ee7ef', icon: '/images/lobby-dock/trip-planner.png' },
+  { id: 'favorites', label: 'Saved Venues', color: '#6ee7ef', icon: '/images/lobby-dock/saved.png' },
+  { id: 'social', label: 'Friends', color: '#6ee7ef', icon: '/images/lobby-dock/friends.png' },
+  { id: 'alerts', label: 'Tournament Alerts', color: '#ff6b6b', icon: '/images/lobby-dock/alerts.png' },
 ];
 
-// Icons that need a metallic frame (they don't have their own built-in frame)
-const NEEDS_FRAME = new Set(['nearme', 'social']);
-
-// ─── Card Item — Uniform icon sizing with optional metallic frame ───
+// ─── Card Item — No hover effects, no background, haptic feedback on tap ───
 function CardItem({ card, isActive, badge, onSelect }) {
-  const [hovered, setHovered] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
   const [imgError, setImgError] = useState(false);
-  const active = isActive || hovered;
-  const needsFrame = NEEDS_FRAME.has(card.id);
+
+  const handleClick = () => {
+    // Mobile haptic feedback
+    try { navigator.vibrate?.(15); } catch { }
+    onSelect?.(card.id);
+  };
 
   return (
     <button
       className="lobby-card-btn"
-      onClick={() => onSelect?.(card.id)}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onClick={handleClick}
       aria-label={`Open ${card.label}`}
       style={{
         position: 'relative',
@@ -61,12 +59,9 @@ function CardItem({ card, isActive, badge, onSelect }) {
         cursor: 'pointer',
         padding: 0,
         WebkitTapHighlightColor: 'transparent',
-        transform: active ? 'scale(1.06)' : 'scale(1)',
-        filter: active ? `drop-shadow(0 0 18px ${card.color}80)` : 'none',
-        transition: 'transform 0.25s ease, filter 0.25s ease',
       }}
     >
-      {/* Icon container — forced square, uniform size */}
+      {/* Icon container — forced square, uniform size, NO background */}
       <div
         className="lobby-card-frame"
         style={{
@@ -76,16 +71,10 @@ function CardItem({ card, isActive, badge, onSelect }) {
           alignItems: 'center',
           justifyContent: 'center',
           overflow: 'hidden',
-          borderRadius: needsFrame ? 16 : 0,
-          background: needsFrame
-            ? 'linear-gradient(145deg, rgba(30,40,60,0.85), rgba(12,18,28,0.95))'
-            : 'none',
-          border: needsFrame
-            ? '2px solid rgba(110, 200, 230, 0.25)'
-            : 'none',
-          boxShadow: needsFrame
-            ? 'inset 0 1px 0 rgba(200,220,255,0.12), 0 4px 20px rgba(0,0,0,0.4), 0 0 1px rgba(110,200,230,0.3)'
-            : 'none',
+          borderRadius: 0,
+          background: 'none',
+          border: 'none',
+          boxShadow: 'none',
         }}
       >
         {!imgError ? (
@@ -96,8 +85,8 @@ function CardItem({ card, isActive, badge, onSelect }) {
             onLoad={() => setImgLoaded(true)}
             onError={() => setImgError(true)}
             style={{
-              width: needsFrame ? '82%' : '100%',
-              height: needsFrame ? '82%' : '100%',
+              width: '100%',
+              height: '100%',
               objectFit: 'contain',
               opacity: imgLoaded ? 1 : 0,
               transition: 'opacity 0.4s ease-in',
@@ -115,14 +104,13 @@ function CardItem({ card, isActive, badge, onSelect }) {
           fontFamily: "'Orbitron', 'Rajdhani', sans-serif",
           fontSize: 'clamp(11px, 1.6vw, 18px)',
           fontWeight: 700,
-          color: active ? '#ffffff' : 'rgba(200, 220, 240, 0.7)',
+          color: isActive ? '#ffffff' : 'rgba(200, 220, 240, 0.7)',
           textTransform: 'uppercase',
           letterSpacing: '0.06em',
           textAlign: 'center',
-          textShadow: active
+          textShadow: isActive
             ? `0 0 12px ${card.color}80, 0 2px 6px rgba(0,0,0,0.9)`
             : '0 1px 4px rgba(0,0,0,0.8)',
-          transition: 'color 0.25s',
           lineHeight: 1.2,
           height: 'clamp(16px, 2.2vw, 24px)',
           display: 'flex',
@@ -408,8 +396,8 @@ export default function LobbyOverlay({
               card={card}
               isActive={activePod === card.id}
               badge={card.id === 'alerts' ? alertCount :
-                     card.id === 'favorites' ? savedCount :
-                     card.id === 'social' ? friendsNearby : 0}
+                card.id === 'favorites' ? savedCount :
+                  card.id === 'social' ? friendsNearby : 0}
               onSelect={onPodSelect}
             />
           ))}

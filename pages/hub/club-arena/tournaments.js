@@ -201,7 +201,10 @@ const router = useRouter();
       )}
       <SEOHead title={`Tournaments | ${clubInfo?.name || 'Club Arena'}`} />
 
-      {/* Header */}
+      {/* Global Header */}
+      <UniversalHeader pageDepth={2} />
+
+      {/* Page Navigation Bar */}
       <div style={{ background: FB.card, padding: '16px 24px', borderBottom: `1px solid ${FB.border}`, display: 'flex', alignItems: 'center', gap: 16 }}>
         <button onClick={() => router.push(`/hub/club-arena/lobby?club=${clubId}`)}
           style={{ background: 'none', border: 'none', color: FB.dim, cursor: 'pointer', fontSize: 20 }}>←</button>

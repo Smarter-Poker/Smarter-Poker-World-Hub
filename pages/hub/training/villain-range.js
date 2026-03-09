@@ -17,7 +17,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -48,7 +48,7 @@ function saveSession(payload) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(payload),
-    }).catch(() => {});
+    }).catch(() => { });
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -177,6 +177,67 @@ export default function VillainRange() {
     const [quizResult, setQuizResult] = useState(null); // 'correct' | 'wrong'
     const [quizCorrectAnswer, setQuizCorrectAnswer] = useState(null); // 'hits' | 'misses' | 'draw'
     const [quizStats, setQuizStats] = useState({ correct: 0, total: 0 });
+
+    // Player Profiles state
+    const [savedProfiles, setSavedProfiles] = useState([]);
+    const [editingProfile, setEditingProfile] = useState(null);
+    const [profileName, setProfileName] = useState('');
+    const [profileStats, setProfileStats] = useState({ vpip: 24, pfr: 19, threeBet: 7.5, foldTo3Bet: 55, cBet: 65, foldToCBet: 42, aggFactor: 2.5 });
+
+    const GTO_BASELINE = { vpip: 24, pfr: 19, threeBet: 7.5, foldTo3Bet: 55, cBet: 65, foldToCBet: 42, aggFactor: 2.5 };
+
+    // Load saved profiles on mount
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        try {
+            const saved = JSON.parse(localStorage.getItem('sp_villain_profiles') || '[]');
+            setSavedProfiles(saved);
+        } catch { /* ignore */ }
+    }, []);
+
+    const saveProfile = useCallback(() => {
+        if (!profileName.trim()) return;
+        const profile = {
+            id: editingProfile?.id || `vp-${Date.now()}`,
+            name: profileName.trim(),
+            stats: { ...profileStats },
+            createdAt: editingProfile?.createdAt || new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+        };
+        const updated = editingProfile
+            ? savedProfiles.map(p => p.id === editingProfile.id ? profile : p)
+            : [profile, ...savedProfiles];
+        setSavedProfiles(updated);
+        try { localStorage.setItem('sp_villain_profiles', JSON.stringify(updated)); } catch { /* ignore */ }
+        // Save to Supabase
+        const token = getAuthToken();
+        if (token) {
+            saveSession({
+                game_id: 'villain-profile',
+                accuracy: 100,
+                hands_played: updated.length,
+                correct_answers: updated.length,
+                total_questions: updated.length,
+                trainerConfig: { action: 'save-profile', profile },
+            });
+        }
+        busEmit('training:profile-saved', profile);
+        setEditingProfile(null);
+        setProfileName('');
+        setProfileStats({ ...GTO_BASELINE });
+    }, [profileName, profileStats, editingProfile, savedProfiles]);
+
+    const deleteProfile = useCallback((id) => {
+        const updated = savedProfiles.filter(p => p.id !== id);
+        setSavedProfiles(updated);
+        try { localStorage.setItem('sp_villain_profiles', JSON.stringify(updated)); } catch { /* ignore */ }
+    }, [savedProfiles]);
+
+    const editProfile = useCallback((profile) => {
+        setEditingProfile(profile);
+        setProfileName(profile.name);
+        setProfileStats({ ...profile.stats });
+    }, []);
 
     const currentBoard = QUIZ_BOARDS[quizBoardIdx % QUIZ_BOARDS.length];
 
@@ -330,6 +391,9 @@ export default function VillainRange() {
                         <button style={tabStyle(activeTab === 'quiz')} onClick={() => setActiveTab('quiz')}>
                             🎯 Quiz Mode {quizStats.total > 0 ? `(${quizStats.correct}/${quizStats.total})` : ''}
                         </button>
+                        <button style={tabStyle(activeTab === 'profiles')} onClick={() => setActiveTab('profiles')}>
+                            👤 Profiles ({savedProfiles.length})
+                        </button>
                     </div>
 
                     <AnimatePresence mode="wait">
@@ -466,6 +530,128 @@ export default function VillainRange() {
                                                 <div style={{ fontSize: 20, fontWeight: 900, fontFamily: "'Orbitron', monospace", color: s.color }}>{s.value}</div>
                                                 <div style={{ fontSize: 9, color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>{s.label}</div>
                                             </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </motion.div>
+                        )}
+                        {activeTab === 'profiles' && (
+                            <motion.div key="profiles" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                                {/* Create / Edit Profile */}
+                                <div style={{
+                                    background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+                                    borderRadius: 14, padding: '20px', marginBottom: 16,
+                                }}>
+                                    <div style={{ fontSize: 12, fontWeight: 800, color: '#e2e8f0', marginBottom: 12 }}>
+                                        {editingProfile ? `Editing: ${editingProfile.name}` : 'Create Opponent Profile'}
+                                    </div>
+                                    <input
+                                        type="text" placeholder="Villain name (e.g., RegFish42)" value={profileName}
+                                        onChange={e => setProfileName(e.target.value)}
+                                        style={{
+                                            width: '100%', padding: '10px 12px', borderRadius: 8, marginBottom: 12,
+                                            background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.1)',
+                                            color: '#e2e8f0', fontSize: 13, fontWeight: 600, outline: 'none',
+                                        }}
+                                    />
+
+                                    {/* HUD Stats Sliders */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
+                                        {Object.entries(profileStats).map(([key, val]) => (
+                                            <div key={key}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
+                                                    <span style={{ fontSize: 10, color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase' }}>
+                                                        {key === 'threeBet' ? '3-Bet %' : key === 'foldTo3Bet' ? 'Fold to 3Bet' : key === 'cBet' ? 'C-Bet %' : key === 'foldToCBet' ? 'Fold to CBet' : key === 'aggFactor' ? 'Agg Factor' : key.toUpperCase()}
+                                                    </span>
+                                                    <span style={{ fontSize: 12, fontWeight: 800, color: Math.abs(val - GTO_BASELINE[key]) > 10 ? '#fbbf24' : '#00d4ff', fontFamily: "'Orbitron', monospace" }}>
+                                                        {key === 'aggFactor' ? val.toFixed(1) : `${val}%`}
+                                                    </span>
+                                                </div>
+                                                <input
+                                                    type="range" min={key === 'aggFactor' ? '0.5' : '0'} max={key === 'aggFactor' ? '6' : '100'} step={key === 'aggFactor' ? '0.1' : '1'}
+                                                    value={val}
+                                                    onChange={e => setProfileStats(prev => ({ ...prev, [key]: parseFloat(e.target.value) }))}
+                                                    style={{ width: '100%', accentColor: '#a855f7', height: 5 }}
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* vs GTO Comparison */}
+                                    <div style={{
+                                        padding: '12px', borderRadius: 10, marginBottom: 12,
+                                        background: 'rgba(168,85,247,0.06)', border: '1px solid rgba(168,85,247,0.2)',
+                                    }}>
+                                        <div style={{ fontSize: 10, fontWeight: 700, color: '#a855f7', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+                                            vs GTO Baseline Deviation
+                                        </div>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+                                            {Object.entries(profileStats).filter(([k]) => k !== 'aggFactor').map(([key, val]) => {
+                                                const diff = val - GTO_BASELINE[key];
+                                                const isLeak = Math.abs(diff) > 10;
+                                                return (
+                                                    <div key={key} style={{
+                                                        padding: '6px 4px', borderRadius: 6, textAlign: 'center',
+                                                        background: isLeak ? 'rgba(251,191,36,0.08)' : 'rgba(34,197,94,0.05)',
+                                                        border: `1px solid ${isLeak ? 'rgba(251,191,36,0.2)' : 'rgba(34,197,94,0.15)'}`,
+                                                    }}>
+                                                        <div style={{ fontSize: 14, fontWeight: 800, color: diff > 0 ? '#ef4444' : diff < 0 ? '#3b82f6' : '#22c55e' }}>
+                                                            {diff > 0 ? '+' : ''}{diff.toFixed(0)}
+                                                        </div>
+                                                        <div style={{ fontSize: 7, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>
+                                                            {key === 'threeBet' ? '3Bet' : key === 'foldTo3Bet' ? 'F2-3B' : key === 'cBet' ? 'CBet' : key === 'foldToCBet' ? 'F2CB' : key}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    <div style={{ display: 'flex', gap: 8 }}>
+                                        <motion.button whileTap={{ scale: 0.97 }} onClick={saveProfile}
+                                            style={{ flex: 1, padding: '12px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #a855f7, #ec4899)', color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer' }}>
+                                            {editingProfile ? 'Update Profile' : 'Save Profile'}
+                                        </motion.button>
+                                        <motion.button whileTap={{ scale: 0.97 }}
+                                            onClick={() => router.push('/hub/training/nodelocking')}
+                                            style={{ flex: 1, padding: '12px', borderRadius: 10, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.06)', color: '#ef4444', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                                            Open in Nodelocking
+                                        </motion.button>
+                                    </div>
+                                </div>
+
+                                {/* Saved Profiles */}
+                                {savedProfiles.length > 0 && (
+                                    <div>
+                                        <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
+                                            Saved Profiles ({savedProfiles.length})
+                                        </div>
+                                        {savedProfiles.map(profile => (
+                                            <motion.div key={profile.id}
+                                                initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }}
+                                                style={{
+                                                    padding: '14px 16px', borderRadius: 10, marginBottom: 8,
+                                                    background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.06)',
+                                                }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                                                    <div style={{ fontSize: 14, fontWeight: 700, color: '#e2e8f0' }}>{profile.name}</div>
+                                                    <div style={{ display: 'flex', gap: 4 }}>
+                                                        <button onClick={() => editProfile(profile)} style={{ padding: '3px 8px', borderRadius: 4, border: '1px solid rgba(0,212,255,0.2)', background: 'transparent', color: '#00d4ff', fontSize: 9, fontWeight: 700, cursor: 'pointer' }}>Edit</button>
+                                                        <button onClick={() => deleteProfile(profile.id)} style={{ padding: '3px 8px', borderRadius: 4, border: '1px solid rgba(239,68,68,0.2)', background: 'transparent', color: '#ef4444', fontSize: 9, fontWeight: 700, cursor: 'pointer' }}>Del</button>
+                                                    </div>
+                                                </div>
+                                                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                                    {Object.entries(profile.stats).map(([k, v]) => (
+                                                        <span key={k} style={{ fontSize: 9, color: '#94a3b8', background: 'rgba(255,255,255,0.04)', padding: '2px 6px', borderRadius: 4 }}>
+                                                            {k === 'threeBet' ? '3B' : k === 'foldTo3Bet' ? 'F3B' : k === 'cBet' ? 'CB' : k === 'foldToCBet' ? 'FCB' : k === 'aggFactor' ? 'AF' : k.toUpperCase()}:
+                                                            <strong style={{ color: '#e2e8f0' }}> {k === 'aggFactor' ? v.toFixed(1) : v}</strong>
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                                <div style={{ fontSize: 8, color: '#475569', marginTop: 4 }}>
+                                                    Last updated: {new Date(profile.updatedAt).toLocaleDateString()}
+                                                </div>
+                                            </motion.div>
                                         ))}
                                     </div>
                                 )}

@@ -839,7 +839,7 @@ export default function CustomSolvePage() {
                     {/* Board Card Selector */}
                     <BoardCardSelector boardCards={boardCards} setBoardCards={setBoardCards} />
 
-                    {/* Board Texture */}}
+                    {/* Board Texture */}
                     <div style={{ marginBottom: 20 }}>
                         <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, padding: '0 4px' }}>
                             Board Texture Filter
@@ -918,7 +918,6 @@ export default function CustomSolvePage() {
                             config={{ format, stackDepth, rakePreset, boardCards }}
                             result={result}
                         />
-                    )}
                     )}
                 </div>
             </div>
