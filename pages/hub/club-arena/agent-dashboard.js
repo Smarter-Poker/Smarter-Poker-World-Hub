@@ -3,8 +3,8 @@
    SmarterPoker Dark Theme | Downline, Cashouts, Chips, Commissions, Clawback
    ═══════════════════════════════════════════════════════════════════════════════ */
 import React, { useState, useEffect, useCallback } from 'react';
-import Image from 'next/image';
 import SEOHead from '../../../src/components/seo/SEOHead';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
@@ -1042,8 +1042,8 @@ function PlayersTab({ players, onDistribute, onPromote, chipFlow = {}, playerSor
                             border: p.profile?.is_online ? `2px solid ${FB.success}` : `2px solid ${FB.border}`,
                         }}>
                             {p.profile?.avatar_url
-                                ? <Image src={resolveAvatarDisplay(p.profile.avatar_url, p.user_id)} alt="User avatar" width={40} height={40} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} loading="lazy" unoptimized />
-                                : <Image src={resolveAvatarDisplay(null, p.user_id)} alt="User avatar" width={40} height={40} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} loading="lazy" unoptimized />}
+                                ? <img src={resolveAvatarDisplay(p.profile.avatar_url, p.user_id)} alt="User avatar" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} loading="lazy" />
+                                : <img src={resolveAvatarDisplay(null, p.user_id)} alt="User avatar" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} loading="lazy" />}
                         </div>
 
                         {/* Info */}
