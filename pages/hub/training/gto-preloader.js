@@ -31,6 +31,16 @@ export default function GtoPreloaderPage() {
     const router = useRouter();
     useTrainingBus('gto-preloader');
 
+    // Listen for session events from other training modules
+    useEffect(() => {
+        const unsub = eventBus.on(EventType.SESSION_END, (event) => {
+            const source = event?.source;
+            if (source === 'gto-preloader') return; // Ignore own emits
+            console.log('[GTO Preloader] Received SESSION_END from:', source);
+        });
+        return unsub;
+    }, []);
+
     const [downloads, setDownloads] = useState({}); // { id: { progress: number, status: 'idle'|'downloading'|'done' } }
     const [idbReady, setIdbReady] = useState(false);
 
