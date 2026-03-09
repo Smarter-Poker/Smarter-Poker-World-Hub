@@ -61,7 +61,7 @@ function getExplanation(spr, handId, correct) {
     const hs = HAND_STRENGTHS.find(h => h.id === handId);
     const sprZone = spr <= 1 ? 'micro (0-1)' : spr <= 4 ? 'low (1-4)' : spr <= 13 ? 'medium (4-13)' : 'high (13+)';
     const lines = [
-        `SPR = ${spr.toFixed(1)} — This is a **${sprZone}** SPR.`,
+        `SPR = ${Number.isFinite(spr) ? spr.toFixed(1) : '?'} — This is a **${sprZone}** SPR.`,
         `With ${hs?.label}, you can profitably commit stacks when SPR ≤ ${hs?.commit_to}.`,
     ];
     if (correct === 'commit') lines.push('✅ **Commit**: Stack-off is profitable. Get the money in.');
@@ -73,8 +73,8 @@ function getExplanation(spr, handId, correct) {
 function genScenario() {
     const stacks = [25, 35, 50, 75, 100, 150, 200, 300][Math.floor(Math.random() * 8)];
     const potFractions = [0.3, 0.4, 0.5, 0.6, 0.75, 1.0, 1.5, 2.0];
-    const pot = Math.round(stacks * potFractions[Math.floor(Math.random() * potFractions.length)]);
-    const spr = parseFloat((stacks / pot).toFixed(1));
+    const pot = Math.max(1, Math.round(stacks * potFractions[Math.floor(Math.random() * potFractions.length)]));
+    const spr = parseFloat((stacks / pot).toFixed(1)) || 0;
     const hs = HAND_STRENGTHS[Math.floor(Math.random() * HAND_STRENGTHS.length)];
     const board = BOARD_TYPES[Math.floor(Math.random() * BOARD_TYPES.length)];
     return { stacks, pot, spr, hs, board };
@@ -171,7 +171,7 @@ export default function SPRTrainer() {
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
                                         <div>
                                             <div style={{ fontSize: 10, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', marginBottom: 2 }}>Stack-to-Pot Ratio</div>
-                                            <div style={{ fontSize: 44, fontWeight: 900, ...C.orb, color: sprColor, lineHeight: 1 }}>{scenario.spr.toFixed(1)}</div>
+                                            <div style={{ fontSize: 44, fontWeight: 900, ...C.orb, color: sprColor, lineHeight: 1 }}>{Number.isFinite(scenario.spr) ? scenario.spr.toFixed(1) : '0.0'}</div>
                                             <div style={{ fontSize: 11, fontWeight: 800, color: sprColor, marginTop: 2 }}>SPR ZONE: {sprZoneLabel}</div>
                                         </div>
                                         <div style={{ textAlign: 'right' }}>
@@ -210,7 +210,7 @@ export default function SPRTrainer() {
                                 </div>
 
                                 <p style={{ textAlign: 'center', fontSize: 13, color: '#94a3b8', fontWeight: 600, marginBottom: 14 }}>
-                                    Facing a pot-sized bet. SPR = <strong style={{ color: sprColor }}>{scenario.spr.toFixed(1)}</strong>. What is your decision?
+                                    Facing a pot-sized bet. SPR = <strong style={{ color: sprColor }}>{Number.isFinite(scenario.spr) ? scenario.spr.toFixed(1) : '0.0'}</strong>. What is your decision?
                                 </p>
 
                                 {/* Decision buttons */}

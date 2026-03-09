@@ -39,7 +39,7 @@ export default function TrainingAchievements() {
 
     // Load auth user once
     useEffect(() => {
-        getAuthUser().then(u => setUser(u)).catch(() => { });
+        try { setUser(getAuthUser()); } catch (_) { }
     }, []);
 
     // SWR-backed achievements fetch — only fires when user is known

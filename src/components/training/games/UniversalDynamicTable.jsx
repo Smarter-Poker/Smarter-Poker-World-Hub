@@ -940,6 +940,23 @@ function UniversalDynamicTable({
     // F4: In-Trainer Mode Switching Bar
     const [activeMode, setActiveMode] = React.useState('trainer');
 
+    // H2: Memoize mode bar tabs to prevent re-creates on every render
+    const MODE_TABS = useMemo(() => [
+        { id: 'trainer', icon: '🎯', label: 'Trainer' },
+        { id: 'range', icon: '📊', label: 'Range' },
+        { id: 'strategy', icon: '📈', label: 'Strategy' },
+        { id: 'settings', icon: '⚙️', label: 'Settings' },
+    ], []);
+
+    // H6: Auto-reset to trainer mode when a new question loads
+    const prevQRef = useRef(questionNumber);
+    useEffect(() => {
+        if (questionNumber !== prevQRef.current) {
+            prevQRef.current = questionNumber;
+            setActiveMode('trainer');
+        }
+    }, [questionNumber]);
+
     // PHASE 5: Hand Strength evaluation
     const handStrength = useMemo(() => {
         if (showFeedback) return null;
@@ -1301,6 +1318,22 @@ function UniversalDynamicTable({
         }
     }, [questionNumber, boardCards]);
 
+    // H3: Keyboard shortcut 'M' to cycle through modes
+    useEffect(() => {
+        const handleModeKey = (e) => {
+            if (e.key === 'm' || e.key === 'M') {
+                if (e.target?.tagName === 'INPUT' || e.target?.tagName === 'TEXTAREA') return;
+                setActiveMode(prev => {
+                    const ids = MODE_TABS.map(t => t.id);
+                    const idx = ids.indexOf(prev);
+                    return ids[(idx + 1) % ids.length];
+                });
+            }
+        };
+        window.addEventListener('keydown', handleModeKey);
+        return () => window.removeEventListener('keydown', handleModeKey);
+    }, [MODE_TABS]);
+
     // Determine player count based on game type
     const playerCount = useMemo(() => {
         if (gameType === 'spins' || gameType === 'sng') return 3;
@@ -1519,9 +1552,23 @@ function UniversalDynamicTable({
 
     return (
         <div className="gto-trainer-container" style={styles.container}>
-            {/* CSS Animation Keyframes */}
+            {/* CSS Animation Keyframes + H5: Desktop-responsive layout */}
             <style>{`
                 @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+                @media (min-width: 900px) {
+                    .gto-trainer-container {
+                        max-width: 600px !important;
+                        margin: 0 auto !important;
+                        border-left: 1px solid rgba(255,255,255,0.06) !important;
+                        border-right: 1px solid rgba(255,255,255,0.06) !important;
+                        box-shadow: 0 0 60px rgba(0,0,0,0.5) !important;
+                    }
+                }
+                @media (min-width: 1200px) {
+                    .gto-trainer-container {
+                        max-width: 520px !important;
+                    }
+                }
             `}</style>
             {/* F11: Streak Toast */}
             <AnimatePresence>
@@ -2467,12 +2514,7 @@ function UniversalDynamicTable({
 
             {/* F4: MODE SWITCHING BAR — Bottom toolbar */}
             <div style={styles.modeBar}>
-                {[
-                    { id: 'trainer', icon: '🎯', label: 'Trainer' },
-                    { id: 'range', icon: '📊', label: 'Range' },
-                    { id: 'strategy', icon: '📈', label: 'Strategy' },
-                    { id: 'settings', icon: '⚙️', label: 'Settings' },
-                ].map(mode => (
+                {MODE_TABS.map(mode => (
                     <button
                         key={mode.id}
                         onClick={() => setActiveMode(mode.id)}
@@ -2490,93 +2532,115 @@ function UniversalDynamicTable({
             </div>
 
             {/* F4: RANGE MODE — Show range grid when mode is active */}
-            {activeMode === 'range' && !showFeedback && (
-                <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    style={{ padding: '8px 12px', background: 'rgba(0,0,0,0.4)', borderTop: '1px solid rgba(255,255,255,0.06)' }}
-                >
-                    <div style={{ fontSize: 9, fontWeight: 700, color: '#64748b', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4, textAlign: 'center' }}>
-                        Range Matrix {heroCards?.length === 2 && <span style={{ color: '#00d4ff' }}>• {heroCards.join('')}</span>}
-                    </div>
-                    <RangeGrid
-                        gridData={(() => {
-                            if (!computedFrequencies || !options) return null;
-                            const gridData = {};
-                            options.forEach(opt => {
-                                const optId = opt.id || opt;
-                                const freq = computedFrequencies[optId] || 0;
-                                if (freq > 0) gridData[optId] = freq;
-                            });
-                            return gridData;
-                        })()}
-                        actions={options?.map(o => o.id || o) || []}
-                        cellSize={18}
-                        heroHand={heroCards?.join('')}
-                        compact={true}
-                    />
-                </motion.div>
-            )}
+            {activeMode === 'range' && !showFeedback && (() => {
+                try {
+                    return (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            style={{ padding: '8px 12px', background: 'rgba(0,0,0,0.4)', borderTop: '1px solid rgba(255,255,255,0.06)' }}
+                        >
+                            <div style={{ fontSize: 9, fontWeight: 700, color: '#64748b', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4, textAlign: 'center' }}>
+                                Range Matrix {heroCards?.length === 2 && <span style={{ color: '#00d4ff' }}>• {heroCards.join('')}</span>}
+                            </div>
+                            <RangeGrid
+                                gridData={(() => {
+                                    if (!computedFrequencies || !options) return null;
+                                    const gridData = {};
+                                    options.forEach(opt => {
+                                        const optId = opt?.id || opt;
+                                        const freq = typeof computedFrequencies[optId] === 'number' ? computedFrequencies[optId] : 0;
+                                        if (freq > 0) gridData[optId] = freq;
+                                    });
+                                    return gridData;
+                                })()}
+                                actions={options?.map(o => o?.id || o) || []}
+                                cellSize={18}
+                                heroHand={heroCards?.join('')}
+                                compact={true}
+                            />
+                        </motion.div>
+                    );
+                } catch (err) {
+                    console.warn('[UDT] Range panel render error:', err.message);
+                    return null;
+                }
+            })()}
 
             {/* F4: STRATEGY MODE — Show full strategy analysis */}
-            {activeMode === 'strategy' && !showFeedback && computedFrequencies && (
-                <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    style={{ padding: '10px 14px', background: 'rgba(0,0,0,0.4)', borderTop: '1px solid rgba(255,255,255,0.06)' }}
-                >
-                    <div style={{ fontSize: 9, fontWeight: 700, color: '#64748b', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 6, textAlign: 'center' }}>
-                        GTO Strategy Distribution
-                    </div>
-                    {options.slice(0, 4).map(opt => {
-                        const optId = opt.id || opt;
-                        const text = typeof opt === 'string' ? opt : (opt.text || opt.label || 'Option');
-                        const freq = computedFrequencies[optId] || 0;
-                        const actionType = detectActionType(text);
-                        const barColor = ACTION_COLORS[actionType]?.border || '#64748b';
-                        return (
-                            <div key={optId} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                                <div style={{ width: 60, fontSize: 10, fontWeight: 600, color: barColor, textAlign: 'right' }}>{text}</div>
-                                <div style={{ flex: 1, height: 8, background: 'rgba(255,255,255,0.05)', borderRadius: 4, overflow: 'hidden' }}>
-                                    <motion.div
-                                        initial={{ width: 0 }}
-                                        animate={{ width: `${freq}%` }}
-                                        transition={{ duration: 0.6, ease: 'easeOut' }}
-                                        style={{ height: '100%', background: barColor, borderRadius: 4 }}
-                                    />
-                                </div>
-                                <div style={{ width: 36, fontSize: 11, fontWeight: 800, color: '#e2e8f0', textAlign: 'right', fontFamily: "'Inter', monospace" }}>{freq}%</div>
+            {activeMode === 'strategy' && !showFeedback && computedFrequencies && Array.isArray(options) && options.length > 0 && (() => {
+                try {
+                    return (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            style={{ padding: '10px 14px', background: 'rgba(0,0,0,0.4)', borderTop: '1px solid rgba(255,255,255,0.06)' }}
+                        >
+                            <div style={{ fontSize: 9, fontWeight: 700, color: '#64748b', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 6, textAlign: 'center' }}>
+                                GTO Strategy Distribution
                             </div>
-                        );
-                    })}
-                </motion.div>
-            )}
+                            {options.slice(0, 4).map(opt => {
+                                if (!opt) return null;
+                                const optId = opt?.id || opt;
+                                const text = typeof opt === 'string' ? opt : (opt?.text || opt?.label || 'Option');
+                                const freq = typeof computedFrequencies[optId] === 'number' ? computedFrequencies[optId] : 0;
+                                const actionType = detectActionType(text);
+                                const barColor = ACTION_COLORS[actionType]?.border || '#64748b';
+                                return (
+                                    <div key={optId} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                        <div style={{ width: 60, fontSize: 10, fontWeight: 600, color: barColor, textAlign: 'right' }}>{text}</div>
+                                        <div style={{ flex: 1, height: 8, background: 'rgba(255,255,255,0.05)', borderRadius: 4, overflow: 'hidden' }}>
+                                            <motion.div
+                                                initial={{ width: 0 }}
+                                                animate={{ width: `${freq}%` }}
+                                                transition={{ duration: 0.6, ease: 'easeOut' }}
+                                                style={{ height: '100%', background: barColor, borderRadius: 4 }}
+                                            />
+                                        </div>
+                                        <div style={{ width: 36, fontSize: 11, fontWeight: 800, color: '#e2e8f0', textAlign: 'right', fontFamily: "'Inter', monospace" }}>{freq}%</div>
+                                    </div>
+                                );
+                            })}
+                        </motion.div>
+                    );
+                } catch (err) {
+                    console.warn('[UDT] Strategy panel render error:', err.message);
+                    return null;
+                }
+            })()}
 
             {/* F4: SETTINGS MODE */}
-            {activeMode === 'settings' && !showFeedback && (
-                <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    style={{ padding: '10px 14px', background: 'rgba(0,0,0,0.4)', borderTop: '1px solid rgba(255,255,255,0.06)' }}
-                >
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        <button onClick={() => setStudyMode(!studyMode)} style={styles.settingsBtn}>
-                            {studyMode ? '📖 Study Mode: ON' : '📖 Study Mode: OFF'}
-                        </button>
-                        <button onClick={() => setRngMode(!rngMode)} style={styles.settingsBtn}>
-                            {rngMode ? '🎲 RNG Mode: ON' : '🎲 RNG Mode: OFF'}
-                        </button>
-                        {onExit && (
-                            <button onClick={onExit} style={{ ...styles.settingsBtn, color: '#ef4444', borderColor: 'rgba(239,68,68,0.3)' }}>
-                                🚪 Quit Session
-                            </button>
-                        )}
-                    </div>
-                </motion.div>
-            )}
+            {activeMode === 'settings' && !showFeedback && (() => {
+                try {
+                    return (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            style={{ padding: '10px 14px', background: 'rgba(0,0,0,0.4)', borderTop: '1px solid rgba(255,255,255,0.06)' }}
+                        >
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                <button onClick={() => setStudyMode(!studyMode)} style={styles.settingsBtn}>
+                                    {studyMode ? '📖 Study Mode: ON' : '📖 Study Mode: OFF'}
+                                </button>
+                                <button onClick={() => setRngMode(!rngMode)} style={styles.settingsBtn}>
+                                    {rngMode ? '🎲 RNG Mode: ON' : '🎲 RNG Mode: OFF'}
+                                </button>
+                                {onExit && (
+                                    <button onClick={onExit} style={{ ...styles.settingsBtn, color: '#ef4444', borderColor: 'rgba(239,68,68,0.3)' }}>
+                                        🚪 Quit Session
+                                    </button>
+                                )}
+                            </div>
+                        </motion.div>
+                    );
+                } catch (err) {
+                    console.warn('[UDT] Settings panel render error:', err.message);
+                    return null;
+                }
+            })()}
 
             {/* INLINE FEEDBACK — Table stays visible, results shown below action bar */}
             {showFeedback && (
@@ -2592,10 +2656,11 @@ function UniversalDynamicTable({
                         <div style={{ fontSize: 9, fontWeight: 700, color: '#64748b', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4 }}>
                             GTO Action Frequencies
                         </div>
-                        {options.slice(0, 4).map(opt => {
-                            const optId = opt.id || opt;
-                            const text = typeof opt === 'string' ? opt : (opt.text || opt.label || 'Option');
-                            const freq = computedFrequencies[optId] || 0;
+                        {(Array.isArray(options) ? options : []).slice(0, 4).map(opt => {
+                            if (!opt) return null;
+                            const optId = opt?.id || opt;
+                            const text = typeof opt === 'string' ? opt : (opt?.text || opt?.label || 'Option');
+                            const freq = typeof computedFrequencies?.[optId] === 'number' ? computedFrequencies[optId] : 0;
                             const isCorrect = optId === correctAnswer;
                             const isSelected = optId === selectedAnswer;
                             const actionType = detectActionType(text);
@@ -3048,7 +3113,8 @@ function UniversalDynamicTable({
                         )}
                     </div>
                 </motion.div>
-            )}
+            )
+            }
         </div >
     );
 }
@@ -3056,29 +3122,6 @@ function UniversalDynamicTable({
 // ═══════════════════════════════════════════════════════════════════════════
 // STYLES
 // ═══════════════════════════════════════════════════════════════════════════
-
-// F8: Desktop-responsive layout — inject a stylesheet for wide screens
-if (typeof window !== 'undefined' && !document.getElementById('gto-desktop-responsive')) {
-    const styleTag = document.createElement('style');
-    styleTag.id = 'gto-desktop-responsive';
-    styleTag.textContent = `
-        @media (min-width: 900px) {
-            .gto-trainer-container {
-                max-width: 600px !important;
-                margin: 0 auto !important;
-                border-left: 1px solid rgba(255,255,255,0.06) !important;
-                border-right: 1px solid rgba(255,255,255,0.06) !important;
-                box-shadow: 0 0 60px rgba(0,0,0,0.5) !important;
-            }
-        }
-        @media (min-width: 1200px) {
-            .gto-trainer-container {
-                max-width: 520px !important;
-            }
-        }
-    `;
-    document.head.appendChild(styleTag);
-}
 
 const styles = {
     container: {

@@ -32,8 +32,9 @@ export default function TournamentPrepPlanner() {
     ];
 
     const currentBlindInfo = bls.find(b => b.level === currentLevel) || bls[bls.length - 1];
-    const initialM = startStack / (currentBlindInfo.sb + currentBlindInfo.bb + (currentBlindInfo.ante * 9));
-    const initialBBs = startStack / currentBlindInfo.bb;
+    const mDenom = currentBlindInfo.sb + currentBlindInfo.bb + (currentBlindInfo.ante * 9);
+    const initialM = mDenom > 0 ? startStack / mDenom : 0;
+    const initialBBs = currentBlindInfo.bb > 0 ? startStack / currentBlindInfo.bb : 0;
 
     const [activeTab, setActiveTab] = useState('structure');
 
@@ -88,7 +89,7 @@ export default function TournamentPrepPlanner() {
                                 <input
                                     type="number"
                                     value={buyIn}
-                                    onChange={e => setBuyIn(Number(e.target.value))}
+                                    onChange={e => { const v = Number(e.target.value); setBuyIn(Number.isFinite(v) && v >= 0 ? v : 0); }}
                                     style={styles.input}
                                 />
                             </div>
@@ -98,7 +99,7 @@ export default function TournamentPrepPlanner() {
                                 <input
                                     type="number"
                                     value={startStack}
-                                    onChange={e => setStartStack(Number(e.target.value))}
+                                    onChange={e => { const v = Number(e.target.value); setStartStack(Number.isFinite(v) && v >= 0 ? v : 0); }}
                                     style={styles.input}
                                 />
                             </div>
@@ -108,7 +109,7 @@ export default function TournamentPrepPlanner() {
                                 <input
                                     type="number"
                                     value={blindLevelLength}
-                                    onChange={e => setBlindLevelLength(Number(e.target.value))}
+                                    onChange={e => { const v = Number(e.target.value); setBlindLevelLength(Number.isFinite(v) && v >= 1 ? v : 1); }}
                                     style={styles.input}
                                 />
                             </div>
@@ -143,11 +144,11 @@ export default function TournamentPrepPlanner() {
                             </div>
                             <div style={styles.statusRow}>
                                 <span style={styles.statusLabel}>Starting Stack in BBs</span>
-                                <span style={{ ...styles.statusValue, color: initialBBs < 20 ? '#ef4444' : '#4ade80' }}>{initialBBs.toFixed(1)} BB</span>
+                                <span style={{ ...styles.statusValue, color: initialBBs < 20 ? '#ef4444' : '#4ade80' }}>{Number.isFinite(initialBBs) ? initialBBs.toFixed(1) : '0.0'} BB</span>
                             </div>
                             <div style={styles.statusRow}>
                                 <span style={styles.statusLabel}>Starting Stack M-Ratio</span>
-                                <span style={styles.statusValue}>{initialM.toFixed(1)}</span>
+                                <span style={styles.statusValue}>{Number.isFinite(initialM) ? initialM.toFixed(1) : '0.0'}</span>
                             </div>
                         </div>
                     </div>
@@ -189,7 +190,7 @@ export default function TournamentPrepPlanner() {
                                                 const drain = (lvlInfo.sb + lvlInfo.bb + (lvlInfo.ante * 9)) * 3;
                                                 if (i < b.level) estStack -= drain;
                                             }
-                                            const bbCount = estStack / b.bb;
+                                            const bbCount = b.bb > 0 ? estStack / b.bb : 0;
 
                                             let zone = bbCount > 40 ? 'Green (Comfort)' : bbCount > 20 ? 'Yellow (Active)' : bbCount > 10 ? 'Orange (Steal)' : 'Red (Push/Fold)';
                                             let zColor = bbCount > 40 ? '#4ade80' : bbCount > 20 ? '#fbbf24' : bbCount > 10 ? '#f97316' : '#ef4444';
@@ -211,7 +212,7 @@ export default function TournamentPrepPlanner() {
                                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                                     <h3 style={{ color: '#fff', marginBottom: 16 }}>Nash Equilibrium Push/Fold</h3>
                                     <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 20 }}>
-                                        Calculated for your estimated stack depth at Level {currentLevel} ({initialBBs.toFixed(1)} BB initial, currently ~{(startStack / (currentBlindInfo.bb)).toFixed(1)} BB effective).
+                                        Calculated for your estimated stack depth at Level {currentLevel} ({Number.isFinite(initialBBs) ? initialBBs.toFixed(1) : '0.0'} BB initial, currently ~{currentBlindInfo.bb > 0 ? (startStack / currentBlindInfo.bb).toFixed(1) : '0.0'} BB effective).
                                     </p>
 
                                     <div style={{ display: 'flex', gap: 16 }}>

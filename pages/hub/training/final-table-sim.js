@@ -22,7 +22,7 @@ export default function FinalTableSimulator() {
         5000, 3000, 2000, 1500, 1000
     ]);
 
-    const totalChips = players.reduce((sum, p) => sum + p.stack, 0);
+    const totalChips = players.reduce((sum, p) => sum + (Number(p.stack) || 0), 0) || 1;
 
     // Naive ICM calculation implementation details (Independent Chip Model approximation)
     const calculateICM = () => {
@@ -79,7 +79,8 @@ export default function FinalTableSimulator() {
     }, [players, payouts]);
 
     const updateStack = (id, newStack) => {
-        setPlayers(players.map(p => p.id === id ? { ...p, stack: Number(newStack) } : p));
+        const val = Number(newStack);
+        setPlayers(players.map(p => p.id === id ? { ...p, stack: Number.isFinite(val) && val >= 0 ? val : 0 } : p));
     };
 
     const formatCurrency = (val) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
@@ -155,7 +156,7 @@ export default function FinalTableSimulator() {
                                                 <div style={{ fontSize: 11, color: '#94a3b8' }}>{formatNumber(p.stack)} chips</div>
                                             </td>
                                             <td style={styles.td}>
-                                                {((p.stack / totalChips) * 100).toFixed(1)}%
+                                                {(totalChips > 0 ? ((p.stack / totalChips) * 100).toFixed(1) : '0.0')}%
                                             </td>
                                             <td style={{ ...styles.td, color: '#4ade80', fontWeight: 'bold', fontSize: 18 }}>
                                                 {formatCurrency(p.icmValue)}

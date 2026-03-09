@@ -37,8 +37,11 @@ const POSITIONS = ['UTG', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 const SUITS = ['h', 'd', 'c', 's'];
 
+// HARDENED: Validate card strings before indexing
 function canonicalHand(c1, c2) {
+    if (!c1 || !c2 || typeof c1 !== 'string' || typeof c2 !== 'string' || c1.length < 2 || c2.length < 2) return null;
     const r1 = RANKS.indexOf(c1[0]), r2 = RANKS.indexOf(c2[0]);
+    if (r1 < 0 || r2 < 0) return null;
     const hi = r1 <= r2 ? c1 : c2;
     const lo = r1 <= r2 ? c2 : c1;
     if (hi[0] === lo[0]) return hi[0] + lo[0]; // pair
@@ -54,15 +57,16 @@ function getGTOAction(hand, pos) {
     return 'fold';
 }
 
+// HARDENED: Deal with safety guard against malformed deck
 function dealHand() {
     const deck = [];
     for (const r of RANKS) for (const s of SUITS) deck.push(r + s);
-    // shuffle slice 2
+    if (deck.length < 2) return { c1: 'Ah', c2: 'Kh', pos: 'BTN' }; // fallback
     const idx1 = Math.floor(Math.random() * deck.length);
     const c1 = deck.splice(idx1, 1)[0];
     const idx2 = Math.floor(Math.random() * deck.length);
     const c2 = deck.splice(idx2, 1)[0];
-    const pos = POSITIONS[Math.floor(Math.random() * POSITIONS.length)];
+    const pos = POSITIONS[Math.floor(Math.random() * POSITIONS.length)] || 'BTN';
     return { c1, c2, pos };
 }
 
@@ -98,15 +102,16 @@ export default function PreflopAdvisor() {
     }, []);
 
     const handleDecision = useCallback((chosen) => {
-        if (!hand || showResult) return;
+        if (!hand || showResult) return; // HARDENED: prevent double-submit
+        if (!gtoAction) return; // HARDENED: guard against null GTO action
         setDecision(chosen);
         setShowResult(true);
         const isCorrect = chosen === gtoAction;
 
         setStats(prev => {
             const next = { correct: prev.correct + (isCorrect ? 1 : 0), total: prev.total + 1 };
-            const accuracy = Math.round((next.correct / next.total) * 100);
-            eventBus.emit('training:session-complete', { game_id: 'preflop-advisor', accuracy, correct_answers: next.correct, total_questions: next.total });
+            const accuracy = next.total > 0 ? Math.round((next.correct / next.total) * 100) : 0;
+            try { eventBus.emit('training:session-complete', { game_id: 'preflop-advisor', accuracy, correct_answers: next.correct, total_questions: next.total }); } catch { }
             saveSession({ game_id: 'preflop-advisor', accuracy, hands_played: next.total, correct_answers: next.correct, total_questions: next.total });
             return next;
         });
@@ -226,7 +231,7 @@ export default function PreflopAdvisor() {
                                             border: `1px solid ${decision === gtoAction ? 'rgba(34,197,94,0.4)' : 'rgba(239,68,68,0.4)'}`,
                                             color: decision === gtoAction ? '#22c55e' : '#ef4444',
                                         }}>
-                                            {decision === gtoAction ? '✅ CORRECT!' : `❌ WRONG — GTO: ${ACTION_ICONS[gtoAction]} ${gtoAction.toUpperCase()}`}
+                                            {decision === gtoAction ? '✅ CORRECT!' : `❌ WRONG — GTO: ${ACTION_ICONS[gtoAction] || ''} ${(gtoAction || 'fold').toUpperCase()}`}
                                         </div>
                                         <div style={{ ...C.card, background: 'rgba(255,255,255,0.02)', fontSize: 13, color: '#94a3b8', lineHeight: 1.7 }}>
                                             <strong style={{ color: '#64748b', display: 'block', marginBottom: 6, fontSize: 10, textTransform: 'uppercase', letterSpacing: 1 }}>📚 GTO Reasoning</strong>
@@ -238,7 +243,7 @@ export default function PreflopAdvisor() {
                                             <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Position Accuracy</div>
                                             {POSITIONS.filter(p => posStats[p]).map(p => {
                                                 const ps = posStats[p];
-                                                const acc = Math.round((ps.correct / ps.total) * 100);
+                                                const acc = ps.total > 0 ? Math.round((ps.correct / ps.total) * 100) : 0;
                                                 return (
                                                     <div key={p} style={{ marginBottom: 8 }}>
                                                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, fontWeight: 700, color: '#64748b', marginBottom: 3 }}>

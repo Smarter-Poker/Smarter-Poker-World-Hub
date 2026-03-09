@@ -28,7 +28,7 @@ export default function TournamentsPage() {
     useEffect(() => {
         const _c = new AbortController();
 
-        getAuthUser().then(u => setUser(u)).catch(() => { });
+        try { setUser(getAuthUser()); } catch (_) { }
         return () => _c.abort();
     }, []);
     // Realtime subscription — live updates

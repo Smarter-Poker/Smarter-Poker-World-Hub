@@ -98,8 +98,8 @@ export default function BluffCatcherTrainer() {
     };
 
     // Calculate generic MDF
-    const mdf = scenario ? (scenario.potSize / (scenario.potSize + scenario.betSize) * 100).toFixed(0) : 0;
-    const requiredEquity = scenario ? ((scenario.betSize / (scenario.potSize + scenario.betSize * 2)) * 100).toFixed(0) : 0;
+    const mdf = scenario ? ((scenario.potSize / (scenario.potSize + scenario.betSize || 1)) * 100).toFixed(0) : 0;
+    const requiredEquity = scenario ? ((scenario.betSize / (scenario.potSize + scenario.betSize * 2 || 1)) * 100).toFixed(0) : 0;
 
     return (
         <PageTransition>

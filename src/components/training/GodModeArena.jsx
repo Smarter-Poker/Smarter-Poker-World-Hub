@@ -978,11 +978,15 @@ function GodModeArenaInner({
                 if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
                 console.log('[GodModeArena] Session saved directly to database');
 
-                // Emitting real-time updates so other pages (Hub/Stats) update instantly
-                busEmit.sessionEnd('Training Arena');
-                busEmit.dataMutated('training_sessions');
-                if (speedBonusDiamonds > 0) {
-                    busEmit.diamondsEarned(speedBonusDiamonds, 'Training Speed Bonus');
+                // H7: Hardened busEmit — bus failures must never crash the save flow
+                try {
+                    busEmit.sessionEnd('Training Arena');
+                    busEmit.dataMutated('training_sessions');
+                    if (speedBonusDiamonds > 0) {
+                        busEmit.diamondsEarned(speedBonusDiamonds, 'Training Speed Bonus');
+                    }
+                } catch (busErr) {
+                    console.warn('[GodModeArena] busEmit failed (non-critical):', busErr.message);
                 }
 
             } catch (e) {

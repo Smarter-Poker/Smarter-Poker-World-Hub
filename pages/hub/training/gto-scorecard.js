@@ -197,8 +197,11 @@ export default function GTOScorecardPage() {
             const res = await fetch(`/api/training/get-sessions?limit=500`, {
                 headers: token ? { Authorization: `Bearer ${token}` } : {},
             });
-            const data = await res.json();
-            if (data.success && data.sessions) setSessions(data.sessions);
+            // HARDENED: Guard against non-OK responses and malformed JSON
+            if (!res.ok) { console.warn('[GTOScorecard] API returned', res.status); setLoading(false); return; }
+            let data;
+            try { data = await res.json(); } catch { console.warn('[GTOScorecard] Malformed JSON'); setLoading(false); return; }
+            if (data.success && Array.isArray(data.sessions)) setSessions(data.sessions);
         } catch (e) { console.error('[GTOScorecard] Error:', e); }
         setLoading(false);
     }, []);

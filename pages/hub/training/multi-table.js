@@ -183,7 +183,7 @@ export default function MultiTablePage() {
                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 24 }}>
                                             {[
                                                 { label: 'Accuracy', value: `${accuracy}%`, color: gradeColor },
-                                                { label: 'EV Loss', value: `${combinedStats.totalEVLoss.toFixed(1)}bb`, color: combinedStats.totalEVLoss < 5 ? '#22c55e' : '#ef4444' },
+                                                { label: 'EV Loss', value: `${(Number.isFinite(combinedStats.totalEVLoss) ? combinedStats.totalEVLoss : 0).toFixed(1)}bb`, color: (combinedStats.totalEVLoss || 0) < 5 ? '#22c55e' : '#ef4444' },
                                                 { label: 'Correct', value: `${combinedStats.totalCorrect}/${combinedStats.totalHands}`, color: '#00d4ff' },
                                                 { label: 'Tables Done', value: `${combinedStats.tablesCompleted}/${tableCount}`, color: '#a855f7' },
                                             ].map((s, i) => (
@@ -357,7 +357,7 @@ export default function MultiTablePage() {
                             <div style={{ marginLeft: 'auto', display: 'flex', gap: 12, fontSize: 10 }}>
                                 <span style={{ color: '#22c55e' }}>Hands: {combinedStats.totalHands}</span>
                                 <span style={{ color: '#fbbf24' }}>Correct: {combinedStats.totalCorrect}</span>
-                                <span style={{ color: '#ef4444' }}>EV Loss: {combinedStats.totalEVLoss.toFixed(1)}bb</span>
+                                <span style={{ color: '#ef4444' }}>EV Loss: {(Number.isFinite(combinedStats.totalEVLoss) ? combinedStats.totalEVLoss : 0).toFixed(1)}bb</span>
                                 <span style={{ color: '#a855f7' }}>Done: {completedTables.size}/{tableCount}</span>
                             </div>
                         </div>

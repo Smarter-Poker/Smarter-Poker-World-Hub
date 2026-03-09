@@ -152,19 +152,22 @@ export default function PreflopCharts() {
             const res = await fetch(`/api/training/preflop-ranges?${params}`, {
                 headers: getAuthHeaders(),
             });
-            const data = await res.json();
+            // HARDENED: Guard against non-OK responses
+            if (!res.ok) { console.warn('[PreflopCharts] API returned', res.status); return; }
+            let data;
+            try { data = await res.json(); } catch { console.warn('[PreflopCharts] Malformed JSON'); return; }
 
             if (data.success && data.range) {
                 if (isCompare) {
-                    setCompareData(data.range.gridData);
-                    setCompareStats(data.range.stats);
-                    setCompareActions(data.range.actions);
+                    setCompareData(data.range.gridData || null);
+                    setCompareStats(data.range.stats || null);
+                    setCompareActions(Array.isArray(data.range.actions) ? data.range.actions : []);
                 } else {
-                    setRangeData(data.range.gridData);
-                    eventBus.emit('training:session-complete', { game_id: 'preflop-charts', hands_played: 1 });
+                    setRangeData(data.range.gridData || null);
+                    try { eventBus.emit('training:session-complete', { game_id: 'preflop-charts', hands_played: 1 }); } catch { }
                     saveSession({ game_id: 'preflop-charts', hands_played: 1, accuracy: 100, correct_answers: 1, total_questions: 1 });
-                    setStats(data.range.stats);
-                    setActions(data.range.actions);
+                    setStats(data.range.stats || null);
+                    setActions(Array.isArray(data.range.actions) ? data.range.actions : []);
                 }
             }
         } catch (err) {

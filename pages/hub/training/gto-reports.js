@@ -209,9 +209,12 @@ export default function GTOReportsPage() {
             const res = await fetch('/api/training/get-sessions?limit=500', {
                 headers: { 'Authorization': `Bearer ${getAccessToken()}` },
             });
-            if (res.ok) {
-                const data = await res.json();
-                setSessions(data.sessions || []);
+            // HARDENED: Guard against non-OK responses and malformed JSON
+            if (!res.ok) { console.warn('[GTOReports] API returned', res.status); setLoading(false); return; }
+            let data;
+            try { data = await res.json(); } catch { console.warn('[GTOReports] Malformed JSON'); setLoading(false); return; }
+            if (Array.isArray(data.sessions)) {
+                setSessions(data.sessions);
             }
         } catch (err) {
             console.error('[GTOReports] Fetch error:', err);
@@ -224,7 +227,7 @@ export default function GTOReportsPage() {
     // Bus listener — auto-refresh when a training session completes
     useEffect(() => {
         const unsub = eventBus.on(EventType.SESSION_END, () => fetchSessions());
-        return unsub;
+        return typeof unsub === 'function' ? unsub : () => { }; // HARDENED: Guard unsub type
     }, [fetchSessions]);
 
     // Compute aggregate user stats from sessions
