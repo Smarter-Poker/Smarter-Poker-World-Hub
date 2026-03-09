@@ -705,6 +705,32 @@ const router = useRouter();
                                         View Tournaments
                                     </button>
                                 )}
+                                {club && membership && (
+                                    <button
+                                        onClick={() => router.push(`/hub/club-arena/hand-histories?club=${club.id}`)}
+                                        style={{
+                                            padding: '8px 14px', background: 'rgba(255,255,255,0.08)',
+                                            border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, color: '#B0B3B8',
+                                            fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                                            whiteSpace: 'nowrap',
+                                        }}
+                                    >
+                                        Hand Histories
+                                    </button>
+                                )}
+                                {club && (
+                                    <button
+                                        onClick={() => router.push(`/hub/club-arena/leaderboard?club=${club.id}`)}
+                                        style={{
+                                            padding: '8px 14px', background: 'rgba(255,255,255,0.08)',
+                                            border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, color: '#B0B3B8',
+                                            fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                                            whiteSpace: 'nowrap',
+                                        }}
+                                    >
+                                        Leaderboard
+                                    </button>
+                                )}
                             </div>
 
                             {/* Quick Actions */}

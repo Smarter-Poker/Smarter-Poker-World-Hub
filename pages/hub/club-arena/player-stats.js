@@ -516,7 +516,15 @@ const router = useRouter();
                             )}
 
                             {/* Recent Activity */}
-                            <h2 style={S.sectionTitle}>Recent Activity</h2>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                                <h2 style={{ ...S.sectionTitle, marginBottom: 0 }}>Recent Activity</h2>
+                                <button
+                                    onClick={() => router.push(`/hub/club-arena/hand-histories?club=${club?.club_id || clubIdParam}`)}
+                                    style={{ background: 'none', border: 'none', color: FB.primary, fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0 }}
+                                >
+                                    View Full History →
+                                </button>
+                            </div>
                             {recentActivity.length > 0 ? recentActivity.map(activity => (
                                 <div key={activity.id} style={S.activityRow}>
                                     <div style={{
