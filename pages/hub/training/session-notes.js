@@ -14,7 +14,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
-import { eventBus, EventType } from '../../../src/engine/EventBus';
+
 
 const MOOD_OPTIONS = [
     { id: 'focused', emoji: '🎯', label: 'Focused' },
@@ -30,6 +30,22 @@ function formatDate(ts) {
         d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 }
 
+const parseMarkdown = (text) => {
+    if (!text) return null;
+    return text.split('\n').map((line, i) => {
+        let htmlLine = line
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            .replace(/`(.*?)`/g, '<code style="background:rgba(255,255,255,0.1);padding:2px 4px;border-radius:3px;font-size:10px;">$1</code>');
+        if (htmlLine.startsWith('- ')) {
+            return <li key={i} dangerouslySetInnerHTML={{ __html: htmlLine.substring(2) }} style={{ marginLeft: 16 }} />;
+        }
+        return <div key={i} dangerouslySetInnerHTML={{ __html: htmlLine }} style={{ minHeight: '1em' }} />;
+    });
+};
+
+const SUGGESTED_TAGS = ['Preflop', 'Postflop', 'Bluffing', 'Hero Call', 'Value', 'Tilt', 'BB Defend', '3-Bet Pot'];
+
 export default function SessionNotesPage() {
     const router = useRouter();
     useTrainingBus('session-notes');
@@ -39,6 +55,7 @@ export default function SessionNotesPage() {
     const [toImprove, setToImprove] = useState('');
     const [mood, setMood] = useState('neutral');
     const [freeText, setFreeText] = useState('');
+    const [selectedTags, setSelectedTags] = useState([]);
     const [recentAccuracy, setRecentAccuracy] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -69,8 +86,9 @@ export default function SessionNotesPage() {
 
     useEffect(() => { fetchRecentSession(); }, [fetchRecentSession]);
     useEffect(() => {
-        const unsub = eventBus.on(EventType.SESSION_END, () => fetchRecentSession());
-        return unsub;
+        const h = () => fetchRecentSession();
+        window.addEventListener('training:session-complete', h);
+        return () => window.removeEventListener('training:session-complete', h);
     }, [fetchRecentSession]);
 
     const saveNote = () => {
@@ -78,14 +96,22 @@ export default function SessionNotesPage() {
         const note = {
             id: `note-${Date.now()}`,
             wentWell, toImprove, mood, freeText,
+            tags: selectedTags,
+            pinned: false,
             accuracy: recentAccuracy,
             createdAt: Date.now(),
         };
         const updated = [note, ...notes];
         setNotes(updated);
         try { localStorage.setItem('session-notes', JSON.stringify(updated)); } catch { }
-        setWentWell(''); setToImprove(''); setFreeText(''); setMood('neutral');
+        setWentWell(''); setToImprove(''); setFreeText(''); setMood('neutral'); setSelectedTags([]);
         setTab('browse');
+    };
+
+    const togglePin = (id) => {
+        const updated = notes.map(n => n.id === id ? { ...n, pinned: !n.pinned } : n);
+        setNotes(updated);
+        try { localStorage.setItem('session-notes', JSON.stringify(updated)); } catch { }
     };
 
     const deleteNote = (id) => {
@@ -97,7 +123,12 @@ export default function SessionNotesPage() {
     const filtered = notes.filter(n => {
         if (!searchTerm) return true;
         const s = searchTerm.toLowerCase();
-        return (n.wentWell || '').toLowerCase().includes(s) || (n.toImprove || '').toLowerCase().includes(s) || (n.freeText || '').toLowerCase().includes(s);
+        const matchesTag = n.tags?.some(t => t.toLowerCase().includes(s));
+        return matchesTag || (n.wentWell || '').toLowerCase().includes(s) || (n.toImprove || '').toLowerCase().includes(s) || (n.freeText || '').toLowerCase().includes(s);
+    }).sort((a, b) => {
+        if (a.pinned && !b.pinned) return -1;
+        if (!a.pinned && b.pinned) return 1;
+        return b.createdAt - a.createdAt;
     });
 
     const moodObj = (id) => MOOD_OPTIONS.find(m => m.id === id) || MOOD_OPTIONS[2];
@@ -162,9 +193,25 @@ export default function SessionNotesPage() {
 
                             {/* Free notes */}
                             <div style={{ marginBottom: 16 }}>
-                                <div style={{ fontSize: 9, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>ADDITIONAL NOTES</div>
-                                <textarea value={freeText} onChange={e => setFreeText(e.target.value)} placeholder="Any other thoughts..." rows={3}
+                                <div style={{ fontSize: 9, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>FREE NOTES (MARKDOWN SUPPORTED)</div>
+                                <textarea value={freeText} onChange={e => setFreeText(e.target.value)} placeholder="Formatting: **bold**, *italic*, `code`, - bullets..." rows={4}
                                     style={{ width: '100%', padding: '10px', borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', color: '#e2e8f0', fontSize: 12, resize: 'vertical', fontFamily: 'Inter, sans-serif' }} />
+                            </div>
+
+                            {/* Tags */}
+                            <div style={{ marginBottom: 20 }}>
+                                <div style={{ fontSize: 9, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>TAGS</div>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                    {SUGGESTED_TAGS.map(tag => {
+                                        const isActive = selectedTags.includes(tag);
+                                        return (
+                                            <button key={tag} onClick={() => setSelectedTags(isActive ? selectedTags.filter(t => t !== tag) : [...selectedTags, tag])}
+                                                style={{ padding: '4px 10px', borderRadius: 12, background: isActive ? 'rgba(0,212,255,0.15)' : 'rgba(255,255,255,0.05)', border: `1px solid ${isActive ? 'rgba(0,212,255,0.4)' : 'rgba(255,255,255,0.1)'}`, color: isActive ? '#00d4ff' : '#94a3b8', fontSize: 10, fontWeight: 600, cursor: 'pointer' }}>
+                                                {tag}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
                             </div>
 
                             <motion.button whileTap={{ scale: 0.97 }} onClick={saveNote}
@@ -196,13 +243,19 @@ export default function SessionNotesPage() {
                                             </div>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                                 {note.accuracy !== null && <span style={{ fontSize: 11, fontWeight: 700, color: note.accuracy >= 75 ? '#4ade80' : '#fbbf24' }}>{note.accuracy}%</span>}
+                                                <button onClick={() => togglePin(note.id)} title="Pin Note" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, opacity: note.pinned ? 1 : 0.3 }}>📌</button>
                                                 <motion.button whileTap={{ scale: 0.9 }} onClick={() => deleteNote(note.id)}
                                                     style={{ width: 20, height: 20, borderRadius: 4, background: 'rgba(239,68,68,0.08)', border: 'none', color: '#f87171', fontSize: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</motion.button>
                                             </div>
                                         </div>
+                                        {note.tags && note.tags.length > 0 && (
+                                            <div style={{ display: 'flex', gap: 4, marginBottom: 8, flexWrap: 'wrap' }}>
+                                                {note.tags.map(t => <span key={t} style={{ fontSize: 9, padding: '2px 6px', background: 'rgba(255,255,255,0.08)', borderRadius: 4, color: '#cbd5e1' }}>#{t}</span>)}
+                                            </div>
+                                        )}
                                         {note.wentWell && <div style={{ fontSize: 11, marginBottom: 4 }}><span style={{ color: '#4ade80', fontWeight: 700 }}>Good: </span><span style={{ color: '#94a3b8' }}>{note.wentWell}</span></div>}
                                         {note.toImprove && <div style={{ fontSize: 11, marginBottom: 4 }}><span style={{ color: '#f87171', fontWeight: 700 }}>Fix: </span><span style={{ color: '#94a3b8' }}>{note.toImprove}</span></div>}
-                                        {note.freeText && <div style={{ fontSize: 11, color: '#64748b' }}>{note.freeText}</div>}
+                                        {note.freeText && <div style={{ fontSize: 11, color: '#e2e8f0', marginTop: 6, lineHeight: 1.5 }}>{parseMarkdown(note.freeText)}</div>}
                                     </motion.div>
                                 ))}
                             </AnimatePresence>

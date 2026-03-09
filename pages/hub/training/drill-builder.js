@@ -12,25 +12,7 @@ import { motion } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { eventBus, EventType } from '../../../src/engine/EventBus';
-
-function busEmitSession(gameId, stats = {}) {
-    if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('training:session-complete', { detail: { game_id: gameId, ...stats } }));
-
-        busEmitSession('drill-builder', {});
-    }
-    try {
-        const raw = localStorage.getItem('sb-auth-token') || localStorage.getItem('supabase.auth.token');
-        const token = raw ? (JSON.parse(raw)?.access_token || JSON.parse(raw)?.currentSession?.access_token) : null;
-        if (!token) return;
-        fetch('/api/training/save-session', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ game_id: gameId, hands_played: 1, accuracy: 100, correct_answers: 1, total_questions: 1, ...stats }),
-        }).catch(() => { });
-    } catch { }
-}
+import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 
 
 let _supabase = null;
@@ -220,9 +202,7 @@ export default function DrillBuilderPage() {
                 setSavedDrills(prev => [{ name: drillName, config, created_at: new Date().toISOString() }, ...prev]);
                 setDrillName('');
                 // Bus Event — notify other pages
-                window.dispatchEvent(new CustomEvent('training:drill-saved', {
-                    detail: { name: drillName.trim(), config },
-                }));
+                eventBus.emit('training:drill-saved', { name: drillName.trim(), config }, 'DrillBuilder');
             }
         } catch (e) {
             console.error('[DrillBuilder] Save error:', e);

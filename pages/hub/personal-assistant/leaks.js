@@ -19,6 +19,7 @@ import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import SessionAnalytics from '../../../src/components/sandbox/SessionAnalytics';
 import LeakHeatmap from '../../../src/components/sandbox/LeakHeatmap';
+import CoachLeaderboard from '../../../src/components/sandbox/CoachLeaderboard';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MOCK DATA
@@ -705,13 +706,25 @@ export default function LeakFinderPage() {
             )}
           </div>
 
-          {/* ── Wave 4: Session Analytics Dashboard ───────────────── */}
-          <SessionAnalytics userId={userId} />
-          {/* ── Wave 4: Position Leak Heatmap ────────────────────── */}
-          <LeakHeatmap userId={userId} />
-
           {/* Main Layout */}
           <div style={styles.mainLayout}>
+            {/* ══ WAVE 4/5: Sandbox Analytics & Leaderboard ══ */}
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: '#E4E6EB', marginBottom: 10, paddingLeft: 4 }}>
+                <span style={{ marginRight: 6 }}>📊</span>Session Analytics
+              </div>
+              <SessionAnalytics userId={userId} />
+
+              {/* Wave 5: Weekly Leaderboard */}
+              <div style={{ marginTop: 12 }}>
+                <CoachLeaderboard userId={userId} />
+              </div>
+
+              {/* Wave 4: Leak Heatmap */}
+              <div style={{ marginTop: 12 }}>
+                <LeakHeatmap userId={userId} />
+              </div>
+            </div>
             {/* Left Panel - Leak Index */}
             <div style={styles.leftPanel}>
               <div style={styles.indexHeader}>

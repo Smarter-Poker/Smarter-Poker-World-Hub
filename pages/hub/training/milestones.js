@@ -13,7 +13,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
-import { eventBus, EventType } from '../../../src/engine/EventBus';
+
 
 const MILESTONE_DEFS = [
     { id: 'first-session', name: 'First Steps', desc: 'Complete your first training session', icon: '🎯', check: s => s.totalSessions >= 1 },
@@ -92,8 +92,9 @@ export default function MilestonesPage() {
 
     useEffect(() => { fetchData(); }, [fetchData]);
     useEffect(() => {
-        const unsub = eventBus.on(EventType.SESSION_END, () => fetchData());
-        return unsub;
+        const h = () => fetchData();
+        window.addEventListener('training:session-complete', h);
+        return () => window.removeEventListener('training:session-complete', h);
     }, [fetchData]);
 
     const earned = stats ? MILESTONE_DEFS.filter(m => m.check(stats)) : [];

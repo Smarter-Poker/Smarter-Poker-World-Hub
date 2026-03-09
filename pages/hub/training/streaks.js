@@ -18,22 +18,6 @@ import { getAuthUser } from '../../../src/lib/authUtils';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
-function busEmitSession(gameId, stats = {}) {
-    if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('training:session-complete', { detail: { game_id: gameId, ...stats } }));
-    }
-    try {
-        const raw = localStorage.getItem('sb-auth-token') || localStorage.getItem('supabase.auth.token');
-        const token = raw ? (JSON.parse(raw)?.access_token || JSON.parse(raw)?.currentSession?.access_token) : null;
-        if (!token) return;
-        fetch('/api/training/save-session', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ game_id: gameId, hands_played: 1, accuracy: 100, correct_answers: 1, total_questions: 1, ...stats }),
-        }).catch(() => { });
-    } catch { }
-}
-
 
 // Milestone definitions (must match API)
 const STREAK_MILESTONES = [
@@ -116,7 +100,7 @@ export default function StreaksPage() {
                 if (milestone) {
                     busEmit.diamondsEarned(milestone.diamonds, `Streak Milestone: ${milestone.name}`);
 
-                    busEmitSession('streaks', {});
+                    busEmit.sessionEnd('streaks');
                     busEmit.celebration('confetti');
                 }
             }

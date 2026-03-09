@@ -28,12 +28,20 @@ export default function QuickSpotDrill({ onClose }) {
     const [timer, setTimer] = useState(15);
     const [loading, setLoading] = useState(true);
     const [finished, setFinished] = useState(false);
+
+    // W5-4: Drill Progression
+    const [level, setLevel] = useState(1);
     const timerRef = useRef(null);
 
-    // Load questions
+    // Load questions and level
     useEffect(() => {
         async function load() {
             try {
+                const savedLevel = localStorage.getItem('sandbox-drill-level');
+                const startLevel = savedLevel ? parseInt(savedLevel, 10) : 1;
+                setLevel(startLevel);
+
+                // In a real scenario, you'd pass ?level=startLevel to the API
                 const res = await fetch('/api/training/hand-of-the-day');
                 const json = await res.json();
                 // If we get pool data, use it — otherwise generate mock scenarios
@@ -109,10 +117,32 @@ export default function QuickSpotDrill({ onClose }) {
     const handleNext = useCallback(() => {
         if (currentIdx + 1 >= questions.length) {
             setFinished(true);
+
+            const finalCorrect = score.correct + (answer === questions[currentIdx]?.correct_answer ? 1 : 0);
+            const finalTotal = score.total;
+            const finalAccuracy = finalTotal > 0 ? (finalCorrect / finalTotal) * 100 : 0;
+
+            // Level progression logic
+            let newLevel = level;
+            if (level === 1 && finalAccuracy >= 60) newLevel = 2;
+            else if (level === 2 && finalAccuracy >= 65) newLevel = 3;
+            else if (level > 1 && finalAccuracy < 40) newLevel = Math.max(1, level - 1); // demotion
+
+            if (newLevel !== level) {
+                setLevel(newLevel);
+                if (typeof window !== 'undefined') {
+                    localStorage.setItem('sandbox-drill-level', newLevel);
+                    if (newLevel > level) {
+                        try { navigator.vibrate?.([20, 20, 20]); } catch (e) { }
+                        window.dispatchEvent(new CustomEvent('sandbox-drill-level-up', { detail: { level: newLevel } }));
+                    }
+                }
+            }
+
             // Dispatch drill complete
             if (typeof window !== 'undefined') {
                 window.dispatchEvent(new CustomEvent('sandbox-drill-complete', {
-                    detail: { correct: score.correct + (answer === questions[currentIdx]?.correct_answer ? 0 : 0), total: score.total },
+                    detail: { correct: finalCorrect, total: finalTotal, newLevel, oldLevel: level },
                 }));
             }
             return;
@@ -153,7 +183,10 @@ export default function QuickSpotDrill({ onClose }) {
             <div style={s.modal} onClick={e => e.stopPropagation()}>
                 {/* Header */}
                 <div style={s.header}>
-                    <span style={{ fontSize: 14, fontWeight: 800, color: M.text }}>⚡ Quick Drill</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontSize: 14, fontWeight: 800, color: M.text }}>⚡ Quick Drill</span>
+                        <span style={{ padding: '2px 6px', background: 'rgba(255,255,255,0.05)', borderRadius: 4, fontSize: 9, color: M.sub, fontWeight: 700 }}>LVL {level}</span>
+                    </div>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                         {streak > 0 && <span style={{ fontSize: 12, color: M.gold }}>🔥{streak}</span>}
                         <span style={{ fontSize: 10, color: M.sub }}>{currentIdx + 1}/{questions.length}</span>

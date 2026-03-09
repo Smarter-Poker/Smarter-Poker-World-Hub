@@ -13,32 +13,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-
-function busEmitSession(gameId, stats = {}) {
-    if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('training:session-complete', { detail: { game_id: gameId, ...stats } }));
-    }
-    try {
-        const raw = localStorage.getItem('sb-auth-token') || localStorage.getItem('supabase.auth.token');
-        const token = raw ? (JSON.parse(raw)?.access_token || JSON.parse(raw)?.currentSession?.access_token) : null;
-        if (!token) return;
-        fetch('/api/training/save-session', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ game_id: gameId, hands_played: 1, accuracy: 100, correct_answers: 1, total_questions: 1, ...stats }),
-        }).catch(() => {});
-    } catch {}
-}
-
-
-// SSR-safe bus emitter
-function busEmit(event, data) {
-
-        busEmitSession('equity-calculator', {});
-    if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent(event, { detail: data }));
-    }
-}
+import { busEmit } from '../../../src/engine/EventBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -564,13 +539,7 @@ export default function EquityCalculatorPage() {
             if (data.success) {
                 setResults(data.results);
                 calcCountRef.current += 1;
-                busEmit('training:session-complete', {
-                    game_id: 'equity-calculator',
-                    accuracy: 100,
-                    hands_played: calcCountRef.current,
-                    correct_answers: calcCountRef.current,
-                    total_questions: calcCountRef.current,
-                });
+                busEmit.sessionEnd('equity-calculator');
             } else {
                 setError(data.error || 'Calculation failed');
             }

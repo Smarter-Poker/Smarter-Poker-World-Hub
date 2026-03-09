@@ -14,7 +14,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
-import { eventBus, EventType } from '../../../src/engine/EventBus';
+
 
 function buildHeatmap(sessions) {
     const dayMap = {};
@@ -67,6 +67,25 @@ function computeStreak(dayMap) {
     return streak;
 }
 
+function computeWeeklyStats(dayMap) {
+    const today = new Date();
+    let hands = 0, correct = 0, sessions = 0;
+    for (let i = 0; i < 7; i++) {
+        const d = new Date(today);
+        d.setDate(d.getDate() - i);
+        const data = dayMap[d.toISOString().slice(0, 10)];
+        if (data) {
+            hands += data.hands;
+            correct += data.correct;
+            sessions += data.sessions;
+        }
+    }
+    return {
+        hands, sessions,
+        accuracy: hands > 0 ? Math.round((correct / hands) * 100) : 0
+    };
+}
+
 export default function TrainingCalendarPage() {
     const router = useRouter();
     useTrainingBus('training-calendar');
@@ -90,8 +109,9 @@ export default function TrainingCalendarPage() {
 
     useEffect(() => { fetchData(); }, [fetchData]);
     useEffect(() => {
-        const unsub = eventBus.on(EventType.SESSION_END, () => fetchData());
-        return unsub;
+        const h = () => fetchData();
+        window.addEventListener('training:session-complete', h);
+        return () => window.removeEventListener('training:session-complete', h);
     }, [fetchData]);
 
     // Generate calendar grid (last 16 weeks)
@@ -115,6 +135,8 @@ export default function TrainingCalendarPage() {
     }
 
     const streak = computeStreak(dayMap);
+    const weeklyStats = computeWeeklyStats(dayMap);
+    const todayHands = dayMap[today.toISOString().slice(0, 10)]?.hands || 0;
     const totalDays = Object.keys(dayMap).length;
     const totalHands = Object.values(dayMap).reduce((s, d) => s + d.hands, 0);
     const selectedData = selectedDay ? dayMap[selectedDay] : null;
@@ -207,6 +229,44 @@ export default function TrainingCalendarPage() {
                                     )}
                                 </motion.div>
                             )}
+
+                            {/* Daily Goal & Weekly Summary */}
+                            <div style={{ marginTop: 24, display: 'flex', gap: 16, flexDirection: 'column' }}>
+                                {/* Daily Goal */}
+                                <div style={{ padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                                        <div style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0' }}>Daily Training Goal</div>
+                                        <div style={{ fontSize: 13, fontWeight: 700, color: '#00d4ff' }}>{todayHands} / 50 Hands</div>
+                                    </div>
+                                    <div style={{ height: 8, background: 'rgba(0,0,0,0.3)', borderRadius: 4, overflow: 'hidden' }}>
+                                        <motion.div
+                                            initial={{ width: 0 }}
+                                            animate={{ width: `${Math.min(100, (todayHands / 50) * 100)}%` }}
+                                            style={{ height: '100%', background: 'linear-gradient(90deg, #00d4ff, #3b82f6)' }}
+                                        />
+                                    </div>
+                                    {todayHands >= 50 && <div style={{ fontSize: 11, color: '#4ade80', marginTop: 8, fontWeight: 600 }}>🌟 Goal Met! +1 to Streak</div>}
+                                </div>
+
+                                {/* Weekly Summary */}
+                                <div style={{ padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
+                                    <div style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0', marginBottom: 12 }}>Last 7 Days Summary</div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        <div>
+                                            <div style={{ fontSize: 11, color: '#64748b' }}>Sessions</div>
+                                            <div style={{ fontSize: 16, fontWeight: 800, color: '#a855f7' }}>{weeklyStats.sessions}</div>
+                                        </div>
+                                        <div>
+                                            <div style={{ fontSize: 11, color: '#64748b' }}>Hands Played</div>
+                                            <div style={{ fontSize: 16, fontWeight: 800, color: '#4ade80' }}>{weeklyStats.hands}</div>
+                                        </div>
+                                        <div>
+                                            <div style={{ fontSize: 11, color: '#64748b' }}>Avg Accuracy</div>
+                                            <div style={{ fontSize: 16, fontWeight: 800, color: weeklyStats.accuracy >= 75 ? '#4ade80' : '#fbbf24' }}>{weeklyStats.accuracy}%</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </>
                     )}
                 </div>

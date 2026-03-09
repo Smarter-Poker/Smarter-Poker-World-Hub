@@ -48,6 +48,12 @@ import { ExportCard } from '../../../src/components/sandbox/ExportCard';
 import RangeExplorer from '../../../src/components/sandbox/RangeExplorer';
 import QuickSpotDrill from '../../../src/components/sandbox/QuickSpotDrill';
 import SessionReport from '../../../src/components/sandbox/SessionReport';
+// Wave 5 imports
+import CoachFeedback from '../../../src/components/sandbox/CoachFeedback';
+import TiltMonitor from '../../../src/components/sandbox/TiltMonitor';
+import VillainPresetPicker from '../../../src/components/sandbox/VillainPresetPicker';
+import CoachLeaderboard from '../../../src/components/sandbox/CoachLeaderboard';
+import HandReplay from '../../../src/components/sandbox/HandReplay';
 
 // ═══════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -677,6 +683,10 @@ export default function VirtualSandbox() {
   const [showRangeExplorer, setShowRangeExplorer] = useState(false);
   const [showQuickDrill, setShowQuickDrill] = useState(false);
   const [showSessionReport, setShowSessionReport] = useState(false);
+  // ── Wave 5: additional state ────────────────────────────────────────
+  const [showVillainPresets, setShowVillainPresets] = useState(false);
+  const [showHandReplay, setShowHandReplay] = useState(false);
+  const [recentResults, setRecentResults] = useState([]);
 
   // ─── WAVE 2: Socratic Coach Mode (Feature 6) ─────────────────────────────
   const [coachMode, setCoachMode] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('sandbox-coach-mode') === 'true' : false);
@@ -1172,6 +1182,9 @@ export default function VirtualSandbox() {
         setCoachStreak(0);
       }
 
+      // ── Wave 5: Track recent results for TiltMonitor ────────────────
+      setRecentResults(prev => [...prev.slice(-9), { isCorrect, evDelta: delta, hand: `${heroHand?.card1 || ''}${heroHand?.card2 || ''}`, position: heroPosition, street: currentStreet, userPick: currentPick, optimalAction: results.optimalAction?.label, board: board?.flop?.join(' ') || '' }]);
+
       // ── Wave 3: Persist coach result to Supabase ──────────────────────────
       (async () => {
         try {
@@ -1418,6 +1431,8 @@ export default function VirtualSandbox() {
               <button onClick={() => { setShowRangeExplorer(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(245,166,35,0.12)', border: '1px solid rgba(245,166,35,0.3)', color: '#F5A623', cursor: 'pointer' }}>🎯 Ranges</button>
               <button onClick={() => { setShowQuickDrill(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(0,230,118,0.12)', border: '1px solid rgba(0,230,118,0.3)', color: '#00E676', cursor: 'pointer' }}>⚡ Drill</button>
               <button onClick={() => { setShowSessionReport(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(69,153,255,0.12)', border: '1px solid rgba(69,153,255,0.3)', color: '#4599FF', cursor: 'pointer' }}>📋 Report</button>
+              <button onClick={() => { setShowVillainPresets(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(167,139,250,0.12)', border: '1px solid rgba(167,139,250,0.3)', color: '#a78bfa', cursor: 'pointer' }}>👤 Villains</button>
+              <button onClick={() => { setShowHandReplay(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(245,166,35,0.12)', border: '1px solid rgba(245,166,35,0.3)', color: '#F5A623', cursor: 'pointer' }}>🎬 Replay</button>
               <button onClick={() => { setShowHHImport(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', cursor: 'pointer' }}>Import HH</button>
               {/* Felt color dots row */}
               <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 8, paddingTop: 4 }}>
@@ -1822,6 +1837,41 @@ export default function VirtualSandbox() {
         />
       )}
 
+      {/* ═══ VILLAIN PRESETS MODAL (W5-3) ═══ */}
+      {showVillainPresets && (
+        <VillainPresetPicker
+          onSelectPreset={(preset) => {
+            if (villains.length > 0) {
+              const updated = [...villains];
+              updated[0] = { ...updated[0], range: preset.range };
+              setVillains(updated);
+            }
+          }}
+          onClose={() => setShowVillainPresets(false)}
+        />
+      )}
+
+      {/* ═══ HAND REPLAY MODAL (W5-6) ═══ */}
+      {showHandReplay && (
+        <HandReplay
+          sessionLog={sessionLog}
+          onLoadScenario={(entry) => {
+            // Basic scenario reload (you would normally fully parse this back into context depending on entry structure)
+            console.log('[HandReplay] Load scenario:', entry);
+            // Note: A full reload would require parsing board cards from space-separated string back into objects, etc.
+            // We'll leave the API hook here for now to just log.
+          }}
+          onClose={() => setShowHandReplay(false)}
+        />
+      )}
+      {showSessionReport && (
+        <SessionReport
+          sessionLog={sessionLog}
+          coachStreak={coachStreak}
+          onClose={() => setShowSessionReport(false)}
+        />
+      )}
+
       {/* ═══ TEMPLATES MODAL ═══ */}
       <AnimatePresence>
         {showTemplates && (
@@ -2001,6 +2051,22 @@ export default function VirtualSandbox() {
                   gtoAction={results.optimalAction?.label}
                   evDelta={coachEvDelta}
                 />
+              )}
+
+              {/* Wave 5: AI Coach Feedback — contextual tip after verdict */}
+              {coachMode && coachUserPick && results && (
+                <CoachFeedback
+                  results={results}
+                  heroHand={heroHand}
+                  heroPosition={heroPosition}
+                  coachUserPick={coachUserPick}
+                  isCorrect={coachUserPick?.toLowerCase().split(' ')[0] === results.optimalAction?.label?.toLowerCase().split(' ')[0]}
+                />
+              )}
+
+              {/* Wave 5: Tilt Awareness Monitor */}
+              {coachMode && recentResults.length >= 3 && (
+                <TiltMonitor recentResults={recentResults} />
               )}
 
               {/* Wave 3: Villain Intel card — shows archetype exploit tips */}
