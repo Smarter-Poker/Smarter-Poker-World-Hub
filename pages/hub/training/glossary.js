@@ -75,12 +75,31 @@ export default function GlossaryPage() {
     useTrainingBus('glossary');
     const [search, setSearch] = useState('');
     const [catFilter, setCatFilter] = useState('All');
+    const [expanded, setExpanded] = useState(null);
+    const [favorites, setFavorites] = useState(new Set());
 
+    // Load favorites
     useEffect(() => {
-        const h = () => { };
-        eventBus.on(EventType?.SESSION_END || 'training:session-complete', h);
-        return () => eventBus.off(EventType?.SESSION_END || 'training:session-complete', h);
+        try {
+            const saved = localStorage.getItem('glossary-favorites');
+            if (saved) setFavorites(new Set(JSON.parse(saved)));
+        } catch { }
     }, []);
+
+    // EventBus listener
+    useEffect(() => {
+        const unsub = eventBus.on(EventType.SESSION_END, (e) => {
+            if (e?.source === 'Glossary') return;
+        });
+        return unsub;
+    }, []);
+
+    const toggleFavorite = (term) => {
+        const next = new Set(favorites);
+        next.has(term) ? next.delete(term) : next.add(term);
+        setFavorites(next);
+        try { localStorage.setItem('glossary-favorites', JSON.stringify([...next])); } catch { }
+    };
 
     const filtered = TERMS.filter(t => {
         if (catFilter !== 'All' && t.cat !== catFilter) return false;
@@ -96,7 +115,7 @@ export default function GlossaryPage() {
                     <button onClick={() => router.push('/hub/training')} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: '#94a3b8', fontSize: 18, cursor: 'pointer', width: 36, height: 36, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>←</button>
                     <div>
                         <div style={{ fontSize: 16, fontWeight: 700 }}>GTO Glossary</div>
-                        <div style={{ fontSize: 11, color: '#64748b' }}>{TERMS.length} terms</div>
+                        <div style={{ fontSize: 11, color: '#64748b' }}>{TERMS.length} terms · {favorites.size} saved</div>
                     </div>
                 </div>
                 <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
@@ -119,13 +138,24 @@ export default function GlossaryPage() {
 
                     {/* Terms */}
                     {filtered.map((t, i) => (
-                        <motion.div key={t.term} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}
-                            style={{ padding: '12px 14px', borderRadius: 10, marginBottom: 4, background: 'rgba(0,0,0,0.15)', border: '1px solid rgba(255,255,255,0.04)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                                <span style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0' }}>{t.term}</span>
+                        <motion.div key={t.term} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.015 }}
+                            onClick={() => setExpanded(expanded === t.term ? null : t.term)}
+                            style={{ padding: '12px 14px', borderRadius: 10, marginBottom: 4, background: 'rgba(0,0,0,0.15)', border: `1px solid ${favorites.has(t.term) ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.04)'}`, cursor: 'pointer' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <span style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0', flex: 1 }}>{t.term}</span>
                                 <span style={{ padding: '1px 6px', borderRadius: 3, background: `${CAT_COLORS[t.cat]}12`, color: CAT_COLORS[t.cat], fontSize: 8, fontWeight: 700 }}>{t.cat}</span>
+                                <motion.button whileTap={{ scale: 0.8 }} onClick={(e) => { e.stopPropagation(); toggleFavorite(t.term); }}
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, padding: 0, color: favorites.has(t.term) ? '#fbbf24' : '#334155' }}>
+                                    {favorites.has(t.term) ? '★' : '☆'}
+                                </motion.button>
                             </div>
-                            <div style={{ fontSize: 11, color: '#94a3b8', lineHeight: 1.5 }}>{t.def}</div>
+                            {expanded === t.term ? (
+                                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
+                                    <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.6, marginTop: 6 }}>{t.def}</div>
+                                </motion.div>
+                            ) : (
+                                <div style={{ fontSize: 11, color: '#475569', lineHeight: 1.4, marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.def}</div>
+                            )}
                         </motion.div>
                     ))}
 

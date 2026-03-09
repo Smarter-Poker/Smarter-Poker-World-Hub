@@ -13,6 +13,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
+import { getAccessToken } from '../../../src/lib/authUtils';
 
 export default function LiveHudSyncPage() {
     const router = useRouter();
@@ -21,12 +22,30 @@ export default function LiveHudSyncPage() {
     const [scanning, setScanning] = useState(false);
     const [connected, setConnected] = useState(false);
     const [beaconName, setBeaconName] = useState(null);
-    const [settings, setSettings] = useState({ silent: true, autoTrack: false });
+    const [signalStrength, setSignalStrength] = useState(0);
+    const [battery, setBattery] = useState(0);
+    const [firmware, setFirmware] = useState('');
+    const [settings, setSettings] = useState({ silent: true, autoTrack: false, lowLatency: true });
 
+    // Load settings from localStorage
     useEffect(() => {
-        const h = () => { };
-        eventBus.on(EventType?.SESSION_END || 'training:session-complete', h);
-        return () => eventBus.off(EventType?.SESSION_END || 'training:session-complete', h);
+        try {
+            const saved = localStorage.getItem('hud-sync-settings');
+            if (saved) setSettings(JSON.parse(saved));
+        } catch { }
+    }, []);
+
+    // Save settings on change
+    useEffect(() => {
+        try { localStorage.setItem('hud-sync-settings', JSON.stringify(settings)); } catch { }
+    }, [settings]);
+
+    // EventBus listener
+    useEffect(() => {
+        const unsub = eventBus.on(EventType.SESSION_END, (e) => {
+            if (e?.source === 'LiveHudSync') return;
+        });
+        return unsub;
     }, []);
 
     const toggleScan = () => {
@@ -41,6 +60,11 @@ export default function LiveHudSyncPage() {
             setScanning(false);
             setConnected(true);
             setBeaconName(`SP-Beacon-${Math.floor(1000 + Math.random() * 9000)}`);
+            setSignalStrength(Math.floor(75 + Math.random() * 25));
+            setBattery(Math.floor(40 + Math.random() * 60));
+            setFirmware('v2.4.1');
+            // Emit connected event
+            eventBus.emit(EventType.SESSION_END, { gameId: 'live-hud-sync', action: 'connected' }, 'LiveHudSync');
         }, 3000);
     };
 
@@ -87,7 +111,23 @@ export default function LiveHudSyncPage() {
                         </div>
                         <div style={{ fontSize: 14, color: '#94a3b8' }}>
                             {connected ? (
-                                <span style={{ color: '#00d4ff', fontWeight: 700 }}>Paired with {beaconName}</span>
+                                <>
+                                    <div style={{ color: '#00d4ff', fontWeight: 700 }}>Paired with {beaconName}</div>
+                                    <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginTop: 12 }}>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 18, fontWeight: 800, color: signalStrength > 80 ? '#4ade80' : signalStrength > 50 ? '#fbbf24' : '#ef4444' }}>{signalStrength}%</div>
+                                            <div style={{ fontSize: 9, color: '#475569', textTransform: 'uppercase' }}>Signal</div>
+                                        </div>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 18, fontWeight: 800, color: battery > 50 ? '#4ade80' : battery > 20 ? '#fbbf24' : '#ef4444' }}>{battery}%</div>
+                                            <div style={{ fontSize: 9, color: '#475569', textTransform: 'uppercase' }}>Battery</div>
+                                        </div>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 14, fontWeight: 700, color: '#94a3b8' }}>{firmware}</div>
+                                            <div style={{ fontSize: 9, color: '#475569', textTransform: 'uppercase' }}>Firmware</div>
+                                        </div>
+                                    </div>
+                                </>
                             ) : (
                                 "Ensure your Smarter.Poker physical hardware beacon is powered on and within Bluetooth range of your device."
                             )}
@@ -105,25 +145,19 @@ export default function LiveHudSyncPage() {
                             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} style={{ textAlign: 'left', background: 'rgba(255,255,255,0.03)', padding: 24, borderRadius: 16, border: '1px solid rgba(255,255,255,0.05)' }}>
                                 <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 20 }}>Hardware Settings</div>
 
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                                    <div>
-                                        <div style={{ fontSize: 15, fontWeight: 700, color: '#e2e8f0', marginBottom: 4 }}>Silent Haptic Mode</div>
-                                        <div style={{ fontSize: 12, color: '#94a3b8' }}>Notifications sent as vibrations only</div>
+                                {[{ key: 'silent', title: 'Silent Haptic Mode', desc: 'Notifications sent as vibrations only' },
+                                { key: 'autoTrack', title: 'Auto-Track Hands', desc: 'Use camera sensor to log table cards' },
+                                { key: 'lowLatency', title: 'Low Latency Mode', desc: 'Prioritize speed over battery life' }].map(s => (
+                                    <div key={s.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                                        <div>
+                                            <div style={{ fontSize: 15, fontWeight: 700, color: '#e2e8f0', marginBottom: 4 }}>{s.title}</div>
+                                            <div style={{ fontSize: 12, color: '#94a3b8' }}>{s.desc}</div>
+                                        </div>
+                                        <button onClick={() => setSettings(prev => ({ ...prev, [s.key]: !prev[s.key] }))} style={{ width: 44, height: 24, borderRadius: 12, background: settings[s.key] ? '#4ade80' : '#334155', border: 'none', position: 'relative', cursor: 'pointer', transition: '0.3s' }}>
+                                            <div style={{ position: 'absolute', top: 2, left: settings[s.key] ? 22 : 2, width: 20, height: 20, borderRadius: '50%', background: '#fff', transition: '0.3s' }} />
+                                        </button>
                                     </div>
-                                    <button onClick={() => setSettings(s => ({ ...s, silent: !s.silent }))} style={{ width: 44, height: 24, borderRadius: 12, background: settings.silent ? '#4ade80' : '#334155', border: 'none', position: 'relative', cursor: 'pointer', transition: '0.3s' }}>
-                                        <div style={{ position: 'absolute', top: 2, left: settings.silent ? 22 : 2, width: 20, height: 20, borderRadius: '50%', background: '#fff', transition: '0.3s' }} />
-                                    </button>
-                                </div>
-
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <div>
-                                        <div style={{ fontSize: 15, fontWeight: 700, color: '#e2e8f0', marginBottom: 4 }}>Auto-Track Hands</div>
-                                        <div style={{ fontSize: 12, color: '#94a3b8' }}>Use camera sensor to log table cards</div>
-                                    </div>
-                                    <button onClick={() => setSettings(s => ({ ...s, autoTrack: !s.autoTrack }))} style={{ width: 44, height: 24, borderRadius: 12, background: settings.autoTrack ? '#4ade80' : '#334155', border: 'none', position: 'relative', cursor: 'pointer', transition: '0.3s' }}>
-                                        <div style={{ position: 'absolute', top: 2, left: settings.autoTrack ? 22 : 2, width: 20, height: 20, borderRadius: '50%', background: '#fff', transition: '0.3s' }} />
-                                    </button>
-                                </div>
+                                ))}
                             </motion.div>
                         )}
                     </AnimatePresence>

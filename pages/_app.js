@@ -6,6 +6,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import '../src/lib/server-stability'; // Server-side crash prevention (dev mode only)
+import '../src/lib/hmr-reconnect-guard'; // Client-side HMR death loop prevention (dev mode only)
 import '../src/index.css';
 import '../src/styles/premium.css';
 import '../src/styles/global-tokens.css';

@@ -7,12 +7,13 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
+import { getAccessToken } from '../../../src/lib/authUtils';
 
 const TAG_COLORS = ['#ef4444', '#f97316', '#fbbf24', '#34d399', '#0ea5e9', '#8b5cf6'];
 
@@ -21,7 +22,8 @@ export default function MyPlaybookPage() {
     useTrainingBus('my-playbook');
 
     const [plays, setPlays] = useState([]);
-    const [view, setView] = useState('list'); // list or form
+    const [view, setView] = useState('list');
+    const [search, setSearch] = useState('');
 
     const [title, setTitle] = useState('');
     const [hands, setHands] = useState('');
@@ -33,20 +35,38 @@ export default function MyPlaybookPage() {
         try { const stored = localStorage.getItem('my-playbook'); if (stored) setPlays(JSON.parse(stored)); } catch { }
     }, []);
 
+    // EventBus listener
     useEffect(() => {
-        const h = () => { };
-        eventBus.on(EventType?.SESSION_END || 'training:session-complete', h);
-        return () => eventBus.off(EventType?.SESSION_END || 'training:session-complete', h);
+        const unsub = eventBus.on(EventType.SESSION_END, (e) => {
+            if (e?.source === 'MyPlaybook') return;
+        });
+        return unsub;
     }, []);
 
     const savePlay = () => {
         if (!title) return;
-        const newPlay = { id: Date.now(), title, hands, board, color, notes };
+        const newPlay = { id: Date.now(), title, hands, board, color, notes, pinned: false };
         const next = [newPlay, ...plays];
         setPlays(next);
         try { localStorage.setItem('my-playbook', JSON.stringify(next)); } catch { }
 
-        // Reset and back to list
+        // Save to Supabase
+        const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
+        if (token) {
+            fetch('/api/training/save-session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({
+                    gameId: 'my-playbook', gameName: `Playbook: ${title}`,
+                    gtowScore: 100, totalEVLoss: 0, handsPlayed: next.length,
+                    mistakeCount: 0, accuracy: 100, correctCount: next.length,
+                    bestStreak: 0, levelPassed: true, level: 1, handHistory: [],
+                }),
+            }).catch(() => { });
+            eventBus.emit(EventType.SESSION_END, { gameId: 'my-playbook', plays: next.length, newPlay: title }, 'MyPlaybook');
+        }
+
+        // Reset
         setTitle(''); setHands(''); setBoard(''); setNotes('');
         setView('list');
     };
@@ -57,6 +77,22 @@ export default function MyPlaybookPage() {
         try { localStorage.setItem('my-playbook', JSON.stringify(next)); } catch { }
     };
 
+    const togglePin = (id) => {
+        const next = plays.map(p => p.id === id ? { ...p, pinned: !p.pinned } : p);
+        setPlays(next);
+        try { localStorage.setItem('my-playbook', JSON.stringify(next)); } catch { }
+    };
+
+    // Sort: pinned first, then search
+    const displayPlays = useMemo(() => {
+        let list = [...plays].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
+        if (search) {
+            const s = search.toLowerCase();
+            list = list.filter(p => p.title.toLowerCase().includes(s) || (p.notes || '').toLowerCase().includes(s) || (p.hands || '').toLowerCase().includes(s));
+        }
+        return list;
+    }, [plays, search]);
+
     return (
         <>
             <Head><title>My Playbook | Smarter.Poker Training</title></Head>
@@ -64,7 +100,7 @@ export default function MyPlaybookPage() {
                 <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <button onClick={() => router.push('/hub/training')} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: '#94a3b8', fontSize: 18, cursor: 'pointer', width: 36, height: 36, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>←</button>
-                        <div><div style={{ fontSize: 16, fontWeight: 700 }}>My Playbook</div><div style={{ fontSize: 11, color: '#64748b' }}>Custom Strategy Repository</div></div>
+                        <div><div style={{ fontSize: 16, fontWeight: 700 }}>My Playbook</div><div style={{ fontSize: 11, color: '#64748b' }}>{plays.length} plays saved</div></div>
                     </div>
                     {view === 'list' && (
                         <button onClick={() => setView('form')} style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>+ New Play</button>
@@ -72,6 +108,10 @@ export default function MyPlaybookPage() {
                 </div>
 
                 <div style={{ padding: '20px', maxWidth: 600, margin: '0 auto' }}>
+                    {/* Search (list mode only) */}
+                    {view === 'list' && plays.length > 0 && (
+                        <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search plays..." style={{ width: '100%', padding: '10px 14px', borderRadius: 8, background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.08)', color: '#e2e8f0', fontSize: 13, outline: 'none', marginBottom: 16, boxSizing: 'border-box' }} />
+                    )}
                     {view === 'form' ? (
                         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} style={{ background: 'rgba(255,255,255,0.02)', padding: 24, borderRadius: 16, border: '1px solid rgba(255,255,255,0.05)' }}>
                             <div style={{ marginBottom: 16 }}>
@@ -119,11 +159,17 @@ export default function MyPlaybookPage() {
                                 </div>
                             ) : null}
 
-                            {plays.map((p, i) => (
-                                <motion.div key={p.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16, overflow: 'hidden' }}>
+                            {displayPlays.map((p, i) => (
+                                <motion.div key={p.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} style={{ background: 'rgba(0,0,0,0.2)', border: `1px solid ${p.pinned ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.05)'}`, borderRadius: 16, overflow: 'hidden' }}>
                                     <div style={{ padding: '16px 20px', borderBottom: `2px solid ${p.color}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{p.title}</div>
-                                        <button onClick={() => deletePlay(p.id)} style={{ background: 'none', border: 'none', color: '#64748b', fontSize: 16, cursor: 'pointer' }}>✕</button>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                            {p.pinned && <span style={{ fontSize: 12, color: '#fbbf24' }}>📌</span>}
+                                            <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{p.title}</div>
+                                        </div>
+                                        <div style={{ display: 'flex', gap: 8 }}>
+                                            <button onClick={() => togglePin(p.id)} style={{ background: 'none', border: 'none', color: p.pinned ? '#fbbf24' : '#334155', fontSize: 14, cursor: 'pointer' }}>{p.pinned ? '📌' : '📌'}</button>
+                                            <button onClick={() => deletePlay(p.id)} style={{ background: 'none', border: 'none', color: '#64748b', fontSize: 16, cursor: 'pointer' }}>✕</button>
+                                        </div>
                                     </div>
                                     <div style={{ padding: '20px' }}>
                                         <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
