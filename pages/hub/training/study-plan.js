@@ -140,7 +140,7 @@ function analyzeWeaknesses(sessions) {
     })).sort((a, b) => a.accuracy - b.accuracy);
 
     // Map weakest categories to focus areas
-    const weakFocusAreas = ranked.slice(0, 5).map(r => {
+    const weakFocusAreas = ranked.slice(0, 5).map((r, idx) => {
         const matchedArea = FOCUS_AREAS.find(f =>
             f.id.includes(r.category) || r.category.includes(f.id.split('-')[0])
         ) || FOCUS_AREAS[idx % FOCUS_AREAS.length];

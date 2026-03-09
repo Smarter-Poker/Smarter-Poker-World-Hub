@@ -305,15 +305,10 @@ export default function TrainingFeedPage() {
 
     useEffect(() => { fetchFeed(); }, [fetchFeed]);
 
-    // Bus listeners — refresh feed when a training session completes
+    // Bus listener — refresh feed when a training session completes
     useEffect(() => {
         const unsub = eventBus.on(EventType.SESSION_END, () => fetchFeed());
-        const onSessionComplete = () => fetchFeed();
-        window.addEventListener('training:session-complete', onSessionComplete);
-        return () => {
-            unsub();
-            window.removeEventListener('training:session-complete', onSessionComplete);
-        };
+        return unsub;
     }, [fetchFeed]);
 
     const handleChallenge = (username) => {

@@ -122,15 +122,10 @@ export default function AutopilotPage() {
 
     useEffect(() => { fetchAndAnalyze(); }, [fetchAndAnalyze]);
 
-    // Bus listeners — refresh weak spot analysis when a session completes
+    // Bus listener — refresh weak spot analysis when a session completes
     useEffect(() => {
         const unsub = eventBus.on(EventType.SESSION_END, () => fetchAndAnalyze());
-        const onSessionComplete = () => fetchAndAnalyze();
-        window.addEventListener('training:session-complete', onSessionComplete);
-        return () => {
-            unsub();
-            window.removeEventListener('training:session-complete', onSessionComplete);
-        };
+        return unsub;
     }, [fetchAndAnalyze]);
 
     const startAutopilot = () => {
