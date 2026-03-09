@@ -512,11 +512,13 @@ export default function PokerNearMeLobby() {
   // ─── Fetch tours ───
   const fetchTours = useCallback(async () => {
     try {
-      const data = await cachedFetch('/api/poker/venues?type=tours');
-      if (data?.data) setTours(data.data);
+      const data = await cachedFetch('/api/poker/venues?tournaments=true&limit=50');
+      if (data?.data) setTours(data.data.filter(v => v.has_tournaments));
       else if (data?.tours) setTours(data.tours);
     } catch (err) {
       console.error('Failed to fetch tours:', err);
+    } finally {
+      setToursLoaded(true);
     }
   }, []);
 
