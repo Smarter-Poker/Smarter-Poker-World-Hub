@@ -46,7 +46,7 @@ export default async function handler(req, res) {
                 state_json
             })
             .select('id')
-            .single();
+            .maybeSingle();
 
         if (error) {
             // Auto-create table logic if missing
@@ -63,7 +63,7 @@ export default async function handler(req, res) {
                     `
                 });
                 // Retry once
-                const retry = await supabase.from('sandbox_shared_scenarios').insert({ id: shortId, creator_id: userId, state_json }).select('id').single();
+                const retry = await supabase.from('sandbox_shared_scenarios').insert({ id: shortId, creator_id: userId, state_json }).select('id').maybeSingle();
                 if (retry.error) throw retry.error;
                 return res.status(200).json({ success: true, shareId: retry.data.id });
             }

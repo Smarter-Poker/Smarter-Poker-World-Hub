@@ -20,6 +20,7 @@ import { getAuthUser } from '../../../src/lib/authUtils';
 import SessionAnalytics from '../../../src/components/sandbox/SessionAnalytics';
 import LeakHeatmap from '../../../src/components/sandbox/LeakHeatmap';
 import CoachLeaderboard from '../../../src/components/sandbox/CoachLeaderboard';
+import MacroLeakDetector from '../../../src/components/sandbox/MacroLeakDetector';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MOCK DATA
@@ -717,7 +718,12 @@ export default function LeakFinderPage() {
 
               {/* Wave 5: Weekly Leaderboard */}
               <div style={{ marginTop: 12 }}>
-                <CoachLeaderboard userId={userId} />
+                <CoachLeaderboard userId={user?.id} />
+              </div>
+
+              {/* Wave 6: Macro Leak Detector */}
+              <div style={{ marginTop: 12 }}>
+                <MacroLeakDetector />
               </div>
 
               {/* Wave 4: Leak Heatmap */}

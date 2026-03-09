@@ -338,6 +338,7 @@ export default function SolutionsBrowser() {
     const [activeTab, setActiveTab] = useState('grid'); // 'grid' | 'runout'
     const [runoutData, setRunoutData] = useState({});
     const [loadingRunout, setLoadingRunout] = useState(false);
+    const [showEVOverlay, setShowEVOverlay] = useState(false);
 
     // Available stack depths for current game type
     const availableStacks = useMemo(() => STACK_DEPTHS[gameType] || [100], [gameType]);
@@ -995,6 +996,21 @@ export default function SolutionsBrowser() {
                                                         {mode.label}
                                                     </button>
                                                 ))}
+                                                <div style={{ width: 1, background: 'rgba(255,255,255,0.1)', margin: '4px 0' }} />
+                                                <button
+                                                    onClick={() => setShowEVOverlay(!showEVOverlay)}
+                                                    style={{
+                                                        padding: '4px 10px', fontSize: 10, fontWeight: 600,
+                                                        cursor: 'pointer', border: 'none',
+                                                        background: showEVOverlay
+                                                            ? 'rgba(74, 222, 128, 0.2)'
+                                                            : 'transparent',
+                                                        color: showEVOverlay ? '#4ade80' : '#64748b',
+                                                        transition: 'all 0.15s',
+                                                    }}
+                                                >
+                                                    +EV Views
+                                                </button>
                                             </div>
                                         )}
 
@@ -1037,6 +1053,7 @@ export default function SolutionsBrowser() {
                                                 colorMode={colorMode}
                                                 handEVs={spotDetail.handEVs || null}
                                                 lockedClassifications={lockedClassifications}
+                                                showEVOverlay={showEVOverlay && activeTab === 'grid'}
                                             />
 
                                             {/* Classification Sidebar (when in classification mode) */}

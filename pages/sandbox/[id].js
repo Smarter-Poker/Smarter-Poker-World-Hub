@@ -6,9 +6,7 @@
 import { createClient } from '@supabase/supabase-js';
 import Head from 'next/head';
 
-function getSupabase() {
-    return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-}
+// getSupabase moved inside function scope to prevent SSG crashes
 
 export default function SharedSandboxRedirect({ error, stateJson }) {
     if (typeof window !== 'undefined' && stateJson) {
@@ -50,14 +48,14 @@ export async function getServerSideProps(context) {
     const { id } = context.params;
 
     try {
-        const supabase = getSupabase();
+        const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
         // Fetch state and increment views
         const { data, error } = await supabase
             .from('sandbox_shared_scenarios')
             .select('state_json')
             .eq('id', id)
-            .single();
+            .maybeSingle();
 
         if (error || !data) {
             return { props: { error: 'Not found' } };
