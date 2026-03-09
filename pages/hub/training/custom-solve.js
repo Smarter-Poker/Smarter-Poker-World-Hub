@@ -91,7 +91,9 @@ function parseRangeToSet(rangeStr) {
                 const suffix = start.endsWith('s') ? 's' : start.endsWith('o') ? 'o' : '';
                 const high = start[0];
                 const startLow = start[1];
-                const endLow = end.replace(/[so]/g, '')[1];
+                const cleanEnd = end.replace(/[so]/g, '');
+                const endLow = cleanEnd.length >= 2 ? cleanEnd[1] : cleanEnd[0];
+                if (!endLow) { inRange.add(start); inRange.add(end); continue; }
                 const si = RANKS.indexOf(startLow);
                 const ei = RANKS.indexOf(endLow);
                 if (si >= 0 && ei >= 0) {
@@ -303,9 +305,13 @@ export default function CustomSolvePage() {
     const router = useRouter();
     useTrainingBus('custom-solve');
 
-    // Bus listener — refresh when other training completes
+    // Bus listener — only clear on explicit PAGE_NAVIGATE events, not all session ends
     useEffect(() => {
-        const unsub = eventBus.on(EventType.SESSION_END, () => setResult(null));
+        const unsub = eventBus.on(EventType.SESSION_END, (event) => {
+            const source = event?.source;
+            // Don't clear our own result when other pages end sessions
+            if (source === 'CustomSolve') return;
+        });
         return unsub;
     }, []);
 
@@ -405,6 +411,45 @@ export default function CustomSolvePage() {
 
         setLoading(false);
     }, [heroPos, villainPos, format, rakePreset, ante, stackDepth, boardTexture, customStacks]);
+
+    // Save solve result to Supabase + emit EventBus
+    useEffect(() => {
+        if (!result) return;
+        const saveSolveSession = async () => {
+            try {
+                const token = getAccessToken();
+                if (!token) return;
+                await fetch('/api/training/save-session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({
+                        gameId: 'custom-solve',
+                        gameName: `Custom Solve: ${heroPos} vs ${villainPos}`,
+                        gtowScore: 100,
+                        totalEVLoss: 0,
+                        handsPlayed: 1,
+                        mistakeCount: 0,
+                        accuracy: 100,
+                        correctCount: 1,
+                        bestStreak: 1,
+                        levelPassed: true,
+                        level: 1,
+                        handHistory: [],
+                        trainerConfig: { heroPos, villainPos, format, rakePreset, ante, stackDepth, boardTexture },
+                    }),
+                });
+                console.log('[CustomSolve] Session saved ✅');
+            } catch (err) {
+                console.warn('[CustomSolve] Save error (non-blocking):', err.message);
+            }
+        };
+        saveSolveSession();
+        eventBus.emit(EventType.SESSION_END, {
+            gameId: 'custom-solve',
+            handsPlayed: 1,
+            accuracy: 100,
+        }, 'CustomSolve');
+    }, [result]);
 
     const updateStack = (pos, value) => {
         const num = parseInt(value) || 0;

@@ -484,8 +484,7 @@ export default function TriviaModePage() {
                 console.error('[mode] Balance check failed:', e);
             }
 
-            const de = new DiamondEngine(supabase, userId);
-            const result = await de.deduct(modeCost, `trivia_${mode}`);
+            const result = await DiamondEngine.deduct(modeCost, `trivia_${mode}`);
             if (!result.success) {
                 setShowOutOfDiamonds(true);
                 return;

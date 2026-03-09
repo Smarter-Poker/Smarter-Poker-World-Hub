@@ -335,15 +335,18 @@ export class DeterministicGTOEngine {
         if (!scenarios || scenarios.length === 0) return null;
 
         // IMP-1 FIX: Filter out scenarios that generated questions the user already saw
-        const seenSet = new Set(seenIds || []);
-        const unseenScenarios = scenarios.filter(s => {
-            // Check if any possible question ID from this scenario is in seenIds
-            const possibleId = `pio_${s.id}`;
-            return !seenIds.some(id => id.startsWith(possibleId));
-        });
+        const safeSeenIds = Array.isArray(seenIds) ? seenIds : [];
+        let pool = scenarios;
 
-        // Use unseen pool if available, otherwise fall back to full pool
-        const pool = unseenScenarios.length > 0 ? unseenScenarios : scenarios;
+        if (safeSeenIds.length > 0) {
+            const unseenScenarios = scenarios.filter(s => {
+                const possibleId = `pio_${s.id}`;
+                return !safeSeenIds.some(id => id.startsWith(possibleId));
+            });
+            // Use unseen pool if available, otherwise fall back to full pool
+            if (unseenScenarios.length > 0) pool = unseenScenarios;
+        }
+
         const scenario = pool[Math.floor(Math.random() * pool.length)];
         return this.buildQuestionFromScenario(scenario, gameConfig, level, 0);
     }

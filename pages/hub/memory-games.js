@@ -35,6 +35,7 @@ import gameSessionService from '../../src/services/GameSessionService';
 import achievementService from '../../src/services/AchievementService';
 import { claimReward } from '../../src/lib/claimReward';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
+import { busEmit } from '../../src/engine/EventBus';
 
 // New Game Mode Components (dynamic imports for code splitting)
 import dynamic from 'next/dynamic';
@@ -181,6 +182,7 @@ function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, DiamondEngine, userI
                 if (diamondReward > 0 && DiamondEngine) {
                     const newBalance = DiamondEngine.award(diamondReward);
                     onScoreUpdate?.(newBalance);
+                    busEmit.diamondsEarned(diamondReward, 'Speed Drill');
                 }
 
                 // ═══════════════════════════════════════════════════════════════════════════
@@ -477,6 +479,7 @@ function PressureCookerGame({ level = 1, onExit, onScoreUpdate, DiamondEngine, u
                 if (DiamondEngine) {
                     const newBalance = DiamondEngine.award(diamondReward);
                     onScoreUpdate?.(newBalance);
+                    busEmit.diamondsEarned(diamondReward, 'Pressure Cooker');
                 }
 
                 // ═══════════════════════════════════════════════════════════════════════════
@@ -780,6 +783,7 @@ function PatternRecognitionGame({ level = 1, onExit, onScoreUpdate, DiamondEngin
             if (DiamondEngine && diamondReward > 0) {
                 const newBalance = DiamondEngine.award(diamondReward);
                 onScoreUpdate?.(newBalance);
+                busEmit.diamondsEarned(diamondReward, 'Pattern Recognition');
             }
 
             // ═══════════════════════════════════════════════════════════════════════════
@@ -1068,6 +1072,7 @@ function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, DiamondEngine, us
             if (DiamondEngine && diamondReward > 0) {
                 const newBalance = DiamondEngine.award(diamondReward);
                 onScoreUpdate?.(newBalance);
+                busEmit.diamondsEarned(diamondReward, 'Mixed Strategy');
             }
 
             // ═══════════════════════════════════════════════════════════════════════════
@@ -1857,16 +1862,45 @@ export default function MemoryGamesPage() {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [mode, gradeResult, userGrid, currentScenario]);
 
+    // Reusable: Fresh DB balance check + DiamondEngine deduction
+    const checkAndDeductDiamonds = async () => {
+        if (isVIP) return true;
+        // Fresh balance check from DB to avoid stale-state false negatives
+        try {
+            if (supabase.current && userId) {
+                const { data: profile } = await supabase.current
+                    .from('profiles')
+                    .select('diamonds')
+                    .eq('id', userId)
+                    .maybeSingle();
+                if (profile) {
+                    const freshBalance = profile.diamonds || 0;
+                    setDiamondBalance(freshBalance);
+                    if (freshBalance < GAME_COST) {
+                        setShowOutOfDiamondsModal(true);
+                        return false;
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('[MemoryGames] Balance check failed:', e);
+        }
+        const result = await DiamondEngine.deduct(GAME_COST);
+        if (!result.success) {
+            setShowOutOfDiamondsModal(true);
+            return false;
+        }
+        if (result.balance !== undefined) setDiamondBalance(result.balance);
+        busEmit.diamondsSpent(GAME_COST, 'Memory Games Entry');
+        return true;
+    };
+
     // Start game
     const startGame = async (level) => {
         // Check diamond access
         if (!isVIP) {
-            const result = await DiamondEngine.deduct(GAME_COST);
-            if (!result.success) {
-                setShowOutOfDiamondsModal(true);
-                return;
-            }
-            setDiamondBalance(result.balance);
+            const canPlay = await checkAndDeductDiamonds();
+            if (!canPlay) return;
         }
 
         let scenario = null;
@@ -2986,14 +3020,8 @@ export default function MemoryGamesPage() {
                                     </p>
                                     <button
                                         onClick={async () => {
-                                            if (!isVIP) {
-                                                const result = await DiamondEngine.deduct(GAME_COST);
-                                                if (!result.success) {
-                                                    setShowOutOfDiamondsModal(true);
-                                                    return;
-                                                }
-                                                setDiamondBalance(result.balance);
-                                            }
+                                            const canPlay = await checkAndDeductDiamonds();
+                                            if (!canPlay) return;
                                             setMode('speed-drill');
                                         }}
                                         style={styles.speedDrillButton}
@@ -3021,14 +3049,8 @@ export default function MemoryGamesPage() {
                                     </p>
                                     <button
                                         onClick={async () => {
-                                            if (!isVIP) {
-                                                const result = await DiamondEngine.deduct(GAME_COST);
-                                                if (!result.success) {
-                                                    setShowOutOfDiamondsModal(true);
-                                                    return;
-                                                }
-                                                setDiamondBalance(result.balance);
-                                            }
+                                            const canPlay = await checkAndDeductDiamonds();
+                                            if (!canPlay) return;
                                             setMode('pressure-cooker');
                                         }}
                                         style={{
@@ -3059,14 +3081,8 @@ export default function MemoryGamesPage() {
                                     </p>
                                     <button
                                         onClick={async () => {
-                                            if (!isVIP) {
-                                                const result = await DiamondEngine.deduct(GAME_COST);
-                                                if (!result.success) {
-                                                    setShowOutOfDiamondsModal(true);
-                                                    return;
-                                                }
-                                                setDiamondBalance(result.balance);
-                                            }
+                                            const canPlay = await checkAndDeductDiamonds();
+                                            if (!canPlay) return;
                                             setMode('pattern-recognition');
                                         }}
                                         style={{
@@ -3097,14 +3113,8 @@ export default function MemoryGamesPage() {
                                     </p>
                                     <button
                                         onClick={async () => {
-                                            if (!isVIP) {
-                                                const result = await DiamondEngine.deduct(GAME_COST);
-                                                if (!result.success) {
-                                                    setShowOutOfDiamondsModal(true);
-                                                    return;
-                                                }
-                                                setDiamondBalance(result.balance);
-                                            }
+                                            const canPlay = await checkAndDeductDiamonds();
+                                            if (!canPlay) return;
                                             setMode('mixed-strategy');
                                         }}
                                         style={{
@@ -3135,14 +3145,8 @@ export default function MemoryGamesPage() {
                                     </p>
                                     <button
                                         onClick={async () => {
-                                            if (!isVIP) {
-                                                const result = await DiamondEngine.deduct(GAME_COST);
-                                                if (!result.success) {
-                                                    setShowOutOfDiamondsModal(true);
-                                                    return;
-                                                }
-                                                setDiamondBalance(result.balance);
-                                            }
+                                            const canPlay = await checkAndDeductDiamonds();
+                                            if (!canPlay) return;
                                             setMode('spot-trainer');
                                         }}
                                         style={{
@@ -3173,14 +3177,8 @@ export default function MemoryGamesPage() {
                                     </p>
                                     <button
                                         onClick={async () => {
-                                            if (!isVIP) {
-                                                const result = await DiamondEngine.deduct(GAME_COST);
-                                                if (!result.success) {
-                                                    setShowOutOfDiamondsModal(true);
-                                                    return;
-                                                }
-                                                setDiamondBalance(result.balance);
-                                            }
+                                            const canPlay = await checkAndDeductDiamonds();
+                                            if (!canPlay) return;
                                             setMode('tournament');
                                         }}
                                         style={{
@@ -3550,14 +3548,8 @@ export default function MemoryGamesPage() {
                                     </p>
                                     <button
                                         onClick={async () => {
-                                            if (!isVIP) {
-                                                const result = await DiamondEngine.deduct(GAME_COST);
-                                                if (!result.success) {
-                                                    alert(`Not enough diamonds!`);
-                                                    return;
-                                                }
-                                                setDiamondBalance(result.balance);
-                                            }
+                                            const canPlay = await checkAndDeductDiamonds();
+                                            if (!canPlay) return;
                                             setMode('spot-trainer');
                                         }}
                                         style={{
@@ -3588,14 +3580,8 @@ export default function MemoryGamesPage() {
                                     </p>
                                     <button
                                         onClick={async () => {
-                                            if (!isVIP) {
-                                                const result = await DiamondEngine.deduct(GAME_COST);
-                                                if (!result.success) {
-                                                    alert(`Not enough diamonds!`);
-                                                    return;
-                                                }
-                                                setDiamondBalance(result.balance);
-                                            }
+                                            const canPlay = await checkAndDeductDiamonds();
+                                            if (!canPlay) return;
                                             setMode('tournament-mode');
                                         }}
                                         style={{

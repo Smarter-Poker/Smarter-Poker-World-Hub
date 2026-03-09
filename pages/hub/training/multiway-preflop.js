@@ -6,11 +6,12 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { getAccessToken } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -111,20 +112,44 @@ const MULTIWAY_SCENARIOS = {
     },
 };
 
-// Generate simple range grid for visualization
-function isInRange(hand, rangeStr) {
-    if (!rangeStr) return false;
-    // Simplified check — in production this would use a proper range parser
-    const parts = rangeStr.split(/,\s*/);
+// Proper range parser — matches hands against range strings accurately
+function parseRangeToSet(rangeStr) {
+    if (!rangeStr) return new Set();
+    const inRange = new Set();
+    const cleaned = rangeStr.replace(/(Call|3-Bet|Raise|Open|Fold):\s*/gi, ', ');
+    const parts = cleaned.split(/,\s*/).map(s => s.trim()).filter(Boolean);
     for (const part of parts) {
         if (part.includes('-')) {
-            // Range like AA-TT or AKs-ATs
-            if (hand.length >= 2 && part.includes(hand)) return true;
+            const [start, end] = part.split('-').map(s => s.trim());
+            if (!start || !end) { inRange.add(start || end); continue; }
+            if (start.length === 2 && start[0] === start[1]) {
+                const si = RANKS.indexOf(start[0]);
+                const ei = RANKS.indexOf(end[0]);
+                if (si >= 0 && ei >= 0) {
+                    for (let i = Math.min(si, ei); i <= Math.max(si, ei); i++) inRange.add(RANKS[i] + RANKS[i]);
+                }
+            } else {
+                const suffix = start.endsWith('s') ? 's' : start.endsWith('o') ? 'o' : '';
+                const high = start[0], startLow = start[1];
+                const cleanEnd = end.replace(/[so]/g, '');
+                const endLow = cleanEnd.length >= 2 ? cleanEnd[1] : cleanEnd[0];
+                if (!endLow) { inRange.add(start); inRange.add(end); continue; }
+                const si = RANKS.indexOf(startLow), ei = RANKS.indexOf(endLow);
+                if (si >= 0 && ei >= 0) {
+                    for (let i = Math.min(si, ei); i <= Math.max(si, ei); i++) inRange.add(high + RANKS[i] + suffix);
+                }
+            }
+        } else {
+            inRange.add(part);
         }
-        if (hand === part || hand.replace('s', '') === part.replace('s', '').replace('o', '')) return true;
     }
-    // Simple heuristic
-    return rangeStr.includes(hand.substring(0, 2));
+    return inRange;
+}
+
+function isInRange(hand, rangeStr) {
+    const rangeSet = parseRangeToSet(rangeStr);
+    // Check exact match, suited/offsuit stripped match, and base pair match
+    return rangeSet.has(hand) || rangeSet.has(hand.replace(/[so]/, '')) || rangeSet.has(hand.substring(0, 2));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -194,10 +219,53 @@ export default function MultiwayPreflopPage() {
     const router = useRouter();
     useTrainingBus('multiway-preflop');
     const [selectedScenario, setSelectedScenario] = useState('btn_open_sb_3bet_bb_cold');
-    const [quizMode, setQuizMode] = useState(false);
     const [quizHand, setQuizHand] = useState(null);
     const [quizAnswer, setQuizAnswer] = useState(null);
     const [quizScore, setQuizScore] = useState({ total: 0, correct: 0 });
+    const quizSavedRef = React.useRef(false);
+
+    // Auto-save quiz session to Supabase when reaching 10+ questions
+    useEffect(() => {
+        if (quizScore.total > 0 && quizScore.total % 10 === 0 && !quizSavedRef.current) {
+            quizSavedRef.current = true;
+            const saveQuiz = async () => {
+                try {
+                    const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
+                    if (!token) return;
+                    const accuracy = Math.round((quizScore.correct / quizScore.total) * 100);
+                    await fetch('/api/training/save-session', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify({
+                            gameId: 'multiway-quiz',
+                            gameName: `Multiway Quiz (${quizScore.total} hands)`,
+                            gtowScore: accuracy,
+                            totalEVLoss: 0,
+                            handsPlayed: quizScore.total,
+                            mistakeCount: quizScore.total - quizScore.correct,
+                            accuracy,
+                            correctCount: quizScore.correct,
+                            bestStreak: 0,
+                            levelPassed: accuracy >= 60,
+                            level: 1,
+                            handHistory: [],
+                        }),
+                    });
+                    console.log('[MultiwayQuiz] Session saved ✅');
+                    eventBus.emit(EventType.SESSION_END, {
+                        gameId: 'multiway-quiz',
+                        handsPlayed: quizScore.total,
+                        accuracy,
+                    }, 'MultiwayQuiz');
+                } catch (err) {
+                    console.warn('[MultiwayQuiz] Save error:', err.message);
+                }
+            };
+            saveQuiz();
+            // Allow re-save on next milestone
+            setTimeout(() => { quizSavedRef.current = false; }, 1000);
+        }
+    }, [quizScore.total]);
 
     const scenario = MULTIWAY_SCENARIOS[selectedScenario];
     const posColors = { UTG: '#ef4444', MP: '#f97316', CO: '#fbbf24', BTN: '#22c55e', SB: '#3b82f6', BB: '#a855f7', Caller: '#94a3b8' };
@@ -212,11 +280,16 @@ export default function MultiwayPreflopPage() {
         const action = Object.keys(rangeData)[0];
         const rangeStr = Object.values(rangeData)[0];
 
-        // Generate random hand
-        const r1 = RANKS[Math.floor(Math.random() * 13)];
-        const r2 = RANKS[Math.floor(Math.random() * 13)];
-        const suited = r1 !== r2 && Math.random() > 0.5;
-        const hand = r1 === r2 ? `${r1}${r2}` : suited ? `${r1}${r2}s` : `${r1}${r2}o`;
+        // Generate random hand — MUST be canonical (higher rank first)
+        const i1 = Math.floor(Math.random() * 13);
+        const i2 = Math.floor(Math.random() * 13);
+        const highIdx = Math.min(i1, i2); // Lower index = higher rank in RANKS array
+        const lowIdx = Math.max(i1, i2);
+        const r1 = RANKS[highIdx];
+        const r2 = RANKS[lowIdx];
+        const isPair = highIdx === lowIdx;
+        const suited = !isPair && Math.random() > 0.5;
+        const hand = isPair ? `${r1}${r2}` : suited ? `${r1}${r2}s` : `${r1}${r2}o`;
         const correct = isInRange(hand, rangeStr);
 
         setQuizHand({ hand, position: pos, scenario: sc.name, scenarioKey: randomKey, action, correct });

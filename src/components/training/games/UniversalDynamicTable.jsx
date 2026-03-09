@@ -632,12 +632,24 @@ function LoadingSkeleton() {
                 <div style={loadingStyles.pulse} />
             </div>
             <div style={loadingStyles.tableArea}>
-                <img
-                    src="/images/training/table-vertical-stadium-transparent.png"
-                    alt="Loading..."
-                    style={loadingStyles.tableImage}
-                />
-                <div style={loadingStyles.loadingText}>Loading Question...</div>
+                {/* CSS Felt Table (matches live game) */}
+                <div style={{
+                    position: 'relative', width: '80%', maxWidth: 500,
+                    aspectRatio: '2 / 1.1', borderRadius: '50%',
+                    background: 'linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%)',
+                    boxShadow: '0 8px 40px rgba(0,0,0,0.6)',
+                    overflow: 'hidden', opacity: 0.5,
+                }}>
+                    <div style={{
+                        position: 'absolute', inset: 4, borderRadius: '50%',
+                        border: '2px solid rgba(251, 191, 36, 0.2)',
+                    }} />
+                    <div style={{
+                        position: 'absolute', inset: 8, borderRadius: '50%',
+                        background: 'radial-gradient(ellipse at 50% 40%, #1a472a 0%, #0d2a18 55%, #081a10 100%)',
+                    }} />
+                </div>
+                <div style={loadingStyles.loadingText}>Dealing...</div>
             </div>
             <div style={loadingStyles.buttonsArea}>
                 {[1, 2, 3].map(i => (
@@ -1605,12 +1617,21 @@ function UniversalDynamicTable({
                         const isHero = index === heroSeatIndex;
                         const isButton = index === getButtonSeatIndex;
                         const stackSize = isHero ? heroStack : generateVillainStack(index);
+                        // Determine if this villain has folded
+                        const villainFolded = !isHero && actionHistory.some(
+                            a => a.position?.toUpperCase() === seat.name?.toUpperCase() && /fold/i.test(a.action)
+                        );
+                        // Determine if this villain has a speech bubble action
+                        const villainSeatAction = !isHero ? (
+                            actionHistory.find(a => a.position?.toUpperCase() === seat.name?.toUpperCase())
+                            || (villainPosition?.toUpperCase() === seat.name?.toUpperCase() && villainAction ? { action: villainAction } : null)
+                        ) : null;
 
                         return (
                             <motion.div
                                 key={seat.id}
                                 initial={{ opacity: 0, scale: 0.8 }}
-                                animate={{ opacity: 1, scale: 1 }}
+                                animate={{ opacity: villainFolded ? 0.35 : 1, scale: 1 }}
                                 transition={{ delay: index * 0.05, duration: 0.3 }}
                                 style={{
                                     ...styles.seat,
@@ -1618,39 +1639,94 @@ function UniversalDynamicTable({
                                     top: `${seat.y}%`,
                                 }}
                             >
-                                {/* Position Circle with abbreviation (GTO Wizard style) */}
-                                <div
+                                {/* Villain Speech Bubble — shows their action */}
+                                {villainSeatAction && !villainFolded && (
+                                    <motion.div
+                                        initial={{ opacity: 0, scale: 0.7, y: 5 }}
+                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                        transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.2 }}
+                                        style={{
+                                            position: 'absolute',
+                                            top: -28,
+                                            left: '50%',
+                                            transform: 'translateX(-50%)',
+                                            padding: '3px 9px',
+                                            borderRadius: 8,
+                                            fontSize: 9,
+                                            fontWeight: 700,
+                                            whiteSpace: 'nowrap',
+                                            zIndex: 10,
+                                            background: /raise|bet|3.?bet|4.?bet|all.?in|shove/i.test(villainSeatAction.action)
+                                                ? 'rgba(234, 88, 12, 0.2)'
+                                                : /call/i.test(villainSeatAction.action)
+                                                    ? 'rgba(59, 130, 246, 0.2)'
+                                                    : 'rgba(255,255,255,0.08)',
+                                            color: /raise|bet|3.?bet|4.?bet|all.?in|shove/i.test(villainSeatAction.action)
+                                                ? '#fb923c'
+                                                : /call/i.test(villainSeatAction.action)
+                                                    ? '#60a5fa'
+                                                    : '#94a3b8',
+                                            border: `1px solid ${/raise|bet|3.?bet|4.?bet|all.?in|shove/i.test(villainSeatAction.action)
+                                                ? 'rgba(234, 88, 12, 0.35)'
+                                                : /call/i.test(villainSeatAction.action)
+                                                    ? 'rgba(59, 130, 246, 0.35)'
+                                                    : 'rgba(255,255,255,0.12)'}`,
+                                            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                                        }}
+                                    >
+                                        {villainSeatAction.action}
+                                    </motion.div>
+                                )}
+
+                                {/* Position Circle with abbreviation */}
+                                <motion.div
+                                    animate={isHero ? {
+                                        boxShadow: [
+                                            '0 0 8px rgba(0,212,255,0.3)',
+                                            '0 0 18px rgba(0,212,255,0.5)',
+                                            '0 0 8px rgba(0,212,255,0.3)',
+                                        ]
+                                    } : {}}
+                                    transition={isHero ? { repeat: Infinity, duration: 2.5, ease: 'easeInOut' } : {}}
                                     style={{
                                         ...styles.avatar,
-                                        border: isHero ? '3px solid #5ac8c8' : '2px solid #4a4a55',
-                                        background: isHero ? '#1a3a3a' : '#2a2a32',
-                                        color: isHero ? '#5ac8c8' : '#94a3b8',
-                                        boxShadow: isHero ? '0 0 12px rgba(90, 200, 200, 0.4)' : 'none',
+                                        border: isHero ? '3px solid #00d4ff' : '2px solid #4a4a55',
+                                        background: isHero ? 'rgba(0,212,255,0.08)' : '#2a2a32',
+                                        color: isHero ? '#00d4ff' : '#94a3b8',
                                     }}
                                 >
                                     {seat.name}
-                                </div>
+                                </motion.div>
 
-                                {/* Dealer Button */}
+                                {/* Dealer Button — Premium styled */}
                                 {isButton && (
                                     <motion.div
                                         initial={{ scale: 0 }}
                                         animate={{ scale: 1 }}
                                         transition={{ type: 'spring', delay: 0.3 }}
-                                        style={styles.dealerButton}
+                                        style={{
+                                            ...styles.dealerButton,
+                                            background: 'linear-gradient(180deg, #f5f0e0 0%, #e0d4b8 100%)',
+                                            color: '#1a1a1a',
+                                            fontWeight: 900,
+                                            fontSize: 8,
+                                            letterSpacing: 0.5,
+                                            boxShadow: '0 2px 6px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.4)',
+                                            border: '1px solid rgba(251,191,36,0.5)',
+                                        }}
                                     >
                                         D
                                     </motion.div>
                                 )}
 
-                                {/* Badge + Hero Cards */}
+                                {/* Badge + Cards */}
                                 <div style={isHero ? styles.heroRow : undefined}>
                                     <div style={{
                                         ...styles.badge,
-                                        background: isHero ? '#1a3a3a' : '#2a2a32',
-                                        borderColor: isHero ? '#5ac8c8' : '#4a4a55',
+                                        background: isHero ? 'rgba(0,212,255,0.06)' : '#2a2a32',
+                                        borderColor: isHero ? '#00d4ff' : '#4a4a55',
                                     }}>
-                                        <div style={{ ...styles.badgeLabel, color: isHero ? '#5ac8c8' : '#94a3b8' }}>
+                                        <div style={{ ...styles.badgeLabel, color: isHero ? '#00d4ff' : '#94a3b8' }}>
                                             {isHero ? 'HERO' : seat.name}
                                         </div>
                                         <div style={styles.badgeStack}>{stackSize} bb</div>
@@ -1684,30 +1760,47 @@ function UniversalDynamicTable({
                                             />
                                         </div>
                                     )}
-                                    {/* No card-backs for villains in GTO Wizard style */}
+                                    {/* Face-down villain cards for active players */}
+                                    {!isHero && !villainFolded && (
+                                        <div style={{ display: 'flex', gap: 1, marginTop: 2 }}>
+                                            <img src="/cards/back.png" alt="" style={{
+                                                width: 22, height: 32, borderRadius: 3,
+                                                transform: 'rotate(-5deg)',
+                                                boxShadow: '0 1px 4px rgba(0,0,0,0.4)',
+                                                opacity: 0.7,
+                                            }} />
+                                            <img src="/cards/back.png" alt="" style={{
+                                                width: 22, height: 32, borderRadius: 3,
+                                                transform: 'rotate(5deg)',
+                                                marginLeft: -10,
+                                                boxShadow: '0 1px 4px rgba(0,0,0,0.4)',
+                                                opacity: 0.7,
+                                            }} />
+                                        </div>
+                                    )}
                                 </div>
                             </motion.div>
                         );
                     })}
                 </div>
 
-                {/* BOARD CARDS - Center of table (3D card flip animation) */}
+                {/* BOARD CARDS — Sequential dealing with per-card sounds */}
                 {boardCards.length > 0 && (
                     <div style={styles.boardCards}>
                         {boardCards.map((card, i) => (
                             <motion.div
                                 key={`${card}-${i}-${questionNumber}`}
-                                initial={{ rotateY: 180, scale: 0.8 }}
-                                animate={{ rotateY: 0, scale: 1 }}
+                                initial={{ y: -60, rotateY: 180, scale: 0.6, opacity: 0 }}
+                                animate={{ y: 0, rotateY: 0, scale: 1, opacity: 1 }}
                                 transition={{
-                                    delay: i * 0.15,
+                                    delay: i * 0.25,
                                     duration: 0.5,
                                     type: 'spring',
-                                    stiffness: 180,
-                                    damping: 16,
+                                    stiffness: 160,
+                                    damping: 18,
                                 }}
                                 onAnimationComplete={() => {
-                                    if (i === 0) SoundEngine.play('card_flip');
+                                    SoundEngine.play('card_flip');
                                 }}
                                 style={{ perspective: 600, transformStyle: 'preserve-3d' }}
                             >
@@ -1721,12 +1814,12 @@ function UniversalDynamicTable({
                                 />
                             </motion.div>
                         ))}
-                        {/* F6: Board Texture Badge */}
+                        {/* Board Texture Badge */}
                         {boardTexture && (
                             <motion.div
                                 initial={{ opacity: 0, y: 5 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: boardCards.length * 0.12 + 0.2 }}
+                                transition={{ delay: boardCards.length * 0.25 + 0.2 }}
                                 style={{
                                     position: 'absolute',
                                     bottom: -18,
@@ -1778,18 +1871,52 @@ function UniversalDynamicTable({
                     </div>
                 )}
 
-                {/* POT DISPLAY + GAP-2: SPR & Pot Odds */}
+                {/* PREFLOP: Deck placeholder when no board cards */}
+                {boardCards.length === 0 && (
+                    <div style={styles.boardCards}>
+                        <motion.div
+                            animate={{ opacity: [0.3, 0.5, 0.3] }}
+                            transition={{ repeat: Infinity, duration: 3, ease: 'easeInOut' }}
+                            style={{ display: 'flex', gap: 2 }}
+                        >
+                            {[0, 1, 2].map(i => (
+                                <div key={i} style={{
+                                    width: 48, height: 68, borderRadius: 5,
+                                    background: 'linear-gradient(180deg, #2a3a2a 0%, #1a2a1a 100%)',
+                                    border: '1px solid rgba(255,255,255,0.06)',
+                                    boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                                }} />
+                            ))}
+                        </motion.div>
+                    </div>
+                )}
+
+                {/* POT DISPLAY with chip visualization */}
                 {pot > 0 && (
                     <motion.div
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         style={styles.pot}
                     >
-                        <span style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600, letterSpacing: 0.5 }}>
-                            {contextString}
-                        </span>
-                        <span style={{ fontSize: 18, fontWeight: 800 }}>{pot} bb</span>
-                        {/* GAP-2: SPR + Pot Odds overlays */}
+                        {/* Chip stack icon */}
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, marginRight: 4 }}>
+                            {[0, 1, 2].map(i => (
+                                <div key={i} style={{
+                                    width: 14, height: 4, borderRadius: 2,
+                                    background: i === 0 ? '#fbbf24' : i === 1 ? '#f97316' : '#ef4444',
+                                    marginTop: i > 0 ? -1 : 0,
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.3)',
+                                    border: '0.5px solid rgba(255,255,255,0.15)',
+                                }} />
+                            ))}
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                            <span style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600, letterSpacing: 0.5 }}>
+                                {contextString}
+                            </span>
+                            <span style={{ fontSize: 18, fontWeight: 800 }}>{pot} bb</span>
+                        </div>
+                        {/* SPR + Pot Odds */}
                         <div style={styles.potOverlayRow}>
                             {spr && <span style={styles.potOverlayBadge}>SPR: {spr}</span>}
                             {potOdds && <span style={styles.potOverlayBadge}>Odds: {potOdds}%</span>}
@@ -1797,12 +1924,22 @@ function UniversalDynamicTable({
                     </motion.div>
                 )}
 
-                {/* STREET INDICATOR */}
+                {/* STREET INDICATOR with glow on current street */}
                 <motion.div
                     key={boardCards.length}
                     initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 0.8, y: 0 }}
-                    style={styles.streetIndicator}
+                    animate={{ opacity: 1, y: 0 }}
+                    style={{
+                        ...styles.streetIndicator,
+                        color: boardCards.length === 0 ? '#94a3b8'
+                            : boardCards.length === 3 ? '#4ade80'
+                                : boardCards.length === 4 ? '#fbbf24'
+                                    : '#f87171',
+                        textShadow: boardCards.length > 0
+                            ? `0 0 8px ${boardCards.length === 3 ? 'rgba(74,222,128,0.3)'
+                                : boardCards.length === 4 ? 'rgba(251,191,36,0.3)'
+                                    : 'rgba(248,113,113,0.3)'}` : 'none',
+                    }}
                 >
                     {boardCards.length === 0 && '● PREFLOP'}
                     {boardCards.length === 3 && '● FLOP'}
@@ -2073,7 +2210,7 @@ function UniversalDynamicTable({
                             <FrequencyBar
                                 frequency={freq}
                                 color={ACTION_COLORS[actionType]?.border || '#64748b'}
-                                show={showFeedback}
+                                show={showFeedback || (studyMode && computedFrequencies)}
                             />
                         </div>
                     );

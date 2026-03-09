@@ -264,13 +264,18 @@ function gradeHand(hand) {
     const heroActions = hand.actions.filter(a => a.isHero);
     if (heroActions.length === 0) return { grade: 'N/A', color: '#64748b', tips: [] };
 
+    // Early exit for simple fold hands
+    const folds = heroActions.filter(a => a.action === 'folds').length;
+    if (folds === 1 && heroActions.length === 1) {
+        return { grade: 'OK', color: '#94a3b8', tips: [{ text: 'Folded preflop — standard', type: 'info' }] };
+    }
+
     const tips = [];
     let score = 80; // Start at "good"
 
     // Check for passive play (too many calls, no raises)
     const calls = heroActions.filter(a => a.action === 'calls').length;
     const raises = heroActions.filter(a => a.action === 'raises' || a.action === 'bets').length;
-    const folds = heroActions.filter(a => a.action === 'folds').length;
 
     if (calls > 2 && raises === 0) {
         tips.push({ text: 'Too passive — consider raising for value or as a bluff', type: 'warning' });
@@ -307,10 +312,6 @@ function gradeHand(hand) {
     // Good play detection
     if (tips.length === 0) {
         tips.push({ text: 'Clean line — no major deviations from GTO detected', type: 'good' });
-    }
-
-    if (folds.length === 1 && heroActions.length === 1) {
-        return { grade: 'OK', color: '#94a3b8', tips: [{ text: 'Folded preflop — standard', type: 'info' }] };
     }
 
     const grade = score >= 80 ? 'GTO' : score >= 60 ? 'OK' : 'LEAK';
@@ -531,6 +532,20 @@ export default function HandHistoryUploadPage() {
         }
         if (typeof window !== 'undefined') {
             eventBus.emit('training:hand-history-uploaded', sessionData, 'HandHistoryUpload');
+        }
+
+        // Emit GTO coaching aggregate for dashboard/leak-finder reactivity
+        if (typeof eventBus !== 'undefined' && eventBus.emit && sessionData.hands) {
+            const coachingAggregate = { gto: 0, ok: 0, leak: 0, total: sessionData.hands.length };
+            sessionData.hands.forEach(h => {
+                try {
+                    const { grade } = gradeHand(h);
+                    if (grade === 'GTO') coachingAggregate.gto++;
+                    else if (grade === 'OK' || grade === 'N/A') coachingAggregate.ok++;
+                    else coachingAggregate.leak++;
+                } catch { coachingAggregate.ok++; }
+            });
+            eventBus.emit('training:coaching-summary', coachingAggregate, 'HandHistoryUpload');
         }
     }, []);
 

@@ -80,6 +80,7 @@ import JarvisRecommendations from '../../src/components/training/JarvisRecommend
 // DailyBonusWidget removed per UI overhaul
 import useTrainingRealtime from '../../src/hooks/useTrainingRealtime';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
+import { busEmit } from '../../src/engine/EventBus';
 
 
 // Register GSAP plugins
@@ -833,12 +834,40 @@ export default function TrainingPage() {
 
         // Check diamond access - VIP plays free, others pay 10 diamonds
         if (!isVIP) {
+            // Fresh balance check from DB to avoid stale-state false negatives
+            try {
+                const { createClient } = await import('@supabase/supabase-js');
+                const sb = createClient(
+                    process.env.NEXT_PUBLIC_SUPABASE_URL,
+                    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+                );
+                const authUser = getAuthUser();
+                if (authUser) {
+                    const { data: profile } = await sb
+                        .from('profiles')
+                        .select('diamonds')
+                        .eq('id', authUser.id)
+                        .maybeSingle();
+                    if (profile) {
+                        const freshBalance = profile.diamonds || 0;
+                        setDiamondBalance(freshBalance);
+                        if (freshBalance < GAME_COST) {
+                            setShowOutOfDiamondsModal(true);
+                            return;
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('[Training] Balance check failed:', e);
+            }
+
             const result = await DiamondEngine.deduct(GAME_COST);
             if (!result.success) {
                 setShowOutOfDiamondsModal(true);
                 return;
             }
             setDiamondBalance(result.balance);
+            busEmit.diamondsSpent(GAME_COST, 'Training Game Entry');
         }
 
         // SPECIAL ROUTING FOR STANDALONE PAGES

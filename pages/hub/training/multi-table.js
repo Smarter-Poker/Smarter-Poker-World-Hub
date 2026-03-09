@@ -52,10 +52,17 @@ export default function MultiTablePage() {
     const [isAutoAdvance, setIsAutoAdvance] = useState(false);
     const [completedTables, setCompletedTables] = useState(new Set());
     const [showSummary, setShowSummary] = useState(false);
+    const [saveStatus, setSaveStatus] = useState(null); // 'saving' | 'saved' | 'error'
+    const hasSavedRef = React.useRef(false);
 
-    // Listen for session-complete events from each table
+    // Listen for session-complete events from each table (NOT from ourselves)
     useEffect(() => {
-        const unsub = eventBus.on(EventType.SESSION_END, (detail) => {
+        const unsub = eventBus.on(EventType.SESSION_END, (event) => {
+            // CRITICAL: ignore our own emitted events to prevent infinite loop
+            // EventBus passes entire event object: { type, payload, timestamp, source }
+            const detail = event?.payload || event;
+            const source = event?.source;
+            if (source === 'MultiTable') return;
             setCompletedTables(prev => new Set([...prev, detail?.gameId]));
             setCombinedStats(prev => ({
                 totalHands: prev.totalHands + (detail?.totalQuestions || detail?.handsPlayed || 0),
@@ -69,11 +76,13 @@ export default function MultiTablePage() {
 
     // Auto-save combined session when all tables complete
     useEffect(() => {
-        if (completedTables.size >= tableCount && isStarted) {
+        if (completedTables.size >= tableCount && isStarted && !hasSavedRef.current) {
+            hasSavedRef.current = true; // Prevent double save
+            setSaveStatus('saving');
             const saveMultiSession = async () => {
                 try {
                     const user = getAuthUser();
-                    if (!user?.session?.access_token) return;
+                    if (!user?.session?.access_token) { setSaveStatus('error'); return; }
 
                     const accuracy = combinedStats.totalHands > 0
                         ? Math.round((combinedStats.totalCorrect / combinedStats.totalHands) * 100)
@@ -101,6 +110,7 @@ export default function MultiTablePage() {
                         }),
                     });
                     console.log('[MultiTable] Combined session saved ✅');
+                    setSaveStatus('saved');
 
                     eventBus.emit(EventType.SESSION_END, {
                         gameId: 'multi-table',
@@ -109,6 +119,7 @@ export default function MultiTablePage() {
                     }, 'MultiTable');
                 } catch (err) {
                     console.error('[MultiTable] Save error:', err);
+                    setSaveStatus('error');
                 }
             };
             saveMultiSession();
@@ -159,6 +170,16 @@ export default function MultiTablePage() {
                                             {tableCount} tables · {combinedStats.totalHands} total decisions
                                         </p>
 
+                                        {/* Save Status Indicator */}
+                                        <div style={{
+                                            fontSize: 10, fontWeight: 600, marginBottom: 12,
+                                            color: saveStatus === 'saved' ? '#22c55e' : saveStatus === 'error' ? '#ef4444' : '#64748b',
+                                        }}>
+                                            {saveStatus === 'saving' && '⏳ Saving session...'}
+                                            {saveStatus === 'saved' && '✅ Saved to profile'}
+                                            {saveStatus === 'error' && '⚠️ Save failed — results still shown'}
+                                        </div>
+
                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 24 }}>
                                             {[
                                                 { label: 'Accuracy', value: `${accuracy}%`, color: gradeColor },
@@ -180,7 +201,7 @@ export default function MultiTablePage() {
 
                                         <div style={{ display: 'flex', gap: 10 }}>
                                             <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-                                                onClick={() => { setShowSummary(false); setCompletedTables(new Set()); setCombinedStats({ totalHands: 0, totalCorrect: 0, totalEVLoss: 0, tablesCompleted: 0 }); }}
+                                                onClick={() => { setShowSummary(false); setCompletedTables(new Set()); setCombinedStats({ totalHands: 0, totalCorrect: 0, totalEVLoss: 0, tablesCompleted: 0 }); hasSavedRef.current = false; }}
                                                 style={{
                                                     flex: 1, padding: '14px', borderRadius: 12, border: 'none', cursor: 'pointer',
                                                     fontSize: 14, fontWeight: 800, fontFamily: "'Orbitron', monospace",
@@ -188,7 +209,7 @@ export default function MultiTablePage() {
                                                     boxShadow: '0 4px 20px rgba(0,212,255,0.3)',
                                                 }}>PLAY AGAIN</motion.button>
                                             <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-                                                onClick={() => { setShowSummary(false); setIsStarted(false); setCompletedTables(new Set()); setCombinedStats({ totalHands: 0, totalCorrect: 0, totalEVLoss: 0, tablesCompleted: 0 }); }}
+                                                onClick={() => { setShowSummary(false); setIsStarted(false); setCompletedTables(new Set()); setCombinedStats({ totalHands: 0, totalCorrect: 0, totalEVLoss: 0, tablesCompleted: 0 }); hasSavedRef.current = false; }}
                                                 style={{
                                                     flex: 1, padding: '14px', borderRadius: 12, cursor: 'pointer',
                                                     fontSize: 13, fontWeight: 700,
