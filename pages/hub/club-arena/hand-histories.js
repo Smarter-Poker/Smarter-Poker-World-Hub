@@ -236,10 +236,20 @@ const router = useRouter();
     // ═══════════════════════════════════════════════════════════════════════════
     // CARD RENDERING
     // ═══════════════════════════════════════════════════════════════════════════
-    const parseCard = (cardStr) => {
-        if (!cardStr || cardStr.length < 2) return null;
-        const rank = cardStr.slice(0, -1).toUpperCase();
-        const suit = cardStr.slice(-1).toLowerCase();
+    const RANKS_INT = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+    const SUITS_INT = ['c', 'd', 'h', 's'];
+
+    const parseCard = (cardInput) => {
+        // Handle integer cards from engine (0-51): rank = floor(card/4), suit = card%4
+        if (typeof cardInput === 'number' || (typeof cardInput === 'string' && /^\d+$/.test(cardInput) && parseInt(cardInput) <= 51)) {
+            const num = parseInt(cardInput);
+            if (num < 0 || num > 51 || isNaN(num)) return null;
+            return { rank: RANKS_INT[Math.floor(num / 4)], suit: SUITS_INT[num % 4] };
+        }
+        // Handle string cards: "As", "10h", "Kd", "2c"
+        if (!cardInput || typeof cardInput !== 'string' || cardInput.length < 2) return null;
+        const rank = cardInput.slice(0, -1).toUpperCase();
+        const suit = cardInput.slice(-1).toLowerCase();
         return { rank, suit };
     };
 

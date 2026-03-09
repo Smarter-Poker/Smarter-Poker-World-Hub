@@ -457,6 +457,7 @@ const router = useRouter();
 
             const name = selectedMember.profiles?.display_name || selectedMember.profiles?.username;
             showToast(`${amount.toLocaleString()} chips sent to ${name}`);
+            busEmit.dataMutated('chips_distributed');
             setSelectedMember(null);
             setChipAmount('');
             loadData();

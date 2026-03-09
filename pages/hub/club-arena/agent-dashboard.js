@@ -322,7 +322,7 @@ const router = useRouter();
                 action: 'cancel',
                 note: cashoutNote || 'Cancelled by agent',
             });
-            showToast('Cashout cancelled — chips returned to player');
+            showToast('Cashout cancelled — chips returned to player'); busEmit.dataMutated('cashout_cancelled');
             setCashoutModal(null);
             setCashoutNote('');
             loadDashboard();
@@ -342,7 +342,7 @@ const router = useRouter();
                 transactionId: clawbackModal.id,
                 clubId: clubIdParam,
             });
-            showToast('Clawback successful — chips reversed');
+            showToast('Clawback successful — chips reversed'); busEmit.dataMutated('chips_distributed');
             setClawbackModal(null);
             loadDashboard();
         } catch (err) {
