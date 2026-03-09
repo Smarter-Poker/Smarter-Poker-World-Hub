@@ -74,13 +74,10 @@ async function handleGet(req, res) {
         // Otherwise, fetch all active live games
         let query = supabaseAdmin
             .from('live_games')
-            .select(`
-                *,
-                venue:poker_venues(id, name, city, state, latitude, longitude)
-            `)
+            .select('*')
             .eq('is_active', true)
             .gt('expires_at', new Date().toISOString())
-            .order('reported_at', { ascending: false })
+            .order('created_at', { ascending: false })
                 .limit(100);
 
         if (venue_id) {
@@ -104,9 +101,28 @@ async function handleGet(req, res) {
             return res.status(500).json({ success: false, error: 'Failed to fetch live games' });
         }
 
+        // Enrich with venue data (no FK relationship exists for PostgREST join)
+        let enrichedGames = data || [];
+        if (enrichedGames.length > 0) {
+            const venueIds = [...new Set(enrichedGames.map(g => g.venue_id).filter(Boolean))];
+            if (venueIds.length > 0) {
+                const { data: venues } = await supabaseAdmin
+                    .from('poker_venues')
+                    .select('id, name, city, state, latitude, longitude')
+                    .in('id', venueIds);
+                const venueMap = {};
+                (venues || []).forEach(v => { venueMap[String(v.id)] = v; });
+                enrichedGames = enrichedGames.map(g => ({
+                    ...g,
+                    reported_at: g.reported_at || g.created_at,
+                    venue: venueMap[String(g.venue_id)] || null
+                }));
+            }
+        }
+
         return res.status(200).json({
-            games: data || [],
-            total: count || data?.length || 0
+            games: enrichedGames,
+            total: count || enrichedGames.length || 0
         });
 
     } catch (error) {
@@ -190,10 +206,7 @@ async function handlePost(req, res) {
         // Fetch the created/updated game
         const { data: game, error: fetchError } = await supabaseAdmin
             .from('live_games')
-            .select(`
-                *,
-                venue:poker_venues(id, name, city, state)
-            `)
+            .select('*')
             .eq('id', gameId)
             .maybeSingle();
 
