@@ -30,8 +30,8 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
     const detailUrl = getVenueUrl(venue);
 
     return (
-        <div className="entity-card venue-card" onClick={() => onNavigate(detailUrl)} style={{ cursor: 'pointer' }}>
-            <button className={'fav-btn' + (isFavorited ? ' active' : '')} onClick={(e) => onFavorite(e)} title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}>
+        <div className="entity-card venue-card" onClick={() => onNavigate && onNavigate(detailUrl)} style={{ cursor: 'pointer' }}>
+            <button className={'fav-btn' + (isFavorited ? ' active' : '')} onClick={(e) => { e.stopPropagation(); onFavorite && onFavorite(e); }} title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill={isFavorited ? '#ef4444' : 'none'} stroke={isFavorited ? '#ef4444' : 'rgba(255,255,255,0.4)'} strokeWidth="2">
                     <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
                 </svg>
@@ -41,7 +41,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 <span className="badge venue-type">{VENUE_TYPE_LABELS[venue.venue_type] || venue.venue_type}</span>
             </div>
             <p className="card-location">
-                {venue.address ? (venue.address + ' - ') : ''}{venue.city}, {venue.state}
+                {venue.address ? (venue.address + ' - ') : ''}{venue.city || ''}{venue.city && venue.state ? ', ' : ''}{venue.state || ''}
             </p>
             <div className="badge-row">
                 {venue.is_featured && <span className="mini-badge featured-badge">Featured</span>}
@@ -73,8 +73,8 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 </div>
             </div>
             <div className="quick-actions">
-                <button className="quick-btn checkin-btn" onClick={e => { e.stopPropagation(); onNavigate(detailUrl + '?action=checkin'); }}>Check In</button>
-                <button className="quick-btn review-btn" onClick={e => { e.stopPropagation(); onNavigate(detailUrl + '?action=review'); }}>Review</button>
+                <button className="quick-btn checkin-btn" onClick={e => { e.stopPropagation(); onNavigate && onNavigate(detailUrl + '?action=checkin'); }}>Check In</button>
+                <button className="quick-btn review-btn" onClick={e => { e.stopPropagation(); onNavigate && onNavigate(detailUrl + '?action=review'); }}>Review</button>
                 <span className="action-btn primary" style={{ flex: 1, textAlign: 'center' }}>Details</span>
             </div>
         </div>
