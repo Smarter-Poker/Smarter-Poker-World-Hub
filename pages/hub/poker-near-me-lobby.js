@@ -396,7 +396,9 @@ export default function PokerNearMeLobby() {
   // ─── Data State ───
   const [venues, setVenues] = useState([]);
   const [tours, setTours] = useState([]);
+  const [toursLoaded, setToursLoaded] = useState(false);
   const [series, setSeries] = useState([]);
+  const [seriesLoaded, setSeriesLoaded] = useState(false);
   const [dailyTournaments, setDailyTournaments] = useState([]);
   const [liveGames, setLiveGames] = useState([]);
   const [favorites, setFavorites] = useState({});
@@ -999,7 +1001,7 @@ export default function PokerNearMeLobby() {
         break;
 
       case 'livegames':
-        component = <LiveGamesFeed games={liveGames} />;
+        component = <LiveGamesFeed userLocation={userLocation} />;
         break;
 
       case 'mapview':

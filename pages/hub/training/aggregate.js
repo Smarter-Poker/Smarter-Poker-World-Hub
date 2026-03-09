@@ -79,11 +79,7 @@ export default function AggregateReports() {
     // Bus listener — auto-refresh when other training completes
     useEffect(() => {
         const unsub = eventBus.on(EventType.SESSION_END, () => fetchReport());
-        window.addEventListener('training:session-complete', fetchReport);
-        return () => {
-            if (typeof unsub === 'function') unsub();
-            window.removeEventListener('training:session-complete', fetchReport);
-        };
+        return unsub;
     }, [fetchReport]);
 
     const maxCbet = useMemo(() => {

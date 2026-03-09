@@ -13,6 +13,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 const CARDS = [
     { id: 1, cat: 'Preflop', q: 'What is the standard open raise size from any position?', a: '2.5x the big blind (2.5BB). Larger sizes from EP are outdated.' },
@@ -73,9 +74,8 @@ export default function FlashcardsPage() {
     }, [catFilter]);
 
     useEffect(() => {
-        const h = () => { };
-        window.addEventListener('training:session-complete', h);
-        return () => window.removeEventListener('training:session-complete', h);
+        const unsub = eventBus.on(EventType.SESSION_END, () => { });
+        return unsub;
     }, []);
 
     const current = deck[currentIdx];

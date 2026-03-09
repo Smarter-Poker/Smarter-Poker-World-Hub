@@ -14,6 +14,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAccessToken } from '../../../src/lib/authUtils';
+import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PRESETS & CONSTANTS
@@ -166,9 +167,8 @@ export default function CustomSolvePage() {
 
     // Bus listener — refresh when other training completes
     useEffect(() => {
-        const onSessionComplete = () => setResult(null);
-        window.addEventListener('training:session-complete', onSessionComplete);
-        return () => window.removeEventListener('training:session-complete', onSessionComplete);
+        const unsub = eventBus.on(EventType.SESSION_END, () => setResult(null));
+        return unsub;
     }, []);
 
     // Configuration state

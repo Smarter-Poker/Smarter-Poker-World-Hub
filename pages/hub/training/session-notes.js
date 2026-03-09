@@ -14,6 +14,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
+import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 const MOOD_OPTIONS = [
     { id: 'focused', emoji: '🎯', label: 'Focused' },
@@ -68,9 +69,8 @@ export default function SessionNotesPage() {
 
     useEffect(() => { fetchRecentSession(); }, [fetchRecentSession]);
     useEffect(() => {
-        const h = () => fetchRecentSession();
-        window.addEventListener('training:session-complete', h);
-        return () => window.removeEventListener('training:session-complete', h);
+        const unsub = eventBus.on(EventType.SESSION_END, () => fetchRecentSession());
+        return unsub;
     }, [fetchRecentSession]);
 
     const saveNote = () => {
