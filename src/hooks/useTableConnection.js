@@ -374,6 +374,16 @@ export function useTableConnection({ supabase, tableId, userId }) {
         }
         requestState();
         break;
+      case 'player_timed_out':
+      case 'waitlist_joined':
+      case 'waitlist_left':
+      case 'player_invited':
+        requestState();
+        break;
+      case 'table_closed':
+        setTableAlert({ type: 'removed', message: 'This table has been closed' });
+        requestState();
+        break;
       case 'seat_offered':
         if (String(data.playerId) === String(userId)) {
           setSeatOffer({ seatIndex: data.seatIndex, timeout: data.timeout || 30000, offeredAt: Date.now() });
@@ -432,6 +442,8 @@ export function useTableConnection({ supabase, tableId, userId }) {
       'cards_shown', 'variant_changed',
       'player_auto_removed', 'bomb_pot_starting',
       'player_kicked',
+      'player_timed_out', 'player_invited',
+      'table_closed', 'waitlist_joined', 'waitlist_left',
     ];
 
     for (const evt of events) {

@@ -292,7 +292,7 @@ class StateSerializer {
         .from('tables')
         .update({
           live_state: state,
-          status: this.table?.status === 'RUNNING' ? 'running' : 'waiting',
+          status: this.table?.status === 'running' ? 'running' : (this.table?.status || 'waiting'),
         })
         .eq('id', this.tableId);
 

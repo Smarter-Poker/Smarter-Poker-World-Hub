@@ -1794,7 +1794,8 @@ class GameStateMachine {
     this.phase = GAME_PHASE.PAYOUT;
 
     // "No flop, no drop" — standard poker rule: no rake if hand ends before flop
-    const flopSeen = this.currentHand.communityCards.length >= 3 || this.phase !== 'preflop';
+    // NOTE: this.phase is already PAYOUT here, so only communityCards is reliable
+    const flopSeen = this.currentHand.communityCards.length >= 3;
     const { payouts, rake } = this.potCalculator.awardToLastPlayer(winner.id, {
       rakePercent: this.config.rakePercent,
       rakeCap: this.config.rakeCap,
