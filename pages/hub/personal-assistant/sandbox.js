@@ -45,6 +45,7 @@ import {
   VillainReadCard, ShortcutLegend,
 } from '../../../src/components/sandbox/SandboxComponents';
 import { ExportCard } from '../../../src/components/sandbox/ExportCard';
+import RangeExplorer from '../../../src/components/sandbox/RangeExplorer';
 
 // ═══════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -671,6 +672,7 @@ export default function VirtualSandbox() {
   // ─── WAVE 2: Session Log (Feature 5) ────────────────────────────────────
   const [sessionLog, setSessionLog] = useState([]);
   const [showSessionLog, setShowSessionLog] = useState(false);
+  const [showRangeExplorer, setShowRangeExplorer] = useState(false);
 
   // ─── WAVE 2: Socratic Coach Mode (Feature 6) ─────────────────────────────
   const [coachMode, setCoachMode] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('sandbox-coach-mode') === 'true' : false);
@@ -1409,6 +1411,7 @@ export default function VirtualSandbox() {
               <button onClick={() => { setShowSessionLog(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: sessionLog.length > 0 ? 'rgba(35,116,225,0.12)' : '#3A3B3C', border: `1px solid ${sessionLog.length > 0 ? 'rgba(35,116,225,0.3)' : '#4E4F50'}`, color: sessionLog.length > 0 ? '#4599FF' : '#E4E6EB', cursor: 'pointer' }}>Log ({sessionLog.length})</button>
               <button onClick={() => { toggleSound(); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: soundEnabled ? 'rgba(34,197,94,0.15)' : '#3A3B3C', border: `1px solid ${soundEnabled ? 'rgba(34,197,94,0.3)' : '#4E4F50'}`, color: soundEnabled ? '#4ade80' : '#E4E6EB', cursor: 'pointer' }}>Sound {soundEnabled ? 'ON' : 'OFF'}</button>
               <button onClick={() => { setShowTemplates(true); loadTemplates(); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', cursor: 'pointer' }}>Templates</button>
+              <button onClick={() => { setShowRangeExplorer(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(245,166,35,0.12)', border: '1px solid rgba(245,166,35,0.3)', color: '#F5A623', cursor: 'pointer' }}>🎯 Ranges</button>
               <button onClick={() => { setShowHHImport(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', cursor: 'pointer' }}>Import HH</button>
               {/* Felt color dots row */}
               <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 8, paddingTop: 4 }}>
@@ -1784,6 +1787,20 @@ export default function VirtualSandbox() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ═══ RANGE EXPLORER MODAL (W4-2) ═══ */}
+      {showRangeExplorer && (
+        <RangeExplorer
+          onSelectRange={(rangeStr) => {
+            if (rangeStr && villains.length > 0) {
+              const updated = [...villains];
+              updated[0] = { ...updated[0], range: rangeStr };
+              setVillains(updated);
+            }
+          }}
+          onClose={() => setShowRangeExplorer(false)}
+        />
+      )}
 
       {/* ═══ TEMPLATES MODAL ═══ */}
       <AnimatePresence>

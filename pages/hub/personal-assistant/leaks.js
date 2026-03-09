@@ -18,6 +18,7 @@ import FeatureGate from '../../../src/components/gates/FeatureGate';
 import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import SessionAnalytics from '../../../src/components/sandbox/SessionAnalytics';
+import LeakHeatmap from '../../../src/components/sandbox/LeakHeatmap';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MOCK DATA
@@ -571,7 +572,20 @@ export default function LeakFinderPage() {
     fetchCoachAccuracy();
     if (typeof window === 'undefined') return;
     window.addEventListener('sandbox-coach-result-saved', fetchCoachAccuracy);
-    return () => window.removeEventListener('sandbox-coach-result-saved', fetchCoachAccuracy);
+    // W4-5: Coach streak milestone toast
+    const handleStreakMilestone = (e) => {
+      const streak = e?.detail?.streak;
+      if (streak && typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: { message: `\u{1F525} ${streak} Correct Streak! Keep it going!`, type: 'success' }
+        }));
+      }
+    };
+    window.addEventListener('sandbox-coach-streak-milestone', handleStreakMilestone);
+    return () => {
+      window.removeEventListener('sandbox-coach-result-saved', fetchCoachAccuracy);
+      window.removeEventListener('sandbox-coach-streak-milestone', handleStreakMilestone);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -693,6 +707,8 @@ export default function LeakFinderPage() {
 
           {/* ── Wave 4: Session Analytics Dashboard ───────────────── */}
           <SessionAnalytics userId={userId} />
+          {/* ── Wave 4: Position Leak Heatmap ────────────────────── */}
+          <LeakHeatmap userId={userId} />
 
           {/* Main Layout */}
           <div style={styles.mainLayout}>
