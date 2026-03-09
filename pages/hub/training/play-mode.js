@@ -216,43 +216,90 @@ function usePlayMode() {
     // Audio/Vibration Settings
     const settings = { haptics: true, audio: true, screenShake: true, intensity: 'high' };
 
-    // GTO-based villain response using position-aware frequency tables
-    const simulateVillainResponse = useCallback((heroAction, street, currentPot) => {
-        // Advanced GTO frequency tables based on solver aggregate baselines
-        // These replace the simplistic Math.random() logic from v1
-        const GTO_RESPONSES = {
-            preflop: {
+    // Memoized cache for API responses to prevent redundant identical calls
+    const GTO_AI_CACHE = useRef({});
+
+    // True GTO-based villain response using the solver-api endpoint
+    const simulateVillainResponse = useCallback(async (heroAction, street, currentPot, currentBoard) => {
+        const actionKey = heroAction || 'check';
+        let freqs = null;
+
+        // For preflop (board length < 3), fallback to baseline preflop frequencies
+        // since solver-api strictly requires a flop.
+        if (street === 'preflop' || !currentBoard || currentBoard.length < 3) {
+            const PREFLOP_BASELINE = {
                 bet: { fold: 0.35, call: 0.50, raise: 0.15 },
                 raise: { fold: 0.65, call: 0.25, raise: 0.10 },
                 call: { fold: 0.00, call: 0.00, check: 1.00 },
                 check: { check: 0.60, bet: 0.40 },
                 allin: { fold: 0.85, call: 0.15 },
-            },
-            flop: {
-                bet: { fold: 0.45, call: 0.40, raise: 0.15 },
-                raise: { fold: 0.55, call: 0.30, raise: 0.15 },
-                call: { fold: 0.00, call: 0.00, check: 1.00 },
-                check: { check: 0.65, bet: 0.35 },
-                allin: { fold: 0.75, call: 0.25 },
-            },
-            turn: {
-                bet: { fold: 0.40, call: 0.45, raise: 0.15 },
-                raise: { fold: 0.60, call: 0.30, raise: 0.10 },
-                call: { fold: 0.00, call: 0.00, check: 1.00 },
-                check: { check: 0.55, bet: 0.45 },
-                allin: { fold: 0.70, call: 0.30 },
-            },
-            river: {
-                bet: { fold: 0.50, call: 0.40, raise: 0.10 },
-                raise: { fold: 0.65, call: 0.25, raise: 0.10 },
-                call: { fold: 0.00, call: 0.00, check: 1.00 },
-                check: { check: 0.50, bet: 0.50 },
-                allin: { fold: 0.60, call: 0.40 },
-            },
-        };
+            };
+            freqs = PREFLOP_BASELINE[actionKey] || PREFLOP_BASELINE.check;
+        } else {
+            // Postflop: Fetch true solver frequency from API
+            const cacheKey = `${heroPosition}_${street}_${currentBoard.join('')}_${actionKey}`;
 
-        const actionKey = heroAction || 'check';
-        const freqs = GTO_RESPONSES[street]?.[actionKey] || GTO_RESPONSES.flop.check;
+            if (GTO_AI_CACHE.current[cacheKey]) {
+                freqs = GTO_AI_CACHE.current[cacheKey];
+            } else {
+                try {
+                    const token = await getAccessToken();
+                    const res = await fetch('/api/training/solver-api', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...(token && { Authorization: `Bearer ${token}` })
+                        },
+                        body: JSON.stringify({
+                            board: currentBoard,
+                            heroPosition: heroPosition,
+                            villainPosition: heroPosition === 'BB' ? 'BTN' : 'BB',
+                            stackDepth: config.stackDepth,
+                            gameType: config.format,
+                            street: street,
+                            action: actionKey
+                        })
+                    });
+
+                    const data = await res.json();
+                    if (data.success && data.solution && data.solution.actions) {
+                        // Translate arbitrary action props into standard frequencies
+                        const solverReq = data.solution.actions;
+                        freqs = {
+                            bet: solverReq.bet ? solverReq.bet / 100 : 0,
+                            check: solverReq.check ? solverReq.check / 100 : 0,
+                            raise: solverReq.raise ? solverReq.raise / 100 : 0,
+                            call: solverReq.call ? solverReq.call / 100 : 0,
+                            fold: solverReq.fold ? solverReq.fold / 100 : 0,
+                        };
+
+                        // Normalize back out to 1.0 totals to avoid under/over fetching odds
+                        const total = Object.values(freqs).reduce((a, b) => a + b, 0);
+                        if (total > 0) {
+                            for (let key in freqs) freqs[key] /= total;
+                        } else {
+                            // API returned empty action block
+                            throw new Error("Empty action frequency block");
+                        }
+
+                        GTO_AI_CACHE.current[cacheKey] = freqs;
+                    } else {
+                        throw new Error("Invalid solver response");
+                    }
+                } catch (err) {
+                    console.warn('[Play Mode] API solver fetch failed, defaulting to heuristic GTO', err);
+                    // Fallback heuristic if API fails or rate limits
+                    const HEURISTIC_FALLBACK = {
+                        bet: { fold: 0.45, call: 0.40, raise: 0.15 },
+                        raise: { fold: 0.55, call: 0.30, raise: 0.15 },
+                        call: { fold: 0.00, call: 0.00, check: 1.00 },
+                        check: { check: 0.65, bet: 0.35 },
+                        allin: { fold: 0.75, call: 0.25 }
+                    };
+                    freqs = HEURISTIC_FALLBACK[actionKey] || HEURISTIC_FALLBACK.check;
+                }
+            }
+        }
 
         // Weighted random selection based on GTO frequencies
         const rand = Math.random();
@@ -281,7 +328,7 @@ function usePlayMode() {
         }
 
         return { action: selectedAction, amount: selectedAmount, freqs };
-    }, []);
+    }, [heroPosition, config.stackDepth, config.format]);
 
     // Advance to next street
     const advanceStreet = useCallback((fromStreet, newPot) => {
@@ -343,7 +390,7 @@ function usePlayMode() {
     }, [actionHistory]);
 
     // Hero makes an action
-    const handleAction = useCallback((action, amount = 0) => {
+    const handleAction = useCallback(async (action, amount = 0) => {
         const newAction = {
             street: currentStreet,
             player: 'hero',
@@ -386,8 +433,8 @@ function usePlayMode() {
         setPot(newPot);
         setHeroStack(newStack);
 
-        // AI villain response
-        const villainAction = simulateVillainResponse(action, currentStreet, newPot);
+        // API Fetch AI villain response
+        const villainAction = await simulateVillainResponse(action, currentStreet, newPot, board);
         setActionHistory(prev => [...prev, {
             street: currentStreet,
             player: 'villain',
@@ -426,7 +473,7 @@ function usePlayMode() {
 
         // Advance to next street
         advanceStreet(currentStreet, newPot);
-    }, [currentStreet, pot, heroStack, heroPosition, simulateVillainResponse, advanceStreet, timeLeft]);
+    }, [currentStreet, pot, heroStack, heroPosition, simulateVillainResponse, advanceStreet, timeLeft, board]);
 
     // Save hand result and advance
     const nextHand = useCallback(() => {
