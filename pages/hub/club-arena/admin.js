@@ -105,15 +105,7 @@ export default function Admin() {
     const router = useRouter();
     const clubIdParam = router.query?.club || null;
 
-    // Keyboard shortcuts
-    const handleShortcutAction = useCallback((actionId) => {
-        if (actionId === 'close_modal') { setActiveModal(null); return; }
-        if (actionId === 'new_table') { setActiveModal('tables'); loadTables(); loadTemplates(); setShowCreateTable(true); return; }
-        setActiveModal(actionId);
-        if (actionId === 'tables') { loadTables(); loadTemplates(); }
-    }, []);
-    const shortcuts = useAdminShortcuts({ onAction: handleShortcutAction, isAdmin, activeModal });
-
+    // Keyboard shortcuts moved down below state initialization
     // Core state
     const [user, setUser] = useState(null);
     const [menuOpen, setMenuOpen] = useState(false);
@@ -245,6 +237,16 @@ export default function Admin() {
     // Phase 3: Drag-and-Drop Lobby Ordering
     const [lobbyOrder, setLobbyOrder] = useState([]);
     const [lobbyOrderSaving, setLobbyOrderSaving] = useState(false);
+
+    // Keyboard shortcuts must be declared AFTER isAdmin and activeModal states are initialized
+    const handleShortcutAction = useCallback((actionId) => {
+        if (actionId === 'close_modal') { setActiveModal(null); return; }
+        if (actionId === 'new_table') { setActiveModal('tables'); loadTables(); loadTemplates(); setShowCreateTable(true); return; }
+        setActiveModal(actionId);
+        if (actionId === 'tables') { loadTables(); loadTemplates(); }
+    }, []);
+    const shortcuts = useAdminShortcuts({ onAction: handleShortcutAction, isAdmin, activeModal });
+
     const showToast = (message, type = 'success') => {
         setToast({ message, type });
         setTimeout(() => setToast(null), 3000);
