@@ -63,6 +63,12 @@ export default async function handler(req, res) {
   // Rate limit
   if (!applyRateLimit(req, res, 'club-arena/distribute-chips')) return;
 
+  // ── Anti-Fraud: Velocity Check ──
+  const vel = await checkVelocity(supabaseAdmin, { userId: user.id, clubId, actionType: 'chip_distribution', amount });
+  if (!vel.passed) {
+    return res.status(429).json({ success: false, error: vel.reason, flagged: true });
+  }
+
   try {
     // Verify caller is owner/admin/agent
     const { data: member } = await supabaseAdmin

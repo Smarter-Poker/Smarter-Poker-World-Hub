@@ -565,6 +565,25 @@ export default function ClubMessages() {
     // Reply-To state
     const [replyTo, setReplyTo] = useState(null);
 
+    // P3-1: Unread filter
+    const [showUnreadOnly, setShowUnreadOnly] = useState(false);
+
+    // P3-2: Muted conversations (persisted)
+    const [mutedConvIds, setMutedConvIds] = usePersistedState('sp-muted-convs', []);
+
+    // P3-3: Archived conversations (persisted)
+    const [archivedConvIds, setArchivedConvIds] = usePersistedState('sp-archived-convs', []);
+    const [showArchived, setShowArchived] = useState(false);
+
+    // P3-5: Message forwarding
+    const [forwardingMessage, setForwardingMessage] = useState(null);
+
+    // P3-8: Global search
+    const [showGlobalSearch, setShowGlobalSearch] = useState(false);
+    const [globalSearchQuery, setGlobalSearchQuery] = useState('');
+    const [globalSearchResults, setGlobalSearchResults] = useState([]);
+    const [globalSearchLoading, setGlobalSearchLoading] = useState(false);
+
     // GIF picker state
     const [showGifPicker, setShowGifPicker] = useState(false);
     const [gifSearchQuery, setGifSearchQuery] = useState('');

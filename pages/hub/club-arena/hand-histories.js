@@ -43,13 +43,79 @@ const FB = {
 };
 
 // Card display helpers
-const SUIT_SYMBOLS = { h: '', d: '', c: '', s: '' };
+const SUIT_SYMBOLS = { h: '♥', d: '♦', c: '♣', s: '♠' };
 const SUIT_COLORS = { h: '#E74C3C', d: '#3498DB', c: '#27AE60', s: '#2C3E50' };
+
+// ─── Quick Reactions (local state with emoji reactions) ─────────────────
+const REACTIONS = ['🔥', '🤮', '😤', '🤯', '👏'];
+
+function HandReactionBar({ handId }) {
+    const storageKey = `hh-reactions-${handId}`;
+    const [myReactions, setMyReactions] = React.useState(() => {
+        if (typeof window === 'undefined') return {};
+        try { return JSON.parse(localStorage.getItem(storageKey) || '{}'); } catch { return {}; }
+    });
+
+    const toggleReaction = (emoji) => {
+        setMyReactions(prev => {
+            const next = { ...prev, [emoji]: prev[emoji] ? 0 : 1 };
+            try { localStorage.setItem(storageKey, JSON.stringify(next)); } catch { }
+            return next;
+        });
+    };
+
+    return (
+        <div className="ca-reaction-bar" onClick={e => e.stopPropagation()}>
+            {REACTIONS.map(emoji => (
+                <button
+                    key={emoji}
+                    className={`ca-reaction-chip ${myReactions[emoji] ? 'ca-reaction-active' : ''}`}
+                    onClick={(e) => { e.stopPropagation(); toggleReaction(emoji); }}
+                >
+                    {emoji}
+                    {myReactions[emoji] ? <span className="ca-reaction-count">1</span> : null}
+                </button>
+            ))}
+        </div>
+    );
+}
+
+// ─── Skeleton Loading Component ─────────────────────────────────────────
+function HandHistorySkeleton() {
+    return (
+        <div>
+            {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} style={{ background: '#242526', border: '1px solid #3E4042', borderRadius: 8, padding: 14, marginBottom: 10 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+                        <div className="ca-skeleton" style={{ width: 50, height: 22, borderRadius: 4 }} />
+                        <div className="ca-skeleton" style={{ width: 80, height: 14, borderRadius: 4 }} />
+                    </div>
+                    <div style={{ display: 'flex', gap: 12, marginBottom: 10 }}>
+                        <div style={{ display: 'flex', gap: 4 }}>
+                            <div className="ca-skeleton" style={{ width: 28, height: 38, borderRadius: 4 }} />
+                            <div className="ca-skeleton" style={{ width: 28, height: 38, borderRadius: 4 }} />
+                        </div>
+                        <div style={{ display: 'flex', gap: 4 }}>
+                            {Array.from({ length: 5 }).map((_, j) => (
+                                <div key={j} className="ca-skeleton" style={{ width: 28, height: 38, borderRadius: 4 }} />
+                            ))}
+                        </div>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <div className="ca-skeleton" style={{ width: 120, height: 14, borderRadius: 4 }} />
+                        <div className="ca-skeleton" style={{ width: 60, height: 18, borderRadius: 4 }} />
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
 
 const MemoizedHandCard = React.memo(({ hand, setSelectedHand, renderCardRow, getHandLabel, formatDate, FB, S }) => {
     const isWin = hand.result === 'win' || (hand.profit && hand.profit > 0);
+    const gradientClass = isWin ? 'ca-card-positive' : hand.profit < 0 ? 'ca-card-negative' : 'ca-card-neutral';
     return (
-        <div style={S.handCard} onClick={() => setSelectedHand(hand)}>
+        <div style={S.handCard} className={gradientClass} onClick={() => setSelectedHand(hand)}>
             <div style={S.handHeader}>
                 <span style={{ ...S.handResult, background: isWin ? FB.success : FB.danger, color: '#fff' }}>
                     {isWin ? 'WIN' : 'LOSS'}
@@ -78,6 +144,8 @@ const MemoizedHandCard = React.memo(({ hand, setSelectedHand, renderCardRow, get
                     {isWin ? '+' : ''}{(hand.profit || hand.pot_size || 0).toLocaleString()}
                 </span>
             </div>
+            {/* Quick Reactions */}
+            <HandReactionBar handId={hand.id || hand.hand_number} />
         </div>
     );
 });
@@ -527,7 +595,7 @@ export default function HandHistories() {
                             <button onClick={() => router.push('/hub')} style={{ ...S.backBtn, marginTop: 16 }}>Go to Hub</button>
                         </div>
                     ) : isLoading ? (
-                        <div style={S.loading}>Loading Hands...</div>
+                        <HandHistorySkeleton />
                     ) : !user ? (
                         <div style={S.emptyState}><p>Sign In To View Your Hands</p></div>
                     ) : hands.length === 0 ? (

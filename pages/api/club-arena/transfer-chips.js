@@ -12,6 +12,7 @@ const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena
 const { sanitizeNote, safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
 const { isUUID, validateAmount, rejectBadPayload } = require('../../../src/lib/club-arena/validate');
 const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
+const { checkVelocity } = require('../../../src/lib/club-arena/velocityCheck');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -52,6 +53,12 @@ export default async function handler(req, res) {
   // Settlement lock
   const lockCheck = await checkSettlementLock(supabaseAdmin, clubId);
   if (lockCheck.locked) return sendLockedResponse(res, lockCheck);
+
+  // ── Anti-Fraud: Velocity Check ──
+  const vel = await checkVelocity(supabaseAdmin, { userId: user.id, clubId, actionType: 'chip_transfer', amount });
+  if (!vel.passed) {
+    return res.status(429).json({ success: false, error: vel.reason, flagged: true });
+  }
 
   try {
     // Verify both users are active members

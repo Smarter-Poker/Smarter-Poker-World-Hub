@@ -127,7 +127,8 @@ export default async function handler(req, res) {
                     .limit(500);
 
                 // Notify each registered player
-                const { notifyUser } = require('../../../src/lib/notifications');
+                // Inline stub — notifications module not yet available
+                const notifyUser = async () => { }; // TODO: wire to OneSignal when notifications module is built
                 for (const reg of (regs || [])) {
                     await notifyUser(supabase, {
                         userId: reg.user_id,
