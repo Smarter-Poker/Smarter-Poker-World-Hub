@@ -191,6 +191,7 @@ export function useTableConnection({ supabase, tableId, userId }) {
         break;
       case 'hand_start':
         setResult(null); setMyCards(null); setLegalActions(null); setTimerState(null);
+        setChatMessages(prev => [...prev.slice(-100), { type: 'dealer', text: `Hand #${data.handNumber || '?'}`, ts: Date.now() }]);
         requestState();
         break;
       case 'private_cards':
@@ -224,6 +225,21 @@ export function useTableConnection({ supabase, tableId, userId }) {
         sessionStatsRef.current.handsPlayed++;
         if (resultTimeoutRef.current) clearTimeout(resultTimeoutRef.current);
         resultTimeoutRef.current = setTimeout(() => setResult(null), 5000);
+        // Dealer message: show winner
+        try {
+          const winners = data.result?.winners || data.winners || [];
+          const potAmt = data.result?.totalPot || data.potTotal || 0;
+          if (winners.length > 0) {
+            const w = winners[0];
+            const handName = w.handName || w.hand?.name || '';
+            const amt = w.amount || w.payout || Math.round(potAmt / winners.length);
+            setChatMessages(prev => [...prev.slice(-100), {
+              type: 'dealer',
+              text: `${w.displayName || 'Winner'} wins ${amt.toLocaleString()}${handName ? ` — ${handName}` : ''}`,
+              ts: Date.now(),
+            }]);
+          }
+        } catch (_) { /* non-fatal */ }
         // Bridge to platform EventBus so hand-histories/leaderboard react
         try { busEmit.handComplete(tableId, data); } catch (_) { }
         requestState();

@@ -105,6 +105,25 @@ c('club-arena.js has Discover section', () => fs.readFileSync('pages/hub/club-ar
 c('club-arena.js has loadPublicClubs', () => fs.readFileSync('pages/hub/club-arena.js', 'utf8').includes('async function loadPublicClubs'));
 c('club-arena.js filters already-joined', () => fs.readFileSync('pages/hub/club-arena.js', 'utf8').includes('filter(pc => !clubs.some'));
 
+// COMPETITIVE FEATURES
+c('Waitlist: position uses index not length', () => fs.readFileSync('src/components/poker/LivePokerTable.jsx', 'utf8').includes("myWaitPos === 0 ? \"You're next!\""));
+c('Dealer chat: hand_start message', () => fs.readFileSync('src/hooks/useTableConnection.js', 'utf8').includes("type: 'dealer', text: `Hand #"));
+c('Dealer chat: hand_complete winner message', () => fs.readFileSync('src/hooks/useTableConnection.js', 'utf8').includes("type: 'dealer'") && fs.readFileSync('src/hooks/useTableConnection.js', 'utf8').includes('wins'));
+c('ChatOverlay: renders dealer messages', () => fs.readFileSync('src/components/poker/LivePokerTable.jsx', 'utf8').includes("m.type === 'dealer'"));
+c('NotificationBell component exists', () => fs.existsSync('src/components/club-arena/NotificationBell.js'));
+c('NotificationBell wired to lobby', () => fs.readFileSync('pages/hub/club-arena/lobby.js', 'utf8').includes('<NotificationBell'));
+c('Mark-read API exists', () => fs.existsSync('pages/api/notifications/mark-read.js'));
+c('ClubChat component exists', () => fs.existsSync('src/components/club-arena/ClubChat.js'));
+c('ClubChat API exists', () => fs.existsSync('pages/api/club-arena/club-chat.js'));
+c('ClubChat API has rate limit', () => fs.readFileSync('pages/api/club-arena/club-chat.js', 'utf8').includes('applyRateLimit'));
+c('ClubChat wired to lobby', () => fs.readFileSync('pages/hub/club-arena/lobby.js', 'utf8').includes('<ClubChat'));
+c('ClubChat SQL migration exists', () => fs.existsSync('supabase/migrations/20260310230000_club_chat.sql'));
+c('ClubChat SQL has RLS', () => fs.readFileSync('supabase/migrations/20260310230000_club_chat.sql', 'utf8').includes('ROW LEVEL SECURITY'));
+c('ClubChat SQL has realtime', () => fs.readFileSync('supabase/migrations/20260310230000_club_chat.sql', 'utf8').includes('supabase_realtime'));
+c('Sit Out Next BB: state exists', () => fs.readFileSync('src/components/poker/LivePokerTable.jsx', 'utf8').includes('sitOutNextBB'));
+c('Sit Out Next BB: button in TableInfoBar', () => fs.readFileSync('src/components/poker/LivePokerTable.jsx', 'utf8').includes("Out@BB"));
+c('Sit Out Next BB: auto-sit-out on result', () => fs.readFileSync('src/components/poker/LivePokerTable.jsx', 'utf8').includes('sitOutNextBB || !result'));
+
 console.log();
 console.log('═══════════════════════════════════');
 console.log(pass + '/' + total);

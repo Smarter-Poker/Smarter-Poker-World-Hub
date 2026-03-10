@@ -1912,7 +1912,7 @@ function ObserverBar({ tableState, userId, send, onClickSeat, seatOffer }) {
             <div>
               <div style={{ color: '#E4E6EB', fontSize: 13, fontWeight: 700 }}>On Waitlist</div>
               <div style={{ color: '#B0B3B8', fontSize: 11 }}>
-                {waitlist.length === 1 ? "You're next!" : `${myWaitPos} ahead of you`}
+                {myWaitPos === 0 ? "You're next!" : `${myWaitPos} ahead of you`}
               </div>
             </div>
           </div>
@@ -2300,8 +2300,16 @@ function ChatOverlay({ messages, onSend }) {
             >
               {messages.map((m, i) => (
                 <div key={i} style={{ marginBottom: 3 }}>
-                  <span style={{ color: T.accent, fontWeight: 700 }}>{m.displayName}: </span>
-                  <span style={{ color: T.textPrimary }}>{m.message}</span>
+                  {m.type === 'dealer' ? (
+                    <span style={{ color: '#F5A623', fontWeight: 600, fontSize: 10, fontStyle: 'italic' }}>🂠 {m.text}</span>
+                  ) : m.type === 'emoji' ? (
+                    <span style={{ color: T.textSecondary, fontSize: 10 }}>{m.senderName || 'Player'} threw {m.emoji}</span>
+                  ) : (
+                    <>
+                      <span style={{ color: T.accent, fontWeight: 700 }}>{m.displayName}: </span>
+                      <span style={{ color: T.textPrimary }}>{m.message}</span>
+                    </>
+                  )}
                 </div>
               ))}
             </div>
@@ -2781,7 +2789,7 @@ function SessionStatsOverlay({ sessionStats, myStack, onClose }) {
 // TABLE INFO BAR
 // ═══════════════════════════════════════════════════════════════════════════
 
-function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, isSitting, isSittingOut, straddleEnabled, straddleOn, onToggleStraddle, autoTopUpOn, onToggleAutoTopUp, autoMuckOn, onToggleAutoMuck, lastHandResult, onShowLastHand, sessionStats, myStack }) {
+function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, isSitting, isSittingOut, straddleEnabled, straddleOn, onToggleStraddle, autoTopUpOn, onToggleAutoTopUp, autoMuckOn, onToggleAutoMuck, lastHandResult, onShowLastHand, sessionStats, myStack, sitOutNextBB, onToggleSitOutNextBB }) {
   const [showStats, setShowStats] = useState(false);
   const [autoRebuyOn, setAutoRebuyOn] = useState(false);
   if (!tableState) return null;
@@ -2869,6 +2877,13 @@ function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, is
             label={isSittingOut ? 'Sit In' : 'Sit Out'}
             onClick={isSittingOut ? onSitIn : onSitOut}
           />
+          {!isSittingOut && (
+            <SmallButton
+              label={sitOutNextBB ? '✓ Out@BB' : 'Out@BB'}
+              onClick={onToggleSitOutNextBB}
+              color={sitOutNextBB ? '#F5A623' : undefined}
+            />
+          )}
           {straddleEnabled && (
             <SmallButton
               label={straddleOn ? '✓ Straddle' : 'Straddle'}
@@ -3749,7 +3764,16 @@ function LivePokerTable({
     }
   }, [isSittingOut, tableState?.game?.phase, send]);
   const handleSitOut = useCallback(() => send('sit_out', {}), [send]);
-  const handleSitIn = useCallback(() => send('sit_in', {}), [send]);
+  const handleSitIn = useCallback(() => { setSitOutNextBB(false); send('sit_in', {}); }, [send]);
+  const [sitOutNextBB, setSitOutNextBB] = useState(false);
+
+  // Sit Out Next BB: after each hand, check if we should sit out
+  useEffect(() => {
+    if (!sitOutNextBB || !result || isSittingOut) return;
+    // Hand just completed — sit out now (the BB has passed)
+    send('sit_out', {});
+    setSitOutNextBB(false);
+  }, [result, sitOutNextBB, isSittingOut, send]);
   const [straddleOn, setStraddleOn] = useState(false);
   const handleToggleStraddle = useCallback(() => {
     const newVal = !straddleOn;
@@ -4066,6 +4090,8 @@ function LivePokerTable({
         onShowLastHand={() => setShowLastHand(true)}
         sessionStats={sessionStats}
         myStack={mySeat?.stack || 0}
+        sitOutNextBB={sitOutNextBB}
+        onToggleSitOutNextBB={() => setSitOutNextBB(p => !p)}
       />
 
       {/* Hand strength indicator (hero only, during active hand) */}

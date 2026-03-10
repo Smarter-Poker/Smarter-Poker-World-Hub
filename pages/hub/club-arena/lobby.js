@@ -22,6 +22,8 @@ import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
 import { buildStickerAssetMap } from '../../../src/lib/stickerOrchestrator';
 import useWalletData from '../../../src/hooks/useWalletData';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
+import NotificationBell from '../../../src/components/club-arena/NotificationBell';
+import ClubChat from '../../../src/components/club-arena/ClubChat';
 import { apiCall, apiGet, getAuthToken } from '../../../src/lib/club-arena/apiClient';
 import LobbyStatsBar from '../../../src/components/club-arena/LobbyStatsBar';
 import { haptic } from '../../../src/lib/club-arena/haptic';
@@ -528,6 +530,7 @@ export default function ClubLobby() {
                                 <div style={styles.clubBalance}>
                                     <div style={styles.balanceRow}>
                                         <span style={styles.balanceAmount}>{(walletData.chipBalance || chipBalance).toLocaleString()}</span>
+                                        <NotificationBell userId={user?.id} />
                                         <button style={{ ...styles.addBtn, background: '#2374E1' }} onClick={() => setShowWallet(prev => !prev)} title="Open Wallet">💰</button>
                                         <button style={styles.addBtn} onClick={() => router.push(`/hub/club-arena/cashier?club=${club.club_id}`)}>+</button>
                                     </div>
@@ -564,6 +567,15 @@ export default function ClubLobby() {
                                 <HubErrorBoundary name="LiveActionTicker">
                                     <LiveActionTicker clubId={club.id} primaryColor={primaryColor} />
                                 </HubErrorBoundary>
+                            )}
+
+                            {/* ═══ CLUB CHAT — group conversation for all members ═══ */}
+                            {club?.id && membership && (
+                                <ClubChat
+                                    clubId={club.id}
+                                    userId={user?.id}
+                                    userName={user?.user_metadata?.display_name || user?.user_metadata?.username || 'Player'}
+                                />
                             )}
 
                             {/* Club Description */}
