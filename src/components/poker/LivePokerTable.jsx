@@ -3667,10 +3667,27 @@ function LivePokerTable({
     }
   }, [isMyTurn, legalActions, preAction, send]);
 
-  // Clear pre-action when hand ends
+  // Clear pre-action when hand ends, and process Auto Top-Up
   useEffect(() => {
-    if (result) setPreAction(null);
-  }, [result]);
+    if (result) {
+      setPreAction(null);
+
+      // ═══ AUTO TOP-UP LOGIC ════
+      if (autoTopUpOn && mySeat?.stack != null && clubChipBalance > 0) {
+        const maxBuyIn = tableState?.config?.maxBuyIn || 200;
+        if (mySeat.stack < maxBuyIn) {
+          const deficit = maxBuyIn - mySeat.stack;
+          const topUpAmt = Math.min(deficit, clubChipBalance);
+          if (topUpAmt > 0) {
+            // Delay auto top-up slightly so showdown/payout animations finish first
+            setTimeout(() => {
+              send('add_chips', { amount: topUpAmt });
+            }, 3000);
+          }
+        }
+      }
+    }
+  }, [result, autoTopUpOn, mySeat?.stack, clubChipBalance, tableState?.config?.maxBuyIn, send]);
 
   // ═══ FLOATING ACTION LABELS ═══
   const [floatingLabels, setFloatingLabels] = useState([]);

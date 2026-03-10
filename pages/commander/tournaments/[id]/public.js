@@ -175,9 +175,13 @@ export default function TournamentPublic() {
     try {
       const t = tournament;
       const url = typeof window !== 'undefined' ? window.location.href : '';
+      const localAllEntries = entries.length || t.current_entries || 0;
+      const localPrizePool = localAllEntries * (t.buyin_amount || 0);
+      const localActiveEntries = entries.filter(e => e.status === 'active' || e.status === 'playing' || e.status === 'registered');
+
       const content = t.status === 'completed'
-        ? `Tournament Results: ${t.name} | $${t.buyin_amount || 0} Buy-In | ${entries.length} Entries | $${prizePool.toLocaleString()} Prize Pool | ${url}`
-        : `Playing in: ${t.name} | $${t.buyin_amount || 0} Buy-In | ${activeEntries.length} Players Remaining | ${url}`;
+        ? `Tournament Results: ${t.name} | $${t.buyin_amount || 0} Buy-In | ${entries.length} Entries | $${localPrizePool.toLocaleString()} Prize Pool | ${url}`
+        : `Playing in: ${t.name} | $${t.buyin_amount || 0} Buy-In | ${localActiveEntries.length} Players Remaining | ${url}`;
 
       const res = await fetch('/api/social/create-post', {
         method: 'POST',

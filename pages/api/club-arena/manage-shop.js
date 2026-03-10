@@ -56,7 +56,7 @@ export default async function handler(req, res) {
         .from('club_shop_purchases')
         .select('item_id')
         .eq('club_id', clubId)
-            .limit(100);
+        .limit(10000);
 
       const purchaseCounts = {};
       for (const p of (purchases || [])) {
@@ -118,7 +118,11 @@ export default async function handler(req, res) {
         const updates = {};
         if (name !== undefined) updates.name = name.trim();
         if (description !== undefined) updates.description = description.trim();
-        if (price !== undefined) updates.price = parseInt(price);
+        if (price !== undefined) {
+          const p = parseInt(price, 10);
+          if (Number.isNaN(p) || p <= 0) return res.status(400).json({ success: false, error: 'Positive integer price required' });
+          updates.price = p;
+        }
         if (category !== undefined) updates.category = category;
         if (imageUrl !== undefined) updates.image_url = imageUrl;
         if (isActive !== undefined) updates.is_active = isActive;
