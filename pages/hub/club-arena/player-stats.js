@@ -192,7 +192,10 @@ export default function PlayerStats() {
     // LOAD DATA
     // ═══════════════════════════════════════════════════════════════════════════
     const loadData = useCallback(async () => {
-        if (!clubIdParam) return;
+        if (!clubIdParam) {
+            setIsLoading(false);
+            return;
+        }
         setIsLoading(true);
         try {
             // Get authenticated user (Supabase session only)

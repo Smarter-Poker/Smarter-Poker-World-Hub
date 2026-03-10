@@ -1835,10 +1835,10 @@ export default function Admin() {
                                                     setProcessing(true);
                                                     try {
                                                         if (verdict === 'kick') {
-                                                            await apiCall('/api/club-arena/anti-cheat', { action: 'kick_player', clubId: club.id, targetUserId: flag.user_id, reason: flag.flag_type });
+                                                            await apiCall('/api/club-arena/anti-cheat', { action: 'kick_player', clubId: club.id, playerId: flag.user_id, tableId: flag.table_id || null, reason: flag.flag_type });
                                                             showToast('Player kicked');
                                                         } else {
-                                                            await apiCall('/api/club-arena/anti-cheat', { action: 'review_flag', clubId: club.id, flagId: flag.id, verdict });
+                                                            await apiCall('/api/club-arena/anti-cheat', { action: 'review_flag', clubId: club.id, flagId: flag.id, newStatus: verdict === 'dismiss' ? 'dismissed' : verdict });
                                                             showToast(`Flag marked ${verdict}`);
                                                         }
                                                         const r = await apiCall('/api/club-arena/anti-cheat', { action: 'get_flags', clubId: club.id });
@@ -1864,7 +1864,7 @@ export default function Admin() {
                                         <button disabled={processing} onClick={async () => {
                                             setProcessing(true);
                                             try {
-                                                await apiCall('/api/club-arena/anti-cheat', { action: 'kick_player', clubId: club.id, targetUserId: session.user_id, reason: 'admin_kick' });
+                                                await apiCall('/api/club-arena/anti-cheat', { action: 'kick_player', clubId: club.id, playerId: session.user_id, tableId: session.table_id || null, reason: 'admin_kick' });
                                                 showToast('Player removed');
                                                 const r = await apiCall('/api/club-arena/anti-cheat', { action: 'get_sessions', clubId: club.id });
                                                 setAcSessions(r.sessions || []);

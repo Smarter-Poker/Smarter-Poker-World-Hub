@@ -167,7 +167,10 @@ export default function Leaderboard() {
     // LOAD DATA
     // ═══════════════════════════════════════════════════════════════════════════
     const loadData = useCallback(async () => {
-        if (!clubIdParam) return;
+        if (!clubIdParam) {
+            setIsLoading(false);
+            return;
+        }
         setIsLoading(true);
 
         try {
