@@ -42,6 +42,11 @@ if (file) {
     }
 }
 
+// [HARDENING] Agent Bulletproofing: Strip AI markdown code blocks if the agent wrapped the query
+if (query) {
+    query = query.replace(/^```sql\s*/im, '').replace(/```\s*$/i, '').trim();
+}
+
 // 3. Destructive Action Guard
 const isDestructive = /DROP\s+TABLE|DELETE\s+FROM|TRUNCATE\s+TABLE|ALTER\s+TABLE\s+.*\s+DROP\s+COLUMN/i.test(query);
 const forceDestructive = args.includes('--force');

@@ -1,6 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
 import { Pool } from 'pg';
 
+// [HARDENING] Increase body size limit to 10MB to support large AI-generated SQL migrations
+export const config = {
+    api: {
+        bodyParser: {
+            sizeLimit: '10mb',
+        },
+    },
+};
+
 export default async function handler(req, res) {
     // CORS setup for CURL/Postman access
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -15,10 +24,13 @@ export default async function handler(req, res) {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
-    const { sql } = req.body;
+    let { sql } = req.body;
     if (!sql) {
         return res.status(400).json({ success: false, error: 'Missing SQL query literal in body payload.' });
     }
+
+    // [HARDENING] Agent Bulletproofing: Strip AI markdown code blocks if the agent wrapped the query
+    sql = sql.replace(/^```sql\s*/im, '').replace(/```\s*$/i, '').trim();
 
     // 1. Omnichannel Authentication
     const authHeader = req.headers.authorization;

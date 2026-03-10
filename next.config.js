@@ -81,14 +81,6 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  webpack: (config, { dev }) => {
-    if (dev) {
-      config.cache = {
-        type: 'memory',
-      };
-    }
-    return config;
-  },
   swcMinify: true, // SWC minifier uses less memory than Terser
 
   // Force complete cache invalidation - v20 Diamond Arcade Deploy
