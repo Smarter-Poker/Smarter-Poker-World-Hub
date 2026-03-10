@@ -152,6 +152,13 @@ c('NotificationBell on leaderboard', () => fs.readFileSync('pages/hub/club-arena
 c('NotificationBell on player-stats', () => fs.readFileSync('pages/hub/club-arena/player-stats.js', 'utf8').includes('<NotificationBell'));
 c('NotificationBell on players', () => fs.readFileSync('pages/hub/club-arena/players.js', 'utf8').includes('<NotificationBell'));
 
+// DEEP AUDIT FIXES
+c('SitOutNextBB cleared on stand up', () => fs.readFileSync('src/components/poker/LivePokerTable.jsx', 'utf8').includes("setSitOutNextBB(false); // Clear pending"));
+c('Table chat persisted to DB', () => fs.readFileSync('pages/api/poker/engine/connect.js', 'utf8').includes("table_chat"));
+c('Chat history loaded on connect', () => fs.readFileSync('src/hooks/useTableConnection.js', 'utf8').includes("action: 'history'"));
+c('Admin: template schedule UI', () => fs.readFileSync('pages/hub/club-arena/admin.js', 'utf8').includes('Saved Templates'));
+c('Admin: schedule toggle button', () => fs.readFileSync('pages/hub/club-arena/admin.js', 'utf8').includes("Schedule"));
+
 console.log();
 console.log('═══════════════════════════════════');
 console.log(pass + '/' + total);

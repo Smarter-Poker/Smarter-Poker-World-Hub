@@ -3225,6 +3225,87 @@ function PromoWalletModal({ clubId, userRole, apiCall, showToast, onClose, FB, S
                                         })}
                                     </div>
                                 )} {/* End View Mode Switch */}
+
+                                {/* ═══ SAVED TEMPLATES & SCHEDULES ═══ */}
+                                {templates.length > 0 && (
+                                    <div style={{ marginTop: 16, borderTop: `1px solid ${FB.border}`, paddingTop: 12 }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                                            <span style={{ fontSize: 13, fontWeight: 700, color: FB.textSecondary, textTransform: 'uppercase', letterSpacing: 1 }}>Saved Templates</span>
+                                        </div>
+                                        {templates.map(tmpl => (
+                                            <div key={tmpl.id} style={{
+                                                background: FB.cardBg, border: `1px solid ${tmpl.schedule_enabled ? '#F5A623' : FB.border}`,
+                                                borderRadius: 8, padding: '10px 14px', marginBottom: 8,
+                                            }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <div>
+                                                        <span style={{ fontWeight: 700, fontSize: 13, color: FB.textPrimary }}>{tmpl.name}</span>
+                                                        <span style={{ color: FB.textSecondary, fontSize: 11, marginLeft: 8 }}>
+                                                            {(tmpl.game_variant || 'NLH').toUpperCase()} {tmpl.small_blind}/{tmpl.big_blind} • {tmpl.max_players}max
+                                                        </span>
+                                                    </div>
+                                                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                                                        {tmpl.schedule_enabled && (
+                                                            <span style={{ fontSize: 10, fontWeight: 700, color: '#F5A623', background: 'rgba(245,166,35,0.15)', padding: '2px 8px', borderRadius: 6 }}>
+                                                                ⏰ {tmpl.schedule_time || '—'} {(tmpl.schedule_days || []).map(d => ['Su','Mo','Tu','We','Th','Fr','Sa'][d]).join(',')}
+                                                            </span>
+                                                        )}
+                                                        <button
+                                                            onClick={async () => {
+                                                                const newEnabled = !tmpl.schedule_enabled;
+                                                                if (newEnabled && (!tmpl.schedule_time || !(tmpl.schedule_days?.length))) {
+                                                                    const time = window.prompt('Schedule time (HH:MM, 24hr):', tmpl.schedule_time || '19:00');
+                                                                    if (!time) return;
+                                                                    const daysStr = window.prompt('Days (0=Sun,1=Mon,...6=Sat, comma-sep):', (tmpl.schedule_days || [0,1,2,3,4,5,6]).join(','));
+                                                                    if (!daysStr) return;
+                                                                    const days = daysStr.split(',').map(Number).filter(d => d >= 0 && d <= 6);
+                                                                    try {
+                                                                        await apiCall('/api/club-arena/table-templates', {
+                                                                            action: 'schedule', clubId: club.id, templateId: tmpl.id,
+                                                                            scheduleEnabled: true, scheduleDays: days, scheduleTime: time,
+                                                                            scheduleTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                                                                        });
+                                                                        showToast(`Schedule set: ${time} on ${days.map(d => ['Su','Mo','Tu','We','Th','Fr','Sa'][d]).join(',')}`);
+                                                                        loadTemplates();
+                                                                    } catch (e) { showToast(e.message || 'Failed', 'error'); }
+                                                                } else {
+                                                                    try {
+                                                                        await apiCall('/api/club-arena/table-templates', {
+                                                                            action: 'schedule', clubId: club.id, templateId: tmpl.id,
+                                                                            scheduleEnabled: false,
+                                                                        });
+                                                                        showToast(newEnabled ? 'Schedule enabled' : 'Schedule disabled');
+                                                                        loadTemplates();
+                                                                    } catch (e) { showToast(e.message || 'Failed', 'error'); }
+                                                                }
+                                                            }}
+                                                            style={{
+                                                                background: tmpl.schedule_enabled ? '#F5A623' : FB.cardBg,
+                                                                border: `1px solid ${tmpl.schedule_enabled ? '#F5A623' : FB.border}`,
+                                                                color: tmpl.schedule_enabled ? '#000' : FB.textSecondary,
+                                                                padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                                                            }}
+                                                        >
+                                                            {tmpl.schedule_enabled ? '⏰ On' : '⏰ Schedule'}
+                                                        </button>
+                                                        <button
+                                                            onClick={async () => {
+                                                                try {
+                                                                    await apiCall('/api/club-arena/table-templates', { action: 'delete', clubId: club.id, templateId: tmpl.id });
+                                                                    showToast('Template deleted');
+                                                                    loadTemplates();
+                                                                } catch (e) { showToast(e.message || 'Failed', 'error'); }
+                                                            }}
+                                                            style={{ background: 'none', border: `1px solid ${FB.border}`, color: FB.danger, padding: '4px 8px', borderRadius: 6, fontSize: 11, cursor: 'pointer' }}
+                                                        >
+                                                            ✕
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

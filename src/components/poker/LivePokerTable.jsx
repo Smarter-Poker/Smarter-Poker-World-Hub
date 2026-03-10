@@ -3755,6 +3755,7 @@ function LivePokerTable({
   const [sessionSummary, setSessionSummary] = useState(null);
   const pendingLeaveRef = useRef(false);
   const handleStandUp = useCallback(() => {
+    setSitOutNextBB(false); // Clear pending sit-out flag
     // Calculate session summary before leaving
     const stats = sessionStats;
     const stack = mySeat?.stack || 0;

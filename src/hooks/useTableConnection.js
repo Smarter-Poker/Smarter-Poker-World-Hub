@@ -504,6 +504,29 @@ export function useTableConnection({ supabase, tableId, userId }) {
       if (status === 'SUBSCRIBED') {
         setConnected(true);
         await channel.track({ user_id: userId, online_at: new Date().toISOString() });
+        // Load persisted chat history (last 50 messages) so new joiners see context
+        try {
+          const token = tokenRef.current;
+          if (token) {
+            const chatRes = await fetch('/api/club-arena/table-chat', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+              body: JSON.stringify({ action: 'history', tableId, limit: 50 }),
+            });
+            if (chatRes.ok) {
+              const chatData = await chatRes.json();
+              if (chatData.messages?.length) {
+                setChatMessages(chatData.messages.map(m => ({
+                  type: m.message_type === 'dealer' ? 'dealer' : m.message_type === 'system' ? 'dealer' : undefined,
+                  text: m.message_type !== 'player' ? m.message : undefined,
+                  displayName: m.display_name || 'Player',
+                  message: m.message_type === 'player' ? m.message : undefined,
+                  ts: new Date(m.created_at).getTime(),
+                })));
+              }
+            }
+          }
+        } catch (_) { /* chat history is optional — fail silently */ }
         heartbeatRef.current = setInterval(() => {
           // Send GPS on every heartbeat — feeds the anti-cheat background
           // monitor for continuous proximity scanning. Fully automated.

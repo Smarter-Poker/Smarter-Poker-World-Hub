@@ -12,6 +12,8 @@
 
 import { getController } from '../../../../src/lib/poker-engine/GameController';
 const { applyRateLimit } = require('../../../../src/lib/poker-engine/RateLimiter');
+import { createClient } from '../../../../src/lib/supabaseServerClient';
+const _supaAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -71,6 +73,16 @@ export default async function handler(req, res) {
       case 'chat':
         if (!message) return res.status(400).json({ success: false, error: 'message required' });
         const chatResult = await controller.sendChat(tableId, playerId, message);
+        // Fire-and-forget: persist to table_chat for history on reconnect
+        if (chatResult.success) {
+          _supaAdmin.from('table_chat').insert({
+            table_id: tableId,
+            user_id: playerId,
+            message: message.slice(0, 200),
+            message_type: 'player',
+            display_name: chatResult.displayName || null,
+          }).then(() => {}).catch(() => {});
+        }
         return res.json(chatResult);
 
       case 'disconnect':
