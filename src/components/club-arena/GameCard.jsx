@@ -348,7 +348,7 @@ function CashCard({ table: t, assetMap, onPress, avgVpip, miniState }) {
 // ─────────────────────────────────────────────────────────────────────
 // TOURNAMENT / SNG / SPIN CARD — Vertical Poker Table
 // ─────────────────────────────────────────────────────────────────────
-function TournamentCard({ tournament: t, assetMap, onPress, onQuickRegister }) {
+function TournamentCard({ tournament: t, assetMap, onPress, onQuickRegister, miniState }) {
   const variant = t.game_variant || t.variant || 'nlh';
   const isSpin = t.type === 'spin' || variant === 'spin';
   const isMTT = t.type === 'mtt' || t.type === 'xmtt'; // BUG-8 FIX: XMTT is an MTT variant
@@ -410,46 +410,54 @@ function TournamentCard({ tournament: t, assetMap, onPress, onQuickRegister }) {
         </div>
       </div>
 
-      {/* ── POKER TABLE IMAGE (vertical) ── */}
+      {/* ── POKER TABLE — live mini-view when running, static image otherwise ── */}
       <div style={S.tableContainer}>
-        <img
-          src="/images/poker-table-vertical-nobg.png"
-          alt="Poker Table"
-          style={S.tableImage}
-        />
+        {isLive && miniState && miniState.phase !== 'idle' ? (
+          /* LIVE MINI-VIEW */
+          <TableMiniView miniState={miniState} maxSeats={maxP} />
+        ) : (
+          /* STATIC TABLE IMAGE (vertical) */
+          <>
+            <img
+              src="/images/poker-table-vertical-nobg.png"
+              alt="Poker Table"
+              style={S.tableImage}
+            />
 
-        {/* Overlay: Tournament info centered on the table */}
-        <div style={S.tableOverlay}>
-          {/* Trophy icon */}
-          <div style={{ fontSize: 22, lineHeight: 1, filter: 'drop-shadow(0 0 6px ' + trophyGlow + '99)', marginBottom: 2 }}>
-            {isSpin ? '♠️' : isMTT ? '🏆' : '🥇'}
-          </div>
+            {/* Overlay: Tournament info centered on the table */}
+            <div style={S.tableOverlay}>
+              {/* Trophy icon */}
+              <div style={{ fontSize: 22, lineHeight: 1, filter: 'drop-shadow(0 0 6px ' + trophyGlow + '99)', marginBottom: 2 }}>
+                {isSpin ? '♠️' : isMTT ? '🏆' : '🥇'}
+              </div>
 
-          {/* Tournament name */}
-          {!!name && (
-            <div style={S.overlayTournName}>
-              {name.length > 16 ? name.slice(0, 16) + '…' : name}
+              {/* Tournament name */}
+              {!!name && (
+                <div style={S.overlayTournName}>
+                  {name.length > 16 ? name.slice(0, 16) + '…' : name}
+                </div>
+              )}
+
+              {/* Buy-in */}
+              <div style={S.overlayBuyIn}>
+                {fmtChips(buyIn)}
+              </div>
+
+              {/* Countdown / LIVE / Start date */}
+              {isLive ? (
+                <span style={{ ...S.overlayCountdown, color: '#00E676', background: '#00E67620', borderColor: '#00E67640' }}>
+                  🔴 LIVE
+                </span>
+              ) : countdown ? (
+                <span style={{ ...S.overlayCountdown, color: countdown.color, background: countdown.color + '18', borderColor: countdown.color + '44' }}>
+                  ⏱ {countdown.label}
+                </span>
+              ) : startDate ? (
+                <span style={S.overlayStartDate}>{fmtStartDate(startDate)}</span>
+              ) : null}
             </div>
-          )}
-
-          {/* Buy-in */}
-          <div style={S.overlayBuyIn}>
-            {fmtChips(buyIn)}
-          </div>
-
-          {/* Countdown / LIVE / Start date */}
-          {isLive ? (
-            <span style={{ ...S.overlayCountdown, color: '#00E676', background: '#00E67620', borderColor: '#00E67640' }}>
-              🔴 LIVE
-            </span>
-          ) : countdown ? (
-            <span style={{ ...S.overlayCountdown, color: countdown.color, background: countdown.color + '18', borderColor: countdown.color + '44' }}>
-              ⏱ {countdown.label}
-            </span>
-          ) : startDate ? (
-            <span style={S.overlayStartDate}>{fmtStartDate(startDate)}</span>
-          ) : null}
-        </div>
+          </>
+        )}
       </div>
 
       {/* ── Prize Pool Thermometer (shows GTD fill progress) ── */}
@@ -523,7 +531,7 @@ export default function GameCard({ game, assetMap = {}, onPress, avgVpip, onQuic
     game.type === 'sng' || game.type === 'mtt' || game.type === 'spin' || game.type === 'xmtt' || // BUG-8 FIX
     game.registered_count != null;
   return isTournament
-    ? <TournamentCard tournament={game} assetMap={assetMap} onPress={onPress} onQuickRegister={onQuickRegister} />
+    ? <TournamentCard tournament={game} assetMap={assetMap} onPress={onPress} onQuickRegister={onQuickRegister} miniState={miniState} />
     : <CashCard table={game} assetMap={assetMap} onPress={onPress} avgVpip={avgVpip} miniState={miniState} />;
 }
 

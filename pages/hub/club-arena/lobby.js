@@ -924,12 +924,14 @@ export default function ClubLobby() {
                                             const bTime = new Date(b.scheduled_start || b.start_time || '9999').getTime();
                                             return aTime - bTime;
                                         }).slice(0, 6).map(t => (
-                                            <GameCard
-                                                key={t.id}
-                                                game={{ ...t, game_type: t.type || t.game_type || 'mtt' }}
-                                                assetMap={stickerAssetMap}
-                                                onPress={() => router.push(`/hub/club-arena/tournaments?club=${club?.id}&highlight=${t.id}`)}
-                                            />
+                                            <div key={t.id} ref={el => observerRef(t.id, el)}>
+                                                <GameCard
+                                                    game={{ ...t, game_type: t.type || t.game_type || 'mtt' }}
+                                                    assetMap={stickerAssetMap}
+                                                    onPress={() => router.push(`/hub/club-arena/tournaments?club=${club?.id}&highlight=${t.id}`)}
+                                                    miniState={miniStates.get(t.id)}
+                                                />
+                                            </div>
                                         ))}
                                     </div>
                                 </div>

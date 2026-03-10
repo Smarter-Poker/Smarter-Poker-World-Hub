@@ -5,7 +5,23 @@
  * Returns lightweight state for each table: seats, phase, community cards,
  * pot total, and current actor. No auth required (public observer data).
  * In-memory only — no DB queries. Target: < 2ms response.
+ *
+ * V2: Uses table.getState(null) for correct observer-safe field access.
  */
+
+// ── Phase mapping: engine phases → display phases ──
+const DISPLAY_PHASE = {
+  idle: 'idle',
+  post_blinds: 'dealing',
+  deal: 'dealing',
+  preflop: 'preflop',
+  flop: 'flop',
+  discard: 'flop',       // Pineapple discard happens during flop
+  turn: 'turn',
+  river: 'river',
+  showdown: 'showdown',
+  payout: 'showdown',
+};
 
 // ── Soft rate-limit store (per-IP, 100/min) ──
 const _hits = new Map();
@@ -75,45 +91,41 @@ export default async function handler(req, res) {
         continue;
       }
 
-      const table = entry.table;
-      const game = table.game;
-      const gamePhase = game?.phase || 'idle';
-      const communityCards = game?.communityCards || [];
-      const potTotal = game?.potTotal || 0;
-      const handNumber = game?.handNumber || 0;
-      const currentPlayerId = game?.currentPlayerId || null;
-      const buttonSeat = game?.buttonSeat ?? null;
+      // ── V2 FIX: Use the sanctioned getState(null) API ──
+      // This correctly maps all internal fields through TableManager.getState()
+      // which in turn calls GameStateMachine.getState(), giving us:
+      //   - state.game.communityCards (from currentHand.communityCards)
+      //   - state.game.potTotal (from potCalculator.totalPot)
+      //   - state.game.currentPlayerId (from bettingRound.getCurrentPlayer())
+      //   - state.game.buttonSeat (from game.buttonSeat)
+      //   - state.seats[].isFolded, isCurrentActor (pre-computed)
+      const state = entry.table.getState(null);
 
-      // Build lightweight seat array
-      const seats = [];
-      for (const seat of table.seats) {
-        const occupied = !!seat.player && seat.status !== 'empty';
-        if (!occupied && seat.status === 'empty') {
-          seats.push({ seatIndex: seat.seatIndex, occupied: false });
-          continue;
+      const enginePhase = state.game?.phase || 'idle';
+      const displayPhase = DISPLAY_PHASE[enginePhase] || enginePhase;
+
+      // Build lightweight seat array from the pre-computed state
+      const seats = (state.seats || []).map(s => {
+        if (!s.player) {
+          return { seatIndex: s.seatIndex, occupied: false };
         }
-
-        // Check if this player is folded in the current hand
-        const playerInHand = game?.currentHand?.players?.find(
-          p => String(p.id) === String(seat.player?.id)
-        );
-
-        seats.push({
-          seatIndex: seat.seatIndex,
+        return {
+          seatIndex: s.seatIndex,
           occupied: true,
-          stack: seat.stack || 0,
-          isFolded: playerInHand?.folded || false,
-          isActor: String(currentPlayerId) === String(seat.player?.id),
-          isDealer: seat.seatIndex === buttonSeat,
-        });
-      }
+          stack: s.stack || 0,
+          isFolded: s.isFolded || false,
+          isActor: s.isCurrentActor || false,
+          isDealer: s.seatIndex === (state.game?.buttonSeat ?? -1),
+          isAllIn: s.isInHand && s.stack === 0,
+        };
+      });
 
       results.push({
         tableId,
-        phase: gamePhase,
-        communityCards,
-        potTotal,
-        handNumber,
+        phase: displayPhase,
+        communityCards: state.game?.communityCards || [],
+        potTotal: state.game?.potTotal || 0,
+        handNumber: state.game?.handNumber || 0,
         currentActorSeat: seats.findIndex(s => s.isActor),
         seats,
       });

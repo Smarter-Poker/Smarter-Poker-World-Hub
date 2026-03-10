@@ -1,12 +1,15 @@
 /**
- * TableMiniView — Live game thumbnail for Club Arena lobby cards
+ * TableMiniView — Live game thumbnail for Club Arena lobby cards (v2)
  *
  * Renders a tiny oval felt table with:
- *   • Seat dots around the perimeter (empty/occupied/actor/folded/dealer)
+ *   • Seat dots around the perimeter (empty/occupied/actor/folded/dealer/all-in)
  *   • Community card pips (14×20px, colored suits)
  *   • Pot total centered below cards
- *   • Phase label (FLOP/TURN/RIVER)
+ *   • Phase label (PREFLOP/FLOP/TURN/RIVER/SHOWDOWN/DEALING)
  *   • Gold-pulse animation on the current actor
+ *   • Preflop display (pot + seats, no cards)
+ *   • Loading skeleton before first data arrives
+ *   • 2-10 seat support with dynamic position layouts
  *
  * Width: 100% of parent. Height: ~100px.
  * Pure visual — no hooks, no side effects.
@@ -24,35 +27,63 @@ function cardSuitIdx(c) { return c % 4; }
 function cardSuitChar(c) { return SUIT_CHARS[cardSuitIdx(c)]; }
 function cardColor(c) { return SUIT_COLORS[cardSuitIdx(c)]; }
 
-// ── Phase labels ──
+// ── Phase display labels ──
 const PHASE_LABELS = {
-  preflop: null,        // No label for preflop
+  dealing: 'DEALING',
+  preflop: 'PRE-FLOP',
   flop: 'FLOP',
   turn: 'TURN',
   river: 'RIVER',
   showdown: 'SHOWDOWN',
 };
 
-// ── Seat positions around an ellipse (9 seats, clockwise from bottom-center) ──
-// Positions are percentages [x%, y%] relative to the table container
-const SEAT_POSITIONS_9 = [
-  [50, 95],   // Seat 0: bottom center
-  [15, 82],   // Seat 1: bottom-left
-  [5,  55],   // Seat 2: left
-  [10, 25],   // Seat 3: top-left
-  [30, 8],    // Seat 4: top-left-center
-  [50, 2],    // Seat 5: top center
-  [70, 8],    // Seat 6: top-right-center
-  [90, 25],   // Seat 7: top-right
-  [95, 55],   // Seat 8: right
-];
+// ── Seat positions around an ellipse — [x%, y%] ──
+// Full 10-seat layout (clockwise from bottom-center)
+const SEAT_POSITIONS = {
+  10: [
+    [50, 95],  // 0: bottom center
+    [18, 85],  // 1: bottom-left
+    [5,  60],  // 2: left
+    [8,  30],  // 3: upper-left
+    [28, 8],   // 4: top-left
+    [50, 2],   // 5: top center
+    [72, 8],   // 6: top-right
+    [92, 30],  // 7: upper-right
+    [95, 60],  // 8: right
+    [82, 85],  // 9: bottom-right
+  ],
+  9: [
+    [50, 95], [15, 82], [5, 55], [10, 25], [30, 8],
+    [50, 2], [70, 8], [90, 25], [95, 55],
+  ],
+  8: [
+    [50, 95], [15, 78], [5, 48], [15, 15], [38, 2],
+    [62, 2], [85, 15], [95, 48],
+  ],
+  7: [
+    [50, 95], [12, 72], [5, 35], [22, 5], [50, 2],
+    [78, 5], [95, 35],
+  ],
+  6: [
+    [50, 95], [10, 70], [10, 25], [50, 2], [90, 25], [90, 70],
+  ],
+  5: [
+    [50, 95], [8, 55], [25, 5], [75, 5], [92, 55],
+  ],
+  4: [
+    [50, 95], [5, 50], [50, 2], [95, 50],
+  ],
+  3: [
+    [50, 95], [10, 25], [90, 25],
+  ],
+  2: [
+    [50, 95], [50, 2],
+  ],
+};
 
-// For fewer seats, use a subset
 function getSeatPositions(maxSeats) {
-  if (maxSeats <= 2) return [SEAT_POSITIONS_9[0], SEAT_POSITIONS_9[5]];
-  if (maxSeats <= 4) return [SEAT_POSITIONS_9[0], SEAT_POSITIONS_9[2], SEAT_POSITIONS_9[5], SEAT_POSITIONS_9[8]];
-  if (maxSeats <= 6) return [SEAT_POSITIONS_9[0], SEAT_POSITIONS_9[1], SEAT_POSITIONS_9[3], SEAT_POSITIONS_9[5], SEAT_POSITIONS_9[7], SEAT_POSITIONS_9[8]];
-  return SEAT_POSITIONS_9.slice(0, maxSeats);
+  const clamped = Math.max(2, Math.min(10, maxSeats));
+  return SEAT_POSITIONS[clamped] || SEAT_POSITIONS[9];
 }
 
 // ── Format pot number with commas ──
@@ -74,6 +105,14 @@ function ensureKeyframes() {
       0%, 100% { box-shadow: 0 0 0 0 rgba(255,215,0,0.6); }
       50% { box-shadow: 0 0 0 4px rgba(255,215,0,0.15); }
     }
+    @keyframes miniShimmer {
+      0% { background-position: -100% 0; }
+      100% { background-position: 200% 0; }
+    }
+    @keyframes miniCardDeal {
+      from { opacity: 0; transform: scale(0.5); }
+      to { opacity: 1; transform: scale(1); }
+    }
   `;
   document.head.appendChild(s);
 }
@@ -81,11 +120,21 @@ function ensureKeyframes() {
 export default function TableMiniView({ miniState, maxSeats = 9 }) {
   ensureKeyframes();
 
-  const phase = miniState?.phase || 'idle';
-  const isIdle = phase === 'idle' || phase === 'waiting';
-  const communityCards = miniState?.communityCards || [];
-  const potTotal = miniState?.potTotal || 0;
-  const seats = miniState?.seats || [];
+  // No data yet → shimmer skeleton
+  if (!miniState) {
+    return (
+      <div style={S.container}>
+        <div style={{ ...S.feltOval, ...S.skeleton }} />
+      </div>
+    );
+  }
+
+  const phase = miniState.phase || 'idle';
+  const isIdle = phase === 'idle';
+  const isDealing = phase === 'dealing';
+  const communityCards = miniState.communityCards || [];
+  const potTotal = miniState.potTotal || 0;
+  const seats = miniState.seats || [];
   const phaseLabel = PHASE_LABELS[phase] || null;
   const positions = getSeatPositions(maxSeats);
 
@@ -100,10 +149,13 @@ export default function TableMiniView({ miniState, maxSeats = 9 }) {
           const isActor = seatData?.isActor;
           const isFolded = seatData?.isFolded;
           const isDealer = seatData?.isDealer;
+          const isAllIn = seatData?.isAllIn;
 
           let dotStyle;
           if (isActor) {
             dotStyle = S.seatActor;
+          } else if (isAllIn) {
+            dotStyle = S.seatAllIn;
           } else if (isFolded) {
             dotStyle = S.seatFolded;
           } else if (occupied) {
@@ -133,6 +185,11 @@ export default function TableMiniView({ miniState, maxSeats = 9 }) {
         <div style={S.centerContent}>
           {isIdle ? (
             <span style={S.waitingText}>Waiting…</span>
+          ) : isDealing ? (
+            <>
+              <span style={S.phaseLabel}>DEALING</span>
+              <span style={S.dealingDots}>• • •</span>
+            </>
           ) : (
             <>
               {/* Phase label */}
@@ -144,7 +201,10 @@ export default function TableMiniView({ miniState, maxSeats = 9 }) {
               {communityCards.length > 0 && (
                 <div style={S.cardRow}>
                   {communityCards.map((card, i) => (
-                    <div key={i} style={S.cardPip}>
+                    <div key={i} style={{
+                      ...S.cardPip,
+                      animation: 'miniCardDeal 0.3s ease-out',
+                    }}>
                       <span style={{ ...S.cardRank, color: cardColor(card) }}>
                         {cardRank(card)}
                       </span>
@@ -194,6 +254,13 @@ const S = {
     boxShadow: 'inset 0 2px 12px rgba(0,0,0,0.5), 0 1px 4px rgba(0,0,0,0.4), 0 0 8px rgba(180, 150, 60, 0.1)',
   },
 
+  // Shimmer skeleton before data arrives
+  skeleton: {
+    background: 'linear-gradient(90deg, #0d1f0d 25%, #1a3a1a 50%, #0d1f0d 75%)',
+    backgroundSize: '200% 100%',
+    animation: 'miniShimmer 1.5s ease-in-out infinite',
+  },
+
   // ── Seat dots ──
   seatDot: {
     position: 'absolute',
@@ -221,6 +288,13 @@ const S = {
     background: '#FFD700',
     border: '1.5px solid rgba(255,215,0,0.8)',
     animation: 'miniActorPulse 1.5s ease-in-out infinite',
+  },
+  seatAllIn: {
+    width: 8,
+    height: 8,
+    background: '#E74C3C',
+    border: '1px solid rgba(231,76,60,0.6)',
+    boxShadow: '0 0 4px rgba(231,76,60,0.5)',
   },
   seatFolded: {
     width: 6,
@@ -264,6 +338,13 @@ const S = {
     color: 'rgba(255,255,255,0.35)',
     letterSpacing: 0.3,
     fontStyle: 'italic',
+  },
+
+  dealingDots: {
+    fontSize: 8,
+    color: 'rgba(255,215,0,0.4)',
+    letterSpacing: 2,
+    animation: 'livePulse 1.5s ease-in-out infinite',
   },
 
   phaseLabel: {
