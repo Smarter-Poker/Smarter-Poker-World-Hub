@@ -410,72 +410,73 @@ export default async function handler(req, res) {
             } else {
               kickOp.step = 3; // No chips to unlock
             }
+          } // end of if (tableId) else block
 
-            // STEP 4: Log the kick event
-            try {
-              await supabase.from('anti_cheat_events').insert({
-                event_type: 'player_kicked',
-                player_id: targetPlayerId,
-                club_id: clubId,
-                table_id: tableId,
-                details: {
-                  reason,
-                  kicked_by: userId,
-                  cashout: kickOp.cashoutAmount,
-                  recovery_steps_completed: kickOp.step,
-                  errors: kickOp.errors.length > 0 ? kickOp.errors : undefined,
-                },
-                triggered_by: userId,
-              });
-              kickOp.step = 4;
-            } catch (logErr) {
-              kickOp.errors.push({ step: 'log_event', error: logErr?.message });
-              // Non-fatal: kick succeeded, just logging failed
-            }
-
-            const kickResult = {
-              success: true,
-              message: `Player removed from table. Chips returned: ${kickOp.cashoutAmount}`,
-              recovery: kickOp.errors.length > 0 ? {
-                warnings: kickOp.errors,
-                steps_completed: kickOp.step,
-              } : undefined,
-            };
-
-            // Cache idempotent response
-            if (idempotencyKey) {
-              idempotencyStore.set(idempotencyKey, {
-                status: 200, body: kickResult, expiry: Date.now() + IDEMPOTENCY_TTL_MS,
-              });
-            }
-
-            return res.status(200).json(kickResult);
-
-          } catch (fatalErr) {
-            // Disconnect / crash mid-operation: log recovery data
-            console.error('[AntiCheat] FATAL kick failure at step', kickOp.step, fatalErr);
+          // STEP 4: Log the kick event
+          try {
             await supabase.from('anti_cheat_events').insert({
-              event_type: 'kick_failed_recovery',
+              event_type: 'player_kicked',
               player_id: targetPlayerId,
               club_id: clubId,
               table_id: tableId,
               details: {
-                fatal_error: fatalErr?.message,
-                step_reached: kickOp.step,
-                cashout_amount: kickOp.cashoutAmount,
-                partial_errors: kickOp.errors,
+                reason,
                 kicked_by: userId,
+                cashout: kickOp.cashoutAmount,
+                recovery_steps_completed: kickOp.step,
+                errors: kickOp.errors.length > 0 ? kickOp.errors : undefined,
               },
-              triggered_by: 'system',
-            }).catch(() => { }); // Best-effort
+              triggered_by: userId,
+            });
+            kickOp.step = 4;
+          } catch (logErr) {
+            kickOp.errors.push({ step: 'log_event', error: logErr?.message });
+            // Non-fatal: kick succeeded, just logging failed
+          }
 
-            return res.status(500).json({
-              error: 'Kick operation failed mid-execution',
-              step_reached: kickOp.step,
-              recovery_logged: true,
+          const kickResult = {
+            success: true,
+            message: `Player removed from table. Chips returned: ${kickOp.cashoutAmount}`,
+            recovery: kickOp.errors.length > 0 ? {
+              warnings: kickOp.errors,
+              steps_completed: kickOp.step,
+            } : undefined,
+          };
+
+          // Cache idempotent response
+          if (idempotencyKey) {
+            idempotencyStore.set(idempotencyKey, {
+              status: 200, body: kickResult, expiry: Date.now() + IDEMPOTENCY_TTL_MS,
             });
           }
+
+          return res.status(200).json(kickResult);
+
+        } catch (fatalErr) {
+          // Disconnect / crash mid-operation: log recovery data
+          console.error('[AntiCheat] FATAL kick failure at step', kickOp.step, fatalErr);
+          await supabase.from('anti_cheat_events').insert({
+            event_type: 'kick_failed_recovery',
+            player_id: targetPlayerId,
+            club_id: clubId,
+            table_id: tableId,
+            details: {
+              fatal_error: fatalErr?.message,
+              step_reached: kickOp.step,
+              cashout_amount: kickOp.cashoutAmount,
+              partial_errors: kickOp.errors,
+              kicked_by: userId,
+            },
+            triggered_by: 'system',
+          }).catch(() => { }); // Best-effort
+
+          return res.status(500).json({
+            error: 'Kick operation failed mid-execution',
+            step_reached: kickOp.step,
+            recovery_logged: true,
+          });
         }
+      }
 
       // ─────────────────────────────────────────────────────
       // GET PLAYER HISTORY — All flags/events for a player
