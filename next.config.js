@@ -81,6 +81,32 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+
+  // ─── Ultimate Dev Server Hardening ──────────────────────────────────────────
+  // Next 14.2.3 handles 950+ pages heavily. Webpack natively monitors node_modules
+  // which burns CPU and memory. We aggressively ignore 300,000+ unneeded files.
+  webpack: (config, { dev, isServer }) => {
+    if (dev) {
+      // Prevent CPU/RAM burnout by explicitly ignoring core dependencies from the HMR watcher.
+      config.watchOptions = {
+        ...config.watchOptions,
+        ignored: ['**/node_modules/**', '**/.git/**', '**/.next/**'],
+        aggregateTimeout: 300, // Debounce rapid file saves
+      };
+
+      // Enforce bulletproof filesystem cache logic intentionally without 'memory' fallback
+      config.cache = {
+        type: 'filesystem',
+        maxMemoryGenerations: 1,      // aggressive disk-flushing
+        memoryCacheUnaffected: true,  // reduce memory bloat
+        buildDependencies: {
+          config: [__filename],
+        },
+      };
+    }
+    return config;
+  },
+
   swcMinify: true, // SWC minifier uses less memory than Terser
 
   // Force complete cache invalidation - v20 Diamond Arcade Deploy
