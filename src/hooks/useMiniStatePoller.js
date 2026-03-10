@@ -15,6 +15,13 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 
+let _busEmit = null;
+try {
+  // Lazy load EventBus — not critical if missing
+  const mod = require('../engine/EventBus');
+  _busEmit = mod.busEmit;
+} catch { /* EventBus unavailable — skip bus events */ }
+
 const POLL_INTERVAL = 4000; // 4 seconds
 const MAX_BACKOFF = 16000;  // 16 seconds max backoff
 
@@ -26,6 +33,7 @@ export default function useMiniStatePoller() {
   const intervalRef = useRef(null);
   const failCount = useRef(0);
   const mountedRef = useRef(true);
+  const prevHandNumbers = useRef(new Map()); // Track hand transitions for bus events
 
   // ── Fetch mini-state for all visible tables ──
   const fetchMiniStates = useCallback(async () => {
@@ -52,6 +60,16 @@ export default function useMiniStatePoller() {
         const next = new Map(prev);
         for (const state of data) {
           state._fetchedAt = now; // Stale timestamp
+
+          // Emit EventBus event on hand number change (new hand dealt)
+          if (_busEmit && state.handNumber) {
+            const prevHand = prevHandNumbers.current.get(state.tableId);
+            if (prevHand !== undefined && prevHand !== state.handNumber) {
+              _busEmit.dataMutated('mini_state_hand_change');
+            }
+            prevHandNumbers.current.set(state.tableId, state.handNumber);
+          }
+
           next.set(state.tableId, state);
         }
         return next;

@@ -105,6 +105,7 @@ export default async function handler(req, res) {
       const displayPhase = DISPLAY_PHASE[enginePhase] || enginePhase;
 
       // Build lightweight seat array from the pre-computed state
+      // Note: allIn is detected via isInHand + stack=0 (allIn flag not exposed in seat output)
       const seats = (state.seats || []).map(s => {
         if (!s.player) {
           return { seatIndex: s.seatIndex, occupied: false };
