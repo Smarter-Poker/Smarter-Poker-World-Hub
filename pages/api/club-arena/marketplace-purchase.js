@@ -7,6 +7,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
+const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -116,6 +117,7 @@ export default async function handler(req, res) {
             notes: `Shop purchase: ${item.name || item.id}`,
         });
 
+        logAudit(supabaseAdmin, { actionType: 'marketplace_purchase', userId: user.id, clubId, amount: price, ip: extractIP(req), details: { itemId, itemName: item.name, itemType: item.item_type, newBalance: balance - price } });
         return res.status(200).json({
             success: true,
             newBalance: balance - price,

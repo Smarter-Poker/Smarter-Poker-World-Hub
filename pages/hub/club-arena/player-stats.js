@@ -170,10 +170,11 @@ export default function PlayerStats() {
     const mountedRef = useRef(true);
     // Debounce ref for realtime reloads
     const reloadTimerRef = useRef(null);
+    const loadDataRef = useRef(null);
     const debouncedLoadData = useCallback(() => {
         if (reloadTimerRef.current) clearTimeout(reloadTimerRef.current);
         reloadTimerRef.current = setTimeout(() => {
-            if (mountedRef.current) loadData();
+            if (mountedRef.current && loadDataRef.current) loadDataRef.current();
         }, 1000);
     }, []);
 
@@ -254,6 +255,7 @@ export default function PlayerStats() {
                         const { data: handData } = await handQuery.order('completed_at', { ascending: false }).limit(200);
                         hands = handData || [];
                     } catch (handErr) {
+                        console.warn('[PlayerStats] Hand history query failed:', handErr?.message);
                     }
 
                     // Calculate stats from hands
@@ -456,6 +458,9 @@ export default function PlayerStats() {
         }
     }, [clubIdParam, period]);
 
+    // Keep the ref pointing to the latest loadData
+    loadDataRef.current = loadData;
+
     // ── Initial load + unmount cleanup ──
     useEffect(() => {
         mountedRef.current = true;
@@ -468,16 +473,17 @@ export default function PlayerStats() {
 
     // ── Realtime: refresh stats on new hands/transactions (debounced) ──
     useEffect(() => {
-        if (!clubIdParam) return;
+        const resolvedClubId = club?.id;
+        if (!resolvedClubId) return;
         const ch = supabase
-            .channel(`stats-live:${clubIdParam}`)
+            .channel(`stats-live:${resolvedClubId}`)
             .on('postgres_changes', {
                 event: 'INSERT', schema: 'public', table: 'hand_histories',
-                filter: `club_id=eq.${clubIdParam}`
+                filter: `club_id=eq.${resolvedClubId}`
             }, () => { if (mountedRef.current) debouncedLoadData(); })
             .on('postgres_changes', {
                 event: 'INSERT', schema: 'public', table: 'chip_transactions',
-                filter: `club_id=eq.${clubIdParam}`
+                filter: `club_id=eq.${resolvedClubId}`
             }, () => { if (mountedRef.current) debouncedLoadData(); })
             .subscribe((status) => {
                 if (status !== 'SUBSCRIBED') {
@@ -485,7 +491,7 @@ export default function PlayerStats() {
                 }
             });
         return () => { supabase.removeChannel(ch); };
-    }, [clubIdParam, debouncedLoadData]);
+    }, [club?.id, debouncedLoadData]);
 
     // ── Event Bus: refresh stats on cross-page data mutations ──────────────
     // Delta-aware: only reloads when relevant entity types change

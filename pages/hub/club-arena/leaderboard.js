@@ -158,9 +158,12 @@ export default function Leaderboard() {
 
     // Debounce ref for realtime reloads
     const reloadTimerRef = useRef(null);
+    const loadDataRef = useRef(null);
     const debouncedLoadData = useCallback(() => {
         if (reloadTimerRef.current) clearTimeout(reloadTimerRef.current);
-        reloadTimerRef.current = setTimeout(() => loadData(), 1000);
+        reloadTimerRef.current = setTimeout(() => {
+            if (loadDataRef.current) loadDataRef.current();
+        }, 1000);
     }, []);
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -331,6 +334,9 @@ export default function Leaderboard() {
         }
     }, [clubIdParam, boardType, period]);
 
+    // Keep the ref pointing to the latest loadData
+    loadDataRef.current = loadData;
+
     // ── Initial load + unmount cleanup ──
     useEffect(() => {
         mountedRef.current = true;
@@ -340,12 +346,13 @@ export default function Leaderboard() {
 
     // ── Realtime: refresh leaderboard on new hand results (debounced) ─────
     useEffect(() => {
-        if (!clubIdParam) return;
+        const resolvedClubId = club?.id;
+        if (!resolvedClubId) return;
         const ch = supabase
-            .channel(`leaderboard-live:${clubIdParam}`)
+            .channel(`leaderboard-live:${resolvedClubId}`)
             .on('postgres_changes', {
                 event: 'INSERT', schema: 'public', table: 'hand_histories',
-                filter: `club_id=eq.${clubIdParam}`
+                filter: `club_id=eq.${resolvedClubId}`
             }, () => debouncedLoadData())
             .subscribe((status) => {
                 if (status !== 'SUBSCRIBED') {
@@ -356,7 +363,7 @@ export default function Leaderboard() {
             supabase.removeChannel(ch);
             if (reloadTimerRef.current) clearTimeout(reloadTimerRef.current);
         };
-    }, [clubIdParam, debouncedLoadData]);
+    }, [club?.id, debouncedLoadData]);
 
     // ── Event Bus: refresh leaderboard on cross-page data mutations ────────
     // Delta-aware: only reloads when relevant entity types change

@@ -20,6 +20,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 const { isUUID, rejectBadPayload } = require('../../../src/lib/club-arena/validate');
 const { safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
+const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -164,6 +165,7 @@ export default async function handler(req, res) {
         remainingBalance: result.balance_after,
         tableId,
       };
+      logAudit(supabaseAdmin, { actionType: 'table_buyin', userId: userId, clubId, amount, ip: extractIP(req), details: { tableId, action, remainingBalance: result.balance_after } });
       cacheResponse(req, 200, responseBody);
       return res.status(200).json(responseBody);
 
@@ -199,6 +201,7 @@ export default async function handler(req, res) {
         newBalance: result?.balance_after,
         tableId,
       };
+      logAudit(supabaseAdmin, { actionType: 'table_cashout', userId: userId, clubId, amount, ip: extractIP(req), details: { tableId, newBalance: result?.balance_after } });
       cacheResponse(req, 200, responseBody);
       return res.status(200).json(responseBody);
     }

@@ -17,6 +17,7 @@ import { notifyClubAdmins } from '../../../src/lib/club-arena/notify';
 import { validateMintChips } from '../../../src/contracts/orb4_syndicate';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
+const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -182,6 +183,7 @@ export default async function handler(req, res) {
       excludeUserId: user.id,
     }).catch(() => { });
 
+    logAudit(supabaseAdmin, { actionType: 'chips_minted', userId: user.id, clubId, amount, ip: extractIP(req), details: { treasuryBefore: result.old_treasury, treasuryAfter: result.new_treasury, notes } });
     return res.status(200).json({
       success: true,
       clubId,

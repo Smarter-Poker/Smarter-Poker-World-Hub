@@ -41,7 +41,7 @@ const DynamicWallet = dynamic(
     () => import('../../../src/components/club-arena/DynamicWallet'),
     { ssr: false, loading: () => null }
 );
-const EmojiPicker = dynamic(() => import('emoji-picker-react'), { ssr: false });
+// EmojiPicker removed — built-in quick emoji grid in MessageInput handles this
 import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
 const ClubAnnouncementBanner = dynamic(
     () => import('../../../src/components/club-arena/ClubAnnouncementBanner'),
@@ -383,6 +383,16 @@ export default function ClubMessages() {
     // Wallet data (real-time balances)
     const walletData = useWalletData({ supabase, userId: user?.id, clubId: club?.id });
 
+    // Cleanup ringtone on unmount (prevents audio leak if user navigates away during a call)
+    useEffect(() => {
+        return () => {
+            if (outgoingRingToneRef.current) {
+                outgoingRingToneRef.current.stop();
+                outgoingRingToneRef.current = null;
+            }
+        };
+    }, []);
+
     // ═══════════════════════════════════════════════════════════════════════
     //  BULLETPROOF AUTH
     // ═══════════════════════════════════════════════════════════════════════
@@ -588,6 +598,7 @@ export default function ClubMessages() {
                         return [...prev, newMsg];
                     });
                     playMessageSound();
+                    busEmit.messageReceived(activeConversation.id, newMsg.sender_id);
                 }
             })
             .subscribe((status) => {
@@ -632,16 +643,61 @@ export default function ClubMessages() {
         };
     }, [user?.id]);
 
-    const handleAcceptCall = () => {
-        if (!incomingCall) return;
+    const handleAcceptCall = async () => {
+        if (!incomingCall || !user) return;
+
+        // Notify caller that we accepted (subscribe, send, then cleanup)
+        try {
+            const channel = supabase.channel(`call-signal:${incomingCall.callerId}`);
+            await new Promise((resolve, reject) => {
+                const timeout = setTimeout(resolve, 3000);
+                channel.subscribe((status) => {
+                    if (status === 'SUBSCRIBED') { clearTimeout(timeout); resolve(); }
+                    else if (status === 'CHANNEL_ERROR') { clearTimeout(timeout); reject(new Error('Channel error')); }
+                });
+            });
+            await channel.send({
+                type: 'broadcast',
+                event: 'call_accepted',
+                payload: { accepterId: user.id }
+            });
+            setTimeout(() => supabase.removeChannel(channel), 1000);
+        } catch (e) {
+            console.error('[ClubMessages] Failed to send call_accepted signal:', e);
+        }
+
+        // Join the call
         setCallType(incomingCall.callType);
         setCallRoomName(incomingCall.roomName);
         setCallingUser({ id: incomingCall.callerId, display_name: incomingCall.callerName, avatar_url: incomingCall.callerAvatar });
         setIncomingCall(null);
         setShowCall(true);
+        busEmit.callStarted(incomingCall.callType, incomingCall.roomName, incomingCall.callerId);
     };
 
-    const handleRejectCall = () => {
+    const handleRejectCall = async () => {
+        if (!incomingCall) return;
+
+        // Notify caller that we declined (subscribe, send, then cleanup)
+        try {
+            const channel = supabase.channel(`call-signal:${incomingCall.callerId}`);
+            await new Promise((resolve, reject) => {
+                const timeout = setTimeout(resolve, 3000);
+                channel.subscribe((status) => {
+                    if (status === 'SUBSCRIBED') { clearTimeout(timeout); resolve(); }
+                    else if (status === 'CHANNEL_ERROR') { clearTimeout(timeout); reject(new Error('Channel error')); }
+                });
+            });
+            await channel.send({
+                type: 'broadcast',
+                event: 'call_declined',
+                payload: { declinerId: user?.id, reason: 'declined' }
+            });
+            setTimeout(() => supabase.removeChannel(channel), 1000);
+        } catch (e) {
+            console.error('[ClubMessages] Failed to send call_declined signal:', e);
+        }
+
         setIncomingCall(null);
     };
 
@@ -682,6 +738,27 @@ export default function ClubMessages() {
 
             setTimeout(() => supabase.removeChannel(channel), 2000);
 
+            // Create pending call in DB for offline users
+            try {
+                const callToken = getAccessToken();
+                await fetch('/api/calls/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(callToken ? { Authorization: `Bearer ${callToken}` } : {}),
+                    },
+                    body: JSON.stringify({
+                        calleeId: otherUser.id,
+                        callerName: user.display_name || user.username,
+                        callerAvatar: user.avatar_url,
+                        callType: type,
+                        roomName: roomName,
+                    }),
+                });
+            } catch (dbErr) {
+                console.error('[ClubMessages] Failed to create pending call:', dbErr);
+            }
+
             // Push notification for offline users
             try {
                 await fetch('/api/notifications/send', {
@@ -709,6 +786,7 @@ export default function ClubMessages() {
 
         setCallRoomName(roomName);
         setShowCall(true);
+        busEmit.callStarted(type, roomName, otherUser.id);
 
         if (!outgoingRingToneRef.current) {
             outgoingRingToneRef.current = createRingTone();
@@ -741,6 +819,7 @@ export default function ClubMessages() {
         setShowCall(false);
         setCallRoomName(null);
         setCallingUser(null);
+        busEmit.callEnded(callType, callRoomName);
     };
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -901,6 +980,7 @@ export default function ClubMessages() {
 
             if (error) throw error;
             setMessages(prev => prev.map(m => m.id === tempId ? { ...m, id: msgId, status: 'sent' } : m));
+            busEmit.messageSent(activeConversation.id, activeConversation.otherUser?.id);
             busEmit.dataMutated('message_sent');
         } catch (e) {
             console.error('Send failed:', e);
@@ -1084,7 +1164,7 @@ export default function ClubMessages() {
                         <button onClick={() => setShowWallet(prev => !prev)} style={{ ...S.newBtn, background: showWallet ? '#2374E1' : 'transparent' }} title="Wallet">
                             💰
                         </button>
-                        <button onClick={() => { }} style={S.newBtn} title="New Message">
+                        <button onClick={() => { setSearchQuery(''); document.querySelector('[placeholder*="Search Club"]')?.focus(); }} style={S.newBtn} title="New Message">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill={C.blue}><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" /></svg>
                         </button>
                     </div>

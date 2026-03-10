@@ -18,6 +18,7 @@ const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
 const { runStandardGuards } = require('../../../src/lib/club-arena/redteam-validation');
+const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -188,6 +189,7 @@ You received ${diamondsReturned} diamonds.`,
         `[OK] Cashout approved! ${cashout.amount.toLocaleString()} chips => ${diamondsReturned} diamonds`
       );
 
+      logAudit(supabaseAdmin, { actionType: 'cashout_approved', userId: user.id, targetUserId: cashout.player_id, clubId: cashout.club_id, amount: cashout.amount, ip: extractIP(req), details: { cashoutId, diamondsReturned, agentNote: note || 'Approved' } });
       return res.status(200).json({
         success: true,
         action: 'approved',
@@ -251,6 +253,7 @@ ${agentName} cancelled your cashout request for ${cashout.amount.toLocaleString(
         `Cashout cancelled. ${cashout.amount.toLocaleString()} chips returned to your balance.`
       );
 
+      logAudit(supabaseAdmin, { actionType: 'cashout_cancelled', userId: user.id, targetUserId: cashout.player_id, clubId: cashout.club_id, amount: cashout.amount, ip: extractIP(req), details: { cashoutId, chipsReturned: cashout.amount, playerNewBalance: playerMember?.chip_balance || 0, agentNote: note || 'Cancelled by agent' } });
       return res.status(200).json({
         success: true,
         action: 'cancelled',

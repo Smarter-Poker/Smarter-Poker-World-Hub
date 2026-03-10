@@ -13,6 +13,7 @@ import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settle
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 const { sanitizeNote, safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
+const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -277,6 +278,7 @@ export default async function handler(req, res) {
       result = { action: 'credit_revoked', previousLimit: currentLimit, newLimit: finalLimit, reduced: currentLimit - finalLimit };
     }
 
+    logAudit(supabaseAdmin, { actionType: `agent_credit_${action}`, userId: user.id, targetUserId: agentUserId, clubId, amount, ip: extractIP(req), details: { ...result } });
     return res.status(200).json({ success: true, ...result });
   } catch (err) {
     console.error('[agent-credit]', err);

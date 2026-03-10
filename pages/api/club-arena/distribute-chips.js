@@ -11,6 +11,7 @@ import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settle
 import { notifyUser } from '../../../src/lib/club-arena/notify';
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
 const { sanitizeNote, safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
+const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -112,6 +113,7 @@ export default async function handler(req, res) {
           return res.status(400).json({ success: false, error: result?.error || 'Promo transfer failed', details: result });
         }
 
+        logAudit(supabaseAdmin, { actionType: 'promo_distribution', userId: user.id, targetUserId: toUserId, clubId, amount, ip: extractIP(req), details: { type: 'promo', notes, result } });
         return res.status(200).json({ success: true, type: 'promo', ...result });
       }
 
@@ -130,6 +132,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ success: false, error: result?.error || 'Transfer failed', details: result });
       }
 
+      logAudit(supabaseAdmin, { actionType: 'chip_distribution', userId: user.id, targetUserId: toUserId, clubId, amount, ip: extractIP(req), details: { source: 'agent_credit', notes, result } });
       return res.status(200).json({ success: true, ...result });
     }
 
@@ -160,6 +163,7 @@ export default async function handler(req, res) {
       pushUrl: `/hub/club-arena/cashier?club=${clubId}`,
     }).catch(() => { });
 
+    logAudit(supabaseAdmin, { actionType: 'chip_distribution', userId: user.id, targetUserId: toUserId, clubId, amount, ip: extractIP(req), details: { source: 'treasury', notes, treasuryBefore: result.treasury_before, treasuryAfter: result.treasury_after, memberBefore: result.member_before, memberAfter: result.member_after } });
     return res.status(200).json({
       success: true,
       clubId,

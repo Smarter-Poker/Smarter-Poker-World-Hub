@@ -17,6 +17,7 @@ import { notifyUser } from '../../../src/lib/club-arena/notify';
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
 const { isUUID, rejectBadPayload } = require('../../../src/lib/club-arena/validate');
 const { safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
+const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -280,6 +281,7 @@ export default async function handler(req, res) {
           playersProcessed: inserts.length,
           totalRakebackDistributed: inserts.reduce((s, i) => s + i.rakeback_amount, 0),
         };
+        logAudit(supabaseAdmin, { actionType: 'rakeback_closed', userId: user.id, clubId, ip: extractIP(req), details: { playersProcessed: inserts.length, totalDistributed: inserts.reduce((s, i) => s + i.rakeback_amount, 0) } });
         cacheResponse(req, 200, responseObj);
         return res.status(200).json(responseObj);
       }
@@ -378,6 +380,7 @@ export default async function handler(req, res) {
           newBalance,
           periodsProcessed: pending.length,
         };
+        logAudit(supabaseAdmin, { actionType: 'rakeback_claimed', userId: user.id, clubId, amount: totalClaim, ip: extractIP(req), details: { periodsProcessed: pending.length, newBalance } });
         cacheResponse(req, 200, responseObj);
         return res.status(200).json(responseObj);
       }

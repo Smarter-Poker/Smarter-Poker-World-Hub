@@ -92,6 +92,9 @@ export default function Cashier() {
     const [diamondBalance, setDiamondBalance] = useState(0);
     const [transactions, setTransactions] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [loadError, setLoadError] = useState(false);
+    const [txPage, setTxPage] = useState(1);
+    const TX_PAGE_SIZE = 20;
     const isProcessingRef = useRef(false);
 
     // Modal states
@@ -128,6 +131,7 @@ export default function Cashier() {
     const loadData = useCallback(async (signal) => {
         if (!clubIdParam) return;
         setIsLoading(true);
+        setLoadError(false);
         try {
             // Get authenticated user (Supabase session only)
             const authUser = getAuthUser();
@@ -222,7 +226,7 @@ export default function Cashier() {
                 }
             }
         } catch (e) {
-
+            setLoadError(true);
         } finally {
             setIsLoading(false);
         }
@@ -348,15 +352,19 @@ export default function Cashier() {
 
         isProcessingRef.current = true;
         setProcessing(true);
+        // OPT-3: Optimistic diamond decrement
+        const previousDiamonds = diamondBalance;
+        setDiamondBalance(prev => prev - diamondCost);
         try {
             const result = await apiCall('/api/club-arena/buyin', {
                 clubId: club.id,
                 chipAmount: amount,
             });
 
-            showToast(`Bought ${amount.toLocaleString()} chips for ${diamondCost} `, 'success');
+            showToast(`Bought ${amount.toLocaleString()} chips for ${diamondCost} 💎`, 'success');
             setShowBuyInModal(false);
             setBuyInAmount('');
+            busEmit.dataMutated('chips_minted');
             loadData();
 
             // Broadcast chip balance change to other tabs
@@ -366,6 +374,8 @@ export default function Cashier() {
                 bc.close();
             } catch (e) { }
         } catch (e) {
+            // Rollback diamond balance
+            setDiamondBalance(previousDiamonds);
             showToast(e.message || 'Buy-in failed. Try again.', 'error');
         } finally {
             setProcessing(false);
@@ -464,7 +474,10 @@ export default function Cashier() {
                 clubId: club.id, toUserId: modalState.recipient, amount: modalState.amount,
                 note: modalState.note.trim() || undefined,
             });
-            showToast(`${modalState.amount.toLocaleString()} chips sent!`, 'success');
+            // OPT-8: Include recipient display name in success toast
+            const recipientMember = clubMembers.find(m => m.user_id === modalState.recipient);
+            const recipientName = recipientMember?.profiles?.display_name || 'Player';
+            showToast(`${modalState.amount.toLocaleString()} chips sent to ${recipientName}!`, 'success');
             busEmit.dataMutated('chips_distributed');
             loadData();
         } catch (e) {
@@ -584,7 +597,23 @@ export default function Cashier() {
                     <h1 style={S.pageTitle}>Cashier</h1>
 
                     {isLoading ? (
-                        <div style={S.loading}>Loading...</div>
+                        <div style={S.loading}>
+                            {/* OPT-6: Shimmer skeleton */}
+                            <div style={{ padding: '20px 0' }}>
+                                <div style={{ width: 286, height: 286, background: 'linear-gradient(90deg, #242526 25%, #3A3B3C 50%, #242526 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.5s infinite', borderRadius: 16, margin: '0 auto 20px' }} />
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
+                                    <div style={{ height: 80, background: 'linear-gradient(90deg, #242526 25%, #3A3B3C 50%, #242526 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.5s infinite', borderRadius: 12 }} />
+                                    <div style={{ height: 80, background: 'linear-gradient(90deg, #242526 25%, #3A3B3C 50%, #242526 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.5s infinite', borderRadius: 12 }} />
+                                </div>
+                                {[1, 2, 3].map(i => <div key={i} style={{ height: 56, background: 'linear-gradient(90deg, #242526 25%, #3A3B3C 50%, #242526 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.5s infinite', borderRadius: 10, marginBottom: 10 }} />)}
+                            </div>
+                            <style>{`@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }`}</style>
+                        </div>
+                    ) : loadError ? (
+                        <div style={S.emptyState}>
+                            <p style={{ marginBottom: 12 }}>Failed to load cashier data</p>
+                            <button onClick={() => loadData()} style={{ ...S.backBtn, background: FB.primary, color: '#fff', border: 'none' }}>Retry</button>
+                        </div>
                     ) : !user ? (
                         <div style={S.emptyState}><p>Sign In To Access The Cashier</p></div>
                     ) : !membership ? (
@@ -672,12 +701,17 @@ export default function Cashier() {
                                                             if (isProcessingRef.current || processing) return;
                                                             isProcessingRef.current = true;
                                                             setProcessing(true);
+                                                            // OPT-4: Optimistic removal from pending list
+                                                            const prevPending = [...pendingCashouts];
+                                                            setPendingCashouts(prev => prev.filter(p => p.id !== co.id));
                                                             try {
                                                                 const result = await apiCall('/api/club-arena/cancel-my-cashout', { cashoutId: co.id });
                                                                 showToast(result.message || 'Cashout cancelled — chips returned', 'success');
                                                                 busEmit.dataMutated('cashout_cancelled');
                                                                 loadData();
                                                             } catch (e) {
+                                                                // Rollback
+                                                                setPendingCashouts(prevPending);
                                                                 showToast(e.message || 'Cancel failed', 'error');
                                                             } finally { setProcessing(false); isProcessingRef.current = false; }
                                                         }}
@@ -725,17 +759,21 @@ export default function Cashier() {
                                                 try {
                                                     const result = await apiCall('/api/club-arena/rakeback', { action: 'claim', clubId: club.id });
                                                     showToast(`Claimed ${result.claimed?.toLocaleString()} chips rakeback!`);
+                                                    busEmit.dataMutated('rakeback_distributed');
                                                     loadData();
                                                 } catch (e) {
                                                     showToast(e.message || 'Claim failed', 'error');
                                                 } finally { setProcessing(false); isProcessingRef.current = false; }
                                             }}
+                                            disabled={processing}
                                             style={{
                                                 width: '100%', padding: '12px', background: '#4BB543', color: '#fff',
-                                                border: 'none', borderRadius: '10px', fontWeight: 800, fontSize: '15px', cursor: 'pointer',
+                                                border: 'none', borderRadius: '10px', fontWeight: 800, fontSize: '15px',
+                                                cursor: processing ? 'not-allowed' : 'pointer',
+                                                opacity: processing ? 0.5 : 1,
                                             }}
                                         >
-                                            Claim {rakebackInfo.pendingRakeback.toLocaleString()} Chips
+                                            {processing ? 'Claiming...' : `Claim ${rakebackInfo.pendingRakeback.toLocaleString()} Chips`}
                                         </button>
                                     </div>
                                 </div>
@@ -798,35 +836,53 @@ export default function Cashier() {
 
                             {/* Transaction History */}
                             <h2 style={S.sectionTitle}>Transaction History</h2>
-                            {transactions.length > 0 ? transactions.map((tx, i) => {
-                                const txIcons = {
-                                    buyin: '[+]', deposit: '[+]', withdrawal: '[-]', cashout: '[-]',
-                                    win: '[W]', loss: '[L]', rake: '[R]', send: '[>]', receive: '[<]',
-                                    purchase: '[$]', rakeback: '[RB]', bonus: '[+]', promo: '[P]',
-                                };
-                                const icon = txIcons[tx.transaction_type] || '[?]';
-                                const isPos = (tx.amount || 0) >= 0;
-                                return (
-                                    <div key={tx.id || i} style={{ ...S.listItem, gap: '10px', alignItems: 'center', display: 'flex' }}>
-                                        <div style={{ fontSize: 20, flexShrink: 0 }}>{icon}</div>
-                                        <div style={{ flex: 1, minWidth: 0 }}>
-                                            <div style={S.txType}>{getTransactionLabel(tx.transaction_type)}</div>
-                                            <div style={S.txDate}>
-                                                {tx.notes ? <span style={{ color: '#B0B3B8' }}>{tx.notes.slice(0, 40)} · </span> : null}
-                                                {tx.created_at ? new Date(tx.created_at).toLocaleString() : 'N/A'}
+                            {transactions.length > 0 ? (
+                                <>
+                                    {transactions.slice(0, txPage * TX_PAGE_SIZE).map((tx, i) => {
+                                        const txIcons = {
+                                            buyin: '[+]', deposit: '[+]', withdrawal: '[-]', cashout: '[-]',
+                                            win: '[W]', loss: '[L]', rake: '[R]', send: '[>]', receive: '[<]',
+                                            purchase: '[$]', rakeback: '[RB]', bonus: '[+]', promo: '[P]',
+                                        };
+                                        const icon = txIcons[tx.transaction_type] || '[?]';
+                                        const isPos = (tx.amount || 0) >= 0;
+                                        return (
+                                            <div key={tx.id || i} style={{ ...S.listItem, gap: '10px', alignItems: 'center', display: 'flex' }}>
+                                                <div style={{ fontSize: 20, flexShrink: 0 }}>{icon}</div>
+                                                <div style={{ flex: 1, minWidth: 0 }}>
+                                                    <div style={S.txType}>{getTransactionLabel(tx.transaction_type)}</div>
+                                                    <div style={S.txDate}>
+                                                        {tx.notes ? <span style={{ color: '#B0B3B8' }}>{tx.notes.slice(0, 40)} · </span> : null}
+                                                        {tx.created_at ? new Date(tx.created_at).toLocaleString() : 'N/A'}
+                                                    </div>
+                                                </div>
+                                                <div style={{
+                                                    ...S.txAmount,
+                                                    color: isPos ? FB.success : FB.danger,
+                                                    background: isPos ? 'rgba(49,162,76,0.1)' : 'rgba(250,56,62,0.1)',
+                                                    borderRadius: 6, padding: '3px 8px',
+                                                }}>
+                                                    {isPos ? '+' : ''}{(tx.amount || 0).toLocaleString()}
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div style={{
-                                            ...S.txAmount,
-                                            color: isPos ? FB.success : FB.danger,
-                                            background: isPos ? 'rgba(49,162,76,0.1)' : 'rgba(250,56,62,0.1)',
-                                            borderRadius: 6, padding: '3px 8px',
-                                        }}>
-                                            {isPos ? '+' : ''}{(tx.amount || 0).toLocaleString()}
-                                        </div>
-                                    </div>
-                                );
-                            }) : (
+                                        );
+                                    })}
+                                    {/* OPT-5: Load More pagination */}
+                                    {transactions.length > txPage * TX_PAGE_SIZE && (
+                                        <button
+                                            onClick={() => setTxPage(p => p + 1)}
+                                            style={{
+                                                width: '100%', padding: '12px', marginTop: 8,
+                                                background: FB.hover, border: `1px solid ${FB.border}`,
+                                                borderRadius: 8, color: FB.primary, fontWeight: 700,
+                                                fontSize: 13, cursor: 'pointer',
+                                            }}
+                                        >
+                                            Load More ({transactions.length - txPage * TX_PAGE_SIZE} remaining)
+                                        </button>
+                                    )}
+                                </>
+                            ) : (
                                 <div style={S.emptyState}>
                                     <span style={{ fontSize: '40px', display: 'block', marginBottom: '12px' }}></span>
                                     <p>No Transactions Yet</p>

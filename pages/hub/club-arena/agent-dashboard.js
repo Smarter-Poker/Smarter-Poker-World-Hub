@@ -6,7 +6,8 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
-import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
+import { getAuthUser } from '../../../src/lib/authUtils';
+import { apiCall, apiGet, getAuthToken } from '../../../src/lib/club-arena/apiClient';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
@@ -29,36 +30,8 @@ const FB = {
 };
 
 // ═══════════════════════════════════════════════════════════════
-// HELPERS
+// HELPERS (apiCall/apiGet/getAuthToken imported from centralized apiClient)
 // ═══════════════════════════════════════════════════════════════
-
-const getAuthToken = () => getAccessToken();
-
-const apiCall = async (endpoint, body) => {
-    const token = await getAuthToken();
-    if (!token) throw new Error('Not authenticated');
-    const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify(body),
-    });
-    let data;
-    try { data = await res.json(); } catch (e) { throw new Error('Server returned invalid response'); }
-    if (!res.ok) throw new Error(data.error || 'API call failed');
-    return data;
-};
-
-const apiGet = async (url) => {
-    const token = await getAuthToken();
-    if (!token) throw new Error('Not authenticated');
-    const res = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` },
-    });
-    let data;
-    try { data = await res.json(); } catch (e) { throw new Error('Server returned invalid response'); }
-    if (!res.ok) throw new Error(data.error || 'API call failed');
-    return data;
-};
 
 function timeAgo(dateStr) {
     if (!dateStr) return 'never';

@@ -16,6 +16,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
+const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -127,6 +128,7 @@ export default async function handler(req, res) {
           return res.status(400).json({ error: result?.error || 'Distribution failed', details: result });
         }
 
+        logAudit(supabaseAdmin, { actionType: 'promo_send', userId: user.id, targetUserId: targetUserId, clubId, amount: amt, ip: extractIP(req), details: { agentPromoAfter: result.agent_promo_after, playerBalanceAfter: result.player_balance_after, lifetimeReceived: result.lifetime_received, remainingCap: result.remaining_cap } });
         return res.status(200).json({
           success: true,
           amount: amt,

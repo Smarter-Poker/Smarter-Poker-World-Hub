@@ -15,6 +15,7 @@ import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settle
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
 const { isUUID, validateAmount, rejectBadPayload } = require('../../../src/lib/club-arena/validate');
+const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -74,6 +75,7 @@ export default async function handler(req, res) {
       return res.status(status).json(result);
     }
 
+    logAudit(supabaseAdmin, { actionType: 'buyin', userId: user.id, clubId, amount, ip: extractIP(req), details: { diamondCost, chipAmount: amount, ...result } });
     cacheResponse(req, 200, result);
     return res.status(200).json(result);
   } catch (err) {

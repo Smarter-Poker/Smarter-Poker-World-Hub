@@ -18,6 +18,7 @@ import { notifyUser } from '../../../src/lib/club-arena/notify';
 import { validateSettlement } from '../../../src/contracts/orb4_syndicate';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
+const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -172,6 +173,7 @@ export default async function handler(req, res) {
         period: period,
         message: `Period #${nextPeriod} opened`,
       };
+      logAudit(supabaseAdmin, { actionType: 'settlement_opened', userId: user.id, clubId, ip: extractIP(req), details: { periodNumber: nextPeriod, periodId: period?.id } });
       cacheResponse(req, 200, responseObj);
       return res.status(200).json(responseObj);
     }
@@ -407,6 +409,7 @@ export default async function handler(req, res) {
         totalCommissionsPending: totalCommissions,
         message: `Period #${period.period_number} closed. ${commissionRecords.length} commission records created.`,
       };
+      logAudit(supabaseAdmin, { actionType: 'settlement_closed', userId: user.id, clubId, ip: extractIP(req), details: { periodId: pid, periodNumber: period.period_number, totalRake, unionHold, clubRetained: totalRake - unionHold, agentCommissions: commissionRecords.length, totalCommissions } });
       cacheResponse(req, 200, responseObj);
       return res.status(200).json(responseObj);
     }
@@ -504,6 +507,7 @@ export default async function handler(req, res) {
           .eq('status', 'generated');
       }
 
+      logAudit(supabaseAdmin, { actionType: 'commission_paid', userId: user.id, targetUserId: agentData?.user_id, clubId, amount: cr.commission_amount, ip: extractIP(req), details: { commissionId, periodId: cr.period_id } });
       cacheResponse(req, 200, { success: true, message: 'Commission marked as paid' });
       return res.status(200).json({ success: true, message: 'Commission marked as paid' });
     }
@@ -654,6 +658,7 @@ export default async function handler(req, res) {
           ? `${paidIds.length}/${pending.length} commissions paid. ${skipped} skipped due to treasury shortfall.`
           : `${paidIds.length} commissions paid (${totalPaid.toLocaleString()} chips)`,
       };
+      logAudit(supabaseAdmin, { actionType: 'commission_paid_all', userId: user.id, clubId, amount: totalPaid, ip: extractIP(req), details: { periodId, paid: paidIds.length, skipped, totalPaid } });
       cacheResponse(req, 200, responseObj);
       return res.status(200).json(responseObj);
     }

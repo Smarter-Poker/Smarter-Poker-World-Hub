@@ -25,6 +25,7 @@ import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settle
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
 const { sanitizeNote, safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
 const { isUUID, validateAmount, rejectBadPayload } = require('../../../src/lib/club-arena/validate');
+const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -245,6 +246,7 @@ export default async function handler(req, res) {
       agentNotified: true,
       message: `${amount.toLocaleString()} chips held. Your agent has been notified.`,
     };
+    logAudit(supabaseAdmin, { actionType: 'cashout_requested', userId: user.id, clubId, amount, ip: extractIP(req), details: { cashoutId: cashout.id, remainingBalance: member.chip_balance - amount, agentId: member.agent_id } });
     cacheResponse(req, 200, responseBody);
     return res.status(200).json(responseBody);
   } catch (err) {

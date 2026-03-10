@@ -309,10 +309,23 @@ export default async function handler(req, res) {
       // Idempotency key prevents double-kicks from fat-fingers.
       // ─────────────────────────────────────────────────────
       case 'kick_player': {
-        const { tableId, playerId: targetPlayerId, reason } = params;
+        const { playerId: targetPlayerId, reason } = params;
+        let { tableId } = params;
 
-        if (!tableId || !targetPlayerId) {
-          return res.status(400).json({ error: 'tableId and playerId required' });
+        if (!targetPlayerId) {
+          return res.status(400).json({ error: 'playerId required' });
+        }
+
+        // If no tableId provided, try to find the player's active table session
+        if (!tableId) {
+          const { data: activeSession } = await supabase
+            .from('table_sessions')
+            .select('table_id')
+            .eq('club_id', clubId)
+            .eq('player_id', targetPlayerId)
+            .eq('is_active', true)
+            .maybeSingle();
+          tableId = activeSession?.table_id || null;
         }
 
         // ── Step tracker for disconnect recovery ──
@@ -324,141 +337,145 @@ export default async function handler(req, res) {
         };
 
         try {
-          // STEP 1: Force stand up via game controller
-          let controller = null;
-          try {
-            const { getController } = await import('../../../src/lib/poker-engine/GameController');
-            controller = await getController();
-          } catch (importErr) {
-            console.warn('[AntiCheat] GameController import error:', importErr?.message);
-          }
-
-          if (!controller) {
-            return res.status(500).json({ error: 'Game controller not available' });
-          }
-
-          const result = await controller.standUp(tableId, targetPlayerId);
-          kickOp.step = 1;
-          kickOp.standUpResult = result;
-          kickOp.cashoutAmount = result.cashout || 0;
-
-          if (!result.success) {
-            return res.status(200).json({
-              success: false,
-              message: result.error || 'Failed to remove player — may already be stood up',
-            });
-          }
-
-          // STEP 2: Close table session (RPC — atomic on DB side)
-          try {
-            await supabase.rpc('close_table_session', {
-              p_table_id: tableId,
-              p_player_id: targetPlayerId,
-              p_reason: reason || 'Anti-cheat violation: removed by admin',
-            });
-            kickOp.step = 2;
-          } catch (sessionErr) {
-            kickOp.errors.push({ step: 'close_session', error: sessionErr?.message });
-            console.error('[AntiCheat] Session close failed (player already stood up):', sessionErr?.message);
-            // Non-fatal: player is already stood up, session will expire naturally
-          }
-
-          // STEP 3: Return chips to club balance (if applicable)
-          if (kickOp.cashoutAmount > 0) {
+          // If player has no active table, skip stand-up and just log the kick
+          if (!tableId) {
+            kickOp.step = 3; // Skip steps 1-3 (no table to remove from)
+          } else {
+            // STEP 1: Force stand up via game controller
+            let controller = null;
             try {
-              const ChipBridgeModule = await import('../../../src/lib/poker-engine/ChipBridge');
-              const ChipBridge = ChipBridgeModule.default || ChipBridgeModule;
-              await ChipBridge.unlockChips(clubId, targetPlayerId, tableId, kickOp.cashoutAmount);
-              kickOp.step = 3;
-            } catch (chipErr) {
-              kickOp.errors.push({ step: 'unlock_chips', error: chipErr?.message, amount: kickOp.cashoutAmount });
-              console.error('[AntiCheat] Chip unlock failed — MANUAL RECOVERY NEEDED:', {
-                clubId, targetPlayerId, tableId, amount: kickOp.cashoutAmount,
+              const { getController } = await import('../../../src/lib/poker-engine/GameController');
+              controller = await getController();
+            } catch (importErr) {
+              console.warn('[AntiCheat] GameController import error:', importErr?.message);
+            }
+
+            if (!controller) {
+              return res.status(500).json({ error: 'Game controller not available' });
+            }
+
+            const result = await controller.standUp(tableId, targetPlayerId);
+            kickOp.step = 1;
+            kickOp.standUpResult = result;
+            kickOp.cashoutAmount = result.cashout || 0;
+
+            if (!result.success) {
+              return res.status(200).json({
+                success: false,
+                message: result.error || 'Failed to remove player — may already be stood up',
               });
-              // CRITICAL: Log to anti_cheat_events for manual recovery
+            }
+
+            // STEP 2: Close table session (RPC — atomic on DB side)
+            try {
+              await supabase.rpc('close_table_session', {
+                p_table_id: tableId,
+                p_player_id: targetPlayerId,
+                p_reason: reason || 'Anti-cheat violation: removed by admin',
+              });
+              kickOp.step = 2;
+            } catch (sessionErr) {
+              kickOp.errors.push({ step: 'close_session', error: sessionErr?.message });
+              console.error('[AntiCheat] Session close failed (player already stood up):', sessionErr?.message);
+              // Non-fatal: player is already stood up, session will expire naturally
+            }
+
+            // STEP 3: Return chips to club balance (if applicable)
+            if (kickOp.cashoutAmount > 0) {
+              try {
+                const ChipBridgeModule = await import('../../../src/lib/poker-engine/ChipBridge');
+                const ChipBridge = ChipBridgeModule.default || ChipBridgeModule;
+                await ChipBridge.unlockChips(clubId, targetPlayerId, tableId, kickOp.cashoutAmount);
+                kickOp.step = 3;
+              } catch (chipErr) {
+                kickOp.errors.push({ step: 'unlock_chips', error: chipErr?.message, amount: kickOp.cashoutAmount });
+                console.error('[AntiCheat] Chip unlock failed — MANUAL RECOVERY NEEDED:', {
+                  clubId, targetPlayerId, tableId, amount: kickOp.cashoutAmount,
+                });
+                // CRITICAL: Log to anti_cheat_events for manual recovery
+                await supabase.from('anti_cheat_events').insert({
+                  event_type: 'chip_unlock_failed',
+                  player_id: targetPlayerId,
+                  club_id: clubId,
+                  table_id: tableId,
+                  details: {
+                    reason: 'Mid-kick chip unlock failure — requires manual recovery',
+                    amount: kickOp.cashoutAmount,
+                    error: chipErr?.message,
+                    kicked_by: userId,
+                  },
+                  triggered_by: 'system',
+                }).catch(() => { }); // Best-effort logging
+              }
+            } else {
+              kickOp.step = 3; // No chips to unlock
+            }
+
+            // STEP 4: Log the kick event
+            try {
               await supabase.from('anti_cheat_events').insert({
-                event_type: 'chip_unlock_failed',
+                event_type: 'player_kicked',
                 player_id: targetPlayerId,
                 club_id: clubId,
                 table_id: tableId,
                 details: {
-                  reason: 'Mid-kick chip unlock failure — requires manual recovery',
-                  amount: kickOp.cashoutAmount,
-                  error: chipErr?.message,
+                  reason,
                   kicked_by: userId,
+                  cashout: kickOp.cashoutAmount,
+                  recovery_steps_completed: kickOp.step,
+                  errors: kickOp.errors.length > 0 ? kickOp.errors : undefined,
                 },
-                triggered_by: 'system',
-              }).catch(() => { }); // Best-effort logging
+                triggered_by: userId,
+              });
+              kickOp.step = 4;
+            } catch (logErr) {
+              kickOp.errors.push({ step: 'log_event', error: logErr?.message });
+              // Non-fatal: kick succeeded, just logging failed
             }
-          } else {
-            kickOp.step = 3; // No chips to unlock
-          }
 
-          // STEP 4: Log the kick event
-          try {
+            const kickResult = {
+              success: true,
+              message: `Player removed from table. Chips returned: ${kickOp.cashoutAmount}`,
+              recovery: kickOp.errors.length > 0 ? {
+                warnings: kickOp.errors,
+                steps_completed: kickOp.step,
+              } : undefined,
+            };
+
+            // Cache idempotent response
+            if (idempotencyKey) {
+              idempotencyStore.set(idempotencyKey, {
+                status: 200, body: kickResult, expiry: Date.now() + IDEMPOTENCY_TTL_MS,
+              });
+            }
+
+            return res.status(200).json(kickResult);
+
+          } catch (fatalErr) {
+            // Disconnect / crash mid-operation: log recovery data
+            console.error('[AntiCheat] FATAL kick failure at step', kickOp.step, fatalErr);
             await supabase.from('anti_cheat_events').insert({
-              event_type: 'player_kicked',
+              event_type: 'kick_failed_recovery',
               player_id: targetPlayerId,
               club_id: clubId,
               table_id: tableId,
               details: {
-                reason,
+                fatal_error: fatalErr?.message,
+                step_reached: kickOp.step,
+                cashout_amount: kickOp.cashoutAmount,
+                partial_errors: kickOp.errors,
                 kicked_by: userId,
-                cashout: kickOp.cashoutAmount,
-                recovery_steps_completed: kickOp.step,
-                errors: kickOp.errors.length > 0 ? kickOp.errors : undefined,
               },
-              triggered_by: userId,
-            });
-            kickOp.step = 4;
-          } catch (logErr) {
-            kickOp.errors.push({ step: 'log_event', error: logErr?.message });
-            // Non-fatal: kick succeeded, just logging failed
-          }
+              triggered_by: 'system',
+            }).catch(() => { }); // Best-effort
 
-          const kickResult = {
-            success: true,
-            message: `Player removed from table. Chips returned: ${kickOp.cashoutAmount}`,
-            recovery: kickOp.errors.length > 0 ? {
-              warnings: kickOp.errors,
-              steps_completed: kickOp.step,
-            } : undefined,
-          };
-
-          // Cache idempotent response
-          if (idempotencyKey) {
-            idempotencyStore.set(idempotencyKey, {
-              status: 200, body: kickResult, expiry: Date.now() + IDEMPOTENCY_TTL_MS,
-            });
-          }
-
-          return res.status(200).json(kickResult);
-
-        } catch (fatalErr) {
-          // Disconnect / crash mid-operation: log recovery data
-          console.error('[AntiCheat] FATAL kick failure at step', kickOp.step, fatalErr);
-          await supabase.from('anti_cheat_events').insert({
-            event_type: 'kick_failed_recovery',
-            player_id: targetPlayerId,
-            club_id: clubId,
-            table_id: tableId,
-            details: {
-              fatal_error: fatalErr?.message,
+            return res.status(500).json({
+              error: 'Kick operation failed mid-execution',
               step_reached: kickOp.step,
-              cashout_amount: kickOp.cashoutAmount,
-              partial_errors: kickOp.errors,
-              kicked_by: userId,
-            },
-            triggered_by: 'system',
-          }).catch(() => { }); // Best-effort
-
-          return res.status(500).json({
-            error: 'Kick operation failed mid-execution',
-            step_reached: kickOp.step,
-            recovery_logged: true,
-          });
+              recovery_logged: true,
+            });
+          }
         }
-      }
 
       // ─────────────────────────────────────────────────────
       // GET PLAYER HISTORY — All flags/events for a player

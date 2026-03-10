@@ -11,6 +11,7 @@ import { notifyUser } from '../../../src/lib/club-arena/notify';
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
 const { sanitizeNote, safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
 const { isUUID, validateAmount, rejectBadPayload } = require('../../../src/lib/club-arena/validate');
+const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -138,6 +139,7 @@ export default async function handler(req, res) {
       transferred: amount,
       senderBalance: rpcResult.sender_balance,
     };
+    logAudit(supabaseAdmin, { actionType: 'chip_transfer', userId: user.id, targetUserId: toUserId, clubId, amount, ip: extractIP(req), details: { note, senderBalance: rpcResult.sender_balance } });
     cacheResponse(req, 200, responseBody);
     return res.status(200).json(responseBody);
   } catch (err) {

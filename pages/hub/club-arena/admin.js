@@ -16,6 +16,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus'; import { busEmit
 import SkeletonDark from '../../../src/components/ui/SkeletonDark';
 import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
 import { resolveAvatarDisplay } from '../../../src/lib/resolveAvatarDisplay';
+import { apiCall, apiGet, getAuthToken } from '../../../src/lib/club-arena/apiClient';
 import dynamic from 'next/dynamic';
 import useWalletData from '../../../src/hooks/useWalletData';
 const DynamicWallet = dynamic(() => import('../../../src/components/club-arena/DynamicWallet'), { ssr: false });
@@ -36,62 +37,8 @@ const FB = {
     hover: '#3A3B3C',
 };
 
+
 const ROLES = ['owner', 'admin', 'super_agent', 'agent', 'sub_agent', 'player'];
-
-// Helper: get auth token for API calls
-const getAuthToken = async () => {
-    // 1. Fast path: read from localStorage cache (instant, no network round-trip)
-    //    'smarter-poker-auth' is the storageKey configured in supabase.ts
-    try {
-        try {
-            const cached = localStorage.getItem('smarter-poker-auth');
-            if (cached) {
-                const parsed = JSON.parse(cached);
-                if (parsed?.access_token) return parsed.access_token;
-            }
-        } catch (e) { /* corrupted auth cache */ }
-    } catch (_) { /* localStorage unavailable (incognito, quota) */ }
-
-    // 2. Slow path: ask Supabase (handles token refresh, also writes back to localStorage)
-    try {
-        return getAccessToken() || null;
-    } catch (_) {
-        return null;
-    }
-};
-
-// Helper: make authenticated API call
-const apiCall = async (endpoint, body) => {
-    const token = await getAuthToken();
-    if (!token) throw new Error('Not authenticated');
-    // C-05: Generate unique idempotency key per request (fat-finger defense)
-    const idempotencyKey = typeof crypto !== 'undefined' && crypto.randomUUID
-        ? crypto.randomUUID()
-        : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-    const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-            'X-Idempotency-Key': idempotencyKey,
-        },
-        body: JSON.stringify(body),
-    });
-    let data;
-    try { data = await res.json(); } catch (e) { throw new Error('Server returned invalid response'); }
-    if (!res.ok) throw new Error(data.error || 'API call failed');
-    return data;
-};
-
-const apiGet = async (url) => {
-    const token = await getAuthToken();
-    if (!token) throw new Error('Not authenticated');
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-    let data;
-    try { data = await res.json(); } catch (e) { throw new Error('Server returned invalid response'); }
-    if (!res.ok) throw new Error(data.error || 'API call failed');
-    return data;
-};
 
 const MemoizedMemberRow = React.memo(({ member, agents, downlineCount, assignedAgent, processing, assignAgent, updateMemberRole, removeMember, resolveAvatarDisplay, rList, S, FB }) => (
     <div key={member.user_id} style={S.memberRow}>

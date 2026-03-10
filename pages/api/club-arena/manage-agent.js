@@ -16,6 +16,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
+const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -244,6 +245,7 @@ export default async function handler(req, res) {
 
       if (agentErr) throw agentErr;
 
+      logAudit(supabaseAdmin, { actionType: 'agent_promoted', userId: user.id, targetUserId, clubId, ip: extractIP(req), details: { agentId: agentRecord.id, agentTier, commissionRate, isPrepaid, rakebackPercentage: rakebackPercentage || 0 } });
       return res.status(200).json({
         success: true,
         action: 'promoted',
@@ -332,6 +334,7 @@ export default async function handler(req, res) {
         .eq('user_id', targetUserId)
         .eq('club_id', clubId);
 
+      logAudit(supabaseAdmin, { actionType: 'agent_demoted', userId: user.id, targetUserId, clubId, ip: extractIP(req), details: { playersReassigned: playerCount, reassignedTo: reassignTo || 'unassigned' } });
       return res.status(200).json({
         success: true,
         action: 'demoted',
@@ -498,6 +501,7 @@ export default async function handler(req, res) {
         .eq('club_id', clubId)
         .eq('user_id', targetUserId);
 
+      logAudit(supabaseAdmin, { actionType: `agent_${action}`, userId: user.id, targetUserId, clubId, ip: extractIP(req), details: { newStatus } });
       return res.status(200).json({ success: true, action, targetUserId, newStatus });
     }
 
@@ -758,6 +762,7 @@ export default async function handler(req, res) {
         .eq('id', targetAgent.id);
 
       if (error) throw error;
+      logAudit(supabaseAdmin, { actionType: 'parent_agent_set', userId: user.id, targetUserId, clubId, ip: extractIP(req), details: { parentAgentId } });
       return res.status(200).json({ success: true, action: 'parent_set', parentAgentId });
     }
 
@@ -985,6 +990,7 @@ export default async function handler(req, res) {
         .update({ commission_rate: commissionRate })
         .eq('id', targetAgent.id);
 
+      logAudit(supabaseAdmin, { actionType: 'commission_updated', userId: user.id, targetUserId, clubId, ip: extractIP(req), details: { oldRate: targetAgent.commission_rate, newRate: commissionRate } });
       return res.status(200).json({
         success: true,
         action: 'commission_updated',
