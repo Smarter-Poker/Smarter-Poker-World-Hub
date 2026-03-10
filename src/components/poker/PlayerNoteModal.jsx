@@ -1,125 +1,109 @@
-/**
- * PlayerNoteModal — In-game opponent notes (PokerStars-style)
- * ═══════════════════════════════════════════════════════════
- * Click player avatar → modal with:
- *   - Player type classification (fish/reg/shark/etc)
- *   - Color label (colored dot on avatar)
- *   - Free-text notes, tells, tendencies
- * 
- * Data persists across sessions via player_notes API
- */
-
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+const T = {
+  bg: 'rgba(15,15,20,0.95)',
+  border: 'rgba(255,255,255,0.12)',
+  text: '#E4E6EB',
+  dim: '#8E8E93',
+  accent: '#2374E1',
+  danger: '#FA383E',
+  success: '#31A24C',
+};
+
 const PLAYER_TYPES = [
-  { value: 'unknown', label: '❓ Unknown', color: '#666' },
-  { value: 'fish', label: '🐟 Fish', color: '#4fc3f7' },
-  { value: 'reg', label: '🎯 Regular', color: '#81c784' },
-  { value: 'shark', label: '🦈 Shark', color: '#ef5350' },
-  { value: 'whale', label: '🐋 Whale', color: '#FFD700' },
-  { value: 'nit', label: '🐢 Nit', color: '#9e9e9e' },
-  { value: 'lag', label: '🔥 LAG', color: '#ff9800' },
-  { value: 'tag', label: '🎯 TAG', color: '#7e57c2' },
+  { id: 'unknown', emoji: '❓', label: 'Unknown' },
+  { id: 'fish', emoji: '🐟', label: 'Fish' },
+  { id: 'reg', emoji: '🎯', label: 'Regular' },
+  { id: 'shark', emoji: '🦈', label: 'Shark' },
+  { id: 'whale', emoji: '🐋', label: 'Whale' },
+  { id: 'nit', emoji: '🐢', label: 'Nit' },
+  { id: 'lag', emoji: '🔥', label: 'LAG' },
+  { id: 'tag', emoji: '🛡️', label: 'TAG' },
 ];
 
-const COLOR_LABELS = [
-  { value: 'none', color: 'transparent', label: 'None' },
-  { value: 'red', color: '#ef5350', label: 'Red' },
-  { value: 'orange', color: '#ff9800', label: 'Orange' },
-  { value: 'yellow', color: '#ffeb3b', label: 'Yellow' },
-  { value: 'green', color: '#4caf50', label: 'Green' },
-  { value: 'blue', color: '#2196f3', label: 'Blue' },
-  { value: 'purple', color: '#9c27b0', label: 'Purple' },
-];
-
-async function apiPost(url, body, supabase) {
-  let headers = { 'Content-Type': 'application/json' };
-  // BUG #147 FIX: Include auth token — server requires Bearer auth
-  if (supabase) {
-    try {
-      const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-      if (session?.access_token) {
-        headers['Authorization'] = `Bearer ${session.access_token}`;
-      }
-    } catch (_) {}
-  }
-  const res = await fetch(url, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(body),
-  });
-  return res.json();
-}
-
-export default function PlayerNoteModal({ isOpen, onClose, userId, targetPlayer, supabase }) {
-  const [note, setNote] = useState({
-    player_type: 'unknown',
-    color_label: 'none',
-    notes: '',
-    tells: '',
-    tendencies: '',
-    nickname: '',
-  });
-  const [loading, setLoading] = useState(false);
+export default function PlayerNoteModal({ isOpen, onClose, player, initialNote, onSave }) {
+  const [noteText, setNoteText] = useState('');
+  const [playerType, setPlayerType] = useState('unknown');
+  const [isMuted, setIsMuted] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
 
-  // Load existing note
+  // Initialize state when modal opens
   useEffect(() => {
-    if (!isOpen || !userId || !targetPlayer?.id) return;
-    setLoading(true);
-    setSaved(false);
-    apiPost('/api/club-arena/player-notes', {
-      action: 'get',
-      targetUserId: targetPlayer.id,
-    }, supabase).then(r => {
-      if (r.note) {
-        setNote({
-          player_type: r.note.player_type || 'unknown',
-          color_label: r.note.color_label || 'none',
-          notes: r.note.notes || '',
-          tells: r.note.tells || '',
-          tendencies: r.note.tendencies || '',
-          nickname: r.note.nickname || '',
-        });
-      } else {
-        setNote({
-          player_type: 'unknown', color_label: 'none',
-          notes: '', tells: '', tendencies: '',
-          nickname: targetPlayer.displayName || '',
-        });
-      }
-    }).catch(() => {}).finally(() => setLoading(false));
-  }, [isOpen, userId, targetPlayer?.id]);
+    if (isOpen && player) {
+      setNoteText(initialNote?.notes || '');
+      setPlayerType(initialNote?.player_type || 'unknown');
 
-  const handleSave = useCallback(async () => {
-    if (!userId || !targetPlayer?.id) return;
+      // Check local storage for mute status
+      try {
+        const mutedStr = localStorage.getItem('ca_muted_players');
+        const mutedArr = mutedStr ? JSON.parse(mutedStr) : [];
+        setIsMuted(mutedArr.includes(player.id));
+      } catch (err) {
+        console.error('Failed to read mute list:', err);
+      }
+    }
+  }, [isOpen, player, initialNote]);
+
+  const handleToggleMute = () => {
+    try {
+      const mutedStr = localStorage.getItem('ca_muted_players');
+      let mutedArr = mutedStr ? JSON.parse(mutedStr) : [];
+      let nextMuted = false;
+
+      if (mutedArr.includes(player.id)) {
+        // Unmute
+        mutedArr = mutedArr.filter(id => id !== player.id);
+      } else {
+        // Mute
+        mutedArr.push(player.id);
+        nextMuted = true;
+      }
+
+      localStorage.setItem('ca_muted_players', JSON.stringify(mutedArr));
+      setIsMuted(nextMuted);
+
+      // Dispatch a custom event so TableChatHUD can update immediately
+      window.dispatchEvent(new CustomEvent('ca_mute_updated'));
+    } catch (err) {
+      console.error('Failed to update mute list:', err);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!player) return;
     setSaving(true);
     try {
-      await apiPost('/api/club-arena/player-notes', {
-        action: 'upsert',
-        targetUserId: targetPlayer.id,
-        note,
-      }, supabase);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    } catch (e) {
-      console.error('Note save failed:', e);
+      // We assume onSave performs the API call or we can do it here directly.
+      // Doing it here makes the component self-contained for API logic.
+      const res = await fetch('/api/club-arena/player-notes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetId: player.id,
+          notes: noteText,
+          playerType: playerType,
+          color: null // Future proofing
+        })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        if (onSave) {
+          onSave({ notes: noteText, player_type: playerType });
+        }
+        onClose();
+      } else {
+        alert(data.error || 'Failed to save note');
+      }
+    } catch (err) {
+      console.error('Note save error:', err);
     } finally {
       setSaving(false);
     }
-  }, [userId, targetPlayer?.id, note]);
+  };
 
-  const handleDelete = useCallback(async () => {
-    if (!userId || !targetPlayer?.id) return;
-    await apiPost('/api/club-arena/player-notes', {
-      action: 'delete', targetUserId: targetPlayer.id,
-    }, supabase);
-    onClose();
-  }, [userId, targetPlayer?.id, onClose, supabase]);
-
-  if (!isOpen || !targetPlayer) return null;
+  if (!isOpen || !player) return null;
 
   return (
     <AnimatePresence>
@@ -127,142 +111,119 @@ export default function PlayerNoteModal({ isOpen, onClose, userId, targetPlayer,
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        onClick={onClose}
         style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
-          zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          position: 'fixed', inset: 0, zIndex: 9999,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
         }}
+        onClick={onClose}
       >
         <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.9, opacity: 0 }}
+          initial={{ opacity: 0, scale: 0.95, y: 10 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 10 }}
           onClick={e => e.stopPropagation()}
           style={{
-            background: '#242526', borderRadius: 16, padding: 20,
-            width: 340, maxHeight: '80vh', overflowY: 'auto',
-            border: '1px solid #3a3b3c', boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+            background: T.bg, border: `1px solid ${T.border}`,
+            borderRadius: 16, width: 340, maxWidth: '90%',
+            overflow: 'hidden', boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
           }}
         >
           {/* Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <div style={{ color: '#e4e6eb', fontSize: 16, fontWeight: 700 }}>
-              📝 Notes: {targetPlayer.displayName || 'Player'}
+          <div style={{ padding: '16px 20px', borderBottom: `1px solid ${T.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: T.text, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#374151', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                {player.avatarUrl ? <img src={player.avatarUrl} style={{ width: '100%', height: '100%' }} /> : '👤'}
+              </div>
+              {player.displayName || 'Player'}
             </div>
-            <button onClick={onClose} style={{
-              background: 'none', border: 'none', color: '#b0b3b8', fontSize: 18, cursor: 'pointer',
-            }}>✕</button>
+            <button onClick={onClose} style={{ background: 'none', border: 'none', color: T.dim, fontSize: 20, cursor: 'pointer' }}>✕</button>
           </div>
 
-          {loading ? (
-            <div style={{ color: '#b0b3b8', textAlign: 'center', padding: 20 }}>Loading...</div>
-          ) : (
-            <>
-              {/* Player Type */}
-              <label style={labelStyle}>Player Type</label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 12 }}>
-                {PLAYER_TYPES.map(pt => (
+          <div style={{ padding: 20 }}>
+            {/* Tag Selection */}
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 12, color: T.dim, marginBottom: 8, textTransform: 'uppercase', fontWeight: 600, letterSpacing: 0.5 }}>Player Type Tag</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {PLAYER_TYPES.map(type => (
                   <button
-                    key={pt.value}
-                    onClick={() => setNote(n => ({ ...n, player_type: pt.value }))}
+                    key={type.id}
+                    onClick={() => setPlayerType(type.id)}
                     style={{
-                      background: note.player_type === pt.value ? pt.color + '33' : '#3a3b3c',
-                      border: `1px solid ${note.player_type === pt.value ? pt.color : '#4e4f50'}`,
-                      borderRadius: 6, padding: '4px 8px', fontSize: 11, color: '#e4e6eb',
-                      cursor: 'pointer', fontWeight: note.player_type === pt.value ? 700 : 400,
-                    }}
-                  >{pt.label}</button>
-                ))}
-              </div>
-
-              {/* Color Label */}
-              <label style={labelStyle}>Color Label</label>
-              <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
-                {COLOR_LABELS.map(cl => (
-                  <button
-                    key={cl.value}
-                    onClick={() => setNote(n => ({ ...n, color_label: cl.value }))}
-                    title={cl.label}
-                    style={{
-                      width: 24, height: 24, borderRadius: '50%', cursor: 'pointer',
-                      background: cl.value === 'none' ? '#3a3b3c' : cl.color,
-                      border: `2px solid ${note.color_label === cl.value ? '#fff' : 'transparent'}`,
-                      position: 'relative',
+                      padding: '6px 10px',
+                      borderRadius: 20,
+                      background: playerType === type.id ? 'rgba(35, 116, 225, 0.2)' : 'rgba(255,255,255,0.05)',
+                      border: `1px solid ${playerType === type.id ? T.accent : T.border}`,
+                      color: playerType === type.id ? '#fff' : T.dim,
+                      fontSize: 13,
+                      cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', gap: 4,
+                      transition: 'all 0.2s',
                     }}
                   >
-                    {cl.value === 'none' && <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#666' }}>✕</span>}
+                    <span>{type.emoji}</span>
+                    <span>{type.label}</span>
                   </button>
                 ))}
               </div>
+            </div>
 
-              {/* Notes */}
-              <label style={labelStyle}>Notes</label>
+            {/* Note Textarea */}
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 12, color: T.dim, marginBottom: 8, textTransform: 'uppercase', fontWeight: 600, letterSpacing: 0.5 }}>Custom Notes</div>
               <textarea
-                value={note.notes}
-                onChange={e => setNote(n => ({ ...n, notes: e.target.value }))}
-                placeholder="General notes about this player..."
-                maxLength={2000}
-                style={textareaStyle}
-                rows={3}
+                value={noteText}
+                onChange={e => setNoteText(e.target.value)}
+                placeholder="Write observation here..."
+                style={{
+                  width: '100%', height: 80,
+                  background: 'rgba(0,0,0,0.3)', border: `1px solid ${T.border}`,
+                  borderRadius: 8, padding: 12, color: T.text, fontSize: 14,
+                  resize: 'none', outline: 'none', fontFamily: 'inherit'
+                }}
               />
+            </div>
 
-              {/* Tendencies */}
-              <label style={labelStyle}>Tendencies</label>
-              <textarea
-                value={note.tendencies}
-                onChange={e => setNote(n => ({ ...n, tendencies: e.target.value }))}
-                placeholder="e.g. 3bets wide from BTN, never bluffs river..."
-                maxLength={1000}
-                style={textareaStyle}
-                rows={2}
-              />
-
-              {/* Tells */}
-              <label style={labelStyle}>Tells</label>
-              <textarea
-                value={note.tells}
-                onChange={e => setNote(n => ({ ...n, tells: e.target.value }))}
-                placeholder="e.g. quick-calls when strong, tanks when bluffing..."
-                maxLength={1000}
-                style={textareaStyle}
-                rows={2}
-              />
-
-              {/* Actions */}
-              <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                <button onClick={handleSave} disabled={saving} style={{
-                  flex: 1, padding: '8px 16px', borderRadius: 8, border: 'none',
-                  background: saved ? '#4caf50' : '#2374E1', color: '#fff',
-                  fontWeight: 700, fontSize: 13, cursor: 'pointer',
-                  opacity: saving ? 0.6 : 1,
-                }}>
-                  {saving ? 'Saving...' : saved ? '✓ Saved' : 'Save Note'}
-                </button>
-                <button onClick={handleDelete} style={{
-                  padding: '8px 12px', borderRadius: 8, border: '1px solid #4e4f50',
-                  background: 'transparent', color: '#ef5350',
-                  fontWeight: 600, fontSize: 12, cursor: 'pointer',
-                }}>🗑️</button>
+            {/* Mute Toggle */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: 8, marginBottom: 20 }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: T.text }}>Mute Chat</div>
+                <div style={{ fontSize: 11, color: T.dim }}>Hide messages from this player</div>
               </div>
-            </>
-          )}
+              <button
+                onClick={handleToggleMute}
+                style={{
+                  width: 44, height: 24, borderRadius: 12,
+                  background: isMuted ? T.danger : 'rgba(255,255,255,0.1)',
+                  border: 'none', position: 'relative', cursor: 'pointer',
+                  transition: 'background 0.3s'
+                }}
+              >
+                <div style={{
+                  width: 20, height: 20, borderRadius: '50%', background: '#fff',
+                  position: 'absolute', top: 2, left: isMuted ? 22 : 2,
+                  transition: 'left 0.3s'
+                }} />
+              </button>
+            </div>
+
+            {/* Save Action */}
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              style={{
+                width: '100%', padding: '12px 0',
+                background: T.accent, color: '#fff', border: 'none',
+                borderRadius: 8, fontSize: 15, fontWeight: 700,
+                cursor: saving ? 'not-allowed' : 'pointer',
+                opacity: saving ? 0.7 : 1,
+              }}
+            >
+              {saving ? 'Saving...' : 'Save Note'}
+            </button>
+          </div>
         </motion.div>
       </motion.div>
     </AnimatePresence>
   );
 }
-
-// Exported for use by PlayerSeat to show color dot
-export { COLOR_LABELS };
-
-const labelStyle = {
-  display: 'block', color: '#b0b3b8', fontSize: 11, fontWeight: 600,
-  marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5,
-};
-
-const textareaStyle = {
-  width: '100%', background: '#3a3b3c', border: '1px solid #4e4f50',
-  borderRadius: 8, padding: 8, color: '#e4e6eb', fontSize: 13,
-  resize: 'vertical', fontFamily: 'inherit', marginBottom: 8,
-  outline: 'none',
-};

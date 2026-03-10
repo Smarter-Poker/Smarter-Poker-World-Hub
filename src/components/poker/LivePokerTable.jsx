@@ -43,7 +43,7 @@ import {
   getActiveTheme,
 } from './TableThemes';
 import ThemePicker from './ThemePicker';
-import PlayerNoteModal, { COLOR_LABELS } from './PlayerNoteModal';
+import PlayerNoteModal from './PlayerNoteModal';
 import PlayerQuickView from './PlayerQuickView';
 import { eventBus, EventType } from '../../engine/EventBus';
 
@@ -4003,8 +4003,8 @@ function LivePokerTable({
         {seats.map((seat, i) => {
           const pid = seat.player?.id;
           const noteData = pid && String(pid) !== String(userId) ? playerNotes[pid] : null;
-          const noteColorVal = noteData?.color_label && noteData.color_label !== 'none'
-            ? COLOR_LABELS.find(c => c.value === noteData.color_label)?.color
+          const noteColorVal = noteData?.player_type && noteData.player_type !== 'unknown'
+            ? 'rgba(255, 215, 0, 0.4)' // Gold tint if tagged
             : null;
           // Poker position from game state (btn, sb, bb, utg, mp)
           const gamePlayer = tableState?.game?.players?.find(p => String(p.id) === String(pid));
@@ -4882,9 +4882,8 @@ function LivePokerTable({
             }
           }
         }}
-        userId={userId}
-        targetPlayer={noteTarget}
-        supabase={supabase}
+        player={noteTarget}
+        initialNote={noteTarget ? playerNotes[noteTarget.id] : null}
       />
 
       {/* MYSTERY BOUNTY OVERLAY */}

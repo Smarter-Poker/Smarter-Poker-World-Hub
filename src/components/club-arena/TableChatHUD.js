@@ -8,8 +8,22 @@ export default function TableChatHUD({ tableId, userId, isMuted = false }) {
     const [newMessage, setNewMessage] = useState('');
     const [isOpen, setIsOpen] = useState(false); // Mobile toggle
     const [unreadCount, setUnreadCount] = useState(0);
+    const [mutedPlayers, setMutedPlayers] = useState([]);
     const chatRef = useRef(null);
     const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+
+    // Load muted players from localStorage and listen for updates
+    useEffect(() => {
+        const loadMutes = () => {
+            try {
+                const mutedStr = localStorage.getItem('ca_muted_players');
+                setMutedPlayers(mutedStr ? JSON.parse(mutedStr) : []);
+            } catch (e) { }
+        };
+        loadMutes();
+        window.addEventListener('ca_mute_updated', loadMutes);
+        return () => window.removeEventListener('ca_mute_updated', loadMutes);
+    }, []);
 
     // Load recent messages
     useEffect(() => {
@@ -140,7 +154,7 @@ export default function TableChatHUD({ tableId, userId, isMuted = false }) {
                     <div style={styles.emptyState}>No messages yet. Say hi!</div>
                 )}
 
-                {messages.map((msg) => {
+                {messages.filter(msg => !mutedPlayers.includes(msg.sender_id)).map((msg) => {
                     const isDealer = msg.message_type === 'dealer' || msg.message_type === 'system';
                     const isMe = msg.sender_id === userId;
 
