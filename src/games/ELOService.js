@@ -5,13 +5,10 @@
  * Based on standard ELO formula with K-factor adjustments for skill levels.
  */
 
-import { createClient } from '@supabase/supabase-js';
+
 
 // Initialize Supabase (client-side)
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+import { supabase } from '../lib/supabase';
 
 // Constants
 const DEFAULT_ELO = 1200;

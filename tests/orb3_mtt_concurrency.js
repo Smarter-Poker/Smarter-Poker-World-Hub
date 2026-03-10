@@ -47,20 +47,34 @@ async function runTest() {
     console.log(`  UUID: ${TEST_UUID}`);
 
     try {
-        // 1. Create a god-mode test user
+        // 1. Create a god-mode test user id
         const { data: godUser, error: uErr } = await supabaseAdmin.auth.admin.createUser({
             email: `god_${TEST_UUID}@test.com`,
             password: 'password123',
             email_confirm: true,
         });
         if (uErr) throw uErr;
+        const godId = godUser.user.id;
+
+        // We need all player IDs (including god user) to exist in the `users` table for foreign keys
+        const playerIds = [godId];
+        for (let i = 0; i < CONCURRENT_USERS; i++) playerIds.push(crypto.randomUUID());
+
+        const userInserts = playerIds.map(id => ({
+            id,
+            username: `Tester_${id.slice(0, 8)}`
+        }));
+
+        console.log(`  [+] Inserting ${userInserts.length} mock users into 'users' table to satisfy constraints...`);
+        const { error: userErr } = await supabaseAdmin.from('users').insert(userInserts);
+        if (userErr) throw userErr;
 
         // 2. Setup Test Club
         const { data: club, error: cErr } = await supabaseAdmin
             .from('clubs')
             .insert({
                 name: CLUB_NAME,
-                owner_id: godUser.user.id,
+                owner_id: godId,
                 settings: {}
             })
             .select('id')
@@ -79,7 +93,8 @@ async function runTest() {
                 buy_in: BUY_IN,
                 registered_count: 0,
                 prize_pool: 0,
-                settings: { late_reg_minutes: 10 }
+                settings: { late_reg_minutes: 10 },
+                created_by: godId
             })
             .select('id')
             .maybeSingle();
@@ -90,13 +105,9 @@ async function runTest() {
 
         // 4. Create 100 Test Users and Give them Chips
         console.log(`  [+] Spinning up ${CONCURRENT_USERS} synthetic test players...`);
-        const playerIds = [];
 
-        // We do this in batches so we don't hit Supabase rate limits on auth
-        for (let i = 0; i < CONCURRENT_USERS; i++) {
-            const id = crypto.randomUUID();
-            playerIds.push(id);
-        }
+        // Remove the godId from the array so we only have 100 players for registering
+        playerIds.shift();
 
         // Insert dummy profiles & club members instantly instead of auth creation to save time/limits
         const memberInserts = playerIds.map(id => ({
@@ -166,8 +177,9 @@ async function runTest() {
         console.log(`\n  🧹 Teardown Initiated`);
         await supabaseAdmin.from('club_tournaments').delete().eq('id', tournamentId);
         await supabaseAdmin.from('clubs').delete().eq('id', clubId);
-        await supabaseAdmin.auth.admin.deleteUser(godUser.user.id);
-        console.log(`  [+] Cleaned up isolated test data`);
+        const { error: delErr } = await supabaseAdmin.from('users').delete().in('id', [godId, ...playerIds]);
+        if (delErr) console.error('  [!] Warning: Failed to clean up fake users:', delErr.message);
+        else console.log(`  [+] Cleaned up isolated test data`);
 
     } catch (err) {
         console.error('\n🚨 FATAL TEST ERROR:', err);
