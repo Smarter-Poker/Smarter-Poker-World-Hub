@@ -368,6 +368,15 @@ export default function Cashier() {
             return;
         }
 
+        // P3 ENH-11: High-value confirmation gate (>10,000 chips)
+        if (amount >= 10000) {
+            const confirmed = window.prompt(`⚠️ Large transaction: ${amount.toLocaleString()} chips for ${diamondCost} 💎.\nType CONFIRM to proceed:`);
+            if (confirmed?.trim().toUpperCase() !== 'CONFIRM') {
+                showToast('Transaction cancelled', 'error');
+                return;
+            }
+        }
+
         isProcessingRef.current = true;
         setProcessing(true);
         // OPT-3: Optimistic diamond decrement
