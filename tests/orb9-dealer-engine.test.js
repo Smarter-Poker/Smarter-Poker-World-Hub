@@ -236,7 +236,7 @@ const foldResult = Dealer.resolveShowdown({
     { playerId: 'winner', holeCards: [mc('A','s'), mc('K','s')], invested: 100 },
     { playerId: 'calledAndLost', holeCards: [mc('2','h'), mc('3','h')], invested: 100 },
   ],
-  board: [mc('A','d'), mc('K','d'), mc('Q','c'), mc('4','s'), mc('5','d')],
+  board: [mc('A','d'), mc('K','d'), mc('Q','c'), mc('9','s'), mc('8','d')],
   foldedPlayers: [
     { playerId: 'folder1', invested: 50 },
     { playerId: 'folder2', invested: 25 },
@@ -254,7 +254,7 @@ const rakeResult = Dealer.resolveShowdown({
     { playerId: 'rakeWin', holeCards: [mc('A','s'), mc('A','h')], invested: 100 },
     { playerId: 'rakeLose', holeCards: [mc('2','h'), mc('3','h')], invested: 100 },
   ],
-  board: [mc('A','d'), mc('K','d'), mc('Q','c'), mc('4','s'), mc('5','d')],
+  board: [mc('A','d'), mc('K','d'), mc('Q','c'), mc('9','s'), mc('8','d')],
   rake: { percent: 5, cap: 3 },
 });
 
