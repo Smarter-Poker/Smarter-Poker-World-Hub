@@ -90,6 +90,22 @@ const getFileIcon = (filename) => {
     return '📎';
 };
 
+// P6-2: Priority flag constants
+const PRIORITY_FLAGS = [
+    { label: 'Urgent', emoji: '🔴', value: 'urgent' },
+    { label: 'Normal', emoji: '🟡', value: 'normal' },
+    { label: 'Low', emoji: '🟢', value: 'low' }
+];
+
+// P6-6: Mute timer options
+const MUTE_OPTIONS = [
+    { label: 'Unmute', value: 0 },
+    { label: '1 hour', value: 3600000 },
+    { label: '8 hours', value: 28800000 },
+    { label: '24 hours', value: 86400000 },
+    { label: 'Forever', value: -1 }
+];
+
 const useMessengerPrefs = () => {
     const [prefs, setPrefs] = useState({
         bookmarks: [],
@@ -102,6 +118,10 @@ const useMessengerPrefs = () => {
         threadReplies: {},
         editHistory: {},
         reactions: {},
+        dndConversations: {},
+        mutedConversations: {},
+        priorityFlags: {},
+        unreadCounts: {},
         templates: [
             "Your funds are ready",
             "Tournament starts in 30 min",
@@ -394,9 +414,15 @@ export const ChatWindow = ({
     const [editText, setEditText] = useState('');
     const [showStats, setShowStats] = useState(false);
     const [isTyping, setIsTyping] = useState(false);
+    const [userStatus, setUserStatus] = useState('online');
+    const [showMuteMenu, setShowMuteMenu] = useState(false);
+    const [showPriorityPicker, setShowPriorityPicker] = useState(null);
+    const [showGroupCreate, setShowGroupCreate] = useState(false);
+    const [groupParticipants, setGroupParticipants] = useState([]);
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
     const typingTimeoutRef = useRef(null);
+    const idleTimeoutRef = useRef(null);
     const [prefs, updatePrefs] = useMessengerPrefs();
 
     const conversationId = conversation?.id;
@@ -405,6 +431,29 @@ export const ChatWindow = ({
     const isDisappearing = disappearMs > 0;
     const pinnedIds = prefs.pinnedMessages[conversationId] || [];
     const isArchived = (prefs.archivedConversations || []).includes(conversationId);
+    const isDND = prefs.dndConversations?.[conversationId] || false;
+    const muteUntil = prefs.mutedConversations?.[conversationId] || 0;
+    const isMuted = muteUntil === -1 || (muteUntil > 0 && Date.now() < muteUntil);
+    const unreadCount = prefs.unreadCounts?.[conversationId] || 0;
+
+    // P6-3: Auto-away detection
+    useEffect(() => {
+        const resetIdle = () => {
+            setUserStatus('online');
+            clearTimeout(idleTimeoutRef.current);
+            idleTimeoutRef.current = setTimeout(() => setUserStatus('away'), 300000);
+        };
+        if (typeof window !== 'undefined') {
+            window.addEventListener('mousemove', resetIdle);
+            window.addEventListener('keydown', resetIdle);
+            resetIdle();
+            return () => {
+                window.removeEventListener('mousemove', resetIdle);
+                window.removeEventListener('keydown', resetIdle);
+                clearTimeout(idleTimeoutRef.current);
+            };
+        }
+    }, []);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -497,6 +546,10 @@ export const ChatWindow = ({
         if (action === 'edit') {
             setEditingMsg(msg);
             setEditText(msg.text || '');
+        }
+        // P6-2: Priority flag
+        if (action === 'priority') {
+            setShowPriorityPicker(showPriorityPicker === msg.id ? null : msg.id);
         }
     };
 
@@ -615,7 +668,9 @@ export const ChatWindow = ({
                 <div className="chat-user-info">
                     <span className="chat-user-name">{otherUser?.name}</span>
                     <span className="chat-user-status">
-                        {otherUser?.online ? 'Active now' : 'Active 2h ago'}
+                        {userStatus === 'away' ? '🟡 Away' : otherUser?.online ? 'Active now' : 'Active 2h ago'}
+                        {isDND && <span style={{ marginLeft: 4, color: '#E41E3F' }} title="Do Not Disturb">🔕</span>}
+                        {isMuted && <span style={{ marginLeft: 4, color: '#999' }} title="Muted">🔇</span>}
                         {isDisappearing && <span style={{ marginLeft: 4 }} title="Disappearing Messages On">⏱️ {DISAPPEAR_OPTIONS.find(o => o.value === disappearMs)?.label || '24h'}</span>}
                     </span>
                 </div>
@@ -655,6 +710,19 @@ export const ChatWindow = ({
                     <button className="header-btn" onClick={() => setMsgSearch(msgSearch ? '' : ' ')} title="Search Messages">🔍</button>
                     {/* P5-8: Stats toggle */}
                     <button className="header-btn" onClick={() => setShowStats(!showStats)} title="Chat Stats">📊</button>
+                    {/* P6-1: DND toggle */}
+                    <button className="header-btn" onClick={() => updatePrefs(p => ({ ...p, dndConversations: { ...p.dndConversations, [conversationId]: !isDND } }))} title={isDND ? 'Disable DND' : 'Do Not Disturb'} style={{ color: isDND ? '#E41E3F' : undefined }}>🔕</button>
+                    {/* P6-6: Mute timer */}
+                    <div style={{ position: 'relative', display: 'inline-block' }}>
+                        <button className="header-btn" onClick={() => setShowMuteMenu(!showMuteMenu)} title={isMuted ? 'Muted' : 'Mute'} style={{ color: isMuted ? '#999' : undefined }}>🔇</button>
+                        {showMuteMenu && (
+                            <div className="disappear-menu">
+                                {MUTE_OPTIONS.map(opt => (
+                                    <button key={opt.value} className={`disappear-opt ${muteUntil === opt.value || (opt.value > 0 && muteUntil > 0 && muteUntil !== -1) ? '' : ''}`} onClick={() => { updatePrefs(p => ({ ...p, mutedConversations: { ...p.mutedConversations, [conversationId]: opt.value === -1 ? -1 : opt.value === 0 ? 0 : Date.now() + opt.value } })); setShowMuteMenu(false); }}>{opt.label}</button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                     <button className="header-btn" onClick={onMinimize}>−</button>
                     <button className="header-btn" onClick={onClose}>✕</button>
                 </div>

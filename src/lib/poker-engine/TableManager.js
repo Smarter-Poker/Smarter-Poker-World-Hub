@@ -850,12 +850,20 @@ class TableManager {
     const bombPotEnabled = this.game.config.bombPot;
     let isBombPot = false;
     if (bombPotEnabled && activePlayers.length >= 3) {
-      // Trigger bomb pot every ~10 hands (10% chance per hand, min 5 hands apart)
-      const handsSinceLastBomb = this.handCount - (this._lastBombPotHand || 0);
-      if (handsSinceLastBomb >= 5 && Math.random() < 0.10) {
+      // Check if GameController's frequency counter triggered this hand
+      if (this.game.config.bombPotTriggered) {
         isBombPot = true;
+        this.game.config.bombPotTriggered = false; // Consume the flag
         this._lastBombPotHand = this.handCount;
-        this.emit('bomb_pot_starting', { handNumber: this.handCount });
+        this.emit('bomb_pot_starting', { handNumber: this.handCount, source: 'frequency' });
+      } else if (!this.game.config.bombPotFrequency) {
+        // Legacy random trigger — only when NO explicit frequency is configured
+        const handsSinceLastBomb = this.handCount - (this._lastBombPotHand || 0);
+        if (handsSinceLastBomb >= 5 && Math.random() < 0.10) {
+          isBombPot = true;
+          this._lastBombPotHand = this.handCount;
+          this.emit('bomb_pot_starting', { handNumber: this.handCount, source: 'random' });
+        }
       }
     }
 
