@@ -9,7 +9,7 @@ import { supabase } from '../../src/lib/supabase';
 
 export default function AuthCallback() {
     const router = useRouter();
-    const [status, setStatus] = useState('Verifying email...');
+    const [status, setStatus] = useState('Verifying Email...');
     const [error, setError] = useState('');
 
     useEffect(() => {
@@ -20,19 +20,19 @@ export default function AuthCallback() {
 
                 if (sessionError) {
                     console.error('Session error:', sessionError);
-                    setError('Failed to verify email. Please try again.');
+                    setError('Failed To Verify Email. Please Try Again.');
                     return;
                 }
 
                 if (!session) {
-                    setStatus('Waiting for verification...');
+                    setStatus('Waiting For Verification...');
                     // No session yet, might need to wait
                     await new Promise(resolve => setTimeout(resolve, 2000));
 
                     // Try again
                     const { data: { session: retrySession } } = await supabase.auth.getSession();
                     if (!retrySession) {
-                        setError('No session found. Please try signing in.');
+                        setError('No Session Found. Please Try Signing In.');
                         setTimeout(() => router.push('/auth/signin'), 3000);
                         return;
                     }
@@ -42,12 +42,12 @@ export default function AuthCallback() {
 
                 const user = session?.user;
                 if (!user) {
-                    setError('User not found. Please sign up again.');
+                    setError('User Not Found. Please Sign Up Again.');
                     setTimeout(() => router.push('/auth/signup'), 3000);
                     return;
                 }
 
-                setStatus('Creating your profile...');
+                setStatus('Creating Your Profile...');
 
                 // Check if profile already exists
                 const { data: existingProfile } = await supabase
@@ -115,7 +115,7 @@ export default function AuthCallback() {
                     }
 
                     // Otherwise go to hub
-                    setStatus('Welcome back! Redirecting...');
+                    setStatus('Welcome Back! Redirecting...');
                     sessionStorage.setItem('just_authenticated', 'true');
                     setTimeout(() => router.replace('/hub'), 1000);
                     return;
@@ -196,17 +196,17 @@ export default function AuthCallback() {
                                         };
                                         localStorage.setItem('commander_staff', JSON.stringify(staffSession));
                                         localStorage.setItem('commander_remember', 'true');
-                                        setStatus('Account linked! Redirecting to Club Commander...');
+                                        setStatus('Account Linked! Redirecting To Club Commander...');
                                         setTimeout(() => router.replace('/commander/dashboard'), 1000);
                                         return;
                                     }
                                 } catch (e) { console.error('Commander sub check failed after merge', e); }
 
-                                setStatus('Account linked! Redirecting to Club Commander...');
+                                setStatus('Account Linked! Redirecting To Club Commander...');
                                 setTimeout(() => router.replace('/commander/dashboard'), 1000);
                                 return;
                             } else {
-                                setStatus('Account linked! Redirecting...');
+                                setStatus('Account Linked! Redirecting...');
                                 sessionStorage.setItem('just_authenticated', 'true');
                                 setTimeout(() => router.replace('/hub'), 1000);
                                 return;
@@ -233,7 +233,7 @@ export default function AuthCallback() {
                     if (profileData && profileData.length > 0) {
                         setStatus(`Welcome, Player #${profileData[0].player_number}! Redirecting...`);
                     } else {
-                        setStatus('Account created! Redirecting...');
+                        setStatus('Account Created! Redirecting...');
                     }
                 } catch (rpcErr) {
                     // Fallback to direct insert
@@ -264,7 +264,7 @@ export default function AuthCallback() {
                             onConflict: 'id',
                         });
 
-                    setStatus('Account created! Redirecting...');
+                    setStatus('Account Created! Redirecting...');
                 }
 
                 // ═══════════════════════════════════════════════════════════════
@@ -343,7 +343,7 @@ export default function AuthCallback() {
 
             } catch (err) {
                 console.error('Callback error:', err);
-                setError('Something went wrong. Please try signing in.');
+                setError('Something Went Wrong. Please Try Signing In.');
                 setTimeout(() => router.push('/auth/signin'), 3000);
             }
         };

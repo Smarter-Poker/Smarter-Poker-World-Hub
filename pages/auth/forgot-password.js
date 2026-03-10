@@ -102,8 +102,8 @@ export default function ForgotPasswordPage() {
                         </h1>
                         <p style={styles.subtitle}>
                             {success
-                                ? 'We sent you a password reset link'
-                                : 'Enter your email to receive a reset link'
+                                ? 'We Sent You A Password Reset Link'
+                                : 'Enter Your Email To Receive A Reset Link'
                             }
                         </p>
                     </div>
@@ -118,17 +118,17 @@ export default function ForgotPasswordPage() {
                         <div style={styles.successContainer}>
                             <div style={styles.successIcon}>📧</div>
                             <p style={styles.successText}>
-                                We've sent a password reset link to:
+                                We've Sent A Password Reset Link To:
                             </p>
                             <p style={styles.emailHighlight}>{email}</p>
                             <p style={styles.successHint}>
-                                Check your inbox and spam folder. The link will expire in 1 hour.
+                                Check Your Inbox And Spam Folder. The Link Will Expire In 1 Hour.
                             </p>
                             <button
                                 onClick={() => router.push('/auth/signin')}
                                 style={styles.submitButton}
                             >
-                                Return to Sign In
+                                Return To Sign In
                             </button>
                         </div>
                     ) : (
@@ -162,7 +162,7 @@ export default function ForgotPasswordPage() {
                                 onClick={() => router.push('/auth/signin')}
                                 style={styles.cancelLink}
                             >
-                                Cancel and return to Sign In
+                                Cancel And Return To Sign In
                             </button>
                         </form>
                     )}

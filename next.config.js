@@ -66,8 +66,8 @@ const nextConfig = {
   // that occur when pages are evicted and recompiled too aggressively during
   // high-concurrency dev sessions (e.g. multiple browser tabs + HMR).
   onDemandEntries: {
-    maxInactiveAge: 60 * 1000,    // Dispose compiled pages after 60s of inactivity
-    pagesBufferLength: 8,         // Keep 8 pages hot in memory (was 3, caused race conditions)
+    maxInactiveAge: 24 * 60 * 60 * 1000, // Dispose compiled pages after 24h of inactivity (prevents eviction race conditions)
+    pagesBufferLength: 128,              // Keep 128 pages hot in memory to eliminate recompilation pressure
   },
 
   // ─── Webpack Dev Stability Fix ─────────────────────────────────────────────

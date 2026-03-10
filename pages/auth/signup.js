@@ -722,9 +722,9 @@ export default function SignUpPage() {
                             {step === 'success' && 'Welcome!'}
                         </h1>
                         <p style={styles.subtitle}>
-                            {step === 'info' && 'Start your GTO training journey'}
-                            {step === 'email_pending' && 'Enter the code from your email'}
-                            {step === 'success' && 'Your account has been created'}
+                            {step === 'info' && 'Start Your GTO Training Journey'}
+                            {step === 'email_pending' && 'Enter The Code From Your Email'}
+                            {step === 'success' && 'Your Account Has Been Created'}
                         </p>
                     </div>
 
@@ -757,7 +757,7 @@ export default function SignUpPage() {
                                         <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
                                         <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
                                     </svg>
-                                    <span>{oauthLoading === 'google' ? 'Connecting...' : 'Continue with Google'}</span>
+                                    <span>{oauthLoading === 'google' ? 'Connecting...' : 'Continue With Google'}</span>
                                 </button>
 
 
@@ -867,13 +867,13 @@ export default function SignUpPage() {
                                     onClick={() => router.push('/auth/forgot-password')}
                                     style={styles.forgotPasswordLink}
                                 >
-                                    Forgot your password?
+                                    Forgot Your Password?
                                 </button>
                             </div>
 
                             {/* Birthdate - 18+ Verification - Dropdown Selectors */}
                             <div style={styles.inputGroup}>
-                                <label style={styles.label}>Date Of Birth <span style={styles.labelHint}>(must Be 18+)</span></label>
+                                <label style={styles.label}>Date Of Birth <span style={styles.labelHint}>(Must Be 18+)</span></label>
                                 <div style={{ display: 'flex', gap: '10px' }}>
                                     {/* Month Dropdown */}
                                     <select
@@ -956,7 +956,7 @@ export default function SignUpPage() {
                             <div style={styles.inputGroup}>
                                 <label style={styles.label}>
                                     Poker Alias
-                                    <span style={styles.labelHint}>(you Can Change This Later)</span>
+                                    <span style={styles.labelHint}>(You Can Change This Later)</span>
                                 </label>
                                 <div style={styles.aliasInputWrapper}>
                                     <input
@@ -1045,8 +1045,8 @@ export default function SignUpPage() {
                             {/* Promo Code or Referral Code (Optional) */}
                             <div style={styles.inputGroup}>
                                 <label style={styles.label}>
-                                    Promo or Referral Code
-                                    <span style={styles.labelHint}>(optional)</span>
+                                    Promo Or Referral Code
+                                    <span style={styles.labelHint}>(Optional)</span>
                                 </label>
                                 <div style={styles.aliasInputWrapper}>
                                     <input
@@ -1133,8 +1133,8 @@ export default function SignUpPage() {
                                         required
                                     />
                                     <span style={styles.ageLabelText}>
-                                        I confirm that I am <strong>18 Years Of Age Or Older</strong> and agree
-                                        to the platform's terms.
+                                        I Confirm That I Am <strong>18 Years Of Age Or Older</strong> And Agree
+                                        To The Platform's Terms.
                                     </span>
                                 </label>
                             </div>
@@ -1160,9 +1160,9 @@ export default function SignUpPage() {
                             </div>
 
                             <p style={styles.terms}>
-                                By signing up, you agree to our{' '}
+                                By Signing Up, You Agree To Our{' '}
                                 <a href="/terms" target="_blank" style={styles.termsLink}>Terms Of Service</a>
-                                {' '}and{' '}
+                                {' '}And{' '}
                                 <a href="/terms" target="_blank" style={styles.termsLink}>Privacy Policy</a>
                             </p>
                         </form>
@@ -1227,12 +1227,12 @@ export default function SignUpPage() {
                             </div>
 
                             <p style={styles.emailHint}>
-                                Didn't receive it? Check your spam folder or{' '}
+                                Didn't Receive It? Check Your Spam Folder Or{' '}
                                 <button
                                     onClick={() => setStep('info')}
                                     style={styles.resendLink}
                                 >
-                                    try again
+                                    Try Again
                                 </button>
                             </p>
                         </div>
@@ -1253,7 +1253,7 @@ export default function SignUpPage() {
                                     #{assignedPlayerNumber || '—'}
                                 </span>
                                 <span style={styles.playerNumberInfo}>
-                                    Your universal ID across PokerIQ, Diamond Arena & Club Arena
+                                    Your Universal ID Across PokerIQ, Diamond Arena & Club Arena
                                 </span>
                             </div>
 
@@ -1288,7 +1288,7 @@ export default function SignUpPage() {
                                 }}
                                 style={styles.submitButton}
                             >
-                                Enter the Hub →
+                                Enter The Hub →
                             </button>
                         </div>
                     )}
@@ -1303,7 +1303,7 @@ export default function SignUpPage() {
                                 onClick={() => router.push('/auth/signin')}
                                 style={styles.signupLink}
                             >
-                                Already have an account? <span style={styles.accentText}>Sign In</span>
+                                Already Have An Account? <span style={styles.accentText}>Sign In</span>
                             </button>
                         </>
                     )}
@@ -1438,7 +1438,7 @@ export default function SignUpPage() {
                                     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                                 }}
                             >
-                                {phoneOtpCooldown > 0 ? `Resend code in ${phoneOtpCooldown}s` : "Didn't get the code? Resend"}
+                                {phoneOtpCooldown > 0 ? `Resend Code In ${phoneOtpCooldown}s` : "Didn't Get The Code? Resend"}
                             </button>
 
                             {/* Cancel button */}

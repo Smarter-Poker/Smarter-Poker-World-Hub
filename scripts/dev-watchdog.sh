@@ -77,7 +77,7 @@ start_server() {
     rm -rf node_modules/.cache 2>/dev/null
 
     # Start the dev server
-    NODE_OPTIONS='--max-old-space-size=8192' npx next dev -p ${port} 2>&1 &
+    NODE_OPTIONS='--max-old-space-size=16384' npx next dev -p ${port} 2>&1 &
     SERVER_PID=$!
 
     echo "   PID: ${SERVER_PID}"

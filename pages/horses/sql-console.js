@@ -10,6 +10,7 @@ export default function OmnichannelSQLConsole() {
 
     const [sqlQuery, setSqlQuery] = useState('-- Write your raw PostgreSQL query here\nSELECT * FROM profiles LIMIT 5;');
     const [isRunning, setIsRunning] = useState(false);
+    const [allowDestructive, setAllowDestructive] = useState(false);
     const [result, setResult] = useState(null);
 
     // Auth Verification
@@ -44,7 +45,7 @@ export default function OmnichannelSQLConsole() {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${session.access_token}`
                 },
-                body: JSON.stringify({ sql: sqlQuery })
+                body: JSON.stringify({ sql: sqlQuery, allowDestructive })
             });
 
             const data = await res.json();
@@ -116,8 +117,21 @@ export default function OmnichannelSQLConsole() {
                             spellCheck="false"
                         />
 
-                        <p style={{ fontSize: '0.75rem', color: '#71717a', marginTop: '0.5rem' }}>
-                            <strong>Caution:</strong> This interface executes raw SQL directly against the production PostgreSQL pooler. There are no safeguards. You can drop tables.
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1rem', marginBottom: '0.5rem' }}>
+                            <input
+                                type="checkbox"
+                                id="allowDestructive"
+                                checked={allowDestructive}
+                                onChange={(e) => setAllowDestructive(e.target.checked)}
+                                style={{ accentColor: '#ef4444', width: '16px', height: '16px' }}
+                            />
+                            <label htmlFor="allowDestructive" style={{ fontSize: '0.875rem', color: allowDestructive ? '#ef4444' : '#a1a1aa', fontWeight: 600, cursor: 'pointer' }}>
+                                Allow Destructive Operations (DROP, DELETE, TRUNCATE)
+                            </label>
+                        </div>
+
+                        <p style={{ fontSize: '0.75rem', color: '#71717a', margin: 0 }}>
+                            <strong>Caution:</strong> Executions are strictly wrapped in a 10s timeout `BEGIN`/`COMMIT` block with Immutable Forensics Logging.
                         </p>
                     </div>
 

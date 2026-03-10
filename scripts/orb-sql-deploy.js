@@ -42,7 +42,19 @@ if (file) {
     }
 }
 
-// 3. Connect to Supabase Pooler and Execute
+// 3. Destructive Action Guard
+const isDestructive = /DROP\s+TABLE|DELETE\s+FROM|TRUNCATE\s+TABLE|ALTER\s+TABLE\s+.*\s+DROP\s+COLUMN/i.test(query);
+const forceDestructive = args.includes('--force');
+
+if (isDestructive && !forceDestructive) {
+    console.error(JSON.stringify({
+        success: false,
+        error: 'Destructive action detected (DROP, DELETE, TRUNCATE). Execution blocked to protect schema. Pass --force to override.'
+    }));
+    process.exit(1);
+}
+
+// 4. Connect to Supabase Pooler and Execute
 async function run() {
     const candidates = [
         process.env.SUPABASE_DB_PASSWORD,
@@ -62,13 +74,41 @@ async function run() {
                 connectionString: cs,
                 ssl: { rejectUnauthorized: false },
                 connectionTimeoutMillis: 10000,
-                statement_timeout: 60000,
+                statement_timeout: 10000, // Hard 10-second circuit breaker
             });
             const client = await pool.connect();
 
             const start = Date.now();
-            const res = await client.query(query);
+            let res;
+            try {
+                await client.query('BEGIN');
+                res = await client.query(query);
+                await client.query('COMMIT');
+            } catch (sqlErr) {
+                await client.query('ROLLBACK');
+                throw sqlErr;
+            }
             const ms = Date.now() - start;
+
+            // Audit Log
+            const logEntry = {
+                timestamp: new Date().toISOString(),
+                action: 'orb-cli-deploy',
+                success: true,
+                ms,
+                command: res.command,
+                rowCount: res.rowCount,
+                query: query.substring(0, 1000)
+            };
+
+            try {
+                const logPath = path.resolve(__dirname, '..', 'logs', 'deploy-history.json');
+                if (!fs.existsSync(path.dirname(logPath))) fs.mkdirSync(path.dirname(logPath), { recursive: true });
+                let history = [];
+                if (fs.existsSync(logPath)) try { history = JSON.parse(fs.readFileSync(logPath, 'utf8')); } catch (e) { }
+                history.unshift(logEntry);
+                fs.writeFileSync(logPath, JSON.stringify(history.slice(0, 500), null, 2));
+            } catch (e) { }
 
             console.log(JSON.stringify({
                 success: true,

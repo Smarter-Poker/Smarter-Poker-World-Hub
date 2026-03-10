@@ -63,6 +63,17 @@ export default async function handler(req, res) {
         return res.status(403).json({ success: false, error: 'Insufficient Agent or User permissions.' });
     }
 
+    // 1.5 Destructive Action Guard
+    const isDestructive = /DROP\s+TABLE|DELETE\s+FROM|TRUNCATE\s+TABLE|ALTER\s+TABLE\s+.*\s+DROP\s+COLUMN/i.test(sql);
+    const allowDestructive = req.body.allowDestructive === true;
+
+    if (isDestructive && !allowDestructive) {
+        return res.status(403).json({
+            success: false,
+            error: 'Destructive action detected (DROP, DELETE, TRUNCATE). Execution blocked to protect schema. Pass "allowDestructive": true in JSON to override.'
+        });
+    }
+
     // 2. Direct PostgreSQL Execution (Bypassing PostgREST limitation)
     const candidates = [
         process.env.SUPABASE_DB_PASSWORD,
@@ -81,16 +92,61 @@ export default async function handler(req, res) {
                 connectionString: cs,
                 ssl: { rejectUnauthorized: false },
                 connectionTimeoutMillis: 10000,
-                statement_timeout: 60000, // 60s max per query
+                statement_timeout: 10000, // Hard 10-second circuit breaker
             });
 
             const client = await pool.connect();
+
+            // Ensure audit table exists
+            await client.query(`
+                CREATE TABLE IF NOT EXISTS public.execution_audit_logs (
+                    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+                    executed_at timestamptz DEFAULT now(),
+                    channel text NOT NULL,
+                    principal text NOT NULL,
+                    query text NOT NULL,
+                    execution_ms integer,
+                    success boolean,
+                    error_details text
+                );
+            `);
+
             const start = Date.now();
-            const result = await client.query(sql);
+            let result;
+            let success = false;
+            let errorMessage = null;
+
+            try {
+                await client.query('BEGIN');
+                result = await client.query(sql);
+                await client.query('COMMIT');
+                success = true;
+            } catch (sqlErr) {
+                await client.query('ROLLBACK');
+                errorMessage = sqlErr.message;
+                success = false;
+            }
+
             const ms = Date.now() - start;
+
+            // Audit
+            try {
+                const principal = token === process.env.SUPABASE_SERVICE_ROLE_KEY ? 'SERVICE_ROLE_AGENT' : 'ADMIN_UI_USER';
+                await client.query(
+                    `INSERT INTO public.execution_audit_logs (channel, principal, query, execution_ms, success, error_details) VALUES ($1, $2, $3, $4, $5, $6)`,
+                    ['api-route', principal, sql, ms, success, errorMessage]
+                );
+            } catch (auditErr) { console.error('Audit log failed', auditErr); }
 
             client.release();
             await pool.end();
+
+            if (!success) {
+                return res.status(400).json({
+                    success: false,
+                    error: errorMessage
+                });
+            }
 
             return res.status(200).json({
                 success: true,
@@ -103,12 +159,9 @@ export default async function handler(req, res) {
             // Loop auth failures immediately
             if (e.message.includes('authentication failed')) continue;
 
-            // SQL parse/execution errors
-            return res.status(400).json({
+            return res.status(500).json({
                 success: false,
-                error: e.message,
-                code: e.code,
-                detail: e.detail
+                error: e.message
             });
         }
     }
