@@ -20,27 +20,33 @@ const MAX_TABLES = 4;
 const STORAGE_KEY = 'club-arena-multi-tables';
 
 // ── SessionStorage helpers ──────────────────────────────────────────────
-function saveState(slots, activeIndex) {
+function saveState(slots, activeIndex, viewMode, pendingSlotIndex) {
   try {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ slots, activeIndex }));
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ slots, activeIndex, viewMode, pendingSlotIndex }));
   } catch (_) { /* quota or SSR — silent */ }
 }
 
 function loadState() {
   try {
     const raw = sessionStorage.getItem(STORAGE_KEY);
-    if (!raw) return { slots: [null, null, null, null], activeIndex: 0 };
+    const defaults = { slots: [null, null, null, null], activeIndex: 0, viewMode: 'single', pendingSlotIndex: -1 };
+    if (!raw) return defaults;
     const parsed = JSON.parse(raw);
     // Support legacy format (bare array)
     if (Array.isArray(parsed)) {
-      return { slots: parsed.length === MAX_TABLES ? parsed : [null, null, null, null], activeIndex: 0 };
+      return { ...defaults, slots: parsed.length === MAX_TABLES ? parsed : defaults.slots };
     }
     if (parsed && Array.isArray(parsed.slots) && parsed.slots.length === MAX_TABLES) {
-      return { slots: parsed.slots, activeIndex: parsed.activeIndex || 0 };
+      return { 
+        slots: parsed.slots, 
+        activeIndex: parsed.activeIndex || 0,
+        viewMode: parsed.viewMode || 'single',
+        pendingSlotIndex: typeof parsed.pendingSlotIndex === 'number' ? parsed.pendingSlotIndex : -1
+      };
     }
-    return { slots: [null, null, null, null], activeIndex: 0 };
+    return defaults;
   } catch (_) {
-    return { slots: [null, null, null, null], activeIndex: 0 };
+    return { slots: [null, null, null, null], activeIndex: 0, viewMode: 'single', pendingSlotIndex: -1 };
   }
 }
 
@@ -58,7 +64,7 @@ export function useMultiTable({ supabase, userId }) {
   const initialState = loadState();
   const [slots, setSlots] = useState(initialState.slots);
   const [activeIndex, setActiveIndex] = useState(initialState.activeIndex);
-  const [viewMode, setViewMode] = useState('single'); // 'single' | 'tile'
+  const [viewMode, setViewMode] = useState(initialState.viewMode); // 'single' | 'tile'
 
   // Track which tableIds need attention (it's your turn)
   const [actionNeeded, setActionNeeded] = useState(new Set());
@@ -67,7 +73,7 @@ export function useMultiTable({ supabase, userId }) {
   const [bbjWin, setBbjWin] = useState(null);
 
   // Which "+" slot was tapped — lobby uses this to know where to put the next table
-  const [pendingSlotIndex, setPendingSlotIndex] = useState(-1);
+  const [pendingSlotIndex, setPendingSlotIndex] = useState(initialState.pendingSlotIndex);
 
   // Sound ref for action notification
   const notifSoundRef = useRef(null);
@@ -75,13 +81,23 @@ export function useMultiTable({ supabase, userId }) {
   // Auto-switch timer ref
   const autoSwitchRef = useRef(null);
 
+  // CRITICAL: Ref to track latest slots/activeIndex for closures that run asynchronously
+  // (avoids stale closure bug in closeTable/markActionNeeded)
+  const slotsRef = useRef(slots);
+  const activeIndexRef = useRef(activeIndex);
+  const pendingSlotIndexRef = useRef(pendingSlotIndex);
+  
+  useEffect(() => { slotsRef.current = slots; }, [slots]);
+  useEffect(() => { activeIndexRef.current = activeIndex; }, [activeIndex]);
+  useEffect(() => { pendingSlotIndexRef.current = pendingSlotIndex; }, [pendingSlotIndex]);
+
   // ── Persist to sessionStorage on every change ──
   useEffect(() => {
     const hasAny = slots.some(s => s !== null);
     if (hasAny) {
-      saveState(slots, activeIndex);
+      saveState(slots, activeIndex, viewMode, pendingSlotIndex);
     }
-  }, [slots, activeIndex]);
+  }, [slots, activeIndex, viewMode, pendingSlotIndex]);
 
   // ── Derived: non-null tables (for rendering) ──
   const tables = slots
@@ -101,7 +117,7 @@ export function useMultiTable({ supabase, userId }) {
   /**
    * Open a new table in a specific slot (or next empty)
    */
-  const openTable = useCallback((tableInfo, targetSlot) => {
+  const openTable = useCallback((tableInfo) => {
     setSlots(prev => {
       // Already open? Switch to it.
       const existingIdx = prev.findIndex(s => s?.tableId === tableInfo.tableId);
@@ -110,11 +126,13 @@ export function useMultiTable({ supabase, userId }) {
         return prev;
       }
 
-      // Find the target slot
-      let slotIdx = typeof targetSlot === 'number' && targetSlot >= 0 && targetSlot < MAX_TABLES && prev[targetSlot] === null
+      // Read target slot from pendingSlotIndex via ref
+      const targetSlot = pendingSlotIndexRef.current;
+      
+      let slotIdx = targetSlot >= 0 && targetSlot < MAX_TABLES && prev[targetSlot] === null
         ? targetSlot
         : prev.findIndex(s => s === null);
-
+      
       if (slotIdx < 0) return prev; // All full
 
       const next = [...prev];
@@ -127,9 +145,11 @@ export function useMultiTable({ supabase, userId }) {
         clubId: tableInfo.clubId || null,
         tournamentId: tableInfo.tournamentId || null,
       };
+      
       setActiveIndex(slotIdx);
       return next;
     });
+    // Reset pending slot after successful open
     setPendingSlotIndex(-1);
   }, []);
 
@@ -149,9 +169,10 @@ export function useMultiTable({ supabase, userId }) {
       next.delete(tableId);
       return next;
     });
-    // Move active to nearest filled slot
+    // Move active to nearest filled slot — use slotsRef to get the LATEST state
     setActiveIndex(prev => {
-      const remaining = slots.map((s, i) => s && s.tableId !== tableId ? i : -1).filter(i => i >= 0);
+      const currentSlots = slotsRef.current;
+      const remaining = currentSlots.map((s, i) => s && s.tableId !== tableId ? i : -1).filter(i => i >= 0);
       if (remaining.length === 0) {
         // Last table closed — clear session
         clearSession();
@@ -162,7 +183,7 @@ export function useMultiTable({ supabase, userId }) {
         Math.abs(i - prev) < Math.abs(best - prev) ? i : best, remaining[0]);
       return closest;
     });
-  }, [slots]);
+  }, []); // No dependency on `slots` — we read from slotsRef
 
   /**
    * Mark a table as needing action (your turn)
@@ -186,21 +207,23 @@ export function useMultiTable({ supabase, userId }) {
     } catch (_) { /* no sound available */ }
 
     // Auto-switch: if active table has no action, switch to this one after 3s
-    const activeSlot = slots[activeIndex];
+    // Read from refs to avoid stale closure
+    const activeSlot = slotsRef.current[activeIndexRef.current];
     if (activeSlot && activeSlot.tableId !== tableId) {
       // Clear any pending auto-switch
       if (autoSwitchRef.current) clearTimeout(autoSwitchRef.current);
       autoSwitchRef.current = setTimeout(() => {
         // Re-check: only auto-switch if the table still needs action
         setActiveIndex(prevIdx => {
-          const targetIdx = slots.findIndex(s => s?.tableId === tableId);
+          const latestSlots = slotsRef.current;
+          const targetIdx = latestSlots.findIndex(s => s?.tableId === tableId);
           if (targetIdx >= 0) return targetIdx;
           return prevIdx;
         });
         autoSwitchRef.current = null;
       }, 3000);
     }
-  }, [slots, activeIndex]);
+  }, []); // Stable callback — reads from refs
 
   /**
    * Clear action needed flag (player acted)
@@ -219,11 +242,12 @@ export function useMultiTable({ supabase, userId }) {
    */
   const switchTo = useCallback((index) => {
     if (index < 0 || index >= MAX_TABLES) return;
-    // Only switch if slot has a table
-    if (!slots[index]) return;
+    // Read from ref for latest state
+    const currentSlots = slotsRef.current;
+    if (!currentSlots[index]) return;
     setActiveIndex(index);
     // Clear action needed for that table
-    const tableId = slots[index]?.tableId;
+    const tableId = currentSlots[index]?.tableId;
     if (tableId) {
       setActionNeeded(prev => {
         if (!prev.has(tableId)) return prev;
@@ -232,7 +256,7 @@ export function useMultiTable({ supabase, userId }) {
         return next;
       });
     }
-  }, [slots]);
+  }, []); // Stable callback — reads from slotsRef
 
   /**
    * Toggle view mode

@@ -92,14 +92,30 @@ function navigateToTableMT(router, table, club, showToastFn) {
     return;
   }
 
+  // Check pendingSlotIndex to respect user's "+" slot choice
+  let pendingSlotIndex = -1;
+  try {
+    const raw = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(MT_STORAGE_KEY) : null;
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (typeof parsed.pendingSlotIndex === 'number') {
+        pendingSlotIndex = parsed.pendingSlotIndex;
+      }
+    }
+  } catch (_) {}
+
+  // Determine actual target slot
+  const targetSlot = pendingSlotIndex >= 0 && pendingSlotIndex < 4 && slots[pendingSlotIndex] === null
+    ? pendingSlotIndex
+    : slots.findIndex(s => s === null);
+
   // All 4 slots full?
-  const emptyIdx = slots.findIndex(s => s === null);
-  if (emptyIdx < 0) {
+  if (targetSlot < 0) {
     showToastFn?.('Close a table to open a new one (4/4 slots full)', 'info');
     return;
   }
 
-  // Navigate — the table page handles opening via initialTable
+  // Navigate — the table page handles opening via initialTable (which respects pendingSlotIndex)
   router.push(`/hub/club-arena/table/${tableId}`);
 }
 
