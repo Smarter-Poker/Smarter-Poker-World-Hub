@@ -709,7 +709,8 @@ export default async function handler(req, res) {
     // ═══════════════════════════════════════════════════════════════
     if (action === 'set_parent_agent') {
       if (!targetUserId) return res.status(400).json({ success: false, error: 'targetUserId required (the sub-agent)' });
-      const { parentAgentId } = req.body;
+      // Accept both parentAgentUserId (from admin.js) and parentAgentId (from older callers)
+      const parentAgentId = req.body.parentAgentUserId || req.body.parentAgentId;
 
       // Get target agent record
       const { data: targetAgent } = await supabaseAdmin

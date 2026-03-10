@@ -1386,7 +1386,7 @@ function PromoWalletTab({ dashboard, clubId, userId, apiCall, showToast, players
                     apiCall('/api/club-arena/distribute-promo', { action: 'history', clubId }),
                 ]);
                 setPromoBalance(dashData?.agent?.promo_balance || 0);
-                setPromoHistory(histData?.history || []);
+                setPromoHistory(histData?.distributions || []);
                 setLoaded(true);
             } catch (e) {
 
@@ -1577,7 +1577,7 @@ function PromoWalletTab({ dashboard, clubId, userId, apiCall, showToast, players
                         }}>
                             <div>
                                 <div style={{ fontSize: 13, color: FB.textPrimary, fontWeight: 600 }}>
-                                    {h.recipient_name || 'Player'}
+                                    {h.playerName || h.recipient_name || 'Player'}
                                 </div>
                                 <div style={{ fontSize: 11, color: FB.textSecondary }}>
                                     {h.created_at ? new Date(h.created_at).toLocaleDateString() : ''}

@@ -15,6 +15,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
+const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -33,6 +34,18 @@ export default async function handler(req, res) {
   const { action, clubId, ...params } = req.body;
   if (!clubId) return res.status(400).json({ error: 'clubId required' });
 
+  // RED TEAM: Payload size + field allowlist
+  const ALLOWED = new Set(['action', 'clubId', 'targetUserId', 'amount', 'note']);
+  const bodyStr = JSON.stringify(req.body || {});
+  if (bodyStr.length > 1024) return res.status(413).json({ error: 'Request body too large' });
+  const bad = Object.keys(req.body || {}).filter(k => !ALLOWED.has(k));
+  if (bad.length > 0) return res.status(400).json({ error: `Unknown fields: ${bad.join(', ')}` });
+
+  // Idempotency guard on send action
+  if (action === 'send') {
+    if (checkIdempotency(req, res)) return;
+  }
+
   // Verify caller is agent (or admin/owner for status/history)
   const { data: member } = await supabaseAdmin
     .from('club_members')
@@ -49,7 +62,7 @@ export default async function handler(req, res) {
       // SEND — Agent distributes promo to player
       // ═══════════════════════════════════════════════════════
       case 'send': {
-        if (!['agent', 'owner', 'admin'].includes(member.role)) {
+        if (!['agent', 'sub_agent', 'super_agent', 'owner', 'admin'].includes(member.role)) {
           return res.status(403).json({ error: 'Only agents can distribute promo chips' });
         }
 

@@ -16,6 +16,7 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -69,6 +70,12 @@ export default async function handler(req, res) {
   }
 
   if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
+
+  // CONCURRENCY LOCKDOWN: Idempotency guard for mutation actions
+  const readOnlyActions = ['list', 'status'];
+  if (!readOnlyActions.includes(req.body?.action)) {
+    if (checkIdempotency(req, res)) return;
+  }
 
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (!token) return res.status(401).json({ success: false, error: 'Auth required' });

@@ -36,13 +36,15 @@ export default async function handler(req, res) {
   // RED TEAM: Payload size + field allowlist
   if (rejectBadPayload(req, res, ['clubId', 'tableId', 'userId', 'action', 'amount'])) return;
 
-  // CONCURRENCY: Idempotency guard — prevent duplicate lock/unlock from laggy connections
-  if (checkIdempotency(req, res)) return;
+  // Engine-key callers bypass idempotency (engine generates its own replay protection)
+  const engineKey = req.headers['x-engine-key'];
+  const validEngineKey = engineKey && process.env.ENGINE_INTERNAL_SECRET && engineKey === process.env.ENGINE_INTERNAL_SECRET;
+
+  // CONCURRENCY: Idempotency guard — only for user-facing calls (not engine-internal)
+  if (!validEngineKey && checkIdempotency(req, res)) return;
 
   // Accept engine key or bearer token
-  const engineKey = req.headers['x-engine-key'];
   const token = req.headers.authorization?.replace('Bearer ', '');
-  const validEngineKey = engineKey && process.env.ENGINE_INTERNAL_SECRET && engineKey === process.env.ENGINE_INTERNAL_SECRET;
   if (!validEngineKey && !token) return res.status(401).json({ success: false, error: 'Auth required' });
 
   let callerUserId = null;

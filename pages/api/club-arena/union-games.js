@@ -10,6 +10,7 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -53,11 +54,17 @@ async function getClubsInfo(clubIds) {
 }
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
 
   if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
+
+  // CONCURRENCY LOCKDOWN: Idempotency guard for mutation actions
+  const readOnlyActions = ['list_tournaments', 'list_tables', 'get_tournament_details', 'get_bbj_status'];
+  if (!readOnlyActions.includes(req.body?.action)) {
+    if (checkIdempotency(req, res)) return;
+  }
 
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
@@ -134,12 +141,12 @@ export default async function handler(req, res) {
     // CREATE TOURNAMENT
     // ════════════════════════════════════════════════════════════
     if (action === 'create_tournament') {
-      const { hostClubId, clubId, name, type, variant, game_type, 
-              buyIn, buy_in, startingChips, starting_chips, 
-              maxPlayers, max_players, lateRegLevels, late_reg_levels,
-              rebuyEnabled, rebuy_allowed, addonEnabled, addon_allowed,
-              guaranteedPrize, guaranteed_prize, scheduledStart, start_time,
-              blind_levels, blind_duration, participatingClubIds } = params;
+      const { hostClubId, clubId, name, type, variant, game_type,
+        buyIn, buy_in, startingChips, starting_chips,
+        maxPlayers, max_players, lateRegLevels, late_reg_levels,
+        rebuyEnabled, rebuy_allowed, addonEnabled, addon_allowed,
+        guaranteedPrize, guaranteed_prize, scheduledStart, start_time,
+        blind_levels, blind_duration, participatingClubIds } = params;
 
       const resolvedClubId = hostClubId || clubId;
       if (!resolvedClubId || !clubIds.includes(resolvedClubId)) {
@@ -213,9 +220,9 @@ export default async function handler(req, res) {
     // ════════════════════════════════════════════════════════════
     if (action === 'create_table') {
       const { clubId, name, tableName, game_type, gameVariant, stakes,
-              smallBlind, bigBlind, ante,
-              max_seats, maxPlayers, min_buyin, minBuyIn, max_buyin, maxBuyIn,
-              actionTime, rakePercent, rakeCap } = params;
+        smallBlind, bigBlind, ante,
+        max_seats, maxPlayers, min_buyin, minBuyIn, max_buyin, maxBuyIn,
+        actionTime, rakePercent, rakeCap } = params;
 
       if (!clubId || !clubIds.includes(clubId)) {
         return res.status(400).json({ success: false, error: 'Invalid club for this union' });
