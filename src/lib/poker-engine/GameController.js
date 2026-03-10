@@ -646,7 +646,7 @@ class GameController {
                 if (currPlayer) {
                   HorsePokerBrain.isHorse(String(currPlayer.id)).then(isAI => {
                     if (isAI) this._triggerHorseAction(clubTableId, currPlayer.id);
-                  }).catch(() => {});
+                  }).catch(() => { });
                 }
               }
             }
@@ -2136,12 +2136,10 @@ class GameController {
 
   /** @private */
   _broadcastTableState(tableId) {
-    const entry = this.lobby.tables.get(tableId);
-    if (!entry || !entry.sync) return;
-
-    // The RealtimeSync already handles broadcasting via table events.
-    // This is a fallback for manual state pushes.
-    entry.sync.broadcastFullState();
+    // REMOVED IN PHASE 4: DELTA-UPDATE LAW
+    // We are forbidden from broadcasting 5KB state objects.
+    // RealtimeSync is already listening to delta events (player_seated, player_left, etc.)
+    // this.lobby.tables.get(tableId)?.sync?.broadcastFullState();
   }
 
   /** @private */

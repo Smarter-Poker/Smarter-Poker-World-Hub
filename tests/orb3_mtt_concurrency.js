@@ -61,11 +61,10 @@ async function runTest() {
             .insert({
                 name: CLUB_NAME,
                 owner_id: godUser.user.id,
-                chip_balance: 0,
                 settings: {}
             })
             .select('id')
-            .single();
+            .maybeSingle();
         if (cErr) throw cErr;
 
         const clubId = club.id;
@@ -83,7 +82,7 @@ async function runTest() {
                 settings: { late_reg_minutes: 10 }
             })
             .select('id')
-            .single();
+            .maybeSingle();
         if (tErr) throw tErr;
 
         const tournamentId = mtt.id;
@@ -152,7 +151,7 @@ async function runTest() {
             .from('club_tournaments')
             .select('registered_count, prize_pool')
             .eq('id', tournamentId)
-            .single();
+            .maybeSingle();
 
         console.log(`\n  📊 Final State Evaluation:`);
         console.log(`    Expected Registered: ${CONCURRENT_USERS}`);
