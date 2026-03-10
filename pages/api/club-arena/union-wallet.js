@@ -144,7 +144,7 @@ export default async function handler(req, res) {
       });
       if (debitErr) {
         console.error('[union-wallet] send_to_club debit failed:', debitErr.message);
-        return res.status(400).json({ success: false, error: `Debit failed: ${debitErr.message}` });
+        return res.status(400).json({ success: false, error: 'Insufficient union balance' });
       }
 
       // Step 2: Credit club treasury — ROLLBACK debit if this fails
@@ -159,7 +159,7 @@ export default async function handler(req, res) {
           p_wallet: 'chip_balance',
           p_amount: amt,
         }).catch(rbErr => console.error('[union-wallet] CRITICAL: rollback failed:', rbErr.message));
-        return res.status(500).json({ success: false, error: 'Transfer failed (rolled back)', details: creditErr.message });
+        return res.status(500).json({ success: false, error: 'Transfer failed (rolled back)' });
       }
 
       // Ledger entries (fire-and-forget, transfer already succeeded)
@@ -204,7 +204,7 @@ export default async function handler(req, res) {
       });
       if (debitErr) {
         console.error('[union-wallet] move_rake_to_chips debit failed:', debitErr.message);
-        return res.status(400).json({ success: false, error: `Debit failed: ${debitErr.message}` });
+        return res.status(400).json({ success: false, error: 'Insufficient rake wallet balance' });
       }
 
       const { error: creditErr } = await supabaseAdmin.rpc('fn_union_credit_wallet', {
@@ -219,7 +219,7 @@ export default async function handler(req, res) {
           p_wallet: 'rake_wallet',
           p_amount: amt,
         }).catch(rbErr => console.error('[union-wallet] CRITICAL: rollback failed:', rbErr.message));
-        return res.status(500).json({ success: false, error: 'Move failed (rolled back)', details: creditErr.message });
+        return res.status(500).json({ success: false, error: 'Move failed (rolled back)' });
       }
 
       const txNote = (notes?.trim() || `Moved ${amt.toLocaleString()} from rake wallet to chip balance`).slice(0, 500).replace(/[;'"\\]/g, '');
@@ -251,7 +251,7 @@ export default async function handler(req, res) {
       });
       if (bbjDebitErr) {
         console.error('[union-wallet] BBJ payout debit failed:', bbjDebitErr.message);
-        return res.status(400).json({ success: false, error: `BBJ pool insufficient: ${bbjDebitErr.message}` });
+        return res.status(400).json({ success: false, error: 'Insufficient BBJ pool balance' });
       }
 
       // Calculate shares (standard BBJ split)

@@ -48,7 +48,7 @@ export default async function handler(req, res) {
           .eq('target_user_id', targetUserId)
           .maybeSingle();
 
-        if (error) return res.status(500).json({ success: false, error: error.message });
+        if (error) return res.status(500).json({ success: false, error: 'Failed to load note' });
         return res.json({ success: true, note: data || null });
       }
 
@@ -63,7 +63,7 @@ export default async function handler(req, res) {
           .in('target_user_id', targetUserIds)
               .limit(100);
 
-        if (error) return res.status(500).json({ success: false, error: error.message });
+        if (error) return res.status(500).json({ success: false, error: 'Failed to load notes' });
 
         // Return as map: { targetUserId: note }
         const noteMap = {};
@@ -117,7 +117,7 @@ export default async function handler(req, res) {
               .eq('id', existing.id)
               .select()
               .maybeSingle();
-            if (updErr || !updated) return res.status(500).json({ success: false, error: updErr?.message || 'Failed to update note' });
+            if (updErr || !updated) return res.status(500).json({ success: false, error: 'Failed to update note' });
             return res.json({ success: true, note: updated });
           } else {
             const { data: inserted, error: insErr } = await supabaseAdmin
@@ -125,7 +125,7 @@ export default async function handler(req, res) {
               .insert(upsertData)
               .select()
               .maybeSingle();
-            if (insErr || !inserted) return res.status(500).json({ success: false, error: insErr?.message || 'Failed to create note' });
+            if (insErr || !inserted) return res.status(500).json({ success: false, error: 'Failed to create note' });
             return res.json({ success: true, note: inserted });
           }
         }
@@ -144,7 +144,7 @@ export default async function handler(req, res) {
           .eq('user_id', userId)
           .eq('target_user_id', targetUserId);
 
-        if (error) return res.status(500).json({ success: false, error: error.message });
+        if (error) return res.status(500).json({ success: false, error: 'Failed to delete note' });
         return res.json({ success: true });
       }
 

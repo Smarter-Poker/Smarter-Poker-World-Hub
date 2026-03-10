@@ -125,7 +125,7 @@ export default async function handler(req, res) {
         });
 
         if (rpcErr) {
-          return res.status(500).json({ error: 'Distribution failed', details: rpcErr.message });
+          return res.status(500).json({ error: 'Distribution failed', details: process.env.NODE_ENV === 'development' ? rpcErr.message : undefined });
         }
 
         if (!result?.success) {
@@ -167,7 +167,7 @@ export default async function handler(req, res) {
           p_player_user_id: statusTarget,
         });
 
-        if (statusErr) return res.status(500).json({ error: statusErr.message });
+        if (statusErr) return res.status(500).json({ error: 'Failed to check promo status' });
         if (!status?.success) return res.status(400).json({ error: status?.error || 'Not found' });
 
         return res.status(200).json({ success: true, ...status });
@@ -185,7 +185,7 @@ export default async function handler(req, res) {
           .order('created_at', { ascending: false })
           .limit(50);
 
-        if (histErr) return res.status(500).json({ error: histErr.message });
+        if (histErr) return res.status(500).json({ error: 'Failed to load distribution history' });
 
         // Enrich with player names
         const playerIds = [...new Set((distributions || []).map(d => d.player_user_id))];

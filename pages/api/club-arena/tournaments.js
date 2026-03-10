@@ -214,7 +214,7 @@ export default async function handler(req, res) {
 
         if (createErr || !tournament) {
           console.error('[tournament/create]', createErr);
-          return res.status(500).json({ success: false, error: createErr?.message || 'Failed to create tournament' });
+          return res.status(500).json({ success: false, error: 'Failed to create tournament' });
         }
 
         return res.json({ success: true, tournament });
@@ -243,7 +243,7 @@ export default async function handler(req, res) {
         }
 
         const { data: tournaments, error: listErr } = await query;
-        if (listErr) return res.status(500).json({ success: false, error: listErr.message });
+        if (listErr) return res.status(500).json({ success: false, error: 'Failed to load tournaments' });
 
         return res.json({ success: true, tournaments: tournaments || [] });
       }
@@ -279,7 +279,7 @@ export default async function handler(req, res) {
 
         if (regErr) {
           console.error('[tournament/register] RPC error:', regErr.message);
-          return res.status(500).json({ success: false, error: regErr.message });
+          return res.status(500).json({ success: false, error: 'Registration failed' });
         }
         if (!regResult?.success) {
           // Map specific errors to appropriate HTTP status codes
@@ -641,7 +641,7 @@ export default async function handler(req, res) {
             refundResults.push({ userId: reg.user_id, amount: reg.buy_in_amount, success: true });
           } catch (refErr) {
             console.error(`[Tournament] Refund FAILED for user ${reg.user_id}:`, refErr.message);
-            failedRefunds.push({ userId: reg.user_id, amount: reg.buy_in_amount, error: refErr.message });
+            failedRefunds.push({ userId: reg.user_id, amount: reg.buy_in_amount, error: 'Refund failed' });
           }
         }
 
