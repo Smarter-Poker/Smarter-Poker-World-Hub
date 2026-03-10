@@ -32,6 +32,7 @@ async function api(endpoint, body, expectStatus) {
             headers: {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${TOKEN}`,
+                'X-Idempotency-Key': `rt-${Date.now()}-${Math.random().toString(36).slice(2, 14)}`,
             },
             body: JSON.stringify(body),
         });

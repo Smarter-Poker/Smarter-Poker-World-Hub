@@ -168,7 +168,7 @@ export default async function handler(req, res) {
       from_user_id: user.id,
       to_user_id: user.id,
       amount: -amount,
-      transaction_type: 'send',
+      transaction_type: 'cashout',
       notes: `Cashout hold (escrow): ${amount.toLocaleString()} chips pending agent approval`,
     });
 

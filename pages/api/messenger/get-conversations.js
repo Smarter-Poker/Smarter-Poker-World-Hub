@@ -86,7 +86,7 @@ export default async function handler(req, res) {
                 if (otherParticipants?.[0]?.user_id) {
                     const { data: profile } = await supabaseAdmin
                         .from('profiles')
-                        .select('id, username, avatar_url')
+                        .select('id, username, display_name, avatar_url')
                         .eq('id', otherParticipants[0].user_id)
                         .maybeSingle();
                     otherUser = profile;

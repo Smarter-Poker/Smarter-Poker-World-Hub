@@ -64,9 +64,17 @@ const getAuthToken = async () => {
 const apiCall = async (endpoint, body) => {
     const token = await getAuthToken();
     if (!token) throw new Error('Not authenticated');
+    // C-05: Generate unique idempotency key per request (fat-finger defense)
+    const idempotencyKey = typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
     const res = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+            'X-Idempotency-Key': idempotencyKey,
+        },
         body: JSON.stringify(body),
     });
     let data;
@@ -181,6 +189,7 @@ export default function Admin() {
     const [editTableModal, setEditTableModal] = useState(null); // table object
     const [editTableForm, setEditTableForm] = useState({});
     const [tableProcessing, setTableProcessing] = useState(false);
+    const [tableProcessingIds, setTableProcessingIds] = useState(new Set());
     const [showCreateTable, setShowCreateTable] = useState(false);
 
     // Settings form
@@ -307,6 +316,7 @@ export default function Admin() {
                 });
             }
         } catch (e) {
+            showToast('Failed to load club data', 'error');
 
         } finally {
             setIsLoading(false);
@@ -578,6 +588,7 @@ export default function Admin() {
     // ═══════════════════════════════════════════════════════════════════════════
     const handleTableAction = async (tableId, action) => {
         setTableProcessing(true);
+        setTableProcessingIds(prev => new Set(prev).add(tableId));
         try {
             await apiCall('/api/club-arena/manage-table', { tableId, clubId: club.id, action });
             showToast(`Table ${action}d`);
@@ -590,11 +601,19 @@ export default function Admin() {
             showToast(e.message || `Failed to ${action} table`, 'error');
         } finally {
             setTableProcessing(false);
+            setTableProcessingIds(prev => { const n = new Set(prev); n.delete(tableId); return n; });
         }
     };
 
     const saveTableSettings = async () => {
         if (!editTableModal) return;
+        // #9: Basic inline validation
+        const sb = parseFloat(editTableForm.small_blind);
+        const bb = parseFloat(editTableForm.big_blind);
+        if (sb && bb && sb >= bb) { showToast('Small blind must be less than big blind', 'error'); return; }
+        const minBI = parseInt(editTableForm.min_buy_in);
+        const maxBI = parseInt(editTableForm.max_buy_in);
+        if (minBI && maxBI && minBI > maxBI) { showToast('Min buy-in cannot exceed max buy-in', 'error'); return; }
         setTableProcessing(true);
         try {
             await apiCall('/api/club-arena/update-table-settings', {
@@ -607,6 +626,7 @@ export default function Admin() {
                 minBuyIn: editTableForm.min_buy_in ? parseInt(editTableForm.min_buy_in) : undefined,
                 maxBuyIn: editTableForm.max_buy_in ? parseInt(editTableForm.max_buy_in) : undefined,
                 actionTime: editTableForm.action_time_seconds ? parseInt(editTableForm.action_time_seconds) : undefined,
+                ante: editTableForm.ante ? parseFloat(editTableForm.ante) : undefined,
             });
             showToast('Table settings saved');
             busEmit.dataMutated('table_settings_updated');
@@ -2258,8 +2278,8 @@ function PromoWalletModal({ clubId, userRole, apiCall, showToast, onClose, FB, S
                                                 </div>
                                             </div>
                                             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                                                <button onClick={() => { setEditTableModal(t); setEditTableForm({ name: t.name || '', small_blind: String(t.small_blind || ''), big_blind: String(t.big_blind || ''), max_players: String(t.max_players || ''), min_buy_in: String(t.min_buy_in || ''), max_buy_in: String(t.max_buy_in || ''), action_time_seconds: String(t.action_time_seconds || '') }); }}
-                                                    style={{ background: FB.primary, color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }} disabled={tableProcessing}>
+                                                <button onClick={() => { setEditTableModal(t); setEditTableForm({ name: t.name || '', small_blind: String(t.small_blind || ''), big_blind: String(t.big_blind || ''), max_players: String(t.max_players || ''), min_buy_in: String(t.min_buy_in || ''), max_buy_in: String(t.max_buy_in || ''), action_time_seconds: String(t.action_time_seconds || ''), ante: String(t.ante || '') }); }}
+                                                    style={{ background: FB.primary, color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }} disabled={tableProcessing || tableProcessingIds.has(t.id)}>
                                                     Edit
                                                 </button>
                                                 {['active', 'running'].includes(t.status) && (
@@ -2280,7 +2300,7 @@ function PromoWalletModal({ clubId, userRole, apiCall, showToast, onClose, FB, S
                                                         Close
                                                     </button>
                                                 )}
-                                                {['closed', 'waiting'].includes(t.status) && (
+                                                {['closed', 'waiting', 'paused'].includes(t.status) && (
                                                     <button onClick={() => askConfirm('Permanently delete this table? This cannot be undone.', () => { setConfirmModal(null); handleTableAction(t.id, 'delete'); })}
                                                         style={{ background: FB.danger, color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }} disabled={tableProcessing}>
                                                         Delete
@@ -2322,7 +2342,7 @@ function PromoWalletModal({ clubId, userRole, apiCall, showToast, onClose, FB, S
                             <button style={S.modalClose} onClick={() => setEditTableModal(null)}>&times;</button>
                         </div>
                         <div style={S.modalBody}>
-                            {[['name', 'Table Name', 'text'], ['small_blind', 'Small Blind', 'number'], ['big_blind', 'Big Blind', 'number'], ['max_players', 'Max Players', 'number'], ['min_buy_in', 'Min Buy-in (chips)', 'number'], ['max_buy_in', 'Max Buy-in (chips)', 'number'], ['action_time_seconds', 'Action Time (seconds)', 'number']].map(([key, label, type]) => (
+                            {[['name', 'Table Name', 'text'], ['small_blind', 'Small Blind', 'number'], ['big_blind', 'Big Blind', 'number'], ['max_players', 'Max Players', 'number'], ['min_buy_in', 'Min Buy-in (chips)', 'number'], ['max_buy_in', 'Max Buy-in (chips)', 'number'], ['ante', 'Ante', 'number'], ['action_time_seconds', 'Action Time (seconds)', 'number']].map(([key, label, type]) => (
                                 <div key={key} style={{ marginBottom: 14 }}>
                                     <label style={S.formLabel}>{label}</label>
                                     <input

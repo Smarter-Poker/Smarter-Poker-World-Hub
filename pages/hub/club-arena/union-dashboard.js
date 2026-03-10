@@ -33,7 +33,11 @@ const apiCall = async (endpoint, body) => {
     if (!token) throw new Error('Not authenticated');
     const res = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+            'X-Idempotency-Key': crypto.randomUUID(),
+        },
         body: JSON.stringify(body),
     });
     let data;
@@ -1163,7 +1167,7 @@ export default function UnionDashboard() {
                                             const token = await getAuthToken();
                                             const r = await fetch('/api/club-arena/union-wallet', {
                                                 method: 'POST',
-                                                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                                                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'X-Idempotency-Key': crypto.randomUUID() },
                                                 body: JSON.stringify({ action: 'send_to_club', unionId: unionIdParam, clubId: walletSendClub, amount: amt, notes: walletSendNotes }),
                                             });
                                             const d = await r.json();
@@ -1194,7 +1198,7 @@ export default function UnionDashboard() {
                                             const token = await getAuthToken();
                                             const r = await fetch('/api/club-arena/union-wallet', {
                                                 method: 'POST',
-                                                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                                                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'X-Idempotency-Key': crypto.randomUUID() },
                                                 body: JSON.stringify({ action: 'move_rake_to_chips', unionId: unionIdParam, amount: amt }),
                                             });
                                             const d = await r.json();

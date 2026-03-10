@@ -22,7 +22,7 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const INBOUND_TYPES  = ['distribute', 'agent_to_player', 'promo_agent_to_player'];
+const INBOUND_TYPES = ['distribute', 'agent_to_player', 'promo_agent_to_player'];
 const OUTBOUND_TYPES = ['cashout_approved'];
 
 export default async function handler(req, res) {
@@ -36,6 +36,13 @@ export default async function handler(req, res) {
 
   const { clubId } = req.body;
   if (!clubId) return res.status(400).json({ success: false, error: 'clubId required' });
+
+  // RED TEAM: Payload size + field allowlist
+  const ALLOWED = new Set(['clubId']);
+  const bodyStr = JSON.stringify(req.body || {});
+  if (bodyStr.length > 512) return res.status(413).json({ success: false, error: 'Request body too large' });
+  const bad = Object.keys(req.body || {}).filter(k => !ALLOWED.has(k));
+  if (bad.length > 0) return res.status(400).json({ success: false, error: `Unknown fields: ${bad.join(', ')}` });
 
   if (!applyRateLimit(req, res, 'club-arena/player-chip-flow')) return;
 
@@ -53,7 +60,7 @@ export default async function handler(req, res) {
     }
 
     const isAgent = ['agent', 'sub_agent', 'super_agent'].includes(member.role);
-    const since7d  = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const since7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
     // Get downline player IDs for scoping (agents only see their own)
     let playerIds = null;

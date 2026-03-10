@@ -561,7 +561,7 @@ export default async function handler(req, res) {
         const { threshold = 0.75, minHands = 5, limit = 500 } = params;
 
         const { data: hands, error: hErr } = await supabase
-          .from('hand_histories')
+          .from('mv_hand_histories')
           .select('player_ids, winner_ids, hand_data, pot_total')
           .eq('club_id', clubId)
           .order('completed_at', { ascending: false })
@@ -645,7 +645,7 @@ export default async function handler(req, res) {
         const { limit = 500 } = params;
 
         const { data: hands, error: hErr } = await supabase
-          .from('hand_histories')
+          .from('mv_hand_histories')
           .select('id, hand_number, player_ids, winner_ids, hand_data, pot_total, completed_at')
           .eq('club_id', clubId)
           .order('completed_at', { ascending: false })

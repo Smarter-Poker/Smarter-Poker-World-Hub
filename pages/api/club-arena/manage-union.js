@@ -7,6 +7,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { validateManageUnion } from '../../../src/contracts/orb4_syndicate';
+const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -26,6 +27,13 @@ export default async function handler(req, res) {
   }
 
   if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
+
+  // CONCURRENCY LOCKDOWN: Idempotency guard for mutation actions
+  // Read-only actions (search_user, list_leave) are exempted
+  const readOnlyActions = ['search_user', 'list_leave'];
+  if (!readOnlyActions.includes(req.body?.action)) {
+    if (checkIdempotency(req, res)) return;
+  }
 
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (!token) return res.status(401).json({ success: false, error: 'No auth token' });

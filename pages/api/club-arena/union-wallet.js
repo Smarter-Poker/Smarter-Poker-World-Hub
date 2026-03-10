@@ -14,6 +14,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { validateUnionWallet } from '../../../src/contracts/orb4_syndicate';
+const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -50,6 +51,13 @@ export default async function handler(req, res) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
   if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
+
+  // CONCURRENCY LOCKDOWN: Idempotency guard for mutation actions
+  // Read-only actions (get_balances, get_transactions) are exempted
+  const mutationActions = ['send_to_club', 'move_rake_to_chips', 'process_bbj_payout'];
+  if (mutationActions.includes(req.body?.action)) {
+    if (checkIdempotency(req, res)) return;
+  }
 
   // RED TEAM: Payload size check — max 2KB
   if (JSON.stringify(req.body).length > 2048) {

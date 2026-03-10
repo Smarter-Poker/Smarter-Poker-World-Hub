@@ -38,9 +38,6 @@ export default async function handler(req, res) {
   });
   if (guardErr) return res.status(guardErr.status).json({ success: false, error: guardErr.error });
 
-  // CONCURRENCY: Idempotency guard — dedup rapid double-taps
-  if (checkIdempotency(req, res)) return;
-
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 

@@ -6,7 +6,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
-import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
+import { getAuthUser } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
@@ -361,7 +361,9 @@ export default function Cashier() {
 
             // Broadcast chip balance change to other tabs
             try {
-                new BroadcastChannel('smarter_poker_chips_sync').postMessage('refresh');
+                const bc = new BroadcastChannel('smarter_poker_chips_sync');
+                bc.postMessage('refresh');
+                bc.close();
             } catch (e) { }
         } catch (e) {
             showToast(e.message || 'Buy-in failed. Try again.', 'error');
@@ -379,22 +381,12 @@ export default function Cashier() {
         isProcessingRef.current = true;
         setLeavePending(true);
         try {
-            const token = getAccessToken();
-            const res = await fetch('/api/club-arena/leave-club', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`,
-                    'X-Idempotency-Key': crypto.randomUUID(),
-                },
-                body: JSON.stringify({ clubId: clubIdParam }),
-            });
-            const data = await res.json();
-            if (!data.success) throw new Error(data.error || 'Failed to leave club');
-            showToast('You have left the club. Redirecting...', 'success');
+            const result = await apiCall('/api/club-arena/leave-club', { clubId: clubIdParam });
+            showToast(result.message || 'You have left the club. Redirecting...', 'success');
             setTimeout(() => router.push('/hub/club-arena'), 2000);
         } catch (e) {
             showToast(e.message || 'Failed to leave club', 'error');
+        } finally {
             setLeavePending(false);
             isProcessingRef.current = false;
         }
@@ -436,7 +428,9 @@ export default function Cashier() {
 
             // Broadcast chip balance change to other tabs
             try {
-                new BroadcastChannel('smarter_poker_chips_sync').postMessage('refresh');
+                const bc = new BroadcastChannel('smarter_poker_chips_sync');
+                bc.postMessage('refresh');
+                bc.close();
             } catch (e) { }
         } catch (e) {
             // Rollback
@@ -601,8 +595,8 @@ export default function Cashier() {
                             <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0' }}>
                                 <DynamicWallet
                                     {...walletData}
-                                    diamondBalance={walletData.diamondBalance || diamondBalance}
-                                    chipBalance={walletData.chipBalance || chipBalance}
+                                    diamondBalance={walletData.diamondBalance ?? diamondBalance}
+                                    chipBalance={walletData.chipBalance ?? chipBalance}
                                     onBuyDiamonds={() => router.push('/hub/diamond-store')}
                                     onOpenBBJ={() => router.push(`/hub/club-arena/lobby?club=${club?.club_id || clubIdParam}#bbj`)}
                                     onTapSlot={(slot) => {
@@ -675,7 +669,8 @@ export default function Cashier() {
                                                 {co.status === 'pending' && (
                                                     <button
                                                         onClick={async () => {
-                                                            if (processing) return;
+                                                            if (isProcessingRef.current || processing) return;
+                                                            isProcessingRef.current = true;
                                                             setProcessing(true);
                                                             try {
                                                                 const result = await apiCall('/api/club-arena/cancel-my-cashout', { cashoutId: co.id });
@@ -684,7 +679,7 @@ export default function Cashier() {
                                                                 loadData();
                                                             } catch (e) {
                                                                 showToast(e.message || 'Cancel failed', 'error');
-                                                            } finally { setProcessing(false); }
+                                                            } finally { setProcessing(false); isProcessingRef.current = false; }
                                                         }}
                                                         disabled={processing}
                                                         style={{
@@ -724,11 +719,16 @@ export default function Cashier() {
                                         </div>
                                         <button
                                             onClick={async () => {
+                                                if (isProcessingRef.current || processing) return;
+                                                isProcessingRef.current = true;
+                                                setProcessing(true);
                                                 try {
                                                     const result = await apiCall('/api/club-arena/rakeback', { action: 'claim', clubId: club.id });
                                                     showToast(`Claimed ${result.claimed?.toLocaleString()} chips rakeback!`);
                                                     loadData();
-                                                } catch (e) { showToast(e.message || 'Claim failed', 'error'); }
+                                                } catch (e) {
+                                                    showToast(e.message || 'Claim failed', 'error');
+                                                } finally { setProcessing(false); isProcessingRef.current = false; }
                                             }}
                                             style={{
                                                 width: '100%', padding: '12px', background: '#4BB543', color: '#fff',

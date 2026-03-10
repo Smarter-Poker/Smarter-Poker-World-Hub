@@ -202,7 +202,9 @@ export default async function handler(req, res) {
       // Engine not running — settings will apply on next connect
     }
 
-    return res.status(200).json({ success: true, table: updated });
+    const responseBody = { success: true, table: updated };
+    cacheResponse(req, 200, responseBody);
+    return res.status(200).json(responseBody);
   } catch (err) {
     console.error('[update-table-settings]', err);
     return res.status(500).json({ success: false, error: err.message || 'Failed to update table settings' });

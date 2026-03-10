@@ -1053,7 +1053,7 @@ export default function ClubMessages() {
                                 </div>
                             </div>
                         </div>
-                        <LiveKitCall roomName={callRoomName} userName={user?.username || 'User'} userId={user?.id} onDisconnect={endCall} isVideo={callType === 'video'} />
+                        <LiveKitCall roomName={callRoomName} participantName={user?.username || user?.display_name || 'User'} participantId={user?.id} callType={callType} onEnd={endCall} />
                     </div>
                 )}
 

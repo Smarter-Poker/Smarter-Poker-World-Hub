@@ -863,6 +863,7 @@ export default function AgentDashboard() {
                                     commissionRate: pct / 100,
                                 });
                                 showToast(`Commission updated to ${pct}%`);
+                                busEmit.dataMutated('agent_commission_updated');
                                 setSubAgentCommModal(null);
                                 setSubAgentsLoaded(false);
                             } catch (e) { showToast(e.message, 'error'); }
@@ -909,6 +910,7 @@ export default function AgentDashboard() {
                                     notes: 'Sub-agent chip transfer from parent agent',
                                 });
                                 showToast(`Sent ${amt.toLocaleString()} chips to sub-agent`);
+                                busEmit.dataMutated('chips_distributed');
                                 setSubAgentDistModal(null);
                             } catch (e) { showToast(e.message, 'error'); }
                             finally { setProcessing(false); }
@@ -1380,7 +1382,7 @@ function PromoWalletTab({ dashboard, clubId, userId, apiCall, showToast, players
         (async () => {
             try {
                 const [dashData, histData] = await Promise.all([
-                    apiCall('/api/club-arena/agent-dashboard', { clubId, userId }),
+                    apiGet(`/api/club-arena/agent-dashboard?clubId=${clubId}`),
                     apiCall('/api/club-arena/distribute-promo', { action: 'history', clubId }),
                 ]);
                 setPromoBalance(dashData?.agent?.promo_balance || 0);
@@ -1415,6 +1417,7 @@ function PromoWalletTab({ dashboard, clubId, userId, apiCall, showToast, players
                 amount: parseFloat(promoAmount),
             });
             showToast(`Sent ${parseFloat(promoAmount).toLocaleString()} promo chips!`, 'success');
+            busEmit.dataMutated('promo_distributed');
             setPromoBalance(prev => prev - parseFloat(promoAmount));
             setPromoAmount('');
             setPromoTarget('');

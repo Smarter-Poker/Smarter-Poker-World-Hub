@@ -42,7 +42,11 @@ const api = async (action, params) => {
   if (!token) throw new Error('Not authenticated — please log in again');
   const res = await fetch('/api/club-arena/union-games', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+      'X-Idempotency-Key': crypto.randomUUID(),
+    },
     body: JSON.stringify({ action, ...params }),
   });
   if (!res.ok) {

@@ -15,16 +15,37 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
+const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-
+// All fields any action could possibly send
+const ALLOWED_BODY_FIELDS = new Set([
+  'clubId', 'action', 'targetUserId', 'playerId', 'parentAgentUserId',
+  'commissionRate', 'agentTier', 'isPrepaid', 'creditLimit', 'parentAgentId',
+  'rakebackPercentage', 'reassignTo', 'tier', 'nickname',
+  'fromAgentId', 'toAgentId', 'newRole', 'forceReturn',
+]);
+const MAX_BODY_SIZE = 2048;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
+
+  // RED TEAM: Payload size + field allowlist
+  const bodyStr = JSON.stringify(req.body || {});
+  if (bodyStr.length > MAX_BODY_SIZE) return res.status(413).json({ success: false, error: 'Request body too large' });
+  const unknownFields = Object.keys(req.body || {}).filter(k => !ALLOWED_BODY_FIELDS.has(k));
+  if (unknownFields.length > 0) return res.status(400).json({ success: false, error: `Unknown fields: ${unknownFields.join(', ')}` });
+
+  // CONCURRENCY: Idempotency guard for mutation actions
+  const mutationActions = ['promote', 'demote', 'suspend', 'reactivate', 'remove', 'change_role', 'set_parent_agent', 'promote_to_sub_agent', 'update_commission'];
+  if (mutationActions.includes(req.body?.action)) {
+    if (checkIdempotency(req, res)) return;
+  }
 
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
@@ -34,6 +55,13 @@ export default async function handler(req, res) {
 
   const { clubId, action, targetUserId, ...params } = req.body;
   if (!clubId || !action) return res.status(400).json({ success: false, error: 'clubId and action required' });
+
+  // UUID validation on all ID fields
+  if (clubId && !UUID_RE.test(clubId)) return res.status(400).json({ success: false, error: 'Invalid clubId format' });
+  if (targetUserId && !UUID_RE.test(targetUserId)) return res.status(400).json({ success: false, error: 'Invalid targetUserId format' });
+  if (params.playerId && !UUID_RE.test(params.playerId)) return res.status(400).json({ success: false, error: 'Invalid playerId format' });
+  if (params.parentAgentUserId && !UUID_RE.test(params.parentAgentUserId)) return res.status(400).json({ success: false, error: 'Invalid parentAgentUserId format' });
+  if (params.parentAgentId && params.parentAgentId !== null && !UUID_RE.test(params.parentAgentId)) return res.status(400).json({ success: false, error: 'Invalid parentAgentId format' });
 
   // Settlement lock — block chip-moving actions during settlement window
   const chipMovingActions = ['remove', 'promote', 'demote'];
@@ -243,7 +271,7 @@ export default async function handler(req, res) {
         .select('user_id')
         .eq('club_id', clubId)
         .eq('agent_id', targetUserId)
-            .limit(200);
+        .limit(200);
 
       const playerCount = agentPlayers?.length || 0;
 
@@ -557,7 +585,7 @@ export default async function handler(req, res) {
               business_balance: 0,
               active_player_count: 0,
               total_players: 0,
-                });
+            });
         }
       }
 
@@ -705,6 +733,21 @@ export default async function handler(req, res) {
           .maybeSingle();
         if (!parentAgent) return res.status(404).json({ success: false, error: 'Parent agent not found' });
         parentRecordId = parentAgent.id;
+
+        // ── MLM LOOP PREVENTION: Walk ancestor chain up to 10 levels ──
+        // If the target agent appears in the proposed parent's ancestry, it's circular
+        let walkId = parentRecordId;
+        for (let depth = 0; depth < 10 && walkId; depth++) {
+          if (walkId === targetAgent.id) {
+            return res.status(400).json({
+              success: false,
+              error: 'Circular agent hierarchy detected — this assignment would create an infinite loop',
+            });
+          }
+          const { data: ancestor } = await supabaseAdmin
+            .from('agents').select('parent_agent_id').eq('id', walkId).maybeSingle();
+          walkId = ancestor?.parent_agent_id || null;
+        }
       }
 
       // If parentAgentId is null, remove parent (make standalone)
@@ -749,7 +792,7 @@ export default async function handler(req, res) {
           .from('profiles')
           .select('id, username, display_name, avatar_url')
           .in('id', subIds)
-              .limit(100);
+          .limit(100);
         for (const p of (profs || [])) profiles[p.id] = p;
       }
 
@@ -914,7 +957,7 @@ export default async function handler(req, res) {
         .select('id, user_id, commission_rate')
         .eq('club_id', clubId)
         .eq('parent_agent_id', targetAgent.id)
-            .limit(100);
+        .limit(100);
 
       for (const sub of (subAgents || [])) {
         if (sub.commission_rate >= commissionRate) {

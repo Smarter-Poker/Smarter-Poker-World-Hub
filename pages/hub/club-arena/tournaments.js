@@ -191,8 +191,8 @@ export default function TournamentsPage() {
     try {
       const res = await api('register', { tournamentId });
       if (res.success) {
+        await loadData(); // BUG-6 FIX: await loadData before emitting
         busEmit.dataMutated('tournament_registration');
-        loadData();
       } else {
         // Rollback
         setTournaments(previousTournaments);
@@ -228,7 +228,7 @@ export default function TournamentsPage() {
         try {
           const res = await api('unregister', { tournamentId });
           if (res.success) {
-            loadData();
+            await loadData(); // BUG-6 FIX: await loadData before emitting
             showToast('Unregistered. Buy-in refunded.');
             busEmit.dataMutated('tournament_registration');
           } else {
@@ -363,9 +363,10 @@ export default function TournamentsPage() {
       {selectedTournament && (
         <TournamentDetailModal
           tournament={selectedTournament}
-          chipBalance={chipBalance}
+          chipBalance={walletData.chipBalance || chipBalance}
           userId={user?.id}
           isAdmin={isAdmin}
+          mutatingId={mutatingId}
           onRegister={handleRegister}
           onUnregister={handleUnregister}
           onClose={() => setSelectedTournament(null)}
@@ -373,6 +374,17 @@ export default function TournamentsPage() {
             await api('start', { tournamentId: selectedTournament.id });
             loadData();
             setSelectedTournament(null);
+          }}
+          onCancel={async () => {
+            const res = await api('cancel', { tournamentId: selectedTournament.id });
+            if (res.success) {
+              showToast(`Tournament cancelled. ${res.refunded || 0} player(s) refunded.`);
+              await loadData();
+              busEmit.dataMutated('tournament_cancelled');
+              setSelectedTournament(null);
+            } else {
+              showToast(res.error || 'Cancel failed', 'error');
+            }
           }}
         />
       )}
@@ -604,7 +616,7 @@ function playerName(userId, profileMap) {
 // ═══════════════════════════════════════════════════════
 // TOURNAMENT DETAIL MODAL
 // ═══════════════════════════════════════════════════════
-function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, onRegister, onUnregister, onClose, onStart }) {
+function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, mutatingId, onRegister, onUnregister, onClose, onStart, onCancel }) {
   const router = useRouter();
   const [isRegistered, setIsRegistered] = useState(false);
   const [registrations, setRegistrations] = useState([]);
@@ -675,7 +687,13 @@ function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, on
             .eq('tournament_id', t.id)
             .in('status', ['registered', 'playing', 'eliminated'])
             .order('registered_at')
-            .then(({ data }) => { if (data) setRegistrations(data); });
+            .then(({ data }) => {
+              if (data) {
+                setRegistrations(data);
+                // BUG-4 FIX: recalculate isRegistered from fresh data
+                setIsRegistered(data.some(r => r.user_id === userId && r.status === 'registered'));
+              }
+            });
         }
         // Trigger mystery bounty reveal animation
         if (evt === 'mystery_bounty_awarded' && payload.payload?.reveal) {
@@ -765,7 +783,9 @@ function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, on
     }
   };
 
-  const canRegister = ['scheduled', 'registering'].includes(t.status) && !isRegistered && chipBalance >= t.buy_in;
+  // BUG-2 FIX: Allow late-registration during 'running' if within late_reg_levels
+  const isLateRegOpen = t.status === 'running' && t.late_reg_levels > 0 && (tourneyState?.currentLevel ?? 0) <= t.late_reg_levels;
+  const canRegister = (['scheduled', 'registering'].includes(t.status) || isLateRegOpen) && !isRegistered && chipBalance >= t.buy_in;
 
   // Bounty badge for detail modal header
   const bountyType = t.settings?.bounty_type;
@@ -1140,18 +1160,21 @@ function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, on
             }}>Go to Table</button>
           )}
 
+          {/* BUG-1 FIX: visual loading state via mutatingId + disabled prop */}
           {canRegister && (
-            <button onClick={() => onRegister(t.id)} style={{
+            <button onClick={() => onRegister(t.id)} disabled={!!mutatingId} style={{
               flex: 1, padding: 10, background: FB.green, color: '#fff',
               border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer',
-            }}>Register ({Number(t.buy_in).toLocaleString()})</button>
+              opacity: mutatingId ? 0.5 : 1,
+            }}>{mutatingId === t.id ? 'Registering...' : `Register (${Number(t.buy_in).toLocaleString()})`}</button>
           )}
 
           {isRegistered && ['scheduled', 'registering'].includes(t.status) && (
-            <button onClick={() => onUnregister(t.id)} style={{
+            <button onClick={() => onUnregister(t.id)} disabled={!!mutatingId} style={{
               flex: 1, padding: 10, background: FB.danger, color: '#fff',
               border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer',
-            }}>Unregister</button>
+              opacity: mutatingId ? 0.5 : 1,
+            }}>{mutatingId === t.id ? 'Processing...' : 'Unregister'}</button>
           )}
 
           {isAdmin && ['scheduled', 'registering'].includes(t.status) && t.registered_count >= 2 && (
@@ -1159,6 +1182,14 @@ function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, on
               flex: 1, padding: 10, background: '#ea580c', color: '#fff',
               border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer',
             }}>Start Now</button>
+          )}
+
+          {/* BUG-5 FIX: Admin Cancel button */}
+          {isAdmin && ['scheduled', 'registering'].includes(t.status) && (
+            <button onClick={onCancel} style={{
+              flex: 1, padding: 10, background: '#7f1d1d', color: '#fca5a5',
+              border: '1px solid #dc262640', borderRadius: 8, fontWeight: 700, cursor: 'pointer',
+            }}>Cancel Tournament</button>
           )}
         </div>
       </div>

@@ -57,6 +57,12 @@ export const EventType = {
     GEEVES_QUESTION_MISSED: 'GEEVES_QUESTION_MISSED',
     GEEVES_KB_UPDATED: 'GEEVES_KB_UPDATED',
     GEEVES_OPENED: 'GEEVES_OPENED',
+
+    // ── ORB-6: The Wire (Messenger / WebRTC) ──
+    MESSAGE_SENT: 'MESSAGE_SENT',
+    MESSAGE_RECEIVED: 'MESSAGE_RECEIVED',
+    CALL_STARTED: 'CALL_STARTED',
+    CALL_ENDED: 'CALL_ENDED',
 };
 
 // ─── SSR Safety Check ──────────────────────────────────────────
@@ -235,6 +241,19 @@ const _busEmitMethods = {
 
     geevesOpened: () =>
         eventBus.emit(EventType.GEEVES_OPENED, {}, 'GeevesOrb'),
+
+    // ── ORB-6: The Wire (Messenger / WebRTC) ──
+    messageSent: (conversationId, recipientId) =>
+        eventBus.emit(EventType.MESSAGE_SENT, { conversationId, recipientId }, 'Messenger'),
+
+    messageReceived: (conversationId, senderId) =>
+        eventBus.emit(EventType.MESSAGE_RECEIVED, { conversationId, senderId }, 'Messenger'),
+
+    callStarted: (callType, roomName, otherUserId) =>
+        eventBus.emit(EventType.CALL_STARTED, { callType, roomName, otherUserId }, 'LiveKitCall'),
+
+    callEnded: (callType, roomName) =>
+        eventBus.emit(EventType.CALL_ENDED, { callType, roomName }, 'LiveKitCall'),
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
