@@ -3,7 +3,7 @@
    Shows club info, tables, tournaments, and club navigation
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { usePersistedFilters } from '../../../src/hooks/usePersistedFilters';
