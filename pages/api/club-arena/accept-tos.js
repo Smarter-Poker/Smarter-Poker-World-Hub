@@ -9,6 +9,7 @@
  * Auth: Bearer token
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
+const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -17,6 +18,7 @@ const supabaseAdmin = createClient(
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
+  if (!applyRateLimit(req, res, 'club-arena/accept-tos')) return;
 
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (!token) return res.status(401).json({ success: false, error: 'Not authenticated' });

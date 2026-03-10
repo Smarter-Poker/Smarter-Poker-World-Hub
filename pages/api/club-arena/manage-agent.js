@@ -16,6 +16,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
 const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
 const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
+const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 import { notifyUser } from '../../../src/lib/club-arena/notify';
 
 const supabaseAdmin = createClient(
@@ -35,6 +36,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
+  if (!applyRateLimit(req, res, 'club-arena/manage-agent')) return;
 
   // RED TEAM: Payload size + field allowlist
   const bodyStr = JSON.stringify(req.body || {});

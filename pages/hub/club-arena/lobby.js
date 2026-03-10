@@ -174,6 +174,10 @@ export default function ClubLobby() {
 
         if (isCash) {
             busEmit.tableOpened(table?.name || 'New Table', table?.game_type || 'NLH');
+            // Auto-navigate to the new table so owner can sit down immediately
+            if (table?.id) {
+                setTimeout(() => router.push(`/hub/club-arena/table/${table.id}`), 600);
+            }
         } else {
             busEmit.dataMutated('tournament_created');
         }
