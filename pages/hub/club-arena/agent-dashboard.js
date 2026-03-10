@@ -232,7 +232,7 @@ export default function AgentDashboard() {
     // ── Event Bus: refresh on cross-page mutations (admin mints, cashouts, etc.) ──
     useEffect(() => {
         const unsub = eventBus.on(EventType.DATA_MUTATED, (e) => {
-            const relevant = ['chips_minted', 'chips_distributed', 'cashout_approved', 'cashout_requested', 'cashout_cancelled', 'rakeback_distributed', 'marketplace_purchase'];
+            const relevant = ['chips_minted', 'chips_distributed', 'cashout_approved', 'cashout_requested', 'cashout_cancelled', 'rakeback_distributed', 'marketplace_purchase', 'promo_distributed', 'agent_commission_updated', 'agent_hierarchy_updated', 'agent_credit_issued', 'agent_suspended'];
             if (relevant.includes(e?.payload?.entity)) loadDashboard();
         });
         return () => unsub();

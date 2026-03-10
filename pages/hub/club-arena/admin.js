@@ -385,7 +385,7 @@ export default function Admin() {
     // ── Event Bus: refresh admin on cross-page mutations ──────────────────
     useEffect(() => {
         const unsub = eventBus.on(EventType.DATA_MUTATED, (e) => {
-            const relevant = ['tournament_created', 'tournament_registration', 'chips_distributed', 'chips_minted', 'cashout_requested', 'cashout_approved', 'cashout_cancelled', 'rakeback_distributed', 'marketplace_purchase', 'union_club_added'];
+            const relevant = ['tournament_created', 'tournament_registration', 'chips_distributed', 'chips_minted', 'cashout_requested', 'cashout_approved', 'cashout_cancelled', 'rakeback_distributed', 'marketplace_purchase', 'union_club_added', 'agent_credit_issued', 'agent_commission_updated', 'agent_hierarchy_updated', 'promo_distributed'];
             if (relevant.includes(e?.payload?.entity)) loadData();
         });
         return () => unsub();
@@ -1684,6 +1684,7 @@ export default function Admin() {
                                                     try {
                                                         await apiCall('/api/club-arena/manage-agent', { clubId: club.id, targetUserId: agent.user_id, action: 'suspend' });
                                                         showToast('Agent suspended');
+                                                        busEmit.dataMutated('agent_suspended');
                                                         loadData();
                                                     } catch (e) { showToast(e.message, 'error'); }
                                                     finally { setProcessing(false); }
