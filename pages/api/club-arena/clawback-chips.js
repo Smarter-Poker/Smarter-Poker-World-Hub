@@ -19,6 +19,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
+const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -169,18 +170,139 @@ export default async function handler(req, res) {
     });
 
     if (debitErr) {
-      // Debit failed (likely insufficient balance) — unclaim the transaction
+      // ═══════════════════════════════════════════════════════════
+      // PARTIAL CLAWBACK — Player has some but not enough chips.
+      // Instead of failing entirely, zero-out the player and
+      // recover whatever is available.
+      // ═══════════════════════════════════════════════════════════
+      const { data: playerMember } = await supabaseAdmin
+        .from('club_members').select('chip_balance')
+        .eq('club_id', clubId).eq('user_id', txn.to_user_id).maybeSingle();
+
+      const available = Math.floor(playerMember?.chip_balance || 0);
+
+      if (available <= 0) {
+        // Player is already at zero — unclaim and fail gracefully
+        await supabaseAdmin
+          .from('chip_transactions')
+          .update({ notes: txn.notes || '' })
+          .eq('id', transactionId);
+        return res.status(200).json({
+          success: true,
+          partial: true,
+          requested: clawbackAmount,
+          recovered: 0,
+          shortfall: clawbackAmount,
+          playerNewBalance: 0,
+          message: 'Player balance is already zero. No chips recovered.',
+          windowRemaining: `${remainingSeconds}s`,
+        });
+      }
+
+      // Retry with the available amount
+      const partialAmount = Math.min(available, clawbackAmount);
+      const { error: retryDebitErr } = await supabaseAdmin.rpc('fn_debit_chips', {
+        p_club_id: clubId,
+        p_user_id: txn.to_user_id,
+        p_amount: partialAmount,
+      });
+
+      if (retryDebitErr) {
+        // Even partial failed — unclaim and fail gracefully
+        await supabaseAdmin
+          .from('chip_transactions')
+          .update({ notes: txn.notes || '' })
+          .eq('id', transactionId);
+        return res.status(200).json({
+          success: true,
+          partial: true,
+          requested: clawbackAmount,
+          recovered: 0,
+          shortfall: clawbackAmount,
+          playerNewBalance: available,
+          message: 'Could not recover chips. Player balance may be in-play.',
+          windowRemaining: `${remainingSeconds}s`,
+        });
+      }
+
+      // Credit agent with the partial amount
+      const { error: partialCreditErr } = await supabaseAdmin.rpc('fn_credit_chips', {
+        p_club_id: clubId,
+        p_user_id: user.id,
+        p_amount: partialAmount,
+      });
+
+      if (partialCreditErr) {
+        // Rollback partial debit
+        await supabaseAdmin.rpc('fn_credit_chips', {
+          p_club_id: clubId,
+          p_user_id: txn.to_user_id,
+          p_amount: partialAmount,
+        });
+        throw partialCreditErr;
+      }
+
+      // Update the claim note to reflect partial
+      const partialNote = `${txn.notes || ''} [PARTIAL CLAWBACK: ${partialAmount}/${clawbackAmount} at ${new Date().toISOString()}]`;
       await supabaseAdmin
         .from('chip_transactions')
-        .update({ notes: txn.notes || '' })
+        .update({ notes: partialNote })
         .eq('id', transactionId);
-      return res.status(400).json({
-        success: false, error: 'Player has insufficient chips for clawback',
+
+      // Record partial clawback transaction
+      await supabaseAdmin.from('chip_transactions').insert({
+        club_id: clubId,
+        from_user_id: txn.to_user_id,
+        to_user_id: user.id,
+        amount: partialAmount,
+        transaction_type: 'clawback',
+        notes: `Partial clawback: ${partialAmount.toLocaleString()}/${clawbackAmount.toLocaleString()} chips recovered (original txn: ${transactionId})`,
+      });
+
+      // Read fresh balances
+      const { data: freshP } = await supabaseAdmin
+        .from('club_members').select('chip_balance')
+        .eq('club_id', clubId).eq('user_id', txn.to_user_id).maybeSingle();
+      const { data: freshA } = await supabaseAdmin
+        .from('club_members').select('chip_balance')
+        .eq('club_id', clubId).eq('user_id', user.id).maybeSingle();
+
+      // Audit log for partial clawback
+      logAudit(supabaseAdmin, {
+        actionType: 'clawback_partial',
+        userId: user.id,
+        targetUserId: txn.to_user_id,
+        clubId,
+        amount: partialAmount,
+        ip: extractIP(req),
+        details: {
+          original_transaction_id: transactionId,
+          original_amount: txn.amount,
+          requested: clawbackAmount,
+          recovered: partialAmount,
+          shortfall: clawbackAmount - partialAmount,
+          player_new_balance: freshP?.chip_balance || 0,
+          agent_new_balance: freshA?.chip_balance || 0,
+          window_remaining_seconds: remainingSeconds,
+        },
+      });
+
+      return res.status(200).json({
+        success: true,
+        partial: true,
         requested: clawbackAmount,
-        message: 'Player may have already played or transferred some chips.',
+        recovered: partialAmount,
+        shortfall: clawbackAmount - partialAmount,
+        playerNewBalance: freshP?.chip_balance || 0,
+        agentNewBalance: freshA?.chip_balance || 0,
+        windowRemaining: `${remainingSeconds}s`,
+        message: `Partial clawback: recovered ${partialAmount.toLocaleString()} of ${clawbackAmount.toLocaleString()} requested. Player zeroed out.`,
       });
     }
 
+    // ═════════════════════════════════════════════════════════════
+    // 6b. FULL CLAWBACK succeeded — credit agent
+    // ═════════════════════════════════════════════════════════════
     const { error: creditErr } = await supabaseAdmin.rpc('fn_credit_chips', {
       p_club_id: clubId,
       p_user_id: user.id,
@@ -218,16 +340,15 @@ export default async function handler(req, res) {
       .eq('club_id', clubId).eq('user_id', user.id).maybeSingle();
 
     // ═════════════════════════════════════════════════════════════
-    // 9. ORB-5 MANDATE: Write immutable record to action_audit_logs
-    //    (IP, timestamp, exact amount — undeletable)
+    // 9. ORB-5 MANDATE: Immutable audit log via centralized logger
     // ═════════════════════════════════════════════════════════════
-    await supabaseAdmin.from('action_audit_logs').insert({
-      action_type: 'clawback',
-      user_id: user.id,
-      target_user_id: txn.to_user_id,
-      club_id: clubId,
+    logAudit(supabaseAdmin, {
+      actionType: 'clawback',
+      userId: user.id,
+      targetUserId: txn.to_user_id,
+      clubId,
       amount: clawbackAmount,
-      ip_address: req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown',
+      ip: extractIP(req),
       details: {
         original_transaction_id: transactionId,
         original_amount: txn.amount,
@@ -236,7 +357,7 @@ export default async function handler(req, res) {
         agent_new_balance: freshAgent?.chip_balance || 0,
         window_remaining_seconds: remainingSeconds,
       },
-    }).catch(auditErr => console.error('[clawback-chips] audit log write failed:', auditErr.message));
+    });
 
     return res.status(200).json({
       success: true,
