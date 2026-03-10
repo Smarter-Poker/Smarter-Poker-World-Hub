@@ -157,8 +157,11 @@ export default function Players() {
     // Bulk Role Change handler
     const handleBulkRoleChange = async () => {
         setBulkRoleChanging(true);
-        let success = 0, fail = 0;
+        let success = 0, fail = 0, skippedOwner = 0;
+        // Safety: never demote the club owner
+        const ownerIds = new Set(members.filter(m => m.role === 'owner').map(m => m.user_id));
         for (const uid of selectedIds) {
+            if (ownerIds.has(uid)) { skippedOwner++; continue; }
             try {
                 const { error } = await supabase
                     .from('club_members')
@@ -170,7 +173,8 @@ export default function Players() {
         }
         setBulkRoleChanging(false);
         setBulkRoleOpen(false);
-        showToast(`Changed ${success} player${success !== 1 ? 's' : ''} to ${bulkNewRole}${fail ? `, ${fail} failed` : ''}`, fail ? 'error' : 'success');
+        const skippedMsg = skippedOwner ? ` (${skippedOwner} owner${skippedOwner > 1 ? 's' : ''} skipped)` : '';
+        showToast(`Changed ${success} player${success !== 1 ? 's' : ''} to ${bulkNewRole}${fail ? `, ${fail} failed` : ''}${skippedMsg}`, fail ? 'error' : 'success');
         busEmit.dataMutated('member_role_changed');
         exitBulkMode();
         loadData();

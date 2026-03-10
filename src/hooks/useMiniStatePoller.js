@@ -110,53 +110,64 @@ export default function useMiniStatePoller() {
         if (!visibleIds.current.has(payload.tableId)) return;
 
         const now = Date.now();
+
+        // Collect bus events to fire OUTSIDE setState (React 18 pure updater rule)
+        const busEvents = [];
+
         setMiniStates(prev => {
           const next = new Map(prev);
           const state = { ...payload, _fetchedAt: now };
           const existing = prev.get(state.tableId);
 
-          // ── EventBus emissions for all significant state changes ──
+          // ── Detect significant state changes for EventBus ──
           if (_busEmit) {
             // Hand number change
             if (state.handNumber) {
               const prevHand = prevHandNumbers.current.get(state.tableId);
               if (prevHand !== undefined && prevHand !== state.handNumber) {
-                _busEmit.dataMutated('mini_state_hand_change');
+                busEvents.push('mini_state_hand_change');
               }
               prevHandNumbers.current.set(state.tableId, state.handNumber);
             }
 
-            // Phase transition (preflop → flop, etc.)
+            // Phase transition
             if (existing && existing.phase !== state.phase) {
-              _busEmit.dataMutated('mini_state_phase_change');
+              busEvents.push('mini_state_phase_change');
             }
 
-            // Winner flash (new hand result appeared)
+            // Winner flash
             if (state.lastHandResult && (!existing?.lastHandResult || 
                 existing.lastHandResult.timestamp !== state.lastHandResult.timestamp)) {
-              _busEmit.dataMutated('mini_state_winner_flash');
+              busEvents.push('mini_state_winner_flash');
             }
 
             // Chat message
             if (state.lastChatMessage && (!existing?.lastChatMessage ||
                 existing.lastChatMessage.timestamp !== state.lastChatMessage.timestamp)) {
-              _busEmit.dataMutated('mini_state_chat_message');
+              busEvents.push('mini_state_chat_message');
             }
 
             // Emoji reaction
             if (state.emojiReactions?.length > (existing?.emojiReactions?.length || 0)) {
-              _busEmit.dataMutated('mini_state_emoji_reaction');
+              busEvents.push('mini_state_emoji_reaction');
             }
 
-            // Pot change (significant)
+            // Pot change
             if (existing && state.potTotal !== existing.potTotal && state.potTotal > 0) {
-              _busEmit.dataMutated('mini_state_pot_change');
+              busEvents.push('mini_state_pot_change');
             }
           }
 
           next.set(state.tableId, state);
           return next;
         });
+
+        // Fire bus events OUTSIDE setState — safe for React 18
+        if (_busEmit && busEvents.length > 0) {
+          for (const evt of busEvents) {
+            _busEmit.dataMutated(evt);
+          }
+        }
       }
     );
 
