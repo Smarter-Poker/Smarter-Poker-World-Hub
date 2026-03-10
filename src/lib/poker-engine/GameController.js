@@ -1511,6 +1511,15 @@ class GameController {
     return result;
   }
 
+  async showOneCard(tableId, playerId, cardIndex) {
+    await this._ensureInit();
+    const entry = this.lobby.tables.get(tableId);
+    if (!entry) return { success: false, error: 'Table not found' };
+    const result = entry.table.game?.showOneCard?.(playerId, cardIndex);
+    if (!result) return { success: false, error: 'No active hand or method not available' };
+    return result;
+  }
+
   async sendChat(tableId, playerId, message) {
     await this._ensureInit();
     const entry = this.lobby.tables.get(tableId);

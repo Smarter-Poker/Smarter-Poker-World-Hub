@@ -12,6 +12,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
+import NotificationBell from '../../../src/components/club-arena/NotificationBell';
 import { haptic } from '../../../src/lib/club-arena/haptic';
 import { usePullToRefresh } from '../../../src/hooks/usePullToRefresh';
 import usePersistedFilters from '../../../src/hooks/usePersistedFilters';
@@ -605,7 +606,10 @@ export default function Leaderboard() {
                     </button>
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: showWallet ? '8px' : '20px' }}>
-                        <h1 style={{ ...S.pageTitle, marginBottom: 0 }}>Leaderboard</h1>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <h1 style={{ ...S.pageTitle, marginBottom: 0 }}>Leaderboard</h1>
+                            <NotificationBell userId={user?.id} />
+                        </div>
                         <button onClick={() => setShowWallet(prev => !prev)} style={{ background: showWallet ? FB.primary : FB.cardBg, border: `1px solid ${showWallet ? FB.primary : FB.border}`, color: showWallet ? '#fff' : FB.textSecondary, padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>
                             💰 {showWallet ? 'Hide' : 'Wallet'}
                         </button>

@@ -11,6 +11,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
+import NotificationBell from '../../../src/components/club-arena/NotificationBell';
 import { haptic } from '../../../src/lib/club-arena/haptic';
 import { usePullToRefresh } from '../../../src/hooks/usePullToRefresh';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
@@ -723,7 +724,10 @@ export default function Cashier() {
                         &#8592; Back to Lobby
                     </button>
 
-                    <h1 style={S.pageTitle}>Cashier</h1>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <h1 style={S.pageTitle}>Cashier</h1>
+                        <NotificationBell userId={user?.id} />
+                    </div>
 
                     {isLoading ? (
                         <div style={S.loading}>

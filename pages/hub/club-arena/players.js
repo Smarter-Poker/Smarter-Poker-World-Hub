@@ -12,6 +12,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
+import NotificationBell from '../../../src/components/club-arena/NotificationBell';
 import { haptic } from '../../../src/lib/club-arena/haptic';
 import { usePullToRefresh } from '../../../src/hooks/usePullToRefresh';
 import usePersistedFilters from '../../../src/hooks/usePersistedFilters';
@@ -370,9 +371,12 @@ export default function Players() {
                             <h1 style={{ ...S.pageTitle, marginBottom: '4px' }}>Players</h1>
                             <p style={{ ...S.memberCount, marginBottom: 0 }}>{members.length} members in this club</p>
                         </div>
-                        <button onClick={() => setShowWallet(prev => !prev)} style={{ background: showWallet ? FB.primary : FB.cardBg, border: `1px solid ${showWallet ? FB.primary : FB.border}`, color: showWallet ? '#fff' : FB.textSecondary, padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <NotificationBell userId={user?.id} />
+                            <button onClick={() => setShowWallet(prev => !prev)} style={{ background: showWallet ? FB.primary : FB.cardBg, border: `1px solid ${showWallet ? FB.primary : FB.border}`, color: showWallet ? '#fff' : FB.textSecondary, padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>
                             💰 {showWallet ? 'Hide' : 'Wallet'}
                         </button>
+                        </div>
                     </div>
 
                     {showWallet && (

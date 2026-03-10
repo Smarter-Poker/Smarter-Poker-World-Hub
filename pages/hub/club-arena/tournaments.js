@@ -17,6 +17,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
+import NotificationBell from '../../../src/components/club-arena/NotificationBell';
 import { haptic } from '../../../src/lib/club-arena/haptic';
 import { usePullToRefresh } from '../../../src/hooks/usePullToRefresh';
 import useWalletData from '../../../src/hooks/useWalletData';
@@ -321,6 +322,7 @@ export default function TournamentsPage() {
           <span style={{ color: FB.dim, fontSize: 13 }}>{clubInfo?.name} — Balance: {(walletData.chipBalance || chipBalance).toLocaleString()} chips</span>
         </div>
         <button onClick={() => setShowWallet(p => !p)} style={{ background: 'none', border: '1px solid #3E4042', borderRadius: 8, padding: '6px 12px', color: '#FFD700', fontSize: 16, cursor: 'pointer' }} title="Wallet">💰</button>
+        <NotificationBell userId={user?.id} />
         <div style={{ flex: 1 }} />
         {isAdmin && (
           <button onClick={() => setShowCreate(true)} style={{

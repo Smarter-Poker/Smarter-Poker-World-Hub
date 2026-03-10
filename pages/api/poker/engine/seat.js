@@ -41,7 +41,7 @@ const VALID_SEAT_ACTIONS = new Set([
   'discard', 'respond_run_it',
   'set_auto_rebuy', 'set_auto_topup',
   'invite_player', 'approve_buyin', 'reject_buyin',
-  'show_cards', 'kick_player',
+  'show_cards', 'show_one_card', 'kick_player',
 ]);
 
 export default async function handler(req, res) {
@@ -402,6 +402,13 @@ export default async function handler(req, res) {
 
       case 'show_cards': {
         result = await controller.showCards(tableId, playerId);
+        break;
+      }
+
+      case 'show_one_card': {
+        const cardIdx = typeof params.cardIndex === 'number' ? params.cardIndex : parseInt(params.cardIndex);
+        if (isNaN(cardIdx) || cardIdx < 0) return res.status(400).json({ error: 'Valid cardIndex required' });
+        result = await controller.showOneCard(tableId, playerId, cardIdx);
         break;
       }
 

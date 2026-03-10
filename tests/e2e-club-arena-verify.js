@@ -142,6 +142,16 @@ c('UI: Show All + Show One', () => fs.readFileSync('src/components/poker/LivePok
 // PHASE 2: All-In dealer message
 c('Dealer chat: all-in message', () => fs.readFileSync('src/hooks/useTableConnection.js', 'utf8').includes('ALL-IN'));
 
+// PHASE 3: Wiring completeness
+c('Seat API: show_one_card action', () => fs.readFileSync('pages/api/poker/engine/seat.js', 'utf8').includes("'show_one_card'"));
+c('GameController: showOneCard method', () => fs.readFileSync('src/lib/poker-engine/GameController.js', 'utf8').includes('showOneCard(tableId'));
+c('NotificationBell on cashier', () => fs.readFileSync('pages/hub/club-arena/cashier.js', 'utf8').includes('<NotificationBell'));
+c('NotificationBell on tournaments', () => fs.readFileSync('pages/hub/club-arena/tournaments.js', 'utf8').includes('<NotificationBell'));
+c('NotificationBell on hand-histories', () => fs.readFileSync('pages/hub/club-arena/hand-histories.js', 'utf8').includes('<NotificationBell'));
+c('NotificationBell on leaderboard', () => fs.readFileSync('pages/hub/club-arena/leaderboard.js', 'utf8').includes('<NotificationBell'));
+c('NotificationBell on player-stats', () => fs.readFileSync('pages/hub/club-arena/player-stats.js', 'utf8').includes('<NotificationBell'));
+c('NotificationBell on players', () => fs.readFileSync('pages/hub/club-arena/players.js', 'utf8').includes('<NotificationBell'));
+
 console.log();
 console.log('═══════════════════════════════════');
 console.log(pass + '/' + total);
