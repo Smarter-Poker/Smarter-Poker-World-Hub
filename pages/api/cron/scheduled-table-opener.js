@@ -108,7 +108,7 @@ export default async function handler(req, res) {
             created_by: tmpl.created_by,
           })
           .select('id')
-          .single();
+          .maybeSingle();
 
         if (createErr) throw createErr;
 
