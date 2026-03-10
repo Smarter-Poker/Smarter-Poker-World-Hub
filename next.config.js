@@ -186,7 +186,7 @@ const sentryOptions = {
 
 // Only wrap with Sentry if DSN is configured AND auth token is present
 // TEMP FIX: Bypass Sentry wrapping to diagnose Vercel deployment Internal Error
-const pwaConfig = withPWA(nextConfig);
-module.exports = process.env.NEXT_PUBLIC_SENTRY_DSN && process.env.SENTRY_AUTH_TOKEN
+const pwaConfig = process.env.NODE_ENV === 'development' ? nextConfig : withPWA(nextConfig);
+module.exports = process.env.NEXT_PUBLIC_SENTRY_DSN && process.env.SENTRY_AUTH_TOKEN && process.env.NODE_ENV !== 'development'
   ? withSentryConfig(pwaConfig, sentryWebpackPluginOptions, sentryOptions)
   : pwaConfig;

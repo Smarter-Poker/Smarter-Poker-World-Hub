@@ -243,11 +243,13 @@ export default async function handler(req, res) {
         });
       }
 
-      // Credit agent with the partial amount
-      const { error: partialCreditErr } = await supabaseAdmin.rpc('fn_credit_chips', {
-        p_club_id: clubId,
-        p_user_id: user.id,
-        p_amount: partialAmount,
+      // Credit agent with the partial amount via fn_atomic_increment_field (since fn_credit_chips is locked)
+      const { error: partialCreditErr } = await supabaseAdmin.rpc('fn_atomic_increment_field', {
+        p_table: 'club_members',
+        p_field: 'chip_balance',
+        p_increment: partialAmount,
+        p_where_club_id: clubId,
+        p_where_user_id: user.id,
       });
 
       if (partialCreditErr) {

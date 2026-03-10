@@ -247,6 +247,15 @@ export default function TournamentsPage() {
 
   if (!user) return null;
 
+  if (!clubIdParam) {
+    return (
+      <div style={{ minHeight: '100vh', background: FB.bg, padding: '40px 20px', textAlign: 'center', fontFamily: 'sans-serif', color: FB.text }}>
+        <p style={{ marginBottom: 16 }}>Invalid Club. Please return to your Hub.</p>
+        <button onClick={() => router.push('/hub')} style={{ background: '#242526', border: '1px solid #3E4042', color: '#2374E1', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: 600 }}>Go to Hub</button>
+      </div>
+    );
+  }
+
   return (
     <div style={{ background: FB.bg, minHeight: '100vh', color: FB.text }}>
       {toast && (
