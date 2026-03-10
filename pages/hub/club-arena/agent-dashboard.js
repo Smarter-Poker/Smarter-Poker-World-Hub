@@ -1071,6 +1071,8 @@ function StatLine({ label, value }) {
 
 function PlayersTab({ players, onDistribute, onPromote, chipFlow = {}, playerSort = 'balance', onSortChange }) {
     const [search, setSearch] = useState('');
+    const [viewMode, setViewMode] = usePersistedState('sp-agent-players-view', 'list');
+    const [expandedAgents, setExpandedAgents] = useState({});
     const debouncedSearch = useDebounce(search, 300);
 
     const filtered = (players || []).filter(p => {
@@ -1078,28 +1080,60 @@ function PlayersTab({ players, onDistribute, onPromote, chipFlow = {}, playerSor
         return name.includes(debouncedSearch.toLowerCase());
     });
 
-    // Sort
     const sorted = [...filtered].sort((a, b) => {
         if (playerSort === 'balance') return (b.chip_balance || 0) - (a.chip_balance || 0);
-        if (playerSort === 'activity') {
-            const ta = a.profile?.last_seen ? new Date(a.profile.last_seen).getTime() : 0;
-            const tb = b.profile?.last_seen ? new Date(b.profile.last_seen).getTime() : 0;
-            return tb - ta;
-        }
-        // name
+        if (playerSort === 'activity') return (new Date(b.profile?.last_seen || 0).getTime()) - (new Date(a.profile?.last_seen || 0).getTime());
         return (a.profile?.display_name || a.nickname || '').localeCompare(b.profile?.display_name || b.nickname || '');
     });
 
     const totalChips = filtered.reduce((s, p) => s + (p.chip_balance || 0), 0);
     const onlineCount = filtered.filter(p => p.profile?.is_online).length;
 
+    const renderPlayer = (p, isNested = false) => {
+        const flow = chipFlow[p.user_id];
+        const flowNet = flow?.net || 0;
+        const hasFlow = flowNet !== 0;
+
+        return (
+            <div key={p.user_id} style={{ ...cardStyle, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 12, opacity: p.status === 'suspended' ? 0.6 : 1 }}>
+                <div style={{ width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: p.profile?.is_online ? `2px solid ${FB.success}` : `2px solid ${FB.border}`, flexShrink: 0, overflow: 'hidden' }}>
+                    <img src={resolveAvatarDisplay(p.profile?.avatar_url, p.user_id)} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: FB.textPrimary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {p.profile?.display_name || p.nickname || 'Unknown'} {p.status === 'suspended' ? '🚫' : ''}
+                    </div>
+                    <div style={{ fontSize: 11, color: FB.textSecondary }}>
+                        {p.profile?.is_online ? '🟢 Online' : `Seen ${timeAgo(p.profile?.last_seen)}`}
+                        {p.tier && p.tier !== 'bronze' && !isNested ? ` • ${p.tier}` : ''}
+                        {p.role === 'sub_agent' || p.role === 'agent' ? ' • Agent' : ''}
+                    </div>
+                    {hasFlow && (
+                        <div style={{ fontSize: 10, color: flowNet > 0 ? FB.success : FB.danger, marginTop: 2 }}>
+                            {flowNet > 0 ? '▲' : '▼'} {Math.abs(flowNet).toLocaleString()} chips (7d)
+                        </div>
+                    )}
+                </div>
+                <div style={{ textAlign: 'right', flexShrink: 0, marginRight: 8 }}>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: FB.gold, fontVariantNumeric: 'tabular-nums' }}>
+                        {(p.chip_balance || 0).toLocaleString()}
+                    </div>
+                    <div style={{ fontSize: 10, color: FB.textSecondary }}>chips</div>
+                </div>
+                <button onClick={(e) => { e.stopPropagation(); onDistribute(p); }} style={{ background: FB.primary, color: '#fff', border: 'none', borderRadius: 8, padding: '8px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>⚡ Send</button>
+                {onPromote && p.role !== 'sub_agent' && p.role !== 'agent' && (
+                    <button onClick={(e) => { e.stopPropagation(); onPromote(p); }} style={{ background: '#4ECDC4', color: '#000', border: 'none', borderRadius: 8, padding: '8px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>↑</button>
+                )}
+            </div>
+        );
+    };
+
     return (
         <div>
-            {/* Summary bar */}
             <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
                 <div style={{ flex: 1, background: FB.cardBg, borderRadius: 8, padding: '8px 12px' }}>
-                    <div style={{ fontSize: 10, color: FB.textSecondary }}>Total Chips Out</div>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: '#F7C52A' }}>{totalChips.toLocaleString()}</div>
+                    <div style={{ fontSize: 10, color: FB.textSecondary }}>Total Chips In Downline</div>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: FB.gold }}>{totalChips.toLocaleString()}</div>
                 </div>
                 <div style={{ flex: 1, background: FB.cardBg, borderRadius: 8, padding: '8px 12px' }}>
                     <div style={{ fontSize: 10, color: FB.textSecondary }}>Online Now</div>
@@ -1107,93 +1141,53 @@ function PlayersTab({ players, onDistribute, onPromote, chipFlow = {}, playerSor
                 </div>
             </div>
 
-            {/* Search + sort */}
             <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                <input
-                    value={search} onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search players..." style={{ ...inputStyle, flex: 1, marginBottom: 0 }}
-                />
-                <select
-                    value={playerSort}
-                    onChange={(e) => onSortChange && onSortChange(e.target.value)}
-                    style={{ background: FB.cardBg, color: FB.textSecondary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '8px 10px', fontSize: 12, cursor: 'pointer' }}
-                >
-                    <option value="balance">By Balance</option>
-                    <option value="name">By Name</option>
-                    <option value="activity">By Activity</option>
+                <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search downline..." style={{ ...inputStyle, flex: 1, marginBottom: 0 }} />
+                <select value={playerSort} onChange={(e) => onSortChange && onSortChange(e.target.value)} style={{ background: FB.cardBg, color: FB.textSecondary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '8px', fontSize: 12, cursor: 'pointer' }}>
+                    <option value="balance">Balance</option><option value="name">Name</option><option value="activity">Activity</option>
                 </select>
+                <button onClick={() => setViewMode(v => v === 'list' ? 'tree' : 'list')} style={{ background: FB.cardBg, color: FB.textPrimary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '8px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                    {viewMode === 'list' ? '🌳 Tree' : '☰ List'}
+                </button>
             </div>
 
             {sorted.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: 40, color: FB.textSecondary }}>
-                    {debouncedSearch ? 'No players match search' : 'No players in your downline yet'}
+                    {search ? 'No players match search' : 'No players in your downline yet'}
                 </div>
-            ) : sorted.map((p, i) => {
-                const flow = chipFlow[p.user_id];
-                const flowNet = flow?.net || 0;
-                const hasFlow = flowNet !== 0;
-
-                return (
-                    <div key={i} style={{ ...cardStyle, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 12 }}>
-                        {/* Avatar */}
-                        <div style={{
-                            width: 40, height: 40, borderRadius: '50%', background: FB.hover,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: 16, color: FB.textSecondary, flexShrink: 0,
-                            border: p.profile?.is_online ? `2px solid ${FB.success}` : `2px solid ${FB.border}`,
-                        }}>
-                            {p.profile?.avatar_url
-                                ? <img src={resolveAvatarDisplay(p.profile.avatar_url, p.user_id)} alt="User avatar" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} loading="lazy" />
-                                : <img src={resolveAvatarDisplay(null, p.user_id)} alt="User avatar" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} loading="lazy" />}
-                        </div>
-
-                        {/* Info */}
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 14, fontWeight: 600, color: FB.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {p.profile?.display_name || p.nickname || 'Unknown'}
+            ) : viewMode === 'tree' ? (
+                // Tree view rendering by Agent
+                Object.entries(sorted.reduce((acc, p) => {
+                    const aid = p.agent_id || 'unassigned';
+                    if (!acc[aid]) acc[aid] = [];
+                    acc[aid].push(p);
+                    return acc;
+                }, {})).sort((a, b) => b[1].reduce((s,p) => s + (p.chip_balance || 0), 0) - a[1].reduce((s,p) => s + (p.chip_balance || 0), 0)).map(([aid, agentPlayers]) => {
+                    const agentProfile = players.find(p => p.user_id === aid);
+                    const agentName = agentProfile ? (agentProfile.profile?.display_name || agentProfile.nickname) : aid === 'unassigned' ? 'Unassigned / Direct' : 'Unknown Agent';
+                    const isExpanded = expandedAgents[aid] !== false; // Default true
+                    return (
+                        <div key={aid} style={{ marginBottom: 10 }}>
+                            <div onClick={() => { haptic('tap'); setExpandedAgents(prev => ({...prev, [aid]: !isExpanded})); }} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: FB.cardBg, borderRadius: 8, cursor: 'pointer', borderLeft: `3px solid ${FB.purple}`, marginBottom: 6 }}>
+                                <div style={{ fontSize: 14, fontWeight: 700, color: FB.textPrimary }}>
+                                    {isExpanded ? '▼' : '▶'} {agentName} <span style={{ color: FB.textSecondary, fontSize: 12, fontWeight: 'normal' }}>({agentPlayers.length} players)</span>
+                                </div>
+                                <div style={{ fontSize: 13, color: FB.gold, fontWeight: 800 }}>
+                                    ∑ {agentPlayers.reduce((s,p) => s + (p.chip_balance || 0), 0).toLocaleString()}
+                                </div>
                             </div>
-                            <div style={{ fontSize: 11, color: FB.textSecondary }}>
-                                {p.profile?.is_online ? '🟢 Online' : `Last seen ${timeAgo(p.profile?.last_seen)}`}
-                                {p.tier && p.tier !== 'bronze' ? ` • ${p.tier}` : ''}
-                            </div>
-                            {/* 7-day chip flow indicator */}
-                            {hasFlow && (
-                                <div style={{ fontSize: 10, color: flowNet > 0 ? FB.success : '#FF6B6B', marginTop: 2 }}>
-                                    {flowNet > 0 ? '▲' : '▼'} {Math.abs(flowNet).toLocaleString()} chips (7d)
+                            {isExpanded && (
+                                <div style={{ paddingLeft: 16, borderLeft: `1px solid ${FB.border}`, marginLeft: 8 }}>
+                                    {agentPlayers.map(p => renderPlayer(p, true))}
                                 </div>
                             )}
                         </div>
-
-                        {/* Balance */}
-                        <div style={{ textAlign: 'right', flexShrink: 0, marginRight: 8 }}>
-                            <div style={{ fontSize: 15, fontWeight: 800, color: '#F7C52A', fontVariantNumeric: 'tabular-nums' }}>
-                                {(p.chip_balance || 0).toLocaleString()}
-                            </div>
-                            <div style={{ fontSize: 10, color: FB.textSecondary }}>chips</div>
-                        </div>
-
-                        {/* Send button */}
-                        <button onClick={() => onDistribute(p)} style={{
-                            background: FB.primary, color: '#fff', border: 'none', borderRadius: 8,
-                            padding: '8px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                            flexShrink: 0,
-                        }}>
-                            ⚡ Send
-                        </button>
-
-                        {/* Promote to Sub-Agent */}
-                        {onPromote && p.role !== 'sub_agent' && p.role !== 'agent' && (
-                            <button onClick={() => onPromote(p)} style={{
-                                background: '#4ECDC4', color: '#000', border: 'none', borderRadius: 8,
-                                padding: '8px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                                flexShrink: 0,
-                            }}>
-                                ↑
-                            </button>
-                        )}
-                    </div>
-                );
-            })}
+                    );
+                })
+            ) : (
+                // Original list view
+                sorted.map(p => renderPlayer(p, false))
+            )}
         </div>
     );
 }

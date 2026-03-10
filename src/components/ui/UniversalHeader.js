@@ -94,41 +94,14 @@ export default function UniversalHeader({
 
     // 🛡️ INSTANT UI: Read cached header user from localStorage on mount
     // This prevents "flash of missing data" before the API call completes
-    const [user, setUser] = useState(() => {
-        if (typeof window !== 'undefined') {
-            try {
-                const cached = localStorage.getItem('sp-cached-header-user');
-                if (cached) return JSON.parse(cached);
-            } catch (e) { }
-        }
-        return null;
-    });
-    const [stats, setStats] = useState(() => {
-        if (typeof window !== 'undefined') {
-            try {
-                const cached = localStorage.getItem('sp-cached-header-user');
-                if (cached) {
-                    const data = JSON.parse(cached);
-                    return { diamonds: data.diamonds || 0 };
-                }
-            } catch (e) { }
-        }
-        return { diamonds: 0 };
-    });
+    const [user, setUser] = useState(null);
+    const [stats, setStats] = useState({ diamonds: 0 });
     const [isLoading, setIsLoading] = useState(true);
     const [notificationCount, setNotificationCount] = useState(0);
     const [showFullDiamonds, setShowFullDiamonds] = useState(false);
     const [isWalletOpen, setIsWalletOpen] = useState(false);
-    const [isVip, setIsVip] = useState(() => {
-        if (typeof window !== 'undefined') {
-            try {
-                const cached = localStorage.getItem('sp-cached-header-user');
-                if (cached) return !!JSON.parse(cached).is_vip;
-                return localStorage.getItem('sp-vip-status') === 'true';
-            } catch (e) { return false; }
-        }
-        return false;
-    });
+    const [isVip, setIsVip] = useState(false);
+    const [isMounted, setIsMounted] = useState(false);
 
     // Global Avatar State (instant caching)
     const { user: contextUser, avatar: contextAvatar, isVip: contextVip } = useAvatar();
@@ -136,9 +109,30 @@ export default function UniversalHeader({
     // Global Unread Messages State (instant caching)
     const { unreadCount } = useUnreadCount();
 
-    // Derived values to prevent "flash of missing data" on mount
-    const displayAvatar = user?.avatar || contextAvatar?.url || contextUser?.user_metadata?.avatar_url;
-    const isVipDisplay = isVip || contextVip;
+    // 🛡️ INSTANT UI: Read cached header user from localStorage AFTER mount
+    // This prevents React 18 hydration mismatches while still loading fast
+    useEffect(() => {
+        setIsMounted(true);
+        if (typeof window !== 'undefined') {
+            try {
+                const cached = localStorage.getItem('sp-cached-header-user');
+                if (cached) {
+                    const data = JSON.parse(cached);
+                    if (data) setUser(data);
+                    if (data.diamonds !== undefined) setStats({ diamonds: data.diamonds });
+                    if (data.is_vip) setIsVip(true);
+                } else if (localStorage.getItem('sp-vip-status') === 'true') {
+                    setIsVip(true);
+                }
+            } catch (e) { }
+        }
+    }, []);
+
+    // Derived values — strictly gated behind isMounted so the first client render EXACTLY matches the server
+    const displayAvatar = isMounted ? (user?.avatar || contextAvatar?.url || contextUser?.user_metadata?.avatar_url) : null;
+    const isVipDisplay = isMounted ? (isVip || contextVip) : false;
+    const safeUnreadCount = isMounted ? unreadCount : 0;
+    const safeNotificationCount = isMounted ? notificationCount : 0;
 
     // Live Help state
     const liveHelp = useLiveHelp();
@@ -990,8 +984,8 @@ export default function UniversalHeader({
                     <div className="orb-btn">
                         <Link href="/hub/messenger" style={{ textDecoration: 'none', display: 'flex', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
                             <img src="/images/header-messenger.png" alt="Messages" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '55%', left: '50%', transform: 'translate(-50%, -50%)' }} />
-                            {unreadCount > 0 && (
-                                <span className="orb-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
+                            {safeUnreadCount > 0 && (
+                                <span className="orb-badge">{safeUnreadCount > 99 ? '99+' : safeUnreadCount}</span>
                             )}
                         </Link>
                     </div>
@@ -1000,8 +994,8 @@ export default function UniversalHeader({
                     <div className="orb-btn">
                         <Link href="/hub/notifications" style={{ textDecoration: 'none', display: 'flex', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
                             <img src="/images/header-notifications.png" alt="Notifications" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '60%', left: '50%', transform: 'translate(-50%, -50%)' }} />
-                            {notificationCount > 0 && (
-                                <span className="orb-badge">{notificationCount > 99 ? '99+' : notificationCount}</span>
+                            {safeNotificationCount > 0 && (
+                                <span className="orb-badge">{safeNotificationCount > 99 ? '99+' : safeNotificationCount}</span>
                             )}
                         </Link>
                     </div>

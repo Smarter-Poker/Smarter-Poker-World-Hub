@@ -870,17 +870,40 @@ export default function ClubLobby() {
                                     style={styles.heroActionBtn}
                                     onClick={() => {
                                         haptic('medium');
-                                        const openTable = filteredTables.find(t => (t.current_players || 0) < (t.max_players || 9));
-                                        if (openTable) {
-                                            navigateToTableMT(router, openTable, club, showToast);
-                                        } else if (filteredTables.length > 0) {
-                                            // All full — navigate to most active table to join waitlist
+                                        // 1. Find cash tables under bankroll constraints
+                                        const affordableTables = filteredTables.filter(t => {
+                                            const minBuy = t.buy_in_min || 0;
+                                            return chipBalance >= minBuy && (t.current_players || 0) < (t.max_players || 9);
+                                        });
+
+                                        if (affordableTables.length > 0) {
+                                            // Best is the one with highest minimum buy-in that we can afford, avoiding empty tables if possible.
+                                            const best = affordableTables.sort((a, b) => {
+                                                const aScore = (a.current_players > 0 ? 1000 : 0) + (a.buy_in_min || 0);
+                                                const bScore = (b.current_players > 0 ? 1000 : 0) + (b.buy_in_min || 0);
+                                                return bScore - aScore;
+                                            })[0];
+                                            navigateToTableMT(router, best, club, showToast);
+                                            return;
+                                        }
+
+                                        // 2. Fallback to tournaments in registering state
+                                        const openTourneys = tournaments.filter(t => t.status === 'registering' && chipBalance >= (t.buy_in || 0));
+                                        if (openTourneys.length > 0) {
+                                            const nextTourney = openTourneys.sort((a,b) => new Date(a.scheduled_start).getTime() - new Date(b.scheduled_start).getTime())[0];
+                                            router.push(`/hub/club-arena/tournaments?club=${club.id}&highlight=${nextTourney.id}`);
+                                            return;
+                                        }
+
+                                        // 3. Last fallback: Waitlist on busiest cash games
+                                        if (filteredTables.length > 0) {
                                             const busiest = [...filteredTables].sort((a, b) => (b.current_players || 0) - (a.current_players || 0))[0];
                                             navigateToTableMT(router, busiest, club, showToast);
-                                            showToast('Table is full — you can join the waitlist!', 'info');
-                                        } else {
-                                            showToast('No tables available yet. Create one!', 'info');
+                                            showToast('Tables are full! You can join the waitlist.', 'info');
+                                            return;
                                         }
+
+                                        showToast('No affordable open games available.', 'error');
                                     }}
                                 >
                                     <span style={styles.heroActionLabel}>Quick Seat</span>

@@ -386,8 +386,18 @@ function TournamentCard({ tournament: t, assetMap, onPress, onQuickRegister, min
   // Type badge
   const typeLabel = isSpin ? 'SPIN' : t.type === 'xmtt' ? 'XMTT' : isMTT ? 'MTT' : 'SNG';
 
+  // Late Reg logic
+  const lateRegLevels = t.late_reg_levels || t.settings?.late_registration_level || 0;
+  let lateRegEndsAt = null;
+  if (isMTT && isLive && t.started_at && lateRegLevels > 0 && Array.isArray(t.blind_structure)) {
+      const lateRegMinutes = t.blind_structure.slice(0, lateRegLevels).reduce((sum, lvl) => sum + (lvl.duration || 0), 0);
+      lateRegEndsAt = new Date(new Date(t.started_at).getTime() + lateRegMinutes * 60000).toISOString();
+      if (new Date() > new Date(lateRegEndsAt)) lateRegEndsAt = null;
+  }
+
   // Countdown
   const countdown = useCountdown(isLive ? null : startDate);
+  const lateRegCountdown = useCountdown(lateRegEndsAt);
   const trophyGlow = isSpin ? '#F1C40F' : isMTT ? '#FFD700' : '#C0C0C0';
 
   return (
@@ -456,9 +466,15 @@ function TournamentCard({ tournament: t, assetMap, onPress, onQuickRegister, min
 
               {/* Countdown / LIVE / Start date */}
               {isLive ? (
-                <span style={{ ...S.overlayCountdown, color: '#00E676', background: '#00E67620', borderColor: '#00E67640' }}>
-                  🔴 LIVE
-                </span>
+                lateRegCountdown ? (
+                  <span style={{ ...S.overlayCountdown, color: '#3498DB', background: '#3498DB28', borderColor: '#3498DB50' }}>
+                    ⏱ Late Reg: {lateRegCountdown.label.replace('Starting…', '< 1 min')}
+                  </span>
+                ) : (
+                  <span style={{ ...S.overlayCountdown, color: '#00E676', background: '#00E67620', borderColor: '#00E67640' }}>
+                    🔴 LIVE
+                  </span>
+                )
               ) : countdown ? (
                 <span style={{ ...S.overlayCountdown, color: countdown.color, background: countdown.color + '18', borderColor: countdown.color + '44' }}>
                   ⏱ {countdown.label}

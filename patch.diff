@@ -1,0 +1,12 @@
+--- next.config.js
++++ next.config.js
+@@ -58,8 +58,8 @@
+   // condition where vendor chunks get deleted mid-request, triggering
+   // "Cannot find module './chunks/vendor-chunks/next.js'" 500 errors.
+   experimental: {
+-    workerThreads: true,
+-    cpus: 4,
++    workerThreads: process.env.NODE_ENV === 'production',
++    cpus: process.env.NODE_ENV === 'production' ? 4 : undefined,
+   },
+   // ─── Dev Server Memory Management ──────────────────────────────────────────

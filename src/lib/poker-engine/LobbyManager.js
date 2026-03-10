@@ -18,6 +18,7 @@ const { HandHistoryRecorder } = require('./HandHistory');
 const { StateSerializer } = require('./StateSerializer');
 const { GAME_VARIANT } = require('./GameStateMachine');
 const { BETTING_STRUCTURES } = require('./ActionValidator');
+const HorsePokerBrain = require('./HorsePokerBrain');
 
 // ============ CONSTANTS ============
 

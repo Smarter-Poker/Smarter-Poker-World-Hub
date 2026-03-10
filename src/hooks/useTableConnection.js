@@ -20,11 +20,20 @@ import { busEmit } from '../engine/EventBus';
 const HEARTBEAT_MS = 10000;
 const API_BASE = '/api/poker/engine';
 
+// Generate UUID with fallback for older browsers
+const genIdempotencyKey = () => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+  return Math.random().toString(36).substring(2) + Date.now().toString(36);
+};
+
 // ─── HTTP helpers ────────────────────────────────────────────
 
 async function apiPost(endpoint, body, token) {
   try {
-    const headers = { 'Content-Type': 'application/json' };
+    const headers = { 
+      'Content-Type': 'application/json',
+      'X-Idempotency-Key': genIdempotencyKey()
+    };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     const res = await fetch(`${API_BASE}/${endpoint}`, {
       method: 'POST',

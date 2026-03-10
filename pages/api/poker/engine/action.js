@@ -47,6 +47,25 @@ export default async function handler(req, res) {
 
     if (!tableId) return res.status(400).json({ success: false, error: 'tableId required' });
 
+    // ── IDEMPOTENCY LOCK ──────────────────────────────────────
+    const idempotencyKey = req.headers['x-idempotency-key'];
+    if (idempotencyKey) {
+      const { error: lockErr } = await supabaseAdmin
+        .from('game_action_idempotency_keys')
+        .insert({
+          idempotency_key: idempotencyKey,
+          user_id: playerId,
+          table_id: tableId,
+          operation: action?.type || type || 'unknown',
+        });
+        
+      // 23505 is PostgreSQL unique constraint violation
+      if (lockErr && lockErr.code === '23505') {
+        console.warn(`[Idempotency] Blocked duplicate action from ${playerId} on table ${tableId}`);
+        return res.status(409).json({ success: false, error: 'Duplicate action blocked by idempotency lock' });
+      }
+    }
+
     const controller = await getController();
 
     // ── COLD-START AUTO-RECOVERY ──────────────────────────────────
