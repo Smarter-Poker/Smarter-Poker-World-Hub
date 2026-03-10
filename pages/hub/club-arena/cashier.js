@@ -22,6 +22,7 @@ import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
 import { apiCall, getAuthToken } from '../../../src/lib/club-arena/apiClient';
 const DynamicWallet = dynamic(() => import('../../../src/components/club-arena/DynamicWallet'), { ssr: false });
 const ClubAnnouncementBanner = dynamic(() => import('../../../src/components/club-arena/ClubAnnouncementBanner'), { ssr: false });
+const AgentPromoPanel = dynamic(() => import('../../../src/components/club-arena/AgentPromoPanel'), { ssr: false });
 
 // SmarterPoker Dark Color Scheme
 const FB = {
@@ -1048,6 +1049,16 @@ export default function Cashier() {
                                     💸 Send Chips to a Club Member
                                 </button>
                             </div>
+
+                            {/* Agent Promo Distribution Panel — agent/sub_agent/super_agent only */}
+                            {['agent', 'sub_agent', 'super_agent'].includes(membership?.role) && (
+                                <AgentPromoPanel
+                                    clubId={club?.id || clubIdParam}
+                                    userId={user?.id}
+                                    role={membership?.role}
+                                    onDistribute={() => loadData()}
+                                />
+                            )}
 
                             {/* ENH-7: Chip Flow Mini-Chart (7-day sparkline) */}
                             {transactions.length > 0 && (() => {

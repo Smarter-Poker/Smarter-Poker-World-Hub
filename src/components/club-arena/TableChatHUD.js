@@ -207,9 +207,7 @@ export default function TableChatHUD({ tableId, userId, isMuted = false }) {
                                 key={phrase}
                                 type="button"
                                 onClick={() => {
-                                    setNewMessage(phrase);
                                     // Auto-send quick phrase
-                                    const fakeEvent = { preventDefault: () => {} };
                                     setNewMessage('');
                                     // Send via API directly
                                     const token = (typeof localStorage !== 'undefined' && (() => {

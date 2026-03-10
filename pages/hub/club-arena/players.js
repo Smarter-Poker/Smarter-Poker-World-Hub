@@ -461,7 +461,7 @@ export default function Players() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <NotificationBell userId={user?.id} />
                             <button onClick={() => setShowWallet(prev => !prev)} style={{ background: showWallet ? FB.primary : FB.cardBg, border: `1px solid ${showWallet ? FB.primary : FB.border}`, color: showWallet ? '#fff' : FB.textSecondary, padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>
-                            💰 {showWallet ? 'Hide' : 'Wallet'}
+                            {showWallet ? 'Hide Wallet' : 'Wallet'}
                         </button>
                         </div>
                     </div>
@@ -615,9 +615,9 @@ export default function Players() {
                     {/* ═══ Floating Bulk Action Bar ═══ */}
                     {bulkMode && selectedIds.size > 0 && (
                         <div style={{ position: 'fixed', bottom: 80, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 8, background: FB.cardBg, border: `1px solid ${FB.border}`, borderRadius: 12, padding: '10px 16px', boxShadow: '0 8px 32px rgba(0,0,0,0.5)', zIndex: 200 }}>
-                            <button onClick={handleBulkMessage} style={{ padding: '8px 14px', borderRadius: 8, border: 'none', background: FB.primary, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>✉ Message ({selectedIds.size})</button>
-                            <button onClick={() => setBulkDistributeOpen(true)} style={{ padding: '8px 14px', borderRadius: 8, border: 'none', background: FB.success, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>💰 Distribute</button>
-                            <button onClick={() => setBulkRoleOpen(true)} style={{ padding: '8px 14px', borderRadius: 8, border: 'none', background: '#9B59B6', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>👑 Role</button>
+                            <button onClick={handleBulkMessage} style={{ padding: '8px 14px', borderRadius: 8, border: 'none', background: FB.primary, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Message ({selectedIds.size})</button>
+                            <button onClick={() => setBulkDistributeOpen(true)} style={{ padding: '8px 14px', borderRadius: 8, border: 'none', background: FB.success, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Distribute</button>
+                            <button onClick={() => setBulkRoleOpen(true)} style={{ padding: '8px 14px', borderRadius: 8, border: 'none', background: '#9B59B6', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Role</button>
                         </div>
                     )}
                 </div>
@@ -792,7 +792,7 @@ export default function Players() {
             {bulkDistributeOpen && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={() => setBulkDistributeOpen(false)}>
                     <div style={{ background: FB.cardBg, borderRadius: 16, padding: 24, width: '100%', maxWidth: 400, border: `1px solid ${FB.border}` }} onClick={e => e.stopPropagation()}>
-                        <h3 style={{ color: FB.textPrimary, fontSize: 18, fontWeight: 700, margin: '0 0 16px' }}>💰 Bulk Distribute Chips</h3>
+                        <h3 style={{ color: FB.textPrimary, fontSize: 18, fontWeight: 700, margin: '0 0 16px' }}>Bulk Distribute Chips</h3>
                         <p style={{ color: FB.textSecondary, fontSize: 13, marginBottom: 16 }}>Distributing to <strong style={{ color: FB.primary }}>{selectedIds.size}</strong> player{selectedIds.size !== 1 ? 's' : ''}. Each will receive the amount below.</p>
                         <input type="number" placeholder="Amount per player" value={bulkDistributeAmount} onChange={e => setBulkDistributeAmount(e.target.value)} min="1" style={{ width: '100%', padding: '12px 14px', background: FB.background, border: `1px solid ${FB.border}`, borderRadius: 8, color: FB.textPrimary, fontSize: 15, marginBottom: 10, outline: 'none', boxSizing: 'border-box' }} />
                         <input type="text" placeholder="Note (optional)" value={bulkDistributeNote} onChange={e => setBulkDistributeNote(e.target.value)} maxLength={200} style={{ width: '100%', padding: '10px 14px', background: FB.background, border: `1px solid ${FB.border}`, borderRadius: 8, color: FB.textPrimary, fontSize: 13, marginBottom: 16, outline: 'none', boxSizing: 'border-box' }} />
@@ -808,7 +808,7 @@ export default function Players() {
             {bulkRoleOpen && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={() => setBulkRoleOpen(false)}>
                     <div style={{ background: FB.cardBg, borderRadius: 16, padding: 24, width: '100%', maxWidth: 400, border: `1px solid ${FB.border}` }} onClick={e => e.stopPropagation()}>
-                        <h3 style={{ color: FB.textPrimary, fontSize: 18, fontWeight: 700, margin: '0 0 16px' }}>👑 Bulk Change Role</h3>
+                        <h3 style={{ color: FB.textPrimary, fontSize: 18, fontWeight: 700, margin: '0 0 16px' }}>Bulk Change Role</h3>
                         <p style={{ color: FB.textSecondary, fontSize: 13, marginBottom: 16 }}>Changing role for <strong style={{ color: FB.primary }}>{selectedIds.size}</strong> player{selectedIds.size !== 1 ? 's' : ''}.</p>
                         <select value={bulkNewRole} onChange={e => setBulkNewRole(e.target.value)} style={{ width: '100%', padding: '12px 14px', background: FB.background, border: `1px solid ${FB.border}`, borderRadius: 8, color: FB.textPrimary, fontSize: 15, marginBottom: 16, outline: 'none' }}>
                             <option value="player">Player</option>

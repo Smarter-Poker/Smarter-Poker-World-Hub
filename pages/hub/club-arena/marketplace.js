@@ -56,17 +56,17 @@ const DEFAULT_ITEMS = [
 
 const CATEGORIES = [
     { id: 'all', label: 'All Items' },
-    { id: 'cosmetic', label: '🎨 Cosmetics' },
-    { id: 'theme', label: '🎭 Themes' },
-    { id: 'perk', label: '⚡ Perks' },
-    { id: 'badge', label: '🏅 Badges' },
+    { id: 'cosmetic', label: 'Cosmetics' },
+    { id: 'theme', label: 'Themes' },
+    { id: 'perk', label: 'Perks' },
+    { id: 'badge', label: 'Badges' },
 ];
 
 const CATEGORY_ICONS = {
-    cosmetic: '🎨',
-    theme: '🎭',
-    perk: '⚡',
-    badge: '🏅',
+    cosmetic: '*',
+    theme: '#',
+    perk: '+',
+    badge: '!',
 };
 
 export default function Marketplace() {
@@ -398,7 +398,7 @@ export default function Marketplace() {
                             <NotificationBell userId={user?.id} />
                         </div>
                         <button onClick={() => setShowWallet(prev => !prev)} style={{ background: showWallet ? '#2374E1' : '#242526', border: `1px solid ${showWallet ? '#2374E1' : '#3E4042'}`, color: showWallet ? '#fff' : '#B0B3B8', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>
-                            💰 {showWallet ? 'Hide' : 'Wallet'}
+                            {showWallet ? 'Hide Wallet' : 'Wallet'}
                         </button>
                     </div>
 
@@ -475,7 +475,7 @@ export default function Marketplace() {
 
                             {/* Search */}
                             <div style={{ position: 'relative', marginBottom: 12 }}>
-                                <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: FB.textSecondary, fontSize: 16 }}>🔍</span>
+                                <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: FB.textSecondary, fontSize: 14, fontWeight: 700 }}>Search</span>
                                 <input
                                     type="text"
                                     placeholder="Search items..."
@@ -521,7 +521,7 @@ export default function Marketplace() {
                                                 onMouseLeave={e => e.currentTarget.style.borderColor = FB.border}
                                             >
                                                 {isOwned && <span style={S.ownedBadge}>OWNED</span>}
-                                                <span style={S.itemIcon}>{item.icon || CATEGORY_ICONS[item.category] || '🎁'}</span>
+                                                <span style={S.itemIcon}>{item.icon || CATEGORY_ICONS[item.category] || '-'}</span>
                                                 <div style={S.itemName}>{item.name}</div>
                                                 <div style={S.itemDesc}>{item.description}</div>
                                                 <div style={S.itemPrice}>{item.price.toLocaleString()} chips</div>

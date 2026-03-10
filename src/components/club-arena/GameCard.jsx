@@ -288,6 +288,21 @@ function MiniSeatMap({ current, max, accentColor, tableId }) {
 // ─────────────────────────────────────────────────────────────────────
 function CashCard({ table: t, assetMap, onPress, onSpectate, onWaitlist, avgVpip, miniState }) {
   const [expandModal, setExpandModal] = useState(false);
+  const touchStartRef = React.useRef(null);
+
+  // Swipe-to-spectate handler
+  const handleTouchStart = (e) => { touchStartRef.current = e.touches[0].clientX; };
+  const handleTouchEnd = (e) => {
+    if (touchStartRef.current === null) return;
+    const diff = touchStartRef.current - e.changedTouches[0].clientX;
+    touchStartRef.current = null;
+    // Swipe left > 60px = spectate
+    if (diff > 60 && onSpectate) {
+      // Haptic feedback if available
+      if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(30);
+      onSpectate(t);
+    }
+  };
   const vc = VC[t.game_variant] || DV;
   const sb = t.small_blind ?? 0;
   const bb = t.big_blind ?? 0;
@@ -334,7 +349,11 @@ function CashCard({ table: t, assetMap, onPress, onSpectate, onWaitlist, avgVpip
       <div style={S.tableContainer}>
         {isLive && miniState && miniState.phase !== 'idle' ? (
           /* LIVE MINI-VIEW — PokerBros-style live table thumbnail */
-          <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+          <div
+            style={{ position: 'relative', width: '100%', height: '100%' }}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+          >
             <div onClick={(e) => { e.stopPropagation(); setExpandModal(true); }} style={{ cursor: 'zoom-in' }}>
               <TableMiniView
                 miniState={miniState}
