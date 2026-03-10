@@ -1,34 +1,46 @@
 /**
- * MultiTableView — PokerBros-style 4-slot multi-table system
- * ═════════════════════════════════════════════════════════════
+ * MultiTableView — PokerBros-style 4-slot multi-table system (Phase 2)
+ * ═════════════════════════════════════════════════════════════════════
  *
- * Fixed 4-slot tab bar at the top of screen (44px).
- * Active table: gold border pill. Inactive: subtle border pill.
- * Empty slots: dashed "+" button → navigates to lobby.
- *
- * Modes:
- *   - Single: One table visible, tabs to switch
- *   - Tile: 2×2 grid showing all tables
- *
- * Features:
- *   - Tab bar with variant/stakes labels (PokerBros replica)
- *   - Pulsing gold glow on tabs where action is needed
- *   - Swipe left/right between tables (mobile)
- *   - SessionStorage persistence via useMultiTable hook
- *   - BBJ ticker overlay
+ * Phase 2 Enhancements:
+ *   - GAP 1: CSS offset for LivePokerTable fixed elements (top:8px → top:52px)
+ *   - GAP 4: Close-tab confirmation modal
+ *   - GAP 5: Swipe visual feedback (translateX during drag)
+ *   - GAP 6: TableChatHUD bound to activeTable
+ *   - ADV-1: Keyboard shortcuts (Ctrl+1..4, Ctrl+Tab, Ctrl+W)
+ *   - ADV-2: EventBus integration
+ *   - ADV-3: Haptic feedback on tab switch
  */
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 import { useMultiTable } from '../../hooks/useMultiTable';
-import { BBJTicker, BBJModal, useBBJ } from '../club-arena/BBJDisplay';
-import { PokerSoundManager } from './PokerSoundManager';
+import { eventBus, EventType, busEmit } from '../../engine/EventBus';
 
+// Lazy imports for heavy components
 const LivePokerTable = dynamic(
   () => import('./LivePokerTable'),
   { ssr: false }
 );
+
+const TableChatHUD = dynamic(
+  () => import('../club-arena/TableChatHUD'),
+  { ssr: false, loading: () => null }
+);
+
+// BBJ imports — optional (may not exist in all deployments)
+let BBJTicker, BBJModal, useBBJ;
+try {
+  const bbjModule = require('../club-arena/BBJDisplay');
+  BBJTicker = bbjModule.BBJTicker;
+  BBJModal = bbjModule.BBJModal;
+  useBBJ = bbjModule.useBBJ;
+} catch (_) {
+  BBJTicker = null;
+  BBJModal = null;
+  useBBJ = () => ({ bbjData: null });
+}
 
 // ═══════════════════════════════════════════════════════════════════════
 // THEME TOKENS
@@ -54,7 +66,7 @@ const T = {
 const TAB_BAR_HEIGHT = 44;
 
 // ═══════════════════════════════════════════════════════════════════════
-// CSS KEYFRAMES (injected once)
+// CSS KEYFRAMES + FIXED-ELEMENT OFFSET (GAP 1)
 // ═══════════════════════════════════════════════════════════════════════
 const KEYFRAMES = `
 @keyframes mtv_goldPulse {
@@ -69,7 +81,29 @@ const KEYFRAMES = `
   0% { box-shadow: 0 0 8px rgba(255,215,0,0.4), inset 0 0 4px rgba(255,215,0,0.1); }
   100% { box-shadow: 0 0 18px rgba(255,215,0,0.7), inset 0 0 10px rgba(255,215,0,0.2); }
 }
+@keyframes mtv_confirmIn {
+  from { opacity: 0; transform: translateY(-8px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* GAP 1 FIX: Shift LivePokerTable's position:fixed top:8px elements below the tab bar */
+/* These are scoped under .mtv-table-slot to avoid affecting other pages */
+.mtv-table-slot [style*="position: fixed"][style*="top: 8"] {
+  top: ${TAB_BAR_HEIGHT + 8}px !important;
+}
+.mtv-table-slot [style*="position: fixed"][style*="top: 0"] {
+  top: ${TAB_BAR_HEIGHT}px !important;
+}
 `;
+
+// ═══════════════════════════════════════════════════════════════════════
+// HAPTIC FEEDBACK (ADV-3)
+// ═══════════════════════════════════════════════════════════════════════
+function haptic(type = 'light') {
+  if (typeof navigator === 'undefined' || !navigator.vibrate) return;
+  const patterns = { light: [10], medium: [30], heavy: [50] };
+  try { navigator.vibrate(patterns[type] || patterns.light); } catch (_) {}
+}
 
 // ═══════════════════════════════════════════════════════════════════════
 // TAB BAR — PokerBros 4-Slot Replica
@@ -109,6 +143,7 @@ function TableTabBar({
           return (
             <button
               key={`empty-${idx}`}
+              id={`mt-slot-empty-${idx}`}
               onClick={() => onEmpty(idx)}
               style={{
                 flex: 1,
@@ -140,6 +175,7 @@ function TableTabBar({
         return (
           <div
             key={slot.tableId}
+            id={`mt-slot-${idx}`}
             onClick={() => onSwitch(idx)}
             style={{
               flex: 1,
@@ -196,7 +232,7 @@ function TableTabBar({
 
             {/* Close "×" button */}
             <button
-              onClick={(e) => { e.stopPropagation(); onClose(slot.tableId); }}
+              onClick={(e) => { e.stopPropagation(); onClose(slot.tableId, idx); }}
               style={{
                 background: 'none',
                 border: 'none',
@@ -219,6 +255,7 @@ function TableTabBar({
       {/* View toggle (only when 2+ tables) */}
       {filledCount > 1 && (
         <button
+          id="mt-view-toggle"
           onClick={onToggleView}
           style={{
             background: viewMode === 'tile' ? 'rgba(255,215,0,0.2)' : 'rgba(255,255,255,0.06)',
@@ -244,19 +281,79 @@ function TableTabBar({
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// Single Table Slot Wrapper
+// CLOSE CONFIRMATION MODAL (GAP 4)
+// ═══════════════════════════════════════════════════════════════════════
+function CloseConfirmation({ tableName, onConfirm, onCancel }) {
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 10001,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: 'rgba(0,0,0,0.6)',
+    }} onClick={onCancel}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: '#242526',
+          border: '1px solid rgba(255,255,255,0.15)',
+          borderRadius: 14,
+          padding: '20px 24px',
+          maxWidth: 320,
+          width: '90%',
+          textAlign: 'center',
+          animation: 'mtv_confirmIn 0.2s ease-out',
+          boxShadow: '0 12px 40px rgba(0,0,0,0.6)',
+        }}
+      >
+        <div style={{ color: T.textBright, fontSize: 15, fontWeight: 700, marginBottom: 6 }}>
+          Leave Table?
+        </div>
+        <div style={{ color: T.textDim, fontSize: 13, marginBottom: 16, lineHeight: 1.4 }}>
+          You&apos;ll be stood up from <strong style={{ color: T.textBright }}>{tableName}</strong>.
+        </div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button
+            onClick={onCancel}
+            style={{
+              flex: 1, padding: '9px 0', borderRadius: 8,
+              background: '#3E4042', color: T.textDim, border: 'none',
+              fontSize: 13, fontWeight: 600, cursor: 'pointer',
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            style={{
+              flex: 1, padding: '9px 0', borderRadius: 8,
+              background: T.danger, color: '#fff', border: 'none',
+              fontSize: 13, fontWeight: 700, cursor: 'pointer',
+            }}
+          >
+            Leave
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Single Table Slot Wrapper (with GAP 1 CSS class)
 // ═══════════════════════════════════════════════════════════════════════
 function TableSlot({ supabase, tableId, userId, displayName, avatarUrl, isVisible, onActionNeeded, onActionCleared, onLeave }) {
   return (
-    <div style={{
-      visibility: isVisible ? 'visible' : 'hidden',
-      position: isVisible ? 'relative' : 'absolute',
-      inset: isVisible ? undefined : 0,
-      width: '100%',
-      height: '100%',
-      pointerEvents: isVisible ? 'auto' : 'none',
-      zIndex: isVisible ? 10 : 1,
-    }}>
+    <div
+      className="mtv-table-slot"
+      style={{
+        visibility: isVisible ? 'visible' : 'hidden',
+        position: isVisible ? 'relative' : 'absolute',
+        inset: isVisible ? undefined : 0,
+        width: '100%',
+        height: '100%',
+        pointerEvents: isVisible ? 'auto' : 'none',
+        zIndex: isVisible ? 10 : 1,
+      }}
+    >
       <LivePokerTable
         supabase={supabase}
         tableId={tableId}
@@ -348,9 +445,12 @@ export default function MultiTableView({ supabase, userId, initialTable, onExit 
     slots, tables, activeIndex, activeTable, viewMode,
     actionNeeded, bbjWin, setBbjWin, canOpenMore,
     openTable, closeTable, switchTo, toggleView,
-    markActionNeeded, clearActionNeeded,
+    markActionNeeded, clearActionNeeded, clearSession,
     pendingSlotIndex, setPendingSlotIndex, getNextEmptySlot,
   } = useMultiTable({ supabase, userId });
+
+  // ── Close confirmation state (GAP 4) ──
+  const [closeConfirm, setCloseConfirm] = useState(null); // { tableId, name }
 
   // Algorithmic Grid Scaling State (tile mode)
   const containerRef = useRef(null);
@@ -399,32 +499,41 @@ export default function MultiTableView({ supabase, userId, initialTable, onExit 
     return () => resizeObserver.disconnect();
   }, [tables.length, viewMode]);
 
-  const soundManagerRef = useRef(null);
   const [showBBJModal, setShowBBJModal] = useState(false);
 
   // BBJ pool (realtime ticking)
   const clubId = initialTable?.clubId || tables[0]?.clubId || null;
-  const { bbjData } = useBBJ(clubId, supabase);
-
-  // Initialize sound manager
-  useEffect(() => {
-    soundManagerRef.current = new PokerSoundManager();
-    return () => { soundManagerRef.current?.dispose(); };
-  }, []);
+  const bbjHook = useBBJ ? useBBJ(clubId, supabase) : { bbjData: null };
+  const bbjData = bbjHook?.bbjData || null;
 
   // Open initial table (from URL)
   useEffect(() => {
     if (initialTable) {
       openTable(initialTable);
+      // Emit EventBus (ADV-2)
+      try { busEmit.dataMutated?.('multi_table_opened'); } catch (_) {}
     }
   }, [initialTable, openTable]);
 
-  // ── Swipe navigation (mobile) ──
+  // ═══ SWIPE NAVIGATION with visual feedback (GAP 5) ═══
   const touchRef = useRef({ startX: 0, startY: 0, swiping: false });
+  const [swipeOffset, setSwipeOffset] = useState(0);
 
   const handleTouchStart = useCallback((e) => {
     const touch = e.touches[0];
     touchRef.current = { startX: touch.clientX, startY: touch.clientY, swiping: true };
+  }, []);
+
+  const handleTouchMove = useCallback((e) => {
+    if (!touchRef.current.swiping) return;
+    const touch = e.touches[0];
+    const deltaX = touch.clientX - touchRef.current.startX;
+    const deltaY = touch.clientY - touchRef.current.startY;
+    // Only apply horizontal offset if horizontal movement dominates
+    if (Math.abs(deltaX) > 20 && Math.abs(deltaX) > Math.abs(deltaY)) {
+      // Clamp to ±120px for visual feedback
+      setSwipeOffset(Math.max(-120, Math.min(120, deltaX * 0.4)));
+    }
   }, []);
 
   const handleTouchEnd = useCallback((e) => {
@@ -433,6 +542,7 @@ export default function MultiTableView({ supabase, userId, initialTable, onExit 
     const deltaX = touch.clientX - touchRef.current.startX;
     const deltaY = touch.clientY - touchRef.current.startY;
     touchRef.current.swiping = false;
+    setSwipeOffset(0); // Reset visual feedback
 
     // Only respond to horizontal swipes (>60px, not vertical)
     if (Math.abs(deltaX) < 60 || Math.abs(deltaY) > Math.abs(deltaX)) return;
@@ -445,28 +555,83 @@ export default function MultiTableView({ supabase, userId, initialTable, onExit 
     if (currentPos < 0) return;
 
     if (deltaX < -60 && currentPos < filledSlots.length - 1) {
-      // Swipe left → next table
       switchTo(filledSlots[currentPos + 1]);
+      haptic('light');
     } else if (deltaX > 60 && currentPos > 0) {
-      // Swipe right → prev table
       switchTo(filledSlots[currentPos - 1]);
+      haptic('light');
     }
   }, [slots, activeIndex, switchTo]);
 
-  // ── Handle table close (with exit-to-lobby for last table) ──
-  const handleLeave = useCallback((tableId) => {
-    closeTable(tableId);
+  // ═══ KEYBOARD SHORTCUTS (ADV-1) ═══
+  useEffect(() => {
+    const handler = (e) => {
+      // Ctrl+1..4 — switch to slot
+      if (e.ctrlKey && e.key >= '1' && e.key <= '4') {
+        e.preventDefault();
+        const idx = parseInt(e.key) - 1;
+        if (slots[idx]) {
+          switchTo(idx);
+          haptic('light');
+        }
+      }
+      // Ctrl+Tab — cycle to next filled slot
+      if (e.ctrlKey && e.key === 'Tab') {
+        e.preventDefault();
+        const filledSlots = slots.map((s, i) => s ? i : -1).filter(i => i >= 0);
+        if (filledSlots.length < 2) return;
+        const currentPos = filledSlots.indexOf(activeIndex);
+        const nextPos = (currentPos + 1) % filledSlots.length;
+        switchTo(filledSlots[nextPos]);
+        haptic('light');
+      }
+      // Ctrl+W — close active table (with confirmation)
+      if (e.ctrlKey && e.key === 'w') {
+        e.preventDefault();
+        if (activeTable) {
+          setCloseConfirm({ tableId: activeTable.tableId, name: activeTable.name || activeTable.variant });
+        }
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [slots, activeIndex, activeTable, switchTo]);
+
+  // ── Handle tab switch with haptic (ADV-3) ──
+  const handleSwitch = useCallback((idx) => {
+    switchTo(idx);
+    haptic('light');
+    // Emit EventBus (ADV-2)
+    try { busEmit.dataMutated?.('multi_table_switched'); } catch (_) {}
+  }, [switchTo]);
+
+  // ── Handle table close (with confirmation) (GAP 4) ──
+  const handleCloseRequest = useCallback((tableId, idx) => {
+    const slot = slots.find(s => s?.tableId === tableId) || slots[idx];
+    setCloseConfirm({
+      tableId,
+      name: slot?.name || slot?.variant || 'this table',
+    });
+  }, [slots]);
+
+  const handleCloseConfirm = useCallback(() => {
+    if (!closeConfirm) return;
+    closeTable(closeConfirm.tableId);
+    haptic('medium');
+    // Emit EventBus (ADV-2)
+    try { busEmit.dataMutated?.('multi_table_closed'); } catch (_) {}
     // Check if this was the last table
-    const remaining = slots.filter(s => s && s.tableId !== tableId);
+    const remaining = slots.filter(s => s && s.tableId !== closeConfirm.tableId);
     if (remaining.length === 0) {
+      clearSession();
       onExit?.();
     }
-  }, [closeTable, slots, onExit]);
+    setCloseConfirm(null);
+  }, [closeConfirm, closeTable, slots, clearSession, onExit]);
 
   // ── Handle "+" empty slot click → navigate to lobby ──
   const handleEmptySlot = useCallback((slotIndex) => {
     setPendingSlotIndex(slotIndex);
-    // Get the club ID from any open table, or from initial
     const cid = initialTable?.clubId || tables[0]?.clubId || null;
     if (cid) {
       router.push(`/hub/club-arena/lobby?club=${cid}&mtslot=${slotIndex}`);
@@ -475,7 +640,7 @@ export default function MultiTableView({ supabase, userId, initialTable, onExit 
     }
   }, [setPendingSlotIndex, initialTable, tables, router]);
 
-  // ── No tables and no initial → show loading message ──
+  // ── No tables and no initial → show empty state ──
   if (tables.length === 0 && !initialTable) {
     return (
       <div style={{
@@ -488,8 +653,8 @@ export default function MultiTableView({ supabase, userId, initialTable, onExit 
           slots={slots}
           activeIndex={activeIndex}
           actionNeeded={actionNeeded}
-          onSwitch={switchTo}
-          onClose={(id) => handleLeave(id)}
+          onSwitch={handleSwitch}
+          onClose={handleCloseRequest}
           onEmpty={handleEmptySlot}
           viewMode={viewMode}
           onToggleView={toggleView}
@@ -498,7 +663,7 @@ export default function MultiTableView({ supabase, userId, initialTable, onExit 
           <div style={{ fontSize: 36, marginBottom: 12, opacity: 0.5 }}>🃏</div>
           <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}>No Tables Open</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
-            Tap a "+" slot to open a table from the lobby
+            Tap a &quot;+&quot; slot to open a table from the lobby
           </div>
         </div>
       </div>
@@ -518,8 +683,8 @@ export default function MultiTableView({ supabase, userId, initialTable, onExit 
         slots={slots}
         activeIndex={activeIndex}
         actionNeeded={actionNeeded}
-        onSwitch={switchTo}
-        onClose={(id) => handleLeave(id)}
+        onSwitch={handleSwitch}
+        onClose={handleCloseRequest}
         onEmpty={handleEmptySlot}
         viewMode={viewMode}
         onToggleView={toggleView}
@@ -529,6 +694,7 @@ export default function MultiTableView({ supabase, userId, initialTable, onExit 
       <div
         ref={containerRef}
         onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         style={{
           flex: 1,
@@ -540,10 +706,13 @@ export default function MultiTableView({ supabase, userId, initialTable, onExit 
           gap: viewMode === 'tile' ? 2 : 0,
           alignContent: 'center',
           justifyContent: 'center',
+          // Swipe visual feedback (GAP 5)
+          transform: viewMode === 'single' && swipeOffset ? `translateX(${swipeOffset}px)` : undefined,
+          transition: swipeOffset ? 'none' : 'transform 0.3s ease-out',
         }}
       >
         {/* BBJ Ticker — top center */}
-        {bbjData && bbjData.pool?.amount > 0 && (
+        {BBJTicker && bbjData && bbjData.pool?.amount > 0 && (
           <div style={{
             position: 'absolute', top: 6, left: '50%', transform: 'translateX(-50%)',
             zIndex: 50, pointerEvents: 'auto',
@@ -566,7 +735,7 @@ export default function MultiTableView({ supabase, userId, initialTable, onExit 
           return (
             <div
               key={slot.tableId}
-              onClick={() => viewMode === 'tile' && switchTo(idx)}
+              onClick={() => viewMode === 'tile' && handleSwitch(idx)}
               style={{
                 width: '100%',
                 height: viewMode === 'single' ? '100%' : undefined,
@@ -593,18 +762,36 @@ export default function MultiTableView({ supabase, userId, initialTable, onExit 
                 isVisible={isVisible}
                 onActionNeeded={markActionNeeded}
                 onActionCleared={clearActionNeeded}
-                onLeave={handleLeave}
+                onLeave={handleCloseRequest}
               />
             </div>
           );
         })}
       </div>
 
+      {/* ── TableChatHUD bound to active table (GAP 6) ── */}
+      {activeTable && (
+        <TableChatHUD
+          tableId={activeTable.tableId}
+          userId={userId}
+          isMuted={false}
+        />
+      )}
+
+      {/* ── Close Confirmation Modal (GAP 4) ── */}
+      {closeConfirm && (
+        <CloseConfirmation
+          tableName={closeConfirm.name}
+          onConfirm={handleCloseConfirm}
+          onCancel={() => setCloseConfirm(null)}
+        />
+      )}
+
       {/* BBJ Win Overlay */}
       <BBJOverlay bbjData={bbjWin} onDismiss={() => setBbjWin(null)} />
 
       {/* BBJ Info Modal */}
-      {showBBJModal && bbjData && (
+      {showBBJModal && BBJModal && bbjData && (
         <BBJModal data={bbjData} onClose={() => setShowBBJModal(false)} />
       )}
     </div>

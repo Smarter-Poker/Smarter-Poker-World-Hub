@@ -20,22 +20,32 @@ const MAX_TABLES = 4;
 const STORAGE_KEY = 'club-arena-multi-tables';
 
 // ── SessionStorage helpers ──────────────────────────────────────────────
-function saveSlots(slots) {
+function saveState(slots, activeIndex) {
   try {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(slots));
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ slots, activeIndex }));
   } catch (_) { /* quota or SSR — silent */ }
 }
 
-function loadSlots() {
+function loadState() {
   try {
     const raw = sessionStorage.getItem(STORAGE_KEY);
-    if (!raw) return [null, null, null, null];
+    if (!raw) return { slots: [null, null, null, null], activeIndex: 0 };
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.length === MAX_TABLES) return parsed;
-    return [null, null, null, null];
+    // Support legacy format (bare array)
+    if (Array.isArray(parsed)) {
+      return { slots: parsed.length === MAX_TABLES ? parsed : [null, null, null, null], activeIndex: 0 };
+    }
+    if (parsed && Array.isArray(parsed.slots) && parsed.slots.length === MAX_TABLES) {
+      return { slots: parsed.slots, activeIndex: parsed.activeIndex || 0 };
+    }
+    return { slots: [null, null, null, null], activeIndex: 0 };
   } catch (_) {
-    return [null, null, null, null];
+    return { slots: [null, null, null, null], activeIndex: 0 };
   }
+}
+
+function clearSession() {
+  try { sessionStorage.removeItem(STORAGE_KEY); } catch (_) { }
 }
 
 /**
@@ -45,8 +55,9 @@ function loadSlots() {
  */
 export function useMultiTable({ supabase, userId }) {
   // Fixed 4-slot array: each slot is { tableId, name, stakes, variant, clubName, clubId } | null
-  const [slots, setSlots] = useState(() => loadSlots());
-  const [activeIndex, setActiveIndex] = useState(0);
+  const initialState = loadState();
+  const [slots, setSlots] = useState(initialState.slots);
+  const [activeIndex, setActiveIndex] = useState(initialState.activeIndex);
   const [viewMode, setViewMode] = useState('single'); // 'single' | 'tile'
 
   // Track which tableIds need attention (it's your turn)
@@ -61,10 +72,16 @@ export function useMultiTable({ supabase, userId }) {
   // Sound ref for action notification
   const notifSoundRef = useRef(null);
 
+  // Auto-switch timer ref
+  const autoSwitchRef = useRef(null);
+
   // ── Persist to sessionStorage on every change ──
   useEffect(() => {
-    saveSlots(slots);
-  }, [slots]);
+    const hasAny = slots.some(s => s !== null);
+    if (hasAny) {
+      saveState(slots, activeIndex);
+    }
+  }, [slots, activeIndex]);
 
   // ── Derived: non-null tables (for rendering) ──
   const tables = slots
@@ -135,7 +152,11 @@ export function useMultiTable({ supabase, userId }) {
     // Move active to nearest filled slot
     setActiveIndex(prev => {
       const remaining = slots.map((s, i) => s && s.tableId !== tableId ? i : -1).filter(i => i >= 0);
-      if (remaining.length === 0) return 0;
+      if (remaining.length === 0) {
+        // Last table closed — clear session
+        clearSession();
+        return 0;
+      }
       // Find closest filled slot
       const closest = remaining.reduce((best, i) =>
         Math.abs(i - prev) < Math.abs(best - prev) ? i : best, remaining[0]);
@@ -145,6 +166,7 @@ export function useMultiTable({ supabase, userId }) {
 
   /**
    * Mark a table as needing action (your turn)
+   * Auto-switches to the action table after 3s if active table has no action
    */
   const markActionNeeded = useCallback((tableId) => {
     setActionNeeded(prev => {
@@ -162,7 +184,23 @@ export function useMultiTable({ supabase, userId }) {
       }
       notifSoundRef.current.play().catch(() => {});
     } catch (_) { /* no sound available */ }
-  }, []);
+
+    // Auto-switch: if active table has no action, switch to this one after 3s
+    const activeSlot = slots[activeIndex];
+    if (activeSlot && activeSlot.tableId !== tableId) {
+      // Clear any pending auto-switch
+      if (autoSwitchRef.current) clearTimeout(autoSwitchRef.current);
+      autoSwitchRef.current = setTimeout(() => {
+        // Re-check: only auto-switch if the table still needs action
+        setActiveIndex(prevIdx => {
+          const targetIdx = slots.findIndex(s => s?.tableId === tableId);
+          if (targetIdx >= 0) return targetIdx;
+          return prevIdx;
+        });
+        autoSwitchRef.current = null;
+      }, 3000);
+    }
+  }, [slots, activeIndex]);
 
   /**
    * Clear action needed flag (player acted)
@@ -203,6 +241,13 @@ export function useMultiTable({ supabase, userId }) {
     setViewMode(prev => prev === 'single' ? 'tile' : 'single');
   }, []);
 
+  // Cleanup auto-switch on unmount
+  useEffect(() => {
+    return () => {
+      if (autoSwitchRef.current) clearTimeout(autoSwitchRef.current);
+    };
+  }, []);
+
   return {
     slots,
     tables, // convenience: non-null slots with _slotIndex
@@ -223,6 +268,7 @@ export function useMultiTable({ supabase, userId }) {
     toggleView,
     markActionNeeded,
     clearActionNeeded,
+    clearSession,
   };
 }
 

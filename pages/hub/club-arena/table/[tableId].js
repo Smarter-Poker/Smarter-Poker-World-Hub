@@ -26,10 +26,7 @@ const MysteryBountyReveal = dynamic(
   { ssr: false }
 );
 
-const TableChatHUD = dynamic(
-  () => import('../../../../src/components/club-arena/TableChatHUD'),
-  { ssr: false }
-);
+// TableChatHUD is now rendered inside MultiTableView (bound to active table)
 
 const FB = {
   background: '#18191A',
@@ -354,12 +351,7 @@ export default function ClubArenaTable() {
         </div>
       )}
 
-      {/* Real-time Table Chat HUD */}
-      <TableChatHUD
-        tableId={initialTable.tableId}
-        userId={user.id}
-        isMuted={false} // Would need to pull from table_chat_mutes if required
-      />
+      {/* TableChatHUD is now rendered inside MultiTableView (bound to active table) */}
 
       <style>{`@keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }`}</style>
     </>
