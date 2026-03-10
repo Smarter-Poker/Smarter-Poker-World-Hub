@@ -98,6 +98,26 @@ export default async function handler(req, res) {
     // Union admins (member is null) go through the treasury path like owners
     const isAgentRole = ['agent', 'sub_agent', 'super_agent'].includes(member?.role);
     if (isAgentRole) {
+      // ── RED TEAM: Downline Spoofing Validator (Bug 10) ──
+      const { data: targetMember } = await supabaseAdmin
+        .from('club_members')
+        .select('agent_id')
+        .eq('club_id', clubId)
+        .eq('user_id', toUserId)
+        .maybeSingle();
+
+      if (!targetMember || targetMember.agent_id !== user.id) {
+        logAudit(supabaseAdmin, { 
+            actionType: 'fraud_attempt_distribute', 
+            userId: user.id, 
+            targetUserId: toUserId, 
+            clubId, amount, 
+            ip: extractIP(req), 
+            details: { reason: 'Spoofing toUserId outside downline' } 
+        });
+        return res.status(403).json({ success: false, error: 'Target player is not in your downline hierarchy.' });
+      }
+
       // ═══════════════════════════════════════════════════════════
       // PROMO DISTRIBUTION — uses promo_balance, NOT credit/chips
       // Promo chips are pre-raked (funded from 30% of BBJ allocation).
