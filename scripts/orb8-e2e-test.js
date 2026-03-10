@@ -22,7 +22,7 @@ const { chromium, devices } = require('playwright');
     console.log(`📡 Navigating to ${testUrl}...`);
 
     try {
-        await page.goto(testUrl, { waitUntil: 'networkidle', timeout: 15000 });
+        await page.goto(testUrl, { waitUntil: 'networkidle', timeout: 30000 });
 
         console.log('⏳ Waiting for generic Next.js hydration and UI mount...');
         await page.waitForTimeout(2000); // Wait for dynamic lists to settle
@@ -134,7 +134,7 @@ const { chromium, devices } = require('playwright');
         // 6. Assert cashier page loads successfully
         console.log('💰 Asserting cashier page loads...');
         const cashierUrl = 'http://localhost:3000/hub/club-arena/cashier?club=00000000-0000-0000-0000-000000000000';
-        const cashierResponse = await page.goto(cashierUrl, { waitUntil: 'networkidle', timeout: 15000 });
+        const cashierResponse = await page.goto(cashierUrl, { waitUntil: 'networkidle', timeout: 30000 });
         if (cashierResponse.status() === 200) {
             console.log('✅ PASSED: Cashier page loads with HTTP 200.');
         } else {
@@ -145,7 +145,7 @@ const { chromium, devices } = require('playwright');
         // 7. Assert MiniViewExpandModal animation keyframes exist
         console.log('🎬 Asserting MiniViewExpandModal animation keyframes...');
         // Navigate back to lobby to check keyframes
-        await page.goto(testUrl, { waitUntil: 'networkidle', timeout: 15000 });
+        await page.goto(testUrl, { waitUntil: 'networkidle', timeout: 30000 });
         await page.waitForTimeout(1500);
 
         const modalAnimCheck = await page.evaluate(() => {

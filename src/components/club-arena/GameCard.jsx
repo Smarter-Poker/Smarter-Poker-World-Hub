@@ -559,7 +559,7 @@ function TournamentCard({ tournament: t, assetMap, onPress, onSpectate, onQuickR
             <div style={S.tableOverlay}>
               {/* Trophy icon */}
               <div style={{ fontSize: 22, lineHeight: 1, filter: 'drop-shadow(0 0 6px ' + trophyGlow + '99)', marginBottom: 2 }}>
-                {isSpin ? '♠️' : isMTT ? '🏆' : '🥇'}
+                {isSpin ? 'S' : isMTT ? 'T' : 'G'}
               </div>
 
               {/* Tournament name */}
@@ -578,16 +578,16 @@ function TournamentCard({ tournament: t, assetMap, onPress, onSpectate, onQuickR
               {isLive ? (
                 lateRegCountdown ? (
                   <span style={{ ...S.overlayCountdown, color: '#3498DB', background: '#3498DB28', borderColor: '#3498DB50' }}>
-                    ⏱ Late Reg: {lateRegCountdown.label.replace('Starting…', '< 1 min')}
+                    Late Reg: {lateRegCountdown.label.replace('Starting…', '< 1 min')}
                   </span>
                 ) : (
                   <span style={{ ...S.overlayCountdown, color: '#00E676', background: '#00E67620', borderColor: '#00E67640' }}>
-                    🔴 LIVE
+                    LIVE
                   </span>
                 )
               ) : countdown ? (
                 <span style={{ ...S.overlayCountdown, color: countdown.color, background: countdown.color + '18', borderColor: countdown.color + '44' }}>
-                  ⏱ {countdown.label}
+                  {countdown.label}
                 </span>
               ) : startDate ? (
                 <span style={S.overlayStartDate}>{fmtStartDate(startDate)}</span>
@@ -629,7 +629,7 @@ function TournamentCard({ tournament: t, assetMap, onPress, onSpectate, onQuickR
             style={S.quickRegBtn}
             title={`Register for ${fmtChips(buyIn)} chips`}
           >
-            ⚡ Register
+            Register
           </button>
         ) : t.is_registered ? (
           <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>

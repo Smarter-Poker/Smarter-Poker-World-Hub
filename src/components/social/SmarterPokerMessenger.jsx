@@ -48,14 +48,31 @@ const SMART_REPLIES = [
     { trigger: ['when', 'time', 'schedule'], replies: ['Let me check...', 'I\'ll get back to you', 'What time works?'] }
 ];
 
-// P4-3: Simple markdown parser for rich text
+// P5-2: Emoji categories for reaction picker
+const EMOJI_GRID = [
+    { cat: 'Smileys', emojis: ['😀','😂','🤣','😍','😎','🤩','😜','🤔','😱','😡','😢','🤯'] },
+    { cat: 'Hands', emojis: ['👍','👎','👏','🙌','🤝','✌️','🤞','💪','❤️','🔥','⭐','🎰'] },
+    { cat: 'Poker', emojis: ['🃏','♠️','♥️','♦️','♣️','💰','💵','🏆','🎯','🎲','🧪','🚀'] }
+];
+
+// P5-7: Auto-link detector
+const autoLinkify = (text) => {
+    if (!text || typeof text !== 'string') return text;
+    return text.replace(
+        /(https?:\/\/[^\s<]+)/gi,
+        '<a href="$1" target="_blank" rel="noopener noreferrer" style="color:#0088ff;text-decoration:underline">$1</a>'
+    );
+};
+
+// P4-3 + P5-7: Markdown parser + auto-link
 const parseMarkdown = (text) => {
     if (!text || typeof text !== 'string') return text;
-    return text
+    let result = text
         .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
         .replace(/\*(.+?)\*/g, '<em>$1</em>')
         .replace(/`(.+?)`/g, '<code style="background:#f0f0f0;padding:1px 4px;border-radius:3px;font-size:12px">$1</code>')
         .replace(/^- (.+)/gm, '• $1');
+    return autoLinkify(result);
 };
 
 // P4-8: File type icon resolver
@@ -82,6 +99,8 @@ const useMessengerPrefs = () => {
         pinnedMessages: {},
         archivedConversations: [],
         threadReplies: {},
+        editHistory: {},
+        reactions: {},
         templates: [
             "Your funds are ready",
             "Tournament starts in 30 min",
@@ -151,9 +170,32 @@ const MessageBubble = ({ message, isOwn, showAvatar, user, onAction }) => (
                 </div>
             )}
 
-            {/* P4-3: Rich text via markdown */}
-            {!message.file && !message.contactCard && (
+            {/* P5-3: Voice message */}
+            {message.isVoice && (
+                <div className="voice-message">
+                    <button className="voice-play-btn">▶</button>
+                    <div className="voice-waveform">
+                        {Array.from({ length: 20 }, (_, i) => (
+                            <div key={i} className="wave-bar" style={{ height: `${Math.random() * 16 + 4}px` }} />
+                        ))}
+                    </div>
+                    <span className="voice-duration">{message.voiceDuration || '0:03'}</span>
+                </div>
+            )}
+
+            {/* P4-3 + P5-7: Rich text via markdown + auto-links */}
+            {!message.file && !message.contactCard && !message.isVoice && (
                 <span dangerouslySetInnerHTML={{ __html: parseMarkdown(message.text) }} />
+            )}
+
+            {/* P5-6: Edit indicator */}
+            {message.isEdited && <span className="edit-indicator" title="Edited">(edited)</span>}
+
+            {/* P5-4: Read receipts */}
+            {message.isOwn && (
+                <span className="read-receipt">
+                    {message.readStatus === 'read' ? '✓✓' : message.readStatus === 'delivered' ? '✓✓' : '✓'}
+                </span>
             )}
 
             {/* Labels & Bookmarks Indicator */}
@@ -182,12 +224,23 @@ const MessageBubble = ({ message, isOwn, showAvatar, user, onAction }) => (
                 </button>
             )}
 
+            {/* P5-2: Emoji reactions display */}
+            {message.reactionList?.length > 0 && (
+                <div className="message-reactions">
+                    {message.reactionList.map((r, i) => (
+                        <span key={i} className="reaction-chip" title={r.by}>{r.emoji}</span>
+                    ))}
+                </div>
+            )}
+
             {/* Hover Actions */}
             <div className="message-hover-actions">
                 <button onClick={() => onAction?.('bookmark', message)} title={message.isBookmarked ? "Remove Bookmark" : "Save Bookmark"}>📌</button>
                 <button onClick={() => onAction?.('pin', message)} title={message.isPinned ? "Unpin" : "Pin"}>📍</button>
                 <button onClick={() => onAction?.('forward', message)} title="Forward">↗️</button>
                 <button onClick={() => onAction?.('thread', message)} title="Reply in Thread">💬</button>
+                <button onClick={() => onAction?.('react', message)} title="React">😀</button>
+                <button onClick={() => onAction?.('edit', message)} title="Edit">✏️</button>
                 {LABEL_CATEGORIES.map(cat => (
                     <button key={cat} onClick={() => onAction?.('label', message, cat)} title={`Label: ${cat}`} style={{ fontSize: 10, padding: '2px 4px' }}>
                         {cat === 'Important' ? '🔴' : cat === 'Action Required' ? '🟠' : cat === 'Tournament Info' ? '🟢' : '💰'}
@@ -332,8 +385,17 @@ export const ChatWindow = ({
     const [forwardMsg, setForwardMsg] = useState(null);
     const [threadParent, setThreadParent] = useState(null);
     const [showSmartReplies, setShowSmartReplies] = useState([]);
+    // P5 state
+    const [msgSearch, setMsgSearch] = useState('');
+    const [showEmojiPicker, setShowEmojiPicker] = useState(null);
+    const [isRecording, setIsRecording] = useState(false);
+    const [editingMsg, setEditingMsg] = useState(null);
+    const [editText, setEditText] = useState('');
+    const [showStats, setShowStats] = useState(false);
+    const [isTyping, setIsTyping] = useState(false);
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
+    const typingTimeoutRef = useRef(null);
     const [prefs, updatePrefs] = useMessengerPrefs();
 
     const conversationId = conversation?.id;
@@ -422,6 +484,47 @@ export const ChatWindow = ({
         if (action === 'viewThread') {
             setThreadParent(msg);
         }
+        // P5-2: React
+        if (action === 'react') {
+            setShowEmojiPicker(showEmojiPicker === msg.id ? null : msg.id);
+        }
+        // P5-6: Edit
+        if (action === 'edit') {
+            setEditingMsg(msg);
+            setEditText(msg.text || '');
+        }
+    };
+
+    // P5-2: Handle emoji reaction
+    const handleReaction = (msgId, emoji) => {
+        updatePrefs(p => {
+            const current = p.reactions[msgId] || [];
+            const exists = current.find(r => r.emoji === emoji && r.by === currentUser?.name);
+            return { ...p, reactions: { ...p.reactions, [msgId]: exists ? current.filter(r => !(r.emoji === emoji && r.by === currentUser?.name)) : [...current, { emoji, by: currentUser?.name || 'You' }] } };
+        });
+        setShowEmojiPicker(null);
+    };
+
+    // P5-6: Save edit
+    const handleSaveEdit = () => {
+        if (editingMsg && editText.trim()) {
+            updatePrefs(p => {
+                const history = p.editHistory[editingMsg.id] || [];
+                return { ...p, editHistory: { ...p.editHistory, [editingMsg.id]: [...history, { text: editingMsg.text, editedAt: Date.now() }] } };
+            });
+            // In a real app, this would call an API. For now we log it.
+            console.log(`[Messenger] Edited message ${editingMsg.id}: "${editText}"`);
+        }
+        setEditingMsg(null);
+        setEditText('');
+    };
+
+    // P5-5: Simulate typing indicator on input
+    const handleInputChange = (e) => {
+        setInputText(e.target.value);
+        setIsTyping(true);
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 2000);
     };
 
     // P4-6: Generate smart replies based on last message
@@ -452,8 +555,16 @@ export const ChatWindow = ({
     const handleKeyPress = (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            handleSend();
+            if (editingMsg) { handleSaveEdit(); } else { handleSend(); }
         }
+    };
+
+    // P5-8: Compute stats
+    const stats = {
+        total: messages.length,
+        mine: messages.filter(m => m.senderId === currentUser?.id).length,
+        theirs: messages.filter(m => m.senderId !== currentUser?.id).length,
+        avgLength: messages.length > 0 ? Math.round(messages.reduce((sum, m) => sum + (m.text?.length || 0), 0) / messages.length) : 0
     };
 
     const otherUser = conversation?.participants?.find(p => p.id !== currentUser?.id);
@@ -534,10 +645,34 @@ export const ChatWindow = ({
                     </button>
                     {/* P4-5: Archive toggle */}
                     <button className="header-btn" onClick={() => updatePrefs(p => ({ ...p, archivedConversations: isArchived ? (p.archivedConversations || []).filter(id => id !== conversationId) : [...(p.archivedConversations || []), conversationId] }))} title={isArchived ? 'Unarchive' : 'Archive'} style={{ color: isArchived ? '#0088ff' : undefined }}>📦</button>
+                    {/* P5-1: Search toggle */}
+                    <button className="header-btn" onClick={() => setMsgSearch(msgSearch ? '' : ' ')} title="Search Messages">🔍</button>
+                    {/* P5-8: Stats toggle */}
+                    <button className="header-btn" onClick={() => setShowStats(!showStats)} title="Chat Stats">📊</button>
                     <button className="header-btn" onClick={onMinimize}>−</button>
                     <button className="header-btn" onClick={onClose}>✕</button>
                 </div>
             </div>
+
+            {/* P5-1: Message Search Bar */}
+            {msgSearch !== '' && (
+                <div style={{ padding: '4px 8px', borderBottom: '1px solid #ddd', background: '#fafafa' }}>
+                    <input type="text" placeholder="Search messages..." value={msgSearch.trim() ? msgSearch : ''} onChange={e => setMsgSearch(e.target.value)} autoFocus style={{ width: '100%', border: '1px solid #ddd', borderRadius: 6, padding: '4px 8px', fontSize: 11, boxSizing: 'border-box' }} />
+                </div>
+            )}
+
+            {/* P5-8: Stats Dashboard */}
+            {showStats && (
+                <div className="stats-dashboard">
+                    <strong>📊 Chat Stats</strong>
+                    <div className="stats-grid">
+                        <div className="stat-card"><span className="stat-val">{stats.total}</span><span className="stat-label">Total</span></div>
+                        <div className="stat-card"><span className="stat-val">{stats.mine}</span><span className="stat-label">Sent</span></div>
+                        <div className="stat-card"><span className="stat-val">{stats.theirs}</span><span className="stat-label">Received</span></div>
+                        <div className="stat-card"><span className="stat-val">{stats.avgLength}</span><span className="stat-label">Avg Chars</span></div>
+                    </div>
+                </div>
+            )}
 
             {/* E6: Theme Picker with Gradients */}
             {showThemePicker && (
@@ -646,7 +781,11 @@ export const ChatWindow = ({
 
             {/* Messages */}
             <div className="chat-messages">
-                {messages.map((msg, i) => {
+                {messages.filter(msg => {
+                    // P5-1: Apply search filter
+                    if (msgSearch.trim() && !msg.text?.toLowerCase().includes(msgSearch.toLowerCase().trim())) return false;
+                    return true;
+                }).map((msg, i) => {
                     // E7: Filter disappearing messages based on selected timer
                     if (disappearMs > 0 && msg.timestamp && (Date.now() - new Date(msg.timestamp).getTime() > disappearMs)) {
                         return null;
@@ -664,7 +803,11 @@ export const ChatWindow = ({
                         labels: msgLabels,
                         isDisappearing: isDisappearing,
                         isPinned: pinnedIds.includes(msg.id),
-                        threadCount: (prefs.threadReplies[msg.id] || []).length
+                        threadCount: (prefs.threadReplies[msg.id] || []).length,
+                        reactionList: prefs.reactions[msg.id] || [],
+                        isEdited: (prefs.editHistory[msg.id] || []).length > 0,
+                        isOwn: msg.senderId === currentUser?.id,
+                        readStatus: msg.readStatus || (msg.senderId === currentUser?.id ? 'sent' : null)
                     };
 
                     const isOwn = enrichedMsg.senderId === currentUser?.id;
@@ -683,6 +826,15 @@ export const ChatWindow = ({
                     );
                 })}
                 <div ref={messagesEndRef} />
+
+                {/* P5-5: Typing indicator */}
+                {isTyping && (
+                    <div className="typing-indicator">
+                        <span className="typing-dot" />
+                        <span className="typing-dot" />
+                        <span className="typing-dot" />
+                    </div>
+                )}
             </div>
 
             {/* P4-6: Smart Reply Suggestions */}
@@ -720,6 +872,8 @@ export const ChatWindow = ({
                     <button className="input-btn" onClick={() => setShowTemplates(!showTemplates)} title="Templates">📋</button>
                     <button className="input-btn" onClick={() => fileInputRef.current?.click()} title="Attach File">📎</button>
                     <input type="file" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileUpload} />
+                    {/* P5-3: Voice recording button */}
+                    <button className={`input-btn ${isRecording ? 'recording' : ''}`} onClick={() => { if (!isRecording) { setIsRecording(true); setTimeout(() => { setIsRecording(false); onSend?.('🎤 Voice message (0:03)'); }, 3000); } }} title={isRecording ? 'Recording...' : 'Voice Message'}>{isRecording ? '🔴' : '🎤'}</button>
                     <button className="input-btn">🎁</button>
 
                     <div className="input-wrapper">
@@ -727,7 +881,7 @@ export const ChatWindow = ({
                             type="text"
                             placeholder="Aa"
                             value={inputText}
-                            onChange={(e) => setInputText(e.target.value)}
+                            onChange={handleInputChange}
                             onKeyPress={handleKeyPress}
                         />
                         <span style={{ position: 'relative', display: 'inline-flex' }}>

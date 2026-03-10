@@ -316,8 +316,8 @@ export default function Cashier() {
                 if (!tx) return;
                 const isIncoming = tx.to_user_id === user.id && tx.from_user_id !== user.id;
                 if (isIncoming && tx.amount > 0) {
-                    const label = tx.transaction_type === 'rakeback' ? '🎁 Rakeback' :
-                        tx.transaction_type === 'admin_credit' ? '⭐ Admin Credit' : '💰 Chips Received';
+                    const label = tx.transaction_type === 'rakeback' ? 'Rakeback' :
+                        tx.transaction_type === 'admin_credit' ? 'Admin Credit' : 'Chips Received';
                     showToast(`${label}: +${(tx.amount || 0).toLocaleString()} chips`, 'success');
                     haptic('success');
                 }

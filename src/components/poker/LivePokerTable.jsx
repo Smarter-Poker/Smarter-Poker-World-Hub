@@ -3333,7 +3333,7 @@ function ResultOverlay({ result, send, userId }) {
         </div>
       ))}
 
-      {/* Rabbit Hunt — only on fold wins with remaining cards */}
+      {/* Rabbit Hunt — on fold wins with remaining cards from engine */}
       {isFoldWin && rabbitCards && rabbitCards.length > 0 && (
         <div style={{ marginTop: 10 }}>
           {!showRabbit ? (
@@ -3399,6 +3399,33 @@ function ResultOverlay({ result, send, userId }) {
               </div>
             </motion.div>
           )}
+        </div>
+      )}
+
+      {/* Rabbit Hunt — ON-DEMAND REQUEST when engine didn't send cards */}
+      {isFoldWin && (!rabbitCards || rabbitCards.length === 0) && send && (
+        <div style={{ marginTop: 10 }}>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={(e) => { e.stopPropagation(); send('request_rabbit', {}); }}
+            style={{
+              background: 'linear-gradient(135deg, rgba(139,92,246,0.2), rgba(139,92,246,0.08))',
+              border: '1px solid rgba(139,92,246,0.3)',
+              borderRadius: 20,
+              padding: '6px 16px',
+              color: '#c084fc',
+              fontSize: 12,
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+            }}
+          >
+            <span style={{ fontSize: 16 }}>🐰</span>
+            Request Rabbit Hunt
+          </motion.button>
         </div>
       )}
 
@@ -3668,7 +3695,7 @@ function LivePokerTable({
 
   // ═══ WAITLIST STATE ═══
   const [waitlistState, setWaitlistState] = useState({ onWaitlist: false, position: null, loading: false });
-  const tableFull = !isSitting && tableState?.seats?.every(s => s.player?.id != null && s.status !== 'empty');
+  const tableFull = !isSitting && tableState?.seats?.length > 0 && tableState.seats.every(s => s.player?.id != null && s.status !== 'empty');
 
   // Check waitlist position on mount and when seat state changes
   useEffect(() => {
@@ -3704,6 +3731,7 @@ function LivePokerTable({
       if (res.ok) {
         const d = await res.json();
         setWaitlistState({ onWaitlist: true, position: d.position, loading: false });
+        try { eventBus.emit('WAITLIST_PLAYER_ADDED', { tableId: tableState.tableId, position: d.position }); } catch (_e) {}
       } else {
         const d = await res.json().catch(() => ({}));
         if (d.error === 'Already on waitlist') setWaitlistState(prev => ({ ...prev, onWaitlist: true, loading: false }));
@@ -3723,6 +3751,7 @@ function LivePokerTable({
         body: JSON.stringify({ action: 'leave', tableId: tableState.tableId }),
       });
       setWaitlistState({ onWaitlist: false, position: null, loading: false });
+      try { eventBus.emit('DATA_MUTATED', 'waitlist_left'); } catch (_e) {}
     } catch (_) { setWaitlistState(prev => ({ ...prev, loading: false })); }
   }, [tableState?.tableId]);
 
@@ -3752,6 +3781,7 @@ function LivePokerTable({
     if (ritTimerRef.current) clearTimeout(ritTimerRef.current);
     send('respond_run_it', { choice: accepted ? 'twice' : 'decline' });
     setRitPrompt(false);
+    try { eventBus.emit('DATA_MUTATED', `rit_response_${accepted ? 'accepted' : 'declined'}`); } catch (_e) {}
   }, [send]);
 
   // ═══ HERO SEAT ROTATION — Always place hero at bottom center (position 0) ═══
@@ -3800,6 +3830,7 @@ function LivePokerTable({
         // Visual feedback — show what pre-action fired
         setPreActionFired({ action: autoAction.type, ts: Date.now() });
         setTimeout(() => setPreActionFired(null), 2000);
+        try { eventBus.emit('DATA_MUTATED', `pre_action_fired_${autoAction.type}`); } catch (_e) {}
       }, 300);
       return () => clearTimeout(timer);
     } else {
