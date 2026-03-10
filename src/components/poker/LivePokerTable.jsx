@@ -424,7 +424,7 @@ function evaluateHandStrength(holeCards, board) {
   return Math.min(100, Math.max(0, Math.round(strength)));
 }
 
-function HandStrengthMeter({ holeCards, board, visible }) {
+function HandStrengthMeter({ holeCards, board, visible, fourColorDeck }) {
   if (!visible || !holeCards || holeCards.length < 2) return null;
   const strength = evaluateHandStrength(holeCards, board);
   if (strength == null) return null;
@@ -1184,7 +1184,7 @@ function PlayerSeat({
             ))}
           </div>
           {/* Hand Strength Meter — hero only */}
-          {isHero && <HandStrengthMeter holeCards={holeCards} board={board} visible={true} />}
+          {isHero && <HandStrengthMeter holeCards={holeCards} board={board} visible={true} fourColorDeck={fourColorDeck} />}
         </>
       )}
 
@@ -1211,7 +1211,7 @@ function PlayerSeat({
 // COMMUNITY CARDS
 // ═══════════════════════════════════════════════════════════════════════════
 
-function CommunityCards({ cards = [], boards, prevCardCount }) {
+function CommunityCards({ cards = [], boards, prevCardCount, fourColorDeck }) {
   // Track the index of newly dealt cards for spotlight effect
   const isNewCard = useCallback((idx) => {
     // Spotlight the last card dealt when going from 3→4 (turn) or 4→5 (river)
@@ -1266,7 +1266,7 @@ function CommunityCards({ cards = [], boards, prevCardCount }) {
                     animate={{ rotateY: 0, opacity: 1 }}
                     transition={{ delay: bi * 0.3 + ci * 0.1, duration: 0.4 }}
                   >
-                    <CardImg card={card} width={42} delay={bi * 0.3 + ci * 0.1} />
+                    <CardImg card={card} width={42} delay={bi * 0.3 + ci * 0.1} fourColorDeck={fourColorDeck} />
                   </motion.div>
                 ))}
               </motion.div>
@@ -1316,7 +1316,7 @@ function CommunityCards({ cards = [], boards, prevCardCount }) {
             animation: isNewCard(i) ? 'cardSpotlight 1.5s ease-in-out' : 'none',
           }}
         >
-          <CardImg card={card} width={52} delay={i * 0.12} />
+          <CardImg card={card} width={52} delay={i * 0.12} fourColorDeck={fourColorDeck} />
         </motion.div>
       ))}
     </div>
@@ -1461,7 +1461,7 @@ function DiscardPanel({ cards, onDiscard }) {
               opacity: selected !== null && selected !== i ? 0.5 : 1,
             }}
           >
-            <CardImg card={card} width={64} />
+            <CardImg card={card} width={64} fourColorDeck={fourColorDeck} />
           </div>
         ))}
       </div>
@@ -3445,7 +3445,7 @@ function ResultOverlay({ result, send, userId }) {
                 {/* Existing board cards (dimmed) */}
                 {boardAtEnd.map((card, i) => (
                   <div key={`board-${i}`} style={{ opacity: 0.45 }}>
-                    <CardImg card={card} width={38} delay={0} />
+                    <CardImg card={card} width={38} delay={0} fourColorDeck={fourColorDeck} />
                   </div>
                 ))}
 
@@ -3462,7 +3462,7 @@ function ResultOverlay({ result, send, userId }) {
                       borderRadius: 4,
                     }}
                   >
-                    <CardImg card={card} width={38} delay={0.15 + i * 0.2} />
+                    <CardImg card={card} width={38} delay={0.15 + i * 0.2} fourColorDeck={fourColorDeck} />
                   </motion.div>
                 ))}
               </div>
@@ -4297,6 +4297,7 @@ function LivePokerTable({
           <CommunityCards
             cards={tableState?.game?.communityCards || []}
             boards={tableState?.game?.boards}
+            fourColorDeck={fourColorDeck}
           />
 
           {/* Pot */}
@@ -5313,7 +5314,7 @@ function LivePokerTable({
                   {w.handDescription && <div style={{ color: '#b0b3b8', fontSize: 12 }}>{w.handDescription}</div>}
                   {w.holeCards && (
                     <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
-                      {w.holeCards.map((c, j) => <CardImg key={j} card={c} width={32} />)}
+                      {w.holeCards.map((c, j) => <CardImg key={j} card={c} width={32} fourColorDeck={fourColorDeck} />)}
                     </div>
                   )}
                 </div>
@@ -5324,7 +5325,7 @@ function LivePokerTable({
                 <div style={{ marginTop: 8 }}>
                   <div style={{ color: '#b0b3b8', fontSize: 11, marginBottom: 4 }}>Board</div>
                   <div style={{ display: 'flex', gap: 4 }}>
-                    {lastHandResult.board.map((c, i) => <CardImg key={i} card={c} width={36} />)}
+                    {lastHandResult.board.map((c, i) => <CardImg key={i} card={c} width={36} fourColorDeck={fourColorDeck} />)}
                   </div>
                 </div>
               )}

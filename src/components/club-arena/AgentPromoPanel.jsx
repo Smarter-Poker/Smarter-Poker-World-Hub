@@ -10,7 +10,7 @@
  *   role: string (agent|sub_agent|super_agent)
  *   onDistribute: () => void (callback to refresh parent state)
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { apiCall } from '../../lib/club-arena/apiClient';
 import { eventBus, EventType, busEmit } from '../../engine/EventBus';
 import { resolveAvatarDisplay } from '../../lib/resolveAvatarDisplay';
@@ -30,12 +30,19 @@ export default function AgentPromoPanel({ clubId, userId, role, onDistribute }) 
     const [amount, setAmount] = useState('');
     const [distributing, setDistributing] = useState(false);
     const [toast, setToast] = useState(null);
+    const isMounted = useRef(true);
+
+    useEffect(() => {
+        isMounted.current = true;
+        return () => { isMounted.current = false; };
+    }, []);
 
     const isAgent = ['agent', 'sub_agent', 'super_agent'].includes(role);
 
     const showToast = (msg, type = 'success') => {
+        if (!isMounted.current) return;
         setToast({ msg, type });
-        setTimeout(() => setToast(null), 3000);
+        setTimeout(() => { if (isMounted.current) setToast(null); }, 3000);
     };
 
     const loadData = useCallback(async () => {
@@ -67,13 +74,13 @@ export default function AgentPromoPanel({ clubId, userId, role, onDistribute }) 
         } catch (e) {
             console.error('[AgentPromoPanel] Load error:', e);
         } finally {
-            setLoading(false);
+            if (isMounted.current) setLoading(false);
         }
     }, [clubId, userId, isAgent]);
 
     useEffect(() => { loadData(); }, [loadData]);
 
-    // ── EventBus: Auto-refresh when admin grants promo or data changes ──
+    // ── EventBus: Auto-refresh when LOCAL admin grants promo or data changes ──
     useEffect(() => {
         const unsub = eventBus.on(EventType.DATA_MUTATED, (e) => {
             const relevant = ['promo_distributed', 'promo_granted', 'chips_distributed', 'chips_minted'];
@@ -81,6 +88,49 @@ export default function AgentPromoPanel({ clubId, userId, role, onDistribute }) 
         });
         return () => unsub();
     }, [loadData]);
+
+    // ── Realtime Sync: Listen for REMOTE balance changes via Supabase ──
+    useEffect(() => {
+        if (!clubId || !userId || !isAgent) return;
+        
+        let channel;
+        const initSync = async () => {
+            const { supabase } = await import('../../lib/supabase');
+            if (typeof supabase.channel !== 'function') return;
+
+            channel = supabase
+                .channel(`agent-promo-${clubId}-${userId}`)
+                .on('postgres_changes', {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'agents',
+                    filter: `user_id=eq.${userId}`,
+                }, (payload) => {
+                    if (payload.new?.club_id === clubId && isMounted.current) {
+                       setPromoBalance(Number(payload.new.promo_balance) || 0);
+                    }
+                })
+                .on('postgres_changes', {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'club_members',
+                    filter: `agent_id=eq.${userId}`,
+                }, () => {
+                    if (isMounted.current) loadData();
+                })
+                .subscribe();
+        };
+
+        initSync();
+
+        return () => {
+            if (channel) {
+                import('../../lib/supabase').then(({ supabase }) => {
+                    supabase.removeChannel(channel);
+                });
+            }
+        };
+    }, [clubId, userId, isAgent, loadData]);
 
     const handleDistribute = async () => {
         if (!selectedPlayer || !amount) return;
@@ -100,14 +150,16 @@ export default function AgentPromoPanel({ clubId, userId, role, onDistribute }) 
             });
             showToast(`🎉 ${amt.toLocaleString()} promo chips sent!`);
             busEmit.dataMutated('promo_distributed');
-            setAmount('');
-            setSelectedPlayer(null);
+            if (isMounted.current) {
+                setAmount('');
+                setSelectedPlayer(null);
+            }
             loadData();
             onDistribute?.();
         } catch (e) {
             showToast(e.message || 'Distribution failed', 'error');
         } finally {
-            setDistributing(false);
+            if (isMounted.current) setDistributing(false);
         }
     };
 

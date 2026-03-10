@@ -8,7 +8,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { SPAvatar, SP_COLORS } from './SmarterPokerStyleCard';
-import { busEmit } from '../../engine/EventBus';
+import { busEmit, eventBus, EventType } from '../../engine/EventBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 💾 PERSISTENCE HOOK (P2 features)
@@ -460,8 +460,46 @@ export const ChatWindow = ({
                 window.removeEventListener('keydown', resetIdle);
                 clearTimeout(idleTimeoutRef.current);
             };
-        }
-    }, []);
+    // Phase 6: EventBus real-time listener (Comprehensive Layer)
+    useEffect(() => {
+        const handleReceived = (event) => {
+            const { conversationId: evtConvId, senderId } = event.payload;
+            if (evtConvId === conversationId && senderId !== currentUser?.id) {
+                if (minimized || document.hidden) {
+                    updatePrefs(p => ({ ...p, unreadCounts: { ...p.unreadCounts, [evtConvId]: (p.unreadCounts?.[evtConvId] || 0) + 1 } }));
+                }
+            }
+        };
+
+        const handleReacted = (event) => {
+            const { conversationId: evtConvId, messageId, emoji } = event.payload;
+            if (evtConvId === conversationId && event.source !== 'Messenger') {
+                updatePrefs(p => {
+                    const current = p.reactions[messageId] || [];
+                    const exists = current.find(r => r.emoji === emoji && r.by === 'System'); // Assuming remote implies by another user
+                    return { ...p, reactions: { ...p.reactions, [messageId]: exists ? current : [...current, { emoji, by: 'Remote User' }] } };
+                });
+            }
+        };
+
+        const handleEdited = (event) => {
+            // Placeholder: in a real remote sync, the updated message text would be retrieved
+        };
+
+        const unsubReceived = eventBus.on(EventType.MESSAGE_RECEIVED, handleReceived);
+        const unsubReacted = eventBus.on(EventType.MESSAGE_REACTED, handleReacted);
+        const unsubEdited = eventBus.on(EventType.MESSAGE_EDITED, handleEdited);
+        const unsubMutated = eventBus.on(EventType.DATA_MUTATED, () => {
+             // global sync trigger if needed
+        });
+
+        return () => {
+            unsubReceived();
+            unsubReacted();
+            unsubEdited();
+            unsubMutated();
+        };
+    }, [conversationId, currentUser, minimized, updatePrefs]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

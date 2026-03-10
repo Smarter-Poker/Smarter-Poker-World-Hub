@@ -1034,7 +1034,13 @@ class LobbyManager {
     };
 
     table.on('player_seated', triggerUpdate);
-    table.on('player_left', triggerUpdate);
+    table.on('player_left', (data) => {
+      // 🐛 Fix: Memory leak cleanup — remove consent when player leaves
+      if (data && data.seatIndex !== undefined) {
+        this._showCardsConsent.delete(`${tableId}:${data.seatIndex}`);
+      }
+      triggerUpdate();
+    });
     table.on('hand_start', triggerUpdate);
     table.on('action_processed', triggerUpdate);
     table.on('street_start', triggerUpdate);
