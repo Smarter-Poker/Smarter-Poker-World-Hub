@@ -108,7 +108,7 @@ function getPasswordCandidates() {
 
 const passwords = getPasswordCandidates();
 const connStrings = passwords.map(pw =>
-    `postgresql://postgres:${encodeURIComponent(pw)}@db.kuklfnapbkmacvwxktbh.supabase.co:5432/postgres`
+    `postgresql://postgres.kuklfnapbkmacvwxktbh:${encodeURIComponent(pw)}@aws-0-us-west-2.pooler.supabase.com:5432/postgres`
 );
 
 // ── Connection with retry ───────────────────────────────────────────────────
