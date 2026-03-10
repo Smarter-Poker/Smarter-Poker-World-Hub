@@ -1936,6 +1936,9 @@ export default function ClubMessages() {
                 <div style={S.header}>
                     <span style={S.headerTitle}>Chats</span>
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <button onClick={() => setShowGlobalSearch(!showGlobalSearch)} style={{ ...S.newBtn, background: showGlobalSearch ? '#2374E1' : 'transparent' }} title="Global Search">
+                            <SearchIcon size={18} />
+                        </button>
                         <button onClick={() => setShowWallet(prev => !prev)} style={{ ...S.newBtn, background: showWallet ? '#2374E1' : 'transparent' }} title="Wallet">
                             💰
                         </button>
@@ -1943,6 +1946,22 @@ export default function ClubMessages() {
                             <svg width="20" height="20" viewBox="0 0 24 24" fill={C.blue}><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" /></svg>
                         </button>
                     </div>
+                </div>
+
+                {/* P3-1: Filter Tabs */}
+                <div style={{ display: 'flex', padding: '0 16px', gap: 8, borderBottom: `1px solid ${C.border}` }}>
+                    {[{ label: 'All', key: 'all' }, { label: 'Unread', key: 'unread' }, { label: 'Archived', key: 'archived' }].map(tab => {
+                        const isActive = tab.key === 'archived' ? showArchived : tab.key === 'unread' ? showUnreadOnly && !showArchived : !showUnreadOnly && !showArchived;
+                        return (
+                            <button key={tab.key} onClick={() => {
+                                if (tab.key === 'all') { setShowUnreadOnly(false); setShowArchived(false); }
+                                if (tab.key === 'unread') { setShowUnreadOnly(true); setShowArchived(false); }
+                                if (tab.key === 'archived') { setShowArchived(true); setShowUnreadOnly(false); }
+                            }} style={{ flex: 1, padding: '10px 0', background: 'transparent', border: 'none', borderBottom: isActive ? `2px solid ${C.blue}` : '2px solid transparent', color: isActive ? C.blue : C.textSec, fontWeight: isActive ? 600 : 400, fontSize: 14, cursor: 'pointer', transition: 'all 0.2s' }}>
+                                {tab.label}{tab.key === 'unread' ? ` (${conversations.filter(c => c.unreadCount > 0 && !archivedConvIds.includes(c.id)).length})` : tab.key === 'archived' ? ` (${conversations.filter(c => archivedConvIds.includes(c.id)).length})` : ''}
+                            </button>
+                        );
+                    })}
                 </div>
 
                 {showWallet && (
@@ -1982,16 +2001,24 @@ export default function ClubMessages() {
                     )}
                 </div>
 
-                {conversations.length > 0 ? (
-                    [...conversations]
+                {(() => {
+                    const filtered = [...conversations]
+                        .filter(c => {
+                            if (showArchived) return archivedConvIds.includes(c.id);
+                            if (archivedConvIds.includes(c.id)) return false;
+                            if (showUnreadOnly) return c.unreadCount > 0;
+                            return true;
+                        })
                         .sort((a, b) => {
                             const aPinned = pinnedIds.includes(a.id);
                             const bPinned = pinnedIds.includes(b.id);
                             if (aPinned && !bPinned) return -1;
                             if (!aPinned && bPinned) return 1;
                             return 0;
-                        })
-                        .map((conv, i) => (
+                        });
+
+                    return filtered.length > 0 ? (
+                        filtered.map((conv, i) => (
                             <ConversationItem
                                 key={conv.id || i}
                                 conversation={conv}
@@ -2004,22 +2031,33 @@ export default function ClubMessages() {
                                         return [...prev, convId];
                                     });
                                 }}
+                                isMuted={mutedConvIds.includes(conv.id)}
+                                onMute={(convId) => {
+                                    setMutedConvIds(prev => prev.includes(convId) ? prev.filter(id => id !== convId) : [...prev, convId]);
+                                    setToast({ type: 'info', message: mutedConvIds.includes(conv.id) ? 'Unmuted' : 'Muted' });
+                                }}
+                                isArchived={archivedConvIds.includes(conv.id)}
+                                onArchive={(convId) => {
+                                    setArchivedConvIds(prev => prev.includes(convId) ? prev.filter(id => id !== convId) : [...prev, convId]);
+                                    setToast({ type: 'info', message: archivedConvIds.includes(conv.id) ? 'Unarchived' : 'Archived' });
+                                }}
                                 onClick={() => openConversation(conv)}
                             />
                         ))
-                ) : user ? (
-                    <div style={S.emptyState}>
-                        <div style={S.emptyIcon}></div>
-                        <p style={{ fontSize: 16, fontWeight: 500 }}>No Club Conversations Yet</p>
-                        <p style={{ fontSize: 14, marginTop: 8 }}>Search For A Club Member Above To Start Chatting</p>
-                    </div>
-                ) : (
-                    <div style={S.emptyState}>
-                        <div style={S.emptyIcon}></div>
-                        <p style={{ fontSize: 16, fontWeight: 500 }}>Loading Your Session...</p>
-                        <p style={{ fontSize: 14, marginTop: 8 }}>If You're Logged In, Your Chats Will Appear Shortly</p>
-                    </div>
-                )}
+                    ) : user ? (
+                        <div style={S.emptyState}>
+                            <div style={S.emptyIcon}></div>
+                            <p style={{ fontSize: 16, fontWeight: 500 }}>{showArchived ? 'No Archived Conversations' : showUnreadOnly ? 'All Caught Up! 🎉' : 'No Club Conversations Yet'}</p>
+                            <p style={{ fontSize: 14, marginTop: 8 }}>{showArchived ? 'Archived chats will appear here' : showUnreadOnly ? 'No unread messages' : 'Search For A Club Member Above To Start Chatting'}</p>
+                        </div>
+                    ) : (
+                        <div style={S.emptyState}>
+                            <div style={S.emptyIcon}></div>
+                            <p style={{ fontSize: 16, fontWeight: 500 }}>Loading Your Session...</p>
+                            <p style={{ fontSize: 14, marginTop: 8 }}>If You're Logged In, Your Chats Will Appear Shortly</p>
+                        </div>
+                    );
+                })()}
 
                 <ClubArenaBottomNav clubId={clubIdParam} activePage="messages" userRole={currentUserMembership?.role} />
                 <Toast toast={toast} onDismiss={() => setToast(null)} />

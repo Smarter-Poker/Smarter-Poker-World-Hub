@@ -72,6 +72,12 @@ export default async function handler(req, res) {
   // Rate limit
   if (!applyRateLimit(req, res, 'club-arena/clawback-chips')) return;
 
+  // ── Anti-Fraud: Velocity Check (detect rapid clawback-redistribute cycles) ──
+  const vel = await checkVelocity(supabaseAdmin, { userId: user.id, clubId, actionType: 'clawback', amount: rawRequestedAmount || 0 });
+  if (!vel.passed) {
+    return res.status(429).json({ success: false, error: vel.reason, flagged: true });
+  }
+
   try {
     // ═════════════════════════════════════════════════════════════
     // 1. Get the original transaction

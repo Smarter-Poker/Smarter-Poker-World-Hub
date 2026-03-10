@@ -233,9 +233,15 @@ export default async function handler(req, res) {
 
       const agentsMap = new Map();
       const agentEarnings = new Map();
+      const childrenMap = new Map(); // Build 6.8: Agent Graph Cache — top-down lookup
 
       for (const agent of (agents || [])) {
         agentsMap.set(agent.id, agent);
+        // Build children graph for potential top-down traversal
+        if (agent.parent_agent_id) {
+          if (!childrenMap.has(agent.parent_agent_id)) childrenMap.set(agent.parent_agent_id, []);
+          childrenMap.get(agent.parent_agent_id).push(agent.id);
+        }
         // Initialize earnings template for everyone
         agentEarnings.set(agent.id, {
           id: agent.id,
@@ -244,6 +250,37 @@ export default async function handler(req, res) {
           direct_commission: 0,
           upline_commission: 0,
           total_subagent_deductions: 0 // Optional tracking for history
+        });
+      }
+
+      // ── Build 6.8: DAG Pre-Validation ──
+      // Detect circular references BEFORE commission calculation to fail fast
+      let graphValid = true;
+      const graphErrors = [];
+      for (const agent of (agents || [])) {
+        if (!agent.parent_agent_id) continue;
+        const visited = new Set([agent.id]);
+        let current = agent;
+        while (current.parent_agent_id) {
+          if (visited.has(current.parent_agent_id)) {
+            graphErrors.push(`Circular ref: agent ${agent.id} → parent ${current.parent_agent_id}`);
+            graphValid = false;
+            break;
+          }
+          visited.add(current.parent_agent_id);
+          current = agentsMap.get(current.parent_agent_id) || {};
+        }
+      }
+
+      if (!graphValid) {
+        console.error('[SETTLE] DAG validation failed:', graphErrors);
+        // Continue anyway but log the error — don't block settlement
+        logAudit(supabaseAdmin, {
+          actionType: 'settlement_dag_error',
+          userId: user.id,
+          clubId,
+          ip: extractIP(req),
+          details: { errors: graphErrors, agentCount: (agents || []).length },
         });
       }
 
