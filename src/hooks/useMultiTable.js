@@ -1,106 +1,158 @@
 /**
- * useMultiTable — Manages up to 4 simultaneous poker table connections
+ * useMultiTable — PokerBros-style 4-slot multi-table manager
  * ═══════════════════════════════════════════════════════════════════════
- * 
+ *
+ * Fixed 4-slot model: slots[0..3] where null = empty "+" slot.
+ * Persists to sessionStorage so tables survive page refreshes.
+ *
  * Features:
+ *   - Always exactly 4 slots (PokerBros style)
  *   - Open up to MAX_TABLES (4) tables at once
- *   - Tab bar with table info (stakes, variant, player count)
- *   - Auto-switch to table requiring action (your turn)
- *   - Notification badges on inactive tables
- *   - Tile view mode (2x2 grid)
- *   - Independent state per table (no cross-contamination)
- * 
- * Architecture:
- *   Each table gets its own useTableConnection instance.
- *   This hook orchestrates which is active/visible.
+ *   - SessionStorage persistence (not localStorage — session-scoped)
+ *   - Action-needed tracking per slot
+ *   - Tile view mode (2×2 grid)
+ *   - pendingSlotIndex for lobby "+" navigation
  */
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 
 const MAX_TABLES = 4;
+const STORAGE_KEY = 'club-arena-multi-tables';
+
+// ── SessionStorage helpers ──────────────────────────────────────────────
+function saveSlots(slots) {
+  try {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(slots));
+  } catch (_) { /* quota or SSR — silent */ }
+}
+
+function loadSlots() {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    if (!raw) return [null, null, null, null];
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed) && parsed.length === MAX_TABLES) return parsed;
+    return [null, null, null, null];
+  } catch (_) {
+    return [null, null, null, null];
+  }
+}
 
 /**
- * @param {Object} supabase - Supabase client
- * @param {string} userId - Current user ID
+ * @param {Object} opts
+ * @param {Object} opts.supabase - Supabase client
+ * @param {string} opts.userId - Current user ID
  */
 export function useMultiTable({ supabase, userId }) {
-  // Active table slots: [{ tableId, name, stakes, variant, clubName, clubId }]
-  const [tables, setTables] = useState([]);
+  // Fixed 4-slot array: each slot is { tableId, name, stakes, variant, clubName, clubId } | null
+  const [slots, setSlots] = useState(() => loadSlots());
   const [activeIndex, setActiveIndex] = useState(0);
   const [viewMode, setViewMode] = useState('single'); // 'single' | 'tile'
-  
-  // Track which tables need attention (it's your turn)
+
+  // Track which tableIds need attention (it's your turn)
   const [actionNeeded, setActionNeeded] = useState(new Set());
-  
+
   // Track BBJ wins
   const [bbjWin, setBbjWin] = useState(null);
+
+  // Which "+" slot was tapped — lobby uses this to know where to put the next table
+  const [pendingSlotIndex, setPendingSlotIndex] = useState(-1);
 
   // Sound ref for action notification
   const notifSoundRef = useRef(null);
 
+  // ── Persist to sessionStorage on every change ──
+  useEffect(() => {
+    saveSlots(slots);
+  }, [slots]);
+
+  // ── Derived: non-null tables (for rendering) ──
+  const tables = slots
+    .map((slot, idx) => (slot ? { ...slot, _slotIndex: idx } : null))
+    .filter(Boolean);
+
+  const activeTable = slots[activeIndex] || null;
+  const canOpenMore = slots.some(s => s === null);
+
   /**
-   * Open a new table (if under MAX_TABLES limit)
+   * Get the first empty slot index, or -1 if all full
    */
-  const openTable = useCallback((tableInfo) => {
-    setTables(prev => {
-      // Already open?
-      const existingIdx = prev.findIndex(t => t.tableId === tableInfo.tableId);
+  const getNextEmptySlot = useCallback(() => {
+    return slots.findIndex(s => s === null);
+  }, [slots]);
+
+  /**
+   * Open a new table in a specific slot (or next empty)
+   */
+  const openTable = useCallback((tableInfo, targetSlot) => {
+    setSlots(prev => {
+      // Already open? Switch to it.
+      const existingIdx = prev.findIndex(s => s?.tableId === tableInfo.tableId);
       if (existingIdx >= 0) {
         setActiveIndex(existingIdx);
         return prev;
       }
-      if (prev.length >= MAX_TABLES) {
-        return prev; // Max reached
-      }
-      const newTables = [...prev, {
+
+      // Find the target slot
+      let slotIdx = typeof targetSlot === 'number' && targetSlot >= 0 && targetSlot < MAX_TABLES && prev[targetSlot] === null
+        ? targetSlot
+        : prev.findIndex(s => s === null);
+
+      if (slotIdx < 0) return prev; // All full
+
+      const next = [...prev];
+      next[slotIdx] = {
         tableId: tableInfo.tableId,
         name: tableInfo.name || 'Table',
         stakes: tableInfo.stakes || '',
         variant: tableInfo.variant || 'NLH',
         clubName: tableInfo.clubName || '',
         clubId: tableInfo.clubId || null,
-      }];
-      setActiveIndex(newTables.length - 1);
-      return newTables;
+        tournamentId: tableInfo.tournamentId || null,
+      };
+      setActiveIndex(slotIdx);
+      return next;
     });
+    setPendingSlotIndex(-1);
   }, []);
 
   /**
-   * Close a table
+   * Close a table (slot reverts to null / "+")
    */
   const closeTable = useCallback((tableId) => {
-    setTables(prev => {
-      const idx = prev.findIndex(t => t.tableId === tableId);
+    setSlots(prev => {
+      const idx = prev.findIndex(s => s?.tableId === tableId);
       if (idx < 0) return prev;
-      const newTables = prev.filter(t => t.tableId !== tableId);
-      setActionNeeded(prevAct => {
-        const next = new Set(prevAct);
-        next.delete(tableId);
-        return next;
-      });
-      return newTables;
+      const next = [...prev];
+      next[idx] = null;
+      return next;
     });
-    setActiveIndex(prev => Math.min(prev, Math.max(0, tables.length - 2)));
-  }, [tables.length]);
+    setActionNeeded(prev => {
+      const next = new Set(prev);
+      next.delete(tableId);
+      return next;
+    });
+    // Move active to nearest filled slot
+    setActiveIndex(prev => {
+      const remaining = slots.map((s, i) => s && s.tableId !== tableId ? i : -1).filter(i => i >= 0);
+      if (remaining.length === 0) return 0;
+      // Find closest filled slot
+      const closest = remaining.reduce((best, i) =>
+        Math.abs(i - prev) < Math.abs(best - prev) ? i : best, remaining[0]);
+      return closest;
+    });
+  }, [slots]);
 
   /**
    * Mark a table as needing action (your turn)
    */
   const markActionNeeded = useCallback((tableId) => {
     setActionNeeded(prev => {
+      if (prev.has(tableId)) return prev;
       const next = new Set(prev);
       next.add(tableId);
       return next;
     });
-    
-    // Auto-switch to this table if it's not active (in single mode)
-    if (viewMode === 'single') {
-      setTables(prev => {
-        const idx = prev.findIndex(t => t.tableId === tableId);
-        if (idx >= 0) setActiveIndex(idx);
-        return prev;
-      });
-    }
 
     // Play notification sound
     try {
@@ -109,14 +161,15 @@ export function useMultiTable({ supabase, userId }) {
         notifSoundRef.current.volume = 0.3;
       }
       notifSoundRef.current.play().catch(() => {});
-    } catch (e) { /* no sound available */ }
-  }, [viewMode]);
+    } catch (_) { /* no sound available */ }
+  }, []);
 
   /**
    * Clear action needed flag (player acted)
    */
   const clearActionNeeded = useCallback((tableId) => {
     setActionNeeded(prev => {
+      if (!prev.has(tableId)) return prev;
       const next = new Set(prev);
       next.delete(tableId);
       return next;
@@ -124,19 +177,24 @@ export function useMultiTable({ supabase, userId }) {
   }, []);
 
   /**
-   * Switch to specific table tab
+   * Switch to specific slot
    */
   const switchTo = useCallback((index) => {
+    if (index < 0 || index >= MAX_TABLES) return;
+    // Only switch if slot has a table
+    if (!slots[index]) return;
     setActiveIndex(index);
-    // Clear action needed if switching to that table
-    if (tables[index]) {
+    // Clear action needed for that table
+    const tableId = slots[index]?.tableId;
+    if (tableId) {
       setActionNeeded(prev => {
+        if (!prev.has(tableId)) return prev;
         const next = new Set(prev);
-        next.delete(tables[index].tableId);
+        next.delete(tableId);
         return next;
       });
     }
-  }, [tables]);
+  }, [slots]);
 
   /**
    * Toggle view mode
@@ -145,18 +203,9 @@ export function useMultiTable({ supabase, userId }) {
     setViewMode(prev => prev === 'single' ? 'tile' : 'single');
   }, []);
 
-  /**
-   * Can open more tables?
-   */
-  const canOpenMore = tables.length < MAX_TABLES;
-
-  /**
-   * Get the currently active table
-   */
-  const activeTable = tables[activeIndex] || null;
-
   return {
-    tables,
+    slots,
+    tables, // convenience: non-null slots with _slotIndex
     activeIndex,
     activeTable,
     viewMode,
@@ -165,6 +214,9 @@ export function useMultiTable({ supabase, userId }) {
     setBbjWin,
     canOpenMore,
     maxTables: MAX_TABLES,
+    pendingSlotIndex,
+    setPendingSlotIndex,
+    getNextEmptySlot,
     openTable,
     closeTable,
     switchTo,

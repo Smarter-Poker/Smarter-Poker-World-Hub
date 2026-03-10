@@ -48,6 +48,57 @@ const LiveActionTicker = dynamic(
     { ssr: false, loading: () => null }
 );
 
+// ── Multi-Table Variant Labels (same as table page) ──
+const MT_VARIANT_LABELS = {
+  nlh: 'NLH', holdem: 'NLH', no_limit_holdem: 'NLH',
+  plo4: 'PLO4', plo: 'PLO4', omaha: 'PLO4', omaha4: 'PLO4',
+  plo5: 'PLO5', omaha5: 'PLO5',
+  plo6: 'PLO6', omaha6: 'PLO6',
+  plo8: 'PLO Hi/Lo', omaha_hilo: 'PLO Hi/Lo',
+  short_deck: 'Short Deck', '6plus': 'Short Deck',
+  ofc: 'OFC', pineapple: 'Pineapple',
+};
+
+// ── Multi-Table Session Storage Key (matches useMultiTable.js) ──
+const MT_STORAGE_KEY = 'club-arena-multi-tables';
+
+/**
+ * Navigate to a table with multi-table awareness.
+ * Writes the pending table info to sessionStorage, then routes to the table page.
+ * The table page's MultiTableView picks it up and opens it in the next empty slot.
+ */
+function navigateToTableMT(router, table, club, showToastFn) {
+  const tableId = table?.id;
+  if (!tableId) return;
+
+  // Read current multi-table slots from sessionStorage
+  let slots;
+  try {
+    const raw = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(MT_STORAGE_KEY) : null;
+    slots = raw ? JSON.parse(raw) : [null, null, null, null];
+    if (!Array.isArray(slots) || slots.length !== 4) slots = [null, null, null, null];
+  } catch (_) {
+    slots = [null, null, null, null];
+  }
+
+  // Already open? Just navigate — MultiTableView will switch to it
+  const existingIdx = slots.findIndex(s => s?.tableId === tableId);
+  if (existingIdx >= 0) {
+    router.push(`/hub/club-arena/table/${tableId}`);
+    return;
+  }
+
+  // All 4 slots full?
+  const emptyIdx = slots.findIndex(s => s === null);
+  if (emptyIdx < 0) {
+    showToastFn?.('Close a table to open a new one (4/4 slots full)', 'info');
+    return;
+  }
+
+  // Navigate — the table page handles opening via initialTable
+  router.push(`/hub/club-arena/table/${tableId}`);
+}
+
 export default function ClubLobby() {
     useTrainingBus('club-arena-lobby');
     usePullToRefresh({ onRefresh: () => loadClubData?.() });
@@ -199,7 +250,7 @@ export default function ClubLobby() {
             busEmit.tableOpened(table?.name || 'New Table', table?.game_type || 'NLH');
             // Auto-navigate to the new table so owner can sit down immediately
             if (table?.id) {
-                setTimeout(() => router.push(`/hub/club-arena/table/${table.id}`), 600);
+                setTimeout(() => navigateToTableMT(router, table, club, showToast), 600);
             }
         } else {
             busEmit.dataMutated('tournament_created');
@@ -801,11 +852,11 @@ export default function ClubLobby() {
                                         haptic('medium');
                                         const openTable = filteredTables.find(t => (t.current_players || 0) < (t.max_players || 9));
                                         if (openTable) {
-                                            router.push(`/hub/club-arena/table/${openTable.id}`);
+                                            navigateToTableMT(router, openTable, club, showToast);
                                         } else if (filteredTables.length > 0) {
                                             // All full — navigate to most active table to join waitlist
                                             const busiest = [...filteredTables].sort((a, b) => (b.current_players || 0) - (a.current_players || 0))[0];
-                                            router.push(`/hub/club-arena/table/${busiest.id}`);
+                                            navigateToTableMT(router, busiest, club, showToast);
                                             showToast('Table is full — you can join the waitlist!', 'info');
                                         } else {
                                             showToast('No tables available yet. Create one!', 'info');
@@ -856,7 +907,7 @@ export default function ClubLobby() {
                                                 <GameCard
                                                     game={table}
                                                     assetMap={stickerAssetMap}
-                                                    onPress={() => router.push(`/hub/club-arena/table/${table.id}`)}
+                                                    onPress={() => navigateToTableMT(router, table, club, showToast)}
                                                     miniState={miniStates.get(table.id)}
                                                 />
                                             </div>
