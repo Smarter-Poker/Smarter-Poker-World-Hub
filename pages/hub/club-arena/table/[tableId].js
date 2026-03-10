@@ -126,12 +126,28 @@ export default function ClubArenaTable() {
       setLoading(true);
       setError(null);
 
-      // 1. Fetch table metadata from DB
-      const { data: td, error: fe } = await supabase
+      // 1. Fetch table metadata from DB (try join first, fallback to simple query)
+      let td = null;
+      let fe = null;
+      const joinResult = await supabase
         .from('tables')
         .select('*, clubs(name, avatar_url)')
         .eq('id', tableId)
         .maybeSingle();
+
+      if (joinResult.error) {
+        console.warn('[Table Boot] Join query failed, trying simple query:', joinResult.error.message);
+        // Fallback: fetch without the clubs join (local dev may lack FK relationship)
+        const simpleResult = await supabase
+          .from('tables')
+          .select('*')
+          .eq('id', tableId)
+          .maybeSingle();
+        td = simpleResult.data;
+        fe = simpleResult.error;
+      } else {
+        td = joinResult.data;
+      }
 
       if (fe) {
         console.error('[Table Boot] Supabase fetch error:', fe);

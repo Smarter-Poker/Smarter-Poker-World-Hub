@@ -4,8 +4,8 @@
  * Accepts Bearer token in Authorization header (same pattern as other Commander APIs)
  * Returns { hasAccess: true/false, staff: {...} } 
  */
-import { createClient } from '../../../src/lib/supabaseServerClient';
-import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+const { createClient } = require('../../../src/lib/supabaseServerClient');
+const { applyRateLimit, LIMITS } = require('../../../src/lib/apiRateLimit');
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
