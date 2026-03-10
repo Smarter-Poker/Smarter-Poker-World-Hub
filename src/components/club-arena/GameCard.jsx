@@ -42,7 +42,13 @@ function ensureLivePulse() {
   if (_kfInjected || typeof document === 'undefined') return;
   _kfInjected = true;
   const s = document.createElement('style');
-  s.textContent = '@keyframes livePulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }';
+  s.textContent = `
+    @keyframes livePulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+    @keyframes activeTableGlow {
+      0%, 100% { box-shadow: 0 4px 16px rgba(0,0,0,0.7), 0 0 0 rgba(0,230,118,0); }
+      50% { box-shadow: 0 4px 20px rgba(0,0,0,0.7), 0 0 18px rgba(0,230,118,0.15), inset 0 0 8px rgba(0,230,118,0.05); }
+    }
+  `;
   document.head.appendChild(s);
 }
 
@@ -234,7 +240,10 @@ function CashCard({ table: t, assetMap, onPress, avgVpip }) {
   const ago = timeAgo(t.created_at);
 
   return (
-    <button onClick={() => onPress?.(t)} style={S.card}>
+    <button onClick={() => onPress?.(t)} style={{
+      ...S.card,
+      ...(isLive ? { animation: 'activeTableGlow 3s ease-in-out infinite', borderColor: 'rgba(0,230,118,0.2)' } : {}),
+    }}>
 
       {/* LIVE badge */}
       {isLive && (

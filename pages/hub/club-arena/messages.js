@@ -337,12 +337,17 @@ function MessageInput({ onSend, onMediaUpload, disabled, onTyping, onGifToggle, 
 //  MESSAGE BUBBLE COMPONENT (with media support)
 // ═══════════════════════════════════════════════════════════════════════════
 
-function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInGroup, onRetry, onDelete, onReact }) {
+function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInGroup, onRetry, onDelete, onReact, onEdit, onReply }) {
     const [showReactions, setShowReactions] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editText, setEditText] = useState('');
     const content = message.content || message.message || '';
     const isFailed = message.status === 'failed';
     const isSending = message.status === 'sending';
     const isDeleted = message.is_deleted;
+    const isEdited = message.updated_at && message.created_at && new Date(message.updated_at).getTime() - new Date(message.created_at).getTime() > 1000;
+    const canEdit = isOwn && !isFailed && !isSending && !isDeleted && (Date.now() - new Date(message.created_at).getTime() < 5 * 60 * 1000);
+    const replyRef = message.reply_to;
 
     // Check for image markdown: [Image](url)
     const imageMatch = content.match(/\[Image\]\(([^)]+)\)/);
@@ -385,7 +390,19 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                         opacity: isSending ? 0.6 : 1,
                         position: 'relative',
                     }}>
-                        {renderTextWithLinks(content)}
+                        {isEditing ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                <input type="text" value={editText} onChange={(e) => setEditText(e.target.value)}
+                                    onKeyDown={(e) => { if (e.key === 'Enter') { onEdit?.(message.id, editText); setIsEditing(false); } if (e.key === 'Escape') setIsEditing(false); }}
+                                    autoFocus style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 8, padding: '4px 8px', color: 'white', fontSize: 14, outline: 'none', width: '100%' }} />
+                                <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
+                                    <button onClick={() => setIsEditing(false)} style={{ fontSize: 11, color: C.textSec, background: 'transparent', border: 'none', cursor: 'pointer' }}>Cancel</button>
+                                    <button onClick={() => { onEdit?.(message.id, editText); setIsEditing(false); }} style={{ fontSize: 11, color: C.blue, background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Save</button>
+                                </div>
+                            </div>
+                        ) : (
+                            <>{renderTextWithLinks(content)}{isEdited && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginLeft: 6 }}>(edited)</span>}</>
+                        )}
 
                         {/* Quick react button (on hover) */}
                         {!isFailed && !isSending && (
@@ -433,6 +450,16 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                     {isOwn && !isFailed && !isSending && onDelete && (
                         <button onClick={() => onDelete?.(message.id)} style={{ fontSize: 11, color: C.textSec, background: 'transparent', border: 'none', cursor: 'pointer', padding: '0 4px', opacity: 0.5 }} title="Delete">
                             🗑️
+                        </button>
+                    )}
+                    {canEdit && onEdit && (
+                        <button onClick={() => { setEditText(content); setIsEditing(true); }} style={{ fontSize: 11, color: C.textSec, background: 'transparent', border: 'none', cursor: 'pointer', padding: '0 4px', opacity: 0.5 }} title="Edit (5 min window)">
+                            ✏️
+                        </button>
+                    )}
+                    {!isFailed && !isSending && !isDeleted && onReply && (
+                        <button onClick={() => onReply(message)} style={{ fontSize: 11, color: C.textSec, background: 'transparent', border: 'none', cursor: 'pointer', padding: '0 4px', opacity: 0.5 }} title="Reply">
+                            ↩️
                         </button>
                     )}
                 </div>

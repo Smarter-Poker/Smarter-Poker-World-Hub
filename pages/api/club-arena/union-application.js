@@ -190,7 +190,7 @@ export default async function handler(req, res) {
       const statusFilter = req.body.statusFilter || 'pending';
       let query = supabaseAdmin
         .from('union_applications')
-        .select('*, unions(name), profiles!applicant_user_id(display_name, username, email)')
+        .select('*, unions(name)')
         .eq('union_id', targetUnionId)
         .order('applied_at', { ascending: false });
 

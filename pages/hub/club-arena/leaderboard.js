@@ -102,26 +102,148 @@ function MiniSparkline({ hands, userId, width = 80, height = 24 }) {
     );
 }
 
-const MemoizedLeaderboardRow = React.memo(({ member, rank, isCurrentUser, S, FB, getRankColor, getRankEmoji, getDisplayValue, resolveAvatarDisplay, sparklineHands }) => (
-    <div style={{ ...S.playerRow, ...(isCurrentUser ? S.playerRowHighlight : {}) }}>
-        <div style={{ ...S.playerRank, color: getRankColor(rank) }}>{getRankEmoji(rank) || rank}</div>
-        <div style={{ ...S.playerAvatar, background: FB.primary }}>
-            <img src={resolveAvatarDisplay(member.profiles?.avatar_url, member.user_id)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" onError={(e) => { e.target.src = '/avatars/table/free_shark.png'; }} />
-        </div>
-        <div style={S.playerInfo}>
-            <div style={S.playerName}>
-                {member.profiles?.display_name || member.profiles?.username || 'Player'}
-                {isCurrentUser && <span style={{ color: FB.primary, marginLeft: '6px' }}>(You)</span>}
+// ─── Skeleton Loading Component ─────────────────────────────────────────
+function LeaderboardSkeleton() {
+    return (
+        <div>
+            {/* Skeleton podium */}
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginBottom: 24, padding: '20px 0' }}>
+                {[80, 100, 75].map((w, i) => (
+                    <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                        <div className="ca-skeleton ca-skeleton-avatar" style={{ width: w * 0.5, height: w * 0.5 }} />
+                        <div className="ca-skeleton" style={{ width: w * 0.7, height: 12, borderRadius: 4 }} />
+                        <div className="ca-skeleton" style={{ width: 40, height: 14, borderRadius: 4 }} />
+                    </div>
+                ))}
             </div>
-            {sparklineHands && sparklineHands.length >= 2 && (
-                <div style={{ marginTop: '4px' }}>
-                    <MiniSparkline hands={sparklineHands} userId={member.user_id} />
+            {/* Skeleton rows */}
+            {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="ca-skeleton-row" style={{ marginBottom: 8, borderRadius: 8, background: '#242526', border: '1px solid #3E4042' }}>
+                    <div className="ca-skeleton" style={{ width: 28, height: 14, borderRadius: 4 }} />
+                    <div className="ca-skeleton ca-skeleton-avatar" />
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <div className="ca-skeleton ca-skeleton-text" style={{ maxWidth: '60%' }} />
+                        <div className="ca-skeleton ca-skeleton-text" style={{ maxWidth: '30%', height: 10 }} />
+                    </div>
+                    <div className="ca-skeleton ca-skeleton-text-short" />
                 </div>
-            )}
+            ))}
         </div>
-        <div style={{ ...S.playerValue, color: getRankColor(rank) }}>{getDisplayValue(member)}</div>
-    </div>
-));
+    );
+}
+
+// ─── Trust Score Computation (activity-based) ──────────────────────────
+function computeTrustScore(member, handsByUser) {
+    let score = 50; // Base score
+    const uid = String(member.user_id);
+    const hands = handsByUser[uid] || [];
+    // More hands played = more trust (up to +25)
+    score += Math.min(25, (member.hands_played || hands.length || 0) / 4);
+    // Longer membership = more trust (up to +15)
+    if (member.joined_at) {
+        const daysSinceJoin = (Date.now() - new Date(member.joined_at).getTime()) / (86400000);
+        score += Math.min(15, daysSinceJoin / 2);
+    }
+    // Having a profile with display_name = +5
+    if (member.profiles?.display_name) score += 5;
+    // Having avatar = +5
+    if (member.profiles?.avatar_url) score += 5;
+    return Math.min(100, Math.max(0, Math.round(score)));
+}
+
+function TrustBadge({ score }) {
+    if (score == null) return null;
+    const cls = score >= 80 ? 'ca-trust-high' : score >= 50 ? 'ca-trust-medium' : 'ca-trust-low';
+    const label = score >= 80 ? '🛡️' : score >= 50 ? '⚠️' : '🔴';
+    return <span className={`ca-trust-badge ${cls}`}>{label} {score}</span>;
+}
+
+// ─── Player HUD Tooltip (stats popup on hover/tap) ─────────────────────
+function PlayerHUD({ member, handsByUser, visible, position }) {
+    const uid = String(member.user_id);
+    const hands = handsByUser[uid] || [];
+    const handsPlayed = member.hands_played || hands.length || 0;
+    const wins = member.stats?.wins || 0;
+    const winRate = handsPlayed > 0 ? ((wins / handsPlayed) * 100).toFixed(1) : '0.0';
+    const profit = member.stats?.totalProfit || member.chip_balance || 0;
+    const trustScore = computeTrustScore(member, handsByUser);
+
+    return (
+        <div
+            className={`ca-hud-tooltip ${visible ? 'ca-hud-visible' : ''}`}
+            style={{
+                top: position?.top ?? 0,
+                left: position?.left ?? 0,
+                right: position?.right ?? 'auto',
+            }}
+        >
+            <div style={{ fontWeight: 700, fontSize: 13, color: '#E4E6EB', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                {member.profiles?.display_name || 'Player'}
+                <TrustBadge score={trustScore} />
+            </div>
+            <div className="ca-hud-stat-row"><span className="ca-hud-stat-label">Hands</span><span className="ca-hud-stat-value" style={{ color: '#00d4ff' }}>{handsPlayed.toLocaleString()}</span></div>
+            <div className="ca-hud-stat-row"><span className="ca-hud-stat-label">Win Rate</span><span className="ca-hud-stat-value" style={{ color: parseFloat(winRate) > 50 ? '#4ade80' : '#f87171' }}>{winRate}%</span></div>
+            <div className="ca-hud-stat-row"><span className="ca-hud-stat-label">Profit</span><span className="ca-hud-stat-value" style={{ color: profit >= 0 ? '#4ade80' : '#f87171' }}>{profit >= 0 ? '+' : ''}{profit.toLocaleString()}</span></div>
+        </div>
+    );
+}
+
+const MemoizedLeaderboardRow = React.memo(({ member, rank, isCurrentUser, S, FB, getRankColor, getRankEmoji, getDisplayValue, resolveAvatarDisplay, sparklineHands, prevRank, handsByUser }) => {
+    const [hudVisible, setHudVisible] = React.useState(false);
+    const rowRef = React.useRef(null);
+    const timerRef = React.useRef(null);
+    const trustScore = computeTrustScore(member, handsByUser || {});
+
+    // Determine rank animation class
+    let animClass = '';
+    if (prevRank != null && prevRank !== rank) {
+        animClass = rank < prevRank ? 'ca-rank-up' : 'ca-rank-down';
+    }
+    if (rank === 1 && prevRank != null && prevRank !== 1) animClass = 'ca-crown-burst';
+
+    // Gradient card class based on profit context
+    const profit = member.stats?.totalProfit ?? 0;
+    const gradientClass = profit > 0 ? 'ca-card-positive' : profit < 0 ? 'ca-card-negative' : 'ca-card-neutral';
+
+    const handleMouseEnter = () => {
+        timerRef.current = setTimeout(() => setHudVisible(true), 400);
+    };
+    const handleMouseLeave = () => {
+        clearTimeout(timerRef.current);
+        setHudVisible(false);
+    };
+
+    return (
+        <div
+            ref={rowRef}
+            className={`${animClass} ${gradientClass}`}
+            style={{ ...S.playerRow, ...(isCurrentUser ? S.playerRowHighlight : {}), position: 'relative' }}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+            onTouchStart={() => { timerRef.current = setTimeout(() => setHudVisible(true), 600); }}
+            onTouchEnd={() => { clearTimeout(timerRef.current); setTimeout(() => setHudVisible(false), 2000); }}
+        >
+            <div style={{ ...S.playerRank, color: getRankColor(rank) }}>{getRankEmoji(rank) || rank}</div>
+            <div style={{ ...S.playerAvatar, background: FB.primary }}>
+                <img src={resolveAvatarDisplay(member.profiles?.avatar_url, member.user_id)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" onError={(e) => { e.target.src = '/avatars/table/free_shark.png'; }} />
+            </div>
+            <div style={S.playerInfo}>
+                <div style={{ ...S.playerName, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {member.profiles?.display_name || member.profiles?.username || 'Player'}
+                    {isCurrentUser && <span style={{ color: FB.primary, marginLeft: '2px' }}>(You)</span>}
+                    <TrustBadge score={trustScore} />
+                </div>
+                {sparklineHands && sparklineHands.length >= 2 && (
+                    <div style={{ marginTop: '4px' }}>
+                        <MiniSparkline hands={sparklineHands} userId={member.user_id} />
+                    </div>
+                )}
+            </div>
+            <div style={{ ...S.playerValue, color: getRankColor(rank) }}>{getDisplayValue(member)}</div>
+            <PlayerHUD member={member} handsByUser={handsByUser || {}} visible={hudVisible} position={{ top: '100%', left: 0, right: 0 }} />
+        </div>
+    );
+});
 
 export default function Leaderboard() {
     useTrainingBus('club-arena-leaderboard');
@@ -152,6 +274,9 @@ export default function Leaderboard() {
 
     // Per-user hand data for sparklines
     const [handsByUser, setHandsByUser] = useState({});
+
+    // Previous ranks for animation tracking
+    const prevRanksRef = useRef({});
 
     // ── Ghost-listener defense: mounted ref ──
     const mountedRef = useRef(true);
@@ -543,7 +668,7 @@ export default function Leaderboard() {
                             <button onClick={() => router.push('/hub')} style={{ ...S.backBtn, marginTop: 16 }}>Go to Hub</button>
                         </div>
                     ) : isLoading ? (
-                        <div style={S.loading}>Loading Rankings...</div>
+                        <LeaderboardSkeleton />
                     ) : members.length === 0 ? (
                         <div style={S.emptyState}>
                             <span style={{ fontSize: '48px', display: 'block', marginBottom: '12px' }}></span>
@@ -608,11 +733,13 @@ export default function Leaderboard() {
                                             key={member.user_id}
                                             member={member}
                                             rank={i + 4}
+                                            prevRank={prevRanksRef.current[member.user_id]}
                                             isCurrentUser={user && member.user_id === user.id}
                                             S={S} FB={FB}
                                             getRankColor={getRankColor} getRankEmoji={getRankEmoji}
                                             getDisplayValue={() => getDisplayValue(member)} resolveAvatarDisplay={resolveAvatarDisplay}
                                             sparklineHands={handsByUser[String(member.user_id)]}
+                                            handsByUser={handsByUser}
                                         />
                                     ))}
                                 </>
@@ -627,11 +754,13 @@ export default function Leaderboard() {
                                             key={member.user_id}
                                             member={member}
                                             rank={i + 1}
+                                            prevRank={prevRanksRef.current[member.user_id]}
                                             isCurrentUser={user && member.user_id === user.id}
                                             S={S} FB={FB}
                                             getRankColor={getRankColor} getRankEmoji={getRankEmoji}
                                             getDisplayValue={() => getDisplayValue(member)} resolveAvatarDisplay={resolveAvatarDisplay}
                                             sparklineHands={handsByUser[String(member.user_id)]}
+                                            handsByUser={handsByUser}
                                         />
                                     ))}
                                 </>
