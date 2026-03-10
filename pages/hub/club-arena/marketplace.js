@@ -374,7 +374,12 @@ export default function Marketplace() {
                         <ClubAnnouncementBanner clubId={clubIdParam} userRole={membership?.role} />
                     </HubErrorBoundary>
 
-                    {isLoading ? (
+                    {!clubIdParam ? (
+                        <div style={S.emptyState}>
+                            <p>Invalid Club. Please return to your Hub.</p>
+                            <button onClick={() => router.push('/hub')} style={{ ...S.backBtn, marginTop: 16 }}>Go to Hub</button>
+                        </div>
+                    ) : isLoading ? (
                         <div style={S.loading}>Loading Shop...</div>
                     ) : !user ? (
                         <div style={S.emptyState}><p>Sign In To Shop</p></div>

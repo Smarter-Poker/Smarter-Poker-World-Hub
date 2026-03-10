@@ -4,11 +4,29 @@ const fs = require('fs');
 const crypto = require('crypto');
 const path = require('path');
 
-// Read the `.env.local` to get Supabase URL and Service Key
 const envPath = path.join(__dirname, '.env.local');
-const envStr = fs.readFileSync(envPath, 'utf-8');
-const SUPABASE_URL = envStr.match(/NEXT_PUBLIC_SUPABASE_URL=(.*)/)?.[1];
-const SUPABASE_KEY = envStr.match(/SUPABASE_SERVICE_ROLE_KEY=(.*)/)?.[1];
+let envStr = '';
+try {
+    envStr = fs.readFileSync(envPath, 'utf-8');
+} catch (e) {
+    console.error('❌ Could not read .env.local file');
+    process.exit(1);
+}
+
+// Extract using simple string splitting to avoid regex quirks with quotes
+const getEnvVal = (key) => {
+    const line = envStr.split('\n').find(l => l.startsWith(key + '='));
+    if (!line) return null;
+    let val = line.substring(key.length + 1).trim();
+    // remove surrounding quotes if any
+    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+        val = val.substring(1, val.length - 1);
+    }
+    return val;
+};
+
+const SUPABASE_URL = getEnvVal('NEXT_PUBLIC_SUPABASE_URL');
+const SUPABASE_KEY = getEnvVal('SUPABASE_SERVICE_ROLE_KEY');
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
     console.error('❌ Missing SUPABASE credentials in .env.local');
@@ -70,7 +88,7 @@ async function runConcurrencyTest() {
     // Why direct RPC? We want to specifically stress test the Postgres lock `pg_advisory_xact_lock(hashtext('reg_' || p_tournament_id::text))`
     // This removes Node.js event-loop bottlenecks and tests the raw DB lock natively.
 
-    const promises = testUsers.map(userId => {
+    const promises = testUsers.map(async (userId) => {
         return supabase.rpc('fn_tournament_atomic_register', {
             p_user_id: userId,
             p_club_id: clubId,
@@ -99,7 +117,7 @@ async function runConcurrencyTest() {
     console.log(`\n[E2E ORB-3] Results: ${successCount} Success, ${failCount} Fails`);
 
     // Assert DB Truth
-    const { data: finalTourn } = await supabase.from('club_tournaments').select('*').eq('id', testTournamentId).single();
+    const { data: finalTourn } = await supabase.from('club_tournaments').select('*').eq('id', testTournamentId).maybeSingle();
     const { count: finalRegs } = await supabase.from('tournament_registrations').select('*', { count: 'exact' }).eq('tournament_id', testTournamentId);
 
     console.log(`\n[E2E ORB-3] Final Database State:`);

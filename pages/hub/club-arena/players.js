@@ -429,7 +429,12 @@ export default function Players() {
                         </select>
                     </div>
 
-                    {isLoading ? (
+                    {!clubIdParam ? (
+                        <div style={S.emptyState}>
+                            <p>Invalid Club. Please return to your Hub.</p>
+                            <button onClick={() => router.push('/hub')} style={{ ...S.backBtn, marginTop: 16 }}>Go to Hub</button>
+                        </div>
+                    ) : isLoading ? (
                         <div style={S.loading}>Loading Players...</div>
                     ) : filteredMembers.length === 0 ? (
                         <div style={S.emptyState}>

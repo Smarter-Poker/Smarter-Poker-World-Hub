@@ -537,7 +537,12 @@ export default function Leaderboard() {
                         ))}
                     </div>
 
-                    {isLoading ? (
+                    {!clubIdParam ? (
+                        <div style={S.emptyState}>
+                            <p>Invalid Club. Please return to your Hub.</p>
+                            <button onClick={() => router.push('/hub')} style={{ ...S.backBtn, marginTop: 16 }}>Go to Hub</button>
+                        </div>
+                    ) : isLoading ? (
                         <div style={S.loading}>Loading Rankings...</div>
                     ) : members.length === 0 ? (
                         <div style={S.emptyState}>

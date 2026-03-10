@@ -343,7 +343,7 @@ export default function Admin() {
     useEffect(() => {
         const unsub = eventBus.on(EventType.DATA_MUTATED, (e) => {
             const entity = e?.payload?.entity;
-            const relevantData = ['tournament_created', 'tournament_registration', 'chips_distributed', 'chips_minted', 'cashout_requested', 'cashout_approved', 'cashout_cancelled', 'rakeback_distributed', 'marketplace_purchase', 'union_club_added', 'agent_credit_issued', 'agent_commission_updated', 'agent_hierarchy_updated', 'promo_distributed'];
+            const relevantData = ['tournament_created', 'tournament_registration', 'chips_distributed', 'chips_minted', 'cashout_requested', 'cashout_approved', 'cashout_cancelled', 'rakeback_distributed', 'marketplace_purchase', 'union_club_added', 'agent_credit_issued', 'agent_commission_updated', 'agent_hierarchy_updated', 'agent_suspended', 'promo_distributed', 'member_role_changed', 'agent_assigned', 'member_removed', 'club_settings_updated'];
             const relevantTables = ['table_action', 'table_created', 'table_settings_updated'];
 
             if (relevantData.includes(entity)) loadData();

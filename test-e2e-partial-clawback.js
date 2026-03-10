@@ -36,7 +36,7 @@ async function runE2E() {
         amount: 50000,
         transaction_type: 'buyin',
         notes: 'Initial buyin of 50k, but player lost 30k before clawback'
-    }).select().single();
+    }).select().maybeSingle();
 
     if (txnErr) {
         console.error('Failed to create mock txn:', txnErr);
@@ -104,7 +104,7 @@ async function testHandlerDirectly(clubId, agentId, playerId, transactionId) {
 
         const { data: playerMember } = await supabaseAdmin
             .from('club_members').select('chip_balance')
-            .eq('club_id', clubId).eq('user_id', playerId).single();
+            .eq('club_id', clubId).eq('user_id', playerId).maybeSingle();
 
         const available = Math.floor(playerMember?.chip_balance || 0);
         console.log(`Player available balance exactly: ${available}`);
@@ -149,10 +149,10 @@ async function testHandlerDirectly(clubId, agentId, playerId, transactionId) {
         // Verify final state
         const { data: finalP } = await supabaseAdmin
             .from('club_members').select('chip_balance')
-            .eq('club_id', clubId).eq('user_id', playerId).single();
+            .eq('club_id', clubId).eq('user_id', playerId).maybeSingle();
         const { data: finalA } = await supabaseAdmin
             .from('club_members').select('chip_balance')
-            .eq('club_id', clubId).eq('user_id', agentId).single();
+            .eq('club_id', clubId).eq('user_id', agentId).maybeSingle();
 
         console.log('\n--- FINAL ASSERTIONS ---');
         console.log(`Player Final Balance (Expected 0): ${finalP.chip_balance}`);

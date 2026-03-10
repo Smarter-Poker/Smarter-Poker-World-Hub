@@ -28,8 +28,7 @@ async function setup() {
     const email = `orb4lead_${Date.now()}@example.com`;
     const { data: authData } = await supabase.auth.admin.createUser({ email, password: 'password123', email_confirm: true });
     const userId = authData.user.id;
-    await waitForProfile(userId);
-    await supabase.from('profiles').update({ username: `orb4lead_${Date.now()}` }).eq('id', userId);
+    await supabase.from('profiles').upsert({ id: userId, username: `orb4lead_${Date.now()}` });
 
     const { data: signData } = await supabase.auth.signInWithPassword({ email, password: 'password123' });
     authToken = signData.session.access_token;
@@ -89,7 +88,7 @@ async function runTests() {
     console.log('\n--- TESTING UNION-APPLICATION.JS ---');
     const applicantEmail = `orb4app_${Date.now()}@example.com`;
     const { data: authData2 } = await supabase.auth.admin.createUser({ email: applicantEmail, password: 'password123', email_confirm: true });
-    await waitForProfile(authData2.user.id);
+    await supabase.from('profiles').upsert({ id: authData2.user.id, username: `orb4app_${Date.now()}` });
     const { data: signData2 } = await supabase.auth.signInWithPassword({ email: applicantEmail, password: 'password123' });
     const appToken = signData2.session.access_token;
 

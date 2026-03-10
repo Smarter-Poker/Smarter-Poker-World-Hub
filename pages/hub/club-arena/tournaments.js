@@ -162,7 +162,7 @@ export default function TournamentsPage() {
   // ── Event Bus: refresh tournaments on cross-page mutations ────────────
   useEffect(() => {
     const unsub1 = eventBus.on(EventType.DATA_MUTATED, (e) => {
-      const relevant = ['tournament_created', 'tournament_registration', 'tournament_complete', 'chips_minted', 'chips_distributed'];
+      const relevant = ['tournament_created', 'tournament_registration', 'tournament_complete', 'tournament_cancelled', 'tournament_paused', 'tournament_resumed', 'chips_minted', 'chips_distributed'];
       if (relevant.includes(e?.payload?.entity)) loadData();
     });
     const unsub2 = eventBus.on(EventType.TOURNAMENT_STARTED, () => loadData());

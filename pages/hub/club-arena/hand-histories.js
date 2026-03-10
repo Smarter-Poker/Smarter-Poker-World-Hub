@@ -521,7 +521,12 @@ export default function HandHistories() {
                         ))}
                     </div>
 
-                    {isLoading ? (
+                    {!clubIdParam ? (
+                        <div style={S.emptyState}>
+                            <p>Invalid Club. Please return to your Hub.</p>
+                            <button onClick={() => router.push('/hub')} style={{ ...S.backBtn, marginTop: 16 }}>Go to Hub</button>
+                        </div>
+                    ) : isLoading ? (
                         <div style={S.loading}>Loading Hands...</div>
                     ) : !user ? (
                         <div style={S.emptyState}><p>Sign In To View Your Hands</p></div>
