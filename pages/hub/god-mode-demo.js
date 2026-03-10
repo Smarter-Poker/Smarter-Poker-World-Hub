@@ -30,10 +30,10 @@ export default function GodModeDemoPage() {
     const handleToastDemo = (type) => {
         switch (type) {
             case 'success':
-                toast.success('Success! Operation completed perfectly!');
+                toast.success('Success! Operation Completed Perfectly!');
                 break;
             case 'error':
-                toast.error('Error! Something went wrong.');
+                toast.error('Error! Something Went Wrong.');
                 break;
             case 'info':
                 toast.info('Info: Here\'s some helpful information.');
@@ -73,7 +73,7 @@ export default function GodModeDemoPage() {
         setLoading(true);
         setTimeout(() => {
             setLoading(false);
-            toast.success('Loading complete!');
+            toast.success('Loading Complete!');
         }, 3000);
     };
 
@@ -120,7 +120,7 @@ export default function GodModeDemoPage() {
                         <motion.div variants={staggerItem}>
                             <AnimatedCard hoverable style={{ marginBottom: 40, padding: 32 }}>
                                 <h2 style={{ color: '#fff', fontSize: 24, marginBottom: 24 }}>
-                                     Toast Notifications
+                                    Toast Notifications
                                 </h2>
                                 <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                                     <AnimatedButton variant="success" onClick={() => handleToastDemo('success')}>
@@ -143,7 +143,7 @@ export default function GodModeDemoPage() {
                         <motion.div variants={staggerItem}>
                             <AnimatedCard hoverable style={{ marginBottom: 40, padding: 32 }}>
                                 <h2 style={{ color: '#fff', fontSize: 24, marginBottom: 24 }}>
-                                     Confetti Celebrations
+                                    Confetti Celebrations
                                 </h2>
                                 <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                                     <AnimatedButton variant="primary" onClick={() => handleConfettiDemo('mastery')}>
@@ -153,10 +153,10 @@ export default function GodModeDemoPage() {
                                         Achievement ⭐
                                     </AnimatedButton>
                                     <AnimatedButton variant="danger" onClick={() => handleConfettiDemo('streak')}>
-                                        Streak 
+                                        Streak
                                     </AnimatedButton>
                                     <AnimatedButton variant="primary" onClick={() => handleConfettiDemo('levelup')}>
-                                        Level Up 
+                                        Level Up
                                     </AnimatedButton>
                                     <AnimatedButton variant="success" onClick={() => handleConfettiDemo('fireworks')}>
                                         Fireworks 🎆
@@ -256,7 +256,7 @@ export default function GodModeDemoPage() {
                 <div style={{ display: 'flex', gap: 12 }}>
                     <AnimatedButton variant="primary" onClick={() => {
                         setModalOpen(false);
-                        toast.success('Modal action confirmed!');
+                        toast.success('Modal Action Confirmed!');
                     }}>
                         Confirm
                     </AnimatedButton>

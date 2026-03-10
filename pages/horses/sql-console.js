@@ -69,6 +69,15 @@ export default function OmnichannelSQLConsole() {
 
             const data = await res.json();
             setResult({ status: res.status, data });
+
+            // [HARDENING] Real-time Sync — Broadcast mutation globally
+            if (data.success && data.command && ['INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'ALTER', 'DROP', 'CREATE'].includes(data.command.toUpperCase())) {
+                try {
+                    eventBus.emit(EventType.DATA_MUTATED, { source: 'sql-console-execution' }, 'SQLConsole');
+                } catch (e) {
+                    console.error('Failed to emit mutation event:', e);
+                }
+            }
         } catch (err) {
             setResult({ status: 500, data: { success: false, error: err.message } });
         } finally {

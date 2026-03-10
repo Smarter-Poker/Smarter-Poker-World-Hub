@@ -124,24 +124,24 @@ export default function RegisterPage() {
     // Step 1: Account
     if (stepNum === 1) {
       if (!ownerName.trim()) {
-        setError('Please enter your full name');
+        setError('Please Enter Your Full Name');
         return false;
       }
       if (!ownerEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ownerEmail)) {
-        setError('Please enter a valid email address');
+        setError('Please Enter A Valid Email Address');
         return false;
       }
       if (!existingAccount) {
         if (!password) {
-          setError('Please create a password for your account');
+          setError('Please Create A Password For Your Account');
           return false;
         }
         if (password !== confirmPassword) {
-          setError('Passwords do not match');
+          setError('Passwords Do Not Match');
           return false;
         }
         if (password.length < 8) {
-          setError('Password must be at least 8 characters');
+          setError('Password Must Be At Least 8 Characters');
           return false;
         }
       }
@@ -150,13 +150,13 @@ export default function RegisterPage() {
     // Step 2: Venue Details
     if (stepNum === 2) {
       if (!clubInfo.name.trim()) {
-        setError('Please enter your venue/club name');
+        setError('Please Enter Your Venue/Club Name');
         return false;
       }
       // Address is only required for club tier
       if (isAddressRequired) {
         if (!clubInfo.address || !clubInfo.city || !clubInfo.state || !clubInfo.zip) {
-          setError('Please fill in the full address for your club');
+          setError('Please Fill In The Full Address For Your Club');
           return false;
         }
       }
@@ -164,7 +164,7 @@ export default function RegisterPage() {
 
     // Step 3: Plan
     if (stepNum === 3 && !agreedToTerms) {
-      setError('Please agree to terms and conditions');
+      setError('Please Agree To Terms And Conditions');
       return false;
     }
 
@@ -228,7 +228,7 @@ export default function RegisterPage() {
       setStep(4);
     } catch (err) {
       if (err.name === 'AbortError') {
-        setError('Registration timed out. Please check your connection and try again.');
+        setError('Registration Timed Out. Please Check Your Connection And Try Again.');
       } else {
         setError(err.message);
       }
@@ -373,7 +373,7 @@ export default function RegisterPage() {
                 ))}
               </div>
               <div className="p-4 bg-[#31A24C]/10 border border-[#31A24C]/30 rounded-xl text-center text-[#E4E6EB]"><span className="font-semibold">14-Day Free Trial</span> - No Credit Card Required</div>
-              <div className="flex items-start gap-3"><input type="checkbox" id="terms" checked={agreedToTerms} onChange={e => setAgreedToTerms(e.target.checked)} className="mt-1 w-4 h-4 rounded" /><label htmlFor="terms" className="text-sm text-[#B0B3B8]">I Agree To The <a href="/terms" className="text-[#1877F2]">Terms</a> And <a href="/terms" className="text-[#1877F2]">Privacy Policy</a></label></div>
+              <div className="flex items-start gap-3"><input type="checkbox" id="terms" checked={agreedToTerms} onChange={e => setAgreedToTerms(e.target.checked)} className="mt-1 w-4 h-4 rounded" /><label htmlFor="terms" className="text-sm text-[#B0B3B8]">I Agree To The <Link href="/terms" className="text-[#1877F2]">Terms</Link> And <Link href="/terms" className="text-[#1877F2]">Privacy Policy</Link></label></div>
             </div>
           )}
 

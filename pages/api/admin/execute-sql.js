@@ -87,15 +87,17 @@ export default async function handler(req, res) {
     const connStrings = uniqueCands.map(pw => `postgresql://postgres.kuklfnapbkmacvwxktbh:${encodeURIComponent(pw)}@aws-0-us-west-2.pooler.supabase.com:5432/postgres`);
 
     for (const cs of connStrings) {
+        let pool;
+        let client;
         try {
-            const pool = new Pool({
+            pool = new Pool({
                 connectionString: cs,
                 ssl: { rejectUnauthorized: false },
                 connectionTimeoutMillis: 10000,
                 statement_timeout: 10000, // Hard 10-second circuit breaker
             });
 
-            const client = await pool.connect();
+            client = await pool.connect();
 
             // Ensure audit table exists
             await client.query(`
@@ -122,6 +124,7 @@ export default async function handler(req, res) {
                 await client.query('COMMIT');
                 success = true;
             } catch (sqlErr) {
+                // If ROLLBACK throws, it jumps to outer catch, but finally cleans up
                 await client.query('ROLLBACK');
                 errorMessage = sqlErr.message;
                 success = false;
@@ -137,9 +140,6 @@ export default async function handler(req, res) {
                     ['api-route', principal, sql, ms, success, errorMessage]
                 );
             } catch (auditErr) { console.error('Audit log failed', auditErr); }
-
-            client.release();
-            await pool.end();
 
             if (!success) {
                 return res.status(400).json({
@@ -163,6 +163,13 @@ export default async function handler(req, res) {
                 success: false,
                 error: e.message
             });
+        } finally {
+            if (client) {
+                try { client.release(); } catch (err) { }
+            }
+            if (pool) {
+                try { await pool.end(); } catch (err) { }
+            }
         }
     }
 

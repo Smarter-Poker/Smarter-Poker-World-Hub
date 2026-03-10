@@ -665,17 +665,17 @@ export default function BankrollManagerPage() {
   };
 
   const handleDeleteEntry = async (entryId) => {
-    if (!userId) { toast.error('You must be logged in'); return; }
+    if (!userId) { toast.error('You Must Be Logged In'); return; }
     // Optimistic removal — entry disappears immediately
     setEntries(prev => prev.filter(e => e.id !== entryId));
     try {
       await deleteLedgerEntry(userId, entryId);
-      toast.success('Entry deleted');
+      toast.success('Entry Deleted');
       setRefreshTrigger(prev => prev + 1);
       await loadData(); // Full refresh to sync stats
     } catch (err) {
       console.error('Delete failed:', err);
-      toast.error('Failed to delete entry');
+      toast.error('Failed To Delete Entry');
       await loadData(); // Re-fetch to restore if delete failed
     }
   };
@@ -1567,13 +1567,13 @@ export default function BankrollManagerPage() {
                             a.click();
                             document.body.removeChild(a);
                             URL.revokeObjectURL(url);
-                            toast.success(`Exported ${data.summary?.sessions || 0} sessions to CSV`);
+                            toast.success(`Exported ${data.summary?.sessions || 0} Sessions To CSV`);
                           } else {
-                            toast.error(data.message || 'No entries to export');
+                            toast.error(data.message || 'No Entries To Export');
                           }
                         } catch (err) {
                           console.error('Export failed:', err);
-                          toast.error('CSV export failed');
+                          toast.error('CSV Export Failed');
                         }
                       }}
                       style={styles.reportActionBtn}
@@ -1610,13 +1610,13 @@ export default function BankrollManagerPage() {
                             a.click();
                             document.body.removeChild(a);
                             URL.revokeObjectURL(url);
-                            toast.success(`Exported ${data.summary?.sessions || 0} sessions to JSON`);
+                            toast.success(`Exported ${data.summary?.sessions || 0} Sessions To JSON`);
                           } else {
-                            toast.error(data.message || 'No entries to export');
+                            toast.error(data.message || 'No Entries To Export');
                           }
                         } catch (err) {
                           console.error('Export failed:', err);
-                          toast.error('JSON export failed');
+                          toast.error('JSON Export Failed');
                         }
                       }}
                       style={styles.reportActionBtn}

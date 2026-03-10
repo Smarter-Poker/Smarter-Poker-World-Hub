@@ -18,7 +18,6 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 
 export default function ArticlePage() {
     const router = useRouter();
-    if (!router.isReady) return null;
     const { id, slug } = router.query;
     const [menuOpen, setMenuOpen] = useState(false);
     const [article, setArticle] = useState(null);
@@ -76,16 +75,16 @@ export default function ArticlePage() {
                     .eq('user_id', userId)
                     .eq('article_id', article.id);
                 setIsBookmarked(false);
-                toast.success('Bookmark removed');
+                toast.success('Bookmark Removed');
             } else {
                 await supabase
                     .from('article_bookmarks')
                     .insert({ user_id: userId, article_id: article.id });
                 setIsBookmarked(true);
-                toast.success('Article bookmarked');
+                toast.success('Article Bookmarked');
             }
         } catch {
-            toast.error('Failed to update bookmark');
+            toast.error('Failed To Update Bookmark');
         }
     };
 
@@ -143,7 +142,7 @@ export default function ArticlePage() {
             });
         } else {
             navigator.clipboard.writeText(window.location.href);
-            toast.success('Link copied to clipboard');
+            toast.success('Link Copied To Clipboard');
         }
     };
 
@@ -208,7 +207,7 @@ export default function ArticlePage() {
                 {/* Hero Image */}
                 {article.image_url && (
                     <div className="hero-image">
-                        <img src={article.image_url} alt={article.title}  loading="lazy" />
+                        <img src={article.image_url} alt={article.title} loading="lazy" />
                     </div>
                 )}
 
@@ -239,7 +238,7 @@ export default function ArticlePage() {
                             {related.map(item => (
                                 <Link key={item.id} href={`/hub/article?id=${item.id}`}>
                                     <div className="related-card">
-                                        <img src={item.image_url} alt=""  loading="lazy" />
+                                        <img src={item.image_url} alt="" loading="lazy" />
                                         <span>{item.title}</span>
                                     </div>
                                 </Link>

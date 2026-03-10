@@ -691,14 +691,14 @@ export default function TrainingPage() {
     // Show toast for leaderboard rank improvements
     useEffect(() => {
         if (leaderboardChange && leaderboardChange.newRank <= 10) {
-            toast.success(`You moved to #${leaderboardChange.newRank} on the ${leaderboardChange.periodType} leaderboard!`);
+            toast.success(`You Moved To #${leaderboardChange.newRank} On The ${leaderboardChange.periodType} Leaderboard!`);
         }
     }, [leaderboardChange]);
 
     // Show toast for challenge completions
     useEffect(() => {
         if (challengeComplete) {
-            toast.success(`Challenge Complete: ${challengeComplete.name}! Claim your reward!`);
+            toast.success(`Challenge Complete: ${challengeComplete.name}! Claim Your Reward!`);
         }
     }, [challengeComplete]);
 
@@ -827,7 +827,7 @@ export default function TrainingPage() {
     const handleGameClick = async (game) => {
 
         if (game.vipOnly && !isVIP) {
-            toast.error("This advanced tool is restricted to VIP members. Please upgrade.");
+            toast.error("This Advanced Tool Is Restricted To VIP Members. Please Upgrade.");
             router.push('/hub/diamond-store?tab=vip');
             return;
         }
@@ -951,7 +951,7 @@ export default function TrainingPage() {
 
                 // Show streak toast
                 if (gamificationResult.streak?.streakUpdated) {
-                    toast.success(`${gamificationResult.streak.currentStreak} day streak!`);
+                    toast.success(`${gamificationResult.streak.currentStreak} Day Streak!`);
                 }
             } catch (e) {
                 console.error('[Training] Gamification update failed:', e);

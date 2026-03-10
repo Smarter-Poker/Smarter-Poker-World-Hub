@@ -69,14 +69,16 @@ async function run() {
     const connStrings = uniqueCands.map(pw => `postgresql://postgres.kuklfnapbkmacvwxktbh:${encodeURIComponent(pw)}@aws-0-us-west-2.pooler.supabase.com:5432/postgres`);
 
     for (const cs of connStrings) {
+        let pool;
+        let client;
         try {
-            const pool = new Pool({
+            pool = new Pool({
                 connectionString: cs,
                 ssl: { rejectUnauthorized: false },
                 connectionTimeoutMillis: 10000,
                 statement_timeout: 10000, // Hard 10-second circuit breaker
             });
-            const client = await pool.connect();
+            client = await pool.connect();
 
             const start = Date.now();
             let res;
@@ -130,6 +132,13 @@ async function run() {
                 detail: e.detail
             }, null, 2));
             process.exit(1);
+        } finally {
+            if (client) {
+                try { client.release(); } catch (err) { }
+            }
+            if (pool) {
+                try { await pool.end(); } catch (err) { }
+            }
         }
     }
 

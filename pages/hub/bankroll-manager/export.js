@@ -18,7 +18,7 @@ export default function BankrollExport() {
 
     const handleExport = async (format) => {
         if (!userId) {
-            toast.error('Please sign in to export data');
+            toast.error('Please Sign In To Export Data');
             return;
         }
         if (exporting) return; // prevent double-click
@@ -36,9 +36,9 @@ export default function BankrollExport() {
                 const data = await res.json();
                 if (data.success && data.url) {
                     window.open(data.url, '_blank');
-                    toast.success('PDF report generated');
+                    toast.success('PDF Report Generated');
                 } else {
-                    toast.error(data.message || data.error || 'PDF export failed');
+                    toast.error(data.message || data.error || 'PDF Export Failed');
                 }
                 setExporting(null);
                 return;
@@ -62,9 +62,9 @@ export default function BankrollExport() {
                     a.click();
                     document.body.removeChild(a);
                     URL.revokeObjectURL(url);
-                    toast.success(`Exported ${data.summary?.sessions || 0} sessions to CSV`);
+                    toast.success(`Exported ${data.summary?.sessions || 0} Sessions To CSV`);
                 } else {
-                    toast.error(data.message || 'No entries to export');
+                    toast.error(data.message || 'No Entries To Export');
                 }
             } else if (format === 'json') {
                 if (data.success && data.data) {
@@ -78,14 +78,14 @@ export default function BankrollExport() {
                     a.click();
                     document.body.removeChild(a);
                     URL.revokeObjectURL(url);
-                    toast.success(`Exported ${data.summary?.sessions || 0} sessions to JSON`);
+                    toast.success(`Exported ${data.summary?.sessions || 0} Sessions To JSON`);
                 } else {
-                    toast.error(data.message || 'No entries to export');
+                    toast.error(data.message || 'No Entries To Export');
                 }
             }
         } catch (err) {
             console.error(`[Export] ${format} failed:`, err);
-            toast.error(`${format.toUpperCase()} export failed`);
+            toast.error(`${format.toUpperCase()} Export Failed`);
         }
 
         setExporting(null);

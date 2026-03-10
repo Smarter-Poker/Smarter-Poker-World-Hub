@@ -169,7 +169,7 @@ export default function ShoppingCart() {
             }
             throw new Error(data.error || 'No checkout URL returned');
         } catch (err) {
-            toast.error(err.message || 'Checkout unavailable. Redirecting...');
+            toast.error(err.message || 'Checkout Unavailable. Redirecting...');
             window.location.href = '/hub/diamond-store?checkout=true';
         } finally {
             setCheckingOut(false);
@@ -178,7 +178,7 @@ export default function ShoppingCart() {
 
     const handleDiamondCheckout = async () => {
         if (!canAffordWithDiamonds()) {
-            toast.error(`Not enough diamonds! You need ${getDiamondCost().toLocaleString()}💎 but only have ${diamondBalance.toLocaleString()}💎`);
+            toast.error(`Not Enough Diamonds! You Need ${getDiamondCost().toLocaleString()}💎 But Only Have ${diamondBalance.toLocaleString()}💎`);
             return;
         }
 
@@ -197,7 +197,7 @@ export default function ShoppingCart() {
             const data = await res.json();
 
             if (data.success) {
-                toast.success(`Purchased with ${data.data.diamonds_spent.toLocaleString()}💎! New balance: ${data.data.new_balance.toLocaleString()}💎`);
+                toast.success(`Purchased With ${data.data.diamonds_spent.toLocaleString()}💎! New Balance: ${data.data.new_balance.toLocaleString()}💎`);
                 busEmit.diamondsSpent(data.data.diamonds_spent, 'Diamond Store Purchase');
                 clearCart();
                 setDiamondBalance(data.data.new_balance);
@@ -205,7 +205,7 @@ export default function ShoppingCart() {
                 throw new Error(data.error || 'Diamond purchase failed');
             }
         } catch (err) {
-            toast.error(err.message || 'Diamond purchase failed');
+            toast.error(err.message || 'Diamond Purchase Failed');
         } finally {
             setCheckingOut(false);
         }
