@@ -10,6 +10,7 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { validateUnionGames } from '../../../src/contracts/orb4_syndicate';
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
 
 const supabaseAdmin = createClient(
@@ -72,6 +73,12 @@ export default async function handler(req, res) {
   const { action, unionId, ...params } = req.body;
   if (!unionId) return res.status(400).json({ success: false, error: 'unionId required' });
   if (!action) return res.status(400).json({ success: false, error: 'action required' });
+
+  // Zod validation — reject malformed payloads before DB queries
+  const validation = validateUnionGames(req.body);
+  if (!validation.success) {
+    return res.status(400).json({ success: false, error: validation.error });
+  }
 
   try {
     // Verify union admin

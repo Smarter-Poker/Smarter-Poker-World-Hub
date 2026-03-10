@@ -2152,12 +2152,44 @@ export default function Admin() {
                                             showToast(`Settlement ${settleAction} successful`);
                                         }
                                         loadData();
+                                        // Refresh history
+                                        apiCall('/api/club-arena/settlement-history', { clubId: club.id, action: 'list' })
+                                            .then(d => setSettlementHistory(d.periods || []))
+                                            .catch(() => { });
                                     } catch (e) { showToast(e.message, 'error'); }
                                     finally { setProcessing(false); }
                                 }}
                             >
                                 {processing ? 'Processing...' : `Execute: ${settleAction === 'pay_all' ? 'Pay All' : settleAction}`}
                             </button>
+
+                            {/* Phase 2: Settlement History Timeline */}
+                            {settlementHistory.length > 0 && (
+                                <div style={{ marginTop: 20 }}>
+                                    <h4 style={{ fontSize: 12, fontWeight: 700, color: FB.textSecondary, textTransform: 'uppercase', marginBottom: 10 }}>Settlement History</h4>
+                                    <div style={{ maxHeight: 250, overflowY: 'auto' }}>
+                                        {settlementHistory.map((p, i) => (
+                                            <div key={p.id || i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: FB.background, borderRadius: 8, marginBottom: 6, borderLeft: `3px solid ${p.status === 'closed' ? FB.success : p.status === 'open' ? '#A855F7' : FB.border}` }}>
+                                                <div>
+                                                    <div style={{ fontSize: 13, fontWeight: 600, color: FB.textPrimary, textTransform: 'capitalize' }}>
+                                                        {p.status} Period
+                                                    </div>
+                                                    <div style={{ fontSize: 11, color: FB.textSecondary }}>
+                                                        {p.started_at ? new Date(p.started_at).toLocaleDateString() : '—'} → {p.closed_at ? new Date(p.closed_at).toLocaleDateString() : 'now'}
+                                                    </div>
+                                                </div>
+                                                <div style={{ textAlign: 'right' }}>
+                                                    <div style={{ fontSize: 14, fontWeight: 700, color: '#F7C52A' }}>{(p.total_rake_collected || 0).toLocaleString()}</div>
+                                                    <div style={{ fontSize: 10, color: FB.textSecondary }}>rake</div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            {settlementHistoryLoading && (
+                                <div style={{ textAlign: 'center', padding: 16, color: FB.textSecondary, fontSize: 12 }}>Loading history...</div>
+                            )}
                         </div>
                     </div>
                 </div>

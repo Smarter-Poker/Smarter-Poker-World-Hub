@@ -16,6 +16,7 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { validateUnionApplication } from '../../../src/contracts/orb4_syndicate';
 import { checkIdempotency, cacheResponse } from '../../../src/lib/club-arena/idempotency';
 
 const supabaseAdmin = createClient(

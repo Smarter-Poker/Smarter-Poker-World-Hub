@@ -218,3 +218,140 @@ export function validateUnionWallet(body: unknown) {
 export function validateManageUnion(body: unknown) {
     return validatePayload(ManageUnionSchema, body);
 }
+
+// ─── Union Games Contracts ────────────────────────────────────
+
+export const UnionGamesCreateTournamentSchema = z.object({
+    action: z.literal('create_tournament'),
+    unionId: UUID,
+    hostClubId: UUID.optional(),
+    clubId: UUID.optional(),
+    name: SafeName,
+    buyIn: z.coerce.number().int().min(0).max(1_000_000).optional(),
+    buy_in: z.coerce.number().int().min(0).max(1_000_000).optional(),
+    startingChips: z.coerce.number().int().min(100).max(10_000_000).optional(),
+    starting_chips: z.coerce.number().int().min(100).max(10_000_000).optional(),
+    maxPlayers: z.coerce.number().int().min(2).max(5000).optional(),
+    max_players: z.coerce.number().int().min(2).max(5000).optional(),
+    lateRegLevels: z.coerce.number().int().min(0).max(50).optional(),
+    late_reg_levels: z.coerce.number().int().min(0).max(50).optional(),
+    rebuyEnabled: z.boolean().optional(),
+    rebuy_allowed: z.boolean().optional(),
+    addonEnabled: z.boolean().optional(),
+    addon_allowed: z.boolean().optional(),
+    guaranteedPrize: z.coerce.number().int().min(0).max(100_000_000).optional(),
+    guaranteed_prize: z.coerce.number().int().min(0).max(100_000_000).optional(),
+    scheduledStart: z.string().optional(),
+    start_time: z.string().optional(),
+    type: z.string().max(20).optional(),
+    variant: z.string().max(20).optional(),
+    game_type: z.string().max(20).optional(),
+    blind_levels: z.coerce.number().int().optional(),
+    blind_duration: z.coerce.number().int().optional(),
+    participatingClubIds: z.array(UUID).max(100).optional(),
+});
+
+export const UnionGamesCreateTableSchema = z.object({
+    action: z.literal('create_table'),
+    unionId: UUID,
+    clubId: UUID,
+    name: SafeName.optional(),
+    tableName: SafeName.optional(),
+    smallBlind: z.coerce.number().min(0.01).max(100_000).optional(),
+    bigBlind: z.coerce.number().min(0.02).max(200_000).optional(),
+    maxPlayers: z.coerce.number().int().min(2).max(10).optional(),
+    max_seats: z.coerce.number().int().min(2).max(10).optional(),
+    ante: z.coerce.number().min(0).optional(),
+    stakes: z.string().max(20).optional(),
+    gameVariant: z.string().max(20).optional(),
+    game_type: z.string().max(20).optional(),
+    minBuyIn: z.coerce.number().int().min(0).optional(),
+    min_buyin: z.coerce.number().int().min(0).optional(),
+    maxBuyIn: z.coerce.number().int().min(0).optional(),
+    max_buyin: z.coerce.number().int().min(0).optional(),
+    actionTime: z.coerce.number().int().min(5).max(300).optional(),
+    rakePercent: z.coerce.number().min(0).max(100).optional(),
+    rakeCap: z.coerce.number().min(0).max(1000).optional(),
+});
+
+export const UnionGamesTournamentActionSchema = z.object({
+    action: z.enum(['start_tournament', 'cancel_tournament', 'open_registration', 'pause_tournament', 'resume_tournament', 'get_tournament_details']),
+    unionId: UUID,
+    tournamentId: UUID,
+});
+
+export const UnionGamesTableActionSchema = z.object({
+    action: z.literal('close_table'),
+    unionId: UUID,
+    tableId: UUID,
+});
+
+export const UnionGamesListSchema = z.object({
+    action: z.enum(['list_tournaments', 'list_tables', 'get_bbj_status']),
+    unionId: UUID,
+    status: z.array(z.string().max(30)).optional(),
+    statusFilter: z.string().max(30).optional(),
+});
+
+export function validateUnionGames(body: unknown) {
+    if (!body || typeof body !== 'object' || !('action' in body)) {
+        return { success: false as const, error: 'action is required', data: null };
+    }
+    const action = (body as any).action;
+    switch (action) {
+        case 'create_tournament':
+            return validatePayload(UnionGamesCreateTournamentSchema, body);
+        case 'create_table':
+            return validatePayload(UnionGamesCreateTableSchema, body);
+        case 'start_tournament': case 'cancel_tournament': case 'open_registration':
+        case 'pause_tournament': case 'resume_tournament': case 'get_tournament_details':
+            return validatePayload(UnionGamesTournamentActionSchema, body);
+        case 'close_table':
+            return validatePayload(UnionGamesTableActionSchema, body);
+        case 'list_tournaments': case 'list_tables': case 'get_bbj_status':
+            return validatePayload(UnionGamesListSchema, body);
+        default:
+            return { success: false as const, error: `Unknown action: ${action}`, data: null };
+    }
+}
+
+// ─── Union Application Contracts ──────────────────────────────
+
+export const UnionApplicationApplySchema = z.object({
+    action: z.literal('apply'),
+    clubId: UUID,
+    message: z.string().max(500).optional(),
+});
+
+export const UnionApplicationStatusSchema = z.object({
+    action: z.literal('status'),
+    clubId: UUID,
+});
+
+export const UnionApplicationListSchema = z.object({
+    action: z.literal('list'),
+    unionId: UUID.optional(),
+    statusFilter: z.enum(['pending', 'approved', 'rejected', 'all']).optional(),
+});
+
+export const UnionApplicationReviewSchema = z.object({
+    action: z.enum(['approve', 'reject']),
+    applicationId: UUID,
+    reason: z.string().max(500).optional(),
+});
+
+export function validateUnionApplication(body: unknown) {
+    if (!body || typeof body !== 'object' || !('action' in body)) {
+        return { success: false as const, error: 'action is required', data: null };
+    }
+    const action = (body as any).action;
+    switch (action) {
+        case 'apply': return validatePayload(UnionApplicationApplySchema, body);
+        case 'status': return validatePayload(UnionApplicationStatusSchema, body);
+        case 'list': return validatePayload(UnionApplicationListSchema, body);
+        case 'approve': case 'reject':
+            return validatePayload(UnionApplicationReviewSchema, body);
+        default:
+            return { success: false as const, error: `Unknown action: ${action}`, data: null };
+    }
+}
