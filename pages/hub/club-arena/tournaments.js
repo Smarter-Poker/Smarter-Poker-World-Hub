@@ -86,6 +86,7 @@ export default function TournamentsPage() {
   const [lobbySearch, setLobbySearch] = useState('');
   const [lobbyTypeFilter, setLobbyTypeFilter] = useState('all'); // all | mtt | sng | spin | xmtt
   const [lobbyVariantFilter, setLobbyVariantFilter] = useState('all'); // all | nlh | plo4 | plo5 | short_deck
+  const [editTournament, setEditTournament] = useState(null); // Improvement #7: Edit Tournament
   const walletData = useWalletData({ supabase, userId: user?.id, clubId: clubId });
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -429,6 +430,7 @@ export default function TournamentsPage() {
             loadData();
             setSelectedTournament(null);
           }}
+          onEdit={(t) => { setSelectedTournament(null); setEditTournament(t); }}
           onCancel={async () => {
             const res = await api('cancel', { tournamentId: selectedTournament.id });
             if (res.success) {
@@ -441,6 +443,43 @@ export default function TournamentsPage() {
             }
           }}
         />
+      )}
+
+      {/* Edit Tournament Modal [Improvement #7] */}
+      {editTournament && (
+        <EditTournamentModal
+          tournament={editTournament}
+          onClose={() => setEditTournament(null)}
+          onSaved={() => { setEditTournament(null); loadData(); showToast('Tournament updated!'); busEmit.dataMutated('tournament_updated'); }}
+          onError={(msg) => showToast(msg, 'error')}
+          api={api}
+        />
+      )}
+
+      {/* Admin Tournament Dashboard [Improvement #11] */}
+      {isAdmin && tournaments.length > 0 && (
+        <div style={{ padding: '0 16px 16px', maxWidth: 800, margin: '0 auto' }}>
+          <div style={{ background: FB.card, borderRadius: 10, padding: 14, border: `1px solid ${FB.border}`, display: 'flex', gap: 16, justifyContent: 'space-around', flexWrap: 'wrap' }}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 22, fontWeight: 800, color: FB.primary }}>{tournaments.length}</div>
+              <div style={{ fontSize: 10, color: FB.dim, textTransform: 'uppercase' }}>Tournaments</div>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 22, fontWeight: 800, color: '#00E676' }}>{tournaments.reduce((s, t) => s + (t.registered_count || 0), 0)}</div>
+              <div style={{ fontSize: 10, color: FB.dim, textTransform: 'uppercase' }}>Total Players</div>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 22, fontWeight: 800, color: '#FFD700' }}>{tournaments.reduce((s, t) => s + (t.prize_pool || 0), 0).toLocaleString()}</div>
+              <div style={{ fontSize: 10, color: FB.dim, textTransform: 'uppercase' }}>Total Prize Pool</div>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 22, fontWeight: 800, color: '#FF7043' }}>
+                {tournaments.filter(t => t.status === 'running').length}
+              </div>
+              <div style={{ fontSize: 10, color: FB.dim, textTransform: 'uppercase' }}>Running Now</div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Bottom Navigation */}
@@ -631,6 +670,114 @@ function CreateTournamentModal({ clubId, onClose, onCreated, onError = () => { }
 }
 
 // ═══════════════════════════════════════════════════════
+// EDIT TOURNAMENT MODAL [Improvement #7]
+// ═══════════════════════════════════════════════════════
+function EditTournamentModal({ tournament: t, onClose, onSaved, onError, api }) {
+  const [form, setForm] = useState({
+    name: t.name || '',
+    buyIn: t.buy_in || 0,
+    maxPlayers: t.max_players || 100,
+    startingChips: t.starting_chips || 10000,
+    variant: t.variant || 'nlh',
+    scheduledStart: t.scheduled_start ? t.scheduled_start.slice(0, 16) : '',
+    lateRegLevels: t.late_reg_levels || t.settings?.lateRegLevels || 6,
+    guaranteedPrize: t.guaranteed_prize || 0,
+  });
+  const [saving, setSaving] = useState(false);
+  const set = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
+
+  const handleSave = async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      const updates = {
+        name: form.name,
+        buy_in: Number(form.buyIn),
+        max_players: Number(form.maxPlayers),
+        starting_chips: Number(form.startingChips),
+        variant: form.variant,
+        scheduled_start: form.scheduledStart ? new Date(form.scheduledStart).toISOString() : null,
+        late_reg_levels: Number(form.lateRegLevels),
+        guaranteed_prize: Number(form.guaranteedPrize),
+      };
+      const res = await api('update', { tournamentId: t.id, updates });
+      if (res.success) {
+        onSaved();
+      } else {
+        onError(res.error || 'Update failed');
+      }
+    } catch (err) {
+      onError(err.message || 'Update failed');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const fieldStyle = {
+    width: '100%', padding: '8px 12px', background: '#242526', color: '#E4E6EB',
+    border: '1px solid #3E4042', borderRadius: 8, fontSize: 14, boxSizing: 'border-box',
+  };
+  const labelStyle = { display: 'block', color: '#B0B3B8', fontSize: 12, fontWeight: 600, marginBottom: 4, marginTop: 12 };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10001, padding: 16 }}>
+      <div style={{ background: '#1C1E21', borderRadius: 14, padding: 24, maxWidth: 420, width: '100%', border: '1px solid #3E4042', maxHeight: '80vh', overflowY: 'auto' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <h2 style={{ margin: 0, fontSize: 18, color: '#E4E6EB' }}>✏️ Edit Tournament</h2>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#B0B3B8', fontSize: 22, cursor: 'pointer' }}>×</button>
+        </div>
+        <p style={{ color: '#B0B3B8', fontSize: 12, marginBottom: 8 }}>Only pre-start settings can be edited.</p>
+
+        <label style={labelStyle}>Tournament Name</label>
+        <input value={form.name} onChange={e => set('name', e.target.value)} style={fieldStyle} />
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div>
+            <label style={labelStyle}>Buy-In</label>
+            <input type="number" value={form.buyIn} onChange={e => set('buyIn', e.target.value)} style={fieldStyle} />
+          </div>
+          <div>
+            <label style={labelStyle}>Max Players</label>
+            <input type="number" value={form.maxPlayers} onChange={e => set('maxPlayers', e.target.value)} style={fieldStyle} />
+          </div>
+          <div>
+            <label style={labelStyle}>Starting Chips</label>
+            <input type="number" value={form.startingChips} onChange={e => set('startingChips', e.target.value)} style={fieldStyle} />
+          </div>
+          <div>
+            <label style={labelStyle}>Late Reg Levels</label>
+            <input type="number" value={form.lateRegLevels} onChange={e => set('lateRegLevels', e.target.value)} style={fieldStyle} />
+          </div>
+          <div>
+            <label style={labelStyle}>GTD Prize</label>
+            <input type="number" value={form.guaranteedPrize} onChange={e => set('guaranteedPrize', e.target.value)} style={fieldStyle} />
+          </div>
+          <div>
+            <label style={labelStyle}>Variant</label>
+            <select value={form.variant} onChange={e => set('variant', e.target.value)} style={fieldStyle}>
+              <option value="nlh">NLH</option>
+              <option value="plo4">PLO4</option>
+              <option value="plo5">PLO5</option>
+              <option value="short_deck">Short Deck</option>
+            </select>
+          </div>
+        </div>
+
+        <label style={labelStyle}>Scheduled Start</label>
+        <input type="datetime-local" value={form.scheduledStart} onChange={e => set('scheduledStart', e.target.value)} style={fieldStyle} />
+
+        <button onClick={handleSave} disabled={saving} style={{
+          width: '100%', marginTop: 20, padding: '12px 0',
+          background: saving ? '#555' : 'linear-gradient(135deg, #1877F2, #42A5F5)',
+          color: '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700,
+          cursor: saving ? 'not-allowed' : 'pointer',
+        }}>{saving ? 'Saving...' : '💾 Save Changes'}</button>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════
 // PAYOUT STRUCTURE CALCULATOR (frontend)
 // Standard flat structure: top ~15% paid
 // ═══════════════════════════════════════════════════════
@@ -670,7 +817,7 @@ function playerName(userId, profileMap) {
 // ═══════════════════════════════════════════════════════
 // TOURNAMENT DETAIL MODAL
 // ═══════════════════════════════════════════════════════
-function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, mutatingId, onRegister, onUnregister, onClose, onStart, onCancel }) {
+function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, mutatingId, onRegister, onUnregister, onClose, onStart, onCancel, onEdit }) {
   const router = useRouter();
   const [isRegistered, setIsRegistered] = useState(false);
   const [registrations, setRegistrations] = useState([]);
@@ -1244,6 +1391,14 @@ function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, mu
               flex: 1, padding: 10, background: '#7f1d1d', color: '#fca5a5',
               border: '1px solid #dc262640', borderRadius: 8, fontWeight: 700, cursor: 'pointer',
             }}>Cancel Tournament</button>
+          )}
+
+          {/* Improvement #7: Edit button for pre-start tournaments */}
+          {isAdmin && ['scheduled', 'registering'].includes(t.status) && onEdit && (
+            <button onClick={() => onEdit(t)} style={{
+              flex: 1, padding: 10, background: '#1877F2', color: '#fff',
+              border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer',
+            }}>✏️ Edit</button>
           )}
         </div>
       </div>

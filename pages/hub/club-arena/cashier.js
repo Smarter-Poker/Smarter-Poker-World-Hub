@@ -380,6 +380,8 @@ export default function Cashier() {
             });
 
             showToast(`Bought ${amount.toLocaleString()} chips for ${diamondCost} 💎`, 'success');
+            haptic('success');
+            playSound('buyin');
             setShowBuyInModal(false);
             setBuyInAmount('');
             busEmit.dataMutated('chips_minted');
@@ -457,6 +459,8 @@ export default function Cashier() {
             });
 
             showToast(result.message || `Cashout request sent! ${amount.toLocaleString()} chips held.`, 'success');
+            haptic('success');
+            playSound('cashout');
             busEmit.dataMutated('cashout_requested');
             loadData();
 
@@ -522,6 +526,65 @@ export default function Cashier() {
             .eq('club_id', club.id).eq('status', 'active').limit(100);
         setClubMembers((data || []).filter(m => m.user_id !== user?.id));
     };
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // P2-ENH-7: Export Transaction History as CSV
+    // ═══════════════════════════════════════════════════════════════════════════
+    const exportTransactionsCSV = () => {
+        if (!transactions.length) return;
+        const headers = ['Date', 'Type', 'Amount', 'Notes', 'ID'];
+        const rows = transactions.map(tx => [
+            tx.created_at ? new Date(tx.created_at).toLocaleString() : '',
+            getTransactionLabel(tx.transaction_type),
+            tx.amount || 0,
+            (tx.notes || '').replace(/,/g, ';'),
+            tx.id || '',
+        ]);
+        const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `cashier_transactions_${club?.club_id || 'club'}_${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('Transactions exported to CSV!');
+    };
+
+    // P2-ENH-9: IntersectionObserver for auto-prefetch
+    const loadMoreRef = useRef(null);
+    useEffect(() => {
+        if (!loadMoreRef.current) return;
+        const observer = new IntersectionObserver(
+            ([entry]) => { if (entry.isIntersecting) setTxPage(p => p + 1); },
+            { rootMargin: '200px' }
+        );
+        observer.observe(loadMoreRef.current);
+        return () => observer.disconnect();
+    });
+
+    // P2-ENH-10: Swipe-to-Cancel state
+    const [swipedCashoutId, setSwipedCashoutId] = useState(null);
+    const swipeStartX = useRef(0);
+
+    // P2-ENH-12: Transaction Sound Effects
+    const playSound = useCallback((type) => {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            if (ctx.state === 'suspended') return; // muted
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            gain.gain.value = 0.08;
+            if (type === 'buyin') { osc.frequency.value = 800; osc.type = 'sine'; }
+            else if (type === 'cashout') { osc.frequency.value = 500; osc.type = 'triangle'; }
+            else { osc.frequency.value = 1200; osc.type = 'sine'; }
+            osc.start();
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+            osc.stop(ctx.currentTime + 0.15);
+        } catch (_) { }
+    }, []);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // STYLES

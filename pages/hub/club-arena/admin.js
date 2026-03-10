@@ -180,6 +180,12 @@ export default function Admin() {
 
     // Phase 17: Mint audit
     const [recentMints, setRecentMints] = useState([]);
+
+    // Table Templates state
+    const [templates, setTemplates] = useState([]);
+    const [templatesLoading, setTemplatesLoading] = useState(false);
+    const [saveTemplateName, setSaveTemplateName] = useState('');
+    const [showSaveTemplate, setShowSaveTemplate] = useState(false);
     const showToast = (message, type = 'success') => {
         setToast({ message, type });
         setTimeout(() => setToast(null), 3000);
@@ -857,6 +863,34 @@ export default function Admin() {
                             <HubErrorBoundary name="AnnouncementsBanner">
                                 <ClubAnnouncementBanner clubId={clubIdParam} userRole={currentMemberForUI?.role} />
                             </HubErrorBoundary>
+
+                            {/* ═══ Quick Actions Bar ═══ */}
+                            <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+                                <button
+                                    onClick={() => { setActiveModal('mint'); }}
+                                    style={{ flex: '1 1 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '12px 10px', background: 'rgba(247,197,42,0.12)', border: '1px solid rgba(247,197,42,0.3)', borderRadius: 10, color: '#F7C52A', fontWeight: 700, fontSize: 13, cursor: 'pointer', transition: 'all 0.15s' }}
+                                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(247,197,42,0.25)'}
+                                    onMouseLeave={e => e.currentTarget.style.background = 'rgba(247,197,42,0.12)'}
+                                >
+                                    💰 Mint
+                                </button>
+                                <button
+                                    onClick={() => { setActiveModal('tables'); loadTables(); setShowCreateTable(true); }}
+                                    style={{ flex: '1 1 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '12px 10px', background: 'rgba(14,165,233,0.12)', border: '1px solid rgba(14,165,233,0.3)', borderRadius: 10, color: '#0EA5E9', fontWeight: 700, fontSize: 13, cursor: 'pointer', transition: 'all 0.15s' }}
+                                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(14,165,233,0.25)'}
+                                    onMouseLeave={e => e.currentTarget.style.background = 'rgba(14,165,233,0.12)'}
+                                >
+                                    🎯 New Table
+                                </button>
+                                <button
+                                    onClick={() => { setActiveModal('chips'); }}
+                                    style={{ flex: '1 1 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '12px 10px', background: 'rgba(49,162,76,0.12)', border: '1px solid rgba(49,162,76,0.3)', borderRadius: 10, color: '#31A24C', fontWeight: 700, fontSize: 13, cursor: 'pointer', transition: 'all 0.15s' }}
+                                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(49,162,76,0.25)'}
+                                    onMouseLeave={e => e.currentTarget.style.background = 'rgba(49,162,76,0.12)'}
+                                >
+                                    🎰 Distribute
+                                </button>
+                            </div>
 
                             <h2 style={S.sectionTitle}>Administration</h2>
                             {adminOptions.map(opt => (

@@ -23,6 +23,8 @@ import { buildStickerAssetMap } from '../../../src/lib/stickerOrchestrator';
 import useWalletData from '../../../src/hooks/useWalletData';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 import { apiCall, apiGet, getAuthToken } from '../../../src/lib/club-arena/apiClient';
+import LobbyStatsBar from '../../../src/components/club-arena/LobbyStatsBar';
+import { haptic } from '../../../src/lib/club-arena/haptic';
 
 // Dynamic imports — GameCard + DynamicWallet use browser APIs, must be client-only
 const GameCard = dynamic(
@@ -570,6 +572,8 @@ export default function ClubLobby() {
                             )}
 
                             {/* Game Type Filters */}
+                            {/* ═══ LOBBY STATS BAR (social proof) ═══ */}
+                            <LobbyStatsBar games={[...tables, ...tournaments]} />
                             <div style={styles.filterTabs}>
                                 {[
                                     { key: 'ALL', label: 'ALL' },
@@ -584,7 +588,7 @@ export default function ClubLobby() {
                                             ...styles.filterTab,
                                             ...(activeFilter === filter.key ? styles.filterTabActive : {})
                                         }}
-                                        onClick={() => setActiveFilter(filter.key)}
+                                        onClick={() => { haptic('tap'); setActiveFilter(filter.key); }}
                                     >
                                         {filter.label}
                                     </button>
@@ -722,6 +726,7 @@ export default function ClubLobby() {
                                 <button
                                     style={styles.heroActionBtn}
                                     onClick={() => {
+                                        haptic('medium');
                                         const openTable = filteredTables.find(t => (t.current_players || 0) < (t.max_players || 9));
                                         if (openTable) {
                                             router.push(`/hub/club-arena/table/${openTable.id}`);

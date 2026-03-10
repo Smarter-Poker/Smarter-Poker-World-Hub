@@ -133,6 +133,118 @@ function ProfitSparkline({ activities }) {
         </div>
     );
 }
+// ─── Skeleton Loading Component ─────────────────────────────────────────
+function PlayerStatsSkeleton() {
+    return (
+        <div>
+            {/* Big stat card skeleton */}
+            <div className="ca-skeleton" style={{ height: 90, borderRadius: 8, marginBottom: 20 }} />
+            {/* Stats grid skeleton */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 24 }}>
+                {Array.from({ length: 8 }).map((_, i) => (
+                    <div key={i} className="ca-skeleton ca-skeleton-stat" />
+                ))}
+            </div>
+            {/* Calendar skeleton */}
+            <div className="ca-skeleton" style={{ height: 12, width: 120, borderRadius: 4, marginBottom: 12 }} />
+            <div className="ca-skeleton" style={{ height: 100, borderRadius: 8, marginBottom: 24 }} />
+            {/* Activity skeleton */}
+            <div className="ca-skeleton" style={{ height: 12, width: 100, borderRadius: 4, marginBottom: 12 }} />
+            {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="ca-skeleton-row" style={{ marginBottom: 8, borderRadius: 8, background: '#242526', border: '1px solid #3E4042' }}>
+                    <div className="ca-skeleton" style={{ width: 32, height: 32, borderRadius: '50%' }} />
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <div className="ca-skeleton ca-skeleton-text" style={{ maxWidth: '50%' }} />
+                        <div className="ca-skeleton ca-skeleton-text" style={{ maxWidth: '30%', height: 10 }} />
+                    </div>
+                    <div className="ca-skeleton ca-skeleton-text-short" />
+                </div>
+            ))}
+        </div>
+    );
+}
+
+// ─── Win/Loss Calendar (GitHub-style heatmap) ────────────────────────
+function WinLossCalendar({ recentActivity }) {
+    const [tooltip, setTooltip] = React.useState(null);
+
+    // Build last 35 days (5 weeks)
+    const days = React.useMemo(() => {
+        const result = [];
+        const now = new Date();
+        for (let i = 34; i >= 0; i--) {
+            const d = new Date(now);
+            d.setDate(d.getDate() - i);
+            const key = d.toISOString().slice(0, 10); // YYYY-MM-DD
+            result.push({ date: d, key, profit: 0, hands: 0 });
+        }
+        // Aggregate activity into daily buckets
+        for (const a of (recentActivity || [])) {
+            if (!a.date) continue;
+            const aKey = new Date(a.date).toISOString().slice(0, 10);
+            const dayEntry = result.find(d => d.key === aKey);
+            if (dayEntry) {
+                dayEntry.hands++;
+                dayEntry.profit += (a.type === 'win' ? a.amount : -(a.amount || 0));
+            }
+        }
+        return result;
+    }, [recentActivity]);
+
+    const getCalendarClass = (day) => {
+        if (day.hands === 0) return 'ca-calendar-no-play';
+        if (day.profit > 0) {
+            if (day.profit > 500) return 'ca-calendar-win-4';
+            if (day.profit > 200) return 'ca-calendar-win-3';
+            if (day.profit > 50) return 'ca-calendar-win-2';
+            return 'ca-calendar-win-1';
+        }
+        if (day.profit < -500) return 'ca-calendar-loss-4';
+        if (day.profit < -200) return 'ca-calendar-loss-3';
+        if (day.profit < -50) return 'ca-calendar-loss-2';
+        return 'ca-calendar-loss-1';
+    };
+
+    const weekdays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+    return (
+        <div style={{ marginBottom: 24 }}>
+            <h2 style={{ fontSize: 12, fontWeight: 700, color: '#B0B3B8', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Session Calendar</h2>
+            <div style={{ background: '#242526', border: '1px solid #3E4042', borderRadius: 12, padding: 12 }}>
+                {/* Weekday labels */}
+                <div className="ca-calendar-grid" style={{ marginBottom: 0, gap: 3 }}>
+                    {weekdays.map((d, i) => <div key={i} className="ca-calendar-weekday">{d}</div>)}
+                </div>
+                {/* Day cells */}
+                <div className="ca-calendar-grid">
+                    {days.map(day => (
+                        <div
+                            key={day.key}
+                            className={`ca-calendar-day ${getCalendarClass(day)}`}
+                            title={`${day.key}: ${day.hands} hands, ${day.profit >= 0 ? '+' : ''}${day.profit.toLocaleString()}`}
+                            onMouseEnter={() => setTooltip(day)}
+                            onMouseLeave={() => setTooltip(null)}
+                        />
+                    ))}
+                </div>
+                {/* Tooltip */}
+                {tooltip && (
+                    <div style={{ fontSize: 11, color: '#B0B3B8', marginTop: 6, textAlign: 'center' }}>
+                        {tooltip.key} • {tooltip.hands} hands • <span style={{ color: tooltip.profit >= 0 ? '#4ade80' : '#f87171', fontWeight: 700 }}>{tooltip.profit >= 0 ? '+' : ''}{tooltip.profit.toLocaleString()}</span>
+                    </div>
+                )}
+                {/* Legend */}
+                <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 8, alignItems: 'center' }}>
+                    <span style={{ fontSize: 9, color: '#64748b' }}>Loss</span>
+                    {['ca-calendar-loss-2', 'ca-calendar-loss-1', 'ca-calendar-no-play', 'ca-calendar-win-1', 'ca-calendar-win-2'].map(c => (
+                        <div key={c} className={`ca-calendar-day ${c}`} style={{ width: 10, height: 10, cursor: 'default' }} />
+                    ))}
+                    <span style={{ fontSize: 9, color: '#64748b' }}>Win</span>
+                </div>
+            </div>
+        </div>
+    );
+}
 
 export default function PlayerStats() {
     useTrainingBus('club-arena-player-stats');
@@ -656,7 +768,7 @@ export default function PlayerStats() {
                             <button onClick={() => router.push('/hub')} style={{ ...S.backBtn, marginTop: 16 }}>Go to Hub</button>
                         </div>
                     ) : isLoading ? (
-                        <div style={S.loading}>Loading Stats...</div>
+                        <PlayerStatsSkeleton />
                     ) : !user ? (
                         <div style={S.emptyState}><p>Sign In To View Your Stats</p></div>
                     ) : (
@@ -675,16 +787,16 @@ export default function PlayerStats() {
                                     <div style={S.bigStatLabel}>Net Profit/Loss ({period === 'week' ? 'Week' : period === 'month' ? 'Month' : 'All Time'})</div>
                                 </div>
 
-                                {/* Stats Grid */}
+                                {/* Stats Grid — with gradient cards */}
                                 <div style={S.statsGrid}>
-                                    <div style={S.statCard}>
+                                    <div style={S.statCard} className={stats.handsPlayed > 0 ? 'ca-card-neutral' : ''}>
                                         <div style={S.statIcon}></div>
                                         <div style={S.statValue}>{stats.handsPlayed.toLocaleString()}</div>
                                         <div style={S.statLabel}>Hands Played</div>
                                     </div>
-                                    <div style={S.statCard}>
-                                        <div style={S.statIcon}></div>
-                                        <div style={{ ...S.statValue, color: FB.success }}>{stats.winRate}%</div>
+                                    <div style={S.statCard} className={stats.winRate >= 50 ? 'ca-card-positive' : stats.winRate > 0 ? 'ca-card-negative' : 'ca-card-neutral'}>
+                                        <div style={S.statIcon}>✅</div>
+                                        <div style={{ ...S.statValue, color: stats.winRate >= 50 ? '#31A24C' : '#FA383E' }}>{stats.winRate}%</div>
                                         <div style={S.statLabel}>Win Rate</div>
                                     </div>
                                     <div style={S.statCard}>
@@ -723,6 +835,9 @@ export default function PlayerStats() {
                                 {sparklineActivity.length >= 2 && (
                                     <ProfitSparkline activities={sparklineActivity} />
                                 )}
+
+                                {/* Win/Loss Calendar */}
+                                <WinLossCalendar recentActivity={recentActivity} />
 
                                 {/* Best Hand */}
                                 {stats.bestHand && (
