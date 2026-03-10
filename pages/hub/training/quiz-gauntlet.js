@@ -19,17 +19,17 @@ function getAuthToken() {
       const p = JSON.parse(r);
       return p?.access_token || p?.currentSession?.access_token || null;
     }
-  } catch {}
+  } catch { }
   return null;
 }
 function saveSession(payload) {
-  const token = getAuthToken();
-  if (!token) return;
+  const sessionToken = getAuthToken();
+  if (!sessionToken) return;
   fetch('/api/training/save-session', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionToken}` },
     body: JSON.stringify(payload),
-  }).catch(() => {});
+  }).catch(() => { });
 }
 
 // ── Question generators ───────────────────────────────────────────
@@ -153,7 +153,7 @@ export default function QuizGauntlet() {
         const correct = next.filter((e) => e.isCorrect).length;
         const score = next.reduce((s, e) => s + e.score, 0);
         const accuracy = Math.round((correct / TOTAL_Q) * 100);
-        eventBus?.emit?.('training:session-complete', {
+        eventBus?.emit?.(EventType.SESSION_END, {
           game_id: 'quiz-gauntlet',
           accuracy,
           correct_answers: correct,

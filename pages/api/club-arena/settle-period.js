@@ -16,11 +16,18 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { notifyUser } from '../../../src/lib/club-arena/notify';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
+const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+// MANDATE 2: Timezone Agnosticism — all settlement timestamps are UTC-explicit.
+// The weekly auto-settlement cron fires at Monday 10:00 UTC (Vercel cron: "0 10 * * 1").
+// Manual settlements must also use UTC to prevent timezone drift across server regions.
+const UTC_SETTLEMENT_DAY = 1;  // Monday (0=Sun, 1=Mon)
+const UTC_SETTLEMENT_HOUR = 10; // 10:00 UTC
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
@@ -38,6 +45,9 @@ export default async function handler(req, res) {
   if (!validActions.includes(action)) {
     return res.status(400).json({ success: false, error: `action must be one of: ${validActions.join(', ')}` });
   }
+
+  // CONCURRENCY: Idempotency guard — prevent double-taps (especially on open/close)
+  if (checkIdempotency(req, res)) return;
 
   // Rate limit
   if (!applyRateLimit(req, res, 'club-arena/settle-period')) return;
@@ -87,7 +97,7 @@ export default async function handler(req, res) {
           .select('*, agents!inner(user_id)')
           .eq('period_id', commissionPeriod.id)
           .eq('status', 'pending')
-              .limit(100);
+          .limit(100);
         pendingCommissions = comms || [];
       }
 
@@ -124,7 +134,9 @@ export default async function handler(req, res) {
         .limit(1);
 
       const nextPeriod = (lastPeriod?.[0]?.period_number || 0) + 1;
+      // MANDATE 2: UTC-explicit timestamps — never rely on server local timezone
       const now = new Date();
+      const nowISO = now.toISOString();
       const endAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 1 week
 
       const { data: period, error: pErr } = await supabaseAdmin
@@ -133,8 +145,8 @@ export default async function handler(req, res) {
           club_id: clubId,
           union_id: club.union_id,
           period_number: nextPeriod,
-          year: now.getFullYear(),
-          start_at: now.toISOString(),
+          year: now.getUTCFullYear(),
+          start_at: nowISO,
           end_at: endAt.toISOString(),
           status: 'open',
           total_rake_collected: 0,
@@ -153,11 +165,13 @@ export default async function handler(req, res) {
         .update({ weekly_rake_generated: 0 })
         .eq('club_id', clubId);
 
-      return res.status(200).json({
+      const responseObj = {
         success: true,
         period: period,
         message: `Period #${nextPeriod} opened`,
-      });
+      };
+      cacheResponse(req, 200, responseObj);
+      return res.status(200).json(responseObj);
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -251,7 +265,7 @@ export default async function handler(req, res) {
           agent_id: agent.id,
           period_id: pid,
           period_start: period.start_at,
-          period_end: new Date().toISOString(),
+          period_end: new Date().toISOString(), // MANDATE 2: toISOString() is always UTC
           player_rake_generated: grossRake,
           commission_rate: agent.commission_rate,
           commission_earned: commission,
@@ -380,7 +394,7 @@ export default async function handler(req, res) {
         })
         .eq('id', pid);
 
-      return res.status(200).json({
+      const responseObj = {
         success: true,
         periodId: pid,
         periodNumber: period.period_number,
@@ -390,7 +404,9 @@ export default async function handler(req, res) {
         agentCommissions: commissionRecords.length,
         totalCommissionsPending: totalCommissions,
         message: `Period #${period.period_number} closed. ${commissionRecords.length} commission records created.`,
-      });
+      };
+      cacheResponse(req, 200, responseObj);
+      return res.status(200).json(responseObj);
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -432,30 +448,30 @@ export default async function handler(req, res) {
 
       // Distribute chips: debit treasury, credit agent
       if (cr.commission_amount > 0 && agentData) {
-          await supabaseAdmin.rpc('fn_debit_treasury', {
-            p_club_id: clubId,
-            p_amount: cr.commission_amount,
-          });
+        await supabaseAdmin.rpc('fn_debit_treasury', {
+          p_club_id: clubId,
+          p_amount: cr.commission_amount,
+        });
 
-          await supabaseAdmin.rpc('fn_credit_chips', {
-            p_club_id: clubId,
-            p_user_id: agentData.user_id,
-            p_amount: cr.commission_amount,
-          });
+        await supabaseAdmin.rpc('fn_credit_chips', {
+          p_club_id: clubId,
+          p_user_id: agentData.user_id,
+          p_amount: cr.commission_amount,
+        });
 
-          await supabaseAdmin.from('chip_transactions').insert({
-            club_id: clubId,
-            from_user_id: null,
-            to_user_id: agentData.user_id,
-            amount: cr.commission_amount,
-            transaction_type: 'commission',
-            notes: `Agent commission paid: ${cr.commission_amount.toLocaleString()} chips — Manual settlement`,
-            metadata: {
-              period_id: cr.period_id,
-              commission_record_id: cr.id,
-              settlement_type: 'manual',
-            },
-          });
+        await supabaseAdmin.from('chip_transactions').insert({
+          club_id: clubId,
+          from_user_id: null,
+          to_user_id: agentData.user_id,
+          amount: cr.commission_amount,
+          transaction_type: 'commission',
+          notes: `Agent commission paid: ${cr.commission_amount.toLocaleString()} chips — Manual settlement`,
+          metadata: {
+            period_id: cr.period_id,
+            commission_record_id: cr.id,
+            settlement_type: 'manual',
+          },
+        });
       }
 
       // Get the period's start_at to scope the history update correctly
@@ -486,6 +502,7 @@ export default async function handler(req, res) {
           .eq('status', 'generated');
       }
 
+      cacheResponse(req, 200, { success: true, message: 'Commission marked as paid' });
       return res.status(200).json({ success: true, message: 'Commission marked as paid' });
     }
 
@@ -514,7 +531,7 @@ export default async function handler(req, res) {
         .select('id, agent_id, commission_amount')
         .eq('period_id', periodId)
         .eq('status', 'pending')
-            .limit(100);
+        .limit(100);
 
       if (!pending?.length) {
         return res.status(200).json({ success: true, message: 'No pending commissions to pay', paid: 0 });
@@ -622,11 +639,11 @@ export default async function handler(req, res) {
             message: `Your commission of ${cr.commission_amount.toLocaleString()} chips has been paid.`,
             data: { clubId, amount: cr.commission_amount },
             pushUrl: `/hub/club-arena/agent-dashboard?club=${clubId}`,
-          }).catch(() => {});
+          }).catch(() => { });
         }
       }
 
-      return res.status(200).json({
+      const responseObj = {
         success: true,
         paid: paidIds.length,
         skipped,
@@ -634,7 +651,9 @@ export default async function handler(req, res) {
         message: skipped > 0
           ? `${paidIds.length}/${pending.length} commissions paid. ${skipped} skipped due to treasury shortfall.`
           : `${paidIds.length} commissions paid (${totalPaid.toLocaleString()} chips)`,
-      });
+      };
+      cacheResponse(req, 200, responseObj);
+      return res.status(200).json(responseObj);
     }
 
   } catch (err) {

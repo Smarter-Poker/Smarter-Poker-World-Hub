@@ -9,6 +9,8 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
 import { notifyUser } from '../../../src/lib/club-arena/notify';
+const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
+const { sanitizeNote, safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -18,16 +20,35 @@ const supabaseAdmin = createClient(
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 
+  // RED TEAM: Payload size + field allowlist validation
+  const ALLOWED = new Set(['clubId', 'toUserId', 'amount', 'notes', 'type']);
+  const bodyStr = JSON.stringify(req.body || {});
+  if (bodyStr.length > 1024) return res.status(413).json({ success: false, error: 'Request body too large' });
+  const bad = Object.keys(req.body || {}).filter(k => !ALLOWED.has(k));
+  if (bad.length > 0) return res.status(400).json({ success: false, error: `Unknown fields: ${bad.join(', ')}` });
+
+  // Idempotency guard — prevent double-tap on laggy mobile networks
+  if (checkIdempotency(req, res)) return;
+
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
   const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
   if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-  const { clubId, toUserId, amount: rawAmount, notes } = req.body;
+  const { clubId, toUserId, amount: rawAmount, notes: rawNotes } = req.body;
+  const notes = sanitizeNote(rawNotes, 500);
   if (!clubId || !toUserId || !rawAmount || rawAmount <= 0) {
     return res.status(400).json({ success: false, error: 'clubId, toUserId, and positive amount required' });
   }
+
+  // ── RED TEAM: UUID format validation — blocks SQL injection ──
+  const { validateUUID } = require('../../../src/lib/club-arena/redteam-validation');
+  const clubIdErr = validateUUID(clubId, 'clubId');
+  if (clubIdErr) return res.status(400).json({ success: false, error: clubIdErr });
+  const toUserIdErr = validateUUID(toUserId, 'toUserId');
+  if (toUserIdErr) return res.status(400).json({ success: false, error: toUserIdErr });
+
   const amount = Math.floor(Number(rawAmount));
   if (!Number.isFinite(amount) || amount <= 0 || amount > 100000000) {
     return res.status(400).json({ success: false, error: 'amount must be a positive integer (max 100M)' });
@@ -137,7 +158,7 @@ export default async function handler(req, res) {
       message: `You received ${amount.toLocaleString()} chips${notes ? ` — ${notes}` : ''}.`,
       data: { clubId, amount },
       pushUrl: `/hub/club-arena/cashier?club=${clubId}`,
-    }).catch(() => {});
+    }).catch(() => { });
 
     return res.status(200).json({
       success: true,
@@ -151,6 +172,6 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     console.error('[distribute-chips]', err);
-    return res.status(500).json({ success: false, error: 'Distribution failed', details: err.message });
+    return res.status(500).json(safeErrorResponse(err, 'Distribution failed'));
   }
 }

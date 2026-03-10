@@ -1,14 +1,16 @@
 /* ═══════════════════════════════════════════════════════════════════════════════
- CLUB ARENA — Player Stats | FULLY WIRED
+ CLUB ARENA — Player Stats | FULLY WIRED | ORB-7 AUDITED
  SmarterPoker Dark Theme | Real Stats from Hand History & Gameplay
  ═══════════════════════════════════════════════════════════════════════════════ */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 import usePersistedState from '../../../src/hooks/usePersistedState';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
@@ -40,31 +42,49 @@ const FB = {
 };
 
 
-// ─── Mini Profit Sparkline ──────────────────────────────────────
+// ─── Mini Profit Sparkline (NaN-hardened) ─────────────────────
 function ProfitSparkline({ activities }) {
-    if (!activities || activities.length < 2) return null;
+    if (!activities || !Array.isArray(activities) || activities.length < 2) return null;
 
-    // Build cumulative P&L series
+    // Build cumulative P&L series with NaN protection
     let running = 0;
     const values = activities.slice().reverse().map(a => {
-        running += a.type === 'win' ? a.amount : -a.amount;
-        return running;
+        const amt = Number(a?.amount) || 0;
+        const safeAmt = Number.isFinite(amt) ? amt : 0;
+        running += a?.type === 'win' ? safeAmt : -safeAmt;
+        return Number.isFinite(running) ? running : 0;
     });
+
+    if (values.length < 2) return null;
 
     const min = Math.min(...values, 0);
     const max = Math.max(...values, 0);
-    const range = max - min || 1;
+    const range = max - min;
+    const safeRange = Number.isFinite(range) && range > 0 ? range : 1;
 
     const W = 280, H = 56;
     const pts = values.map((v, i) => {
-        const x = (i / (values.length - 1)) * W;
-        const y = H - ((v - min) / range) * H;
-        return `${x},${y}`;
+        const x = values.length > 1 ? (i / (values.length - 1)) * W : W / 2;
+        const y = H - ((v - min) / safeRange) * H;
+        // Final NaN guard — clamp to valid SVG coordinates
+        const sx = Number.isFinite(x) ? Math.max(0, Math.min(W, x)) : 0;
+        const sy = Number.isFinite(y) ? Math.max(0, Math.min(H, y)) : H / 2;
+        return `${sx.toFixed(2)},${sy.toFixed(2)}`;
     });
+
+    if (pts.length < 2) return null;
 
     const isUp = values[values.length - 1] >= 0;
     const color = isUp ? '#31A24C' : '#FA383E';
-    const zeroY = H - ((0 - min) / range) * H;
+    const zeroY = H - ((0 - min) / safeRange) * H;
+    const safeZeroY = Number.isFinite(zeroY) ? Math.max(0, Math.min(H, zeroY)) : H / 2;
+
+    const lastPt = pts[pts.length - 1].split(',');
+    const endCx = lastPt[0] || '0';
+    const endCy = lastPt[1] || String(H / 2);
+
+    // Guard: running must be finite for display
+    const displayRunning = Number.isFinite(running) ? running : 0;
 
     return (
         <div style={{ marginBottom: 20 }}>
@@ -75,7 +95,7 @@ function ProfitSparkline({ activities }) {
                 <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: 'block', overflow: 'visible' }}>
                     {/* Zero line */}
                     {min < 0 && max > 0 && (
-                        <line x1="0" y1={zeroY} x2={W} y2={zeroY}
+                        <line x1="0" y1={safeZeroY} x2={W} y2={safeZeroY}
                             stroke="#3E4042" strokeWidth="1" strokeDasharray="3,3" />
                     )}
                     {/* Area fill */}
@@ -99,13 +119,13 @@ function ProfitSparkline({ activities }) {
                         strokeLinecap="round"
                     />
                     {/* End dot */}
-                    <circle cx={pts[pts.length - 1].split(',')[0]} cy={pts[pts.length - 1].split(',')[1]}
+                    <circle cx={endCx} cy={endCy}
                         r="3.5" fill={color} />
                 </svg>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#B0B3B8', marginTop: 4 }}>
                     <span>Oldest</span>
                     <span style={{ color, fontWeight: 700 }}>
-                        {running >= 0 ? '+' : ''}{running.toLocaleString()} net
+                        {displayRunning >= 0 ? '+' : ''}{displayRunning.toLocaleString()} net
                     </span>
                     <span>Latest</span>
                 </div>
@@ -125,6 +145,7 @@ export default function PlayerStats() {
     const [club, setClub] = useState(null);
     const [membership, setMembership] = useState(null);
     const [showWallet, setShowWallet] = useState(false);
+    const [menuOpen, setMenuOpen] = useState(false);
 
     // Wallet data (real-time balances)
     const walletData = useWalletData({ supabase, userId: user?.id, clubId: club?.id });
@@ -137,12 +158,24 @@ export default function PlayerStats() {
         bestHand: null,
         sessionsPlayed: 0,
         hoursPlayed: 0,
-        vpip: 0, // Voluntarily Put In Pot %
-        pfr: 0, // Pre-Flop Raise %
+        vpip: 0,
+        pfr: 0,
         avgPot: 0,
     });
     const [recentActivity, setRecentActivity] = useState([]);
+    const [sparklineActivity, setSparklineActivity] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+
+    // ── Ghost-listener defense: mounted ref ──
+    const mountedRef = useRef(true);
+    // Debounce ref for realtime reloads
+    const reloadTimerRef = useRef(null);
+    const debouncedLoadData = useCallback(() => {
+        if (reloadTimerRef.current) clearTimeout(reloadTimerRef.current);
+        reloadTimerRef.current = setTimeout(() => {
+            if (mountedRef.current) loadData();
+        }, 1000);
+    }, []);
 
     // Bounty stats
     const [bountyStats, setBountyStats] = useState({
@@ -199,13 +232,12 @@ export default function PlayerStats() {
                         dateFilter = monthAgo.toISOString();
                     }
 
-                    // Fetch hand history for this user in this club
-                    // Engine saves to hand_histories with hand_data JSONB containing full action log
+                    // Use Materialized View for cold-archived hand histories
+                    // Engine saves to mv_hand_histories containing full action log
                     let handQuery = supabase
-                        .from('hand_histories')
+                        .from('mv_hand_histories')
                         .select('id, hand_number, variant, pot_total, player_ids, winner_ids, hand_data, rake, completed_at, club_id')
                         .contains('player_ids', [authUser.id])
-                        .limit(100) // player hands
 
                     // hand_history may not have user_id/club_id columns — wrap in try/catch
                     let hands = [];
@@ -233,6 +265,7 @@ export default function PlayerStats() {
                         let totalWinnings = 0;
                         let biggestPot = 0;
                         let bestHandEntry = null;
+                        let totalPotSum = 0;
 
                         for (const h of hands) {
                             const hd = h.hand_data || {};
@@ -240,7 +273,9 @@ export default function PlayerStats() {
                             if (player) {
                                 totalWinnings += player.netResult || 0;
                             }
-                            biggestPot = Math.max(biggestPot, Number(h.pot_total) || 0);
+                            const potVal = Number(h.pot_total) || 0;
+                            biggestPot = Math.max(biggestPot, potVal);
+                            totalPotSum += potVal;
 
                             // Check winning hand
                             if (hd.result?.winningHand && h.winner_ids?.includes(userId)) {
@@ -260,6 +295,31 @@ export default function PlayerStats() {
                             if (raisedPreflop) pfrCount++;
                         }
 
+                        // Estimate hours played from hand timestamps
+                        let hoursPlayed = 0;
+                        if (hands.length > 1) {
+                            const timestamps = hands
+                                .map(h => h.completed_at ? new Date(h.completed_at).getTime() : 0)
+                                .filter(t => t > 0)
+                                .sort((a, b) => a - b);
+                            if (timestamps.length > 1) {
+                                // Cluster into sessions (30-min gap = new session)
+                                let totalMs = 0;
+                                let sessionStart = timestamps[0];
+                                let prevTime = timestamps[0];
+                                for (let i = 1; i < timestamps.length; i++) {
+                                    const gap = timestamps[i] - prevTime;
+                                    if (gap > 30 * 60 * 1000) {
+                                        totalMs += prevTime - sessionStart;
+                                        sessionStart = timestamps[i];
+                                    }
+                                    prevTime = timestamps[i];
+                                }
+                                totalMs += prevTime - sessionStart;
+                                hoursPlayed = parseFloat((totalMs / (1000 * 60 * 60)).toFixed(1));
+                            }
+                        }
+
                         setStats({
                             handsPlayed,
                             handsWon,
@@ -268,14 +328,14 @@ export default function PlayerStats() {
                             biggestPot,
                             bestHand: bestHandEntry || null,
                             sessionsPlayed: memberData?.sessions_played || 0,
-                            hoursPlayed: 0,
+                            hoursPlayed,
                             vpip: handsPlayed > 0 ? parseFloat((vpipCount / handsPlayed * 100).toFixed(1)) : 0,
                             pfr: handsPlayed > 0 ? parseFloat((pfrCount / handsPlayed * 100).toFixed(1)) : 0,
-                            avgPot: handsPlayed > 0 ? Math.round(totalWinnings / handsPlayed) : 0,
+                            avgPot: handsPlayed > 0 ? Math.round(totalPotSum / handsPlayed) : 0,
                         });
 
                         // Recent activity (last 10 hands)
-                        setRecentActivity(hands.slice(0, 10).map(h => {
+                        const recentHands = hands.slice(0, 10).map(h => {
                             const player = h.hand_data?.players?.find(p => String(p.id) === String(userId));
                             const profit = player?.netResult || 0;
                             return {
@@ -285,6 +345,18 @@ export default function PlayerStats() {
                                 hand: h.hand_data?.result?.winningHand || h.variant || 'Hand',
                                 date: h.completed_at || h.created_at,
                                 tableName: h.hand_data?.tableName || 'Table',
+                            };
+                        });
+                        setRecentActivity(recentHands);
+
+                        // Sparkline data — use up to 50 hands for meaningful trend
+                        setSparklineActivity(hands.slice(0, 50).map(h => {
+                            const player = h.hand_data?.players?.find(p => String(p.id) === String(userId));
+                            const profit = player?.netResult || 0;
+                            return {
+                                id: h.id,
+                                type: profit > 0 ? 'win' : 'loss',
+                                amount: Math.abs(profit),
                             };
                         }));
                     } else {
@@ -377,13 +449,21 @@ export default function PlayerStats() {
         } catch (e) {
             console.error('[PlayerStats] Error loading data:', e);
         } finally {
-            setIsLoading(false);
+            if (mountedRef.current) setIsLoading(false);
         }
     }, [clubIdParam, period]);
 
-    useEffect(() => { loadData(); }, [loadData]);
+    // ── Initial load + unmount cleanup ──
+    useEffect(() => {
+        mountedRef.current = true;
+        loadData();
+        return () => {
+            mountedRef.current = false;
+            if (reloadTimerRef.current) clearTimeout(reloadTimerRef.current);
+        };
+    }, [loadData]);
 
-    // ── Realtime: refresh stats on new hands/transactions ─────────────────
+    // ── Realtime: refresh stats on new hands/transactions (debounced) ──
     useEffect(() => {
         if (!clubIdParam) return;
         const ch = supabase
@@ -391,29 +471,32 @@ export default function PlayerStats() {
             .on('postgres_changes', {
                 event: 'INSERT', schema: 'public', table: 'hand_histories',
                 filter: `club_id=eq.${clubIdParam}`
-            }, () => loadData())
+            }, () => { if (mountedRef.current) debouncedLoadData(); })
             .on('postgres_changes', {
                 event: 'INSERT', schema: 'public', table: 'chip_transactions',
                 filter: `club_id=eq.${clubIdParam}`
-            }, () => loadData())
+            }, () => { if (mountedRef.current) debouncedLoadData(); })
             .subscribe((status) => {
                 if (status !== 'SUBSCRIBED') {
+                    console.warn('[PlayerStats] Realtime status:', status);
                 }
             });
         return () => { supabase.removeChannel(ch); };
-    }, [clubIdParam, loadData]);
+    }, [clubIdParam, debouncedLoadData]);
 
     // ── Event Bus: refresh stats on cross-page data mutations ──────────────
+    // Delta-aware: only reloads when relevant entity types change
     useEffect(() => {
+        if (!mountedRef.current) return;
         const unsub = eventBus.on(EventType.DATA_MUTATED, (e) => {
             const relevant = ['hand_complete', 'chips_distributed', 'cashout_approved', 'cashout_requested', 'cashout_cancelled', 'rakeback_distributed', 'marketplace_purchase'];
-            if (relevant.includes(e?.payload?.entity)) loadData();
+            if (relevant.includes(e?.payload?.entity) && mountedRef.current) debouncedLoadData();
         });
-        const unsub2 = eventBus.on(EventType.HAND_COMPLETE, () => loadData());
-        const unsub3 = eventBus.on(EventType.BOUNTY_AWARDED, () => loadData());
-        const unsub4 = eventBus.on(EventType.TOURNAMENT_COMPLETE, () => loadData());
+        const unsub2 = eventBus.on(EventType.HAND_COMPLETE, () => { if (mountedRef.current) debouncedLoadData(); });
+        const unsub3 = eventBus.on(EventType.BOUNTY_AWARDED, () => { if (mountedRef.current) debouncedLoadData(); });
+        const unsub4 = eventBus.on(EventType.TOURNAMENT_COMPLETE, () => { if (mountedRef.current) debouncedLoadData(); });
         return () => { unsub(); unsub2(); unsub3(); unsub4(); };
-    }, [loadData]);
+    }, [debouncedLoadData]);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // STYLES
@@ -458,14 +541,14 @@ export default function PlayerStats() {
         const ranks = {
             'royal_flush': 'Royal Flush',
             'straight_flush': 'Straight Flush',
-            'four_of_a_kind': ' Four of a Kind',
-            'full_house': ' Full House',
+            'four_of_a_kind': 'Four of a Kind',
+            'full_house': 'Full House',
             'flush': 'Flush',
-            'straight': ' Straight',
+            'straight': 'Straight',
             'three_of_a_kind': 'Three of a Kind',
             'two_pair': 'Two Pair',
-            'one_pair': ' One Pair',
-            'high_card': ' High Card',
+            'one_pair': 'One Pair',
+            'high_card': 'High Card',
         };
         return ranks[hand.toLowerCase().replace(/\s+/g, '_')] || hand;
     };
@@ -495,7 +578,16 @@ export default function PlayerStats() {
             />
 
             <div style={S.page}>
-                <UniversalHeader pageDepth={2} />
+                <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
+                <HamburgerMenu
+                    isOpen={menuOpen}
+                    onClose={() => setMenuOpen(false)}
+                    direction="left"
+                    theme="dark"
+                    user={user}
+                    showProfile={true}
+                    {...getMenuConfig('club-arena', user, {}, {})}
+                />
 
                 <div style={S.container}>
                     <button onClick={() => router.push(`/hub/club-arena/lobby?club=${clubIdParam}`)} style={S.backBtn}>
@@ -591,11 +683,31 @@ export default function PlayerStats() {
                                         <div style={S.statValue}>{stats.handsWon.toLocaleString()}</div>
                                         <div style={S.statLabel}>Hands Won</div>
                                     </div>
+                                    <div style={S.statCard}>
+                                        <div style={S.statIcon}></div>
+                                        <div style={{ ...S.statValue, color: '#9333EA' }}>{stats.vpip}%</div>
+                                        <div style={S.statLabel}>VPIP</div>
+                                    </div>
+                                    <div style={S.statCard}>
+                                        <div style={S.statIcon}></div>
+                                        <div style={{ ...S.statValue, color: '#EC4899' }}>{stats.pfr}%</div>
+                                        <div style={S.statLabel}>PFR</div>
+                                    </div>
+                                    <div style={S.statCard}>
+                                        <div style={S.statIcon}></div>
+                                        <div style={S.statValue}>{stats.avgPot.toLocaleString()}</div>
+                                        <div style={S.statLabel}>Avg Pot</div>
+                                    </div>
+                                    <div style={S.statCard}>
+                                        <div style={S.statIcon}></div>
+                                        <div style={S.statValue}>{stats.hoursPlayed > 0 ? `${stats.hoursPlayed}h` : stats.sessionsPlayed || '0'}</div>
+                                        <div style={S.statLabel}>{stats.hoursPlayed > 0 ? 'Hours Played' : 'Sessions'}</div>
+                                    </div>
                                 </div>
 
                                 {/* Profit Trend Sparkline */}
-                                {recentActivity.length >= 2 && (
-                                    <ProfitSparkline activities={recentActivity} />
+                                {sparklineActivity.length >= 2 && (
+                                    <ProfitSparkline activities={sparklineActivity} />
                                 )}
 
                                 {/* Best Hand */}

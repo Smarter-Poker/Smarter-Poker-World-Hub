@@ -11,13 +11,15 @@ import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 import { createMultiDeviceAuthListener, persistSession } from '../../../src/utils/authGuard';
 import { createRingTone } from '../../../src/utils/ringTone';
 import useDebounce from '../../../src/hooks/useDebounce';
 import usePersistedState from '../../../src/hooks/usePersistedState';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { busEmit, eventBus } from '../../../src/engine/EventBus';
+import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import { resolveAvatarDisplay } from '../../../src/lib/resolveAvatarDisplay';
 import useWalletData from '../../../src/hooks/useWalletData';
 // Local helper — reads token from localStorage (same pattern as other club-arena pages)
@@ -178,7 +180,6 @@ function MessageInput({ onSend, onMediaUpload, disabled }) {
     const [text, setText] = useState('');
     const [showEmoji, setShowEmoji] = useState(false);
     const [uploading, setUploading] = useState(false);
-    useTrainingBus('club-arena-messages');
 
     const inputRef = useRef(null);
     const fileInputRef = useRef(null);
@@ -345,6 +346,7 @@ function ConversationItem({ conversation, isActive, onClick }) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default function ClubMessages() {
+    useTrainingBus('club-arena-messages');
     const router = useRouter();
     if (!router.isReady) return null;
     const { club: clubIdParam } = router.query;
@@ -376,6 +378,7 @@ export default function ClubMessages() {
     const [showMessageSearch, setShowMessageSearch] = useState(false);
     const [incomingCall, setIncomingCall] = useState(null); // { callerId, callerName, callerAvatar, callType, roomName }
     const [showWallet, setShowWallet] = useState(false);
+    const [menuOpen, setMenuOpen] = useState(false);
 
     // Wallet data (real-time balances)
     const walletData = useWalletData({ supabase, userId: user?.id, clubId: club?.id });
@@ -1064,7 +1067,16 @@ export default function ClubMessages() {
         <>
             <Head><title>Messages | Club Arena</title><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" /></Head>
             <div style={S.page}>
-                <UniversalHeader pageDepth={2} />
+                <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
+                <HamburgerMenu
+                    isOpen={menuOpen}
+                    onClose={() => setMenuOpen(false)}
+                    direction="left"
+                    theme="dark"
+                    user={user}
+                    showProfile={true}
+                    {...getMenuConfig('club-arena', user, {}, {})}
+                />
 
                 <div style={S.header}>
                     <span style={S.headerTitle}>Chats</span>

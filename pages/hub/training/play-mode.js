@@ -627,11 +627,12 @@ function usePlayMode() {
           },
         };
 
+        const sessionToken = await getAccessToken();
         const res = await fetch('/api/training/save-session', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${getAccessToken()}`,
+            Authorization: `Bearer ${sessionToken}`,
           },
           body: JSON.stringify(payload),
         });
@@ -712,7 +713,7 @@ function usePlayMode() {
           gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
           osc.start(ctx.currentTime);
           osc.stop(ctx.currentTime + 0.15);
-        } catch (e) {}
+        } catch (e) { }
       };
       const speed = Math.max(200, 600 - (8 - timeLeft) * 50);
       if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);

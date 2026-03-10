@@ -16,6 +16,8 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
+const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
+const { runStandardGuards } = require('../../../src/lib/club-arena/redteam-validation');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -24,6 +26,20 @@ const supabaseAdmin = createClient(
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
+
+  // CONCURRENCY: Idempotency guard — prevent double-tap cashout race
+  if (checkIdempotency(req, res)) return;
+
+  // ── RED TEAM: Payload size + field allowlist + UUID validation ──
+  const guardErr = runStandardGuards(req.body, {
+    maxBodySize: 512,
+    allowedFields: new Set(['cashoutId', 'action', 'note']),
+    uuids: { cashoutId: req.body?.cashoutId },
+  });
+  if (guardErr) return res.status(guardErr.status).json({ success: false, error: guardErr.error });
+
+  // CONCURRENCY: Idempotency guard — dedup rapid double-taps
+  if (checkIdempotency(req, res)) return;
 
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
@@ -249,7 +265,7 @@ ${agentName} cancelled your cashout request for ${cashout.amount.toLocaleString(
     }
   } catch (err) {
     console.error('[approve-cashout]', err);
-    return res.status(500).json({ success: false, error: 'Cashout action failed', details: err.message });
+    return res.status(500).json(safeErrorResponse(err, 'Cashout action failed'));
   }
 }
 

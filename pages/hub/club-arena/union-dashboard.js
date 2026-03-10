@@ -8,6 +8,8 @@ import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 import dynamic from 'next/dynamic';
 import usePersistedState from '../../../src/hooks/usePersistedState';
@@ -90,6 +92,7 @@ export default function UnionDashboard() {
     const [clubSearch, setClubSearch] = useState('');
     const [agentSearch, setAgentSearch] = useState('');
     const [toast, setToast] = useState(null);
+    const [menuOpen, setMenuOpen] = useState(false);
 
     // Mint chips state
     const [mintClubId, setMintClubId] = useState('');
@@ -376,7 +379,7 @@ export default function UnionDashboard() {
     // ── Event Bus: refresh on cross-page mutations ────────────────────────
     useEffect(() => {
         const unsub = eventBus.on(EventType.DATA_MUTATED, (e) => {
-            const relevant = ['union_club_added', 'union_club_removed', 'union_announcement', 'chips_minted', 'chips_distributed', 'cashout_approved', 'cashout_cancelled', 'rakeback_distributed', 'tournament_created', 'union_tournament_created'];
+            const relevant = ['union_club_added', 'union_club_removed', 'union_announcement', 'chips_minted', 'chips_distributed', 'cashout_approved', 'cashout_cancelled', 'rakeback_distributed', 'tournament_created', 'union_tournament_created', 'settlement_action'];
             if (relevant.includes(e?.payload?.entity)) loadDashboard();
         });
         return () => unsub();
@@ -471,6 +474,7 @@ export default function UnionDashboard() {
             showToast(`Minted ${parseInt(mintAmount).toLocaleString()} chips`);
             setMintAmount('');
             loadDashboard();
+            busEmit.dataMutated('chips_minted');
         } catch (err) {
             showToast(err.message || 'Mint failed', 'error');
         } finally {
@@ -521,6 +525,7 @@ export default function UnionDashboard() {
             showToast(result.message || `Settlement: ${settleAction} successful`);
             setSettleStatusData(null); // Clear status cache after any mutating action
             loadDashboard();
+            busEmit.dataMutated('settlement_action');
         } catch (err) {
             showToast(err.message || 'Settlement action failed', 'error');
         } finally {
@@ -667,7 +672,16 @@ export default function UnionDashboard() {
     return (
         <div style={{ background: FB.background, minHeight: '100vh' }}>
             <SEOHead title={`${union?.name || 'Union'} Dashboard | Club Arena`} />
-            <UniversalHeader pageDepth={2} />
+            <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
+            <HamburgerMenu
+                isOpen={menuOpen}
+                onClose={() => setMenuOpen(false)}
+                direction="left"
+                theme="dark"
+                user={user}
+                showProfile={true}
+                {...getMenuConfig('club-arena', user, {}, {})}
+            />
 
             <div style={{ maxWidth: 900, margin: '0 auto', padding: '20px 16px 120px' }}>
                 {/* Header */}
@@ -1153,7 +1167,7 @@ export default function UnionDashboard() {
                                                 body: JSON.stringify({ action: 'send_to_club', unionId: unionIdParam, clubId: walletSendClub, amount: amt, notes: walletSendNotes }),
                                             });
                                             const d = await r.json();
-                                            if (d.success) { showToast(d.message); setWalletSendAmount(''); setWalletSendNotes(''); loadWallets(); loadDashboard(); }
+                                            if (d.success) { showToast(d.message); setWalletSendAmount(''); setWalletSendNotes(''); loadWallets(); loadDashboard(); busEmit.dataMutated('chips_distributed'); }
                                             else showToast(d.error || 'Transfer failed', 'error');
                                         } catch (e) { showToast(e.message, 'error'); }
                                         finally { setWalletProcessing(false); }
@@ -1184,7 +1198,7 @@ export default function UnionDashboard() {
                                                 body: JSON.stringify({ action: 'move_rake_to_chips', unionId: unionIdParam, amount: amt }),
                                             });
                                             const d = await r.json();
-                                            if (d.success) { showToast(d.message); setWalletMoveAmount(''); loadWallets(); }
+                                            if (d.success) { showToast(d.message); setWalletMoveAmount(''); loadWallets(); busEmit.dataMutated('chips_distributed'); }
                                             else showToast(d.error || 'Move failed', 'error');
                                         } catch (e) { showToast(e.message, 'error'); }
                                         finally { setWalletProcessing(false); }
@@ -1199,7 +1213,7 @@ export default function UnionDashboard() {
                         <div style={{ fontSize: 13, fontWeight: 700, color: FB.textPrimary, marginBottom: 10 }}>Transaction History</div>
                         <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
                             {['all', 'chip_balance', 'rake_wallet', 'bbj_wallet', 'promo_wallet'].map(f => (
-                                <button key={f} onClick={() => setWalletTxFilter(f)}
+                                <button key={f} onClick={() => { setWalletTxFilter(f); loadWallets(f); }}
                                     style={{ background: walletTxFilter === f ? FB.primary : FB.hover, color: walletTxFilter === f ? '#fff' : FB.textSecondary, border: 'none', borderRadius: 6, padding: '4px 12px', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
                                     {f === 'all' ? 'All' : f.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                                 </button>
@@ -1690,9 +1704,11 @@ export default function UnionDashboard() {
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                                 <h3 style={{ fontSize: 15, fontWeight: 700, color: FB.danger, margin: 0 }}>
                                     Leave Requests
-                                    <span style={{ marginLeft: 8, background: FB.danger, color: '#fff', borderRadius: 12, padding: '1px 8px', fontSize: 11, fontWeight: 700 }}>
-                                        {dashboard.pendingLeaveRequests}
-                                    </span>
+                                    {dashboard.pendingLeaveRequests > 0 && (
+                                        <span style={{ marginLeft: 8, background: FB.danger, color: '#fff', borderRadius: 12, padding: '1px 8px', fontSize: 11, fontWeight: 700 }}>
+                                            {dashboard.pendingLeaveRequests}
+                                        </span>
+                                    )}
                                 </h3>
                                 <button onClick={loadLeaveRequests} disabled={leaveLoading} style={{ background: 'transparent', color: FB.textSecondary, border: `1px solid ${FB.border}`, borderRadius: 6, padding: '4px 12px', fontSize: 12, cursor: 'pointer' }}>
                                     {leaveLoading ? 'Loading...' : 'Refresh'}

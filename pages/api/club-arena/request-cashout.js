@@ -22,6 +22,9 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
+const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
+const { sanitizeNote, safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
+const { isUUID, validateAmount, rejectBadPayload } = require('../../../src/lib/club-arena/validate');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -31,20 +34,30 @@ const supabaseAdmin = createClient(
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 
+  // RED TEAM: Payload size + field allowlist (shared utility)
+  if (rejectBadPayload(req, res, ['clubId', 'amount', 'note'])) return;
+
+  // Idempotency guard — prevent double-charges on laggy mobile networks
+  if (checkIdempotency(req, res)) return;
+
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
   const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
   if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-  const { clubId, amount: rawAmount, note } = req.body;
-  if (!clubId || !rawAmount || rawAmount <= 0) {
-    return res.status(400).json({ success: false, error: 'clubId and positive amount required' });
-  }
-  const amount = Math.floor(Number(rawAmount));
-  if (!Number.isFinite(amount) || amount <= 0 || amount > 100000000) {
-    return res.status(400).json({ success: false, error: 'amount must be a positive integer (max 100M)' });
-  }
+  const { clubId, amount: rawAmount, note: rawNote } = req.body;
+
+  // RED TEAM: Strict UUID validation
+  if (!isUUID(clubId)) return res.status(400).json({ success: false, error: 'Invalid clubId format' });
+
+  // RED TEAM: Strict amount validation (min 100, no fractionals, max 100M)
+  const amtResult = validateAmount(rawAmount, 100, 100_000_000);
+  if (!amtResult.valid) return res.status(400).json({ success: false, error: amtResult.error });
+  const amount = amtResult.value;
+
+  // RED TEAM: Sanitize note
+  const note = sanitizeNote(rawNote, 200);
 
   // Settlement lock check — block during Monday 4:00-4:10 AM CST
   const lockCheck = await checkSettlementLock(supabaseAdmin, clubId);
@@ -66,6 +79,26 @@ export default async function handler(req, res) {
 
     if (memErr || !member) return res.status(404).json({ success: false, error: 'Not a member of this club' });
 
+    // ═════════════════════════════════════════════════════════════
+    // IN-PLAY LOCK — Block cashout while seated at an active table
+    // ═════════════════════════════════════════════════════════════
+    const { data: activeSeat } = await supabaseAdmin
+      .from('table_sessions')
+      .select('id, table_id')
+      .eq('club_id', clubId)
+      .eq('player_id', user.id)
+      .eq('is_active', true)
+      .limit(1);
+
+    if (activeSeat?.length > 0) {
+      return res.status(409).json({
+        success: false,
+        error: 'Cannot cash out while seated at a table. Leave the table first.',
+        in_play: true,
+        table_id: activeSeat[0].table_id,
+      });
+    }
+
     if (amount > member.chip_balance) {
       return res.status(400).json({
         success: false, error: 'Insufficient chips',
@@ -79,23 +112,8 @@ export default async function handler(req, res) {
     }
 
     // ═════════════════════════════════════════════════════════════
-    // 2. One pending request at a time
-    // ═════════════════════════════════════════════════════════════
-    const { data: existing } = await supabaseAdmin
-      .from('cashout_requests')
-      .select('id')
-      .eq('club_id', clubId)
-      .eq('player_id', user.id)
-      .eq('status', 'pending')
-      .limit(1);
-
-    if (existing?.length > 0) {
-      return res.status(409).json({ success: false, error: 'You already have a pending cashout request' });
-    }
-
-    // ═════════════════════════════════════════════════════════════
-    // 3. HOLD chips — atomic debit (escrow)
-    //    Uses fn_debit_chips to prevent TOCTOU race
+    // 2. HOLD chips — atomic debit (escrow)
+    //    Uses fn_debit_chips to prevent TOCTOU race on balance
     // ═════════════════════════════════════════════════════════════
     const { error: holdErr } = await supabaseAdmin.rpc('fn_debit_chips', {
       p_club_id: clubId,
@@ -133,6 +151,12 @@ export default async function handler(req, res) {
         p_user_id: user.id,
         p_amount: amount,
       });
+
+      // Handle Database UNIQUE constraint violation (idx_single_pending_cashout)
+      if (cashoutErr.code === '23505') {
+        return res.status(409).json({ success: false, error: 'You already have a pending cashout request' });
+      }
+
       throw cashoutErr;
     }
 
@@ -168,7 +192,7 @@ export default async function handler(req, res) {
     // ═════════════════════════════════════════════════════════════
     // Rate limit
 
-  try {
+    try {
       const { data: convId } = await supabaseAdmin.rpc('fn_get_or_create_conversation', {
         user1_id: user.id,
         user2_id: member.agent_id,
@@ -189,7 +213,7 @@ export default async function handler(req, res) {
     // ═════════════════════════════════════════════════════════════
     // Rate limit
 
-  try {
+    try {
       const baseUrl = process.env.NEXT_PUBLIC_SITE_URL
         || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '');
 
@@ -212,7 +236,7 @@ export default async function handler(req, res) {
       console.warn('[request-cashout] Push notification failed:', pushErr.message);
     }
 
-    return res.status(200).json({
+    const responseBody = {
       success: true,
       cashoutId: cashout.id,
       amount,
@@ -220,9 +244,11 @@ export default async function handler(req, res) {
       remainingBalance: member.chip_balance - amount,
       agentNotified: true,
       message: `${amount.toLocaleString()} chips held. Your agent has been notified.`,
-    });
+    };
+    cacheResponse(req, 200, responseBody);
+    return res.status(200).json(responseBody);
   } catch (err) {
     console.error('[request-cashout]', err);
-    return res.status(500).json({ success: false, error: 'Cashout request failed', details: err.message });
+    return res.status(500).json(safeErrorResponse(err, 'Cashout request failed'));
   }
 }

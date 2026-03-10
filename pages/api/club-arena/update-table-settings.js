@@ -13,17 +13,24 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
+const { isUUID } = require('../../../src/lib/club-arena/validate');
+const { sanitizeTableName, clampFloat, sanitizeSettings, safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
+const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
+
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
 
   if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
+
+  // ── C-05: Idempotency Guard ──
+  if (checkIdempotency(req, res)) return;
 
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
@@ -33,10 +40,14 @@ export default async function handler(req, res) {
     if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     const { tableId, clubId, name, smallBlind, bigBlind, maxPlayers,
-            minBuyIn, maxBuyIn, ante, actionTime, settings } = req.body;
+      minBuyIn, maxBuyIn, ante, actionTime, settings } = req.body;
 
-    if (!tableId || !clubId) {
-      return res.status(400).json({ success: false, error: 'tableId and clubId required' });
+    // ── E-14: UUID format validation ──────────────────────────────────
+    if (!tableId || !isUUID(tableId)) {
+      return res.status(400).json({ success: false, error: 'tableId must be a valid UUID' });
+    }
+    if (!clubId || !isUUID(clubId)) {
+      return res.status(400).json({ success: false, error: 'clubId must be a valid UUID' });
     }
 
     // Verify caller is owner or admin
@@ -63,22 +74,66 @@ export default async function handler(req, res) {
       return res.status(404).json({ success: false, error: 'Table not found in this club' });
     }
 
-    // Build update object
+    // Build update object — E-05: NaN-safe numeric parsing
     const updates = { updated_at: new Date().toISOString() };
 
-    if (name !== undefined) updates.name = name.trim().slice(0, 100);
-    if (smallBlind !== undefined) updates.small_blind = Math.max(0.01, parseFloat(smallBlind));
-    if (bigBlind !== undefined) updates.big_blind = Math.max(0.02, parseFloat(bigBlind));
-    if (maxPlayers !== undefined) updates.max_players = Math.min(Math.max(parseInt(maxPlayers), 2), 10);
-    if (minBuyIn !== undefined) updates.min_buy_in = Math.max(1, parseFloat(minBuyIn));
-    if (maxBuyIn !== undefined) updates.max_buy_in = Math.max(1, parseFloat(maxBuyIn));
-    if (ante !== undefined) updates.ante = Math.max(0, parseFloat(ante));
-    if (actionTime !== undefined) updates.action_time_seconds = Math.min(Math.max(parseInt(actionTime), 10), 120);
+    // ── E-01: XSS-safe name sanitization ─────────────────────────────
+    if (name !== undefined) updates.name = sanitizeTableName(name, 100);
 
-    // Merge settings (preserve existing settings, override with new values)
+    // ── E-05: Reject NaN from parseFloat — return 400 ──────────────────
+    if (smallBlind !== undefined) {
+      const r = clampFloat(smallBlind, 0.01, 100000);
+      if (!r.valid) return res.status(400).json({ success: false, error: `smallBlind: ${r.error}` });
+      updates.small_blind = r.value;
+    }
+    if (bigBlind !== undefined) {
+      const r = clampFloat(bigBlind, 0.02, 200000);
+      if (!r.valid) return res.status(400).json({ success: false, error: `bigBlind: ${r.error}` });
+      updates.big_blind = r.value;
+    }
+    if (maxPlayers !== undefined) {
+      const r = clampFloat(maxPlayers, 2, 10);
+      if (!r.valid) return res.status(400).json({ success: false, error: `maxPlayers: ${r.error}` });
+      updates.max_players = Math.round(r.value);
+    }
+    if (minBuyIn !== undefined) {
+      const r = clampFloat(minBuyIn, 1, 10_000_000);
+      if (!r.valid) return res.status(400).json({ success: false, error: `minBuyIn: ${r.error}` });
+      updates.min_buy_in = r.value;
+    }
+    if (maxBuyIn !== undefined) {
+      const r = clampFloat(maxBuyIn, 1, 10_000_000);
+      if (!r.valid) return res.status(400).json({ success: false, error: `maxBuyIn: ${r.error}` });
+      updates.max_buy_in = r.value;
+    }
+    if (ante !== undefined) {
+      const r = clampFloat(ante, 0, 1000);
+      if (!r.valid) return res.status(400).json({ success: false, error: `ante: ${r.error}` });
+      updates.ante = r.value;
+    }
+    if (actionTime !== undefined) {
+      const r = clampFloat(actionTime, 10, 120);
+      if (!r.valid) return res.status(400).json({ success: false, error: `actionTime: ${r.error}` });
+      updates.action_time_seconds = Math.round(r.value);
+    }
+
+    // ── E-07: Cross-field validation — ensure min < max ─────────────────
+    const finalMinBuyIn = updates.min_buy_in ?? table.min_buy_in;
+    const finalMaxBuyIn = updates.max_buy_in ?? table.max_buy_in;
+    if (finalMinBuyIn && finalMaxBuyIn && finalMinBuyIn > finalMaxBuyIn) {
+      return res.status(400).json({ success: false, error: 'minBuyIn cannot exceed maxBuyIn' });
+    }
+    const finalSB = updates.small_blind ?? table.small_blind;
+    const finalBB = updates.big_blind ?? table.big_blind;
+    if (finalSB && finalBB && finalBB <= finalSB) {
+      return res.status(400).json({ success: false, error: 'bigBlind must be greater than smallBlind' });
+    }
+
+    // ── E-06: Whitelist settings keys before merge ───────────────────
     if (settings && typeof settings === 'object') {
       const existingSettings = table.settings || {};
-      updates.settings = { ...existingSettings, ...settings };
+      const cleanSettings = sanitizeSettings(settings);
+      updates.settings = { ...existingSettings, ...cleanSettings };
     }
 
     const { data: updated, error: updateErr } = await supabaseAdmin

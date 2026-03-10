@@ -36,7 +36,7 @@ export default function useWalletData({ supabase, userId, clubId }) {
     try {
       // Parallel fetch: profile, membership, BBJ, agent, club treasury
       const [profileRes, memberRes, bbjRes, agentRes, clubRes] = await Promise.allSettled([
-        supabase.from('profiles').select('diamond_balance').eq('id', userId).maybeSingle(),
+        supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle(),
         supabase.from('club_members').select('chip_balance, promo_balance, role').eq('club_id', clubId).eq('user_id', userId).maybeSingle(),
         supabase.from('bbj_pools').select('pool_amount').eq('club_id', clubId).maybeSingle(),
         supabase.from('agents').select('business_balance, status').eq('club_id', clubId).eq('user_id', userId).eq('status', 'active').maybeSingle(),
@@ -45,7 +45,7 @@ export default function useWalletData({ supabase, userId, clubId }) {
 
       // Diamonds (global)
       if (profileRes.status === 'fulfilled' && profileRes.value?.data) {
-        setDiamondBalance(profileRes.value.data.diamond_balance || 0);
+        setDiamondBalance(profileRes.value.data.diamonds || 0);
       }
 
       // Club membership
@@ -130,8 +130,8 @@ export default function useWalletData({ supabase, userId, clubId }) {
         event: 'UPDATE', schema: 'public', table: 'profiles',
         filter: `id=eq.${userId}`,
       }, (payload) => {
-        if (payload.new?.diamond_balance !== undefined) {
-          setDiamondBalance(payload.new.diamond_balance);
+        if (payload.new?.diamonds !== undefined) {
+          setDiamondBalance(payload.new.diamonds);
         }
       })
       .subscribe();

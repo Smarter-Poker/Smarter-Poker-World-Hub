@@ -46,6 +46,10 @@ async function api(action, params) {
       headers: {
         'Content-Type': 'application/json',
         ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        // CONCURRENCY: Idempotency key prevents double-tap duplicate processing
+        'X-Idempotency-Key': typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2)}`,
       },
       body: JSON.stringify({ action, ...params }),
     });
@@ -76,6 +80,7 @@ export default function TournamentsPage() {
   const [chipBalance, setChipBalance] = useState(0);
   const [toast, setToast] = useState(null);
   const [confirmModal, setConfirmModal] = useState(null); // { msg, onConfirm }
+  const [mutatingId, setMutatingId] = useState(null); // CONCURRENCY: prevents double-tap on register/unregister
   const [showWallet, setShowWallet] = useState(false);
   const walletData = useWalletData({ supabase, userId: user?.id, clubId: clubId });
   const showToast = (msg, type = 'success') => {
@@ -167,21 +172,20 @@ export default function TournamentsPage() {
     return () => { unsub1(); unsub2(); unsub3(); unsub4(); unsub5(); };
   }, [loadData]);
 
-  // Register
+  // Register — guarded against double-tap
   const handleRegister = async (tournamentId) => {
+    if (mutatingId) return; // CONCURRENCY: block while another mutation is in flight
+    setMutatingId(tournamentId);
+
     // Optimistic State Update
-    const previousData = { ...data };
-    setData(prev => {
-      if (!prev || !prev.items) return prev;
-      return {
-        ...prev,
-        items: prev.items.map(t =>
-          t.id === tournamentId
-            ? { ...t, registered_count: (t.registered_count || 0) + 1, is_registered: true }
-            : t
-        )
-      };
-    });
+    const previousTournaments = [...tournaments];
+    setTournaments(prev =>
+      prev.map(t =>
+        t.id === tournamentId
+          ? { ...t, registered_count: (t.registered_count || 0) + 1, is_registered: true }
+          : t
+      )
+    );
     setSelectedTournament(null);
 
     try {
@@ -191,34 +195,34 @@ export default function TournamentsPage() {
         loadData();
       } else {
         // Rollback
-        setData(previousData);
+        setTournaments(previousTournaments);
         showToast(res.error || 'Registration failed', 'error');
       }
     } catch (err) {
-      setData(previousData);
+      setTournaments(previousTournaments);
       showToast(err.message || 'Registration failed', 'error');
+    } finally {
+      setMutatingId(null);
     }
   };
 
   // Unregister — uses confirmModal to avoid native browser dialog
   const handleUnregister = (tournamentId) => {
+    if (mutatingId) return; // CONCURRENCY: block while another mutation is in flight
     setConfirmModal({
       msg: 'Unregister from this tournament? Your buy-in will be refunded.',
       onConfirm: async () => {
         setConfirmModal(null);
+        setMutatingId(tournamentId);
         // Optimistic State Update
-        const previousData = { ...data };
-        setData(prev => {
-          if (!prev || !prev.items) return prev;
-          return {
-            ...prev,
-            items: prev.items.map(t =>
-              t.id === tournamentId
-                ? { ...t, registered_count: Math.max(0, (t.registered_count || 0) - 1), is_registered: false }
-                : t
-            )
-          };
-        });
+        const previousTournaments = [...tournaments];
+        setTournaments(prev =>
+          prev.map(t =>
+            t.id === tournamentId
+              ? { ...t, registered_count: Math.max(0, (t.registered_count || 0) - 1), is_registered: false }
+              : t
+          )
+        );
         setSelectedTournament(null);
 
         try {
@@ -228,12 +232,14 @@ export default function TournamentsPage() {
             showToast('Unregistered. Buy-in refunded.');
             busEmit.dataMutated('tournament_registration');
           } else {
-            setData(previousData);
+            setTournaments(previousTournaments);
             showToast(res.error || 'Failed to unregister', 'error');
           }
         } catch (err) {
-          setData(previousData);
+          setTournaments(previousTournaments);
           showToast(err.message || 'Failed to unregister', 'error');
+        } finally {
+          setMutatingId(null);
         }
       },
     });

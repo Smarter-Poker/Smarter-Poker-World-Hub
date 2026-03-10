@@ -18,13 +18,15 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
-
+const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 const CLAWBACK_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
+const ALLOWED_BODY_FIELDS = new Set(['transactionId', 'clubId', 'amount']);
+const MAX_BODY_SIZE = 512; // 512B payload limit
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
@@ -32,12 +34,32 @@ export default async function handler(req, res) {
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
+  // CONCURRENCY: Idempotency guard — dedup rapid double-taps
+  if (checkIdempotency(req, res)) return;
+
   const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
   if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-  const { transactionId, clubId, amount: requestedAmount } = req.body;
+  const { transactionId, clubId, amount: rawRequestedAmount } = req.body;
+
+  // MANDATE 3: Payload size + field allowlist validation
+  const bodyStr = JSON.stringify(req.body || {});
+  if (bodyStr.length > MAX_BODY_SIZE) {
+    return res.status(413).json({ success: false, error: 'Request body too large' });
+  }
+  const unknownFields = Object.keys(req.body || {}).filter(k => !ALLOWED_BODY_FIELDS.has(k));
+  if (unknownFields.length > 0) {
+    return res.status(400).json({ success: false, error: `Unknown fields: ${unknownFields.join(', ')}` });
+  }
+
   if (!transactionId || !clubId) {
     return res.status(400).json({ success: false, error: 'transactionId and clubId required' });
+  }
+
+  // UUID format validation — block SQL injection via transactionId
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!UUID_RE.test(transactionId) || !UUID_RE.test(clubId)) {
+    return res.status(400).json({ success: false, error: 'Invalid transactionId or clubId format' });
   }
 
   // Settlement lock check — block during Monday 4:00-4:10 AM CST
@@ -102,11 +124,18 @@ export default async function handler(req, res) {
     const remainingSeconds = Math.ceil((CLAWBACK_WINDOW_MS - elapsed) / 1000);
 
     // ═════════════════════════════════════════════════════════════
-    // 4. Determine clawback amount
+    // 4. Determine clawback amount — sanitized
     // ═════════════════════════════════════════════════════════════
-    const clawbackAmount = requestedAmount
-      ? Math.min(requestedAmount, txn.amount)
-      : txn.amount;
+    let clawbackAmount;
+    if (rawRequestedAmount != null) {
+      clawbackAmount = Math.floor(Number(rawRequestedAmount));
+      if (!Number.isFinite(clawbackAmount) || clawbackAmount <= 0 || clawbackAmount > 100_000_000) {
+        return res.status(400).json({ success: false, error: 'amount must be a positive integer (max 100M)' });
+      }
+      clawbackAmount = Math.min(clawbackAmount, txn.amount); // cap at original amount
+    } else {
+      clawbackAmount = txn.amount; // default to full original
+    }
 
     if (clawbackAmount <= 0) {
       return res.status(400).json({ success: false, error: 'Invalid clawback amount' });
@@ -187,6 +216,27 @@ export default async function handler(req, res) {
     const { data: freshAgent } = await supabaseAdmin
       .from('club_members').select('chip_balance')
       .eq('club_id', clubId).eq('user_id', user.id).maybeSingle();
+
+    // ═════════════════════════════════════════════════════════════
+    // 9. ORB-5 MANDATE: Write immutable record to action_audit_logs
+    //    (IP, timestamp, exact amount — undeletable)
+    // ═════════════════════════════════════════════════════════════
+    await supabaseAdmin.from('action_audit_logs').insert({
+      action_type: 'clawback',
+      user_id: user.id,
+      target_user_id: txn.to_user_id,
+      club_id: clubId,
+      amount: clawbackAmount,
+      ip_address: req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown',
+      details: {
+        original_transaction_id: transactionId,
+        original_amount: txn.amount,
+        clawback_amount: clawbackAmount,
+        player_new_balance: freshPlayer?.chip_balance || 0,
+        agent_new_balance: freshAgent?.chip_balance || 0,
+        window_remaining_seconds: remainingSeconds,
+      },
+    }).catch(auditErr => console.error('[clawback-chips] audit log write failed:', auditErr.message));
 
     return res.status(200).json({
       success: true,

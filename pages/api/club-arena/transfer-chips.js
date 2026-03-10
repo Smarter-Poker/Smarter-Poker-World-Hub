@@ -8,6 +8,9 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { notifyUser } from '../../../src/lib/club-arena/notify';
+const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
+const { sanitizeNote, safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
+const { isUUID, validateAmount, rejectBadPayload } = require('../../../src/lib/club-arena/validate');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -15,10 +18,14 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
-  if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
+  // RED TEAM: Payload size + field allowlist (shared utility)
+  if (rejectBadPayload(req, res, ['clubId', 'toUserId', 'amount', 'note'])) return;
+
+  // Idempotency guard — prevent double-charges on laggy mobile networks
+  if (checkIdempotency(req, res)) return;
 
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
@@ -26,13 +33,19 @@ export default async function handler(req, res) {
   const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
   if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-  const { clubId, toUserId, amount: rawAmount, note } = req.body;
-  const amount = Math.floor(Number(rawAmount));
+  const { clubId, toUserId, amount: rawAmount, note: rawNote } = req.body;
 
-  if (!clubId || !toUserId) return res.status(400).json({ success: false, error: 'clubId and toUserId required' });
-  if (!Number.isFinite(amount) || amount <= 0 || amount > 10_000_000) {
-    return res.status(400).json({ success: false, error: 'amount must be 1-10,000,000' });
-  }
+  // RED TEAM: Strict UUID validation (blocks SQL injection)
+  if (!isUUID(clubId)) return res.status(400).json({ success: false, error: 'Invalid clubId format' });
+  if (!isUUID(toUserId)) return res.status(400).json({ success: false, error: 'Invalid toUserId format' });
+
+  // RED TEAM: Strict amount validation (min 1, max 10M, no fractionals)
+  const amtResult = validateAmount(rawAmount, 1, 10_000_000);
+  if (!amtResult.valid) return res.status(400).json({ success: false, error: amtResult.error });
+  const amount = amtResult.value;
+
+  // RED TEAM: Sanitize note, self-transfer check
+  const note = sanitizeNote(rawNote, 200);
   if (toUserId === user.id) return res.status(400).json({ success: false, error: 'Cannot transfer to yourself' });
 
   // Settlement lock
@@ -55,6 +68,26 @@ export default async function handler(req, res) {
       return res.status(400).json({
         success: false, error: 'Insufficient chips',
         available: sender.chip_balance || 0, requested: amount,
+      });
+    }
+
+    // ═════════════════════════════════════════════════════════════
+    // IN-PLAY LOCK — Block transfer while seated at an active table
+    // ═════════════════════════════════════════════════════════════
+    const { data: activeSeat } = await supabaseAdmin
+      .from('table_sessions')
+      .select('id, table_id')
+      .eq('club_id', clubId)
+      .eq('player_id', user.id)
+      .eq('is_active', true)
+      .limit(1);
+
+    if (activeSeat?.length > 0) {
+      return res.status(409).json({
+        success: false,
+        error: 'Cannot transfer chips while seated at a table. Leave the table first.',
+        in_play: true,
+        table_id: activeSeat[0].table_id,
       });
     }
 
@@ -89,7 +122,7 @@ export default async function handler(req, res) {
         amount, transaction_type: 'transfer_in',
         notes: note || `Transfer from player`,
       },
-    ]).then(() => {}).catch(() => {});
+    ]).then(() => { }).catch(() => { });
 
     // Notify recipient
     notifyUser(supabaseAdmin, {
@@ -98,15 +131,17 @@ export default async function handler(req, res) {
       message: `A player sent you ${amount.toLocaleString()} chips${note ? ` — ${note}` : ''}.`,
       data: { clubId, amount, fromUserId: user.id },
       pushUrl: `/hub/club-arena/cashier?club=${clubId}`,
-    }).catch(() => {});
+    }).catch(() => { });
 
-    return res.status(200).json({
+    const responseBody = {
       success: true,
       transferred: amount,
       senderBalance: rpcResult.sender_balance,
-    });
+    };
+    cacheResponse(req, 200, responseBody);
+    return res.status(200).json(responseBody);
   } catch (err) {
     console.error('[transfer-chips]', err);
-    return res.status(500).json({ success: false, error: 'Transfer failed', details: err.message });
+    return res.status(500).json(safeErrorResponse(err, 'Transfer failed'));
   }
 }

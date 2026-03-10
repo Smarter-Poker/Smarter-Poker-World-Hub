@@ -8,6 +8,8 @@ import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import dynamic from 'next/dynamic';
 import usePersistedFilters from '../../../src/hooks/usePersistedFilters';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
@@ -72,6 +74,7 @@ export default function UnionGames() {
   const [clubs, setClubs] = useState([]);
   const [unionInfo, setUnionInfo] = useState(null);
   const [toast, setToast] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null); // { key, fn } two-tap confirm
 
   // Modals
@@ -358,7 +361,16 @@ export default function UnionGames() {
   return (
     <div style={{ background: FB.bg, minHeight: '100vh', color: FB.text }}>
       <SEOHead title={`Games | ${unionInfo?.name || 'Union'}`} />
-      <UniversalHeader pageDepth={2} />
+      <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
+      <HamburgerMenu
+        isOpen={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        direction="left"
+        theme="dark"
+        user={user}
+        showProfile={true}
+        {...getMenuConfig('club-arena', user, {}, {})}
+      />
 
       {/* Toast */}
       {toast && (
@@ -1003,6 +1015,7 @@ function TournamentDetailModal({ t, unionId, clubs, onClose, onAction }) {
   const [tourneyState, setTourneyState] = useState(null);
   const [actionProcessing, setActionProcessing] = useState(null);
   const [confirmKey, setConfirmKey] = useState(null);
+  const [actionError, setActionError] = useState(null);
 
   const handleTournamentAction = async (action, label) => {
     const key = `${action}-${t.id}`;
@@ -1013,12 +1026,13 @@ function TournamentDetailModal({ t, unionId, clubs, onClose, onAction }) {
     }
     setConfirmKey(null);
     setActionProcessing(action);
+    setActionError(null);
     try {
       const res = await api(action, { unionId, tournamentId: t.id });
       onAction(res.message || `${label} successful`);
     } catch (e) {
-      // Surface error inside modal
-      alert(e.message || `Failed: ${label}`);
+      setActionError(e.message || `Failed: ${label}`);
+      setTimeout(() => setActionError(null), 5000);
     } finally {
       setActionProcessing(null);
     }
@@ -1138,6 +1152,13 @@ function TournamentDetailModal({ t, unionId, clubs, onClose, onAction }) {
             </div>
           ))}
         </div>
+
+        {/* Inline action error banner */}
+        {actionError && (
+          <div style={{ background: 'rgba(250,56,62,0.12)', border: '1px solid rgba(250,56,62,0.3)', borderRadius: 8, padding: '8px 12px', marginBottom: 12, fontSize: 12, color: '#FA383E', fontWeight: 600 }}>
+            {actionError}
+          </div>
+        )}
 
         {/* Live HUD for running tournaments */}
         {tourneyState && ['running', 'late_reg', 'break', 'paused', 'final_table'].includes(t.status) && (

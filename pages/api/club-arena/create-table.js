@@ -2,11 +2,16 @@
  * POST /api/club-arena/create-table
  * Create a new poker table in a club.
  * Auth: Bearer token (owner or admin only)
+ *
+ * RED TEAM HARDENED — E-01/E-02/E-03/E-04/E-13
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { notifyClubMembers } from '../../../src/lib/club-arena/notify';
+import { applyRateLimit } from '../../../src/lib/poker-engine/RateLimiter';
 
-const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
+const { isUUID } = require('../../../src/lib/club-arena/validate');
+const { sanitizeTableName, clampFloat, sanitizeSettings, safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
+const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -17,7 +22,18 @@ const VALID_VARIANTS = ['nlh', 'flh', 'plo4', 'plo5', 'plo6', 'plo8', 'short_dec
 const VALID_GAME_TYPES = ['cash', 'tournament', 'sng'];
 
 export default async function handler(req, res) {
+    // ── E-13: Rate limiter ─────────────────────────────────────────────
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+        try {
+            const { applyRateLimit: rl, LIMITS } = require('../../../src/lib/apiRateLimit');
+            if (!rl(req, res, LIMITS.write)) return;
+        } catch (_) { /* rate limiter not available — proceed */ }
+    }
+
     if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
+
+    // ── C-05: Idempotency Guard (Fat-Finger Defense) ──
+    if (checkIdempotency(req, res)) return;
 
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ error: 'No auth token' });
@@ -26,7 +42,11 @@ export default async function handler(req, res) {
     if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
     const { clubId, name, variant, gameType, smallBlind, bigBlind, maxPlayers, minBuyIn, maxBuyIn, ante, actionTime, settings } = req.body;
-    if (!clubId) return res.status(400).json({ error: 'clubId required' });
+
+    // ── E-04: UUID validation ──────────────────────────────────────────
+    if (!clubId || !isUUID(clubId)) {
+        return res.status(400).json({ error: 'clubId must be a valid UUID' });
+    }
 
     try {
         // Load club info (needed for BBJ config + union admin fallback)
@@ -36,7 +56,7 @@ export default async function handler(req, res) {
             .eq('id', clubId)
             .maybeSingle();
 
-        // Verify role
+        // Verify role — ALWAYS uses JWT user.id, never body userId
         const { data: member } = await supabaseAdmin
             .from('club_members')
             .select('role')
@@ -56,12 +76,31 @@ export default async function handler(req, res) {
             }
         }
 
-        // Validate inputs
-        const sb = parseFloat(smallBlind) || 1;
-        const bb = parseFloat(bigBlind) || 2;
+        // ── E-02: Validate numeric inputs — reject NaN/Infinity ────────
+        const sbResult = clampFloat(smallBlind, 0.01, 100000, 1);
+        const bbResult = clampFloat(bigBlind, 0.02, 200000, 2);
+        if (!sbResult.valid) return res.status(400).json({ error: `smallBlind: ${sbResult.error}` });
+        if (!bbResult.valid) return res.status(400).json({ error: `bigBlind: ${bbResult.error}` });
+        const sb = sbResult.value;
+        const bb = bbResult.value;
+
+        // Validate BB > SB
+        if (bb <= sb) {
+            return res.status(400).json({ error: 'bigBlind must be greater than smallBlind' });
+        }
+
         const seats = Math.min(Math.max(parseInt(maxPlayers) || 9, 2), 10);
         const gv = VALID_VARIANTS.includes(variant) ? variant : 'nlh';
         const gt = VALID_GAME_TYPES.includes(gameType) ? gameType : 'cash';
+
+        // Ante validation
+        const anteResult = clampFloat(ante, 0, bb * 10, 0);
+        if (!anteResult.valid) return res.status(400).json({ error: `ante: ${anteResult.error}` });
+        const cleanAnte = anteResult.value;
+
+        // Action time validation
+        const atResult = clampFloat(actionTime, 10, 120, 30);
+        const cleanActionTime = atResult.value;
 
         // Auto-fill rake/BBJ from tier config based on stakes
         const { getRakeConfig, findScheduleMatch, getAllowedStakes } = require('../../../src/lib/poker-engine/RakeConfig');
@@ -78,16 +117,26 @@ export default async function handler(req, res) {
             }
         }
 
-        // Buy-in defaults: min=40BB, max=200BB (or custom)
-        const resolvedMinBuyIn = minBuyIn ? parseFloat(minBuyIn) : bb * 40;
-        const resolvedMaxBuyIn = maxBuyIn ? parseFloat(maxBuyIn) : bb * 200;
+        // Buy-in validation with cross-field check (E-07 defense-in-depth)
+        const minBuyResult = clampFloat(minBuyIn, bb, bb * 500, bb * 40);
+        const maxBuyResult = clampFloat(maxBuyIn, bb * 2, bb * 1000, bb * 200);
+        const resolvedMinBuyIn = minBuyResult.value;
+        let resolvedMaxBuyIn = maxBuyResult.value;
+        // Ensure max >= min
+        if (resolvedMaxBuyIn < resolvedMinBuyIn) resolvedMaxBuyIn = resolvedMinBuyIn;
+
+        // ── E-01: Sanitize table name (strip HTML/XSS) ────────────────
+        const cleanName = sanitizeTableName(name, 50) || `New ${gv.toUpperCase()} Table`;
+
+        // ── E-03: Whitelist settings keys ──────────────────────────────
+        const cleanSettings = sanitizeSettings(settings || {});
 
         const { data: table, error: createErr } = await supabaseAdmin
             .from('tables')
             .insert({
                 club_id: clubId,
                 created_by: user.id,
-                name: (name || `New ${gv.toUpperCase()} Table`).slice(0, 50),
+                name: cleanName,
                 game_type: gt,
                 game_variant: gv,
                 stakes: `${sb}/${bb}`,
@@ -96,70 +145,69 @@ export default async function handler(req, res) {
                 big_blind: bb,
                 min_buy_in: resolvedMinBuyIn,
                 max_buy_in: resolvedMaxBuyIn,
-                ante: parseFloat(ante) || 0,
-                action_time_seconds: Math.min(Math.max(parseInt(actionTime) || 30, 10), 120),
+                ante: cleanAnte,
+                action_time_seconds: Math.round(cleanActionTime),
                 // Cash games: rake/BBJ locked to official schedule (no overrides)
-                // Tournaments/SNG: use tier defaults (overrides allowed for custom structures)
                 rake_percent: gt === 'cash'
                     ? tierConfig.rakePercent
-                    : Math.min(Math.max(parseFloat(settings?.rakePercent) || tierConfig.rakePercent, 0), 33),
+                    : Math.min(Math.max(parseFloat(cleanSettings.rakePercent) || tierConfig.rakePercent, 0), 33),
                 rake_cap_bb: gt === 'cash'
                     ? tierConfig.rakeCap
-                    : Math.max(parseFloat(settings?.rakeCap) || tierConfig.rakeCapBB, 0),
+                    : Math.max(parseFloat(cleanSettings.rakeCap) || tierConfig.rakeCapBB, 0),
                 bbj_percent: (clubInfo?.bbj_enabled === false ? false : tierConfig.bbjEnabled)
-                    ? (gt === 'cash' ? tierConfig.bbjFeeBB : parseFloat(settings?.bbjPercent) || tierConfig.bbjFeeBB)
+                    ? (gt === 'cash' ? tierConfig.bbjFeeBB : parseFloat(cleanSettings.bbjPercent) || tierConfig.bbjFeeBB)
                     : 0,
                 current_players: 0,
                 status: 'waiting',
                 settings: {
                     // ── Core Game Options ──
-                    straddle_enabled: settings?.straddle_enabled || settings?.auto_utg_straddle || settings?.voluntary_straddle || false,
-                    auto_utg_straddle: settings?.auto_utg_straddle || false,
-                    voluntary_straddle: settings?.voluntary_straddle || false,
-                    run_it_twice: settings?.run_it_twice || false,
-                    run_it_thrice: settings?.run_it_thrice || false,
-                    run_it_mode: settings?.run_it_mode || 'none',
-                    insurance: settings?.insurance || false,
-                    bomb_pot_enabled: settings?.bomb_pot || settings?.bomb_pots || false,
-                    auto_muck: settings?.auto_muck !== false,
-                    // ── Game Modes (PokerBros Image 1) ──
-                    private_game: settings?.private_game || false,
-                    vip_only: settings?.vip_only || false,
-                    double_board: settings?.double_board || false,
-                    triple_board: settings?.triple_board || false,
-                    pineapple: settings?.pineapple || false,
-                    seven_deuce: settings?.seven_deuce || false,
-                    nit_game: settings?.nit_game || false,
-                    anonymous_table: settings?.anonymous_table || false,
-                    cap: settings?.cap || false,
-                    cap_amount: settings?.cap_amount || 0,
-                    ban_chat: settings?.ban_chat || false,
-                    label_new: settings?.label_new || false,
-                    featured_table: settings?.featured_table || false,
-                    no_rathole: settings?.no_rathole || false,
-                    // ── Player Requirements (Image 3) ──
-                    calltime: settings?.calltime || false,
-                    career_percent: settings?.career_percent || 0,
-                    maintain_percent: settings?.maintain_percent || 0,
-                    maintain_hands: settings?.maintain_hands || 10,
-                    // ── Auto Settings (Image 4) ──
-                    auto_start_players: settings?.auto_start_players || 2,
-                    auto_extension: settings?.auto_extension || false,
-                    auto_restart: settings?.auto_restart || false,
-                    auto_create_table: settings?.auto_create_table || false,
-                    // ── Rake/Fee (Image 5) ──
-                    fee_cap_bb: settings?.fee_cap_bb || 3,
-                    same_agent_downline_limit: settings?.same_agent_downline_limit || 0,
-                    buy_in_authorization: settings?.buy_in_authorization || false,
-                    // ── Security/Restrictions (Image 5-6) ──
-                    restrict_device: settings?.restrict_device !== false,
-                    restrict_observers: settings?.restrict_observers || false,
-                    gps_restriction: settings?.gps_restriction !== false,
-                    ip_restriction: settings?.ip_restriction !== false,
-                    emulator_restriction: settings?.emulator_restriction || false,
-                    photo_rotation_verification: settings?.photo_rotation_verification || false,
-                    hide_club_name: settings?.hide_club_name || false,
-                    game_length_hours: settings?.game_length_hours || 12,
+                    straddle_enabled: cleanSettings.straddle_enabled || cleanSettings.auto_utg_straddle || cleanSettings.voluntary_straddle || false,
+                    auto_utg_straddle: cleanSettings.auto_utg_straddle || false,
+                    voluntary_straddle: cleanSettings.voluntary_straddle || false,
+                    run_it_twice: cleanSettings.run_it_twice || false,
+                    run_it_thrice: cleanSettings.run_it_thrice || false,
+                    run_it_mode: cleanSettings.run_it_mode || 'none',
+                    insurance: cleanSettings.insurance || false,
+                    bomb_pot_enabled: cleanSettings.bomb_pot || cleanSettings.bomb_pot_enabled || false,
+                    auto_muck: cleanSettings.auto_muck !== false,
+                    // ── Game Modes ──
+                    private_game: cleanSettings.private_game || false,
+                    vip_only: cleanSettings.vip_only || false,
+                    double_board: cleanSettings.double_board || false,
+                    triple_board: cleanSettings.triple_board || false,
+                    pineapple: cleanSettings.pineapple || false,
+                    seven_deuce: cleanSettings.seven_deuce || false,
+                    nit_game: cleanSettings.nit_game || false,
+                    anonymous_table: cleanSettings.anonymous_table || false,
+                    cap: cleanSettings.cap || false,
+                    cap_amount: cleanSettings.cap_amount || 0,
+                    ban_chat: cleanSettings.ban_chat || false,
+                    label_new: cleanSettings.label_new || false,
+                    featured_table: cleanSettings.featured_table || false,
+                    no_rathole: cleanSettings.no_rathole || false,
+                    // ── Player Requirements ──
+                    calltime: cleanSettings.calltime || false,
+                    career_percent: cleanSettings.career_percent || 0,
+                    maintain_percent: cleanSettings.maintain_percent || 0,
+                    maintain_hands: cleanSettings.maintain_hands || 10,
+                    // ── Auto Settings ──
+                    auto_start_players: cleanSettings.auto_start_players || 2,
+                    auto_extension: cleanSettings.auto_extension || false,
+                    auto_restart: cleanSettings.auto_restart || false,
+                    auto_create_table: cleanSettings.auto_create_table || false,
+                    // ── Rake/Fee ──
+                    fee_cap_bb: cleanSettings.fee_cap_bb || 3,
+                    same_agent_downline_limit: cleanSettings.same_agent_downline_limit || 0,
+                    buy_in_authorization: cleanSettings.buy_in_authorization || false,
+                    // ── Security/Restrictions ──
+                    restrict_device: cleanSettings.restrict_device !== false,
+                    restrict_observers: cleanSettings.restrict_observers || false,
+                    gps_restriction: cleanSettings.gps_restriction !== false,
+                    ip_restriction: cleanSettings.ip_restriction !== false,
+                    emulator_restriction: cleanSettings.emulator_restriction || false,
+                    photo_rotation_verification: cleanSettings.photo_rotation_verification || false,
+                    hide_club_name: cleanSettings.hide_club_name || false,
+                    game_length_hours: cleanSettings.game_length_hours || 12,
                     // ── Tier/BBJ info ──
                     stakes_tier: tierConfig.tier,
                     bbj_payout_total: tierConfig.bbjPayoutTotal,
@@ -175,45 +223,45 @@ export default async function handler(req, res) {
 
         if (createErr) throw createErr;
 
-        // Update table count on club with optimistic lock
-        const { data: club } = await supabaseAdmin
-            .from('clubs')
-            .select('table_count')
-            .eq('id', clubId)
-            .maybeSingle();
+        // ── C-03: Update table count on club (prioritize atomic RPC) ──
+        await supabaseAdmin.rpc('increment_club_table_count', { p_club_id: clubId }).catch(async () => {
+            // Fallback: Optimistic lock table count update if RPC doesn't exist
+            const { data: club } = await supabaseAdmin.from('clubs').select('table_count').eq('id', clubId).maybeSingle();
+            if (club) {
+                const oldCount = club.table_count || 0;
+                const { data: upd } = await supabaseAdmin
+                    .from('clubs')
+                    .update({ table_count: oldCount + 1 })
+                    .eq('id', clubId)
+                    .eq('table_count', oldCount)
+                    .select('id')
+                    .limit(200);
 
-        if (club) {
-            const oldCount = club.table_count || 0;
-            const { data: upd } = await supabaseAdmin
-                .from('clubs')
-                .update({ table_count: oldCount + 1 })
-                .eq('id', clubId)
-                .eq('table_count', oldCount)
-                .select('id')
-                .limit(200);
-
-            if (!upd?.length) {
-                const { data: fresh } = await supabaseAdmin.from('clubs').select('table_count').eq('id', clubId).maybeSingle();
-                if (fresh) {
-                    await supabaseAdmin.from('clubs').update({ table_count: (fresh.table_count || 0) + 1 }).eq('id', clubId);
+                if (!upd?.length) {
+                    const { data: fresh } = await supabaseAdmin.from('clubs').select('table_count').eq('id', clubId).maybeSingle();
+                    if (fresh) {
+                        await supabaseAdmin.from('clubs').update({ table_count: (fresh.table_count || 0) + 1 }).eq('id', clubId);
+                    }
                 }
             }
-        }
+        });
 
         // Notify club members of new table (fire-and-forget)
         const tableName = table?.name || `${gv.toUpperCase()} ${sb}/${bb}`;
         notifyClubMembers(supabaseAdmin, {
-          clubId, type: 'table_created',
-          title: `🎲 New Table: ${tableName}`,
-          message: `A new ${gv.toUpperCase()} ${sb}/${bb} cash game is now open!`,
-          data: { tableId: table?.id, variant: gv, stakes: `${sb}/${bb}` },
-          pushUrl: `/hub/club-arena/lobby?club=${clubId}`,
-          excludeUserId: user.id,
-        }).catch(() => {});
+            clubId, type: 'table_created',
+            title: `🎲 New Table: ${tableName}`,
+            message: `A new ${gv.toUpperCase()} ${sb}/${bb} cash game is now open!`,
+            data: { tableId: table?.id, variant: gv, stakes: `${sb}/${bb}` },
+            pushUrl: `/hub/club-arena/lobby?club=${clubId}`,
+            excludeUserId: user.id,
+        }).catch(() => { });
 
-        return res.status(200).json({ success: true, table });
+        const responseBody = { success: true, table };
+        cacheResponse(req, 200, responseBody);
+        return res.status(200).json(responseBody);
     } catch (err) {
         console.error('[create-table]', err);
-        return res.status(500).json({ error: err.message || 'Failed to create table' });
+        return res.status(500).json(safeErrorResponse(err, 'Failed to create table'));
     }
 }

@@ -311,6 +311,9 @@ class TournamentController extends EventEmitter {
     this._balanceTimer = null;
     this._breakTimer = null;
 
+    // ── Mandate 2 [ORB-3]: Rebalancing pause flag ──
+    this._rebalancing = false;
+
     // Financial tracking
     this.totalChipsInPlay = 0;
     this.prizePool = 0;
@@ -835,13 +838,14 @@ class TournamentController extends EventEmitter {
       this._consolidateToFinalTable();
     }
 
-    // Auto-start next hand
+    // Auto-start next hand (gated by rebalancing flag — Mandate 2 [ORB-3])
     if (this.status === TOURNAMENT_STATUS.COMPLETE || this.status === TOURNAMENT_STATUS.BREAK) return;
+    if (this._rebalancing) return; // Pause: table break in progress
     if (this.autoStartDelay > 0 && this.tables.has(tableId)) {
       const ap = tableInfo.table.seats.filter(s => s.player && s.stack > 0);
       if (ap.length >= 2) {
         setTimeout(() => {
-          if (this.tables.has(tableId) && this.status !== TOURNAMENT_STATUS.COMPLETE) {
+          if (this.tables.has(tableId) && this.status !== TOURNAMENT_STATUS.COMPLETE && !this._rebalancing) {
             tableInfo.table.startNextHand();
           }
         }, this.autoStartDelay);
@@ -1008,6 +1012,7 @@ class TournamentController extends EventEmitter {
   _startBalanceChecker() {
     if (this._balanceTimer) clearInterval(this._balanceTimer);
     this._balanceTimer = setInterval(() => {
+      if (this._rebalancing) return; // already in a balance cycle
       if (this.status === TOURNAMENT_STATUS.RUNNING || this.status === TOURNAMENT_STATUS.LATE_REG ||
         this.status === TOURNAMENT_STATUS.FINAL_TABLE) {
         this._checkTableBalance();
@@ -1015,11 +1020,28 @@ class TournamentController extends EventEmitter {
     }, 5000);
   }
 
+  // ═══════════════════════════════════════════════════════
+  // Mandate 2 [ORB-3]: AGGRESSIVE TABLE BALANCING
+  // Outside-in strategy: break the smallest table entirely
+  // when its players can fit on the remaining tables.
+  // Fisher-Yates shuffle + round-robin for fairness.
+  // Pause protocol prevents new hands during rebalancing.
+  // ═══════════════════════════════════════════════════════
+
+  /** @private Fisher-Yates in-place shuffle */
+  _fisherYatesShuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
   /** @private */
   _checkTableBalance() {
     if (this.tables.size <= 1) return;
 
-    // Remove empty tables
+    // ── Phase A: Clean up empty tables ──
     for (const [tableId, tableInfo] of this.tables) {
       if (tableInfo.players.size === 0) {
         this.tables.delete(tableId);
@@ -1028,6 +1050,24 @@ class TournamentController extends EventEmitter {
     }
     if (this.tables.size <= 1) return;
 
+    // ── Phase B: Full table break (outside-in) ──
+    // Sort tables by player count ascending — break from the smallest
+    const tableSizes = [...this.tables.entries()]
+      .map(([id, info]) => ({ id, count: info.players.size }))
+      .sort((a, b) => a.count - b.count);
+
+    const smallestTable = tableSizes[0];
+    const totalPlayers = tableSizes.reduce((s, t) => s + t.count, 0);
+    const remainingTables = this.tables.size - 1;
+    const maxCapacity = remainingTables * this.maxTableSize;
+
+    // Can all players fit on N-1 tables?
+    if (totalPlayers <= maxCapacity && remainingTables >= 1) {
+      this._executeFullTableBreak(smallestTable.id);
+      return;
+    }
+
+    // ── Phase C: Standard 1-player balance (difference ≥ 2) ──
     let maxTable = null, maxCount = 0, minTable = null, minCount = Infinity;
     for (const [tableId, tableInfo] of this.tables) {
       const c = tableInfo.players.size;
@@ -1035,12 +1075,110 @@ class TournamentController extends EventEmitter {
       if (c < minCount) { minCount = c; minTable = tableId; }
     }
 
-    if (maxCount - minCount <= 1) return;
+    if (maxCount - minCount < 2) return;
+    this._moveOnePlayer(maxTable, minTable);
+  }
 
-    const sourceInfo = this.tables.get(maxTable);
-    const destInfo = this.tables.get(minTable);
+  /** @private Break an entire table and redistribute its players */
+  _executeFullTableBreak(breakTableId) {
+    const breakInfo = this.tables.get(breakTableId);
+    if (!breakInfo) return;
 
-    // Find movable player (not in active hand)
+    // ── Pause protocol: block new hand starts ──
+    this._rebalancing = true;
+
+    // Check if break table has an active hand — if so, wait for it
+    if (breakInfo.table.game && breakInfo.table.game.phase !== 'idle') {
+      // Wait for the hand to complete, then retry
+      this._rebalancing = false;
+      return; // The balance checker will retry on next interval
+    }
+
+    // Collect all players from the break table
+    const playersToMove = [];
+    for (const seat of breakInfo.table.seats) {
+      if (seat.player && seat.stack > 0) {
+        playersToMove.push({
+          id: seat.player.id,
+          stack: seat.stack,
+          displayName: seat.player.displayName,
+        });
+        // Vacate seat
+        seat.player = null;
+        seat.stack = 0;
+        seat.status = 'empty';
+      }
+    }
+    breakInfo.players.clear();
+
+    // Fisher-Yates shuffle for fairness (RAT-BREAK-01 compliance)
+    this._fisherYatesShuffle(playersToMove);
+
+    // Get destination tables sorted by player count ascending (fill emptiest first)
+    const destTables = [...this.tables.entries()]
+      .filter(([id]) => id !== breakTableId)
+      .sort((a, b) => a[1].players.size - b[1].players.size);
+
+    // Round-robin distribute
+    let destIdx = 0;
+    const moves = [];
+    for (const player of playersToMove) {
+      // Find next table with open seat (round-robin)
+      let seated = false;
+      for (let attempt = 0; attempt < destTables.length; attempt++) {
+        const [destId, destInfo] = destTables[(destIdx + attempt) % destTables.length];
+        const seatIdx = destInfo.table.seats.findIndex(s => s.status === 'empty');
+        if (seatIdx !== -1) {
+          destInfo.table.sitDown(player.id, seatIdx, player.stack, { displayName: player.displayName });
+          destInfo.players.add(player.id);
+          if (destInfo.table._autoStartTimer) { clearTimeout(destInfo.table._autoStartTimer); destInfo.table._autoStartTimer = null; }
+
+          const entry = this.entries.get(player.id);
+          if (entry) { entry.tableId = destId; entry.seatIndex = seatIdx; }
+
+          moves.push({ playerId: player.id, fromTable: breakTableId, toTable: destId, seatIndex: seatIdx });
+          destIdx = (destIdx + attempt + 1) % destTables.length;
+          seated = true;
+          break;
+        }
+      }
+      if (!seated) {
+        console.error(`[TournamentController] CRITICAL: Could not seat player ${player.id} during table break`);
+      }
+    }
+
+    // Close the broken table
+    this.tables.delete(breakTableId);
+    this.emit('table_broken', {
+      tableId: breakTableId,
+      playersRedistributed: moves.length,
+      moves,
+    });
+
+    // ── Resume protocol: unblock hand starts + kick off hands ──
+    this._rebalancing = false;
+
+    // Start next hands at all remaining tables
+    for (const [, tableInfo] of this.tables) {
+      if (tableInfo.table._autoStartTimer) { clearTimeout(tableInfo.table._autoStartTimer); tableInfo.table._autoStartTimer = null; }
+      const active = tableInfo.table.seats.filter(s => s.player && s.stack > 0);
+      if (active.length >= 2 && tableInfo.table.game?.phase === 'idle') {
+        setTimeout(() => {
+          if (this.status !== TOURNAMENT_STATUS.COMPLETE && !this._rebalancing) {
+            tableInfo.table.startNextHand();
+          }
+        }, this.autoStartDelay);
+      }
+    }
+  }
+
+  /** @private Move a single player from the largest to smallest table */
+  _moveOnePlayer(sourceTableId, destTableId) {
+    const sourceInfo = this.tables.get(sourceTableId);
+    const destInfo = this.tables.get(destTableId);
+    if (!sourceInfo || !destInfo) return;
+
+    // Find a movable player (not in an active hand)
     let playerToMove = null;
     for (const seat of sourceInfo.table.seats) {
       if (seat.player && seat.stack > 0) {
@@ -1054,22 +1192,22 @@ class TournamentController extends EventEmitter {
     }
     if (!playerToMove) return;
 
-    // Force-remove from source
+    // Vacate source seat
     const srcSeat = sourceInfo.table.seats.find(s => s.player && String(s.player.id) === String(playerToMove.id));
     if (srcSeat) { srcSeat.player = null; srcSeat.stack = 0; srcSeat.status = 'empty'; }
     sourceInfo.players.delete(playerToMove.id);
 
-    const destSeat = destInfo.table.seats.findIndex(s => s.status === 'empty');
-    if (destSeat === -1) return;
+    const destSeatIdx = destInfo.table.seats.findIndex(s => s.status === 'empty');
+    if (destSeatIdx === -1) return;
 
-    destInfo.table.sitDown(playerToMove.id, destSeat, playerToMove.stack, { displayName: playerToMove.displayName });
+    destInfo.table.sitDown(playerToMove.id, destSeatIdx, playerToMove.stack, { displayName: playerToMove.displayName });
     destInfo.players.add(playerToMove.id);
     if (destInfo.table._autoStartTimer) { clearTimeout(destInfo.table._autoStartTimer); destInfo.table._autoStartTimer = null; }
 
     const entry = this.entries.get(playerToMove.id);
-    if (entry) { entry.tableId = minTable; entry.seatIndex = destSeat; }
+    if (entry) { entry.tableId = destTableId; entry.seatIndex = destSeatIdx; }
 
-    this.emit('player_moved', { playerId: playerToMove.id, fromTable: maxTable, toTable: minTable });
+    this.emit('player_moved', { playerId: playerToMove.id, fromTable: sourceTableId, toTable: destTableId });
   }
 
   /** @private */

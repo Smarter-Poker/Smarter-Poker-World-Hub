@@ -21,6 +21,9 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
+const { isUUID, rejectBadPayload } = require('../../../src/lib/club-arena/validate');
+const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
+const { safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -30,6 +33,12 @@ const supabaseAdmin = createClient(
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
+  // RED TEAM: Payload size + field allowlist
+  if (rejectBadPayload(req, res, ['clubId'])) return;
+
+  // CONCURRENCY: Idempotency guard — prevent double-tap leave race
+  if (checkIdempotency(req, res)) return;
+
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (!token) return res.status(401).json({ error: 'No auth token' });
 
@@ -37,7 +46,8 @@ export default async function handler(req, res) {
   if (authError || !user) return res.status(401).json({ error: 'Invalid token' });
 
   const { clubId } = req.body;
-  if (!clubId) return res.status(400).json({ error: 'clubId required' });
+  // RED TEAM: Strict UUID validation
+  if (!isUUID(clubId)) return res.status(400).json({ error: 'Invalid clubId format' });
 
   if (!applyRateLimit(req, res, 'club-arena/leave-club')) return;
 
@@ -330,16 +340,18 @@ export default async function handler(req, res) {
     // ═══════════════════════════════════════════════════════════════
     // RESPONSE
     // ═══════════════════════════════════════════════════════════════
-    return res.status(200).json({
+    const responseBody = {
       success: true,
       message: `You have left ${club.name}`,
       chipsReturned: chipsReturnedToTreasury,
       pendingCashoutsCancelled: pendingCashouts?.length || 0,
       creditWrittenOff: creditUsed,
-    });
+    };
+    cacheResponse(req, 200, responseBody);
+    return res.status(200).json(responseBody);
 
   } catch (err) {
     console.error('[leave-club]', err);
-    return res.status(500).json({ error: err.message || 'Failed to leave club' });
+    return res.status(500).json(safeErrorResponse(err, 'Failed to leave club'));
   }
 }

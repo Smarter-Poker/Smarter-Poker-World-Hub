@@ -7,6 +7,7 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+const { isUUID } = require('../../../src/lib/club-arena/validate');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -24,7 +25,8 @@ export default async function handler(req, res) {
   if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
   const clubId = req.query.clubId;
-  if (!clubId) return res.status(400).json({ success: false, error: 'clubId query param required' });
+  // RED TEAM: Strict UUID validation
+  if (!isUUID(clubId)) return res.status(400).json({ success: false, error: 'Invalid clubId format' });
 
   try {
     // Verify membership
@@ -63,7 +65,7 @@ export default async function handler(req, res) {
         .from('profiles')
         .select('id, username, display_name')
         .in('id', playerIds)
-            .limit(100);
+        .limit(100);
       for (const p of (profs || [])) profiles[p.id] = p;
     }
 

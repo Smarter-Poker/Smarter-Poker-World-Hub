@@ -20,6 +20,7 @@ import dynamic from 'next/dynamic';
 import useWalletData from '../../../src/hooks/useWalletData';
 const DynamicWallet = dynamic(() => import('../../../src/components/club-arena/DynamicWallet'), { ssr: false });
 const ClubAnnouncementBanner = dynamic(() => import('../../../src/components/club-arena/ClubAnnouncementBanner'), { ssr: false });
+const CreateTableModal = dynamic(() => import('../../../src/components/club-arena/CreateTableModal'), { ssr: false });
 
 // SmarterPoker Dark Color Scheme
 const FB = {
@@ -180,6 +181,7 @@ export default function Admin() {
     const [editTableModal, setEditTableModal] = useState(null); // table object
     const [editTableForm, setEditTableForm] = useState({});
     const [tableProcessing, setTableProcessing] = useState(false);
+    const [showCreateTable, setShowCreateTable] = useState(false);
 
     // Settings form
     const [clubName, setClubName] = useState('');
@@ -211,6 +213,12 @@ export default function Admin() {
     // Rakeback state
     const [rakebackStatus, setRakebackStatus] = useState(null);
     const [rakebackLoading, setRakebackLoading] = useState(false);
+
+    // Anti-cheat state
+    const [acTab, setAcTab] = useState('flags');
+    const [acFlags, setAcFlags] = useState([]);
+    const [acSessions, setAcSessions] = useState([]);
+    const [acLoading, setAcLoading] = useState(false);
 
     // Phase 17: Mint audit
     const [recentMints, setRecentMints] = useState([]);
@@ -288,7 +296,7 @@ export default function Admin() {
                     .from('tables')
                     .select('id')
                     .eq('club_id', clubData.id)
-                    .eq('status', 'active')
+                    .in('status', ['active', 'running', 'waiting'])
                     .limit(100) // admin tables
 
                 setStats({
@@ -312,7 +320,7 @@ export default function Admin() {
         try {
             const { data } = await supabase
                 .from('tables')
-                .select('id, name, status, game_variant, small_blind, big_blind, max_players, current_players, min_buyin, max_buyin, ante, action_time, created_at')
+                .select('id, name, status, game_variant, small_blind, big_blind, max_players, current_players, min_buy_in, max_buy_in, ante, action_time_seconds, created_at')
                 .eq('club_id', club.id)
                 .order('created_at', { ascending: false })
                 .limit(100);
@@ -336,7 +344,7 @@ export default function Admin() {
             .on('postgres_changes', {
                 event: '*', schema: 'public', table: 'tables',
                 filter: `club_id=eq.${club.id}`
-            }, () => loadData())
+            }, () => { loadTables(); loadData(); })
             .on('postgres_changes', {
                 event: '*', schema: 'public', table: 'club_members',
                 filter: `club_id=eq.${club.id}`
@@ -405,6 +413,16 @@ export default function Admin() {
                 .catch(() => { })
                 .finally(() => setRakebackLoading(false));
         }
+        if (activeModal === 'anticheat') {
+            setAcLoading(true);
+            Promise.all([
+                apiCall('/api/club-arena/anti-cheat', { action: 'get_flags', clubId: club.id }).catch(() => ({ flags: [] })),
+                apiCall('/api/club-arena/anti-cheat', { action: 'get_sessions', clubId: club.id }).catch(() => ({ sessions: [] })),
+            ]).then(([flagsRes, sessionsRes]) => {
+                setAcFlags(flagsRes.flags || []);
+                setAcSessions(sessionsRes.sessions || []);
+            }).finally(() => setAcLoading(false));
+        }
     }, [activeModal, club]);
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -429,6 +447,12 @@ export default function Admin() {
         }
 
         setProcessing(true);
+        // Optimistic State Update
+        const previousMembers = [...members];
+        setMembers(prev => prev.map(m =>
+            m.user_id === memberUserId ? { ...m, role: newRole } : m
+        ));
+
         try {
             await apiCall('/api/club-arena/manage-agent', {
                 clubId: club.id,
@@ -440,6 +464,8 @@ export default function Admin() {
             busEmit.dataMutated('member_role_changed');
             loadData();
         } catch (e) {
+            // Rollback
+            setMembers(previousMembers);
             showToast(e.message || 'Failed to update role', 'error');
         } finally {
             setProcessing(false);
@@ -492,6 +518,10 @@ export default function Admin() {
         askConfirm(`Remove ${memberName} from the club?`, async () => {
             setConfirmModal(null);
             setProcessing(true);
+            // Optimistic State Update
+            const previousMembers = [...members];
+            setMembers(prev => prev.filter(m => m.user_id !== memberUserId));
+
             try {
                 await apiCall('/api/club-arena/manage-agent', {
                     clubId: club.id,
@@ -502,6 +532,8 @@ export default function Admin() {
                 busEmit.dataMutated('member_removed');
                 loadData();
             } catch (e) {
+                // Rollback
+                setMembers(previousMembers);
                 showToast(e.message || 'Failed to remove member', 'error');
             } finally {
                 setProcessing(false);
@@ -572,9 +604,9 @@ export default function Admin() {
                 smallBlind: editTableForm.small_blind ? parseFloat(editTableForm.small_blind) : undefined,
                 bigBlind: editTableForm.big_blind ? parseFloat(editTableForm.big_blind) : undefined,
                 maxPlayers: editTableForm.max_players ? parseInt(editTableForm.max_players) : undefined,
-                minBuyIn: editTableForm.min_buyin ? parseInt(editTableForm.min_buyin) : undefined,
-                maxBuyIn: editTableForm.max_buyin ? parseInt(editTableForm.max_buyin) : undefined,
-                actionTime: editTableForm.action_time ? parseInt(editTableForm.action_time) : undefined,
+                minBuyIn: editTableForm.min_buy_in ? parseInt(editTableForm.min_buy_in) : undefined,
+                maxBuyIn: editTableForm.max_buy_in ? parseInt(editTableForm.max_buy_in) : undefined,
+                actionTime: editTableForm.action_time_seconds ? parseInt(editTableForm.action_time_seconds) : undefined,
             });
             showToast('Table settings saved');
             busEmit.dataMutated('table_settings_updated');
@@ -714,6 +746,7 @@ export default function Admin() {
         { id: 'promo', title: 'Promo Wallet', desc: 'Mint promo chips and distribute to agents', color: '#9333ea' },
         { id: 'bbj', title: '[GAME] BBJ Config', desc: 'Enable / disable Bad Beat Jackpot for this club', color: '#FFD700' },
         { id: 'tables', title: 'Table Management', desc: 'Pause, close, delete, or edit table settings', color: '#0EA5E9' },
+        { id: 'anticheat', title: '[SECURITY] Anti-Cheat', desc: 'View flags, sessions, and kick suspicious players', color: '#FF453A' },
         { id: 'settings', title: 'Club Settings', desc: 'Edit club name and description', color: FB.textSecondary },
     ];
 
@@ -775,7 +808,7 @@ export default function Admin() {
                             </div>
 
                             <HubErrorBoundary name="AnnouncementsBanner">
-                                <ClubAnnouncementBanner clubId={clubIdParam} userRole={membership?.role} />
+                                <ClubAnnouncementBanner clubId={clubIdParam} userRole={currentMemberForUI?.role} />
                             </HubErrorBoundary>
 
                             <h2 style={S.sectionTitle}>Administration</h2>
@@ -2197,16 +2230,22 @@ function PromoWalletModal({ clubId, userRole, apiCall, showToast, onClose, FB, S
                             <button style={S.modalClose} onClick={() => setActiveModal(null)}>&times;</button>
                         </div>
                         <div style={S.modalBody}>
-                            <button onClick={loadTables} disabled={tablesLoading}
-                                style={{ background: FB.hover, color: FB.textSecondary, border: `1px solid ${FB.border}`, borderRadius: 6, padding: '6px 14px', fontSize: 12, cursor: 'pointer', marginBottom: 14 }}>
-                                {tablesLoading ? 'Loading...' : 'Refresh'}
-                            </button>
+                            <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+                                <button onClick={() => setShowCreateTable(true)}
+                                    style={{ background: FB.success, color: '#fff', border: 'none', borderRadius: 6, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                                    + Create Table
+                                </button>
+                                <button onClick={loadTables} disabled={tablesLoading}
+                                    style={{ background: FB.hover, color: FB.textSecondary, border: `1px solid ${FB.border}`, borderRadius: 6, padding: '6px 14px', fontSize: 12, cursor: 'pointer' }}>
+                                    {tablesLoading ? 'Loading...' : 'Refresh'}
+                                </button>
+                            </div>
                             {tablesLoading ? (
                                 <div style={{ textAlign: 'center', color: FB.textSecondary, padding: 24 }}>Loading tables...</div>
                             ) : tables.length === 0 ? (
                                 <div style={{ textAlign: 'center', color: FB.textSecondary, padding: 24 }}>No tables found for this club.</div>
                             ) : tables.map(t => {
-                                const statusColor = { active: FB.success, waiting: FB.primary, paused: '#F7C52A', closed: FB.textSecondary, deleted: FB.danger }[t.status] || FB.textSecondary;
+                                const statusColor = { active: FB.success, running: FB.success, waiting: FB.primary, paused: '#F7C52A', closed: FB.textSecondary, deleted: FB.danger }[t.status] || FB.textSecondary;
                                 const variant = (t.game_variant || 'NLH').toUpperCase().replace('NO_LIMIT_HOLDEM', 'NLH').replace('HOLDEM', 'NLH');
                                 return (
                                     <div key={t.id} style={{ background: FB.cardBg, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '12px 14px', marginBottom: 10 }}>
@@ -2219,12 +2258,12 @@ function PromoWalletModal({ clubId, userRole, apiCall, showToast, onClose, FB, S
                                                 </div>
                                             </div>
                                             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                                                <button onClick={() => { setEditTableModal(t); setEditTableForm({ name: t.name || '', small_blind: String(t.small_blind || ''), big_blind: String(t.big_blind || ''), max_players: String(t.max_players || ''), min_buyin: String(t.min_buyin || ''), max_buyin: String(t.max_buyin || ''), action_time: String(t.action_time || '') }); }}
+                                                <button onClick={() => { setEditTableModal(t); setEditTableForm({ name: t.name || '', small_blind: String(t.small_blind || ''), big_blind: String(t.big_blind || ''), max_players: String(t.max_players || ''), min_buy_in: String(t.min_buy_in || ''), max_buy_in: String(t.max_buy_in || ''), action_time_seconds: String(t.action_time_seconds || '') }); }}
                                                     style={{ background: FB.primary, color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }} disabled={tableProcessing}>
                                                     Edit
                                                 </button>
-                                                {t.status === 'active' && (
-                                                    <button onClick={() => { if (confirm('Pause this table? No new hands will be dealt.')) handleTableAction(t.id, 'pause'); }}
+                                                {['active', 'running'].includes(t.status) && (
+                                                    <button onClick={() => askConfirm('Pause this table? No new hands will be dealt.', () => { setConfirmModal(null); handleTableAction(t.id, 'pause'); }, false)}
                                                         style={{ background: '#F7C52A', color: '#000', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }} disabled={tableProcessing}>
                                                         Pause
                                                     </button>
@@ -2235,14 +2274,14 @@ function PromoWalletModal({ clubId, userRole, apiCall, showToast, onClose, FB, S
                                                         Resume
                                                     </button>
                                                 )}
-                                                {['active', 'paused', 'waiting'].includes(t.status) && (
-                                                    <button onClick={() => { if (confirm('Close this table? Active players will be removed.')) handleTableAction(t.id, 'close'); }}
+                                                {['active', 'paused', 'waiting', 'running'].includes(t.status) && (
+                                                    <button onClick={() => askConfirm('Close this table? Active players will be removed.', () => { setConfirmModal(null); handleTableAction(t.id, 'close'); })}
                                                         style={{ background: FB.hover, color: FB.textSecondary, border: `1px solid ${FB.border}`, borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }} disabled={tableProcessing}>
                                                         Close
                                                     </button>
                                                 )}
                                                 {['closed', 'waiting'].includes(t.status) && (
-                                                    <button onClick={() => { if (confirm('Permanently delete this table? This cannot be undone.')) handleTableAction(t.id, 'delete'); }}
+                                                    <button onClick={() => askConfirm('Permanently delete this table? This cannot be undone.', () => { setConfirmModal(null); handleTableAction(t.id, 'delete'); })}
                                                         style={{ background: FB.danger, color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }} disabled={tableProcessing}>
                                                         Delete
                                                     </button>
@@ -2257,6 +2296,23 @@ function PromoWalletModal({ clubId, userRole, apiCall, showToast, onClose, FB, S
                 </div>
             )}
 
+            {/* Create Table Modal (from Tables section) */}
+            {showCreateTable && (
+                <CreateTableModal
+                    club={club}
+                    onClose={() => setShowCreateTable(false)}
+                    onCreated={(table) => {
+                        showToast(`Table "${table.name || 'New Table'}" created!`);
+                        busEmit.dataMutated('table_created');
+                        loadTables();
+                        loadData();
+                        setShowCreateTable(false);
+                    }}
+                    apiCall={apiCall}
+                    onError={(msg) => showToast(msg, 'error')}
+                />
+            )}
+
             {/* Edit Table Settings Modal */}
             {editTableModal && (
                 <div style={S.modalOverlay} onClick={() => setEditTableModal(null)}>
@@ -2266,7 +2322,7 @@ function PromoWalletModal({ clubId, userRole, apiCall, showToast, onClose, FB, S
                             <button style={S.modalClose} onClick={() => setEditTableModal(null)}>&times;</button>
                         </div>
                         <div style={S.modalBody}>
-                            {[['name', 'Table Name', 'text'], ['small_blind', 'Small Blind', 'number'], ['big_blind', 'Big Blind', 'number'], ['max_players', 'Max Players', 'number'], ['min_buyin', 'Min Buy-in (chips)', 'number'], ['max_buyin', 'Max Buy-in (chips)', 'number'], ['action_time', 'Action Time (seconds)', 'number']].map(([key, label, type]) => (
+                            {[['name', 'Table Name', 'text'], ['small_blind', 'Small Blind', 'number'], ['big_blind', 'Big Blind', 'number'], ['max_players', 'Max Players', 'number'], ['min_buy_in', 'Min Buy-in (chips)', 'number'], ['max_buy_in', 'Max Buy-in (chips)', 'number'], ['action_time_seconds', 'Action Time (seconds)', 'number']].map(([key, label, type]) => (
                                 <div key={key} style={{ marginBottom: 14 }}>
                                     <label style={S.formLabel}>{label}</label>
                                     <input

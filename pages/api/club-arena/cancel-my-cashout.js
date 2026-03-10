@@ -6,6 +6,8 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+const { isUUID, rejectBadPayload } = require('../../../src/lib/club-arena/validate');
+const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -13,10 +15,19 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
   if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
+
+  // CONCURRENCY: Idempotency guard
+  if (checkIdempotency(req, res)) return;
+
+  // RED TEAM: Payload size + field allowlist
+  if (rejectBadPayload(req, res, ['cashoutId'])) return;
+
+  // CONCURRENCY: Idempotency guard — dedup rapid double-taps
+  if (checkIdempotency(req, res)) return;
 
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
@@ -25,18 +36,19 @@ export default async function handler(req, res) {
   if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
   const { cashoutId } = req.body;
-  if (!cashoutId) return res.status(400).json({ success: false, error: 'cashoutId required' });
+  // RED TEAM: Strict UUID validation
+  if (!isUUID(cashoutId)) return res.status(400).json({ success: false, error: 'Invalid cashoutId format' });
 
   try {
     // Fetch cashout — must be owned by this user and still pending
     const { data: cashout } = await supabaseAdmin
       .from('cashout_requests')
-      .select('id, user_id, club_id, amount, status')
+      .select('id, player_id, club_id, amount, status')
       .eq('id', cashoutId)
       .maybeSingle();
 
     if (!cashout) return res.status(404).json({ success: false, error: 'Cashout not found' });
-    if (cashout.user_id !== user.id) return res.status(403).json({ success: false, error: 'Not your cashout' });
+    if (cashout.player_id !== user.id) return res.status(403).json({ success: false, error: 'Not your cashout' });
     if (cashout.status !== 'pending') {
       return res.status(400).json({ success: false, error: `Cannot cancel — status is ${cashout.status}` });
     }
@@ -78,6 +90,12 @@ export default async function handler(req, res) {
       amount: cashout.amount,
       transaction_type: 'cashout_cancelled',
       notes: 'Player cancelled cashout — chips returned',
+    });
+
+    cacheResponse(req, 200, {
+      success: true,
+      returned: cashout.amount,
+      message: `Cashout cancelled — ${cashout.amount.toLocaleString()} chips returned`,
     });
 
     return res.status(200).json({

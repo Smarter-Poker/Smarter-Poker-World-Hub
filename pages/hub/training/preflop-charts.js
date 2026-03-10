@@ -40,7 +40,7 @@ function saveSession(payload) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify(payload),
-  }).catch(() => {});
+  }).catch(() => { });
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -85,8 +85,8 @@ function getAuthHeaders() {
       localStorage.getItem('sb-auth-token') || localStorage.getItem('supabase.auth.token');
     if (raw) {
       const parsed = JSON.parse(raw);
-      const token = parsed?.access_token || parsed?.currentSession?.access_token;
-      if (token) return { Authorization: `Bearer ${token}` };
+      const headerToken = parsed?.access_token || parsed?.currentSession?.access_token;
+      if (headerToken) return { Authorization: `Bearer ${headerToken}` };
     }
   } catch (e) {
     /* ignore */
@@ -177,11 +177,11 @@ export default function PreflopCharts() {
           } else {
             setRangeData(data.range.gridData || null);
             try {
-              eventBus?.emit?.('training:session-complete', {
+              eventBus?.emit?.(EventType.SESSION_END, {
                 game_id: 'preflop-charts',
                 hands_played: 1,
               });
-            } catch {}
+            } catch { }
             saveSession({
               game_id: 'preflop-charts',
               hands_played: 1,

@@ -48,8 +48,8 @@ function getAuthHeaders() {
       localStorage.getItem('sb-auth-token') || localStorage.getItem('supabase.auth.token');
     if (raw) {
       const parsed = JSON.parse(raw);
-      const token = parsed?.access_token || parsed?.currentSession?.access_token;
-      if (token) return { Authorization: `Bearer ${token}` };
+      const headerToken = parsed?.access_token || parsed?.currentSession?.access_token;
+      if (headerToken) return { Authorization: `Bearer ${headerToken}` };
     }
   } catch (e) {
     /* ignore */

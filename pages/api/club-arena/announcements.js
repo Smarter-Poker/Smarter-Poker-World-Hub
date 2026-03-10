@@ -7,6 +7,7 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+const { sanitizeNote } = require('../../../src/lib/club-arena/sanitize');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -14,7 +15,7 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
 
@@ -89,8 +90,8 @@ export default async function handler(req, res) {
           .insert({
             club_id: clubId,
             author_id: user.id,
-            title: title.trim(),
-            content: content?.trim() || '',
+            title: sanitizeNote(title, 200),
+            content: sanitizeNote(content, 5000),
             pinned: pinned || false,
           })
           .select()
@@ -104,8 +105,8 @@ export default async function handler(req, res) {
         if (!announcementId) return res.status(400).json({ success: false, error: 'announcementId required' });
 
         const updates = {};
-        if (title !== undefined) updates.title = title.trim();
-        if (content !== undefined) updates.content = content.trim();
+        if (title !== undefined) updates.title = sanitizeNote(title, 200);
+        if (content !== undefined) updates.content = sanitizeNote(content, 5000);
         if (pinned !== undefined) updates.pinned = pinned;
 
         const { error } = await supabaseAdmin

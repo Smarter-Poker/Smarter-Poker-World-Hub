@@ -5,6 +5,7 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+const { sanitizeNote, sanitizeClubName, sanitizeTheme, safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -12,9 +13,9 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+        if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
 
     if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 
@@ -49,11 +50,14 @@ export default async function handler(req, res) {
         }
 
         const updates = { updated_at: new Date().toISOString() };
-        if (name !== undefined) updates.name = name.trim().slice(0, 100);
-        if (description !== undefined) updates.description = description.trim().slice(0, 500);
+        if (name !== undefined) updates.name = sanitizeClubName(name, 100);
+        if (description !== undefined) updates.description = sanitizeNote(description, 500);
         if (isPublic !== undefined) updates.is_public = !!isPublic;
         if (requiresApproval !== undefined) updates.requires_approval = !!requiresApproval;
-        if (colorTheme !== undefined) updates.color_theme = colorTheme;
+        if (colorTheme !== undefined) {
+            const cleaned = sanitizeTheme(colorTheme);
+            if (cleaned) updates.color_theme = cleaned;
+        }
 
         const { error: updateErr } = await supabaseAdmin
             .from('clubs')
@@ -65,6 +69,6 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true });
     } catch (err) {
         console.error('[save-settings]', err);
-        return res.status(500).json({ success: false, error: err.message || 'Failed to save settings' });
+        return res.status(500).json(safeErrorResponse(err, 'Failed to save settings'));
     }
 }

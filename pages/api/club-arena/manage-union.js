@@ -6,6 +6,7 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { validateManageUnion } from '../../../src/contracts/orb4_syndicate';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -20,7 +21,7 @@ function generateCode(len = 8) {
 }
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
 
@@ -32,22 +33,36 @@ export default async function handler(req, res) {
   const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
   if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-  const { action, unionId, name, description, settings, clubId, adminUserId, adminRole, leaveRequestId } = req.body;
-  if (!action) return res.status(400).json({ success: false, error: 'action required' });
+  // RED TEAM: Payload size guard (4KB max for management endpoints)
+  if (JSON.stringify(req.body).length > 4096) {
+    return res.status(413).json({ success: false, error: 'Request body too large (max 4KB)' });
+  }
+
+  // RED TEAM: Zod Contract Validation (MANDATE: Reject 100% with 400 Bad Request before hitting Postgres)
+  const validation = validateManageUnion(req.body);
+  if (!validation.success) {
+    return res.status(400).json({ success: false, error: validation.error });
+  }
+
+  const payload = validation.data;
+  const { action, unionId, name, description, settings, clubId, adminUserId, adminRole, leaveRequestId } = payload;
 
   try {
     // ═══════════════════════════════════════════════════════════════
     // CREATE UNION
     // ═══════════════════════════════════════════════════════════════
     if (action === 'create') {
-      if (!name?.trim()) return res.status(400).json({ success: false, error: 'Union name required' });
+      // RED TEAM: Sanitize name before insert
+      const safeName = name.trim().replace(/[;'"\\<>]/g, '').slice(0, 100);
+      if (!safeName) return res.status(400).json({ success: false, error: 'Union name required (after sanitization)' });
+      const safeDesc = (description?.trim() || '').replace(/[;'"\\<>]/g, '').slice(0, 1000);
 
       const unionCode = generateCode(8);
       const { data: union, error: createErr } = await supabaseAdmin
         .from('unions')
         .insert({
-          name: name.trim(),
-          description: description?.trim() || '',
+          name: safeName,
+          description: safeDesc,
           code: unionCode,
           owner_id: user.id,
           settings: settings || { union_rake_hold: 0.10, default_agent_commission: 0.50, default_club_commission_rate: 0.90 },
@@ -88,8 +103,8 @@ export default async function handler(req, res) {
       if (callerAdmin.role !== 'union_lead') return res.status(403).json({ success: false, error: 'Only union owner can update settings' });
 
       const updates = {};
-      if (name?.trim()) updates.name = name.trim();
-      if (description !== undefined) updates.description = description.trim();
+      if (name?.trim()) updates.name = name.trim().replace(/[;'"\\<>]/g, '').slice(0, 100);
+      if (description !== undefined) updates.description = description.trim().replace(/[;'"\\<>]/g, '').slice(0, 1000);
       if (settings) {
         // BUG #272 FIX: Validate critical financial settings to prevent abuse
         const safeSettings = { ...settings };
@@ -168,8 +183,8 @@ export default async function handler(req, res) {
       }
 
       // Add to union_clubs with commission rate
-      const clubCommissionRate = req.body.clubCommissionRate || 0.90;  // 90% default for clubs
-      
+      const clubCommissionRate = payload.clubCommissionRate || 0.90;  // 90% default for clubs
+
       const { error: linkErr } = await supabaseAdmin
         .from('union_clubs')
         .upsert({ union_id: unionId, club_id: club.id, club_commission_rate: clubCommissionRate }, { onConflict: 'union_id,club_id' });
@@ -179,7 +194,7 @@ export default async function handler(req, res) {
       // Update club's union_id and commission rate
       await supabaseAdmin
         .from('clubs')
-        .update({ 
+        .update({
           union_id: unionId,
           club_commission_rate: clubCommissionRate,
           auto_settlement_enabled: true,
@@ -267,7 +282,7 @@ export default async function handler(req, res) {
     // No union_lead requirement — any union admin can search
     // ═══════════════════════════════════════════════════════════════
     if (action === 'search_user') {
-      const { query: searchQuery } = req.body;
+      const { query: searchQuery } = payload;
       if (!searchQuery?.trim() || searchQuery.trim().length < 2) {
         return res.status(400).json({ success: false, error: 'query must be at least 2 characters' });
       }
@@ -301,8 +316,8 @@ export default async function handler(req, res) {
         return res.status(403).json({ success: false, error: 'Only union owner can update club commission rates' });
       }
 
-      const newRate = parseFloat(req.body.commissionRate);
-      if (isNaN(newRate) || newRate < 0.01 || newRate > 1.0) {
+      const newRate = payload.commissionRate;
+      if (!Number.isFinite(newRate) || isNaN(newRate) || newRate < 0.01 || newRate > 1.0) {
         return res.status(400).json({ success: false, error: 'commissionRate must be between 0.01 (1%) and 1.0 (100%)' });
       }
 
@@ -341,9 +356,12 @@ export default async function handler(req, res) {
       if (callerAdmin.role !== 'union_lead') {
         return res.status(403).json({ success: false, error: 'Only union lead can broadcast announcements' });
       }
-      const { message: annMsg, clubId: targetClub } = req.body;
+      const { message: annMsg, clubId: targetClub } = payload;
       if (!annMsg?.trim()) return res.status(400).json({ success: false, error: 'message required' });
       if (annMsg.length > 500) return res.status(400).json({ success: false, error: 'message max 500 chars' });
+
+      // RED TEAM: Sanitize announcement content
+      const safeAnnMsg = annMsg.trim().replace(/[;'"\\<>]/g, '').slice(0, 500);
 
       // Determine target clubs
       const { data: unionClubs } = await supabaseAdmin
@@ -364,7 +382,7 @@ export default async function handler(req, res) {
         club_id: cid,
         author_id: user.id,
         title: `Union Announcement`,
-        content: annMsg.trim(),
+        content: safeAnnMsg,
         pinned: false,
       }));
 

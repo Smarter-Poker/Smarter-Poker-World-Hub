@@ -3,6 +3,7 @@
  * Uses clubIdParam (from URL) to render immediately without waiting for async data
  */
 import Link from 'next/link';
+import { Z_INDEX } from '../../lib/zIndexAuthority';
 
 const FB = {
     primary: '#2374E1',
@@ -17,7 +18,7 @@ const S = {
         bottom: 0,
         left: 0,
         right: 0,
-        zIndex: 1000,
+        zIndex: Z_INDEX.NAV,
         background: FB.cardBg,
         borderTop: `1px solid ${FB.border}`,
         boxShadow: '0 -2px 10px rgba(0,0,0,0.3)'

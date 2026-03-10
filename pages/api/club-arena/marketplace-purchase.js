@@ -6,6 +6,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
+const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -14,6 +15,16 @@ const supabaseAdmin = createClient(
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
+
+    // RED TEAM: Payload size + field allowlist validation
+    const ALLOWED = new Set(['clubId', 'itemId']);
+    const bodyStr = JSON.stringify(req.body || {});
+    if (bodyStr.length > 512) return res.status(413).json({ success: false, error: 'Request body too large' });
+    const bad = Object.keys(req.body || {}).filter(k => !ALLOWED.has(k));
+    if (bad.length > 0) return res.status(400).json({ success: false, error: `Unknown fields: ${bad.join(', ')}` });
+
+    // Idempotency guard — prevent double-tap purchases
+    if (checkIdempotency(req, res)) return;
 
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ success: false, error: 'No auth token' });

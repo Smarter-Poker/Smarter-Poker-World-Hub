@@ -14,6 +14,8 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { notifyUser } from '../../../src/lib/club-arena/notify';
+const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
+const { isUUID, rejectBadPayload } = require('../../../src/lib/club-arena/validate');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -37,7 +39,8 @@ export default async function handler(req, res) {
     // ═══════════════════════════════════════════════════════════════
     if (req.method === 'GET') {
       const { clubId, action: getAction } = req.query;
-      if (!clubId) return res.status(400).json({ success: false, error: 'clubId required' });
+      // RED TEAM: Strict UUID validation on query param
+      if (!isUUID(clubId)) return res.status(400).json({ success: false, error: 'Invalid clubId format' });
 
       // Verify membership
       const { data: member } = await supabaseAdmin
@@ -108,7 +111,19 @@ export default async function handler(req, res) {
     // ═══════════════════════════════════════════════════════════════
     if (req.method === 'POST') {
       const { action, clubId } = req.body;
-      if (!clubId || !action) return res.status(400).json({ success: false, error: 'clubId and action required' });
+
+      // RED TEAM: Field allowlist for POST
+      if (rejectBadPayload(req, res, ['action', 'clubId'])) return;
+
+      // CONCURRENCY: Idempotency guard — prevent double-taps (especially on open/close/claim)
+      if (checkIdempotency(req, res)) return;
+
+      // RED TEAM: Strict UUID + action enum whitelist
+      if (!isUUID(clubId)) return res.status(400).json({ success: false, error: 'Invalid clubId format' });
+      const VALID_ACTIONS = ['open', 'close', 'claim'];
+      if (!VALID_ACTIONS.includes(action)) {
+        return res.status(400).json({ success: false, error: `Invalid action. Must be one of: ${VALID_ACTIONS.join(', ')}` });
+      }
 
       // Settlement lock check
       const lockCheck = await checkSettlementLock(supabaseAdmin, clubId);
@@ -169,7 +184,9 @@ export default async function handler(req, res) {
           .maybeSingle();
 
         if (error) throw error;
-        return res.status(200).json({ success: true, period });
+        const responseObj = { success: true, period };
+        cacheResponse(req, 200, responseObj);
+        return res.status(200).json(responseObj);
       }
 
       // ─── CLOSE PERIOD (calculate rakeback for all players) ───
@@ -254,14 +271,16 @@ export default async function handler(req, res) {
             message: `You have ${ins.rakeback_amount.toLocaleString()} chips in unclaimed rakeback. Claim now in the cashier!`,
             data: { clubId, amount: ins.rakeback_amount },
             pushUrl: `/hub/club-arena/cashier?club=${clubId}`,
-          }).catch(() => {});
+          }).catch(() => { });
         }
 
-        return res.status(200).json({
+        const responseObj = {
           success: true,
           playersProcessed: inserts.length,
           totalRakebackDistributed: inserts.reduce((s, i) => s + i.rakeback_amount, 0),
-        });
+        };
+        cacheResponse(req, 200, responseObj);
+        return res.status(200).json(responseObj);
       }
 
       // ─── CLAIM RAKEBACK (player) ───
@@ -343,7 +362,6 @@ export default async function handler(req, res) {
             amount: totalClaim,
             transaction_type: 'rakeback',
             notes: `Rakeback claim: ${pending.length} period(s)`,
-            balance_after: newBalance,
           });
 
         // Mark periods as fully claimed
@@ -353,12 +371,14 @@ export default async function handler(req, res) {
           .update({ status: 'claimed' })
           .in('id', ids);
 
-        return res.status(200).json({
+        const responseObj = {
           success: true,
           claimed: totalClaim,
           newBalance,
           periodsProcessed: pending.length,
-        });
+        };
+        cacheResponse(req, 200, responseObj);
+        return res.status(200).json(responseObj);
       }
 
       return res.status(400).json({ success: false, error: `Unknown action: ${action}` });

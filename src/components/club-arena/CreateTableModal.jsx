@@ -251,7 +251,7 @@ function RangeSliderRow({ label, minVal, maxVal, onMinChange, onMaxChange, min, 
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════
 
-export default function CreateTableModal({ club, onClose, onCreated, apiCall }) {
+export default function CreateTableModal({ club, onClose, onCreated, apiCall, onError }) {
   const [t, setT] = useState({ ...DEFAULT_TABLE });
   const [creating, setCreating] = useState(false);
 
@@ -335,7 +335,8 @@ export default function CreateTableModal({ club, onClose, onCreated, apiCall }) 
       if (result?.table) onCreated?.(result.table);
       onClose?.();
     } catch (err) {
-      alert('Failed to create table: ' + err.message);
+      if (onError) onError(err.message || 'Failed to create table');
+      else console.error('[CreateTableModal] Failed to create table:', err.message);
     } finally {
       setCreating(false);
     }

@@ -5,6 +5,7 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
+const { sanitizeClubName } = require('../../../src/lib/club-arena/sanitize');
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -23,10 +24,14 @@ export default async function handler(req, res) {
     const { name } = req.body;
     if (!name || !name.trim()) return res.status(400).json({ success: false, error: 'Club name required' });
 
-    // Rate limit
-  if (!applyRateLimit(req, res, 'club-arena/create-club')) return;
+    // RED TEAM: XSS sanitization + length limit
+    const cleanName = sanitizeClubName(name, 100);
+    if (!cleanName) return res.status(400).json({ success: false, error: 'Club name contains only invalid characters' });
 
-  try {
+    // Rate limit
+    if (!applyRateLimit(req, res, 'club-arena/create-club')) return;
+
+    try {
         // Generate unique 5-digit code
         const clubCode = Math.floor(10000 + Math.random() * 90000);
 
@@ -34,7 +39,7 @@ export default async function handler(req, res) {
         const { data: club, error: clubErr } = await supabaseAdmin
             .from('clubs')
             .insert({
-                name: name.trim(),
+                name: cleanName,
                 owner_id: user.id,
                 club_id: clubCode,
                 member_count: 1,

@@ -1,14 +1,16 @@
 /* ═══════════════════════════════════════════════════════════════════════════════
-   CLUB ARENA — Leaderboard | FULLY WIRED
-   SmarterPoker Dark Theme | Time Filters, Multiple Board Types, Member Rankings
+   CLUB ARENA — Leaderboard | FULLY WIRED | ORB-7 AUDITED
+   SmarterPoker Dark Theme | Time Filters, Multiple Board Types, SVG Sparklines
    ═══════════════════════════════════════════════════════════════════════════════ */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 import usePersistedFilters from '../../../src/hooks/usePersistedFilters';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
@@ -53,7 +55,54 @@ const TIME_PERIODS = [
     { id: 'all', label: 'All Time' },
 ];
 
-const MemoizedLeaderboardRow = React.memo(({ member, rank, isCurrentUser, S, FB, getRankColor, getRankEmoji, getDisplayValue, resolveAvatarDisplay }) => (
+// ─── Mini Sparkline for leaderboard rows (NaN-hardened) ───────
+function MiniSparkline({ hands, userId, width = 80, height = 24 }) {
+    if (!hands || !Array.isArray(hands) || hands.length < 2) return null;
+    if (!userId) return null;
+
+    let running = 0;
+    const values = hands.slice().reverse().map(h => {
+        const player = h?.hand_data?.players?.find(p => String(p?.id) === String(userId));
+        const nr = Number(player?.netResult) || 0;
+        // Guard: reject NaN, Infinity, absurdly large values
+        running += Number.isFinite(nr) ? nr : 0;
+        return running;
+    });
+
+    if (values.every(v => v === 0)) return null;
+    if (values.length < 2) return null;
+
+    const min = Math.min(...values, 0);
+    const max = Math.max(...values, 0);
+    const range = max - min;
+    // Guard: if all values identical, range is 0 → flat line at midpoint
+    const safeRange = Number.isFinite(range) && range > 0 ? range : 1;
+
+    const pts = values.map((v, i) => {
+        const x = values.length > 1 ? (i / (values.length - 1)) * width : width / 2;
+        const y = height - ((v - min) / safeRange) * height;
+        // Final NaN guard — clamp to valid SVG coords
+        const sx = Number.isFinite(x) ? Math.max(0, Math.min(width, x)) : 0;
+        const sy = Number.isFinite(y) ? Math.max(0, Math.min(height, y)) : height / 2;
+        return `${sx.toFixed(2)},${sy.toFixed(2)}`;
+    });
+
+    if (pts.length < 2) return null;
+
+    const color = values[values.length - 1] >= 0 ? '#31A24C' : '#FA383E';
+    const lastPt = pts[pts.length - 1].split(',');
+    const cx = lastPt[0] || '0';
+    const cy = lastPt[1] || String(height / 2);
+
+    return (
+        <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ display: 'block', overflow: 'visible' }}>
+            <polyline points={pts.join(' ')} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+            <circle cx={cx} cy={cy} r="2" fill={color} />
+        </svg>
+    );
+}
+
+const MemoizedLeaderboardRow = React.memo(({ member, rank, isCurrentUser, S, FB, getRankColor, getRankEmoji, getDisplayValue, resolveAvatarDisplay, sparklineHands }) => (
     <div style={{ ...S.playerRow, ...(isCurrentUser ? S.playerRowHighlight : {}) }}>
         <div style={{ ...S.playerRank, color: getRankColor(rank) }}>{getRankEmoji(rank) || rank}</div>
         <div style={{ ...S.playerAvatar, background: FB.primary }}>
@@ -64,6 +113,11 @@ const MemoizedLeaderboardRow = React.memo(({ member, rank, isCurrentUser, S, FB,
                 {member.profiles?.display_name || member.profiles?.username || 'Player'}
                 {isCurrentUser && <span style={{ color: FB.primary, marginLeft: '6px' }}>(You)</span>}
             </div>
+            {sparklineHands && sparklineHands.length >= 2 && (
+                <div style={{ marginTop: '4px' }}>
+                    <MiniSparkline hands={sparklineHands} userId={member.user_id} />
+                </div>
+            )}
         </div>
         <div style={{ ...S.playerValue, color: getRankColor(rank) }}>{getDisplayValue(member)}</div>
     </div>
@@ -81,6 +135,7 @@ export default function Leaderboard() {
     const [members, setMembers] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [showWallet, setShowWallet] = useState(false);
+    const [menuOpen, setMenuOpen] = useState(false);
 
     // Wallet data (real-time balances)
     const walletData = useWalletData({ supabase, userId: user?.id, clubId: club?.id });
@@ -94,6 +149,19 @@ export default function Leaderboard() {
 
     // User's rank
     const [userRank, setUserRank] = useState(null);
+
+    // Per-user hand data for sparklines
+    const [handsByUser, setHandsByUser] = useState({});
+
+    // ── Ghost-listener defense: mounted ref ──
+    const mountedRef = useRef(true);
+
+    // Debounce ref for realtime reloads
+    const reloadTimerRef = useRef(null);
+    const debouncedLoadData = useCallback(() => {
+        if (reloadTimerRef.current) clearTimeout(reloadTimerRef.current);
+        reloadTimerRef.current = setTimeout(() => loadData(), 1000);
+    }, []);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // LOAD DATA
@@ -142,28 +210,27 @@ export default function Leaderboard() {
                     // Schema: player_ids (UUID[]), winner_ids (UUID[]), hand_data (JSONB), pot_total
                     // Per-player profit is inside hand_data.players[].netResult
                     let allHands = [];
-                    if (boardType !== 'chips') {
-                        try {
-                            // Fetch hand histories — cap at 500 for all-time, 200 for filtered periods
-                            const handLimit = dateFilter ? 200 : 500;
-                            let handQuery = supabase
-                                .from('hand_histories')
-                                .select('player_ids, winner_ids, hand_data, pot_total, completed_at')
-                                .eq('club_id', clubData.id)
-                                .order('completed_at', { ascending: false })
-                                .limit(handLimit);
+                    try {
+                        // Always fetch hands for sparklines (ORB-7 mandate) + stats
+                        const handLimit = dateFilter ? 200 : 500;
+                        let handQuery = supabase
+                            .from('mv_hand_histories')
+                            .select('player_ids, winner_ids, hand_data, pot_total, completed_at')
+                            .eq('club_id', clubData.id)
+                            .order('completed_at', { ascending: false })
+                            .limit(handLimit);
 
-                            if (dateFilter) {
-                                handQuery = handQuery.gte('completed_at', dateFilter);
-                            }
-
-                            const { data: handData, error: handErr } = await handQuery;
-
-                            if (!handErr && handData) {
-                                allHands = handData;
-                            }
-                        } catch (handQueryErr) {
+                        if (dateFilter) {
+                            handQuery = handQuery.gte('completed_at', dateFilter);
                         }
+
+                        const { data: handData, error: handErr } = await handQuery;
+
+                        if (!handErr && handData) {
+                            allHands = handData;
+                        }
+                    } catch (handQueryErr) {
+                        console.warn('[Leaderboard] Hand history fetch error:', handQueryErr?.message);
                     }
 
                     // Extract per-player stats from hand_data JSONB
@@ -187,6 +254,17 @@ export default function Leaderboard() {
                         }
                     }
 
+                    // ── Build per-user hand arrays for sparklines ──
+                    const handsByUserMap = {};
+                    for (const hand of allHands) {
+                        for (const pid of (hand.player_ids || [])) {
+                            const key = String(pid);
+                            if (!handsByUserMap[key]) handsByUserMap[key] = [];
+                            if (handsByUserMap[key].length < 30) handsByUserMap[key].push(hand);
+                        }
+                    }
+                    setHandsByUser(handsByUserMap);
+
                     // ── Bounty Earnings: aggregate from completed tournament results ──
                     const bountyByUser = {};
                     try {
@@ -204,7 +282,9 @@ export default function Leaderboard() {
                                 bountyByUser[pid] = (bountyByUser[pid] || 0) + (entry.totalBounties || 0);
                             }
                         }
-                    } catch (_) { /* non-fatal */ }
+                    } catch (bountyErr) {
+                        console.warn('[Leaderboard] Bounty fetch error:', bountyErr?.message);
+                    }
 
                     // Compute stats for each member
                     const membersWithStats = memberData.map(member => {
@@ -242,15 +322,20 @@ export default function Leaderboard() {
                 }
             }
         } catch (e) {
-
+            console.warn('[Leaderboard] loadData error:', e?.message);
         } finally {
-            setIsLoading(false);
+            if (mountedRef.current) setIsLoading(false);
         }
     }, [clubIdParam, boardType, period]);
 
-    useEffect(() => { loadData(); }, [loadData]);
+    // ── Initial load + unmount cleanup ──
+    useEffect(() => {
+        mountedRef.current = true;
+        loadData();
+        return () => { mountedRef.current = false; };
+    }, [loadData]);
 
-    // ── Realtime: refresh leaderboard on new hand results ─────────────────
+    // ── Realtime: refresh leaderboard on new hand results (debounced) ─────
     useEffect(() => {
         if (!clubIdParam) return;
         const ch = supabase
@@ -258,26 +343,31 @@ export default function Leaderboard() {
             .on('postgres_changes', {
                 event: 'INSERT', schema: 'public', table: 'hand_histories',
                 filter: `club_id=eq.${clubIdParam}`
-            }, () => loadData())
+            }, () => debouncedLoadData())
             .subscribe((status) => {
                 if (status !== 'SUBSCRIBED') {
-
+                    console.warn('[Leaderboard] Realtime status:', status);
                 }
             });
-        return () => { supabase.removeChannel(ch); };
-    }, [clubIdParam, loadData]);
+        return () => {
+            supabase.removeChannel(ch);
+            if (reloadTimerRef.current) clearTimeout(reloadTimerRef.current);
+        };
+    }, [clubIdParam, debouncedLoadData]);
 
     // ── Event Bus: refresh leaderboard on cross-page data mutations ────────
+    // Delta-aware: only reloads when relevant entity types change
     useEffect(() => {
+        if (!mountedRef.current) return;
         const unsub = eventBus.on(EventType.DATA_MUTATED, (e) => {
             const relevant = ['hand_complete', 'tournament_complete', 'chips_distributed', 'cashout_approved', 'rakeback_distributed'];
-            if (relevant.includes(e?.payload?.entity)) loadData();
+            if (relevant.includes(e?.payload?.entity) && mountedRef.current) debouncedLoadData();
         });
-        const unsub2 = eventBus.on(EventType.HAND_COMPLETE, () => loadData());
-        const unsub3 = eventBus.on(EventType.BOUNTY_AWARDED, () => loadData());
-        const unsub4 = eventBus.on(EventType.TOURNAMENT_COMPLETE, () => loadData());
+        const unsub2 = eventBus.on(EventType.HAND_COMPLETE, () => { if (mountedRef.current) debouncedLoadData(); });
+        const unsub3 = eventBus.on(EventType.BOUNTY_AWARDED, () => { if (mountedRef.current) debouncedLoadData(); });
+        const unsub4 = eventBus.on(EventType.TOURNAMENT_COMPLETE, () => { if (mountedRef.current) debouncedLoadData(); });
         return () => { unsub(); unsub2(); unsub3(); unsub4(); };
-    }, [loadData]);
+    }, [debouncedLoadData]);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // STYLES
@@ -331,9 +421,9 @@ export default function Leaderboard() {
     };
 
     const getRankEmoji = (rank) => {
-        if (rank === 1) return '';
-        if (rank === 2) return '';
-        if (rank === 3) return '';
+        if (rank === 1) return '1st';
+        if (rank === 2) return '2nd';
+        if (rank === 3) return '3rd';
         return null;
     };
 
@@ -360,7 +450,16 @@ export default function Leaderboard() {
             />
 
             <div style={S.page}>
-                <UniversalHeader pageDepth={2} />
+                <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
+                <HamburgerMenu
+                    isOpen={menuOpen}
+                    onClose={() => setMenuOpen(false)}
+                    direction="left"
+                    theme="dark"
+                    user={user}
+                    showProfile={true}
+                    {...getMenuConfig('club-arena', user, {}, {})}
+                />
 
                 <div style={S.container}>
                     <button onClick={() => router.push(`/hub/club-arena/lobby?club=${clubIdParam}`)} style={S.backBtn}>
@@ -485,40 +584,22 @@ export default function Leaderboard() {
                                 </div>
                             )}
 
-                            {/* Rest of Leaderboard */}
+                            {/* Rest of Leaderboard — uses MemoizedLeaderboardRow */}
                             {rest.length > 0 && (
                                 <>
                                     <div style={S.listHeader}>Rankings</div>
-                                    {rest.map((member, i) => {
-                                        const rank = i + 4;
-                                        const isCurrentUser = user && member.user_id === user.id;
-                                        return (
-                                            <div
-                                                key={member.user_id}
-                                                style={{
-                                                    ...S.playerRow,
-                                                    ...(isCurrentUser ? S.playerRowHighlight : {}),
-                                                }}
-                                            >
-                                                <div style={{ ...S.playerRank, color: getRankColor(rank) }}>
-                                                    {rank}
-                                                </div>
-                                                <div style={{ ...S.playerAvatar, background: FB.primary }}>
-                                                    <img src={resolveAvatarDisplay(member.profiles?.avatar_url, member.user_id)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" onError={(e) => { e.target.src = '/avatars/table/free_shark.png'; }} />
-                                                </div>
-                                                <div style={S.playerInfo}>
-                                                    <div style={S.playerName}>
-                                                        {member.profiles?.display_name || member.profiles?.username || 'Player'}
-                                                        {isCurrentUser && <span style={{ color: FB.primary, marginLeft: '6px' }}>(You)</span>}
-                                                    </div>
-                                                    <div style={S.playerSub}>{member.role || 'Member'}</div>
-                                                </div>
-                                                <div style={{ ...S.playerValue, color: FB.primary }}>
-                                                    {getDisplayValue(member)}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
+                                    {rest.map((member, i) => (
+                                        <MemoizedLeaderboardRow
+                                            key={member.user_id}
+                                            member={member}
+                                            rank={i + 4}
+                                            isCurrentUser={user && member.user_id === user.id}
+                                            S={S} FB={FB}
+                                            getRankColor={getRankColor} getRankEmoji={getRankEmoji}
+                                            getDisplayValue={() => getDisplayValue(member)} resolveAvatarDisplay={resolveAvatarDisplay}
+                                            sparklineHands={handsByUser[String(member.user_id)]}
+                                        />
+                                    ))}
                                 </>
                             )}
 
@@ -535,6 +616,7 @@ export default function Leaderboard() {
                                             S={S} FB={FB}
                                             getRankColor={getRankColor} getRankEmoji={getRankEmoji}
                                             getDisplayValue={() => getDisplayValue(member)} resolveAvatarDisplay={resolveAvatarDisplay}
+                                            sparklineHands={handsByUser[String(member.user_id)]}
                                         />
                                     ))}
                                 </>

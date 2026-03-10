@@ -64,7 +64,11 @@ const apiCall = async (endpoint, body) => {
     if (!token) throw new Error('Not authenticated');
     const res = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+            'X-Idempotency-Key': crypto.randomUUID(),
+        },
         body: JSON.stringify(body),
     });
     let data;
@@ -88,6 +92,7 @@ export default function Cashier() {
     const [diamondBalance, setDiamondBalance] = useState(0);
     const [transactions, setTransactions] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const isProcessingRef = useRef(false);
 
     // Modal states
     const [showBuyInModal, setShowBuyInModal] = useState(false);
@@ -280,7 +285,7 @@ export default function Cashier() {
                 table: 'chip_transactions',
                 filter: `club_id=eq.${club.id}`,
             }, (payload) => {
-                if (payload.new?.user_id === user.id) {
+                if (payload.new?.from_user_id === user.id || payload.new?.to_user_id === user.id) {
                     loadData();
                 }
             })
@@ -325,6 +330,8 @@ export default function Cashier() {
     // BUY-IN: Diamonds * Club Chips
     // ═══════════════════════════════════════════════════════════════════════════
     const handleBuyIn = async () => {
+        if (isProcessingRef.current) return;
+
         const amount = parseInt(buyInAmount);
         if (!amount || amount <= 0) {
             showToast('Enter a valid amount', 'error');
@@ -339,6 +346,7 @@ export default function Cashier() {
             return;
         }
 
+        isProcessingRef.current = true;
         setProcessing(true);
         try {
             const result = await apiCall('/api/club-arena/buyin', {
@@ -359,6 +367,7 @@ export default function Cashier() {
             showToast(e.message || 'Buy-in failed. Try again.', 'error');
         } finally {
             setProcessing(false);
+            isProcessingRef.current = false;
         }
     };
 
@@ -366,13 +375,18 @@ export default function Cashier() {
     // LEAVE CLUB: Player voluntarily exits — chips returned to treasury
     // ═══════════════════════════════════════════════════════════════════════════
     const handleLeaveClub = async () => {
-        if (!clubIdParam) return;
+        if (!clubIdParam || isProcessingRef.current) return;
+        isProcessingRef.current = true;
         setLeavePending(true);
         try {
             const token = getAccessToken();
             const res = await fetch('/api/club-arena/leave-club', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                    'X-Idempotency-Key': crypto.randomUUID(),
+                },
                 body: JSON.stringify({ clubId: clubIdParam }),
             });
             const data = await res.json();
@@ -382,6 +396,7 @@ export default function Cashier() {
         } catch (e) {
             showToast(e.message || 'Failed to leave club', 'error');
             setLeavePending(false);
+            isProcessingRef.current = false;
         }
     };
 
@@ -389,6 +404,8 @@ export default function Cashier() {
     // CASH-OUT: Club Chips * Diamonds
     // ═══════════════════════════════════════════════════════════════════════════
     const handleCashOut = async () => {
+        if (isProcessingRef.current) return;
+
         let amount = cashOutAmount === 'All' ? chipBalance : parseInt(cashOutAmount);
         if (!amount || amount <= 0) {
             showToast('Enter a valid amount', 'error');
@@ -399,6 +416,7 @@ export default function Cashier() {
             return;
         }
 
+        isProcessingRef.current = true;
         setProcessing(true);
         // Optimistic State Update
         const previousBalance = chipBalance;
@@ -426,16 +444,19 @@ export default function Cashier() {
             showToast(e.message || 'Cash-out failed. Try again.', 'error');
         } finally {
             setProcessing(false);
+            isProcessingRef.current = false;
         }
     };
 
     // ── Transfer chips handler ─────────────────────────────────────────────
     const handleTransfer = async () => {
+        if (isProcessingRef.current) return;
         if (!transferRecipient || !transferAmount) return;
         const amount = Math.floor(Number(transferAmount));
         if (!amount || amount <= 0) { showToast('Enter a valid amount', 'error'); return; }
         if (amount > (chipBalance || 0)) { showToast('Insufficient chips', 'error'); return; }
 
+        isProcessingRef.current = true;
         setProcessing(true);
         // Optimistic State Update
         const previousBalance = chipBalance;
@@ -456,7 +477,10 @@ export default function Cashier() {
             // Rollback
             setChipBalance(previousBalance);
             showToast(e.message || 'Transfer failed', 'error');
-        } finally { setProcessing(false); }
+        } finally {
+            setProcessing(false);
+            isProcessingRef.current = false;
+        }
     };
 
     const loadTransferMembers = async () => {

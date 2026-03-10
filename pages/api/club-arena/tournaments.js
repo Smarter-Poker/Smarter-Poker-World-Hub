@@ -9,6 +9,8 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
 import { notifyUser, notifyClubMembers } from '../../../src/lib/club-arena/notify';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
+const { runStandardGuards, validateUUID, sanitizeInt, sanitizeFloat } = require('../../../src/lib/club-arena/redteam-validation');
+const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -17,6 +19,14 @@ const supabaseAdmin = createClient(
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
+
+  // ── RED TEAM: Payload size limit (4KB — create action has large settings) ──
+  const guardErr = runStandardGuards(req.body, { maxBodySize: 4096 });
+  if (guardErr) return res.status(guardErr.status).json({ success: false, error: guardErr.error });
+
+  // CONCURRENCY: Idempotency guard — dedup rapid double-taps
+  if (checkIdempotency(req, res)) return;
+
   if (!applyRateLimit(req, res, 'club-arena/tournaments')) return;
 
   try {
@@ -25,6 +35,22 @@ export default async function handler(req, res) {
     if (authErr || !user) return res.status(401).json({ success: false, error: 'Not authenticated' });
 
     const { action, ...params } = req.body;
+
+    // ── RED TEAM: Validate action is a known string ──
+    const VALID_ACTIONS = ['create', 'list', 'register', 'unregister', 'start', 'cancel'];
+    if (!action || typeof action !== 'string' || !VALID_ACTIONS.includes(action)) {
+      return res.status(400).json({ success: false, error: `Invalid action. Must be one of: ${VALID_ACTIONS.join(', ')}` });
+    }
+
+    // ── RED TEAM: UUID validation on clubId/tournamentId (per action) ──
+    if (params.clubId) {
+      const clubErr = validateUUID(params.clubId, 'clubId');
+      if (clubErr) return res.status(400).json({ success: false, error: clubErr });
+    }
+    if (params.tournamentId) {
+      const tournErr = validateUUID(params.tournamentId, 'tournamentId');
+      if (tournErr) return res.status(400).json({ success: false, error: tournErr });
+    }
 
     // Settlement lock — block chip-moving actions during settlement window
     const chipActions = ['register', 'unregister', 'cancel'];
@@ -224,11 +250,16 @@ export default async function handler(req, res) {
       // ═══════════════════════════════════════════════════════
       // REGISTER FOR TOURNAMENT
       // ═══════════════════════════════════════════════════════
+      // Mandate 1 [ORB-3]: Atomic registration via advisory lock.
+      // All validation, chip deduction, registration insert, and
+      // counter increment happen inside a single Postgres transaction
+      // serialized by pg_advisory_xact_lock(hashtext(tournament_id)).
+      // ═══════════════════════════════════════════════════════
       case 'register': {
         const { tournamentId } = params;
         if (!tournamentId) return res.status(400).json({ success: false, error: 'tournamentId required' });
 
-        // Get tournament
+        // Get tournament (for SNG auto-start + notification metadata)
         const { data: tourn } = await supabaseAdmin
           .from('club_tournaments')
           .select('*')
@@ -236,78 +267,34 @@ export default async function handler(req, res) {
           .maybeSingle();
 
         if (!tourn) return res.status(404).json({ success: false, error: 'Tournament not found' });
-        if (!['scheduled', 'registering'].includes(tourn.status)) {
-          return res.status(400).json({ success: false, error: 'Registration not open' });
-        }
-        if (tourn.registered_count >= tourn.max_players) {
-          return res.status(400).json({ success: false, error: 'Tournament full' });
-        }
 
-        // Check player has enough chips
-        const { data: member } = await supabaseAdmin
-          .from('club_members')
-          .select('chip_balance')
-          .eq('club_id', tourn.club_id)
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        if (!member) return res.status(400).json({ success: false, error: 'Not a member of this club' });
-        if ((member.chip_balance || 0) < tourn.buy_in) {
-          return res.status(400).json({ success: false, error: 'Insufficient chips', balance: member.chip_balance, required: tourn.buy_in });
-        }
-
-        // Check not already registered
-        const { data: existing } = await supabaseAdmin
-          .from('tournament_registrations')
-          .select('id')
-          .eq('tournament_id', tournamentId)
-          .eq('user_id', user.id)
-          .eq('status', 'registered')
-          .maybeSingle();
-
-        if (existing) return res.status(400).json({ success: false, error: 'Already registered' });
-
-        // Deduct buy-in (atomic — uses FOR UPDATE row lock to prevent race conditions)
-        const { data: lockResult, error: lockErr } = await supabaseAdmin.rpc('lock_chips_for_table', {
+        // ── Atomic registration: single RPC with advisory lock ──
+        const { data: regResult, error: regErr } = await supabaseAdmin.rpc('fn_tournament_atomic_register', {
           p_user_id: user.id,
           p_club_id: tourn.club_id,
-          p_table_id: tournamentId, // Use tournament ID as "table" for audit trail
-          p_amount: tourn.buy_in,
-        });
-
-        if (lockErr || !lockResult?.success) {
-          return res.status(400).json({ success: false, error: lockResult?.error || lockErr?.message || 'Failed to deduct buy-in' });
-        }
-
-        // Register
-        const { error: regErr } = await supabaseAdmin
-          .from('tournament_registrations')
-          .insert({
-            tournament_id: tournamentId,
-            user_id: user.id,
-            club_id: tourn.club_id,
-            buy_in_amount: tourn.buy_in,
-            status: 'registered',
-          });
-
-        if (regErr) {
-          // Rollback chip deduction via atomic RPC
-          await supabaseAdmin.rpc('unlock_chips_from_table', {
-            p_user_id: user.id,
-            p_club_id: tourn.club_id,
-            p_table_id: tournamentId,
-            p_amount: tourn.buy_in,
-          });
-          return res.status(500).json({ success: false, error: regErr.message });
-        }
-
-        // Update count + prize pool atomically
-        const { data: counterResult } = await supabaseAdmin.rpc('fn_tournament_register_counter', {
           p_tournament_id: tournamentId,
           p_buy_in: tourn.buy_in,
         });
 
-        const currentCount = counterResult?.registered_count || tourn.registered_count + 1;
+        if (regErr) {
+          console.error('[tournament/register] RPC error:', regErr.message);
+          return res.status(500).json({ success: false, error: regErr.message });
+        }
+        if (!regResult?.success) {
+          // Map specific errors to appropriate HTTP status codes
+          const errMsg = regResult?.error || 'Registration failed';
+          const statusCode = ['Tournament not found'].includes(errMsg) ? 404
+            : ['Registration not open', 'Tournament full', 'Already registered', 'Insufficient chips', 'Not a member of this club'].includes(errMsg) ? 400
+              : 500;
+          return res.status(statusCode).json({
+            success: false,
+            error: errMsg,
+            ...(regResult?.balance !== undefined && { balance: regResult.balance }),
+            ...(regResult?.required !== undefined && { required: regResult.required }),
+          });
+        }
+
+        const currentCount = regResult.registered_count;
 
         // Auto-start SNG when full — init engine THEN mark running
         if (tourn.type === 'sng' && currentCount >= tourn.max_players) {
@@ -529,6 +516,11 @@ export default async function handler(req, res) {
       // ═══════════════════════════════════════════════════════
       // CANCEL TOURNAMENT (admin only)
       // ═══════════════════════════════════════════════════════
+      // Mandate 3 [ORB-3]: Safety Wire — batch-refund MUST complete
+      // before tournament status is set to 'cancelled'. If any
+      // refund fails, the status remains unchanged and the admin
+      // receives a diagnostic response for manual remediation.
+      // ═══════════════════════════════════════════════════════
       case 'cancel': {
         const { tournamentId } = params;
         if (!tournamentId) return res.status(400).json({ success: false, error: 'tournamentId required' });
@@ -556,7 +548,7 @@ export default async function handler(req, res) {
           return res.status(403).json({ success: false, error: 'Only club admins can cancel tournaments' });
         }
 
-        // Refund all registered players
+        // Fetch all registered players for batch refund
         const { data: registrations, error: regErr } = await supabaseAdmin
           .from('tournament_registrations')
           .select('*')
@@ -568,20 +560,49 @@ export default async function handler(req, res) {
           return res.status(500).json({ success: false, error: 'Failed to fetch registrations for refund' });
         }
 
-        for (const reg of (registrations || [])) {
-          // Refund by releasing the chip lock (registration used lock_chips_for_table)
-          await supabaseAdmin.rpc('unlock_chips_from_table', {
-            p_user_id: reg.user_id,
-            p_club_id: tourn.club_id,
-            p_table_id: tournamentId,
-            p_amount: reg.buy_in_amount,
-          });
+        // ── Batch refund with verification ──
+        const refundResults = [];
+        const failedRefunds = [];
 
-          await supabaseAdmin.from('tournament_registrations')
-            .update({ status: 'refunded' })
-            .eq('id', reg.id);
+        for (const reg of (registrations || [])) {
+          try {
+            // Step A: Refund chips (release the lock)
+            const { data: refundResult, error: refundErr } = await supabaseAdmin.rpc('unlock_chips_from_table', {
+              p_user_id: reg.user_id,
+              p_club_id: tourn.club_id,
+              p_table_id: tournamentId,
+              p_amount: reg.buy_in_amount,
+            });
+
+            if (refundErr) throw new Error(refundErr.message);
+
+            // Step B: Mark registration as refunded
+            const { error: updateErr } = await supabaseAdmin.from('tournament_registrations')
+              .update({ status: 'refunded' })
+              .eq('id', reg.id);
+
+            if (updateErr) throw new Error(updateErr.message);
+
+            refundResults.push({ userId: reg.user_id, amount: reg.buy_in_amount, success: true });
+          } catch (refErr) {
+            console.error(`[Tournament] Refund FAILED for user ${reg.user_id}:`, refErr.message);
+            failedRefunds.push({ userId: reg.user_id, amount: reg.buy_in_amount, error: refErr.message });
+          }
         }
 
+        // ── Safety wire: ONLY mark cancelled if ALL refunds succeeded ──
+        if (failedRefunds.length > 0) {
+          console.error(`[Tournament] CANCEL ABORTED: ${failedRefunds.length}/${(registrations || []).length} refunds failed`);
+          return res.status(500).json({
+            success: false,
+            error: `Cancel aborted: ${failedRefunds.length} refund(s) failed. Tournament status unchanged.`,
+            refunded: refundResults.length,
+            failed: failedRefunds,
+            totalRegistrations: (registrations || []).length,
+          });
+        }
+
+        // All refunds verified — NOW safe to update status
         await supabaseAdmin
           .from('club_tournaments')
           .update({ status: 'cancelled' })

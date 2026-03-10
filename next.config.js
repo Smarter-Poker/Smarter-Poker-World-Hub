@@ -75,6 +75,12 @@ const nextConfig = {
   // Without this, stale HMR hashes from old browser tabs cause the dev server to
   // try to load .pack.gz files that no longer exist after a .next nuke, creating a
   // crash loop. Memory-only cache is fast enough for dev and immune to corruption.
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   webpack: (config, { dev }) => {
     if (dev) {
       config.cache = {

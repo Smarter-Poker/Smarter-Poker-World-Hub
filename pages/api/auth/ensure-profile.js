@@ -12,7 +12,8 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+// ORB-0 FIX-5: No hardcoded fallbacks — env vars are mandatory
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -27,10 +28,16 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Missing user_id' });
     }
 
+    // ORB-0 FIX-4: Fail hard if service key is missing — never fall back to anon for admin ops
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+        console.error('[ANTIGRAVITY] FATAL: Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY env vars');
+        return res.status(500).json({ error: 'Server configuration error — contact admin' });
+    }
+
     // Use service key to bypass RLS
     const supabase = createClient(
         SUPABASE_URL.trim(),
-        SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY
+        SUPABASE_SERVICE_ROLE_KEY
     );
 
     // BUG #240 FIX: Require JWT auth and verify caller is the same user
@@ -142,10 +149,13 @@ export default async function handler(req, res) {
                 avatar_url: avatar_url || metadata?.avatar_url || null,
                 player_number: nextPlayerNumber,
                 streak_count: 0,
-                diamonds: 300,        // Welcome bonus
+                diamonds: 500,        // Welcome bonus (Updated from 300 to 500)
                 diamond_multiplier: 1.0,
                 skill_tier: 'Newcomer',
                 access_tier: 'Full_Access',
+                is_vip: true,         // Welcome VIP bonus
+                vip_tier: 'quarterly', // 3-month VIP card
+                vip_expires_at: new Date(new Date().setMonth(new Date().getMonth() + 3)).toISOString(),
                 created_at: new Date().toISOString(),
                 last_login: new Date().toISOString(),
                 last_active: new Date().toISOString(),

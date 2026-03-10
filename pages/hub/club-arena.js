@@ -323,6 +323,15 @@ export default function ClubArenaPage() {
     const [unionApplying, setUnionApplying] = useState(false);
     const [unionApplyResult, setUnionApplyResult] = useState(null);
 
+    // Inline toast notification (replaces all alert() calls)
+    const [toast, setToast] = useState(null);
+    const toastTimerRef = useRef(null);
+    const showToast = (msg, type = 'error') => {
+        setToast({ msg, type });
+        clearTimeout(toastTimerRef.current);
+        toastTimerRef.current = setTimeout(() => setToast(null), 4000);
+    };
+
     // Terms of Service — null=loading, false=not accepted, true=accepted
     const [tosAccepted, setTosAccepted] = useState(null);
 
@@ -784,7 +793,7 @@ export default function ClubArenaPage() {
                                                                 setClubs(userClubs);
                                                                 if (!activeClub && userClubs.length > 0) setActiveClub(userClubs[0]);
                                                             }
-                                                        } catch (err) { alert(err.message || 'Failed to join'); }
+                                                        } catch (err) { showToast(err.message || 'Failed to join'); }
                                                         finally { setSharkJoining(false); }
                                                     }}
                                                     style={S.joinBtn}
@@ -899,7 +908,7 @@ export default function ClubArenaPage() {
                     ═══════════════════════════════════════════════════════════════════ */}
                     <div style={S.actionPills}>
                         <button
-                            onClick={() => user ? setShowCreateClub(true) : alert('Please sign in first')}
+                            onClick={() => user ? setShowCreateClub(true) : showToast('Please sign in first')}
                             style={S.actionPill}
                         >
                             Create Club
@@ -908,7 +917,7 @@ export default function ClubArenaPage() {
                             Find Player
                         </button>
                         <button
-                            onClick={() => user ? setShowJoinClub(true) : alert('Please sign in first')}
+                            onClick={() => user ? setShowJoinClub(true) : showToast('Please sign in first')}
                             style={S.actionPill}
                         >
                             Join Club
@@ -986,6 +995,21 @@ export default function ClubArenaPage() {
                     `}</style>
 
                 </div>
+
+                {/* Toast Notification */}
+                {toast && (
+                    <div style={{
+                        position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)',
+                        zIndex: 99999, minWidth: 220, maxWidth: 380, padding: '12px 20px',
+                        borderRadius: 12, fontSize: 13, fontWeight: 600, textAlign: 'center',
+                        color: '#fff', fontFamily: 'Inter, sans-serif',
+                        background: toast.type === 'success' ? 'rgba(49,162,76,0.95)' : 'rgba(255,77,77,0.95)',
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)',
+                        animation: 'fadeInDown 0.3s ease',
+                    }}>
+                        {toast.msg}
+                    </div>
+                )}
 
                 {/* Modals */}
                 {showCreateClub && <CreateClubModal user={user} onClose={() => setShowCreateClub(false)} onCreated={handleClubCreated} />}
@@ -1111,10 +1135,10 @@ export default function ClubArenaPage() {
                                                                 setUnionApplicationStatus('pending');
                                                                 setUnionApplyResult(data.message);
                                                             } else {
-                                                                alert(data.error || 'Failed to submit application');
+                                                                showToast(data.error || 'Failed to submit application');
                                                             }
                                                         } catch (e) {
-                                                            alert('Network error — please try again');
+                                                            showToast('Network error — please try again');
                                                         } finally {
                                                             setUnionApplying(false);
                                                         }

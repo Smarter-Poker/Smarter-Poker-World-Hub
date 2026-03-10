@@ -34,6 +34,7 @@
 import React, { useState, useEffect } from 'react';
 import { getGameStickers } from '../../lib/stickerOrchestrator';
 import { resolveAvatarDisplay } from '../../lib/resolveAvatarDisplay';
+import { Z_INDEX } from '../../lib/zIndexAuthority';
 
 // ── Global keyframe injection (once, not per-card) ──────────────────
 let _kfInjected = false;
@@ -455,6 +456,7 @@ const S = {
     minHeight: 200,
     borderRadius: 12,
     padding: '8px 8px 6px',
+    boxSizing: 'border-box',
     display: 'flex',
     flexDirection: 'column',
     gap: 4,
@@ -474,7 +476,7 @@ const S = {
     position: 'absolute', top: 6, right: 6,
     display: 'flex', alignItems: 'center', gap: 3,
     background: 'rgba(0,230,118,0.12)', border: '1px solid rgba(0,230,118,0.3)',
-    borderRadius: 10, padding: '1px 6px', zIndex: 5,
+    borderRadius: 10, padding: '1px 6px', zIndex: Z_INDEX.CARD_BADGE,
   },
   liveDot: {
     width: 5, height: 5, borderRadius: '50%', background: '#00E676',
@@ -509,11 +511,12 @@ const S = {
   },
   tableImage: {
     width: '75%',
-    maxWidth: 110,
+    maxWidth: '100%',
     height: 'auto',
     objectFit: 'contain',
     pointerEvents: 'none',
     filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.6))',
+    imageRendering: '-webkit-optimize-contrast',
   },
 
   // Overlay — centered on top of the table image
@@ -528,7 +531,7 @@ const S = {
     justifyContent: 'center',
     textAlign: 'center',
     gap: 1,
-    zIndex: 2,
+    zIndex: Z_INDEX.CARD_CONTENT,
     pointerEvents: 'none',
     width: '70%',
   },

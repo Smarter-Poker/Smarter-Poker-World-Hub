@@ -139,11 +139,11 @@ export default function ClubArenaTable() {
       }
 
       // 2. Get auth token
-      const token = getAccessToken();
+      const authToken = getAccessToken();
 
       // 3. Connect to engine with retry backoff
       setConnectStatus('Connecting to poker engine…');
-      const result = await connectWithRetry(tableId, token);
+      const result = await connectWithRetry(tableId, authToken);
 
       if (!result.success) {
         if (result.code === 'OBSERVERS_RESTRICTED') {

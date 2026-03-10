@@ -11,6 +11,8 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
+const { sanitizeNote, safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
+const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -20,13 +22,24 @@ const supabaseAdmin = createClient(
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
+  // RED TEAM: Payload size + field allowlist validation
+  const ALLOWED = new Set(['clubId', 'agentUserId', 'action', 'amount', 'notes']);
+  const bodyStr = JSON.stringify(req.body || {});
+  if (bodyStr.length > 1024) return res.status(413).json({ error: 'Request body too large' });
+  const bad = Object.keys(req.body || {}).filter(k => !ALLOWED.has(k));
+  if (bad.length > 0) return res.status(400).json({ error: `Unknown fields: ${bad.join(', ')}` });
+
+  // Idempotency guard — prevent double-tap on laggy mobile networks
+  if (checkIdempotency(req, res)) return;
+
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (!token) return res.status(401).json({ error: 'No auth token' });
 
   const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
   if (authError || !user) return res.status(401).json({ error: 'Invalid token' });
 
-  const { clubId, agentUserId, action, amount: rawAmount, notes } = req.body;
+  const { clubId, agentUserId, action, amount: rawAmount, notes: rawNotes } = req.body;
+  const notes = sanitizeNote(rawNotes, 500);
   if (!clubId || !agentUserId || !action || !rawAmount || rawAmount <= 0) {
     return res.status(400).json({ error: 'clubId, agentUserId, action, and positive amount required' });
   }
@@ -90,15 +103,46 @@ export default async function handler(req, res) {
     let result = {};
 
     if (action === 'issue_credit') {
-      // Set/increase credit line for CREDIT agents
-      const newLimit = (agentMember.credit_limit || 0) + amount;
+      // ATOMIC: Increment credit_limit in Postgres — no JS math on balances
+      // Uses SET credit_limit = COALESCE(credit_limit, 0) + $1 inside the RPC
+      const { data: atomicResult, error: atomicErr } = await supabaseAdmin.rpc('fn_atomic_increment_field', {
+        p_table: 'club_members',
+        p_field: 'credit_limit',
+        p_increment: amount,
+        p_where_club_id: clubId,
+        p_where_user_id: agentUserId,
+      });
 
-      await supabaseAdmin
-        .from('club_members')
-        .update({ credit_limit: newLimit })
-        .eq('club_id', clubId)
-        .eq('user_id', agentUserId);
+      // Fallback: If the atomic RPC doesn't exist yet, use optimistic-lock pattern
+      let newLimit;
+      if (atomicErr) {
+        // Optimistic lock: read, compute, write with WHERE old_value
+        const oldLimit = agentMember.credit_limit || 0;
+        newLimit = oldLimit + amount;
+        const { data: updated } = await supabaseAdmin
+          .from('club_members')
+          .update({ credit_limit: newLimit })
+          .eq('club_id', clubId)
+          .eq('user_id', agentUserId)
+          .eq('credit_limit', oldLimit)  // optimistic lock
+          .select('credit_limit')
+          .maybeSingle();
 
+        if (!updated) {
+          // Concurrent modification — re-read and retry once
+          const { data: fresh } = await supabaseAdmin
+            .from('club_members').select('credit_limit')
+            .eq('club_id', clubId).eq('user_id', agentUserId).maybeSingle();
+          newLimit = (fresh?.credit_limit || 0) + amount;
+          await supabaseAdmin.from('club_members')
+            .update({ credit_limit: newLimit })
+            .eq('club_id', clubId).eq('user_id', agentUserId);
+        }
+      } else {
+        newLimit = atomicResult?.new_value ?? ((agentMember.credit_limit || 0) + amount);
+      }
+
+      // Mirror to agents table
       await supabaseAdmin
         .from('agents')
         .update({ credit_limit: newLimit })
@@ -110,10 +154,12 @@ export default async function handler(req, res) {
         to_user_id: agentUserId,
         amount,
         transaction_type: 'credit_line_issued',
-        notes: notes || `Credit line issued to ${agentMember.nickname || agentUserId}: +${amount.toLocaleString()} (limit now ${newLimit.toLocaleString()})`,
+        notes: notes || `Credit line issued: +${amount.toLocaleString()} (limit now ${newLimit.toLocaleString()})`,
       });
 
-      result = { action: 'credit_issued', previousLimit: agentMember.credit_limit || 0, newLimit };
+      const resultData = { action: 'credit_issued', previousLimit: agentMember.credit_limit || 0, newLimit };
+      cacheResponse(req, 200, { success: true, ...resultData });
+      result = resultData;
 
     } else if (action === 'add_prepaid') {
       // Transfer chips from club treasury to agent's balance
@@ -144,21 +190,32 @@ export default async function handler(req, res) {
         throw creditErr;
       }
 
-      // Update agents table with optimistic lock
-      const oldBal = agentRecord.business_balance || 0;
-      const { data: balUpd } = await supabaseAdmin
-        .from('agents')
-        .update({ business_balance: oldBal + amount })
-        .eq('id', agentRecord.id)
-        .eq('business_balance', oldBal) // optimistic lock
-        .select('id')
-        .limit(200);
+      // ATOMIC: Update business_balance using optimistic lock WITH retry
+      // Eliminates JS-side `oldBal + amount` TOCTOU race
+      const { data: atomicBiz, error: bizAtomicErr } = await supabaseAdmin.rpc('fn_atomic_increment_field', {
+        p_table: 'agents',
+        p_field: 'business_balance',
+        p_increment: amount,
+        p_where_id: agentRecord.id,
+      });
 
-      // Retry once on conflict
-      if (!balUpd?.length) {
-        const { data: freshAgent } = await supabaseAdmin.from('agents').select('business_balance').eq('id', agentRecord.id).maybeSingle();
-        if (freshAgent) {
-          await supabaseAdmin.from('agents').update({ business_balance: (freshAgent.business_balance || 0) + amount }).eq('id', agentRecord.id);
+      if (bizAtomicErr) {
+        // Fallback: optimistic lock with retry
+        const oldBal = agentRecord.business_balance || 0;
+        const { data: balUpd } = await supabaseAdmin
+          .from('agents')
+          .update({ business_balance: oldBal + amount })
+          .eq('id', agentRecord.id)
+          .eq('business_balance', oldBal) // optimistic lock
+          .select('id')
+          .maybeSingle();
+
+        if (!balUpd) {
+          // Retry: re-read fresh value and apply
+          const { data: freshAgent } = await supabaseAdmin.from('agents').select('business_balance').eq('id', agentRecord.id).maybeSingle();
+          if (freshAgent) {
+            await supabaseAdmin.from('agents').update({ business_balance: (freshAgent.business_balance || 0) + amount }).eq('id', agentRecord.id);
+          }
         }
       }
 
@@ -168,38 +225,61 @@ export default async function handler(req, res) {
         to_user_id: agentUserId,
         amount,
         transaction_type: 'prepaid_chips_issued',
-        notes: notes || `Prepaid chips issued to ${agentMember.nickname || agentUserId}: ${amount.toLocaleString()}`,
+        notes: notes || `Prepaid chips issued: ${amount.toLocaleString()}`,
       });
 
-      result = {
+      // Read fresh balances for accurate response
+      const { data: freshClub } = await supabaseAdmin.from('clubs').select('chip_treasury').eq('id', clubId).maybeSingle();
+      const { data: freshMember } = await supabaseAdmin.from('club_members').select('chip_balance').eq('club_id', clubId).eq('user_id', agentUserId).maybeSingle();
+
+      const resultData = {
         action: 'prepaid_added',
         amount,
-        agentBalance: (agentMember.chip_balance || 0) + amount,
-        treasuryRemaining: treasury - amount,
+        agentBalance: freshMember?.chip_balance || 0,
+        treasuryRemaining: freshClub?.chip_treasury || 0,
       };
+      cacheResponse(req, 200, { success: true, ...resultData });
+      result = resultData;
 
     } else if (action === 'revoke_credit') {
-      // Reduce credit line
+      // ATOMIC: Decrement credit_limit — use optimistic lock to prevent TOCTOU
       const currentLimit = agentMember.credit_limit || 0;
       const newLimit = Math.max(0, currentLimit - amount);
 
-      await supabaseAdmin
+      // Optimistic lock: only update if credit_limit hasn't changed
+      const { data: updated } = await supabaseAdmin
         .from('club_members')
         .update({ credit_limit: newLimit })
         .eq('club_id', clubId)
-        .eq('user_id', agentUserId);
+        .eq('user_id', agentUserId)
+        .eq('credit_limit', currentLimit) // optimistic lock
+        .select('credit_limit')
+        .maybeSingle();
 
+      let finalLimit = newLimit;
+      if (!updated) {
+        // Concurrent modification — re-read and retry
+        const { data: fresh } = await supabaseAdmin
+          .from('club_members').select('credit_limit')
+          .eq('club_id', clubId).eq('user_id', agentUserId).maybeSingle();
+        finalLimit = Math.max(0, (fresh?.credit_limit || 0) - amount);
+        await supabaseAdmin.from('club_members')
+          .update({ credit_limit: finalLimit })
+          .eq('club_id', clubId).eq('user_id', agentUserId);
+      }
+
+      // Mirror to agents table
       await supabaseAdmin
         .from('agents')
-        .update({ credit_limit: newLimit })
+        .update({ credit_limit: finalLimit })
         .eq('id', agentRecord.id);
 
-      result = { action: 'credit_revoked', previousLimit: currentLimit, newLimit, reduced: currentLimit - newLimit };
+      result = { action: 'credit_revoked', previousLimit: currentLimit, newLimit: finalLimit, reduced: currentLimit - finalLimit };
     }
 
     return res.status(200).json({ success: true, ...result });
   } catch (err) {
     console.error('[agent-credit]', err);
-    return res.status(500).json({ error: 'Agent credit action failed', details: err.message });
+    return res.status(500).json(safeErrorResponse(err, 'Agent credit action failed'));
   }
 }
