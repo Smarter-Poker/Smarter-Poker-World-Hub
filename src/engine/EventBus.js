@@ -63,6 +63,14 @@ export const EventType = {
     MESSAGE_RECEIVED: 'MESSAGE_RECEIVED',
     CALL_STARTED: 'CALL_STARTED',
     CALL_ENDED: 'CALL_ENDED',
+    BROADCAST_SENT: 'BROADCAST_SENT',
+    MESSAGE_BOOKMARKED: 'MESSAGE_BOOKMARKED',
+    MESSAGE_PINNED: 'MESSAGE_PINNED',
+    MESSAGE_FORWARDED: 'MESSAGE_FORWARDED',
+    MESSAGE_REACTED: 'MESSAGE_REACTED',
+    MESSAGE_EDITED: 'MESSAGE_EDITED',
+    VOICE_MESSAGE_SENT: 'VOICE_MESSAGE_SENT',
+    MESSENGER_SEARCH: 'MESSENGER_SEARCH',
 };
 
 // ─── SSR Safety Check ──────────────────────────────────────────
@@ -254,6 +262,30 @@ const _busEmitMethods = {
 
     callEnded: (callType, roomName) =>
         eventBus.emit(EventType.CALL_ENDED, { callType, roomName }, 'LiveKitCall'),
+
+    broadcastSent: (conversationCount) =>
+        eventBus.emit(EventType.BROADCAST_SENT, { conversationCount }, 'Messenger'),
+
+    messageBookmarked: (conversationId, messageId) =>
+        eventBus.emit(EventType.MESSAGE_BOOKMARKED, { conversationId, messageId }, 'Messenger'),
+
+    messagePinned: (conversationId, messageId) =>
+        eventBus.emit(EventType.MESSAGE_PINNED, { conversationId, messageId }, 'Messenger'),
+
+    messageForwarded: (fromConversationId, toConversationId) =>
+        eventBus.emit(EventType.MESSAGE_FORWARDED, { fromConversationId, toConversationId }, 'Messenger'),
+
+    messageReacted: (conversationId, messageId, emoji) =>
+        eventBus.emit(EventType.MESSAGE_REACTED, { conversationId, messageId, emoji }, 'Messenger'),
+
+    messageEdited: (conversationId, messageId) =>
+        eventBus.emit(EventType.MESSAGE_EDITED, { conversationId, messageId }, 'Messenger'),
+
+    voiceMessageSent: (conversationId, duration) =>
+        eventBus.emit(EventType.VOICE_MESSAGE_SENT, { conversationId, duration }, 'Messenger'),
+
+    messengerSearch: (query) =>
+        eventBus.emit(EventType.MESSENGER_SEARCH, { query }, 'Messenger'),
 };
 
 // ═══════════════════════════════════════════════════════════════════════════

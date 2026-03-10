@@ -149,7 +149,6 @@ function TimerRingBox({ endTime, totalTime, children }) {
     endTime ? Math.max(0, endTime - Date.now()) / 1000 : 0
   );
   const soundPlayed = React.useRef(false);
-  const audioRef = React.useRef(null);
 
   // Reset sound flag when endTime changes (new turn)
   React.useEffect(() => { soundPlayed.current = false; }, [endTime]);
@@ -165,9 +164,12 @@ function TimerRingBox({ endTime, totalTime, children }) {
       if (totalTime > 0 && remaining > 0 && remaining / totalTime < 0.25 && !soundPlayed.current) {
         soundPlayed.current = true;
         try {
-          if (!audioRef.current && typeof Audio !== 'undefined') {
-            // Short beep synthesized via Web Audio (no external file needed)
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          if (typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext)) {
+            // Reuse singleton AudioContext to prevent memory leak
+            if (!TimerRingBox._audioCtx) {
+              TimerRingBox._audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            const ctx = TimerRingBox._audioCtx;
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
             osc.frequency.value = 880;
@@ -275,7 +277,6 @@ export default function TableMiniView({
   const phase = miniState.phase || 'idle';
   const isIdle = phase === 'idle';
   const isDealing = phase === 'dealing';
-  const isShowdown = phase === 'showdown';
   
   // Dual-board support
   let boards = [];
@@ -585,6 +586,7 @@ const S = {
     width: 6, height: 6, borderRadius: '50%',
     background: 'rgba(255,255,255,0.15)',
     border: '1px solid rgba(255,255,255,0.1)',
+    position: 'relative',
   },
   seatOccupied: {
     width: 8, height: 8, borderRadius: '50%',

@@ -8,6 +8,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { SPAvatar, SP_COLORS } from './SmarterPokerStyleCard';
+import { busEmit } from '../../engine/EventBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 💾 PERSISTENCE HOOK (P2 features)
@@ -437,6 +438,7 @@ export const ChatWindow = ({
                 }
             } else {
                 onSend?.(inputText);
+                busEmit.messageSent(conversationId, otherUser?.id);
             }
             setInputText('');
             setScheduledTime('');
@@ -448,6 +450,7 @@ export const ChatWindow = ({
         if (action === 'bookmark') {
             updatePrefs(p => {
                 const isSaved = p.bookmarks.find(b => b.id === msg.id);
+                busEmit.messageBookmarked(conversationId, msg.id);
                 return {
                     ...p,
                     bookmarks: isSaved 
@@ -470,6 +473,7 @@ export const ChatWindow = ({
             updatePrefs(p => {
                 const current = p.pinnedMessages[conversationId] || [];
                 const isPinned = current.includes(msg.id);
+                busEmit.messagePinned(conversationId, msg.id);
                 return { ...p, pinnedMessages: { ...p.pinnedMessages, [conversationId]: isPinned ? current.filter(id => id !== msg.id) : [...current, msg.id] } };
             });
         }
@@ -500,6 +504,7 @@ export const ChatWindow = ({
         updatePrefs(p => {
             const current = p.reactions[msgId] || [];
             const exists = current.find(r => r.emoji === emoji && r.by === currentUser?.name);
+            busEmit.messageReacted(conversationId, msgId, emoji);
             return { ...p, reactions: { ...p.reactions, [msgId]: exists ? current.filter(r => !(r.emoji === emoji && r.by === currentUser?.name)) : [...current, { emoji, by: currentUser?.name || 'You' }] } };
         });
         setShowEmojiPicker(null);
@@ -512,7 +517,7 @@ export const ChatWindow = ({
                 const history = p.editHistory[editingMsg.id] || [];
                 return { ...p, editHistory: { ...p.editHistory, [editingMsg.id]: [...history, { text: editingMsg.text, editedAt: Date.now() }] } };
             });
-            // In a real app, this would call an API. For now we log it.
+            busEmit.messageEdited(conversationId, editingMsg.id);
             console.log(`[Messenger] Edited message ${editingMsg.id}: "${editText}"`);
         }
         setEditingMsg(null);

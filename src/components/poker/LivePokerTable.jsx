@@ -4795,6 +4795,10 @@ function LivePokerTable({
         onCardBackChange={(path) => setCardBack(path)}
         soundEnabled={soundEnabled}
         onToggleSound={() => setSoundEnabled(prev => !prev)}
+        fourColorDeck={fourColorDeck}
+        onToggleFourColor={handleToggleFourColor}
+        hapticEnabled={hapticEnabled}
+        onToggleHaptic={handleToggleHaptic}
       />
 
       {/* ═══════════ INSURANCE OFFER OVERLAY ═══════════ */}
