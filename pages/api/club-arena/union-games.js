@@ -298,23 +298,27 @@ export default async function handler(req, res) {
 
       if (error) throw error;
 
-      // Attempt to notify the poker engine to seat players and begin dealing
-      // Non-fatal: tournament DB status is already set — engine sync can retry
-      try {
-        const engineRes = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'https://smarter.poker'}/api/poker/engine/tournament`, {
+      // Fire-and-forget engine ping with Circuit Breaker
+      // Prevents recursive fetch crash on same-server dev mode
+      if (!global.__engineCircuit) global.__engineCircuit = { failures: 0, cooldownUntil: 0 };
+      const circuit = global.__engineCircuit;
+      if (Date.now() < circuit.cooldownUntil) {
+        console.warn('[union-games] engine circuit OPEN — skipping ping');
+      } else {
+        const controller = new AbortController();
+        setTimeout(() => controller.abort(), 3000);
+        fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'https://smarter.poker'}/api/poker/engine/tournament`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: req.headers.authorization,
-          },
+          headers: { 'Content-Type': 'application/json', Authorization: req.headers.authorization },
           body: JSON.stringify({ action: 'start', tournamentId }),
+          signal: controller.signal,
+        }).then(r => {
+          if (r.ok) { circuit.failures = 0; }
+          else { circuit.failures++; console.warn('[union-games] engine ping non-fatal:', r.status); }
+        }).catch(() => {
+          circuit.failures++;
+          if (circuit.failures >= 3) { circuit.cooldownUntil = Date.now() + 60000; console.warn('[union-games] engine circuit OPENED for 60s'); }
         });
-        if (!engineRes.ok) {
-          const engineData = await engineRes.json().catch(() => ({}));
-          console.warn('[union-games] engine start non-fatal:', engineData.error || engineRes.status);
-        }
-      } catch (engineErr) {
-        console.warn('[union-games] engine start non-fatal:', engineErr.message);
       }
 
       return res.json({ success: true, players: playerCount || 0 });
