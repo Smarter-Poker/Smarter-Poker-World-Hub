@@ -47,7 +47,11 @@ CREATE POLICY "audit_logs_select_own" ON action_audit_logs
 -- Only service_role (supabaseAdmin) can write — enforced by RLS
 
 -- 4. ENABLE REALTIME (optional — for live admin dashboards)
-ALTER PUBLICATION supabase_realtime ADD TABLE IF NOT EXISTS action_audit_logs;
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE action_audit_logs;
+EXCEPTION WHEN OTHERS THEN
+  NULL; -- Skip if already in publication
+END $$;
 
 -- 5. COMMENT
 COMMENT ON TABLE action_audit_logs IS 'ORB-5 immutable audit trail. Records every financial transaction, agent action, and chip movement. Service-role write only.';
