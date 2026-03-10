@@ -92,7 +92,7 @@ CREATE TABLE IF NOT EXISTS solved_spots_gold (
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='solved_spots_gold' AND column_name='topology') THEN
-        ALTER TABLE solved_spots_gold ADD COLUMN topology TEXT NOT NULL CHECK (topology IN ('HU', '3-Max', '6-Max', '9-Max'));
+        ALTER TABLE solved_spots_gold ADD COLUMN topology TEXT NOT NULL DEFAULT 'HU' CHECK (topology IN ('HU', '3-Max', '6-Max', '9-Max'));
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='memory_charts_gold' AND column_name='topology') THEN
         ALTER TABLE memory_charts_gold ADD COLUMN topology TEXT;
