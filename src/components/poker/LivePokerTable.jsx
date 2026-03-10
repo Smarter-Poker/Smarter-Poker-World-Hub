@@ -3359,18 +3359,35 @@ function ResultOverlay({ result, send, userId }) {
 
       {/* Show Cards — voluntary reveal after fold win */}
       {isWinner && send && !cardsShown && (
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => { send('show_cards', {}); setCardsShown(true); }}
-          style={{
-            marginTop: 8, padding: '6px 16px', background: 'rgba(33,150,243,0.3)',
-            border: '1px solid #2196F3', borderRadius: 8, color: '#fff',
-            fontSize: 12, fontWeight: 700, cursor: 'pointer',
-          }}
-        >
-          👁️ Show Cards
-        </motion.button>
+        <div style={{ display: 'flex', gap: 6, marginTop: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => { send('show_cards', {}); setCardsShown(true); }}
+            style={{
+              padding: '6px 14px', background: 'rgba(33,150,243,0.3)',
+              border: '1px solid #2196F3', borderRadius: 8, color: '#fff',
+              fontSize: 11, fontWeight: 700, cursor: 'pointer',
+            }}
+          >
+            👁️ Show All
+          </motion.button>
+          {myCards && myCards.length >= 2 && myCards.map((_, idx) => (
+            <motion.button
+              key={idx}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => { send('show_one_card', { cardIndex: idx }); setCardsShown(true); }}
+              style={{
+                padding: '6px 12px', background: 'rgba(255,152,0,0.2)',
+                border: '1px solid #FF9800', borderRadius: 8, color: '#fff',
+                fontSize: 11, fontWeight: 700, cursor: 'pointer',
+              }}
+            >
+              Show #{idx + 1}
+            </motion.button>
+          ))}
+        </div>
       )}
       {cardsShown && (
         <div style={{ marginTop: 6, color: '#4caf50', fontSize: 11, fontWeight: 600 }}>

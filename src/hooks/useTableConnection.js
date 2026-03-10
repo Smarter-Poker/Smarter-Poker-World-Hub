@@ -211,6 +211,14 @@ export function useTableConnection({ supabase, tableId, userId }) {
         break;
       case 'action_processed':
         if (String(data.playerId) === String(userId)) setLegalActions(null);
+        // Dealer message for dramatic actions
+        if (data.action === 'all_in' || (data.action === 'raise' && data.isAllIn)) {
+          setChatMessages(prev => [...prev.slice(-100), {
+            type: 'dealer',
+            text: `${data.displayName || 'Player'} is ALL-IN${data.amount ? ` for ${data.amount.toLocaleString()}` : ''}!`,
+            ts: Date.now(),
+          }]);
+        }
         requestState();
         break;
       case 'timer_update':
@@ -352,6 +360,15 @@ export function useTableConnection({ supabase, tableId, userId }) {
         requestState();
         break;
       case 'cards_shown':
+        requestState();
+        break;
+      case 'card_shown':
+        // Single card reveal — dealer message + state refresh
+        setChatMessages(prev => [...prev.slice(-100), {
+          type: 'dealer',
+          text: `${data.displayName || 'Player'} shows a card`,
+          ts: Date.now(),
+        }]);
         requestState();
         break;
       case 'player_auto_removed':
@@ -551,6 +568,7 @@ export function useTableConnection({ supabase, tableId, userId }) {
       case 'decline_insurance': return _post('action', { tableId, playerId: userId, type: 'decline_insurance' });
       case 'respond_run_it': return _post('seat', { tableId, playerId: userId, action: 'respond_run_it', choice: payload.choice });
       case 'show_cards': return _post('seat', { tableId, playerId: userId, action: 'show_cards' });
+      case 'show_one_card': return _post('seat', { tableId, playerId: userId, action: 'show_one_card', cardIndex: payload.cardIndex });
       case 'kick_player': return _post('seat', { tableId, playerId: userId, action: 'kick_player', targetPlayerId: payload.targetPlayerId, role: payload.role, reason: payload.reason });
       case 'invite_player': return _post('seat', { tableId, playerId: userId, action: 'invite_player', targetPlayerId: payload.targetPlayerId });
       case 'approve_buyin': return _post('seat', { tableId, playerId: userId, action: 'approve_buyin', targetPlayerId: payload.targetPlayerId });

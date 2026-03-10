@@ -2294,6 +2294,30 @@ class GameStateMachine {
   }
 
   /**
+   * Voluntarily show ONE specific card (tease after winning without showdown).
+   * @param {string|number} playerId
+   * @param {number} cardIndex — index into holeCards array (0 or 1 for holdem)
+   */
+  showOneCard(playerId, cardIndex) {
+    if (!this.currentHand) return { success: false, error: 'No active hand' };
+    const player = this.currentHand.players.find(p => String(p.id) === String(playerId));
+    if (!player) return { success: false, error: 'Player not in hand' };
+    if (!player.holeCards || player.holeCards.length === 0) return { success: false, error: 'No cards to show' };
+    if (cardIndex < 0 || cardIndex >= player.holeCards.length) return { success: false, error: 'Invalid card index' };
+
+    // Track which individual cards are revealed
+    if (!player.shownCardIndices) player.shownCardIndices = new Set();
+    player.shownCardIndices.add(cardIndex);
+
+    this.emit('card_shown', {
+      playerId,
+      cardIndex,
+      card: player.holeCards[cardIndex],
+    });
+    return { success: true };
+  }
+
+  /**
    * Get legal actions for the current player.
    * @returns {{ playerId: string|number, actions: Array }|null}
    */

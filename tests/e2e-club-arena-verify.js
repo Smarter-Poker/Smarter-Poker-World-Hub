@@ -124,6 +124,24 @@ c('Sit Out Next BB: state exists', () => fs.readFileSync('src/components/poker/L
 c('Sit Out Next BB: button in TableInfoBar', () => fs.readFileSync('src/components/poker/LivePokerTable.jsx', 'utf8').includes("Out@BB"));
 c('Sit Out Next BB: auto-sit-out on result', () => fs.readFileSync('src/components/poker/LivePokerTable.jsx', 'utf8').includes('sitOutNextBB || !result'));
 
+// PHASE 2: Scheduled Tables
+c('Scheduled tables SQL migration', () => fs.existsSync('supabase/migrations/20260310231000_scheduled_tables.sql'));
+c('Scheduled tables cron endpoint', () => fs.existsSync('pages/api/cron/scheduled-table-opener.js'));
+c('Cron checks schedule_days', () => fs.readFileSync('pages/api/cron/scheduled-table-opener.js', 'utf8').includes('schedule_days'));
+c('Vercel cron includes scheduled-table-opener', () => fs.readFileSync('vercel.json', 'utf8').includes('scheduled-table-opener'));
+c('Table-templates API has schedule action', () => fs.readFileSync('pages/api/club-arena/table-templates.js', 'utf8').includes("case 'schedule'"));
+
+// PHASE 2: Show One Card
+c('Engine: showOneCard method', () => fs.readFileSync('src/lib/poker-engine/GameStateMachine.js', 'utf8').includes('showOneCard(playerId, cardIndex)'));
+c('Engine: card_shown event', () => fs.readFileSync('src/lib/poker-engine/GameStateMachine.js', 'utf8').includes("emit('card_shown'"));
+c('Hook: show_one_card action', () => fs.readFileSync('src/hooks/useTableConnection.js', 'utf8').includes("'show_one_card'"));
+c('Hook: card_shown handler', () => fs.readFileSync('src/hooks/useTableConnection.js', 'utf8').includes("case 'card_shown'"));
+c('UI: Show One buttons', () => fs.readFileSync('src/components/poker/LivePokerTable.jsx', 'utf8').includes("Show #"));
+c('UI: Show All + Show One', () => fs.readFileSync('src/components/poker/LivePokerTable.jsx', 'utf8').includes('Show All'));
+
+// PHASE 2: All-In dealer message
+c('Dealer chat: all-in message', () => fs.readFileSync('src/hooks/useTableConnection.js', 'utf8').includes('ALL-IN'));
+
 console.log();
 console.log('═══════════════════════════════════');
 console.log(pass + '/' + total);

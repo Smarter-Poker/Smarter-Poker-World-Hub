@@ -115,6 +115,28 @@ export default async function handler(req, res) {
                 return res.status(200).json({ success: true });
             }
 
+            case 'schedule': {
+                // Set/update/toggle schedule for a template
+                const { scheduleEnabled, scheduleDays, scheduleTime, scheduleTimezone } = req.body;
+                if (!templateId) return res.status(400).json({ error: 'templateId required' });
+
+                const updates = {};
+                if (scheduleEnabled !== undefined) updates.schedule_enabled = !!scheduleEnabled;
+                if (Array.isArray(scheduleDays)) updates.schedule_days = scheduleDays.filter(d => d >= 0 && d <= 6);
+                if (scheduleTime !== undefined) updates.schedule_time = scheduleTime; // 'HH:MM' or null
+                if (scheduleTimezone) updates.schedule_timezone = scheduleTimezone;
+                updates.updated_at = new Date().toISOString();
+
+                const { error: schedErr } = await supabaseAdmin
+                    .from('table_templates')
+                    .update(updates)
+                    .eq('id', templateId)
+                    .eq('club_id', clubId);
+
+                if (schedErr) throw schedErr;
+                return res.status(200).json({ success: true });
+            }
+
             default:
                 return res.status(400).json({ error: `Unknown action: ${action}` });
         }
