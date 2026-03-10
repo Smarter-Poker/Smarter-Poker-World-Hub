@@ -673,7 +673,6 @@ export default function ClubMessages() {
     useTrainingBus('club-arena-messages');
     usePullToRefresh({ onRefresh: () => loadConversations?.() });
     const router = useRouter();
-    if (!router.isReady) return null;
     const { club: clubIdParam } = router.query;
     const messagesEndRef = useRef(null);
     const outgoingRingToneRef = useRef(null);
@@ -1791,6 +1790,8 @@ export default function ClubMessages() {
         emptyIcon: { fontSize: 48, marginBottom: 16 },
         iconBtn: { width: 36, height: 36, borderRadius: '50%', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' },
     };
+
+    if (!router.isReady) return null;
 
     if (!clubIdParam) {
         return (

@@ -11,6 +11,7 @@ import { notifyUser, notifyClubMembers } from '../../../src/lib/club-arena/notif
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 const { runStandardGuards, validateUUID, sanitizeInt, sanitizeFloat } = require('../../../src/lib/club-arena/redteam-validation');
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
+const crypto = require('crypto');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -519,10 +520,30 @@ export default async function handler(req, res) {
           // Start the engine tournament
           await controller.startTournament(tournamentId);
 
-          // Engine started successfully — NOW mark running in DB
+          // ═══════════════════════════════════════════════════════
+          // GTD OVERLAY MATH [Improvement #4]
+          // ═══════════════════════════════════════════════════════
+          const gtdAmount = parseFloat(tourn.settings?.gtd_amount || tourn.guaranteed_prize || 0);
+          const totalBuyins = (tourn.buy_in || 0) * tourn.registered_count;
+          let overlayAmount = 0;
+          let finalPrizePool = totalBuyins;
+
+          if (gtdAmount > 0 && totalBuyins < gtdAmount) {
+              overlayAmount = gtdAmount - totalBuyins;
+              finalPrizePool = gtdAmount;
+              console.log(`[Tournament] GTD Overlay detected for ${tournamentId}: $${overlayAmount} (GTD: $${gtdAmount}, Buyins: $${totalBuyins})`);
+              // Note: Future enhancement could deduct `overlayAmount` from club's treasury here.
+          }
+
+          // Engine started successfully — NOW mark running in DB, and store prize pool/overlay
           await supabaseAdmin
             .from('club_tournaments')
-            .update({ status: 'running', started_at: new Date().toISOString() })
+            .update({ 
+               status: 'running', 
+               started_at: new Date().toISOString(),
+               prize_pool: finalPrizePool,
+               settings: { ...(tourn.settings || {}), overlay_amount: overlayAmount }
+            })
             .eq('id', tournamentId);
 
         } catch (engineErr) {
@@ -747,7 +768,7 @@ export default async function handler(req, res) {
         ];
 
         const totalWeight = multiplierTable.reduce((s, e) => s + e.weight, 0);
-        let roll = Math.floor(Math.random() * totalWeight);
+        let roll = crypto.randomInt(0, totalWeight);
         let drawnMultiplier = 2; // fallback
         for (const entry of multiplierTable) {
           roll -= entry.weight;
