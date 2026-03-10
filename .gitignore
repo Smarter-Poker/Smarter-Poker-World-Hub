@@ -44,3 +44,6 @@ public/workbox-*.js.map
 
 # Deploy audit trail
 logs/
+
+# Next.js build artifacts
+public/worker-*.js
