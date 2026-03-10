@@ -35,6 +35,7 @@ import React, { useState, useEffect } from 'react';
 import { getGameStickers } from '../../lib/stickerOrchestrator';
 import { resolveAvatarDisplay } from '../../lib/resolveAvatarDisplay';
 import { Z_INDEX } from '../../lib/zIndexAuthority';
+import TableMiniView from './TableMiniView';
 
 // ── Global keyframe injection (once, not per-card) ──────────────────
 let _kfInjected = false;
@@ -235,7 +236,7 @@ function MiniSeatMap({ current, max, accentColor, tableId }) {
 // ─────────────────────────────────────────────────────────────────────
 // CASH GAME CARD — Vertical Poker Table
 // ─────────────────────────────────────────────────────────────────────
-function CashCard({ table: t, assetMap, onPress, avgVpip }) {
+function CashCard({ table: t, assetMap, onPress, avgVpip, miniState }) {
   const vc = VC[t.game_variant] || DV;
   const sb = t.small_blind ?? 0;
   const bb = t.big_blind ?? 0;
@@ -277,45 +278,53 @@ function CashCard({ table: t, assetMap, onPress, avgVpip }) {
         </div>
       </div>
 
-      {/* ── POKER TABLE IMAGE (vertical) ── */}
+      {/* ── POKER TABLE — live mini-view when active, static image when idle ── */}
       <div style={S.tableContainer}>
-        <img
-          src="/images/poker-table-vertical-nobg.png"
-          alt="Poker Table"
-          style={S.tableImage}
-        />
+        {isLive && miniState && miniState.phase !== 'idle' ? (
+          /* LIVE MINI-VIEW — PokerBros-style live table thumbnail */
+          <TableMiniView miniState={miniState} maxSeats={max} />
+        ) : (
+          /* STATIC TABLE IMAGE (vertical) */
+          <>
+            <img
+              src="/images/poker-table-vertical-nobg.png"
+              alt="Poker Table"
+              style={S.tableImage}
+            />
 
-        {/* Overlay: Game info centered on the table */}
-        <div style={S.tableOverlay}>
-          {/* Table name (subtle, at top of table area) */}
-          {!!tableName && (
-            <div style={S.overlayTableName}>
-              {tableName.length > 14 ? tableName.slice(0, 14) + '…' : tableName}
+            {/* Overlay: Game info centered on the table */}
+            <div style={S.tableOverlay}>
+              {/* Table name (subtle, at top of table area) */}
+              {!!tableName && (
+                <div style={S.overlayTableName}>
+                  {tableName.length > 14 ? tableName.slice(0, 14) + '…' : tableName}
+                </div>
+              )}
+
+              {/* Game type */}
+              <div style={{ ...S.overlayGameType, color: vc.color }}>
+                {vc.label}
+              </div>
+
+              {/* Blinds — the hero value */}
+              <div style={{ ...S.overlayBlinds, color: vc.color }}>
+                {fmtBlind(sb)}/{fmtBlind(bb)}
+              </div>
+
+              {/* Buy-in range */}
+              {buyRange && (
+                <div style={S.overlayBuyRange}>
+                  {buyRange}
+                </div>
+              )}
             </div>
-          )}
 
-          {/* Game type */}
-          <div style={{ ...S.overlayGameType, color: vc.color }}>
-            {vc.label}
-          </div>
-
-          {/* Blinds — the hero value */}
-          <div style={{ ...S.overlayBlinds, color: vc.color }}>
-            {fmtBlind(sb)}/{fmtBlind(bb)}
-          </div>
-
-          {/* Buy-in range */}
-          {buyRange && (
-            <div style={S.overlayBuyRange}>
-              {buyRange}
+            {/* Mini avatar seats below the table */}
+            <div style={S.seatMapRow}>
+              <MiniSeatMap current={cur} max={max} accentColor={vc.accent} tableId={t.id} />
             </div>
-          )}
-        </div>
-
-        {/* Mini avatar seats below the table */}
-        <div style={S.seatMapRow}>
-          <MiniSeatMap current={cur} max={max} accentColor={vc.accent} tableId={t.id} />
-        </div>
+          </>
+        )}
       </div>
 
       {/* Sticker icons */}
@@ -507,7 +516,7 @@ function TournamentCard({ tournament: t, assetMap, onPress, onQuickRegister }) {
 // ─────────────────────────────────────────────────────────────────────
 // EXPORT
 // ─────────────────────────────────────────────────────────────────────
-export default function GameCard({ game, assetMap = {}, onPress, avgVpip, onQuickRegister }) {
+export default function GameCard({ game, assetMap = {}, onPress, avgVpip, onQuickRegister, miniState }) {
   if (!game) return null;
   const isTournament =
     game.game_type === 'tournament' || game.game_type === 'sng' || game.game_type === 'mtt' ||
@@ -515,7 +524,7 @@ export default function GameCard({ game, assetMap = {}, onPress, avgVpip, onQuic
     game.registered_count != null;
   return isTournament
     ? <TournamentCard tournament={game} assetMap={assetMap} onPress={onPress} onQuickRegister={onQuickRegister} />
-    : <CashCard table={game} assetMap={assetMap} onPress={onPress} avgVpip={avgVpip} />;
+    : <CashCard table={game} assetMap={assetMap} onPress={onPress} avgVpip={avgVpip} miniState={miniState} />;
 }
 
 // ─────────────────────────────────────────────────────────────────────

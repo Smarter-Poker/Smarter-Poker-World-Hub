@@ -3,7 +3,7 @@
    Shows club info, tables, tournaments, and club navigation
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { usePersistedFilters } from '../../../src/hooks/usePersistedFilters';
@@ -28,6 +28,7 @@ import { apiCall, apiGet, getAuthToken } from '../../../src/lib/club-arena/apiCl
 import LobbyStatsBar from '../../../src/components/club-arena/LobbyStatsBar';
 import { haptic } from '../../../src/lib/club-arena/haptic';
 import { usePullToRefresh } from '../../../src/hooks/usePullToRefresh';
+import useMiniStatePoller from '../../../src/hooks/useMiniStatePoller';
 
 // Dynamic imports — GameCard + DynamicWallet use browser APIs, must be client-only
 const GameCard = dynamic(
@@ -50,6 +51,9 @@ const LiveActionTicker = dynamic(
 export default function ClubLobby() {
     useTrainingBus('club-arena-lobby');
     usePullToRefresh({ onRefresh: () => loadClubData?.() });
+
+    // ── Live Table Mini-State Poller ──
+    const { miniStates, observerRef } = useMiniStatePoller();
 
     const router = useRouter();
     const clubIdParam = router.query?.club || null;
@@ -848,12 +852,14 @@ export default function ClubLobby() {
                                         marginBottom: 16,
                                     }}>
                                         {filteredTables.map(table => (
-                                            <GameCard
-                                                key={table.id}
-                                                game={table}
-                                                assetMap={stickerAssetMap}
-                                                onPress={() => router.push(`/hub/club-arena/table/${table.id}`)}
-                                            />
+                                            <div key={table.id} ref={el => observerRef(table.id, el)}>
+                                                <GameCard
+                                                    game={table}
+                                                    assetMap={stickerAssetMap}
+                                                    onPress={() => router.push(`/hub/club-arena/table/${table.id}`)}
+                                                    miniState={miniStates.get(table.id)}
+                                                />
+                                            </div>
                                         ))}
                                     </div>
                                 )}
