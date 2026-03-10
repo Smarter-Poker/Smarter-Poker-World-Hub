@@ -2030,6 +2030,52 @@ export default function ClubMessages() {
                 </div>
 
                 {/* P3-1: Filter Tabs */}
+
+                {/* P3-8: Global Search Panel */}
+                {showGlobalSearch && (
+                    <div style={{ padding: '8px 16px', background: C.card, borderBottom: `1px solid ${C.border}` }}>
+                        <input type="text" placeholder="Search all messages..." value={globalSearchQuery}
+                            onChange={async (e) => {
+                                const q = e.target.value;
+                                setGlobalSearchQuery(q);
+                                if (q.length < 2) { setGlobalSearchResults([]); return; }
+                                setGlobalSearchLoading(true);
+                                try {
+                                    const searchToken = getAccessToken();
+                                    const resp = await fetch('/api/messenger/global-search', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json', ...(searchToken ? { Authorization: `Bearer ${searchToken}` } : {}) },
+                                        body: JSON.stringify({ query: q, clubId: clubIdParam })
+                                    });
+                                    const data = await resp.json();
+                                    if (data.success) setGlobalSearchResults(data.results || []);
+                                } catch (e) { console.error('Global search failed:', e); }
+                                setGlobalSearchLoading(false);
+                            }}
+                            autoFocus style={{ width: '100%', padding: '10px 16px', borderRadius: 24, border: 'none', background: C.hoverBg, color: C.text, fontSize: 14, outline: 'none' }} />
+                        {globalSearchLoading && <div style={{ textAlign: 'center', color: C.textSec, fontSize: 13, padding: 8 }}>Searching...</div>}
+                        {globalSearchResults.length > 0 && (
+                            <div style={{ marginTop: 8, maxHeight: 300, overflowY: 'auto' }}>
+                                {globalSearchResults.map(r => (
+                                    <div key={r.id} onClick={() => {
+                                        const conv = conversations.find(c => c.id === r.conversation_id);
+                                        if (conv) { openConversation(conv); setShowGlobalSearch(false); setGlobalSearchQuery(''); setGlobalSearchResults([]); }
+                                    }} style={{ padding: '8px 12px', borderRadius: 8, cursor: 'pointer', marginBottom: 2, background: C.hoverBg }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                                            <Avatar src={r.sender?.avatar_url} name={r.sender?.username} size={20} />
+                                            <span style={{ fontSize: 12, fontWeight: 600, color: r.isOwn ? C.blue : C.text }}>{r.isOwn ? 'You' : r.sender?.display_name || r.sender?.username}</span>
+                                            <span style={{ fontSize: 11, color: C.textSec }}>{timeAgo(r.created_at)}</span>
+                                        </div>
+                                        <div style={{ fontSize: 13, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.content?.slice(0, 80)}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        {!globalSearchLoading && globalSearchQuery.length >= 2 && globalSearchResults.length === 0 && (
+                            <div style={{ textAlign: 'center', color: C.textSec, fontSize: 13, padding: 8 }}>No messages found</div>
+                        )}
+                    </div>
+                )}
                 <div style={{ display: 'flex', padding: '0 16px', gap: 8, borderBottom: `1px solid ${C.border}` }}>
                     {[{ label: 'All', key: 'all' }, { label: 'Unread', key: 'unread' }, { label: 'Archived', key: 'archived' }].map(tab => {
                         const isActive = tab.key === 'archived' ? showArchived : tab.key === 'unread' ? showUnreadOnly && !showArchived : !showUnreadOnly && !showArchived;

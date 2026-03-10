@@ -186,6 +186,14 @@ export default function Admin() {
     const [templatesLoading, setTemplatesLoading] = useState(false);
     const [saveTemplateName, setSaveTemplateName] = useState('');
     const [showSaveTemplate, setShowSaveTemplate] = useState(false);
+
+    // Analytics Dashboard state
+    const [analytics, setAnalytics] = useState(null);
+    const [analyticsLoading, setAnalyticsLoading] = useState(false);
+    const [showRakeReport, setShowRakeReport] = useState(false);
+    const [rakeReport, setRakeReport] = useState(null);
+    const [rakeReportPeriod, setRakeReportPeriod] = useState('7d');
+    const [rakeReportLoading, setRakeReportLoading] = useState(false);
     const showToast = (message, type = 'success') => {
         setToast({ message, type });
         setTimeout(() => setToast(null), 3000);
@@ -937,6 +945,63 @@ export default function Admin() {
                             <HubErrorBoundary name="AnnouncementsBanner">
                                 <ClubAnnouncementBanner clubId={clubIdParam} userRole={currentMemberForUI?.role} />
                             </HubErrorBoundary>
+
+                            {/* ═══ Analytics Dashboard Widget ═══ */}
+                            {analytics && (
+                                <div style={{
+                                    background: FB.cardBg, borderRadius: 12, padding: '16px 18px',
+                                    border: `1px solid ${FB.border}`, marginBottom: 16,
+                                }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                                        <span style={{ fontSize: 13, fontWeight: 700, color: FB.textSecondary, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Live Dashboard</span>
+                                        <button
+                                            onClick={() => { setShowRakeReport(true); loadRakeReport(); }}
+                                            style={{ background: 'rgba(35,116,225,0.12)', border: '1px solid rgba(35,116,225,0.3)', borderRadius: 6, color: FB.primary, fontSize: 11, fontWeight: 700, padding: '4px 10px', cursor: 'pointer' }}
+                                        >📊 Rake Report</button>
+                                    </div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 12 }}>
+                                        <div style={{ background: FB.background, borderRadius: 8, padding: '10px 12px', textAlign: 'center' }}>
+                                            <div style={{ fontSize: 20, fontWeight: 700, color: FB.success }}>{(analytics.todayRake || 0).toLocaleString()}</div>
+                                            <div style={{ fontSize: 10, color: FB.textSecondary, marginTop: 2, textTransform: 'uppercase' }}>Today Rake</div>
+                                            {analytics.rakeChange !== 0 && (
+                                                <div style={{ fontSize: 10, fontWeight: 700, color: analytics.rakeChange > 0 ? FB.success : FB.danger, marginTop: 2 }}>
+                                                    {analytics.rakeChange > 0 ? '▲' : '▼'} {Math.abs(analytics.rakeChange)}% vs yesterday
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div style={{ background: FB.background, borderRadius: 8, padding: '10px 12px', textAlign: 'center' }}>
+                                            <div style={{ fontSize: 20, fontWeight: 700, color: FB.primary }}>{analytics.seatedNow || 0}</div>
+                                            <div style={{ fontSize: 10, color: FB.textSecondary, marginTop: 2, textTransform: 'uppercase' }}>Seated Now</div>
+                                            <div style={{ fontSize: 10, color: FB.textSecondary, marginTop: 2 }}>{analytics.uniquePlayers24h || 0} unique 24h</div>
+                                        </div>
+                                        <div style={{ background: FB.background, borderRadius: 8, padding: '10px 12px', textAlign: 'center' }}>
+                                            <div style={{ fontSize: 20, fontWeight: 700, color: '#0EA5E9' }}>{analytics.activeTables || 0}</div>
+                                            <div style={{ fontSize: 10, color: FB.textSecondary, marginTop: 2, textTransform: 'uppercase' }}>Active Tables</div>
+                                            <div style={{ fontSize: 10, color: FB.textSecondary, marginTop: 2 }}>{analytics.totalMembers || 0} members</div>
+                                        </div>
+                                    </div>
+                                    {/* 7-day Sparkline */}
+                                    {analytics.sparkline && analytics.sparkline.some(v => v > 0) && (
+                                        <div style={{ background: FB.background, borderRadius: 8, padding: '10px 14px' }}>
+                                            <div style={{ fontSize: 10, color: FB.textSecondary, marginBottom: 6, textTransform: 'uppercase', fontWeight: 700 }}>7-Day Rake Trend</div>
+                                            <svg viewBox="0 0 200 40" style={{ width: '100%', height: 40 }}>
+                                                {(() => {
+                                                    const data = analytics.sparkline;
+                                                    const max = Math.max(...data, 1);
+                                                    const points = data.map((v, i) => `${(i / (data.length - 1)) * 196 + 2},${38 - (v / max) * 34}`).join(' ');
+                                                    return (
+                                                        <>
+                                                            <polyline points={points} fill="none" stroke="#31A24C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                            <polyline points={`2,38 ${points} 198,38`} fill="url(#sparkGrad)" opacity="0.3" />
+                                                            <defs><linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#31A24C" /><stop offset="100%" stopColor="transparent" /></linearGradient></defs>
+                                                        </>
+                                                    );
+                                                })()}
+                                            </svg>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             {/* ═══ Quick Actions Bar ═══ */}
                             <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
