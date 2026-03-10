@@ -29,7 +29,10 @@ const RETENTION_DEFAULTS = {
     first_deposit_max: 5000,     // Max bonus cap
 };
 
+const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 export default async function handler(req, res) {
+    // Rate limit
+    if (await applyRateLimit(req, res)) return;
     if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
     const token = req.headers.authorization?.replace('Bearer ', '');

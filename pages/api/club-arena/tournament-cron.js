@@ -9,7 +9,10 @@ const supabase = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 export default async function handler(req, res) {
+    // Rate limit
+    if (await applyRateLimit(req, res)) return;
     // Only allow GET (cron) or POST with secret
     const cronSecret = process.env.CRON_SECRET;
     const authHeader = req.headers.authorization;

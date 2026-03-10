@@ -22,7 +22,10 @@ const supabaseAdmin = createClient(
 
 const DEFAULT_PRESETS = [1000, 5000, 10000, 25000, 50000];
 
+const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 export default async function handler(req, res) {
+    // Rate limit
+    if (await applyRateLimit(req, res)) return;
     if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
     const token = req.headers.authorization?.replace('Bearer ', '');
