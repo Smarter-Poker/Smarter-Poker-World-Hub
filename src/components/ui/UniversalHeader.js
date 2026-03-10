@@ -948,8 +948,8 @@ export default function UniversalHeader({
 
                     {/* VIP Card Icon — only for VIP members */}
                     {isVipDisplay && (
-                        <Link href="/hub/diamond-store" style={{ textDecoration: 'none' }}>
-                            <div className="orb-btn" style={{ borderRadius: 6, border: '2px solid rgba(200, 200, 200, 0.8)', boxShadow: '0 0 6px rgba(200, 200, 200, 0.4)' }}>
+                        <div className="orb-btn" style={{ borderRadius: 6, border: '2px solid rgba(200, 200, 200, 0.8)', boxShadow: '0 0 6px rgba(200, 200, 200, 0.4)' }}>
+                            <Link href="/hub/diamond-store" style={{ textDecoration: 'none', display: 'flex', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
                                 <img
                                     src="/images/vip-card.png"
                                     alt="VIP Member"
@@ -964,54 +964,54 @@ export default function UniversalHeader({
                                         transform: 'translate(-50%, -50%)',
                                     }}
                                 />
-                            </div>
-                        </Link>
+                            </Link>
+                        </div>
                     )}
 
                     {/* Avatar/Profile */}
-                    <Link href="/hub/profile" style={{ textDecoration: 'none' }}>
-                        <div
-                            className="profile-orb"
-                            style={{
-                                background: displayAvatar
-                                    ? `url(${displayAvatar}) center/cover`
-                                    : 'linear-gradient(135deg, rgba(0, 136, 255, 0.3) 0%, rgba(0, 245, 255, 0.15) 100%)',
-                                ...(isVipDisplay ? {
-                                    border: '2px solid #00E0FF',
-                                    boxShadow: '0 0 8px rgba(0, 224, 255, 0.6), 0 0 16px rgba(0, 224, 255, 0.3)',
-                                } : {})
-                            }}
-                        >
+                    <div
+                        className="profile-orb"
+                        style={{
+                            background: displayAvatar
+                                ? `url(${displayAvatar}) center/cover`
+                                : 'linear-gradient(135deg, rgba(0, 136, 255, 0.3) 0%, rgba(0, 245, 255, 0.15) 100%)',
+                            ...(isVipDisplay ? {
+                                border: '2px solid #00E0FF',
+                                boxShadow: '0 0 8px rgba(0, 224, 255, 0.6), 0 0 16px rgba(0, 224, 255, 0.3)',
+                            } : {})
+                        }}
+                    >
+                        <Link href="/hub/profile" style={{ textDecoration: 'none', display: 'flex', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
                             {!displayAvatar && '👤'}
-                        </div>
-                    </Link>
+                        </Link>
+                    </div>
 
                     {/* Messages - Custom Metallic Messenger icon */}
-                    <Link href="/hub/messenger" style={{ textDecoration: 'none' }}>
-                        <div className="orb-btn">
+                    <div className="orb-btn">
+                        <Link href="/hub/messenger" style={{ textDecoration: 'none', display: 'flex', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
                             <img src="/images/header-messenger.png" alt="Messages" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '55%', left: '50%', transform: 'translate(-50%, -50%)' }} />
                             {unreadCount > 0 && (
                                 <span className="orb-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
                             )}
-                        </div>
-                    </Link>
+                        </Link>
+                    </div>
 
                     {/* Notifications - Custom Metallic Bell icon */}
-                    <Link href="/hub/notifications" style={{ textDecoration: 'none' }}>
-                        <div className="orb-btn">
+                    <div className="orb-btn">
+                        <Link href="/hub/notifications" style={{ textDecoration: 'none', display: 'flex', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
                             <img src="/images/header-notifications.png" alt="Notifications" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '60%', left: '50%', transform: 'translate(-50%, -50%)' }} />
                             {notificationCount > 0 && (
                                 <span className="orb-badge">{notificationCount > 99 ? '99+' : notificationCount}</span>
                             )}
-                        </div>
-                    </Link>
+                        </Link>
+                    </div>
 
                     {/* Settings - Custom Metallic Gear icon */}
-                    <Link href="/hub/settings" style={{ textDecoration: 'none' }}>
-                        <div className="orb-btn">
+                    <div className="orb-btn">
+                        <Link href="/hub/settings" style={{ textDecoration: 'none', display: 'flex', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
                             <img src="/images/header-settings.png" alt="Settings" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '55%', left: '50%', transform: 'translate(-50%, -50%)' }} />
-                        </div>
-                    </Link>
+                        </Link>
+                    </div>
 
                     {/* Live Help - Hidden on mobile */}
                     <button
