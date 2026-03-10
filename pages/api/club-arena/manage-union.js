@@ -457,6 +457,6 @@ export default async function handler(req, res) {
     return res.status(400).json({ success: false, error: `Unknown action: ${action}` });
   } catch (err) {
     console.error('[manage-union]', err);
-    return res.status(500).json({ success: false, error: 'Union management failed', details: err.message });
+    return res.status(500).json({ success: false, error: 'Union management failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
   }
 }

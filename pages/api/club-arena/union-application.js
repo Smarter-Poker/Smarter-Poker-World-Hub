@@ -291,6 +291,6 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.error('[union-application]', err);
-    return res.status(500).json({ success: false, error: err.message || 'Server error' });
+    return res.status(500).json({ success: false, error: 'Server error' });
   }
 }

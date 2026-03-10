@@ -741,6 +741,6 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.error('[settle-period]', err);
-    return res.status(500).json({ success: false, error: 'Settlement action failed', details: err.message });
+    return res.status(500).json({ success: false, error: 'Settlement action failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
   }
 }

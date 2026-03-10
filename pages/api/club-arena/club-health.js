@@ -198,7 +198,7 @@ export default async function handler(req, res) {
                 },
             });
         } catch (err) {
-            return res.status(500).json({ error: 'Health score failed', details: err.message });
+            return res.status(500).json({ error: 'Health score failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
         }
     }
 

@@ -123,7 +123,7 @@ export default async function handler(req, res) {
                 config: retConfig,
             });
         } catch (err) {
-            return res.status(500).json({ error: 'Scan failed', details: err.message });
+            return res.status(500).json({ error: 'Scan failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
         }
     }
 
@@ -179,7 +179,7 @@ export default async function handler(req, res) {
 
             return res.status(200).json({ success: true, amount: promoAmount, playerId });
         } catch (err) {
-            return res.status(500).json({ error: 'Welcome-back failed', details: err.message });
+            return res.status(500).json({ error: 'Welcome-back failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
         }
     }
 
@@ -208,7 +208,7 @@ export default async function handler(req, res) {
 
             return res.status(200).json({ success: true, config: newRetention });
         } catch (err) {
-            return res.status(500).json({ error: 'Config update failed', details: err.message });
+            return res.status(500).json({ error: 'Config update failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
         }
     }
 

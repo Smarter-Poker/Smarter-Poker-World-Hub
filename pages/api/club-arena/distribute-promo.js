@@ -210,6 +210,6 @@ export default async function handler(req, res) {
     }
   } catch (err) {
     console.error('[distribute-promo]', err);
-    return res.status(500).json({ error: 'Internal error', details: err.message });
+    return res.status(500).json({ error: 'Internal error', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
   }
 }

@@ -118,6 +118,6 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: `Unknown action: ${action}` });
     } catch (err) {
         console.error('[club-branding]', err);
-        return res.status(500).json({ error: err.message || 'Internal error' });
+        return res.status(500).json({ error: 'Internal error' });
     }
 }

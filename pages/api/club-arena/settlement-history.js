@@ -98,7 +98,7 @@ export default async function handler(req, res) {
 
             return res.status(200).json({ success: true, processed: results.length, results });
         } catch (err) {
-            return res.status(500).json({ error: 'Auto-close failed', details: err.message });
+            return res.status(500).json({ error: 'Auto-close failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
         }
     }
 
@@ -170,7 +170,7 @@ export default async function handler(req, res) {
                 autoSettlement: club?.settings?.auto_settlement_enabled || false,
             });
         } catch (err) {
-            return res.status(500).json({ error: 'Failed to fetch history', details: err.message });
+            return res.status(500).json({ error: 'Failed to fetch history', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
         }
     }
 
@@ -201,7 +201,7 @@ export default async function handler(req, res) {
 
             return res.status(200).json({ success: true, autoSettlement: newEnabled });
         } catch (err) {
-            return res.status(500).json({ error: 'Toggle failed', details: err.message });
+            return res.status(500).json({ error: 'Toggle failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
         }
     }
 
@@ -244,7 +244,7 @@ export default async function handler(req, res) {
                 count: preview.length,
             });
         } catch (err) {
-            return res.status(500).json({ error: 'Preview failed', details: err.message });
+            return res.status(500).json({ error: 'Preview failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
         }
     }
 

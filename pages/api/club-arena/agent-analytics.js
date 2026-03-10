@@ -92,7 +92,7 @@ export default async function handler(req, res) {
                 },
             });
         } catch (err) {
-            return res.status(500).json({ error: 'Pulse failed', details: err.message });
+            return res.status(500).json({ error: 'Pulse failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
         }
     }
 
@@ -135,7 +135,7 @@ export default async function handler(req, res) {
 
             return res.status(200).json({ success: true, heatMap });
         } catch (err) {
-            return res.status(500).json({ error: 'Heat map failed', details: err.message });
+            return res.status(500).json({ error: 'Heat map failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
         }
     }
 
@@ -196,7 +196,7 @@ export default async function handler(req, res) {
 
             return res.status(200).json({ success: true, leaderboard, periodDays: days });
         } catch (err) {
-            return res.status(500).json({ error: 'Leaderboard failed', details: err.message });
+            return res.status(500).json({ error: 'Leaderboard failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
         }
     }
 
@@ -230,7 +230,7 @@ export default async function handler(req, res) {
 
             return res.status(200).json({ success: true, trends: trendData });
         } catch (err) {
-            return res.status(500).json({ error: 'Trends failed', details: err.message });
+            return res.status(500).json({ error: 'Trends failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
         }
     }
 

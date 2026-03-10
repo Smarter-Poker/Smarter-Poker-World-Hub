@@ -115,6 +115,6 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     console.error('[record-rake]', err);
-    return res.status(500).json({ success: false, error: 'Rake recording failed', details: err.message });
+    return res.status(500).json({ success: false, error: 'Rake recording failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
   }
 }

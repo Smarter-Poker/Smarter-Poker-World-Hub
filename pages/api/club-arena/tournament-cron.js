@@ -212,7 +212,7 @@ export default async function handler(req, res) {
         return res.json({ success: true, ...results });
     } catch (err) {
         console.error('[TournCron] Fatal:', err.message);
-        return res.status(500).json({ success: false, error: err.message });
+        return res.status(500).json({ success: false, error: 'Tournament cron failed' });
     } finally {
         // ═══════════════════════════════════════════════════════
         // RELEASE CONCURRENCY LOCK

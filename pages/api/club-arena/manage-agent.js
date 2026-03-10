@@ -1125,6 +1125,6 @@ export default async function handler(req, res) {
     return res.status(400).json({ success: false, error: `Unknown action: ${action}` });
   } catch (err) {
     console.error('[manage-agent]', err);
-    return res.status(500).json({ success: false, error: 'Agent management failed', details: err.message });
+    return res.status(500).json({ success: false, error: 'Agent management failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
   }
 }

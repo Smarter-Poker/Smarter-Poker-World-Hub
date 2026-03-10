@@ -71,6 +71,6 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, club });
     } catch (err) {
         console.error('[create-club]', err);
-        return res.status(500).json({ success: false, error: err.message || 'Failed to create club' });
+        return res.status(500).json({ success: false, error: 'Failed to create club' });
     }
 }

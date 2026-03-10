@@ -202,6 +202,6 @@ export default async function handler(req, res) {
         });
     } catch (err) {
         console.error('[club-analytics]', err);
-        return res.status(500).json({ error: err.message || 'Internal error' });
+        return res.status(500).json({ error: 'Internal error' });
     }
 }

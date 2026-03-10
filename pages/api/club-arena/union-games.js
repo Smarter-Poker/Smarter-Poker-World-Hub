@@ -577,6 +577,6 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.error('[union-games]', err);
-    return res.status(500).json({ success: false, error: 'Union games request failed', details: err.message });
+    return res.status(500).json({ success: false, error: 'Union games request failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
   }
 }

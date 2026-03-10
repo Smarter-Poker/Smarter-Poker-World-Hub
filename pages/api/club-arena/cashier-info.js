@@ -91,7 +91,7 @@ export default async function handler(req, res) {
                 totalPendingCashout: (pendingCashouts || []).reduce((s, c) => s + (c.amount || 0), 0),
             });
         } catch (err) {
-            return res.status(500).json({ error: 'Summary failed', details: err.message });
+            return res.status(500).json({ error: 'Summary failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
         }
     }
 
@@ -128,7 +128,7 @@ export default async function handler(req, res) {
                 },
             });
         } catch (err) {
-            return res.status(500).json({ error: 'Status check failed', details: err.message });
+            return res.status(500).json({ error: 'Status check failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
         }
     }
 
@@ -163,7 +163,7 @@ export default async function handler(req, res) {
 
             return res.status(200).json({ success: true, presets: amounts });
         } catch (err) {
-            return res.status(500).json({ error: 'Presets update failed', details: err.message });
+            return res.status(500).json({ error: 'Presets update failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
         }
     }
 

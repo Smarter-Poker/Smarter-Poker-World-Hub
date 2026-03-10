@@ -207,6 +207,6 @@ export default async function handler(req, res) {
     }
   } catch (err) {
     console.error('[table-chips]', err);
-    return res.status(500).json({ success: false, error: 'Table chip operation failed', details: err.message });
+    return res.status(500).json({ success: false, error: 'Table chip operation failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
   }
 }

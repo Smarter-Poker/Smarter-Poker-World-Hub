@@ -174,6 +174,6 @@ export default async function handler(req, res) {
     return res.status(405).json({ success: false, error: 'GET or POST only' });
   } catch (err) {
     console.error('[manage-shop]', err);
-    return res.status(500).json({ success: false, error: 'Shop management failed', details: err.message });
+    return res.status(500).json({ success: false, error: 'Shop management failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
   }
 }

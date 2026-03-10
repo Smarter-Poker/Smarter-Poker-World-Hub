@@ -22,6 +22,7 @@ import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import { resolveAvatarDisplay } from '../../../src/lib/resolveAvatarDisplay';
 import dynamic from 'next/dynamic';
 import useWalletData from '../../../src/hooks/useWalletData';
+import NotificationBell from '../../../src/components/club-arena/NotificationBell';
 const DynamicWallet = dynamic(() => import('../../../src/components/club-arena/DynamicWallet'), { ssr: false });
 
 const FB = {
@@ -501,9 +502,12 @@ export default function AgentDashboard() {
                                             : 'Agent View'}
                         </span>
                     </div>
-                    <button onClick={loadDashboard} style={{ ...btnStyle, padding: '6px 14px', fontSize: 12 }}>
-                        ↻ Refresh
-                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <NotificationBell userId={user?.id} />
+                        <button onClick={loadDashboard} style={{ ...btnStyle, padding: '6px 14px', fontSize: 12 }}>
+                            ↻ Refresh
+                        </button>
+                    </div>
                 </div>
 
                 {/* Tabs */}

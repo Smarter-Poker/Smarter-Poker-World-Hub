@@ -105,7 +105,7 @@ export default async function handler(req, res) {
                 totalPages: Math.ceil((count || 0) / clampedSize),
             });
         } catch (err) {
-            return res.status(500).json({ error: 'Fetch failed', details: err.message });
+            return res.status(500).json({ error: 'Fetch failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
         }
     }
 
@@ -132,7 +132,7 @@ export default async function handler(req, res) {
                 count: rows.length,
             });
         } catch (err) {
-            return res.status(500).json({ error: 'Export failed', details: err.message });
+            return res.status(500).json({ error: 'Export failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
         }
     }
 
@@ -160,7 +160,7 @@ export default async function handler(req, res) {
                 byActionType: byType,
             });
         } catch (err) {
-            return res.status(500).json({ error: 'Stats failed', details: err.message });
+            return res.status(500).json({ error: 'Stats failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
         }
     }
 

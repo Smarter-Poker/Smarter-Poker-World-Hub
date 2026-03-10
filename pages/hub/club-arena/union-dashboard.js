@@ -19,6 +19,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import { resolveAvatarDisplay } from '../../../src/lib/resolveAvatarDisplay';
 import { apiCall, apiGet, getAuthToken } from '../../../src/lib/club-arena/apiClient';
+import NotificationBell from '../../../src/components/club-arena/NotificationBell';
 const SkeletonDark = dynamic(() => import('../../../src/components/ui/SkeletonDark'), { ssr: false });
 const DynamicWallet = dynamic(() => import('../../../src/components/club-arena/DynamicWallet'), { ssr: false });
 
@@ -698,9 +699,12 @@ export default function UnionDashboard() {
             <div style={{ maxWidth: 900, margin: '0 auto', padding: '20px 16px 120px' }}>
                 {/* Header */}
                 <div style={{ marginBottom: 24 }}>
-                    <h1 style={{ fontFamily: 'Inter, sans-serif', fontSize: 24, fontWeight: 800, color: FB.gold, margin: 0 }}>
-                        {union?.name || 'Union Dashboard'}
-                    </h1>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <h1 style={{ fontFamily: 'Inter, sans-serif', fontSize: 24, fontWeight: 800, color: FB.gold, margin: 0 }}>
+                            {union?.name || 'Union Dashboard'}
+                        </h1>
+                        <NotificationBell userId={user?.id} />
+                    </div>
                     <p style={{ fontSize: 13, color: FB.textSecondary, margin: '4px 0 0' }}>
                         Union Code: <span style={{ color: FB.primary, fontWeight: 700 }}>{union?.code || 'N/A'}</span>
                         &nbsp; · &nbsp; Role: <span style={{ color: FB.gold }}>{dashboard.adminRole === 'union_lead' ? 'Union Lead' : dashboard.adminRole === 'union_admin' ? 'Union Admin' : dashboard.adminRole || 'Admin'}</span>

@@ -18,6 +18,7 @@ import { validateMintChips } from '../../../src/contracts/orb4_syndicate';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
 const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
+const { safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -167,7 +168,7 @@ export default async function handler(req, res) {
 
     if (rpcErr) {
       console.error('[mint-chips] RPC error:', rpcErr);
-      return res.status(500).json({ success: false, error: 'Mint failed', details: rpcErr.message });
+      return res.status(500).json(safeErrorResponse(rpcErr, 'Mint failed'));
     }
 
     if (!result?.success) {
@@ -193,6 +194,6 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     console.error('[mint-chips]', err);
-    return res.status(500).json({ success: false, error: 'Mint failed', details: err.message });
+    return res.status(500).json(safeErrorResponse(err, 'Mint failed'));
   }
 }

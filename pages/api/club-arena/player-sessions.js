@@ -128,6 +128,6 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, sessions, summary, tables });
     } catch (err) {
         console.error('[player-sessions]', err);
-        return res.status(500).json({ error: err.message || 'Internal error' });
+        return res.status(500).json({ error: 'Internal error' });
     }
 }

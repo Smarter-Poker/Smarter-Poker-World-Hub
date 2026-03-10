@@ -20,6 +20,7 @@ const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
 const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
+const { safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
 const { checkVelocity } = require('../../../src/lib/club-arena/velocityCheck');
 import { notifyUser } from '../../../src/lib/club-arena/notify';
 const supabaseAdmin = createClient(
@@ -414,6 +415,6 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     console.error('[clawback-chips]', err);
-    return res.status(500).json({ success: false, error: 'Clawback failed', details: err.message });
+    return res.status(500).json(safeErrorResponse(err, 'Clawback failed'));
   }
 }
