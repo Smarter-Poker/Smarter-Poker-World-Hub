@@ -5,6 +5,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
 import dynamic from 'next/dynamic';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 const UniversalHeader = dynamic(() => import('../../../src/components/ui/UniversalHeader'), { ssr: false });
 const GameCard = dynamic(() => import('../../../src/components/club-arena/GameCard'), { ssr: false });
@@ -23,6 +25,8 @@ export default function XMTTHub() {
     const [loading, setLoading] = useState(true);
     const [tab, setTab] = useState('upcoming'); // upcoming | running | past
 
+    useTrainingBus('xmtt-hub');
+
     useEffect(() => {
         (async () => {
             const { data: { user: u } } = await supabase.auth.getUser();
@@ -31,6 +35,17 @@ export default function XMTTHub() {
             await loadData(u, 'upcoming');
         })();
     }, []);
+
+    // Listen to global mutations to keep XMTT tournaments synced in real-time
+    useEffect(() => {
+        const unsub = eventBus.on(EventType.DATA_MUTATED, (e) => {
+            const relevant = ['tournament_created', 'tournament_registration', 'tournament_complete', 'tournament_cancelled', 'tournament_paused', 'tournament_resumed', 'union_tournament_created'];
+            if (relevant.includes(e?.payload?.entity)) loadData(user, tab);
+        });
+        const unsubSched = eventBus.on(EventType.TOURNAMENT_STARTED, () => loadData(user, tab));
+        const unsubComp = eventBus.on(EventType.TOURNAMENT_COMPLETE, () => loadData(user, tab));
+        return () => { unsub(); unsubSched(); unsubComp(); };
+    }, [user, tab]);
 
     const loadData = async (u, selectedTab) => {
         setLoading(true);

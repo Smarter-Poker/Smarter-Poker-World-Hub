@@ -2,6 +2,7 @@
  * OpenGameModal - Modal for opening a new game on a table
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
+import { useState, useEffect } from 'react';
 import { X, Play, Users } from 'lucide-react';
 import { broadcastChange } from '../../../lib/commander/useCommanderSync';
 
@@ -171,8 +172,8 @@ export default function OpenGameModal({ isOpen, onClose, onSubmit, tables = [], 
                   type="button"
                   onClick={() => setStakes(s)}
                   className={`h-10 rounded-lg text-sm font-medium transition-colors ${stakes === s
-                      ? 'bg-[#22D3EE] text-white'
-                      : 'bg-[#0D192E] text-white hover:bg-[#132240]'
+                    ? 'bg-[#22D3EE] text-white'
+                    : 'bg-[#0D192E] text-white hover:bg-[#132240]'
                     }`}
                 >
                   {s}
@@ -182,8 +183,8 @@ export default function OpenGameModal({ isOpen, onClose, onSubmit, tables = [], 
                 type="button"
                 onClick={() => setStakes('custom')}
                 className={`h-10 rounded-lg text-sm font-medium transition-colors ${stakes === 'custom'
-                    ? 'bg-[#22D3EE] text-white'
-                    : 'bg-[#0D192E] text-white hover:bg-[#132240]'
+                  ? 'bg-[#22D3EE] text-white'
+                  : 'bg-[#0D192E] text-white hover:bg-[#132240]'
                   }`}
               >
                 Custom
@@ -213,8 +214,8 @@ export default function OpenGameModal({ isOpen, onClose, onSubmit, tables = [], 
                   type="button"
                   onClick={() => setMaxPlayers(num)}
                   className={`flex-1 h-10 rounded-lg text-sm font-medium transition-colors ${maxPlayers === num
-                      ? 'bg-[#22D3EE] text-white'
-                      : 'bg-[#0D192E] text-white hover:bg-[#132240]'
+                    ? 'bg-[#22D3EE] text-white'
+                    : 'bg-[#0D192E] text-white hover:bg-[#132240]'
                     }`}
                 >
                   {num}
