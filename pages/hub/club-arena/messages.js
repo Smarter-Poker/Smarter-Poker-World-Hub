@@ -337,7 +337,7 @@ function MessageInput({ onSend, onMediaUpload, disabled, onTyping, onGifToggle, 
 //  MESSAGE BUBBLE COMPONENT (with media support)
 // ═══════════════════════════════════════════════════════════════════════════
 
-function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInGroup, onRetry, onDelete, onReact, onEdit, onReply }) {
+function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInGroup, onRetry, onDelete, onReact, onEdit, onReply, onForward }) {
     const [showReactions, setShowReactions] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editText, setEditText] = useState('');
@@ -462,6 +462,11 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                             ↩️
                         </button>
                     )}
+                    {!isFailed && !isSending && !isDeleted && onForward && (
+                        <button onClick={() => onForward(message)} style={{ fontSize: 11, color: C.textSec, background: 'transparent', border: 'none', cursor: 'pointer', padding: '0 4px', opacity: 0.5 }} title="Forward">
+                            ➤
+                        </button>
+                    )}
                 </div>
             </div>
         </div>
@@ -472,7 +477,7 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
 //  CONVERSATION LIST ITEM
 // ═══════════════════════════════════════════════════════════════════════════
 
-function ConversationItem({ conversation, isActive, onClick, isPinned, onPin }) {
+function ConversationItem({ conversation, isActive, onClick, isPinned, onPin, isMuted, onMute, isArchived, onArchive }) {
     const otherUser = conversation.otherUser;
     const lastMsg = conversation.last_message_preview;
     const isUnread = conversation.unreadCount > 0;
@@ -482,17 +487,32 @@ function ConversationItem({ conversation, isActive, onClick, isPinned, onPin }) 
             {isPinned && <div style={{ position: 'absolute', top: 4, left: 14, fontSize: 10, color: C.blue }}>📌</div>}
             <Avatar src={otherUser?.avatar_url} name={otherUser?.username || otherUser?.display_name} size={56} online={otherUser?.online} />
             <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: isUnread ? 600 : 500, fontSize: 15, color: C.text, marginBottom: 2 }}>{otherUser?.display_name || otherUser?.username || 'Unknown Player'}</div>
+                <div style={{ fontWeight: isUnread ? 600 : 500, fontSize: 15, color: C.text, marginBottom: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    {otherUser?.display_name || otherUser?.username || 'Unknown Player'}
+                    {isMuted && <span style={{ fontSize: 12 }} title="Muted">🔕</span>}
+                </div>
                 <div style={{ fontSize: 13, color: isUnread ? C.text : C.textSec, fontWeight: isUnread ? 500 : 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {lastMsg?.slice(0, 35)}{lastMsg?.length > 35 ? '...' : ''}
                     <span style={{ color: C.textSec }}> · {timeAgo(conversation.last_message_at)}</span>
                 </div>
             </div>
-            {onPin && (
-                <button onClick={(e) => { e.stopPropagation(); onPin(conversation.id); }} style={{ width: 28, height: 28, borderRadius: '50%', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 14, color: isPinned ? C.blue : C.textSec, opacity: isPinned ? 1 : 0.5, flexShrink: 0, padding: 0 }} title={isPinned ? 'Unpin' : 'Pin to top'}>
-                    📌
-                </button>
-            )}
+            <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
+                {onPin && (
+                    <button onClick={(e) => { e.stopPropagation(); onPin(conversation.id); }} style={{ width: 24, height: 24, borderRadius: '50%', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 12, color: isPinned ? C.blue : C.textSec, opacity: isPinned ? 1 : 0.4, padding: 0 }} title={isPinned ? 'Unpin' : 'Pin'}>
+                        📌
+                    </button>
+                )}
+                {onMute && (
+                    <button onClick={(e) => { e.stopPropagation(); onMute(conversation.id); }} style={{ width: 24, height: 24, borderRadius: '50%', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 12, color: C.textSec, opacity: 0.4, padding: 0 }} title={isMuted ? 'Unmute' : 'Mute'}>
+                        {isMuted ? '🔔' : '🔕'}
+                    </button>
+                )}
+                {onArchive && (
+                    <button onClick={(e) => { e.stopPropagation(); onArchive(conversation.id); }} style={{ width: 24, height: 24, borderRadius: '50%', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 12, color: C.textSec, opacity: 0.4, padding: 0 }} title={isArchived ? 'Unarchive' : 'Archive'}>
+                        {isArchived ? '📤' : '📥'}
+                    </button>
+                )}
+            </div>
             {isUnread && (
                 <div style={{
                     minWidth: conversation.unreadCount > 9 ? 22 : 18,
@@ -1792,6 +1812,7 @@ export default function ClubMessages() {
                                             onReact={reactToMessage}
                                             onEdit={editMessage}
                                             onReply={(msg) => setReplyTo({ id: msg.id, senderName: msg.sender_id === user?.id ? 'You' : (activeConversation.otherUser?.display_name || activeConversation.otherUser?.username || 'User'), preview: msg.content?.slice(0, 80) })}
+                                            onForward={(msg) => setForwardingMessage({ content: msg.content, senderName: msg.sender_id === user?.id ? 'You' : (activeConversation.otherUser?.display_name || 'User') })}
                                         />
                                     </div>
                                 );
