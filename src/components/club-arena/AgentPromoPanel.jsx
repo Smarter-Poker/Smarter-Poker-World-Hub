@@ -113,7 +113,7 @@ export default function AgentPromoPanel({ clubId, userId, role, onDistribute }) 
                     }
                 })
                 .on('postgres_changes', {
-                    event: 'UPDATE',
+                    event: '*',
                     schema: 'public',
                     table: 'club_members',
                     filter: `agent_id=eq.${userId}`,
