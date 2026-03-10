@@ -303,7 +303,7 @@ export const ChatWindow = ({
     }
 
     return (
-        <div className="chat-window">
+        <div className="chat-window" style={{ background: theme }}>
             {/* Header */}
             <div className="chat-header">
                 <SPAvatar src={otherUser?.avatar} size={32} online={otherUser?.online} />
@@ -311,61 +311,127 @@ export const ChatWindow = ({
                     <span className="chat-user-name">{otherUser?.name}</span>
                     <span className="chat-user-status">
                         {otherUser?.online ? 'Active now' : 'Active 2h ago'}
+                        {isDisappearing && <span style={{ marginLeft: 4 }} title="Disappearing Messages On">⏱️ 24h</span>}
                     </span>
                 </div>
                 <div className="chat-header-actions">
-                    <button className="header-btn" title="Start A Call">📞</button>
-                    <button className="header-btn" title="Start A Video Call">📹</button>
+                    <button className="header-btn" onClick={() => setShowThemePicker(!showThemePicker)} title="Themes">🎨</button>
+                    <button className="header-btn" onClick={() => updatePrefs(p => ({ ...p, disappearing: { ...p.disappearing, [conversationId]: !isDisappearing }}))} title="Toggle Disappearing Mode">⏱️</button>
+                    <button className="header-btn" onClick={() => setBookmarksOpen(!bookmarksOpen)} title="Saved Messages">📌</button>
                     <button className="header-btn" onClick={onMinimize}>−</button>
                     <button className="header-btn" onClick={onClose}>✕</button>
                 </div>
             </div>
 
+            {/* P2-6 Theme Picker */}
+            {showThemePicker && (
+                <div className="theme-picker-bar">
+                    {['#FFFFFF', '#F0F8FF', '#FDF5E6', '#F0FFF0', '#FDEEED', '#F5F5F5'].map(color => (
+                        <div
+                            key={color}
+                            style={{ background: color, border: theme === color ? '2px solid #0088ff' : '1px solid #ddd' }}
+                            className="theme-circle"
+                            onClick={() => { updatePrefs(p => ({ ...p, themes: { ...p.themes, [conversationId]: color }})); setShowThemePicker(false); }}
+                        />
+                    ))}
+                </div>
+            )}
+
+            {/* P2-5 Bookmarks Drawer */}
+            {bookmarksOpen && (
+                <div style={{ maxHeight: 120, overflowY: 'auto', background: '#fffdf0', borderBottom: '1px solid #ddd', padding: 8, fontSize: 12 }}>
+                    <strong>📌 Saved Messages</strong>
+                    {prefs.bookmarks.length === 0 && <p style={{ color: '#999', margin: '4px 0' }}>No saved messages yet</p>}
+                    {prefs.bookmarks.map((bm, i) => (
+                        <div key={i} style={{ padding: '4px 0', borderBottom: '1px solid #eee' }}>
+                            {bm.text?.slice(0, 60)}{bm.text?.length > 60 ? '...' : ''}
+                        </div>
+                    ))}
+                </div>
+            )}
+
             {/* Messages */}
             <div className="chat-messages">
                 {messages.map((msg, i) => {
-                    const isOwn = msg.senderId === currentUser?.id;
+                    // P2-2: Filter disappearing messages older than 24h
+                    if (isDisappearing && msg.timestamp && (Date.now() - new Date(msg.timestamp).getTime() > 24 * 60 * 60 * 1000)) {
+                        return null;
+                    }
+
+                    const enrichedMsg = {
+                        ...msg,
+                        isBookmarked: prefs.bookmarks.some(b => b.id === msg.id),
+                        labels: prefs.labels[msg.id] || [],
+                        isDisappearing: isDisappearing
+                    };
+
+                    const isOwn = enrichedMsg.senderId === currentUser?.id;
                     const prevMsg = messages[i - 1];
-                    const showAvatar = !isOwn && (!prevMsg || prevMsg.senderId !== msg.senderId);
+                    const showAvatar = !isOwn && (!prevMsg || prevMsg.senderId !== enrichedMsg.senderId);
 
                     return (
                         <MessageBubble
-                            key={msg.id || i}
-                            message={msg}
+                            key={enrichedMsg.id || i}
+                            message={enrichedMsg}
                             isOwn={isOwn}
                             showAvatar={showAvatar}
                             user={otherUser}
+                            onAction={handleAction}
                         />
                     );
                 })}
                 <div ref={messagesEndRef} />
             </div>
 
-            {/* Input */}
-            <div className="chat-input">
-                <button className="input-btn">➕</button>
-                <button className="input-btn">📷</button>
-                <button className="input-btn">🎁</button>
-                <button className="input-btn">🎵</button>
-
-                <div className="input-wrapper">
-                    <input
-                        type="text"
-                        placeholder="Aa"
-                        value={inputText}
-                        onChange={(e) => setInputText(e.target.value)}
-                        onKeyPress={handleKeyPress}
-                    />
-                    <button className="emoji-btn">😊</button>
+            {/* P2-7 Templates Bar */}
+            {showTemplates && (
+                <div className="templates-bar">
+                    {prefs.templates.map((tpl, i) => (
+                        <span key={i} className="template-chip" onClick={() => { setInputText(tpl); setShowTemplates(false); }}>{tpl}</span>
+                    ))}
                 </div>
+            )}
 
-                <button
-                    className="send-btn"
-                    onClick={handleSend}
-                    disabled={!inputText.trim()}
-                >
-                    {inputText.trim() ? '➤' : '👍'}
-                </button>
+            {/* Input */}
+            <div className="chat-input" style={{ flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 4 }}>
+                    <button className="input-btn" onClick={() => setShowTemplates(!showTemplates)} title="Templates">📋</button>
+                    <button className="input-btn">📷</button>
+                    <button className="input-btn">🎁</button>
+
+                    <div className="input-wrapper">
+                        <input
+                            type="text"
+                            placeholder="Aa"
+                            value={inputText}
+                            onChange={(e) => setInputText(e.target.value)}
+                            onKeyPress={handleKeyPress}
+                        />
+                        <span style={{ position: 'relative', display: 'inline-flex' }}>
+                            <input
+                                type="datetime-local"
+                                style={{ position: 'absolute', opacity: 0, width: 20, height: 20, cursor: 'pointer' }}
+                                onChange={(e) => setScheduledTime(e.target.value)}
+                            />
+                            <button className="emoji-btn" title="Schedule Message">{scheduledTime ? '⏰' : '📅'}</button>
+                        </span>
+                        <button className="emoji-btn">😊</button>
+                    </div>
+
+                    <button
+                        className="send-btn"
+                        onClick={handleSend}
+                        disabled={!inputText.trim()}
+                    >
+                        {inputText.trim() ? '➤' : '👍'}
+                    </button>
+                </div>
+                {scheduledTime && (
+                    <div style={{ width: '100%', fontSize: 11, color: '#0088ff', paddingLeft: 40, marginTop: -4 }}>
+                        Scheduled: {new Date(scheduledTime).toLocaleString()}
+                        <button style={{ marginLeft: 8, background: 'none', border: 'none', color: '#E41E3F', cursor: 'pointer', fontSize: 11 }} onClick={() => setScheduledTime('')}>Cancel</button>
+                    </div>
+                )}
             </div>
 
             <style>{`
