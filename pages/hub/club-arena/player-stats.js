@@ -250,6 +250,7 @@ function WinLossCalendar({ recentActivity }) {
 
 export default function PlayerStats() {
     useTrainingBus('club-arena-player-stats');
+    usePullToRefresh({ onRefresh: () => loadStats?.() });
 
     const router = useRouter();
     const clubIdParam = router.query?.club || null;

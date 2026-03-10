@@ -19,6 +19,7 @@ import SkeletonDark from '../../../src/components/ui/SkeletonDark';
 import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
 import { resolveAvatarDisplay } from '../../../src/lib/resolveAvatarDisplay';
 import { apiCall, apiGet, getAuthToken } from '../../../src/lib/club-arena/apiClient';
+import useAdminShortcuts from '../../../src/hooks/useAdminShortcuts';
 import dynamic from 'next/dynamic';
 import useWalletData from '../../../src/hooks/useWalletData';
 const DynamicWallet = dynamic(() => import('../../../src/components/club-arena/DynamicWallet'), { ssr: false });
@@ -99,9 +100,19 @@ const MemoizedMemberRow = React.memo(({ member, agents, downlineCount, assignedA
 
 export default function Admin() {
     useTrainingBus('club-arena-admin');
+    usePullToRefresh({ onRefresh: () => loadClubData?.() });
 
     const router = useRouter();
     const clubIdParam = router.query?.club || null;
+
+    // Keyboard shortcuts
+    const handleShortcutAction = useCallback((actionId) => {
+        if (actionId === 'close_modal') { setActiveModal(null); return; }
+        if (actionId === 'new_table') { setActiveModal('tables'); loadTables(); loadTemplates(); setShowCreateTable(true); return; }
+        setActiveModal(actionId);
+        if (actionId === 'tables') { loadTables(); loadTemplates(); }
+    }, []);
+    const shortcuts = useAdminShortcuts({ onAction: handleShortcutAction, isAdmin, activeModal });
 
     // Core state
     const [user, setUser] = useState(null);
@@ -196,6 +207,21 @@ export default function Admin() {
     const [rakeReport, setRakeReport] = useState(null);
     const [rakeReportPeriod, setRakeReportPeriod] = useState('7d');
     const [rakeReportLoading, setRakeReportLoading] = useState(false);
+
+    // Phase 2: Health Score state
+    const [healthScore, setHealthScore] = useState(null);
+    const [healthLoading, setHealthLoading] = useState(false);
+    // Phase 2: Audit Trail state
+    const [auditLogs, setAuditLogs] = useState([]);
+    const [auditStats, setAuditStats] = useState(null);
+    const [auditLoading, setAuditLoading] = useState(false);
+    const [auditFilter, setAuditFilter] = useState('');
+    // Phase 2: Player Retention state
+    const [retentionData, setRetentionData] = useState(null);
+    const [retentionLoading, setRetentionLoading] = useState(false);
+    // Phase 2: Settlement History state
+    const [settlementHistory, setSettlementHistory] = useState([]);
+    const [settlementHistoryLoading, setSettlementHistoryLoading] = useState(false);
     const showToast = (message, type = 'success') => {
         setToast({ message, type });
         setTimeout(() => setToast(null), 3000);
@@ -410,7 +436,42 @@ export default function Admin() {
                 setAcSessions(sessionsRes.sessions || []);
             }).finally(() => setAcLoading(false));
         }
-    }, [activeModal, club]);
+        // Phase 2: Health Score
+        if (activeModal === 'health') {
+            setHealthLoading(true);
+            apiCall('/api/club-arena/club-health', { clubId: club.id, action: 'score' })
+                .then(d => setHealthScore(d))
+                .catch(() => { })
+                .finally(() => setHealthLoading(false));
+        }
+        // Phase 2: Audit Trail
+        if (activeModal === 'audit') {
+            setAuditLoading(true);
+            Promise.all([
+                apiCall('/api/club-arena/audit-trail', { clubId: club.id, action: 'list', limit: 50, ...(auditFilter ? { actionType: auditFilter } : {}) }).catch(() => ({ logs: [] })),
+                apiCall('/api/club-arena/audit-trail', { clubId: club.id, action: 'stats' }).catch(() => ({ stats: {} })),
+            ]).then(([logsRes, statsRes]) => {
+                setAuditLogs(logsRes.logs || []);
+                setAuditStats(statsRes.stats || null);
+            }).finally(() => setAuditLoading(false));
+        }
+        // Phase 2: Player Retention
+        if (activeModal === 'retention') {
+            setRetentionLoading(true);
+            apiCall('/api/club-arena/player-retention', { clubId: club.id, action: 'scan' })
+                .then(d => setRetentionData(d))
+                .catch(() => { })
+                .finally(() => setRetentionLoading(false));
+        }
+        // Phase 2: Settlement History
+        if (activeModal === 'settlement') {
+            setSettlementHistoryLoading(true);
+            apiCall('/api/club-arena/settlement-history', { clubId: club.id, action: 'list' })
+                .then(d => setSettlementHistory(d.periods || []))
+                .catch(() => { })
+                .finally(() => setSettlementHistoryLoading(false));
+        }
+    }, [activeModal, club, auditFilter]);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // MEMBER MANAGEMENT
@@ -944,6 +1005,9 @@ export default function Admin() {
         { id: 'bbj', title: '[GAME] BBJ Config', desc: 'Enable / disable Bad Beat Jackpot for this club', color: '#FFD700' },
         { id: 'tables', title: 'Table Management', desc: 'Pause, close, delete, or edit table settings', color: '#0EA5E9' },
         { id: 'anticheat', title: '[SECURITY] Anti-Cheat', desc: 'View flags, sessions, and kick suspicious players', color: '#FF453A' },
+        { id: 'health', title: '📊 Club Health', desc: 'Composite score, trend arrows, breakdown', color: '#10B981' },
+        { id: 'audit', title: '📋 Audit Trail', desc: 'Live audit log with CSV export', color: '#6366F1' },
+        { id: 'retention', title: '🎯 Player Retention', desc: 'At-risk players, welcome-back promos', color: '#EC4899' },
         { id: 'settings', title: 'Club Settings', desc: 'Edit club name and description', color: FB.textSecondary },
     ];
 
@@ -990,7 +1054,10 @@ export default function Admin() {
                         &#8592; Back to Lobby
                     </button>
 
-                    <h1 style={S.pageTitle}>Club Admin</h1>
+                    <h1 style={S.pageTitle}>
+                        Club Admin
+                        <span style={{ fontSize: 11, color: FB.textSecondary, fontWeight: 400, marginLeft: 8 }}>⌘K shortcuts</span>
+                    </h1>
 
                     {isLoading ? (
                         <div style={{ marginTop: 20 }}><SkeletonDark variant="stat-cards" count={3} /><div style={{ marginTop: 20 }}><SkeletonDark variant="table-rows" rows={4} /></div></div>
@@ -2449,6 +2516,256 @@ function PromoWalletModal({ clubId, userRole, apiCall, showToast, onClose, FB, S
                 </div>
             </div>
 
+            {/* ═══ CLUB HEALTH SCORE MODAL ═══ */}
+            {activeModal === 'health' && (
+                <div style={S.modalOverlay} onClick={() => setActiveModal(null)}>
+                    <div style={S.modal} onClick={e => e.stopPropagation()}>
+                        <div style={S.modalHeader}>
+                            <span style={S.modalTitle}>📊 Club Health Score</span>
+                            <button style={S.modalClose} onClick={() => setActiveModal(null)}>&times;</button>
+                        </div>
+                        <div style={S.modalBody}>
+                            {healthLoading ? (
+                                <div style={{ textAlign: 'center', padding: 40, color: FB.textSecondary }}>Calculating health score...</div>
+                            ) : healthScore ? (
+                                <>
+                                    {/* Score Ring */}
+                                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+                                        <div style={{ position: 'relative', width: 140, height: 140 }}>
+                                            <svg viewBox="0 0 100 100" style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }}>
+                                                <circle cx="50" cy="50" r="42" fill="none" stroke={FB.border} strokeWidth="8" />
+                                                <circle cx="50" cy="50" r="42" fill="none"
+                                                    stroke={healthScore.status === 'green' ? '#31A24C' : healthScore.status === 'yellow' ? '#F7C52A' : '#FA383E'}
+                                                    strokeWidth="8" strokeLinecap="round"
+                                                    strokeDasharray={`${(healthScore.score / 100) * 264} 264`}
+                                                />
+                                            </svg>
+                                            <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                                                <div style={{ fontSize: 32, fontWeight: 800, color: healthScore.status === 'green' ? '#31A24C' : healthScore.status === 'yellow' ? '#F7C52A' : '#FA383E' }}>
+                                                    {healthScore.score}
+                                                </div>
+                                                <div style={{ fontSize: 11, color: FB.textSecondary, textTransform: 'uppercase' }}>
+                                                    {healthScore.trend === 'improving' ? '▲ Improving' : healthScore.trend === 'declining' ? '▼ Declining' : '● Stable'}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {/* Factor Breakdown */}
+                                    {healthScore.breakdown && (
+                                        <div style={{ display: 'grid', gap: 8 }}>
+                                            {healthScore.breakdown.map((f, i) => (
+                                                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: FB.background, borderRadius: 8 }}>
+                                                    <div>
+                                                        <div style={{ fontSize: 13, fontWeight: 600, color: FB.textPrimary }}>{f.name}</div>
+                                                        <div style={{ fontSize: 11, color: FB.textSecondary }}>{f.description}</div>
+                                                    </div>
+                                                    <div style={{ fontSize: 18, fontWeight: 800, color: f.score >= 70 ? '#31A24C' : f.score >= 40 ? '#F7C52A' : '#FA383E' }}>
+                                                        {f.score}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <div style={{ textAlign: 'center', padding: 30, color: FB.textSecondary }}>No health data available</div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ═══ AUDIT TRAIL MODAL ═══ */}
+            {activeModal === 'audit' && (
+                <div style={S.modalOverlay} onClick={() => setActiveModal(null)}>
+                    <div style={{ ...S.modal, maxWidth: 600 }} onClick={e => e.stopPropagation()}>
+                        <div style={S.modalHeader}>
+                            <span style={S.modalTitle}>📋 Audit Trail</span>
+                            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                <button
+                                    onClick={async () => {
+                                        try {
+                                            const token = await getAuthToken();
+                                            const res = await fetch('/api/club-arena/audit-trail', {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                                                body: JSON.stringify({ clubId: club.id, action: 'export', format: 'csv', limit: 5000 }),
+                                            });
+                                            const blob = await res.blob();
+                                            const url = URL.createObjectURL(blob);
+                                            const a = document.createElement('a');
+                                            a.href = url; a.download = 'audit_log.csv';
+                                            document.body.appendChild(a); a.click(); a.remove();
+                                            URL.revokeObjectURL(url);
+                                            showToast('CSV downloaded!');
+                                        } catch (e) { showToast('Export failed', 'error'); }
+                                    }}
+                                    style={{ background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: 6, color: '#6366F1', fontSize: 11, fontWeight: 700, padding: '4px 10px', cursor: 'pointer' }}
+                                >
+                                    ⬇ CSV
+                                </button>
+                                <button style={S.modalClose} onClick={() => setActiveModal(null)}>&times;</button>
+                            </div>
+                        </div>
+                        <div style={S.modalBody}>
+                            {/* Filter */}
+                            <div style={{ marginBottom: 12 }}>
+                                <select
+                                    value={auditFilter}
+                                    onChange={e => setAuditFilter(e.target.value)}
+                                    style={{ width: '100%', padding: '8px 12px', background: FB.background, border: `1px solid ${FB.border}`, borderRadius: 6, color: FB.textPrimary, fontSize: 13 }}
+                                >
+                                    <option value="">All Actions</option>
+                                    <option value="chip_distribution">Chip Distribution</option>
+                                    <option value="chip_transfer">Chip Transfer</option>
+                                    <option value="cashout_approved">Cashout Approved</option>
+                                    <option value="cashout_requested">Cashout Requested</option>
+                                    <option value="chips_minted">Chips Minted</option>
+                                    <option value="agent_promoted">Agent Promoted</option>
+                                    <option value="buyin">Buy-In</option>
+                                    <option value="clawback">Clawback</option>
+                                </select>
+                            </div>
+                            {/* Stats Summary */}
+                            {auditStats && (
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 14 }}>
+                                    <div style={{ background: FB.background, borderRadius: 8, padding: '8px 10px', textAlign: 'center' }}>
+                                        <div style={{ fontSize: 16, fontWeight: 700, color: FB.primary }}>{auditStats.total_actions || 0}</div>
+                                        <div style={{ fontSize: 10, color: FB.textSecondary }}>ACTIONS</div>
+                                    </div>
+                                    <div style={{ background: FB.background, borderRadius: 8, padding: '8px 10px', textAlign: 'center' }}>
+                                        <div style={{ fontSize: 16, fontWeight: 700, color: FB.success }}>{auditStats.unique_users || 0}</div>
+                                        <div style={{ fontSize: 10, color: FB.textSecondary }}>USERS</div>
+                                    </div>
+                                    <div style={{ background: FB.background, borderRadius: 8, padding: '8px 10px', textAlign: 'center' }}>
+                                        <div style={{ fontSize: 16, fontWeight: 700, color: '#F7C52A' }}>{(auditStats.total_volume || 0).toLocaleString()}</div>
+                                        <div style={{ fontSize: 10, color: FB.textSecondary }}>VOLUME</div>
+                                    </div>
+                                </div>
+                            )}
+                            {/* Log Feed */}
+                            {auditLoading ? (
+                                <div style={{ textAlign: 'center', padding: 30, color: FB.textSecondary }}>Loading audit logs...</div>
+                            ) : auditLogs.length === 0 ? (
+                                <div style={{ textAlign: 'center', padding: 30, color: FB.textSecondary }}>No audit records found</div>
+                            ) : (
+                                <div style={{ maxHeight: 400, overflowY: 'auto' }}>
+                                    {auditLogs.map((log, i) => (
+                                        <div key={log.id || i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '10px 0', borderBottom: `1px solid ${FB.border}` }}>
+                                            <div style={{ flex: 1 }}>
+                                                <div style={{ fontSize: 13, fontWeight: 600, color: FB.textPrimary }}>{(log.action_type || '').replace(/_/g, ' ')}</div>
+                                                <div style={{ fontSize: 11, color: FB.textSecondary }}>
+                                                    {log.user_name || log.user_id?.slice(0, 8)} {log.target_user_name ? `→ ${log.target_user_name}` : ''}
+                                                </div>
+                                            </div>
+                                            <div style={{ textAlign: 'right' }}>
+                                                {log.amount > 0 && <div style={{ fontSize: 13, fontWeight: 700, color: '#F7C52A' }}>{log.amount.toLocaleString()}</div>}
+                                                <div style={{ fontSize: 10, color: FB.textSecondary }}>{new Date(log.created_at).toLocaleString()}</div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ═══ PLAYER RETENTION MODAL ═══ */}
+            {activeModal === 'retention' && (
+                <div style={S.modalOverlay} onClick={() => setActiveModal(null)}>
+                    <div style={S.modal} onClick={e => e.stopPropagation()}>
+                        <div style={S.modalHeader}>
+                            <span style={S.modalTitle}>🎯 Player Retention</span>
+                            <button style={S.modalClose} onClick={() => setActiveModal(null)}>&times;</button>
+                        </div>
+                        <div style={S.modalBody}>
+                            {retentionLoading ? (
+                                <div style={{ textAlign: 'center', padding: 40, color: FB.textSecondary }}>Scanning player activity...</div>
+                            ) : retentionData ? (
+                                <>
+                                    {/* Summary Cards */}
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 18 }}>
+                                        <div style={{ background: FB.background, borderRadius: 8, padding: '10px 12px', textAlign: 'center' }}>
+                                            <div style={{ fontSize: 20, fontWeight: 700, color: '#F7C52A' }}>{retentionData.at_risk?.length || 0}</div>
+                                            <div style={{ fontSize: 10, color: FB.textSecondary, marginTop: 2 }}>AT RISK</div>
+                                        </div>
+                                        <div style={{ background: FB.background, borderRadius: 8, padding: '10px 12px', textAlign: 'center' }}>
+                                            <div style={{ fontSize: 20, fontWeight: 700, color: FB.danger }}>{retentionData.churned?.length || 0}</div>
+                                            <div style={{ fontSize: 10, color: FB.textSecondary, marginTop: 2 }}>CHURNED</div>
+                                        </div>
+                                        <div style={{ background: FB.background, borderRadius: 8, padding: '10px 12px', textAlign: 'center' }}>
+                                            <div style={{ fontSize: 20, fontWeight: 700, color: FB.success }}>{retentionData.active || 0}</div>
+                                            <div style={{ fontSize: 10, color: FB.textSecondary, marginTop: 2 }}>ACTIVE</div>
+                                        </div>
+                                    </div>
+
+                                    {/* At-Risk Players */}
+                                    {retentionData.at_risk?.length > 0 && (
+                                        <>
+                                            <h4 style={{ fontSize: 13, fontWeight: 700, color: '#F7C52A', marginBottom: 8, textTransform: 'uppercase' }}>At-Risk Players</h4>
+                                            {retentionData.at_risk.map((p, i) => (
+                                                <div key={p.user_id || i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: FB.background, borderRadius: 8, marginBottom: 6 }}>
+                                                    <div>
+                                                        <div style={{ fontSize: 13, fontWeight: 600, color: FB.textPrimary }}>{p.display_name || p.username || 'Unknown'}</div>
+                                                        <div style={{ fontSize: 11, color: FB.textSecondary }}>Last active: {p.days_inactive}d ago • {(p.chip_balance || 0).toLocaleString()} chips</div>
+                                                    </div>
+                                                    <button
+                                                        onClick={async () => {
+                                                            try {
+                                                                await apiCall('/api/club-arena/player-retention', { clubId: club.id, action: 'welcome_back', targetUserId: p.user_id, promoAmount: 500 });
+                                                                showToast(`Welcome-back promo sent to ${p.display_name || 'player'}!`);
+                                                            } catch (e) { showToast(e.message || 'Failed', 'error'); }
+                                                        }}
+                                                        style={{ background: 'rgba(236,72,153,0.15)', border: '1px solid rgba(236,72,153,0.3)', borderRadius: 6, color: '#EC4899', fontSize: 11, fontWeight: 700, padding: '5px 10px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                                                    >
+                                                        💌 Send Promo
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </>
+                                    )}
+
+                                    {/* Churned Players */}
+                                    {retentionData.churned?.length > 0 && (
+                                        <>
+                                            <h4 style={{ fontSize: 13, fontWeight: 700, color: FB.danger, marginBottom: 8, marginTop: 16, textTransform: 'uppercase' }}>Churned Players ({'>'}14d inactive)</h4>
+                                            {retentionData.churned.slice(0, 10).map((p, i) => (
+                                                <div key={p.user_id || i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: FB.background, borderRadius: 8, marginBottom: 6, opacity: 0.7 }}>
+                                                    <div>
+                                                        <div style={{ fontSize: 13, fontWeight: 600, color: FB.textPrimary }}>{p.display_name || p.username || 'Unknown'}</div>
+                                                        <div style={{ fontSize: 11, color: FB.textSecondary }}>{p.days_inactive}d ago • {(p.chip_balance || 0).toLocaleString()} chips</div>
+                                                    </div>
+                                                    <button
+                                                        onClick={async () => {
+                                                            try {
+                                                                await apiCall('/api/club-arena/player-retention', { clubId: club.id, action: 'welcome_back', targetUserId: p.user_id, promoAmount: 1000 });
+                                                                showToast(`Welcome-back promo sent!`);
+                                                            } catch (e) { showToast(e.message || 'Failed', 'error'); }
+                                                        }}
+                                                        style={{ background: 'rgba(250,56,62,0.12)', border: '1px solid rgba(250,56,62,0.3)', borderRadius: 6, color: FB.danger, fontSize: 11, fontWeight: 700, padding: '5px 10px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                                                    >
+                                                        💌 Win Back
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </>
+                                    )}
+
+                                    {(retentionData.at_risk?.length === 0 && retentionData.churned?.length === 0) && (
+                                        <div style={{ textAlign: 'center', padding: 30, color: FB.success, fontWeight: 600 }}>
+                                            All players are active! No retention issues detected.
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <div style={{ textAlign: 'center', padding: 30, color: FB.textSecondary }}>No retention data available</div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* ═══ BBJ CONFIG MODAL ═══ */}
             {activeModal === 'bbj' && (() => {
                 // Load config when modal opens
@@ -2847,6 +3164,55 @@ function PromoWalletModal({ clubId, userRole, apiCall, showToast, onClose, FB, S
                                 onClick={downloadRakeCSV}
                                 style={{ width: '100%', padding: 14, background: FB.primary, color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
                             >📥 Download CSV Export</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ═══════════════════════════════════════════════════════════════════════
+                COMMAND PALETTE (Ctrl+K / Cmd+K)
+            ═══════════════════════════════════════════════════════════════════════ */}
+            {shortcuts.paletteOpen && (
+                <div
+                    style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 99999, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '80px 20px' }}
+                    onClick={() => shortcuts.setPaletteOpen(false)}
+                >
+                    <div
+                        style={{ background: FB.cardBg, borderRadius: 14, width: '100%', maxWidth: 420, border: `1px solid ${FB.border}`, boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div style={{ padding: '16px 18px', borderBottom: `1px solid ${FB.border}` }}>
+                            <input
+                                autoFocus
+                                value={shortcuts.paletteQuery}
+                                onChange={e => shortcuts.setPaletteQuery(e.target.value)}
+                                placeholder="Type a command..."
+                                style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', fontSize: 16, color: FB.textPrimary, fontWeight: 500 }}
+                                onKeyDown={e => {
+                                    if (e.key === 'Escape') shortcuts.setPaletteOpen(false);
+                                    if (e.key === 'Enter' && shortcuts.filteredShortcuts.length > 0) {
+                                        shortcuts.handleAction(shortcuts.filteredShortcuts[0].action);
+                                    }
+                                }}
+                            />
+                        </div>
+                        <div style={{ maxHeight: 320, overflowY: 'auto', padding: '8px 0' }}>
+                            {shortcuts.filteredShortcuts.map(s => (
+                                <div
+                                    key={s.key}
+                                    onClick={() => shortcuts.handleAction(s.action)}
+                                    style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 18px', cursor: 'pointer', transition: 'background 0.1s' }}
+                                    onMouseEnter={e => e.currentTarget.style.background = FB.hover}
+                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                >
+                                    <span style={{ fontSize: 18, width: 28, textAlign: 'center' }}>{s.icon}</span>
+                                    <span style={{ flex: 1, fontSize: 14, color: FB.textPrimary, fontWeight: 500 }}>{s.label}</span>
+                                    <kbd style={{ background: FB.background, border: `1px solid ${FB.border}`, borderRadius: 4, padding: '2px 8px', fontSize: 11, color: FB.textSecondary, fontFamily: 'monospace', textTransform: 'uppercase' }}>{s.key}</kbd>
+                                </div>
+                            ))}
+                            {shortcuts.filteredShortcuts.length === 0 && (
+                                <div style={{ padding: '20px 18px', color: FB.textSecondary, textAlign: 'center', fontSize: 13 }}>No matching commands</div>
+                            )}
                         </div>
                     </div>
                 </div>

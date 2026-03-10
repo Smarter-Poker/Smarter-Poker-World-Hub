@@ -66,6 +66,7 @@ function Toast({ message, type }) {
 
 export default function AgentDashboard() {
     useTrainingBus('club-arena-agent-dashboard');
+    usePullToRefresh({ onRefresh: () => loadAgentData?.() });
 
     const router = useRouter();
     const clubIdParam = router.query?.club || null;

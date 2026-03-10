@@ -43,6 +43,7 @@ const ClubAnnouncementBanner = dynamic(
 
 export default function ClubLobby() {
     useTrainingBus('club-arena-lobby');
+    usePullToRefresh({ onRefresh: () => loadClubData?.() });
 
     const router = useRouter();
     const clubIdParam = router.query?.club || null;

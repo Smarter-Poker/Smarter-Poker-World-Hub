@@ -66,6 +66,7 @@ async function api(action, params) {
 
 export default function TournamentsPage() {
   useTrainingBus('club-arena-tournaments');
+  usePullToRefresh({ onRefresh: () => loadTournaments?.() });
 
   const router = useRouter();
   const { club: clubId } = router.query;

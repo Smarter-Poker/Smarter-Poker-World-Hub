@@ -26,12 +26,12 @@ const THROWABLES = {
     category: 'taunts',
     svg: (s = 50) => (
       <svg width={s} height={s} viewBox="0 0 100 100">
-        <ellipse cx="50" cy="55" rx="38" ry="35" fill="#e53935"/>
-        <ellipse cx="50" cy="55" rx="38" ry="35" fill="url(#tomShine)" opacity="0.6"/>
-        <ellipse cx="50" cy="52" rx="32" ry="28" fill="#ef5350" opacity="0.5"/>
-        <path d="M42 25 Q50 10 58 25" stroke="#4caf50" strokeWidth="4" fill="none"/>
-        <ellipse cx="50" cy="24" rx="8" ry="4" fill="#66bb6a"/>
-        <defs><radialGradient id="tomShine" cx="35%" cy="35%"><stop offset="0%" stopColor="#fff" stopOpacity="0.4"/><stop offset="100%" stopColor="#fff" stopOpacity="0"/></radialGradient></defs>
+        <ellipse cx="50" cy="55" rx="38" ry="35" fill="#e53935" />
+        <ellipse cx="50" cy="55" rx="38" ry="35" fill="url(#tomShine)" opacity="0.6" />
+        <ellipse cx="50" cy="52" rx="32" ry="28" fill="#ef5350" opacity="0.5" />
+        <path d="M42 25 Q50 10 58 25" stroke="#4caf50" strokeWidth="4" fill="none" />
+        <ellipse cx="50" cy="24" rx="8" ry="4" fill="#66bb6a" />
+        <defs><radialGradient id="tomShine" cx="35%" cy="35%"><stop offset="0%" stopColor="#fff" stopOpacity="0.4" /><stop offset="100%" stopColor="#fff" stopOpacity="0" /></radialGradient></defs>
       </svg>
     ),
     impactType: 'splat',
@@ -44,11 +44,11 @@ const THROWABLES = {
     category: 'taunts',
     svg: (s = 50) => (
       <svg width={s} height={s} viewBox="0 0 100 100">
-        <ellipse cx="50" cy="55" rx="28" ry="36" fill="#f5f5dc"/>
-        <ellipse cx="50" cy="55" rx="28" ry="36" fill="url(#eggShine)" opacity="0.5"/>
-        <ellipse cx="45" cy="48" rx="12" ry="16" fill="#fff" opacity="0.3"/>
-        <ellipse cx="50" cy="60" rx="15" ry="8" fill="#9e9d24" opacity="0.3"/>
-        <defs><radialGradient id="eggShine" cx="40%" cy="35%"><stop offset="0%" stopColor="#fff" stopOpacity="0.5"/><stop offset="100%" stopColor="#fff" stopOpacity="0"/></radialGradient></defs>
+        <ellipse cx="50" cy="55" rx="28" ry="36" fill="#f5f5dc" />
+        <ellipse cx="50" cy="55" rx="28" ry="36" fill="url(#eggShine)" opacity="0.5" />
+        <ellipse cx="45" cy="48" rx="12" ry="16" fill="#fff" opacity="0.3" />
+        <ellipse cx="50" cy="60" rx="15" ry="8" fill="#9e9d24" opacity="0.3" />
+        <defs><radialGradient id="eggShine" cx="40%" cy="35%"><stop offset="0%" stopColor="#fff" stopOpacity="0.5" /><stop offset="100%" stopColor="#fff" stopOpacity="0" /></radialGradient></defs>
       </svg>
     ),
     impactType: 'splat',
@@ -61,17 +61,17 @@ const THROWABLES = {
     category: 'taunts',
     svg: (s = 50) => (
       <svg width={s} height={s} viewBox="0 0 100 100">
-        <ellipse cx="50" cy="78" rx="30" ry="14" fill="#5d4037"/>
-        <ellipse cx="50" cy="62" rx="25" ry="14" fill="#6d4c41"/>
-        <ellipse cx="50" cy="48" rx="20" ry="12" fill="#795548"/>
-        <path d="M42 38 Q50 26 58 38" fill="#8d6e63"/>
-        <circle cx="42" cy="52" r="3" fill="#fff"/>
-        <circle cx="58" cy="52" r="3" fill="#fff"/>
-        <circle cx="42" cy="53" r="1.5" fill="#3e2723"/>
-        <circle cx="58" cy="53" r="1.5" fill="#3e2723"/>
-        <path d="M44 62 Q50 68 56 62" stroke="#3e2723" strokeWidth="2" fill="none" strokeLinecap="round"/>
-        <ellipse cx="50" cy="78" rx="30" ry="14" fill="url(#pooShine)" opacity="0.3"/>
-        <defs><radialGradient id="pooShine" cx="40%" cy="30%"><stop offset="0%" stopColor="#fff" stopOpacity="0.3"/><stop offset="100%" stopColor="#fff" stopOpacity="0"/></radialGradient></defs>
+        <ellipse cx="50" cy="78" rx="30" ry="14" fill="#5d4037" />
+        <ellipse cx="50" cy="62" rx="25" ry="14" fill="#6d4c41" />
+        <ellipse cx="50" cy="48" rx="20" ry="12" fill="#795548" />
+        <path d="M42 38 Q50 26 58 38" fill="#8d6e63" />
+        <circle cx="42" cy="52" r="3" fill="#fff" />
+        <circle cx="58" cy="52" r="3" fill="#fff" />
+        <circle cx="42" cy="53" r="1.5" fill="#3e2723" />
+        <circle cx="58" cy="53" r="1.5" fill="#3e2723" />
+        <path d="M44 62 Q50 68 56 62" stroke="#3e2723" strokeWidth="2" fill="none" strokeLinecap="round" />
+        <ellipse cx="50" cy="78" rx="30" ry="14" fill="url(#pooShine)" opacity="0.3" />
+        <defs><radialGradient id="pooShine" cx="40%" cy="30%"><stop offset="0%" stopColor="#fff" stopOpacity="0.3" /><stop offset="100%" stopColor="#fff" stopOpacity="0" /></radialGradient></defs>
       </svg>
     ),
     impactType: 'bounce',
@@ -84,20 +84,20 @@ const THROWABLES = {
     category: 'taunts',
     svg: (s = 50) => (
       <svg width={s} height={s} viewBox="0 0 100 100">
-        <ellipse cx="50" cy="60" rx="28" ry="25" fill="#9e9e9e"/>
-        <ellipse cx="50" cy="55" rx="22" ry="18" fill="#bdbdbd"/>
-        <path d="M32 40 L28 15 L40 35Z" fill="#9e9e9e"/>
-        <path d="M68 40 L72 15 L60 35Z" fill="#9e9e9e"/>
-        <path d="M34 17 L30 12 L38 30Z" fill="#e8a0bf" opacity="0.7"/>
-        <path d="M66 17 L70 12 L62 30Z" fill="#e8a0bf" opacity="0.7"/>
-        <circle cx="40" cy="50" r="4" fill="#424242"/>
-        <circle cx="60" cy="50" r="4" fill="#424242"/>
-        <circle cx="41" cy="49" r="1.5" fill="#fff"/>
-        <circle cx="61" cy="49" r="1.5" fill="#fff"/>
-        <ellipse cx="50" cy="65" rx="14" ry="10" fill="#e0e0e0"/>
-        <ellipse cx="45" cy="64" rx="3" ry="4" fill="#616161"/>
-        <ellipse cx="55" cy="64" rx="3" ry="4" fill="#616161"/>
-        <path d="M42 73 Q50 80 58 73" stroke="#757575" strokeWidth="2" fill="none" strokeLinecap="round"/>
+        <ellipse cx="50" cy="60" rx="28" ry="25" fill="#9e9e9e" />
+        <ellipse cx="50" cy="55" rx="22" ry="18" fill="#bdbdbd" />
+        <path d="M32 40 L28 15 L40 35Z" fill="#9e9e9e" />
+        <path d="M68 40 L72 15 L60 35Z" fill="#9e9e9e" />
+        <path d="M34 17 L30 12 L38 30Z" fill="#e8a0bf" opacity="0.7" />
+        <path d="M66 17 L70 12 L62 30Z" fill="#e8a0bf" opacity="0.7" />
+        <circle cx="40" cy="50" r="4" fill="#424242" />
+        <circle cx="60" cy="50" r="4" fill="#424242" />
+        <circle cx="41" cy="49" r="1.5" fill="#fff" />
+        <circle cx="61" cy="49" r="1.5" fill="#fff" />
+        <ellipse cx="50" cy="65" rx="14" ry="10" fill="#e0e0e0" />
+        <ellipse cx="45" cy="64" rx="3" ry="4" fill="#616161" />
+        <ellipse cx="55" cy="64" rx="3" ry="4" fill="#616161" />
+        <path d="M42 73 Q50 80 58 73" stroke="#757575" strokeWidth="2" fill="none" strokeLinecap="round" />
       </svg>
     ),
     impactType: 'bounce',
@@ -111,17 +111,17 @@ const THROWABLES = {
     category: 'taunts',
     svg: (s = 50) => (
       <svg width={s} height={s} viewBox="0 0 100 100">
-        <path d="M75 50 Q90 35 85 50 Q90 65 75 50" fill="#f9a825"/>
-        <ellipse cx="45" cy="50" rx="32" ry="20" fill="#42a5f5"/>
-        <ellipse cx="45" cy="50" rx="32" ry="20" fill="url(#fishShine)" opacity="0.4"/>
-        <ellipse cx="45" cy="48" rx="26" ry="14" fill="#64b5f6" opacity="0.5"/>
-        <circle cx="28" cy="46" r="5" fill="#fff"/>
-        <circle cx="28" cy="46" r="2.5" fill="#1a237e"/>
-        <path d="M35 56 Q42 62 52 56" stroke="#1565c0" strokeWidth="1.5" fill="none"/>
-        <line x1="48" y1="38" x2="55" y2="35" stroke="#90caf9" strokeWidth="1" opacity="0.6"/>
-        <line x1="50" y1="44" x2="58" y2="42" stroke="#90caf9" strokeWidth="1" opacity="0.6"/>
-        <line x1="48" y1="55" x2="56" y2="58" stroke="#90caf9" strokeWidth="1" opacity="0.6"/>
-        <defs><radialGradient id="fishShine" cx="35%" cy="35%"><stop offset="0%" stopColor="#fff" stopOpacity="0.5"/><stop offset="100%" stopColor="#fff" stopOpacity="0"/></radialGradient></defs>
+        <path d="M75 50 Q90 35 85 50 Q90 65 75 50" fill="#f9a825" />
+        <ellipse cx="45" cy="50" rx="32" ry="20" fill="#42a5f5" />
+        <ellipse cx="45" cy="50" rx="32" ry="20" fill="url(#fishShine)" opacity="0.4" />
+        <ellipse cx="45" cy="48" rx="26" ry="14" fill="#64b5f6" opacity="0.5" />
+        <circle cx="28" cy="46" r="5" fill="#fff" />
+        <circle cx="28" cy="46" r="2.5" fill="#1a237e" />
+        <path d="M35 56 Q42 62 52 56" stroke="#1565c0" strokeWidth="1.5" fill="none" />
+        <line x1="48" y1="38" x2="55" y2="35" stroke="#90caf9" strokeWidth="1" opacity="0.6" />
+        <line x1="50" y1="44" x2="58" y2="42" stroke="#90caf9" strokeWidth="1" opacity="0.6" />
+        <line x1="48" y1="55" x2="56" y2="58" stroke="#90caf9" strokeWidth="1" opacity="0.6" />
+        <defs><radialGradient id="fishShine" cx="35%" cy="35%"><stop offset="0%" stopColor="#fff" stopOpacity="0.5" /><stop offset="100%" stopColor="#fff" stopOpacity="0" /></radialGradient></defs>
       </svg>
     ),
     impactType: 'flop',
@@ -135,19 +135,19 @@ const THROWABLES = {
     category: 'taunts',
     svg: (s = 50) => (
       <svg width={s} height={s} viewBox="0 0 100 100">
-        <ellipse cx="50" cy="65" rx="25" ry="22" fill="#fff9c4"/>
-        <ellipse cx="50" cy="65" rx="25" ry="22" fill="url(#chickenShine)" opacity="0.4"/>
-        <circle cx="50" cy="38" r="18" fill="#fff9c4"/>
-        <polygon points="50,52 44,60 56,60" fill="#ff8f00"/>
-        <circle cx="43" cy="35" r="3" fill="#424242"/>
-        <circle cx="57" cy="35" r="3" fill="#424242"/>
-        <path d="M46 24 Q50 14 54 24" fill="#e53935"/>
-        <circle cx="50" cy="18" r="4" fill="#ef5350"/>
-        <path d="M30 75 L28 90 L35 85" fill="#ff8f00" strokeWidth="0"/>
-        <path d="M70 75 L72 90 L65 85" fill="#ff8f00" strokeWidth="0"/>
-        <path d="M26 55 Q15 50 25 62" fill="#fff9c4"/>
-        <path d="M74 55 Q85 50 75 62" fill="#fff9c4"/>
-        <defs><radialGradient id="chickenShine" cx="40%" cy="35%"><stop offset="0%" stopColor="#fff" stopOpacity="0.3"/><stop offset="100%" stopColor="#fff" stopOpacity="0"/></radialGradient></defs>
+        <ellipse cx="50" cy="65" rx="25" ry="22" fill="#fff9c4" />
+        <ellipse cx="50" cy="65" rx="25" ry="22" fill="url(#chickenShine)" opacity="0.4" />
+        <circle cx="50" cy="38" r="18" fill="#fff9c4" />
+        <polygon points="50,52 44,60 56,60" fill="#ff8f00" />
+        <circle cx="43" cy="35" r="3" fill="#424242" />
+        <circle cx="57" cy="35" r="3" fill="#424242" />
+        <path d="M46 24 Q50 14 54 24" fill="#e53935" />
+        <circle cx="50" cy="18" r="4" fill="#ef5350" />
+        <path d="M30 75 L28 90 L35 85" fill="#ff8f00" strokeWidth="0" />
+        <path d="M70 75 L72 90 L65 85" fill="#ff8f00" strokeWidth="0" />
+        <path d="M26 55 Q15 50 25 62" fill="#fff9c4" />
+        <path d="M74 55 Q85 50 75 62" fill="#fff9c4" />
+        <defs><radialGradient id="chickenShine" cx="40%" cy="35%"><stop offset="0%" stopColor="#fff" stopOpacity="0.3" /><stop offset="100%" stopColor="#fff" stopOpacity="0" /></radialGradient></defs>
       </svg>
     ),
     impactType: 'bounce',
@@ -163,16 +163,16 @@ const THROWABLES = {
     category: 'reactions',
     svg: (s = 50) => (
       <svg width={s} height={s} viewBox="0 0 100 100">
-        <path d="M50 10 Q60 25 58 55 L42 55 Q40 25 50 10Z" fill="#e0e0e0"/>
-        <path d="M50 10 Q55 25 54 55 L50 55 Q48 25 50 10Z" fill="#f5f5f5" opacity="0.6"/>
-        <ellipse cx="50" cy="40" rx="6" ry="8" fill="#42a5f5"/>
-        <ellipse cx="50" cy="40" rx="4" ry="5" fill="#90caf9" opacity="0.5"/>
-        <path d="M42 55 L35 70 L42 62Z" fill="#e53935"/>
-        <path d="M58 55 L65 70 L58 62Z" fill="#e53935"/>
-        <path d="M46 55 L50 72 L54 55Z" fill="#ff9800"/>
-        <path d="M48 58 L50 68 L52 58Z" fill="#ffeb3b"/>
-        <ellipse cx="50" cy="70" rx="6" ry="10" fill="#ff5722" opacity="0.6"/>
-        <ellipse cx="50" cy="72" rx="4" ry="8" fill="#ffab00" opacity="0.5"/>
+        <path d="M50 10 Q60 25 58 55 L42 55 Q40 25 50 10Z" fill="#e0e0e0" />
+        <path d="M50 10 Q55 25 54 55 L50 55 Q48 25 50 10Z" fill="#f5f5f5" opacity="0.6" />
+        <ellipse cx="50" cy="40" rx="6" ry="8" fill="#42a5f5" />
+        <ellipse cx="50" cy="40" rx="4" ry="5" fill="#90caf9" opacity="0.5" />
+        <path d="M42 55 L35 70 L42 62Z" fill="#e53935" />
+        <path d="M58 55 L65 70 L58 62Z" fill="#e53935" />
+        <path d="M46 55 L50 72 L54 55Z" fill="#ff9800" />
+        <path d="M48 58 L50 68 L52 58Z" fill="#ffeb3b" />
+        <ellipse cx="50" cy="70" rx="6" ry="10" fill="#ff5722" opacity="0.6" />
+        <ellipse cx="50" cy="72" rx="4" ry="8" fill="#ffab00" opacity="0.5" />
       </svg>
     ),
     impactType: 'explode',
@@ -186,13 +186,13 @@ const THROWABLES = {
     category: 'reactions',
     svg: (s = 50) => (
       <svg width={s} height={s} viewBox="0 0 100 100">
-        <rect x="46" y="55" width="8" height="35" rx="2" fill="#795548"/>
-        <circle cx="50" cy="45" r="20" fill="#e91e63" opacity="0.8"/>
-        <circle cx="50" cy="45" r="14" fill="#f06292" opacity="0.6"/>
-        <circle cx="50" cy="45" r="8" fill="#f8bbd0" opacity="0.5"/>
-        {[0,45,90,135,180,225,270,315].map((a,i) => {
-          const r = 22; const rad = a * Math.PI/180;
-          return <circle key={i} cx={50+r*Math.cos(rad)} cy={45+r*Math.sin(rad)} r="3" fill={['#ffeb3b','#00e5ff','#76ff03','#ff6d00','#e040fb','#ffab00','#00e5ff','#ff1744'][i]}/>;
+        <rect x="46" y="55" width="8" height="35" rx="2" fill="#795548" />
+        <circle cx="50" cy="45" r="20" fill="#e91e63" opacity="0.8" />
+        <circle cx="50" cy="45" r="14" fill="#f06292" opacity="0.6" />
+        <circle cx="50" cy="45" r="8" fill="#f8bbd0" opacity="0.5" />
+        {[0, 45, 90, 135, 180, 225, 270, 315].map((a, i) => {
+          const r = 22; const rad = a * Math.PI / 180;
+          return <circle key={i} cx={50 + r * Math.cos(rad)} cy={45 + r * Math.sin(rad)} r="3" fill={['#ffeb3b', '#00e5ff', '#76ff03', '#ff6d00', '#e040fb', '#ffab00', '#00e5ff', '#ff1744'][i]} />;
         })}
       </svg>
     ),
@@ -206,14 +206,14 @@ const THROWABLES = {
     category: 'reactions',
     svg: (s = 50) => (
       <svg width={s} height={s} viewBox="0 0 100 100">
-        <rect x="38" y="65" width="24" height="6" rx="2" fill="#f9a825"/>
-        <rect x="42" y="55" width="16" height="12" rx="1" fill="#fdd835"/>
-        <path d="M32 20 L32 40 Q32 55 50 55 Q68 55 68 40 L68 20Z" fill="#fdd835"/>
-        <path d="M36 22 L36 38 Q36 50 50 50 Q64 50 64 38 L64 22Z" fill="#ffee58" opacity="0.5"/>
-        <path d="M32 25 Q20 25 22 38 Q24 48 34 45" fill="#f9a825"/>
-        <path d="M68 25 Q80 25 78 38 Q76 48 66 45" fill="#f9a825"/>
+        <rect x="38" y="65" width="24" height="6" rx="2" fill="#f9a825" />
+        <rect x="42" y="55" width="16" height="12" rx="1" fill="#fdd835" />
+        <path d="M32 20 L32 40 Q32 55 50 55 Q68 55 68 40 L68 20Z" fill="#fdd835" />
+        <path d="M36 22 L36 38 Q36 50 50 50 Q64 50 64 38 L64 22Z" fill="#ffee58" opacity="0.5" />
+        <path d="M32 25 Q20 25 22 38 Q24 48 34 45" fill="#f9a825" />
+        <path d="M68 25 Q80 25 78 38 Q76 48 66 45" fill="#f9a825" />
         <text x="50" y="42" textAnchor="middle" fontSize="16" fontWeight="800" fill="#f57f17">★</text>
-        <rect x="35" y="71" width="30" height="5" rx="2" fill="#f57f17"/>
+        <rect x="35" y="71" width="30" height="5" rx="2" fill="#f57f17" />
       </svg>
     ),
     impactType: 'sparkle',
@@ -226,9 +226,9 @@ const THROWABLES = {
     category: 'reactions',
     svg: (s = 50) => (
       <svg width={s} height={s} viewBox="0 0 100 100">
-        <rect x="62" y="18" width="18" height="40" rx="4" fill="#5c6bc0"/>
-        <path d="M60 58 L60 25 Q60 18 52 18 L38 18 Q30 18 28 28 L22 55 Q20 65 30 65 L45 65 L40 80 Q38 88 46 88 Q52 88 54 80 L60 58Z" fill="#ffca28"/>
-        <path d="M55 22 Q55 18 50 20 L38 22 Q33 23 32 30 L27 52 Q26 58 30 60 L42 60" fill="#ffe082" opacity="0.5"/>
+        <rect x="62" y="18" width="18" height="40" rx="4" fill="#5c6bc0" />
+        <path d="M60 58 L60 25 Q60 18 52 18 L38 18 Q30 18 28 28 L22 55 Q20 65 30 65 L45 65 L40 80 Q38 88 46 88 Q52 88 54 80 L60 58Z" fill="#ffca28" />
+        <path d="M55 22 Q55 18 50 20 L38 22 Q33 23 32 30 L27 52 Q26 58 30 60 L42 60" fill="#ffe082" opacity="0.5" />
       </svg>
     ),
     impactType: 'bounce',
@@ -241,16 +241,16 @@ const THROWABLES = {
     category: 'reactions',
     svg: (s = 50) => (
       <svg width={s} height={s} viewBox="0 0 100 100">
-        <path d="M20 65 L15 30 L35 48 L50 20 L65 48 L85 30 L80 65Z" fill="#fdd835"/>
-        <path d="M22 63 L18 34 L36 50 L50 25 L64 50 L82 34 L78 63Z" fill="#ffee58" opacity="0.5"/>
-        <rect x="20" y="65" width="60" height="12" rx="3" fill="#f9a825"/>
-        <rect x="22" y="67" width="56" height="8" rx="2" fill="#fdd835" opacity="0.5"/>
-        <circle cx="35" cy="71" r="4" fill="#e53935"/>
-        <circle cx="50" cy="71" r="4" fill="#1e88e5"/>
-        <circle cx="65" cy="71" r="4" fill="#43a047"/>
-        <circle cx="15" cy="30" r="4" fill="#fdd835"/>
-        <circle cx="50" cy="20" r="4" fill="#fdd835"/>
-        <circle cx="85" cy="30" r="4" fill="#fdd835"/>
+        <path d="M20 65 L15 30 L35 48 L50 20 L65 48 L85 30 L80 65Z" fill="#fdd835" />
+        <path d="M22 63 L18 34 L36 50 L50 25 L64 50 L82 34 L78 63Z" fill="#ffee58" opacity="0.5" />
+        <rect x="20" y="65" width="60" height="12" rx="3" fill="#f9a825" />
+        <rect x="22" y="67" width="56" height="8" rx="2" fill="#fdd835" opacity="0.5" />
+        <circle cx="35" cy="71" r="4" fill="#e53935" />
+        <circle cx="50" cy="71" r="4" fill="#1e88e5" />
+        <circle cx="65" cy="71" r="4" fill="#43a047" />
+        <circle cx="15" cy="30" r="4" fill="#fdd835" />
+        <circle cx="50" cy="20" r="4" fill="#fdd835" />
+        <circle cx="85" cy="30" r="4" fill="#fdd835" />
       </svg>
     ),
     impactType: 'sparkle',
@@ -263,12 +263,12 @@ const THROWABLES = {
     category: 'reactions',
     svg: (s = 50) => (
       <svg width={s} height={s} viewBox="0 0 100 100">
-        <path d="M35 75 Q25 60 30 45 L38 30 Q40 25 44 28 L42 48" fill="#ffca28" stroke="#f9a825" strokeWidth="1"/>
-        <path d="M42 48 L48 28 Q50 23 54 27 L50 50" fill="#ffca28" stroke="#f9a825" strokeWidth="1"/>
-        <path d="M50 50 L56 32 Q58 27 62 31 L56 52" fill="#ffca28" stroke="#f9a825" strokeWidth="1"/>
-        <path d="M56 52 L62 38 Q64 33 68 37 L60 60 Q55 75 40 78 L35 75" fill="#ffca28" stroke="#f9a825" strokeWidth="1"/>
-        {[[-8,20],[8,15],[0,10],[-12,28],[12,22]].map(([x,y],i) => (
-          <text key={i} x={50+x} y={y} textAnchor="middle" fontSize="10" fill={['#ff6d00','#e91e63','#00bcd4','#76ff03','#ffab00'][i]}>✦</text>
+        <path d="M35 75 Q25 60 30 45 L38 30 Q40 25 44 28 L42 48" fill="#ffca28" stroke="#f9a825" strokeWidth="1" />
+        <path d="M42 48 L48 28 Q50 23 54 27 L50 50" fill="#ffca28" stroke="#f9a825" strokeWidth="1" />
+        <path d="M50 50 L56 32 Q58 27 62 31 L56 52" fill="#ffca28" stroke="#f9a825" strokeWidth="1" />
+        <path d="M56 52 L62 38 Q64 33 68 37 L60 60 Q55 75 40 78 L35 75" fill="#ffca28" stroke="#f9a825" strokeWidth="1" />
+        {[[-8, 20], [8, 15], [0, 10], [-12, 28], [12, 22]].map(([x, y], i) => (
+          <text key={i} x={50 + x} y={y} textAnchor="middle" fontSize="10" fill={['#ff6d00', '#e91e63', '#00bcd4', '#76ff03', '#ffab00'][i]}>✦</text>
         ))}
       </svg>
     ),
@@ -284,16 +284,16 @@ const THROWABLES = {
     category: 'food',
     svg: (s = 50) => (
       <svg width={s} height={s} viewBox="0 0 100 100">
-        <rect x="25" y="25" width="40" height="55" rx="4" fill="#f9a825"/>
-        <rect x="29" y="30" width="32" height="46" rx="2" fill="#ffca28" opacity="0.6"/>
-        <rect x="25" y="22" width="40" height="12" rx="4" fill="#fff" opacity="0.9"/>
-        <ellipse cx="35" cy="24" rx="6" ry="5" fill="#fff"/>
-        <ellipse cx="48" cy="22" rx="7" ry="5" fill="#fff"/>
-        <ellipse cx="55" cy="26" rx="5" ry="4" fill="#fff"/>
-        <path d="M65 35 Q80 35 80 50 Q80 62 65 62" fill="none" stroke="#f9a825" strokeWidth="5"/>
-        <rect x="32" y="38" width="26" height="3" rx="1" fill="#fff" opacity="0.2"/>
-        <rect x="32" y="48" width="26" height="3" rx="1" fill="#fff" opacity="0.15"/>
-        <rect x="32" y="58" width="26" height="3" rx="1" fill="#fff" opacity="0.1"/>
+        <rect x="25" y="25" width="40" height="55" rx="4" fill="#f9a825" />
+        <rect x="29" y="30" width="32" height="46" rx="2" fill="#ffca28" opacity="0.6" />
+        <rect x="25" y="22" width="40" height="12" rx="4" fill="#fff" opacity="0.9" />
+        <ellipse cx="35" cy="24" rx="6" ry="5" fill="#fff" />
+        <ellipse cx="48" cy="22" rx="7" ry="5" fill="#fff" />
+        <ellipse cx="55" cy="26" rx="5" ry="4" fill="#fff" />
+        <path d="M65 35 Q80 35 80 50 Q80 62 65 62" fill="none" stroke="#f9a825" strokeWidth="5" />
+        <rect x="32" y="38" width="26" height="3" rx="1" fill="#fff" opacity="0.2" />
+        <rect x="32" y="48" width="26" height="3" rx="1" fill="#fff" opacity="0.15" />
+        <rect x="32" y="58" width="26" height="3" rx="1" fill="#fff" opacity="0.1" />
       </svg>
     ),
     impactType: 'splash',
@@ -307,16 +307,16 @@ const THROWABLES = {
     category: 'food',
     svg: (s = 50) => (
       <svg width={s} height={s} viewBox="0 0 100 100">
-        <path d="M42 45 L38 85 Q38 90 50 90 Q62 90 62 85 L58 45Z" fill="#4a148c"/>
-        <rect x="45" y="60" width="10" height="3" rx="1" fill="#7b1fa2"/>
-        <path d="M40 45 Q40 20 50 15 Q60 20 60 45Z" fill="#ce93d8"/>
-        <path d="M44 42 Q44 24 50 20 Q56 24 56 42Z" fill="#e1bee7" opacity="0.4"/>
-        <circle cx="46" cy="32" r="2" fill="#fff" opacity="0.5"/>
-        <circle cx="52" cy="28" r="1.5" fill="#fff" opacity="0.4"/>
-        <circle cx="50" cy="36" r="1" fill="#fff" opacity="0.3"/>
-        <path d="M50 12 L48 5 M50 12 L52 4 M50 12 L45 6 M50 12 L55 7" stroke="#ffeb3b" strokeWidth="1.5" opacity="0.8"/>
-        <circle cx="47" cy="4" r="2" fill="#ffeb3b" opacity="0.6"/>
-        <circle cx="53" cy="3" r="2" fill="#ffeb3b" opacity="0.6"/>
+        <path d="M42 45 L38 85 Q38 90 50 90 Q62 90 62 85 L58 45Z" fill="#4a148c" />
+        <rect x="45" y="60" width="10" height="3" rx="1" fill="#7b1fa2" />
+        <path d="M40 45 Q40 20 50 15 Q60 20 60 45Z" fill="#ce93d8" />
+        <path d="M44 42 Q44 24 50 20 Q56 24 56 42Z" fill="#e1bee7" opacity="0.4" />
+        <circle cx="46" cy="32" r="2" fill="#fff" opacity="0.5" />
+        <circle cx="52" cy="28" r="1.5" fill="#fff" opacity="0.4" />
+        <circle cx="50" cy="36" r="1" fill="#fff" opacity="0.3" />
+        <path d="M50 12 L48 5 M50 12 L52 4 M50 12 L45 6 M50 12 L55 7" stroke="#ffeb3b" strokeWidth="1.5" opacity="0.8" />
+        <circle cx="47" cy="4" r="2" fill="#ffeb3b" opacity="0.6" />
+        <circle cx="53" cy="3" r="2" fill="#ffeb3b" opacity="0.6" />
       </svg>
     ),
     impactType: 'splash',
@@ -329,17 +329,17 @@ const THROWABLES = {
     category: 'food',
     svg: (s = 50) => (
       <svg width={s} height={s} viewBox="0 0 100 100">
-        <rect x="20" y="50" width="60" height="30" rx="6" fill="#f8bbd0"/>
-        <rect x="20" y="46" width="60" height="10" rx="3" fill="#fff"/>
-        <path d="M20 50 Q30 44 40 50 Q50 44 60 50 Q70 44 80 50" fill="#fff" stroke="#f48fb1" strokeWidth="1"/>
-        <rect x="28" y="35" width="44" height="16" rx="4" fill="#ef9a9a"/>
-        <rect x="28" y="32" width="44" height="8" rx="3" fill="#fff"/>
-        <rect x="47" y="18" width="6" height="16" rx="2" fill="#ffcc02"/>
-        <ellipse cx="50" cy="16" rx="4" ry="6" fill="#ff9800"/>
-        <ellipse cx="50" cy="14" rx="2" ry="4" fill="#ffeb3b" opacity="0.7"/>
-        <circle cx="35" cy="62" r="3" fill="#e53935"/>
-        <circle cx="50" cy="65" r="3" fill="#e53935"/>
-        <circle cx="65" cy="62" r="3" fill="#e53935"/>
+        <rect x="20" y="50" width="60" height="30" rx="6" fill="#f8bbd0" />
+        <rect x="20" y="46" width="60" height="10" rx="3" fill="#fff" />
+        <path d="M20 50 Q30 44 40 50 Q50 44 60 50 Q70 44 80 50" fill="#fff" stroke="#f48fb1" strokeWidth="1" />
+        <rect x="28" y="35" width="44" height="16" rx="4" fill="#ef9a9a" />
+        <rect x="28" y="32" width="44" height="8" rx="3" fill="#fff" />
+        <rect x="47" y="18" width="6" height="16" rx="2" fill="#ffcc02" />
+        <ellipse cx="50" cy="16" rx="4" ry="6" fill="#ff9800" />
+        <ellipse cx="50" cy="14" rx="2" ry="4" fill="#ffeb3b" opacity="0.7" />
+        <circle cx="35" cy="62" r="3" fill="#e53935" />
+        <circle cx="50" cy="65" r="3" fill="#e53935" />
+        <circle cx="65" cy="62" r="3" fill="#e53935" />
       </svg>
     ),
     impactType: 'splat',
@@ -352,13 +352,13 @@ const THROWABLES = {
     category: 'food',
     svg: (s = 50) => (
       <svg width={s} height={s} viewBox="0 0 100 100">
-        <rect x="25" y="38" width="42" height="42" rx="5" fill="#fff"/>
-        <rect x="29" y="42" width="34" height="34" rx="3" fill="#4e342e"/>
-        <path d="M67 48 Q82 48 80 60 Q78 70 67 70" fill="none" stroke="#fff" strokeWidth="5"/>
-        <ellipse cx="46" cy="48" rx="14" ry="4" fill="#6d4c41" opacity="0.5"/>
-        <path d="M38 30 Q40 20 42 30" stroke="#bdbdbd" strokeWidth="2" fill="none" opacity="0.6"/>
-        <path d="M46 28 Q48 16 50 28" stroke="#bdbdbd" strokeWidth="2" fill="none" opacity="0.6"/>
-        <path d="M54 30 Q56 20 58 30" stroke="#bdbdbd" strokeWidth="2" fill="none" opacity="0.6"/>
+        <rect x="25" y="38" width="42" height="42" rx="5" fill="#fff" />
+        <rect x="29" y="42" width="34" height="34" rx="3" fill="#4e342e" />
+        <path d="M67 48 Q82 48 80 60 Q78 70 67 70" fill="none" stroke="#fff" strokeWidth="5" />
+        <ellipse cx="46" cy="48" rx="14" ry="4" fill="#6d4c41" opacity="0.5" />
+        <path d="M38 30 Q40 20 42 30" stroke="#bdbdbd" strokeWidth="2" fill="none" opacity="0.6" />
+        <path d="M46 28 Q48 16 50 28" stroke="#bdbdbd" strokeWidth="2" fill="none" opacity="0.6" />
+        <path d="M54 30 Q56 20 58 30" stroke="#bdbdbd" strokeWidth="2" fill="none" opacity="0.6" />
       </svg>
     ),
     impactType: 'splash',
@@ -374,16 +374,16 @@ const THROWABLES = {
     category: 'objects',
     svg: (s = 50) => (
       <svg width={s} height={s} viewBox="0 0 100 100">
-        <line x1="50" y1="45" x2="48" y2="90" stroke="#2e7d32" strokeWidth="4"/>
-        <path d="M46 65 Q35 60 38 55" fill="#4caf50"/>
-        <path d="M52 72 Q63 68 60 62" fill="#4caf50"/>
-        <circle cx="50" cy="35" r="15" fill="#e53935"/>
-        <circle cx="50" cy="35" r="10" fill="#ef5350"/>
-        <circle cx="50" cy="33" r="6" fill="#f44336" opacity="0.7"/>
-        <circle cx="38" cy="28" r="8" fill="#c62828"/>
-        <circle cx="62" cy="28" r="8" fill="#c62828"/>
-        <circle cx="50" cy="22" r="7" fill="#d32f2f"/>
-        <circle cx="50" cy="33" r="4" fill="#b71c1c"/>
+        <line x1="50" y1="45" x2="48" y2="90" stroke="#2e7d32" strokeWidth="4" />
+        <path d="M46 65 Q35 60 38 55" fill="#4caf50" />
+        <path d="M52 72 Q63 68 60 62" fill="#4caf50" />
+        <circle cx="50" cy="35" r="15" fill="#e53935" />
+        <circle cx="50" cy="35" r="10" fill="#ef5350" />
+        <circle cx="50" cy="33" r="6" fill="#f44336" opacity="0.7" />
+        <circle cx="38" cy="28" r="8" fill="#c62828" />
+        <circle cx="62" cy="28" r="8" fill="#c62828" />
+        <circle cx="50" cy="22" r="7" fill="#d32f2f" />
+        <circle cx="50" cy="33" r="4" fill="#b71c1c" />
       </svg>
     ),
     impactType: 'sparkle',
@@ -396,10 +396,10 @@ const THROWABLES = {
     category: 'objects',
     svg: (s = 50) => (
       <svg width={s} height={s} viewBox="0 0 100 100">
-        <path d="M25 35 Q25 80 50 80 Q75 80 75 35" fill="none" stroke="#f9a825" strokeWidth="12" strokeLinecap="round"/>
-        <path d="M30 37 Q30 74 50 74 Q70 74 70 37" fill="none" stroke="#fdd835" strokeWidth="5" opacity="0.5"/>
-        <circle cx="25" cy="35" r="6" fill="#ff6d00"/>
-        <circle cx="75" cy="35" r="6" fill="#ff6d00"/>
+        <path d="M25 35 Q25 80 50 80 Q75 80 75 35" fill="none" stroke="#f9a825" strokeWidth="12" strokeLinecap="round" />
+        <path d="M30 37 Q30 74 50 74 Q70 74 70 37" fill="none" stroke="#fdd835" strokeWidth="5" opacity="0.5" />
+        <circle cx="25" cy="35" r="6" fill="#ff6d00" />
+        <circle cx="75" cy="35" r="6" fill="#ff6d00" />
         <text x="50" y="60" textAnchor="middle" fontSize="16" fill="#fff" fontWeight="800">★</text>
       </svg>
     ),
@@ -413,17 +413,17 @@ const THROWABLES = {
     category: 'objects',
     svg: (s = 50) => (
       <svg width={s} height={s} viewBox="0 0 100 100">
-        <ellipse cx="38" cy="68" rx="18" ry="6" fill="#f57f17"/>
-        <rect x="20" y="60" width="36" height="8" fill="#f9a825"/>
-        <ellipse cx="38" cy="60" rx="18" ry="6" fill="#fdd835"/>
+        <ellipse cx="38" cy="68" rx="18" ry="6" fill="#f57f17" />
+        <rect x="20" y="60" width="36" height="8" fill="#f9a825" />
+        <ellipse cx="38" cy="60" rx="18" ry="6" fill="#fdd835" />
         <text x="38" y="64" textAnchor="middle" fontSize="10" fill="#f57f17" fontWeight="800">C</text>
-        <ellipse cx="58" cy="55" rx="18" ry="6" fill="#f57f17"/>
-        <rect x="40" y="47" width="36" height="8" fill="#f9a825"/>
-        <ellipse cx="58" cy="47" rx="18" ry="6" fill="#fdd835"/>
+        <ellipse cx="58" cy="55" rx="18" ry="6" fill="#f57f17" />
+        <rect x="40" y="47" width="36" height="8" fill="#f9a825" />
+        <ellipse cx="58" cy="47" rx="18" ry="6" fill="#fdd835" />
         <text x="58" y="51" textAnchor="middle" fontSize="10" fill="#f57f17" fontWeight="800">C</text>
-        <ellipse cx="45" cy="40" rx="18" ry="6" fill="#f57f17"/>
-        <rect x="27" y="32" width="36" height="8" fill="#f9a825"/>
-        <ellipse cx="45" cy="32" rx="18" ry="6" fill="#fdd835"/>
+        <ellipse cx="45" cy="40" rx="18" ry="6" fill="#f57f17" />
+        <rect x="27" y="32" width="36" height="8" fill="#f9a825" />
+        <ellipse cx="45" cy="32" rx="18" ry="6" fill="#fdd835" />
         <text x="45" y="36" textAnchor="middle" fontSize="10" fill="#f57f17" fontWeight="800">C</text>
       </svg>
     ),
@@ -437,11 +437,11 @@ const THROWABLES = {
     category: 'objects',
     svg: (s = 50) => (
       <svg width={s} height={s} viewBox="0 0 100 100">
-        <rect x="22" y="20" width="35" height="50" rx="4" fill="#fff" stroke="#ccc" strokeWidth="1" transform="rotate(-15 40 45)"/>
+        <rect x="22" y="20" width="35" height="50" rx="4" fill="#fff" stroke="#ccc" strokeWidth="1" transform="rotate(-15 40 45)" />
         <text x="32" y="42" fontSize="14" fill="#e53935" fontWeight="800" transform="rotate(-15 40 45)">A♥</text>
-        <rect x="42" y="22" width="35" height="50" rx="4" fill="#fff" stroke="#ccc" strokeWidth="1" transform="rotate(8 60 47)"/>
+        <rect x="42" y="22" width="35" height="50" rx="4" fill="#fff" stroke="#ccc" strokeWidth="1" transform="rotate(8 60 47)" />
         <text x="50" y="44" fontSize="14" fill="#1a237e" fontWeight="800" transform="rotate(8 60 47)">K♠</text>
-        <rect x="35" y="30" width="35" height="50" rx="4" fill="#fff" stroke="#ccc" strokeWidth="1" transform="rotate(-3 52 55)"/>
+        <rect x="35" y="30" width="35" height="50" rx="4" fill="#fff" stroke="#ccc" strokeWidth="1" transform="rotate(-3 52 55)" />
         <text x="42" y="52" fontSize="14" fill="#e53935" fontWeight="800" transform="rotate(-3 52 55)">Q♦</text>
       </svg>
     ),
@@ -455,22 +455,22 @@ const THROWABLES = {
     category: 'objects',
     svg: (s = 50) => (
       <svg width={s} height={s} viewBox="0 0 100 100">
-        <circle cx="50" cy="55" r="30" fill="#f44336"/>
-        <circle cx="50" cy="55" r="26" fill="#e53935"/>
-        <circle cx="50" cy="55" r="24" fill="#ef5350" opacity="0.3"/>
-        <circle cx="50" cy="55" r="22" fill="#fff"/>
-        <circle cx="30" cy="28" r="12" fill="#f44336"/>
-        <circle cx="70" cy="28" r="12" fill="#f44336"/>
-        <rect x="48" y="36" width="3" height="18" rx="1" fill="#424242"/>
-        <rect x="49" y="48" width="14" height="3" rx="1" fill="#424242"/>
-        <circle cx="50" cy="55" r="3" fill="#424242"/>
-        <rect x="24" y="82" width="8" height="6" rx="2" fill="#f44336" transform="rotate(-20 28 85)"/>
-        <rect x="68" y="82" width="8" height="6" rx="2" fill="#f44336" transform="rotate(20 72 85)"/>
+        <circle cx="50" cy="55" r="30" fill="#f44336" />
+        <circle cx="50" cy="55" r="26" fill="#e53935" />
+        <circle cx="50" cy="55" r="24" fill="#ef5350" opacity="0.3" />
+        <circle cx="50" cy="55" r="22" fill="#fff" />
+        <circle cx="30" cy="28" r="12" fill="#f44336" />
+        <circle cx="70" cy="28" r="12" fill="#f44336" />
+        <rect x="48" y="36" width="3" height="18" rx="1" fill="#424242" />
+        <rect x="49" y="48" width="14" height="3" rx="1" fill="#424242" />
+        <circle cx="50" cy="55" r="3" fill="#424242" />
+        <rect x="24" y="82" width="8" height="6" rx="2" fill="#f44336" transform="rotate(-20 28 85)" />
+        <rect x="68" y="82" width="8" height="6" rx="2" fill="#f44336" transform="rotate(20 72 85)" />
         {/* Ring lines */}
-        <path d="M18 22 L12 16" stroke="#ff8a80" strokeWidth="3" strokeLinecap="round"/>
-        <path d="M82 22 L88 16" stroke="#ff8a80" strokeWidth="3" strokeLinecap="round"/>
-        <path d="M15 30 L8 28" stroke="#ff8a80" strokeWidth="2" strokeLinecap="round" opacity="0.6"/>
-        <path d="M85 30 L92 28" stroke="#ff8a80" strokeWidth="2" strokeLinecap="round" opacity="0.6"/>
+        <path d="M18 22 L12 16" stroke="#ff8a80" strokeWidth="3" strokeLinecap="round" />
+        <path d="M82 22 L88 16" stroke="#ff8a80" strokeWidth="3" strokeLinecap="round" />
+        <path d="M15 30 L8 28" stroke="#ff8a80" strokeWidth="2" strokeLinecap="round" opacity="0.6" />
+        <path d="M85 30 L92 28" stroke="#ff8a80" strokeWidth="2" strokeLinecap="round" opacity="0.6" />
       </svg>
     ),
     impactType: 'shake',
@@ -484,19 +484,19 @@ const THROWABLES = {
     category: 'objects',
     svg: (s = 50) => (
       <svg width={s} height={s} viewBox="0 0 100 100">
-        <ellipse cx="50" cy="60" rx="26" ry="22" fill="#f5f5f5"/>
-        <circle cx="50" cy="38" r="16" fill="#f5f5f5"/>
-        <path d="M36 30 L28 14 L38 26Z" fill="#e0e0e0"/>
-        <path d="M64 30 L72 14 L62 26Z" fill="#e0e0e0"/>
-        <circle cx="43" cy="36" r="3" fill="#424242"/>
-        <circle cx="57" cy="36" r="3" fill="#424242"/>
-        <circle cx="44" cy="35" r="1" fill="#fff"/>
-        <circle cx="58" cy="35" r="1" fill="#fff"/>
-        <ellipse cx="50" cy="44" rx="6" ry="4" fill="#e0e0e0"/>
-        <path d="M44 50 Q50 55 56 50" fill="#e8a0bf" opacity="0.6"/>
-        <path d="M47 52 Q50 62 53 52" fill="#e0e0e0"/>
+        <ellipse cx="50" cy="60" rx="26" ry="22" fill="#f5f5f5" />
+        <circle cx="50" cy="38" r="16" fill="#f5f5f5" />
+        <path d="M36 30 L28 14 L38 26Z" fill="#e0e0e0" />
+        <path d="M64 30 L72 14 L62 26Z" fill="#e0e0e0" />
+        <circle cx="43" cy="36" r="3" fill="#424242" />
+        <circle cx="57" cy="36" r="3" fill="#424242" />
+        <circle cx="44" cy="35" r="1" fill="#fff" />
+        <circle cx="58" cy="35" r="1" fill="#fff" />
+        <ellipse cx="50" cy="44" rx="6" ry="4" fill="#e0e0e0" />
+        <path d="M44 50 Q50 55 56 50" fill="#e8a0bf" opacity="0.6" />
+        <path d="M47 52 Q50 62 53 52" fill="#e0e0e0" />
         <text x="50" y="72" textAnchor="middle" fontSize="11" fontWeight="900" fill="#fdd835">GOAT</text>
-        <circle cx="50" cy="10" r="8" fill="#fdd835"/>
+        <circle cx="50" cy="10" r="8" fill="#fdd835" />
         <text x="50" y="14" textAnchor="middle" fontSize="10" fontWeight="800" fill="#f57f17">★</text>
       </svg>
     ),
@@ -505,6 +505,95 @@ const THROWABLES = {
     particles: ['#fdd835', '#f5f5f5', '#ffeb3b', '#fff'],
     spinSpeed: 0,
   },
+
+  // ── PREMIUM (💎 Diamond-Gated) ─────────────
+  confettiShower: {
+    label: 'Confetti',
+    category: 'premium',
+    premium: true,
+    diamondCost: 5,
+    svg: (s = 50) => (
+      <svg width={s} height={s} viewBox="0 0 100 100">
+        {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(i => {
+          const x = 15 + (i % 4) * 25 + Math.random() * 10;
+          const y = 10 + Math.floor(i / 4) * 28;
+          const colors = ['#e53935', '#fdd835', '#42a5f5', '#66bb6a', '#ab47bc', '#ff9800'];
+          return <rect key={i} x={x} y={y} width={8} height={5} rx={1} fill={colors[i % colors.length]} transform={`rotate(${i * 30} ${x + 4} ${y + 2.5})`} />;
+        })}
+        <text x="50" y="55" textAnchor="middle" fontSize="24" fontWeight="800" fill="#fff" opacity="0.15">🎉</text>
+      </svg>
+    ),
+    impactType: 'explode',
+    impactColor: '#fdd835',
+    particles: ['#e53935', '#fdd835', '#42a5f5', '#66bb6a', '#ab47bc', '#ff9800', '#e91e63', '#00e5ff'],
+    spinSpeed: 0,
+    tableWide: true,
+  },
+  fireRain: {
+    label: 'Fire Rain',
+    category: 'premium',
+    premium: true,
+    diamondCost: 10,
+    svg: (s = 50) => (
+      <svg width={s} height={s} viewBox="0 0 100 100">
+        {[20, 35, 50, 65, 80].map((x, i) => (
+          <React.Fragment key={i}>
+            <ellipse cx={x} cy={60 + i * 4} rx={8} ry={14} fill="#ff5722" opacity={0.8} />
+            <ellipse cx={x} cy={55 + i * 4} rx={5} ry={10} fill="#ff9800" opacity={0.7} />
+            <ellipse cx={x} cy={50 + i * 4} rx={3} ry={7} fill="#ffeb3b" opacity={0.6} />
+          </React.Fragment>
+        ))}
+      </svg>
+    ),
+    impactType: 'explode',
+    impactColor: '#ff5722',
+    particles: ['#ff5722', '#ff9800', '#ffeb3b', '#e53935', '#fff', '#ff6d00'],
+    spinSpeed: 0,
+    tableWide: true,
+  },
+  iceFreeze: {
+    label: 'Ice Freeze',
+    category: 'premium',
+    premium: true,
+    diamondCost: 10,
+    svg: (s = 50) => (
+      <svg width={s} height={s} viewBox="0 0 100 100">
+        <polygon points="50,10 55,30 75,30 60,42 65,62 50,50 35,62 40,42 25,30 45,30" fill="#e3f2fd" stroke="#90caf9" strokeWidth="1" />
+        <polygon points="50,20 53,32 65,32 56,40 58,52 50,45 42,52 44,40 35,32 47,32" fill="#bbdefb" opacity="0.6" />
+        {[0, 60, 120, 180, 240, 300].map((a, i) => {
+          const rad = a * Math.PI / 180;
+          return <circle key={i} cx={50 + Math.cos(rad) * 35} cy={40 + Math.sin(rad) * 30} r={3} fill="#e1f5fe" opacity={0.5} />;
+        })}
+      </svg>
+    ),
+    impactType: 'sparkle',
+    impactColor: '#90caf9',
+    particles: ['#e3f2fd', '#bbdefb', '#90caf9', '#64b5f6', '#42a5f5', '#fff'],
+    spinSpeed: 0,
+    tableWide: true,
+  },
+  diamondRain: {
+    label: 'Diamonds',
+    category: 'premium',
+    premium: true,
+    diamondCost: 25,
+    svg: (s = 50) => (
+      <svg width={s} height={s} viewBox="0 0 100 100">
+        {[{ x: 30, y: 25, s: 16 }, { x: 60, y: 20, s: 20 }, { x: 45, y: 45, s: 14 }, { x: 70, y: 50, s: 12 }, { x: 25, y: 55, s: 13 }].map((d, i) => (
+          <React.Fragment key={i}>
+            <polygon points={`${d.x},${d.y - d.s / 2} ${d.x + d.s / 2},${d.y} ${d.x},${d.y + d.s / 2} ${d.x - d.s / 2},${d.y}`} fill={['#e3f2fd', '#bbdefb', '#64b5f6', '#42a5f5', '#90caf9'][i]} />
+            <polygon points={`${d.x},${d.y - d.s / 2} ${d.x + d.s / 4},${d.y} ${d.x},${d.y + d.s / 2} ${d.x - d.s / 4},${d.y}`} fill="#fff" opacity="0.3" />
+          </React.Fragment>
+        ))}
+        <text x="50" y="80" textAnchor="middle" fontSize="14" fontWeight="800" fill="#64b5f6">💎</text>
+      </svg>
+    ),
+    impactType: 'sparkle',
+    impactColor: '#64b5f6',
+    particles: ['#64b5f6', '#42a5f5', '#90caf9', '#e3f2fd', '#fff', '#bbdefb'],
+    spinSpeed: 360,
+    tableWide: true,
+  },
 };
 
 const CATEGORIES = {
@@ -512,6 +601,7 @@ const CATEGORIES = {
   reactions: { label: '⚡ Reactions', items: ['rocket', 'fireworks', 'trophy', 'thumbsDown', 'crown', 'clap'] },
   food: { label: '🍺 Food & Drinks', items: ['beer', 'champagne', 'cake', 'coffee'] },
   objects: { label: '🎲 Objects', items: ['roses', 'horseshoe', 'coins', 'cards', 'alarm', 'goat'] },
+  premium: { label: '💎 Premium', items: ['confettiShower', 'fireRain', 'iceFreeze', 'diamondRain'] },
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -1051,7 +1141,7 @@ function ThrowableEmojis({
           >
             <SeatImpact
               throwable={data.throwable}
-              onComplete={() => {}}
+              onComplete={() => { }}
             />
           </div>
         );

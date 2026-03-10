@@ -95,7 +95,6 @@ const AdminIcon = () => (
  */
 export default function ClubArenaBottomNav({ clubId, activePage, userRole }) {
     const [unreadCount, setUnreadCount] = useState(0);
-    const bus = useTrainingBus();
 
     // HARDENED: Don't render if no clubId - prevents broken links
     // (Moved below hooks to comply with React rules-of-hooks)
@@ -127,8 +126,8 @@ export default function ClubArenaBottomNav({ clubId, activePage, userRole }) {
         };
         fetchUnread();
 
-        const offMsg = bus.on('MESSAGE_RECEIVED', () => setUnreadCount(prev => prev + 1));
-        const offRead = bus.on('DATA_MUTATED', (event) => {
+        const offMsg = eventBus.on('MESSAGE_RECEIVED', () => setUnreadCount(prev => prev + 1));
+        const offRead = eventBus.on(EventType.DATA_MUTATED, (event) => {
             const source = event?.payload?.entity;
             if (source === 'message_read' || source === 'message_sent') fetchUnread();
         });
@@ -138,7 +137,7 @@ export default function ClubArenaBottomNav({ clubId, activePage, userRole }) {
             offMsg();
             offRead();
         };
-    }, [clubId, bus]);
+    }, [clubId]);
 
     // HARDENED: Don't render if no clubId - prevents broken links
     if (!clubId) return null;

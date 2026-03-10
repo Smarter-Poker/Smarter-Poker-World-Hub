@@ -60,6 +60,7 @@ const api = async (action, params) => {
 
 export default function UnionGames() {
   useTrainingBus('club-arena-union-games');
+  usePullToRefresh({ onRefresh: () => loadData?.() });
 
   const router = useRouter();
   const unionId = router.query?.union || null;

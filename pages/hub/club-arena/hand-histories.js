@@ -154,6 +154,7 @@ const MemoizedHandCard = React.memo(({ hand, setSelectedHand, renderCardRow, get
 
 export default function HandHistories() {
     useTrainingBus('club-arena-hand-histories');
+    usePullToRefresh({ onRefresh: () => loadHands?.() });
 
     const router = useRouter();
     const clubIdParam = router.query?.club || null;

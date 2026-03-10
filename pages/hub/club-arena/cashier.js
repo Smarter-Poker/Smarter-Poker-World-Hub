@@ -42,6 +42,7 @@ const CASHOUT_PRESETS = [100, 500, 1000, 'All'];
 
 export default function Cashier() {
     useTrainingBus('club-arena-cashier');
+    usePullToRefresh({ onRefresh: () => loadData?.() });
 
     const router = useRouter();
     const clubIdParam = router.query?.club || null;

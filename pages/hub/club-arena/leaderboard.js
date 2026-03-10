@@ -249,6 +249,7 @@ const MemoizedLeaderboardRow = React.memo(({ member, rank, isCurrentUser, S, FB,
 
 export default function Leaderboard() {
     useTrainingBus('club-arena-leaderboard');
+    usePullToRefresh({ onRefresh: () => loadLeaderboard?.() });
 
     const router = useRouter();
     const clubIdParam = router.query?.club || null;

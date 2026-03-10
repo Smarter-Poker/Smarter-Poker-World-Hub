@@ -60,6 +60,7 @@ const ROLE_BADGES = {
 
 export default function Players() {
     useTrainingBus('club-arena-players');
+    usePullToRefresh({ onRefresh: () => loadMembers?.() });
 
     const router = useRouter();
     const clubIdParam = router.query?.club || null;

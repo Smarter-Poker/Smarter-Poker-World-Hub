@@ -112,6 +112,13 @@ function TabBar({ tables, activeIndex, actionNeeded, onSwitch, onClose, viewMode
         const isActive = idx === activeIndex;
         const needsAction = actionNeeded.has(table.tableId);
 
+        const VARIANT_COLORS = {
+          holdem: '#22c55e', omaha4: '#f59e0b', omaha5: '#e67e22',
+          omaha6: '#e74c3c', short_deck: '#8b5cf6', pineapple: '#eab308',
+          flo: '#14b8a6', mixed: '#f59e0b',
+        };
+        const variantColor = VARIANT_COLORS[table.variant] || '#22c55e';
+
         return (
           <div
             key={table.tableId}
@@ -126,7 +133,14 @@ function TabBar({ tables, activeIndex, actionNeeded, onSwitch, onClose, viewMode
               cursor: 'pointer',
               transition: 'background 0.2s',
               position: 'relative',
-              border: needsAction && !isActive ? `1px solid ${T.danger}` : '1px solid transparent',
+              border: needsAction && !isActive
+                ? `1px solid ${T.danger}`
+                : isActive
+                  ? `1px solid ${T.tabActive}`
+                  : '1px solid transparent',
+              boxShadow: needsAction && !isActive
+                ? `0 0 8px ${T.danger}60`
+                : 'none',
             }}
           >
             {/* Action needed indicator */}
@@ -143,6 +157,14 @@ function TabBar({ tables, activeIndex, actionNeeded, onSwitch, onClose, viewMode
               }} />
             )}
 
+            {/* Variant color dot */}
+            <div style={{
+              width: 6, height: 6, borderRadius: '50%',
+              background: variantColor,
+              flexShrink: 0,
+              boxShadow: `0 0 4px ${variantColor}80`,
+            }} />
+
             <span style={{
               color: isActive ? '#fff' : T.tabTextDim,
               fontSize: 12,
@@ -151,6 +173,15 @@ function TabBar({ tables, activeIndex, actionNeeded, onSwitch, onClose, viewMode
             }}>
               {table.variant} {table.stakes}
             </span>
+
+            {/* Mini BB indicator */}
+            {table.heroStack != null && table.bigBlind > 0 && (
+              <span style={{
+                fontSize: 9, fontWeight: 700,
+                color: isActive ? 'rgba(255,255,255,0.7)' : '#65676B',
+                fontVariantNumeric: 'tabular-nums',
+              }}>{Math.floor(table.heroStack / table.bigBlind)}bb</span>
+            )}
 
             {/* Close button */}
             <button

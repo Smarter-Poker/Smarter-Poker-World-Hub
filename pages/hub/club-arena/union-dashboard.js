@@ -57,6 +57,7 @@ const ALL_TABS = [
 
 export default function UnionDashboard() {
     useTrainingBus('club-arena-union-dashboard');
+    usePullToRefresh({ onRefresh: () => loadUnionData?.() });
 
     const router = useRouter();
     const unionIdParam = router.query?.union || null;

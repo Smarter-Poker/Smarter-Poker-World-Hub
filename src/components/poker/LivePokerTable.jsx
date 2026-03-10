@@ -2956,6 +2956,103 @@ function RunItOfferOverlay({ offer, userId, onRespond }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// GTO SPOT-CHECK BADGE — Post-showdown play quality indicator
+// ═══════════════════════════════════════════════════════════════════════════
+
+function GTOCheckBadge({ result, heroAction, visible }) {
+  const [showDetail, setShowDetail] = useState(false);
+
+  if (!visible || !result || !heroAction) return null;
+
+  // Heuristic GTO evaluation based on hero's action context
+  const evaluate = () => {
+    const { action, potOdds, handStrength, phase } = heroAction;
+
+    // Simple heuristic: compare action vs. expected play
+    if (!action) return { grade: 'neutral', label: '—', color: '#888', tip: 'No action recorded' };
+
+    // Fold with strong hand = major deviation
+    if (action === 'fold' && handStrength > 60) {
+      return { grade: 'deviation', label: '❌ Major Deviation', color: '#ef5350', tip: 'Folded a strong hand. GTO suggests continuing with equity advantage.' };
+    }
+    // Call with weak hand and bad pot odds = leak
+    if (action === 'call' && handStrength < 25 && potOdds > 30) {
+      return { grade: 'leak', label: '⚠️ Slight Leak', color: '#f59e0b', tip: 'Called with insufficient equity. Required better pot odds or a stronger draw.' };
+    }
+    // Raise with premium = optimal
+    if ((action === 'raise' || action === 'bet') && handStrength > 70) {
+      return { grade: 'optimal', label: '✅ Optimal', color: '#4caf50', tip: 'Value bet with strong hand — well played.' };
+    }
+    // Fold with weak hand = optimal
+    if (action === 'fold' && handStrength < 20) {
+      return { grade: 'optimal', label: '✅ Optimal', color: '#4caf50', tip: 'Good fold — limited equity vs. opponent range.' };
+    }
+    // Default: slight leak for passive play
+    if (action === 'check' && handStrength > 50 && phase === 'river') {
+      return { grade: 'leak', label: '⚠️ Slight Leak', color: '#f59e0b', tip: 'Missed value bet on the river with a strong hand.' };
+    }
+    // Neutral/acceptable
+    return { grade: 'neutral', label: '✅ Acceptable', color: '#4caf50', tip: 'Play was within acceptable GTO range.' };
+  };
+
+  const { label, color, tip } = evaluate();
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 1.5, duration: 0.4 }}
+      style={{ marginTop: 8, textAlign: 'center' }}
+    >
+      <motion.button
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={(e) => { e.stopPropagation(); setShowDetail(!showDetail); }}
+        style={{
+          background: `${color}20`,
+          border: `1px solid ${color}50`,
+          borderRadius: 20,
+          padding: '4px 14px',
+          color,
+          fontSize: 11,
+          fontWeight: 700,
+          cursor: 'pointer',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 4,
+        }}
+      >
+        🧠 {label}
+      </motion.button>
+
+      <AnimatePresence>
+        {showDetail && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            style={{
+              marginTop: 6,
+              padding: '6px 12px',
+              background: 'rgba(0,0,0,0.6)',
+              borderRadius: 8,
+              border: '1px solid rgba(255,255,255,0.08)',
+              fontSize: 10,
+              color: '#B0B3B8',
+              lineHeight: 1.5,
+              maxWidth: 220,
+              margin: '6px auto 0',
+            }}
+          >
+            {tip}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // CHIP FLY ANIMATION — chips fly from pot center to winner seat
 // ═══════════════════════════════════════════════════════════════════════════
 

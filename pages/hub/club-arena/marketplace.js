@@ -63,6 +63,7 @@ const CATEGORIES = [
 
 export default function Marketplace() {
     useTrainingBus('club-arena-marketplace');
+    usePullToRefresh({ onRefresh: () => loadItems?.() });
 
     const router = useRouter();
     const clubIdParam = router.query?.club || null;
