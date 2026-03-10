@@ -643,6 +643,7 @@ function ConversationItem({ conversation, isActive, onClick, isPinned, onPin, is
 
 export default function ClubMessages() {
     useTrainingBus('club-arena-messages');
+    usePullToRefresh({ onRefresh: () => loadConversations?.() });
     const router = useRouter();
     if (!router.isReady) return null;
     const { club: clubIdParam } = router.query;
