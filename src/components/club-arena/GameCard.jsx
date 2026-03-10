@@ -236,7 +236,7 @@ function MiniSeatMap({ current, max, accentColor, tableId }) {
 // ─────────────────────────────────────────────────────────────────────
 // CASH GAME CARD — Vertical Poker Table
 // ─────────────────────────────────────────────────────────────────────
-function CashCard({ table: t, assetMap, onPress, avgVpip, miniState }) {
+function CashCard({ table: t, assetMap, onPress, onSpectate, avgVpip, miniState }) {
   const vc = VC[t.game_variant] || DV;
   const sb = t.small_blind ?? 0;
   const bb = t.big_blind ?? 0;
@@ -282,13 +282,21 @@ function CashCard({ table: t, assetMap, onPress, avgVpip, miniState }) {
       <div style={S.tableContainer}>
         {isLive && miniState && miniState.phase !== 'idle' ? (
           /* LIVE MINI-VIEW — PokerBros-style live table thumbnail */
-          <TableMiniView
-            miniState={miniState}
-            maxSeats={max}
-            blinds={`${fmtBlind(sb)}/${fmtBlind(bb)}`}
-            variant={vc.label}
-            accentColor={vc.accent}
-          />
+          <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+            <TableMiniView
+              miniState={miniState}
+              maxSeats={max}
+              blinds={`${fmtBlind(sb)}/${fmtBlind(bb)}`}
+              variant={vc.label}
+              accentColor={vc.accent}
+            />
+            <div 
+              onClick={(e) => { e.stopPropagation(); onSpectate?.(t); }}
+              style={S.spectateBtn}
+            >
+              👁️ Watch
+            </div>
+          </div>
         ) : (
           /* STATIC TABLE IMAGE (vertical) */
           <>
@@ -354,7 +362,7 @@ function CashCard({ table: t, assetMap, onPress, avgVpip, miniState }) {
 // ─────────────────────────────────────────────────────────────────────
 // TOURNAMENT / SNG / SPIN CARD — Vertical Poker Table
 // ─────────────────────────────────────────────────────────────────────
-function TournamentCard({ tournament: t, assetMap, onPress, onQuickRegister, miniState }) {
+function TournamentCard({ tournament: t, assetMap, onPress, onSpectate, onQuickRegister, miniState }) {
   const variant = t.game_variant || t.variant || 'nlh';
   const isSpin = t.type === 'spin' || variant === 'spin';
   const isMTT = t.type === 'mtt' || t.type === 'xmtt'; // BUG-8 FIX: XMTT is an MTT variant
@@ -430,12 +438,20 @@ function TournamentCard({ tournament: t, assetMap, onPress, onQuickRegister, min
       <div style={S.tableContainer}>
         {isLive && miniState && miniState.phase !== 'idle' ? (
           /* LIVE MINI-VIEW */
-          <TableMiniView
-            miniState={miniState}
-            maxSeats={maxP}
-            variant={typeLabel}
-            accentColor={vc.accent}
-          />
+          <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+            <TableMiniView
+              miniState={miniState}
+              maxSeats={maxP}
+              variant={typeLabel}
+              accentColor={vc.accent}
+            />
+            <div 
+              onClick={(e) => { e.stopPropagation(); onSpectate?.(t); }}
+              style={S.spectateBtn}
+            >
+              👁️ Watch
+            </div>
+          </div>
         ) : (
           /* STATIC TABLE IMAGE (vertical) */
           <>
@@ -761,6 +777,21 @@ const S = {
     boxShadow: '0 2px 6px rgba(49,162,76,0.4)',
     transition: 'transform 0.1s, box-shadow 0.15s',
     whiteSpace: 'nowrap', zIndex: 2,
+  },
+  
+  spectateBtn: {
+    position: 'absolute',
+    top: 4, right: 4,
+    background: 'rgba(0,0,0,0.6)',
+    border: '1px solid rgba(255,255,255,0.2)',
+    borderRadius: 4,
+    padding: '2px 6px',
+    color: '#fff',
+    fontSize: 7,
+    fontWeight: 800,
+    cursor: 'pointer',
+    zIndex: 20,
+    backdropFilter: 'blur(2px)',
   },
 };
 

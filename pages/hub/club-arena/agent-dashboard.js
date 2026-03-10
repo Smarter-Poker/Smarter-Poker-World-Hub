@@ -244,9 +244,11 @@ export default function AgentDashboard() {
         Promise.all([
             apiCall('/api/club-arena/agent-analytics', { clubId: dashboard.clubId, action: 'pulse' }).catch(() => ({})),
             apiCall('/api/club-arena/agent-analytics', { clubId: dashboard.clubId, action: 'heat_map' }).catch(() => ({ players: [] })),
-        ]).then(([pulseRes, heatRes]) => {
+            apiCall('/api/club-arena/agent-analytics', { clubId: dashboard.clubId, action: 'leaderboard' }).catch(() => ({ leaderboard: [] })),
+        ]).then(([pulseRes, heatRes, leaderRes]) => {
             setIntelData(pulseRes);
             setIntelHeatMap(heatRes.players || []);
+            setIntelLeaderboard(leaderRes.leaderboard || []);
         }).finally(() => setIntelLoading(false));
     }, [activeTab, dashboard?.clubId]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -649,44 +651,55 @@ export default function AgentDashboard() {
                         />
                     )}
 
-                    {/* ═══ INTELLIGENCE TAB ═══ */}
+                    {/* ═══ INTELLIGENCE TAB (ORB-7) ═══ */}
                     {activeTab === 'intelligence' && (
                         <div>
-                            {intelLoading ? (
-                                <div style={{ textAlign: 'center', padding: 40, color: FB.textSecondary }}>Loading analytics...</div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                                <h2 style={{ fontSize: 18, fontWeight: 700, color: FB.textPrimary, margin: 0 }}>Agent Intelligence</h2>
+                                <button onClick={() => { setIntelData(null); loadDashboard(); }} disabled={intelLoading} style={{ background: 'none', border: 'none', color: FB.primary, fontSize: 13, fontWeight: 600, cursor: 'pointer', opacity: intelLoading ? 0.5 : 1 }}>
+                                    {intelLoading ? 'Syncing...' : '🔄 Refresh Data'}
+                                </button>
+                            </div>
+
+                            {intelLoading && !intelData ? (
+                                <div style={{ textAlign: 'center', padding: 40, color: FB.textSecondary }}>Syncing Intelligence Network...</div>
                             ) : (
                                 <>
                                     {/* Pulse Metrics */}
-                                    {intelData && (
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 18 }}>
+                                    {intelData?.pulse && (
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 18 }}>
                                             {[
-                                                { label: '7d Commission', value: `$${(intelData.total_commission_7d || 0).toLocaleString()}`, color: FB.gold },
-                                                { label: '7d Chip Volume', value: (intelData.total_volume_7d || 0).toLocaleString(), color: FB.primary },
-                                                { label: 'Active Players', value: intelData.active_players || 0, color: FB.success },
-                                                { label: 'Churn Rate', value: `${intelData.churn_rate_pct || 0}%`, color: (intelData.churn_rate_pct || 0) > 15 ? FB.danger : FB.success },
+                                                { label: '7d Volume', value: (intelData.pulse.totalVolume || 0).toLocaleString(), color: FB.gold },
+                                                { label: '7d Commissions', value: `+${(intelData.pulse.totalCommissions || 0).toLocaleString()}`, color: FB.success },
+                                                { label: 'Active Players', value: `${intelData.pulse.activeCount || 0} / ${intelData.pulse.playerCount || 0}`, color: FB.textPrimary },
+                                                { label: 'At Risk (Churning)', value: intelData.pulse.atRiskCount || 0, color: (intelData.pulse.atRiskCount || 0) > 0 ? FB.warning : FB.success },
                                             ].map(s => (
-                                                <div key={s.label} style={{ background: cardStyle.background || FB.cardBg, borderRadius: 10, padding: '14px 16px', border: `1px solid ${FB.border}` }}>
-                                                    <div style={{ fontSize: 11, color: FB.textSecondary, textTransform: 'uppercase', marginBottom: 4 }}>{s.label}</div>
-                                                    <div style={{ fontSize: 22, fontWeight: 800, color: s.color }}>{s.value}</div>
+                                                <div key={s.label} style={{ background: FB.cardBg, borderRadius: 10, padding: '14px 16px', border: `1px solid ${(s.label === 'At Risk (Churning)' && s.value > 0) ? FB.danger + '88' : FB.border}` }}>
+                                                    <div style={{ fontSize: 11, color: (s.label === 'At Risk (Churning)' && s.value > 0) ? FB.danger : FB.textSecondary, textTransform: 'uppercase', marginBottom: 4 }}>{s.label}</div>
+                                                    <div style={{ fontSize: 22, fontWeight: 800, color: (s.label === 'At Risk (Churning)' && s.value > 0) ? FB.danger : s.color }}>{s.value}</div>
                                                 </div>
                                             ))}
                                         </div>
                                     )}
 
                                     {/* Player Heat Map */}
-                                    {intelHeatMap.length > 0 && (
+                                    {intelHeatMap && intelHeatMap.length > 0 && (
                                         <>
-                                            <h4 style={{ fontSize: 12, fontWeight: 700, color: FB.textSecondary, textTransform: 'uppercase', marginBottom: 10 }}>Player Heat Map</h4>
+                                            <h4 style={{ fontSize: 12, fontWeight: 700, color: FB.textSecondary, textTransform: 'uppercase', marginBottom: 10, marginTop: 24 }}>Player Risk Heat Map</h4>
                                             <div style={{ display: 'grid', gap: 6 }}>
-                                                {intelHeatMap.slice(0, 15).map((p, i) => {
-                                                    const heatColor = p.heat === 'hot' ? '#31A24C' : p.heat === 'warm' ? '#F7C52A' : '#FA383E';
+                                                {intelHeatMap.map((p, i) => {
+                                                    const heatColor = p.color === 'green' ? FB.success : p.color === 'yellow' ? FB.warning : FB.danger;
+                                                    const heatLabel = p.color === 'green' ? 'SAFE' : p.color === 'yellow' ? 'AT RISK' : 'CHURNED';
                                                     return (
-                                                        <div key={p.user_id || i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: FB.cardBg, borderRadius: 8, borderLeft: `3px solid ${heatColor}` }}>
+                                                        <div key={p.userId || i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: FB.cardBg, borderRadius: 8, borderLeft: `4px solid ${heatColor}`, borderTop: `1px solid ${FB.border}`, borderRight: `1px solid ${FB.border}`, borderBottom: `1px solid ${FB.border}` }}>
                                                             <div>
-                                                                <div style={{ fontSize: 13, fontWeight: 600, color: FB.textPrimary }}>{p.display_name || p.username || 'Player'}</div>
-                                                                <div style={{ fontSize: 11, color: FB.textSecondary }}>{p.sessions_7d || 0} sessions • {(p.volume_7d || 0).toLocaleString()} volume</div>
+                                                                <div style={{ fontSize: 14, fontWeight: 600, color: FB.textPrimary }}>{p.name || 'Player'}</div>
+                                                                <div style={{ fontSize: 12, color: FB.textSecondary, marginTop: 2 }}>{p.daysSinceActive === 0 ? 'Active today' : `Last seen ${p.daysSinceActive}d ago`}</div>
                                                             </div>
-                                                            <div style={{ fontSize: 11, fontWeight: 700, color: heatColor, textTransform: 'uppercase' }}>{p.heat}</div>
+                                                            <div style={{ textAlign: 'right' }}>
+                                                                <div style={{ fontSize: 14, fontWeight: 700, color: FB.gold }}>{(p.chipBalance || 0).toLocaleString()}</div>
+                                                                <div style={{ fontSize: 11, fontWeight: 800, color: heatColor, textTransform: 'uppercase', marginTop: 2 }}>{heatLabel}</div>
+                                                            </div>
                                                         </div>
                                                     );
                                                 })}
@@ -694,8 +707,42 @@ export default function AgentDashboard() {
                                         </>
                                     )}
 
-                                    {!intelData && intelHeatMap.length === 0 && (
-                                        <div style={{ textAlign: 'center', padding: 30, color: FB.textSecondary }}>No intelligence data available yet</div>
+                                    {/* Sub-Agent Leaderboard */}
+                                    {intelLeaderboard && intelLeaderboard.length > 0 && (
+                                        <>
+                                            <h4 style={{ fontSize: 12, fontWeight: 700, color: FB.textSecondary, textTransform: 'uppercase', marginBottom: 10, marginTop: 24 }}>Sub-Agent Leaderboard (7-Day Earnings)</h4>
+                                            <div style={{ background: FB.cardBg, borderRadius: 12, border: `1px solid ${FB.border}`, overflow: 'hidden' }}>
+                                                {intelLeaderboard.map((a, i) => (
+                                                    <div key={a.agentId} style={{
+                                                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                                        padding: '12px 16px', borderBottom: i < intelLeaderboard.length - 1 ? `1px solid ${FB.border}` : 'none'
+                                                    }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                                            <div style={{ fontSize: 16, fontWeight: 800, color: i === 0 ? FB.gold : i === 1 ? '#E0E0E0' : i === 2 ? '#CD7F32' : FB.textSecondary, width: 20, textAlign: 'center' }}>
+                                                                #{i + 1}
+                                                            </div>
+                                                            <div>
+                                                                <div style={{ fontSize: 15, fontWeight: 600, color: FB.textPrimary }}>{a.name}</div>
+                                                                <div style={{ fontSize: 12, color: FB.textSecondary, marginTop: 2 }}>
+                                                                    {a.playerCount} players • {a.commissionRate}% rate
+                                                                    {a.parentAgentId === user?.id && <span style={{ marginLeft: 6, color: '#1877F2', fontSize: 10, padding: '2px 6px', background: '#1877F222', borderRadius: 4 }}>DIRECT</span>}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div style={{ textAlign: 'right' }}>
+                                                            <div style={{ fontSize: 15, fontWeight: 700, color: FB.success }}>+${(a.earnings || 0).toLocaleString()}</div>
+                                                            <div style={{ fontSize: 11, color: FB.textSecondary, textTransform: 'uppercase', marginTop: 2 }}>Earnings</div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {(!intelData?.pulse && (!intelHeatMap || intelHeatMap.length === 0) && (!intelLeaderboard || intelLeaderboard.length === 0)) && (
+                                        <div style={{ textAlign: 'center', padding: 30, color: FB.textSecondary, border: `1px solid ${FB.border}`, borderRadius: 12, background: FB.cardBg, marginTop: 12 }}>
+                                            No intelligence data available yet. Action history required.
+                                        </div>
                                     )}
                                 </>
                             )}

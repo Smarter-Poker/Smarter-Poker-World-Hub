@@ -477,21 +477,24 @@ export default function TournamentPublic() {
         )}
 
         {/* Chip Counts Leaderboard (live — during running/break/final_table) */}
-        {isLive && (() => {
-          const chipEntries = entries
+        {isLive && entries
             .filter(e => (e.status === 'active' || e.status === 'playing' || e.status === 'seated') && e.current_chips > 0)
-            .sort((a, b) => (b.current_chips || 0) - (a.current_chips || 0));
-          if (chipEntries.length === 0) return null;
-          return (
-            <div className="px-4 mt-3">
-              <button onClick={() => setShowChipCounts(!showChipCounts)}
-                className="w-full flex items-center justify-between px-4 py-3 bg-[#242526] border border-[#3A3B3C] rounded-xl">
-                <span className="text-sm font-semibold text-white">Chip Counts ({chipEntries.length} players)</span>
-                {showChipCounts ? <ChevronUp className="w-4 h-4 text-[#B0B3B8]" /> : <ChevronDown className="w-4 h-4 text-[#B0B3B8]" />}
-              </button>
-              {showChipCounts && (
-                <div className="mt-1 space-y-1">
-                  {chipEntries.map((e, i) => (
+            .sort((a, b) => (b.current_chips || 0) - (a.current_chips || 0))
+            .length > 0 && (
+          <div className="px-4 mt-3">
+            <button onClick={() => setShowChipCounts(!showChipCounts)}
+              className="w-full flex items-center justify-between px-4 py-3 bg-[#242526] border border-[#3A3B3C] rounded-xl">
+              <span className="text-sm font-semibold text-white">
+                Chip Counts ({entries.filter(e => (e.status === 'active' || e.status === 'playing' || e.status === 'seated') && e.current_chips > 0).length} players)
+              </span>
+              {showChipCounts ? <ChevronUp className="w-4 h-4 text-[#B0B3B8]" /> : <ChevronDown className="w-4 h-4 text-[#B0B3B8]" />}
+            </button>
+            {showChipCounts && (
+              <div className="mt-1 space-y-1">
+                {entries
+                  .filter(e => (e.status === 'active' || e.status === 'playing' || e.status === 'seated') && e.current_chips > 0)
+                  .sort((a, b) => (b.current_chips || 0) - (a.current_chips || 0))
+                  .map((e, i) => (
                     <div key={e.id || i} className="flex items-center gap-3 px-4 py-2 bg-[#242526] border border-[#3A3B3C] rounded-lg">
                       <span className="w-8 text-center text-sm font-bold text-[#B0B3B8]">
                         {i + 1}.
@@ -499,12 +502,11 @@ export default function TournamentPublic() {
                       <span className="flex-1 text-sm font-medium text-white">{getName(e)}</span>
                       <span className="text-sm font-bold text-[#31A24C] tabular-nums">{(e.current_chips || 0).toLocaleString()}</span>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })()}
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Branding */}
         <div className="mt-8 text-center">

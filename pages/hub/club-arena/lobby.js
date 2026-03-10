@@ -951,6 +951,7 @@ export default function ClubLobby() {
                                                     game={table}
                                                     assetMap={stickerAssetMap}
                                                     onPress={() => navigateToTableMT(router, table, club, showToast)}
+                                                    onSpectate={(t) => router.push(`/commander/tables/${t.id}?spectator=true`)}
                                                     miniState={miniStates.get(table.id)}
                                                 />
                                             </div>
@@ -1023,6 +1024,7 @@ export default function ClubLobby() {
                                                     game={{ ...t, game_type: t.type || t.game_type || 'mtt' }}
                                                     assetMap={stickerAssetMap}
                                                     onPress={() => router.push(`/hub/club-arena/tournaments?club=${club?.id}&highlight=${t.id}`)}
+                                                    onSpectate={(t) => router.push(`/commander/tournaments/${t.id}?spectator=true`)}
                                                     miniState={miniStates.get(t.id)}
                                                 />
                                             </div>

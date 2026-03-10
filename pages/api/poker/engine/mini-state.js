@@ -105,11 +105,22 @@ export default async function handler(req, res) {
       const displayPhase = DISPLAY_PHASE[enginePhase] || enginePhase;
 
       // Build lightweight seat array from the pre-computed state
+      // Build lightweight seat array from the pre-computed state
       // Note: allIn is detected via isInHand + stack=0 (allIn flag not exposed in seat output)
       const seats = (state.seats || []).map(s => {
-        if (!s.player) {
-          return { seatIndex: s.seatIndex, occupied: false };
+        if (!s.player) return { seatIndex: s.seatIndex, occupied: false };
+        
+        let lastAction = null;
+        if (state.game && state.game.bettingRound) {
+           const log = state.game.bettingRound.actionLog;
+           if (log && log.length > 0) {
+              const pActions = log.filter(a => a.playerId === s.player.id);
+              if (pActions.length > 0) {
+                 lastAction = pActions[pActions.length - 1];
+              }
+           }
         }
+
         return {
           seatIndex: s.seatIndex,
           occupied: true,
@@ -118,6 +129,9 @@ export default async function handler(req, res) {
           isActor: s.isCurrentActor || false,
           isDealer: s.seatIndex === (state.game?.buttonSeat ?? -1),
           isAllIn: s.isInHand && s.stack === 0,
+          displayName: s.player.displayName ? String(s.player.displayName).substring(0, 10) : 'Player',
+          lastAction: lastAction ? (lastAction.type === 'call' && lastAction.amount === 0 ? 'CHECK' : lastAction.type.toUpperCase()) : null,
+          lastActionAmount: lastAction?.amount,
         };
       });
 
@@ -125,9 +139,13 @@ export default async function handler(req, res) {
         tableId,
         phase: displayPhase,
         communityCards: state.game?.communityCards || [],
+        boards: state.game?.boards || null,
+        shownCards: state.game?.shownCards || [],
         potTotal: state.game?.potTotal || 0,
         handNumber: state.game?.handNumber || 0,
         currentActorSeat: seats.findIndex(s => s.isActor),
+        turnEndTime: entry.timer?.turnEndTime || null,
+        turnTotalTime: entry.timer?.turnTime || 15,
         seats,
       });
     }

@@ -1,67 +1,97 @@
 /**
- * useMiniStatePoller — Custom hook for polling live table mini-state (v2)
+ * useMiniStatePoller (now Streamer) — Custom hook for live table mini-state (v3)
  *
- * v2 improvements:
- *   • Adaptive polling — pauses interval when no tables are visible
- *   • Error resilience — exponential backoff on API failures (max 16s)
- *   • Stale timestamps — injects _fetchedAt on each state for stale detection
- *   • Proper cleanup — unobserves all elements on unmount
+ * v3 improvements:
+ *   • Zero-latency WebSocket pipeline — binds to Supabase 'lobby' channel
+ *   • Initial HTTP fetch — backfills idle tables before first action
+ *   • Adaptive rendering — ignores updates for off-screen tables
+ *   • Stale timestamps — standard _fetchedAt injection
  *
  * Usage:
  *   const { miniStates, observerRef } = useMiniStatePoller();
- *   // Wrap each card: <div ref={el => observerRef(tableId, el)}>
- *   // Read state:    miniStates.get(tableId)
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 
 let _busEmit = null;
 try {
-  // Lazy load EventBus — not critical if missing
+  // Lazy load EventBus
   const mod = require('../engine/EventBus');
   _busEmit = mod.busEmit;
-} catch { /* EventBus unavailable — skip bus events */ }
-
-const POLL_INTERVAL = 4000; // 4 seconds
-const MAX_BACKOFF = 16000;  // 16 seconds max backoff
+} catch { /* EventBus unavailable */ }
 
 export default function useMiniStatePoller() {
   const [miniStates, setMiniStates] = useState(new Map());
   const visibleIds = useRef(new Set());
   const elementsMap = useRef(new Map());
   const observerInstance = useRef(null);
-  const intervalRef = useRef(null);
-  const failCount = useRef(0);
+  const prevHandNumbers = useRef(new Map());
+  const fetchQueue = useRef(new Set());
+  const fetchTimeout = useRef(null);
   const mountedRef = useRef(true);
-  const prevHandNumbers = useRef(new Map()); // Track hand transitions for bus events
 
-  // ── Fetch mini-state for all visible tables ──
-  const fetchMiniStates = useCallback(async () => {
-    if (!mountedRef.current) return;
-
-    const ids = Array.from(visibleIds.current);
-    if (ids.length === 0) return; // ← Adaptive: skip fetch when nothing visible
-
+  // ── 1. Initial HTTP Fetch (Backfill idle tables) ──
+  const fetchMiniStates = useCallback(async (idsToFetch) => {
+    if (!mountedRef.current || !idsToFetch || idsToFetch.length === 0) return;
     try {
-      const res = await fetch(`/api/poker/engine/mini-state?tableIds=${ids.join(',')}`);
-      if (!res.ok) {
-        failCount.current = Math.min(failCount.current + 1, 4);
-        return;
-      }
-
+      const res = await fetch(`/api/poker/engine/mini-state?tableIds=${idsToFetch.join(',')}`);
+      if (!res.ok) return;
       const data = await res.json();
       if (!Array.isArray(data) || !mountedRef.current) return;
-
-      // Reset backoff on success
-      failCount.current = 0;
 
       const now = Date.now();
       setMiniStates(prev => {
         const next = new Map(prev);
         for (const state of data) {
-          state._fetchedAt = now; // Stale timestamp
+          // If websocket beat us to it, skip
+          const existing = next.get(state.tableId);
+          if (existing && existing._fetchedAt > now - 2000) continue;
 
-          // Emit EventBus event on hand number change (new hand dealt)
+          state._fetchedAt = now;
+          next.set(state.tableId, state);
+        }
+        return next;
+      });
+    } catch {
+      // Silently fail — websocket will eventually catch up on action
+    }
+  }, []);
+
+  const queueInitialFetch = useCallback((tableId) => {
+    fetchQueue.current.add(tableId);
+    if (fetchTimeout.current) clearTimeout(fetchTimeout.current);
+    fetchTimeout.current = setTimeout(() => {
+      const ids = Array.from(fetchQueue.current);
+      fetchQueue.current.clear();
+      fetchMiniStates(ids);
+    }, 50);
+  }, [fetchMiniStates]);
+
+  // ── 2. WebSocket Realtime Stream ──
+  useEffect(() => {
+    mountedRef.current = true;
+    if (!supabase) return;
+
+    const channel = supabase.channel('lobby', {
+      config: { presence: { key: '' } } // Ensures we don't conflict with other lobby subscriptions if configured differently
+    });
+
+    channel.on(
+      'broadcast',
+      { event: 'mini_state_update' },
+      ({ payload }) => {
+        if (!mountedRef.current || !payload || !payload.tableId) return;
+
+        // Adaptive: only process if visible
+        if (!visibleIds.current.has(payload.tableId)) return;
+
+        const now = Date.now();
+        setMiniStates(prev => {
+          const next = new Map(prev);
+          const state = { ...payload, _fetchedAt: now };
+
+          // Emit EventBus event on hand number change
           if (_busEmit && state.handNumber) {
             const prevHand = prevHandNumbers.current.get(state.tableId);
             if (prevHand !== undefined && prevHand !== state.handNumber) {
@@ -71,16 +101,25 @@ export default function useMiniStatePoller() {
           }
 
           next.set(state.tableId, state);
-        }
-        return next;
-      });
-    } catch {
-      failCount.current = Math.min(failCount.current + 1, 4);
-      // Silently fail — backoff will slow retries
-    }
+          return next;
+        });
+      }
+    );
+
+    channel.subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+         console.log('[useMiniStatePoller] 🔌 Connected to zero-latency WebSocket stream');
+      }
+    });
+
+    return () => {
+      mountedRef.current = false;
+      if (fetchTimeout.current) clearTimeout(fetchTimeout.current);
+      supabase.removeChannel(channel);
+    };
   }, []);
 
-  // ── Setup IntersectionObserver (once) ──
+  // ── 3. Setup IntersectionObserver ──
   useEffect(() => {
     if (typeof IntersectionObserver === 'undefined') return;
 
@@ -92,6 +131,9 @@ export default function useMiniStatePoller() {
 
           if (entry.isIntersecting) {
             visibleIds.current.add(tableId);
+            // Trigger an initial fetch when it comes into view so it's not empty
+            // while waiting for the next action broadcast.
+            queueInitialFetch(tableId);
           } else {
             visibleIds.current.delete(tableId);
           }
@@ -104,42 +146,12 @@ export default function useMiniStatePoller() {
       observerInstance.current?.disconnect();
       observerInstance.current = null;
     };
-  }, []);
+  }, [queueInitialFetch]);
 
-  // ── Adaptive polling with backoff ──
-  useEffect(() => {
-    mountedRef.current = true;
-
-    // Initial fetch
-    fetchMiniStates();
-
-    // Use dynamic interval that respects backoff
-    const tick = () => {
-      if (!mountedRef.current) return;
-
-      fetchMiniStates();
-
-      // Schedule next tick with backoff
-      const delay = failCount.current > 0
-        ? Math.min(POLL_INTERVAL * Math.pow(2, failCount.current), MAX_BACKOFF)
-        : POLL_INTERVAL;
-
-      intervalRef.current = setTimeout(tick, delay);
-    };
-
-    intervalRef.current = setTimeout(tick, POLL_INTERVAL);
-
-    return () => {
-      mountedRef.current = false;
-      if (intervalRef.current) clearTimeout(intervalRef.current);
-    };
-  }, [fetchMiniStates]);
-
-  // ── Register/unregister DOM elements for observation ──
+  // ── Register/unregister DOM elements ──
   const observerRef = useCallback((tableId, el) => {
     if (!observerInstance.current) return;
 
-    // Unobserve previous element for this tableId
     const prev = elementsMap.current.get(tableId);
     if (prev && prev !== el) {
       observerInstance.current.unobserve(prev);
