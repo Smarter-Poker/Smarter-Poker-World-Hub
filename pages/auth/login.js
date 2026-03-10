@@ -92,10 +92,14 @@ export default function LoginPage() {
         setError(null);
         setMessage(null);
 
+        // [HARDENED] Military-Grade sanitization for signup flow
+        const safeEmail = email.trim().toLowerCase();
+        const safePassword = password.trim();
+
         try {
             const { data, error: authError } = await supabase.auth.signUp({
-                email,
-                password,
+                email: safeEmail,
+                password: safePassword,
                 options: {
                     emailRedirectTo: `${window.location.origin}/auth/callback`,
                 }
@@ -122,7 +126,9 @@ export default function LoginPage() {
     };
 
     const handleMagicLink = async () => {
-        if (!email) {
+        // Safe check
+        const safeEmail = email ? email.trim().toLowerCase() : '';
+        if (!safeEmail) {
             setError('Please enter your email');
             return;
         }
@@ -131,7 +137,7 @@ export default function LoginPage() {
 
         try {
             const { error: authError } = await supabase.auth.signInWithOtp({
-                email,
+                email: safeEmail,
                 options: {
                     emailRedirectTo: `${window.location.origin}/auth/callback`,
                 }
@@ -199,7 +205,7 @@ export default function LoginPage() {
                 color: 'rgba(255, 255, 255, 0.5)',
                 marginBottom: 32,
             }}>
-                {mode === 'login' ? 'Sign in to continue' : 'Join the Smarter.Poker community'}
+                {mode === 'login' ? 'Sign In To Continue' : 'Join The Smarter.Poker Community'}
             </p>
 
             {/* Auth Form */}
@@ -309,7 +315,7 @@ export default function LoginPage() {
                                     cursor: 'pointer',
                                 }}
                             />
-                            Remember me
+                            Remember Me
                         </label>
                         <button
                             type="button"
@@ -322,7 +328,7 @@ export default function LoginPage() {
                                 cursor: 'pointer',
                             }}
                         >
-                            Forgot password?
+                            Forgot Password?
                         </button>
                     </div>
                 )}
@@ -406,7 +412,7 @@ export default function LoginPage() {
                 fontSize: 14,
                 color: 'rgba(255, 255, 255, 0.6)',
             }}>
-                {mode === 'login' ? "Don't have an account? " : "Already have an account? "}
+                {mode === 'login' ? "Don't Have An Account? " : "Already Have An Account? "}
                 <button
                     onClick={() => {
                         setMode(mode === 'login' ? 'signup' : 'login');
