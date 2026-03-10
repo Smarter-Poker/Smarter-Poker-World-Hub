@@ -4,6 +4,7 @@
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { useState, useEffect, useCallback } from 'react';
+import SkeletonDark from '../../../src/components/ui/SkeletonDark';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import {
@@ -62,14 +63,15 @@ export default function TournamentDetailPage() {
 
   // Extract venueId for sync
   const [venueId] = useState(() => {
+    if (typeof window === 'undefined') return null;
     try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
   });
 
   // Check staff session
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!router.isReady) return;
     const storedStaff = localStorage.getItem('commander_staff');
-
-  if (!router.isReady) return null;
 
     if (!storedStaff) {
       router.push('/commander/login').catch(() => { });

@@ -67,10 +67,8 @@ export default function TournamentPublic() {
   const [posted, setPosted] = useState(false);
 
   useEffect(() => {
+    if (!router.isReady) return;
 
-  if (!router.isReady) return null;
-
-    if (!id) return;
     const _c = new AbortController();
     fetchData(_c.signal);
     const poll = setInterval(() => fetchData(_c.signal), 30000); // fallback — real-time sync handles instant updates
