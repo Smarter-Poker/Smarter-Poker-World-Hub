@@ -1110,7 +1110,7 @@ function PlayerSeat({
             ))}
           </div>
           {/* Hand Strength Meter — hero only */}
-          {isHero && <HandStrengthMeter holeCards={holeCards} board={null} visible={true} />}
+          {isHero && <HandStrengthMeter holeCards={holeCards} board={board} visible={true} />}
         </>
       )}
 
@@ -4050,6 +4050,7 @@ function LivePokerTable({
                 tableState?.config?.variant
                 ] || 2
               }
+              board={tableState?.game?.communityCards || []}
             />
           );
         })}

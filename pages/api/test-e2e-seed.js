@@ -27,17 +27,7 @@ export default async function handler(req, res) {
     entry.table.sitDown(p2, 2, 1000, { id: p2, displayName: 'Bob' });
     
     // 3. Start hand
-    entry.table.startNewHand();
-    
-    // 4. Force an all-in scenario to test the isAllIn heuristic
-    const gameState = entry.table.game;
-    if (gameState) {
-      const p1Game = gameState.players.find(p => p.id === p1);
-      if (p1Game) {
-         p1Game.stack = 0;
-         p1Game.allIn = true;
-      }
-    }
+    entry.table.startNextHand();
     
     res.status(200).json({ success: true, tableId, phase: entry.table.game?.phase });
   } catch (err) {
