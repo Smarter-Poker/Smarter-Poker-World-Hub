@@ -24,6 +24,7 @@ import dynamic from 'next/dynamic';
 import useWalletData from '../../../src/hooks/useWalletData';
 import NotificationBell from '../../../src/components/club-arena/NotificationBell';
 const DynamicWallet = dynamic(() => import('../../../src/components/club-arena/DynamicWallet'), { ssr: false });
+const ClubAnnouncementBanner = dynamic(() => import('../../../src/components/club-arena/ClubAnnouncementBanner'), { ssr: false });
 
 const FB = {
     primary: '#2374E1', background: '#18191A', cardBg: '#242526',
@@ -525,6 +526,9 @@ export default function AgentDashboard() {
                     ))}
                 </div>
             </div>
+
+            {/* Club Announcement Banner */}
+            <ClubAnnouncementBanner clubId={clubIdParam} />
 
             {/* Content */}
             <HubErrorBoundary name="DashboardContent">

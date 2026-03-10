@@ -113,6 +113,7 @@ export default function Marketplace() {
         try {
             // Get authenticated user (Supabase session only)
             const authUser = getAuthUser();
+            if (!mountedRef.current) return;
             setUser(authUser);
 
             // Get club data
@@ -122,6 +123,8 @@ export default function Marketplace() {
                 .select('*')
                 .eq(isUUID ? 'id' : 'club_id', clubIdParam)
                 .maybeSingle();
+
+            if (!mountedRef.current) return;
 
             if (clubData) {
                 setClub(clubData);
@@ -134,6 +137,8 @@ export default function Marketplace() {
                         .eq('club_id', clubData.id)
                         .eq('user_id', authUser.id)
                         .maybeSingle();
+
+                    if (!mountedRef.current) return;
 
                     if (memberData) {
                         setMembership(memberData);
@@ -148,6 +153,8 @@ export default function Marketplace() {
                         .eq('is_active', true)
                         .order('price', { ascending: true })
                         .limit(100) // shop items
+
+                    if (!mountedRef.current) return;
 
                     // Use database items or fallback to defaults
                     if (shopItems && shopItems.length > 0) {
@@ -168,6 +175,8 @@ export default function Marketplace() {
                         .eq('club_id', clubData.id)
                         .limit(50) // purchase history
 
+                    if (!mountedRef.current) return;
+
                     if (purchases) {
                         setOwnedItems(purchases.map(p => p.item_id || p.item?.id));
                     }
@@ -176,7 +185,7 @@ export default function Marketplace() {
         } catch (e) {
             console.error('[Marketplace] Error loading data:', e);
             // Still set default items on error
-            setItems(DEFAULT_ITEMS);
+            if (mountedRef.current) setItems(DEFAULT_ITEMS);
         } finally {
             if (mountedRef.current) setIsLoading(false);
         }

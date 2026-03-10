@@ -972,7 +972,7 @@ function CreateTableModal({ unionId, clubs, onClose, onCreated }) {
     setSaving(true);
     try {
       await api('create_table', { unionId, ...form });
-      busEmit.tableOpened(form.name || 'Union Table', form.gameType || 'NLH');
+      busEmit.tableOpened(form.tableName || 'Union Table', form.gameVariant || 'NLH');
       onCreated();
     } catch (e) {
       setSaveError(e.message || 'Failed to create table');
