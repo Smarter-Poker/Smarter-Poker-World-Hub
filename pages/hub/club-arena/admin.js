@@ -1263,7 +1263,7 @@ export default function Admin() {
                                                 {(() => {
                                                     const data = analytics.sparkline;
                                                     const max = Math.max(...data, 1);
-                                                    const points = data.map((v, i) => `${(i / (data.length - 1)) * 196 + 2},${38 - (v / max) * 34}`).join(' ');
+                                                    const points = data.map((v, i) => `${(data.length > 1 ? (i / (data.length - 1)) : 0.5) * 196 + 2},${38 - (v / max) * 34}`).join(' ');
                                                     return (
                                                         <>
                                                             <polyline points={points} fill="none" stroke="#31A24C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -2953,7 +2953,7 @@ function PromoWalletModal({ clubId, userRole, apiCall, showToast, onClose, FB, S
                             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                             body: JSON.stringify({ action: 'get_config', clubId: clubIdParam }),
                         })
-                            .then(r => r.json())
+                            .then(r => { if (!r.ok) throw new Error('BBJ fetch failed'); return r.json(); })
                             .then(d => { if (d.success) setBbjConfig(d); })
                             .catch(() => { })
                             .finally(() => setBbjLoading(false));

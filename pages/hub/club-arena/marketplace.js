@@ -99,10 +99,20 @@ export default function Marketplace() {
 
     // Toast
     const [toast, setToast] = useState(null);
+    const toastTimerRef = useRef(null);
     const showToast = (message, type = 'success') => {
         setToast({ message, type });
-        setTimeout(() => setToast(null), 3000);
+        if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+        toastTimerRef.current = setTimeout(() => {
+            if (mountedRef.current) setToast(null);
+        }, 3000);
     };
+
+    useEffect(() => {
+        return () => {
+            if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+        };
+    }, []);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // LOAD DATA

@@ -165,7 +165,7 @@ export default function ClubLobby() {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 if (!res.ok) return;
-                const d = await res.json();
+                const d = await res.json().catch(() => ({ stickers: [] }));
                 setStickerAssetMap(buildStickerAssetMap(d.stickers || []));
             } catch (_) { /* stickers optional — fail silently */ }
         })();
@@ -292,7 +292,7 @@ export default function ClubLobby() {
                         }),
                     });
                     if (res.ok) {
-                        const d = await res.json();
+                        const d = await res.json().catch(() => ({ tournaments: [] }));
                         setTournaments(d.tournaments || d.data || []);
                     }
                 } catch (_) { /* silent — realtime subscription is primary */ }
@@ -495,7 +495,7 @@ export default function ClubLobby() {
                             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                             body: JSON.stringify({ action: 'list', clubId: clubData.id, status: ['scheduled', 'registering', 'running'] }),
                         });
-                        return res.ok ? res.json() : { tournaments: [] };
+                        return res.ok ? res.json().catch(() => ({ tournaments: [] })) : { tournaments: [] };
                     })(),
                     authUser
                         ? supabase.from('club_members').select('chip_balance, role').eq('club_id', clubData.id).eq('user_id', authUser.id).maybeSingle()

@@ -73,7 +73,7 @@ export default async function handler(req, res) {
 
     if (rakeErr) {
       console.error('[record-rake] RPC error:', rakeErr);
-      return res.status(500).json({ success: false, error: 'Rake recording failed', details: rakeErr.message });
+      return res.status(500).json({ success: false, error: 'Rake recording failed', details: process.env.NODE_ENV === 'development' ? rakeErr.message : undefined });
     }
 
     // STEP 2: Calculate cascading commissions per dealt player
