@@ -3644,41 +3644,47 @@ function LivePokerTable({
     const phase = tableState.game.phase;
     const prev = prevPhaseRef.current;
     if (prev !== phase) {
-      if (phase === 'preflop' && prev === 'idle') { sm.play('deal'); if (hapticEnabled) haptic('medium'); }
-      if (phase === 'flop' && prev === 'preflop') { sm.play('deal'); if (hapticEnabled) haptic('light'); }
-      if (phase === 'turn' && prev === 'flop') { sm.play('deal'); if (hapticEnabled) haptic('light'); }
-      if (phase === 'river' && prev === 'turn') { sm.play('deal'); if (hapticEnabled) haptic('light'); }
-      if (phase === 'showdown') sm.play('showdown');
+      if (isActive) {
+        if (phase === 'preflop' && prev === 'idle') { sm.play('deal'); if (hapticEnabled) haptic('medium'); }
+        if (phase === 'flop' && prev === 'preflop') { sm.play('deal'); if (hapticEnabled) haptic('light'); }
+        if (phase === 'turn' && prev === 'flop') { sm.play('deal'); if (hapticEnabled) haptic('light'); }
+        if (phase === 'river' && prev === 'turn') { sm.play('deal'); if (hapticEnabled) haptic('light'); }
+        if (phase === 'showdown') sm.play('showdown');
+      }
       prevPhaseRef.current = phase;
     }
-  }, [tableState?.game?.phase]);
+  }, [tableState?.game?.phase, isActive, hapticEnabled]);
 
   // Sound for results (win/lose)
   useEffect(() => {
     const sm = soundRef.current;
     if (!sm || !result || result === prevResultRef.current) return;
     prevResultRef.current = result;
-    if (result.bbj) { sm.play('bbj'); return; }
-    const isWinner = result.winners?.some(w => String(w.playerId) === String(userId));
-    sm.play(isWinner ? 'win' : 'lose');
-  }, [result, userId]);
+    if (isActive) {
+      if (result.bbj) { sm.play('bbj'); return; }
+      const isWinner = result.winners?.some(w => String(w.playerId) === String(userId));
+      sm.play(isWinner ? 'win' : 'lose');
+    }
+  }, [result, userId, isActive]);
 
   // Sound for your turn
   useEffect(() => {
     const sm = soundRef.current;
     if (!sm || !legalActions || legalActions.length === 0) return;
-    sm.play('yourTurn');
-    if (hapticEnabled) haptic('double');
-  }, [legalActions]);
+    if (isActive) {
+      sm.play('yourTurn');
+      if (hapticEnabled) haptic('double');
+    }
+  }, [legalActions, isActive, hapticEnabled]);
 
   // Sound for timer warning
   useEffect(() => {
     const sm = soundRef.current;
     if (!sm || !timerState) return;
-    if (timerState.remaining <= 5 && timerState.remaining > 0 && String(timerState.playerId) === String(userId)) {
+    if (isActive && timerState.remaining <= 5 && timerState.remaining > 0 && String(timerState.playerId) === String(userId)) {
       sm.play('timer');
     }
-  }, [timerState?.remaining, timerState?.playerId, userId]);
+  }, [timerState?.remaining, timerState?.playerId, userId, isActive]);
 
   // UI state
   const [buyInSeat, setBuyInSeat] = useState(null);

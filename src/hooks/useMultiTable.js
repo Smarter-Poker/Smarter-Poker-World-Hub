@@ -95,10 +95,12 @@ export function useMultiTable({ supabase, userId }) {
   const slotsRef = useRef(slots);
   const activeIndexRef = useRef(activeIndex);
   const pendingSlotIndexRef = useRef(pendingSlotIndex);
+  const actionNeededRef = useRef(actionNeeded);
   
   useEffect(() => { slotsRef.current = slots; }, [slots]);
   useEffect(() => { activeIndexRef.current = activeIndex; }, [activeIndex]);
   useEffect(() => { pendingSlotIndexRef.current = pendingSlotIndex; }, [pendingSlotIndex]);
+  useEffect(() => { actionNeededRef.current = actionNeeded; }, [actionNeeded]);
 
   // ── Persist to sessionStorage on every change ──
   useEffect(() => {
@@ -238,13 +240,20 @@ export function useMultiTable({ supabase, userId }) {
       // Clear any pending auto-switch
       if (autoSwitchRef.current) clearTimeout(autoSwitchRef.current);
       autoSwitchRef.current = setTimeout(() => {
-        // Re-check: only auto-switch if the table still needs action
-        setActiveIndex(prevIdx => {
-          const latestSlots = slotsRef.current;
-          const targetIdx = latestSlots.findIndex(s => s?.tableId === tableId);
-          if (targetIdx >= 0) return targetIdx;
-          return prevIdx;
-        });
+        // Re-check: only auto-switch if the background table still needs action
+        // AND the current active table does NOT need action (prevent focus stealing)
+        const currentActiveSlot = slotsRef.current[activeIndexRef.current];
+        const activeTableNeedsAction = currentActiveSlot ? actionNeededRef.current.has(currentActiveSlot.tableId) : false;
+        const targetStillNeedsAction = actionNeededRef.current.has(tableId);
+        
+        if (targetStillNeedsAction && !activeTableNeedsAction) {
+          setActiveIndex(prevIdx => {
+            const latestSlots = slotsRef.current;
+            const targetIdx = latestSlots.findIndex(s => s?.tableId === tableId);
+            if (targetIdx >= 0) return targetIdx;
+            return prevIdx;
+          });
+        }
         autoSwitchRef.current = null;
       }, 3000);
     }
