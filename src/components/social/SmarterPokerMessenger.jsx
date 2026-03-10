@@ -1250,6 +1250,134 @@ export const ChatWindow = ({
                     border: 1px solid #e0e0e0;
                 }
 
+                /* P5 Styles */
+                .emoji-picker-overlay {
+                    padding: 8px;
+                    background: white;
+                    border-bottom: 1px solid #ddd;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                    max-height: 140px;
+                    overflow-y: auto;
+                }
+
+                .emoji-pick-btn {
+                    width: 28px; height: 28px;
+                    background: none; border: none;
+                    font-size: 16px; cursor: pointer;
+                    border-radius: 4px;
+                    transition: background 0.15s;
+                }
+                .emoji-pick-btn:hover { background: #f0f0f0; }
+
+                .reaction-chip {
+                    display: inline-block;
+                    font-size: 12px;
+                    margin-right: 2px;
+                    cursor: default;
+                }
+
+                .voice-message {
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    padding: 4px 0;
+                }
+
+                .voice-play-btn {
+                    width: 28px; height: 28px;
+                    border-radius: 50%;
+                    background: #0088ff;
+                    color: white;
+                    border: none;
+                    cursor: pointer;
+                    font-size: 12px;
+                    display: flex; align-items: center; justify-content: center;
+                }
+
+                .voice-waveform {
+                    display: flex;
+                    align-items: center;
+                    gap: 1px;
+                }
+
+                .wave-bar {
+                    width: 3px;
+                    background: #0088ff;
+                    border-radius: 2px;
+                    opacity: 0.6;
+                }
+
+                .voice-duration { font-size: 10px; color: #888; }
+
+                .read-receipt {
+                    font-size: 10px;
+                    color: #999;
+                    margin-left: 4px;
+                    float: right;
+                }
+
+                .edit-indicator {
+                    font-size: 10px;
+                    color: #aaa;
+                    font-style: italic;
+                    margin-left: 4px;
+                }
+
+                .typing-indicator {
+                    display: flex;
+                    gap: 3px;
+                    padding: 8px 12px;
+                }
+
+                .typing-dot {
+                    width: 6px; height: 6px;
+                    background: #bbb;
+                    border-radius: 50%;
+                    animation: typingBounce 1.2s infinite;
+                }
+
+                .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+                .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+                @keyframes typingBounce {
+                    0%, 60%, 100% { transform: translateY(0); }
+                    30% { transform: translateY(-4px); }
+                }
+
+                .stats-dashboard {
+                    padding: 8px;
+                    background: #f8f9ff;
+                    border-bottom: 1px solid #ddd;
+                    font-size: 12px;
+                }
+
+                .stats-grid {
+                    display: grid;
+                    grid-template-columns: repeat(4, 1fr);
+                    gap: 6px;
+                    margin-top: 6px;
+                }
+
+                .stat-card {
+                    text-align: center;
+                    background: white;
+                    border-radius: 8px;
+                    padding: 6px 4px;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+                }
+
+                .stat-val { display: block; font-size: 16px; font-weight: 700; color: #0088ff; }
+                .stat-label { font-size: 9px; color: #999; text-transform: uppercase; }
+
+                .input-btn.recording {
+                    animation: recordPulse 1s infinite;
+                }
+
+                @keyframes recordPulse {
+                    0%, 100% { transform: scale(1); }
+                    50% { transform: scale(1.2); }
+                }
+
                 .chat-input {
                     display: flex;
                     align-items: center;
