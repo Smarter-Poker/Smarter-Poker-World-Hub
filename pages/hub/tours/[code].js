@@ -103,7 +103,6 @@ function getSeriesTypeBadge(type) {
 
 export default function TourDetailPage() {
   const router = useRouter();
-  if (!router.isReady) return null;
   const { code } = router.query;
 
   const [isFollowed, setIsFollowed] = useState(false);
@@ -222,6 +221,8 @@ export default function TourDetailPage() {
   const tourColor = TOUR_COLORS[code] || TOUR_COLORS['default'];
   const tourTypeLabel = tour ? (TOUR_TYPE_LABELS[tour.tour_type] || tour.tour_type) : '';
   const pageTitle = tour ? (tour.tour_name + ' | Smarter.Poker') : 'Tour Details | Smarter.Poker';
+
+  if (!router.isReady) return null;
 
   return (
     <>

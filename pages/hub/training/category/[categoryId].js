@@ -59,7 +59,6 @@ const CATEGORY_META = {
 
 export default function CategoryPage() {
     const router = useRouter();
-    if (!router.isReady) return null;
     const { categoryId } = router.query;
     const { getGameProgress } = useTrainingProgress();
     useTrainingBus('training-category', { categoryId });
@@ -88,6 +87,8 @@ export default function CategoryPage() {
     const handleBack = () => {
         router.back();
     };
+
+    if (!router.isReady) return null;
 
     if (!categoryId || games.length === 0) {
         return (
