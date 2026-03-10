@@ -25,7 +25,6 @@ const GAME_LABELS = {
 
 export default function PlayerWaitlistPage() {
   const router = useRouter();
-  if (!router.isReady) return null;
   const { venueId } = router.query;
 
   const [venue, setVenue] = useState(null);
@@ -115,6 +114,9 @@ export default function PlayerWaitlistPage() {
   }, [venueId]);
 
   useEffect(() => {
+
+  if (!router.isReady) return null;
+
     if (venueId) {
       const controller = new AbortController();
       fetchData(controller.signal);

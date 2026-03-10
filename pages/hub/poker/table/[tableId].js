@@ -12,7 +12,6 @@ import { getAuthUser } from '../../../../src/lib/authUtils';
 
 export default function PokerTablePage() {
   const router = useRouter();
-  if (!router.isReady) return null;
   const { tableId } = router.query;
   const [userId, setUserId] = useState(null);
   const [displayName, setDisplayName] = useState('Player');
@@ -48,6 +47,9 @@ export default function PokerTablePage() {
   }, []);
   // Realtime subscription — live updates
   useEffect(() => {
+
+  if (!router.isReady) return null;
+
     if (!tableId) return;
     const _ch = supabase
       .channel(`poker-table:${tableId}`)

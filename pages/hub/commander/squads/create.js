@@ -27,7 +27,6 @@ const GAME_TYPES = [
 
 export default function CreateSquadPage() {
   const router = useRouter();
-  if (!router.isReady) return null;
   const { venue_id } = router.query;
 
   const [step, setStep] = useState(1);
@@ -50,6 +49,9 @@ export default function CreateSquadPage() {
   useEffect(() => {
     (async () => {
     const token = getAccessToken();
+
+  if (!router.isReady) return null;
+
     if (!token) {
       router.push('/auth/login?redirect=/hub/commander/squads/create');
       return;

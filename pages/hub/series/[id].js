@@ -132,7 +132,6 @@ function getLocationParts(series) {
 
 export default function SeriesDetailPage() {
   const router = useRouter();
-  if (!router.isReady) return null;
   const { id } = router.query;
 
   const [isFollowing, setIsFollowing] = useState(false);
@@ -141,6 +140,9 @@ export default function SeriesDetailPage() {
 
   // Load follow state from localStorage instantly
   useEffect(() => {
+
+  if (!router.isReady) return null;
+
     if (!id) return;
     try {
       const followed = JSON.parse(localStorage.getItem('followed-series') || '[]');

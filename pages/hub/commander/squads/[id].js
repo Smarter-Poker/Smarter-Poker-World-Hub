@@ -68,7 +68,6 @@ function MemberCard({ member, isLeader, onRemove, canRemove }) {
 
 export default function SquadDetailPage() {
   const router = useRouter();
-  if (!router.isReady) return null;
   const { id } = router.query;
 
   const [loading, setLoading] = useState(true);
@@ -81,6 +80,9 @@ export default function SquadDetailPage() {
   useEffect(() => {
     (async () => {
     const token = getAccessToken();
+
+  if (!router.isReady) return null;
+
     if (!token) {
       router.push(`/auth/login?redirect=/hub/commander/squads/${id}`);
       return;

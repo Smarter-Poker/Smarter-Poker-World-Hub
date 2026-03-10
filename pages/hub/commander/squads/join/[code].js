@@ -10,7 +10,6 @@ import { getAccessToken } from '../../../../../src/lib/authUtils';
 
 export default function SquadJoinPage() {
   const router = useRouter();
-  if (!router.isReady) return null;
   const { code } = router.query;
   const [status, setStatus] = useState('loading');
   const [squad, setSquad] = useState(null);
@@ -77,6 +76,9 @@ export default function SquadJoinPage() {
       setJoining(false);
     }
   }
+
+
+  if (!router.isReady) return null;
 
   return (
     <>

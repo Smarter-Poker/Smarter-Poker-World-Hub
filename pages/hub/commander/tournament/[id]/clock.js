@@ -12,7 +12,6 @@ import { supabase } from '../../../../../src/lib/supabase';
 
 export default function TournamentClockDisplay() {
   const router = useRouter();
-  if (!router.isReady) return null;
   const { id } = router.query;
 
   const [tournament, setTournament] = useState(null);
@@ -26,6 +25,9 @@ export default function TournamentClockDisplay() {
 
   // Fetch tournament data
   const fetchTournament = useCallback(async (signal) => {
+
+  if (!router.isReady) return null;
+
     if (!id) return;
     try {
       const res = await fetch(`/api/commander/tournaments/${id}`, signal ? { signal } : {});

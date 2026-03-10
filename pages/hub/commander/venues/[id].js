@@ -44,7 +44,6 @@ function GameRow({ game, onJoinWaitlist }) {
 
 export default function VenueDetailPage() {
   const router = useRouter();
-  if (!router.isReady) return null;
   const { id } = router.query;
 
   const [venue, setVenue] = useState(null);
@@ -56,6 +55,9 @@ export default function VenueDetailPage() {
   const [liveGames, setLiveGames] = useState([]);
 
   const fetchData = useCallback(async () => {
+
+  if (!router.isReady) return null;
+
     if (!id) return;
 
     try {

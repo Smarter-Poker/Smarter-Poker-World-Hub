@@ -19,7 +19,6 @@ const LABELS = {
 
 export default function RateTable() {
   const router = useRouter();
-  if (!router.isReady) return null;
   const { venue_id, table_number, game_type, stakes } = router.query;
   const [action, setAction] = useState(3);
   const [friendly, setFriendly] = useState(3);
@@ -32,6 +31,9 @@ export default function RateTable() {
     ? localStorage.getItem('sb-access-token') : null;
 
   const handleSubmit = async () => {
+
+  if (!router.isReady) return null;
+
     if (!venue_id || !table_number) return;
     setSubmitting(true);
     try {

@@ -201,13 +201,13 @@ function resolveShowdown(params) {
  * @returns {Object} Same as resolveShowdown
  */
 function resolveShowdownFromStrings(players, board, variant = 'holdem') {
-  const { stringToCard } = require('../../lib/poker-engine/Deck');
+  const { parseCard } = require('../../lib/poker-engine/Deck');
 
   const convertedPlayers = players.map(p => ({
     ...p,
-    holeCards: p.holeCards.map(stringToCard),
+    holeCards: p.holeCards.map(parseCard),
   }));
-  const convertedBoard = board.map(stringToCard);
+  const convertedBoard = board.map(parseCard);
 
   return resolveShowdown({
     players: convertedPlayers,

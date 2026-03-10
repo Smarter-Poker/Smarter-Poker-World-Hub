@@ -31,7 +31,7 @@
 const DeckModule = require('../../lib/poker-engine/Deck');
 const HandEvalModule = require('../../lib/poker-engine/HandEvaluator');
 const { PotCalculator, Pot } = require('../../lib/poker-engine/PotCalculator');
-const { EquityCalculator } = require('../../lib/poker-engine/EquityCalculator');
+const EquityModule = require('../../lib/poker-engine/EquityCalculator');
 
 // ── ORB-9 Showdown Resolver ─────────────────────────────────────
 const { resolveShowdown, resolveShowdownFromStrings } = require('./Showdown');
@@ -48,7 +48,7 @@ module.exports = {
   Pot,
 
   // ── Equity Calculator ──
-  EquityCalculator,
+  ...EquityModule,
 
   // ── ORB-9 Showdown API (Primary Entry Point) ──
   resolveShowdown,

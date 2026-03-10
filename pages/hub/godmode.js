@@ -15,7 +15,6 @@ import { getAccessToken } from '../../src/lib/authUtils';
 
 export default function GodModePage() {
   const router = useRouter();
-  if (!router.isReady) return null;
   const { hand: handId } = router.query;
 
   const [handData, setHandData] = useState(null);
@@ -24,6 +23,9 @@ export default function GodModePage() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+
+  if (!router.isReady) return null;
+
     if (!handId) return;
     loadHandData();
   }, [handId]);

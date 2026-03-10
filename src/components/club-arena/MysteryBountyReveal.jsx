@@ -9,6 +9,7 @@
  *   onDismiss: () => void
  */
 import { useState, useEffect, useRef } from 'react';
+import { eventBus, EventType } from '../../engine/EventBus';
 
 const FB = {
     bg: '#18191A', card: '#242526', text: '#E4E6EB', dim: '#B0B3B8',
@@ -79,6 +80,15 @@ export default function MysteryBountyReveal({ reveal, onDismiss }) {
             eventBus.emit(EventType.SOUND_PLAY, { id: 'mystery_reveal_whoosh' });
             if (isJackpot) {
                 setTimeout(() => eventBus.emit(EventType.SOUND_PLAY, { id: 'jackpot_coins_massive' }), 400); // Slight delay for pop sync
+            }
+            // ORB-8 Directive #3: Confetti explosion if bounty > 10,000
+            if (reveal?.amount > 10000) {
+                import('canvas-confetti').then(mod => {
+                    const confetti = mod.default;
+                    confetti({ particleCount: 200, spread: 120, origin: { y: 0.5 }, colors: ['#FFD700', '#FFA500', '#FF6347', '#9333ea', '#00E676'] });
+                    setTimeout(() => confetti({ particleCount: 100, spread: 160, origin: { y: 0.3, x: 0.3 } }), 300);
+                    setTimeout(() => confetti({ particleCount: 100, spread: 160, origin: { y: 0.3, x: 0.7 } }), 600);
+                }).catch(() => { /* canvas-confetti not available */ });
             }
             // After 5s: auto-dismiss (original timing)
             const t2 = setTimeout(() => {

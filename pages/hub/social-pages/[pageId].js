@@ -214,7 +214,6 @@ function PostCard({ post, user, onLike, onComment }) {
 
 export default function SocialPageDetail() {
     const router = useRouter();
-    if (!router.isReady) return null;
     const { pageId } = router.query;
     const [user, setUser] = useState(null);
     const [page, setPage] = useState(null);
@@ -294,6 +293,9 @@ export default function SocialPageDetail() {
     useEffect(() => { if (page && activeTab === 'members') fetchFollowers(); }, [fetchFollowers, page, activeTab]);
   // Realtime subscription — live updates
   useEffect(() => {
+
+    if (!router.isReady) return null;
+
     if (!pageId) return;
     const _ch = supabase
       .channel(`social-page:${pageId}`)

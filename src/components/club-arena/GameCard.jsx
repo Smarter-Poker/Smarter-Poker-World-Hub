@@ -581,8 +581,9 @@ const S = {
     minHeight: 120,
   },
   tableImage: {
-    width: '75%',
+    width: '100%',
     maxWidth: '100%',
+    minHeight: 120,
     height: 'auto',
     objectFit: 'contain',
     pointerEvents: 'none',

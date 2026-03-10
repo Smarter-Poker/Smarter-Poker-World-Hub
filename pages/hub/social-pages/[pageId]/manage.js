@@ -19,7 +19,6 @@ const TABS = ['settings', 'members', 'posts', 'invitations'];
 
 export default function ManageSocialPage() {
     const router = useRouter();
-    if (!router.isReady) return null;
     const { pageId } = router.query;
     const [user, setUser] = useState(null);
     const [page, setPage] = useState(null);
@@ -84,6 +83,9 @@ export default function ManageSocialPage() {
     }, [tab, page]);
   // Realtime subscription — live updates
   useEffect(() => {
+
+    if (!router.isReady) return null;
+
     if (!pageId) return;
     const _ch = supabase
       .channel(`social-page-mgr:${pageId}`)

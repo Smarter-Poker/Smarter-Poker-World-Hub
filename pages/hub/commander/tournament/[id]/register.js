@@ -12,7 +12,6 @@ import { getAccessToken } from '../../../../../src/lib/authUtils';
 
 export default function TournamentRegisterPage() {
   const router = useRouter();
-  if (!router.isReady) return null;
   const { id } = router.query;
 
   const [tournament, setTournament] = useState(null);
@@ -24,6 +23,9 @@ export default function TournamentRegisterPage() {
 
   // Fetch tournament
   useEffect(() => {
+
+  if (!router.isReady) return null;
+
     if (id) fetchTournament();
   }, [id]);
   // Realtime listener — live updates for tournament/[id]/register.js

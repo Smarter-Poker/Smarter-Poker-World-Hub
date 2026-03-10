@@ -22,7 +22,6 @@ import { supabase } from '../../../../src/lib/supabase';
 
 export default function VenueDetail() {
   const router = useRouter();
-  if (!router.isReady) return null;
   const { id } = router.query;
 
   const [venue, setVenue] = useState(null);
@@ -34,6 +33,9 @@ export default function VenueDetail() {
 
   // Fetch venue data
   const fetchData = useCallback(async (signal) => {
+
+  if (!router.isReady) return null;
+
     if (!id) return;
 
     try {

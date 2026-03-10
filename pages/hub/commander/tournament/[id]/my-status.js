@@ -18,7 +18,6 @@ import { getAccessToken, getAuthUser } from '../../../../../src/lib/authUtils';
 
 export default function MyTournamentStatus() {
     const router = useRouter();
-    if (!router.isReady) return null;
     const { id } = router.query;
     const [tournament, setTournament] = useState(null);
     const [myEntry, setMyEntry] = useState(null);
@@ -108,6 +107,9 @@ export default function MyTournamentStatus() {
     useEffect(() => { let active = true; fetchData(); return () => { active = false; }; }, [fetchData]);
   // Realtime listener — live updates for tournament/[id]/my-status.js
   useEffect(() => {
+
+    if (!router.isReady) return null;
+
     if (!id) return;
     const ch = supabase
       .channel(`td-mystatus:${id}`)
