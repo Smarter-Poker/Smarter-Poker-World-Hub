@@ -14,9 +14,9 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
-const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
 const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
+import { notifyUser } from '../../../src/lib/club-arena/notify';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -246,6 +246,15 @@ export default async function handler(req, res) {
       if (agentErr) throw agentErr;
 
       logAudit(supabaseAdmin, { actionType: 'agent_promoted', userId: user.id, targetUserId, clubId, ip: extractIP(req), details: { agentId: agentRecord.id, agentTier, commissionRate, isPrepaid, rakebackPercentage: rakebackPercentage || 0 } });
+
+      notifyUser(supabaseAdmin, {
+        userId: targetUserId,
+        type: 'agent_promoted',
+        title: 'Promoted to Agent',
+        message: `You have been promoted to agent status with a ${commissionRate * 100}% commission rate.`,
+        data: { clubId, agentTier }
+      });
+
       return res.status(200).json({
         success: true,
         action: 'promoted',
@@ -335,6 +344,15 @@ export default async function handler(req, res) {
         .eq('club_id', clubId);
 
       logAudit(supabaseAdmin, { actionType: 'agent_demoted', userId: user.id, targetUserId, clubId, ip: extractIP(req), details: { playersReassigned: playerCount, reassignedTo: reassignTo || 'unassigned' } });
+
+      notifyUser(supabaseAdmin, {
+        userId: targetUserId,
+        type: 'agent_demoted',
+        title: 'Agent Status Revoked',
+        message: 'Your agent status has been revoked and players reassigned.',
+        data: { clubId }
+      });
+
       return res.status(200).json({
         success: true,
         action: 'demoted',
@@ -502,6 +520,20 @@ export default async function handler(req, res) {
         .eq('user_id', targetUserId);
 
       logAudit(supabaseAdmin, { actionType: `agent_${action}`, userId: user.id, targetUserId, clubId, ip: extractIP(req), details: { newStatus } });
+
+      const statusTitle = action === 'suspend' ? 'Account Suspended' : 'Account Reactivated';
+      const statusMsg = action === 'suspend'
+        ? 'Your agent account has been temporarily suspended by club management.'
+        : 'Your agent account has been reactivated.';
+
+      notifyUser(supabaseAdmin, {
+        userId: targetUserId,
+        type: `agent_${action}`,
+        title: statusTitle,
+        message: statusMsg,
+        data: { clubId, newStatus }
+      });
+
       return res.status(200).json({ success: true, action, targetUserId, newStatus });
     }
 

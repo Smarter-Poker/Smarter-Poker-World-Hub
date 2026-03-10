@@ -1009,15 +1009,25 @@ export default function ClubMessages() {
             const { data: urlData } = supabase.storage.from('user-media').getPublicUrl(fileName);
             const content = isImage ? `[Image](${urlData.publicUrl})` : `[Video](${urlData.publicUrl})`;
 
-            const { data: msgId, error } = await supabase.rpc('fn_send_message', {
-                p_conversation_id: activeConversation.id,
-                p_sender_id: user.id,
-                p_content: content,
+            const sendToken = getAccessToken();
+            const resp = await fetch('/api/messenger/send-message', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(sendToken ? { Authorization: `Bearer ${sendToken}` } : {}),
+                },
+                body: JSON.stringify({
+                    conversationId: activeConversation.id,
+                    content: content
+                })
             });
+            const result = await resp.json();
+            if (!result.success) throw new Error(result.error || result.message || 'Failed to send');
 
-            if (error) throw error;
+            const msgId = result.msgId;
+            const sanitizedContent = result.content;
 
-            setMessages(prev => prev.map(m => m.id === tempId ? { ...m, id: msgId, content, status: 'sent' } : m));
+            setMessages(prev => prev.map(m => m.id === tempId ? { ...m, id: msgId, content: sanitizedContent, status: 'sent' } : m));
             setToast({ type: 'success', message: `${isImage ? 'Photo' : 'Video'} sent!` });
         } catch (e) {
             console.error('Media upload error:', e);
@@ -1125,14 +1135,28 @@ export default function ClubMessages() {
         });
 
         try {
-            const { data: msgId, error } = await supabase.rpc('fn_send_message', {
-                p_conversation_id: activeConversation.id,
-                p_sender_id: user.id,
-                p_content: content,
+            const sendToken = getAccessToken();
+            const resp = await fetch('/api/messenger/send-message', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(sendToken ? { Authorization: `Bearer ${sendToken}` } : {}),
+                },
+                body: JSON.stringify({
+                    conversationId: activeConversation.id,
+                    content: content
+                })
             });
+            const result = await resp.json();
+            if (!result.success) {
+                if (result.error === 'Payload too large') setToast({ type: 'error', message: result.message });
+                throw new Error(result.error || result.message || 'Failed to send');
+            }
 
-            if (error) throw error;
-            setMessages(prev => prev.map(m => m.id === tempId ? { ...m, id: msgId, status: 'sent' } : m));
+            const msgId = result.msgId;
+            const sanitizedContent = result.content;
+
+            setMessages(prev => prev.map(m => m.id === tempId ? { ...m, id: msgId, content: sanitizedContent, status: 'sent' } : m));
             busEmit.messageSent(activeConversation.id, activeConversation.otherUser?.id);
             busEmit.dataMutated('message_sent');
         } catch (e) {
@@ -1192,14 +1216,25 @@ export default function ClubMessages() {
         setMessages(prev => prev.map(m => m.id === failedMsg.id ? { ...m, status: 'sending' } : m));
 
         try {
-            const { data: msgId, error } = await supabase.rpc('fn_send_message', {
-                p_conversation_id: activeConversation.id,
-                p_sender_id: user.id,
-                p_content: failedMsg.content || failedMsg.message,
+            const sendToken = getAccessToken();
+            const resp = await fetch('/api/messenger/send-message', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(sendToken ? { Authorization: `Bearer ${sendToken}` } : {}),
+                },
+                body: JSON.stringify({
+                    conversationId: activeConversation.id,
+                    content: failedMsg.content || failedMsg.message
+                })
             });
+            const result = await resp.json();
+            if (!result.success) throw new Error(result.error || result.message || 'Failed to send');
 
-            if (error) throw error;
-            setMessages(prev => prev.map(m => m.id === failedMsg.id ? { ...m, id: msgId, status: 'sent' } : m));
+            const msgId = result.msgId;
+            const sanitizedContent = result.content;
+
+            setMessages(prev => prev.map(m => m.id === failedMsg.id ? { ...m, id: msgId, content: sanitizedContent, status: 'sent' } : m));
             busEmit.messageSent(activeConversation.id, activeConversation.otherUser?.id);
             setToast({ type: 'success', message: 'Message sent!' });
         } catch (e) {

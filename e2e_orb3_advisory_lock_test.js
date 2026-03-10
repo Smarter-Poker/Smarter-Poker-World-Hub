@@ -71,15 +71,31 @@ async function runConcurrencyTest() {
     for (let i = 0; i < NUM_CONCURRENT; i++) {
         const userId = crypto.randomUUID();
         testUsers.push(userId);
-        // Insert into auth.users (mock) and profiles
-        await supabase.from('profiles').insert({ id: userId, alias: `TestUser_${i}`, is_horse: true });
-        // Give them chips in the club
+
+        // 1. Insert Profile (needed for display_name joins)
+        await supabase.from('profiles').insert({
+            id: userId,
+            alias: `TestUser_${i}`,
+            is_horse: true
+        });
+
+        // 2. Insert Auth User (needed for RLS/FKs in some environments)
+        // We skip auth.users direct insert here since we are using service_role,
+        // but we DO need chips_locked initialized to 0 for the RPC math to work
         await supabase.from('club_members').insert({
             club_id: clubId,
             user_id: userId,
             role: 'member',
-            chip_balance: TEST_BUY_IN * 2, // Exactly enough for 1 buy-in + spare
+            chip_balance: TEST_BUY_IN * 2,
+            chips_locked: 0, // CRITICAL: RPC does COALESCE(chips_locked, 0) + p_buy_in
         });
+    }
+
+    // Ensure the tournament is fully written before we blast it
+    const { data: verifyTourn } = await supabase.from('club_tournaments').select('id').eq('id', testTournamentId).single();
+    if (!verifyTourn) {
+        console.error('❌ Failed to provision test tournament');
+        process.exit(1);
     }
 
     console.log(`[E2E ORB-3] Setup complete. Preparing HTTP payload burst...`);

@@ -162,19 +162,19 @@ export default function Leaderboard() {
     const debouncedLoadData = useCallback(() => {
         if (reloadTimerRef.current) clearTimeout(reloadTimerRef.current);
         reloadTimerRef.current = setTimeout(() => {
-            if (loadDataRef.current) loadDataRef.current();
+            if (loadDataRef.current) loadDataRef.current(true); // isBackground = true
         }, 1000);
     }, []);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // LOAD DATA
     // ═══════════════════════════════════════════════════════════════════════════
-    const loadData = useCallback(async () => {
+    const loadData = useCallback(async (isBackground = false) => {
         if (!clubIdParam) {
             setIsLoading(false);
             return;
         }
-        setIsLoading(true);
+        if (!isBackground) setIsLoading(true);
 
         try {
             // Get authenticated user (Supabase session only)

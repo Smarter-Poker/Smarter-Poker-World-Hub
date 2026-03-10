@@ -174,7 +174,7 @@ export default function PlayerStats() {
     const debouncedLoadData = useCallback(() => {
         if (reloadTimerRef.current) clearTimeout(reloadTimerRef.current);
         reloadTimerRef.current = setTimeout(() => {
-            if (mountedRef.current && loadDataRef.current) loadDataRef.current();
+            if (mountedRef.current && loadDataRef.current) loadDataRef.current(true); // isBackground = true
         }, 1000);
     }, []);
 
@@ -192,12 +192,12 @@ export default function PlayerStats() {
     // ═══════════════════════════════════════════════════════════════════════════
     // LOAD DATA
     // ═══════════════════════════════════════════════════════════════════════════
-    const loadData = useCallback(async () => {
+    const loadData = useCallback(async (isBackground = false) => {
         if (!clubIdParam) {
             setIsLoading(false);
             return;
         }
-        setIsLoading(true);
+        if (!isBackground) setIsLoading(true);
         try {
             // Get authenticated user (Supabase session only)
             const authUser = getAuthUser();

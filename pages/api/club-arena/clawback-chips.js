@@ -20,6 +20,7 @@ const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
 const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
+import { notifyUser } from '../../../src/lib/club-arena/notify';
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -287,6 +288,14 @@ export default async function handler(req, res) {
         },
       });
 
+      notifyUser(supabaseAdmin, {
+        userId: txn.to_user_id,
+        type: 'clawback_partial',
+        title: 'Chips Clawed Back',
+        message: `An agent clawed back ${partialAmount.toLocaleString()} chips from your balance.`,
+        data: { clubId, amount: partialAmount }
+      });
+
       return res.status(200).json({
         success: true,
         partial: true,
@@ -357,6 +366,14 @@ export default async function handler(req, res) {
         agent_new_balance: freshAgent?.chip_balance || 0,
         window_remaining_seconds: remainingSeconds,
       },
+    });
+
+    notifyUser(supabaseAdmin, {
+      userId: txn.to_user_id,
+      type: 'clawback',
+      title: 'Chips Clawed Back',
+      message: `An agent clawed back ${clawbackAmount.toLocaleString()} chips from your balance.`,
+      data: { clubId, amount: clawbackAmount }
     });
 
     return res.status(200).json({

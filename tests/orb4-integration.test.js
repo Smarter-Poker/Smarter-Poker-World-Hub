@@ -34,16 +34,16 @@ async function setup() {
     authToken = signData.session.access_token;
 
     // 2. Create Club
-    const { data: clubData } = await supabase.from('clubs').insert({
+    const { data: clubDataArr } = await supabase.from('clubs').insert({
         owner_id: userId, name: `Orb4 Club ${Date.now()}`, club_id: Math.floor(Math.random() * 900000) + 100000 + '', auto_settlement_enabled: true
-    }).select().maybeSingle();
-    clubId = clubData.id;
+    }).select();
+    clubId = clubDataArr[0].id;
 
     // 3. Create Union
-    const { data: unionData } = await supabase.from('unions').insert({
+    const { data: unionDataArr } = await supabase.from('unions').insert({
         owner_id: userId, name: `Orb4 Union ${Date.now()}`, code: Math.floor(Math.random() * 900000) + 100000 + '', settings: { union_rake_hold: 0.1 }
-    }).select().maybeSingle();
-    unionId = unionData.id;
+    }).select();
+    unionId = unionDataArr[0].id;
 
     // 4. Link everything
     await supabase.from('union_admins').insert({ union_id: unionId, user_id: userId, role: 'union_lead' });
@@ -92,16 +92,18 @@ async function runTests() {
     const { data: signData2 } = await supabase.auth.signInWithPassword({ email: applicantEmail, password: 'password123' });
     const appToken = signData2.session.access_token;
 
-    const { data: appClubData } = await supabase.from('clubs').insert({ owner_id: authData2.user.id, name: `Orb4 App Club ${Date.now()}`, club_id: Math.floor(Math.random() * 900000) + 100000 + '' }).select().maybeSingle();
+    const { data: appClubDataArr } = await supabase.from('clubs').insert({ owner_id: authData2.user.id, name: `Orb4 App Club ${Date.now()}`, club_id: Math.floor(Math.random() * 900000) + 100000 + '' }).select();
+    const appClub = appClubDataArr[0];
     const midwayName = `Midway Union Mock ${Date.now()}`;
-    const { data: midwayData } = await supabase.from('unions').insert({ owner_id: authData2.user.id, name: midwayName, code: Math.floor(Math.random() * 900000) + 100000 + '' }).select().maybeSingle();
+    const { data: midwayDataArr } = await supabase.from('unions').insert({ owner_id: authData2.user.id, name: midwayName, code: Math.floor(Math.random() * 900000) + 100000 + '' }).select();
+    const midwayUnion = midwayDataArr[0];
 
-    const applyRes = await api('union-application', { action: 'apply', clubId: appClubData.id }, appToken);
+    const applyRes = await api('union-application', { action: 'apply', clubId: appClub.id }, appToken);
     assert(applyRes.status === 200 && applyRes.data.success, 'Application submitted to Midway Union');
-    assert((await api('union-application', { action: 'status', clubId: appClubData.id }, appToken)).status === 200, 'Application status retrieved');
+    assert((await api('union-application', { action: 'status', clubId: appClub.id }, appToken)).status === 200, 'Application status retrieved');
 
     // Lead user lists and rejects the application
-    await supabase.from('union_admins').insert({ union_id: midwayData.id, user_id: authData2.user.id, role: 'union_lead' });
+    await supabase.from('union_admins').insert({ union_id: midwayUnion.id, user_id: authData2.user.id, role: 'union_lead' });
     assert((await api('union-application', { action: 'list', statusFilter: 'all' }, appToken)).status === 200, 'Applications listed');
     assert((await api('union-application', { action: 'reject', applicationId: applyRes.data.application?.id, reason: 'E2E Testing' }, appToken)).data.success, 'Application rejected successfully');
 
