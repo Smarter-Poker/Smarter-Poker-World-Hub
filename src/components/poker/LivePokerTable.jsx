@@ -2819,7 +2819,7 @@ function SessionStatsOverlay({ sessionStats, myStack, onClose }) {
 // TABLE INFO BAR
 // ═══════════════════════════════════════════════════════════════════════════
 
-function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, isSitting, isSittingOut, straddleEnabled, straddleOn, onToggleStraddle, autoTopUpOn, onToggleAutoTopUp, autoMuckOn, onToggleAutoMuck, lastHandResult, onShowLastHand, sessionStats, myStack, sitOutNextBB, onToggleSitOutNextBB, showStackInBB, onToggleBBDisplay, cardSortMode, onCycleCardSort, hapticEnabled, onToggleHaptic }) {
+function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, isSitting, isSittingOut, straddleEnabled, straddleOn, onToggleStraddle, autoTopUpOn, onToggleAutoTopUp, autoMuckOn, onToggleAutoMuck, lastHandResult, onShowLastHand, sessionStats, myStack, sitOutNextBB, onToggleSitOutNextBB, showStackInBB, onToggleBBDisplay, cardSortMode, onCycleCardSort, hapticEnabled, onToggleHaptic, showHUD, onToggleHUD, fourColorDeck, onToggleFourColor, onShowLeaderboard }) {
   const [showStats, setShowStats] = useState(false);
   const [autoRebuyOn, setAutoRebuyOn] = useState(false);
   if (!tableState) return null;
@@ -2960,6 +2960,20 @@ function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, is
             label={hapticEnabled ? '✓ Haptic' : 'Haptic'}
             onClick={onToggleHaptic}
             color={hapticEnabled ? '#f472b6' : undefined}
+          />
+          <SmallButton
+            label={showHUD ? '✓ HUD' : 'HUD'}
+            onClick={onToggleHUD}
+            color={showHUD ? '#22d3ee' : undefined}
+          />
+          <SmallButton
+            label={fourColorDeck ? '✓ 4-Color' : '4-Color'}
+            onClick={onToggleFourColor}
+            color={fourColorDeck ? '#34d399' : undefined}
+          />
+          <SmallButton
+            label='🏆 Board'
+            onClick={onShowLeaderboard}
           />
         </div>
       )}
@@ -4314,6 +4328,8 @@ function LivePokerTable({
               board={tableState?.game?.communityCards || []}
               formatStack={formatStack}
               cardSortMode={cardSortMode}
+              showHUD={showHUD}
+              fourColorDeck={fourColorDeck}
             />
           );
         })}
@@ -4407,6 +4423,11 @@ function LivePokerTable({
         onCycleCardSort={cycleCardSort}
         hapticEnabled={hapticEnabled}
         onToggleHaptic={handleToggleHaptic}
+        showHUD={showHUD}
+        onToggleHUD={handleToggleHUD}
+        fourColorDeck={fourColorDeck}
+        onToggleFourColor={handleToggleFourColor}
+        onShowLeaderboard={() => setShowLeaderboard(true)}
       />
 
       {/* Hand strength indicator (hero only, during active hand) */}
@@ -4501,6 +4522,87 @@ function LivePokerTable({
       {!tableState?.config?.banChat && (
         <ChatOverlay messages={chatMessages} onSend={handleChat} />
       )}
+
+      {/* ═══ WAVE B: TABLE LEADERBOARD OVERLAY ═══ */}
+      <AnimatePresence>
+        {showLeaderboard && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowLeaderboard(false)}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 250,
+              background: 'rgba(0,0,0,0.7)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              backdropFilter: 'blur(4px)',
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              onClick={e => e.stopPropagation()}
+              style={{
+                background: '#18191a', border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: 16, width: 360, maxWidth: '92vw',
+                maxHeight: '80vh', overflow: 'hidden',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.8)',
+              }}
+            >
+              <div style={{
+                padding: '14px 18px', borderBottom: '1px solid rgba(255,255,255,0.08)',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              }}>
+                <span style={{ color: '#fff', fontSize: 15, fontWeight: 700 }}>🏆 Session Leaderboard</span>
+                <button
+                  onClick={() => setShowLeaderboard(false)}
+                  style={{ background: 'none', border: 'none', color: '#65676B', fontSize: 20, cursor: 'pointer', padding: 0 }}
+                >✕</button>
+              </div>
+              <div style={{ padding: 16, overflowY: 'auto', maxHeight: '55vh' }}>
+                {(() => {
+                  const seats = tableState?.seats || [];
+                  const ranked = seats
+                    .filter(s => s.player?.id && s.status !== 'empty')
+                    .map(s => ({
+                      name: s.player.displayName || 'Player',
+                      stack: s.stack || 0,
+                      buyIn: s.stats?.initialBuyIn || s.stack,
+                      pnl: (s.stack || 0) - (s.stats?.initialBuyIn || s.stack),
+                      hands: s.stats?.handsPlayed || 0,
+                    }))
+                    .sort((a, b) => b.pnl - a.pnl);
+                  if (ranked.length === 0) {
+                    return <div style={{ color: '#65676B', textAlign: 'center', fontSize: 13 }}>No players seated</div>;
+                  }
+                  return ranked.map((p, i) => (
+                    <div key={i} style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      padding: '8px 12px', borderRadius: 8, marginBottom: 4,
+                      background: i === 0 ? 'rgba(255,215,0,0.08)' : 'rgba(255,255,255,0.03)',
+                      border: i === 0 ? '1px solid rgba(255,215,0,0.2)' : '1px solid transparent',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{ color: i === 0 ? '#FFD700' : i === 1 ? '#C0C0C0' : i === 2 ? '#CD7F32' : '#65676B', fontSize: 14, fontWeight: 800, width: 24 }}>
+                          {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
+                        </span>
+                        <span style={{ color: '#E4E6EB', fontSize: 13, fontWeight: 600 }}>{p.name}</span>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ color: p.pnl >= 0 ? '#4ade80' : '#ef4444', fontSize: 14, fontWeight: 700 }}>
+                          {p.pnl >= 0 ? '+' : ''}{p.pnl.toLocaleString()}
+                        </div>
+                        <div style={{ color: '#65676B', fontSize: 10 }}>{p.hands}h | Stack: {p.stack.toLocaleString()}</div>
+                      </div>
+                    </div>
+                  ));
+                })()}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Observer / Waitlist bar — shown when NOT seated */}
       {!isSitting && buyInSeat === null && tableState && (
