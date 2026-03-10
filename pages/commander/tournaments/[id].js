@@ -26,7 +26,8 @@ import EliminatePlayerModal from '../../../src/components/commander/modals/Elimi
 import PayoutModal from '../../../src/components/commander/modals/PayoutModal';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/useCommanderSync';
-import { busEmit } from '../../../src/engine/EventBus';
+import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 const STATUS_CONFIG = {
   scheduled: { bg: 'bg-[#64748B]/10', text: 'text-[#64748B]', label: 'Scheduled' },
@@ -46,6 +47,7 @@ function formatTime(seconds) {
 }
 
 export default function TournamentDetailPage() {
+  useTrainingBus('commander-tournaments-id');
   useEffect(() => { busEmit.sessionStart('commander-tournaments-id'); }, []);
   const router = useRouter();
   const { id } = router.query;
@@ -130,6 +132,15 @@ export default function TournamentDetailPage() {
       return () => _c.abort();
     }
   }, [staff, id, fetchTournament]);
+
+  // EventBus: refresh when mutations happen on other pages (admin creates table, etc.)
+  useEffect(() => {
+    const unsub = eventBus.on(EventType.DATA_MUTATED, (e) => {
+      const relevant = ['tournament_created', 'tournament_registration', 'tournament_updated', 'table_action'];
+      if (relevant.includes(e?.payload?.entity)) fetchTournament();
+    });
+    return () => unsub();
+  }, [fetchTournament]);
 
   // Clock countdown
   useEffect(() => {

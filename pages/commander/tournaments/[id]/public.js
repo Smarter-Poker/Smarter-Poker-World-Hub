@@ -20,6 +20,8 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { Users, DollarSign, Trophy, Loader2, ChevronDown, ChevronUp, Share2, CheckCircle2, Copy } from 'lucide-react';
 import useTournamentRealtime from '../../../../src/hooks/useTournamentRealtime';
+import { busEmit, eventBus, EventType } from '../../../../src/engine/EventBus';
+import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 
 // Prefer real name from profiles over manually typed player_name (alias)
 function getName(e) {
@@ -54,6 +56,8 @@ const STATUS_CONFIG = {
 export default function TournamentPublic() {
   const router = useRouter();
   const { id } = router.query;
+  useTrainingBus('commander-tournament-public');
+  useEffect(() => { busEmit.sessionStart('commander-tournament-public'); }, []);
   const [tournament, setTournament] = useState(null);
   const [clock, setClock] = useState(null);
   const [entries, setEntries] = useState([]);
@@ -77,6 +81,15 @@ export default function TournamentPublic() {
 
   // Supabase Realtime — instant sync when tournament data changes
   useTournamentRealtime(id, fetchData);
+
+  // EventBus — refresh on cross-page mutations
+  useEffect(() => {
+    const unsub = eventBus.on(EventType.DATA_MUTATED, (e) => {
+      const relevant = ['tournament_updated', 'tournament_registration', 'tournament_created'];
+      if (relevant.includes(e?.payload?.entity)) fetchData();
+    });
+    return () => unsub();
+  }, [fetchData]);
 
   // Local clock tick
   useEffect(() => {
