@@ -423,7 +423,7 @@ function MessageInput({ onSend, onMediaUpload, disabled, onTyping, onGifToggle, 
 //  MESSAGE BUBBLE COMPONENT (with media support)
 // ═══════════════════════════════════════════════════════════════════════════
 
-function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInGroup, onRetry, onDelete, onReact, onEdit, onReply, onForward }) {
+function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInGroup, onRetry, onDelete, onReact, onEdit, onReply, onForward, onBookmark, isBookmarked, onLabel, labelString }) {
     const [showReactions, setShowReactions] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editText, setEditText] = useState('');
@@ -504,7 +504,7 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                                 </div>
                             </div>
                         ) : (
-                            <>{renderTextWithLinks(content)}{isEdited && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginLeft: 6 }}>(edited)</span>}{translatedText && <div style={{ marginTop: 4, fontSize: 13, color: C.blue, fontStyle: 'italic', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 4 }}>🌐 {translatedText}</div>}</>
+                            <>{labelString && <div style={{ fontSize: 10, fontWeight: 700, color: C.bg, background: C.blue, padding: '2px 8px', borderRadius: 12, display: 'inline-block', marginBottom: 4, marginRight: 8 }}>🏷️ {labelString}</div>}{renderTextWithLinks(content)}{isEdited && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginLeft: 6 }}>(edited)</span>}{translatedText && <div style={{ marginTop: 4, fontSize: 13, color: C.blue, fontStyle: 'italic', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 4 }}>🌐 {translatedText}</div>}</>
                         )}
 
                         {/* Quick react button (on hover) */}
@@ -568,6 +568,18 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                     {!isFailed && !isSending && !isDeleted && onForward && (
                         <button onClick={() => onForward(message)} style={{ fontSize: 11, color: C.textSec, background: 'transparent', border: 'none', cursor: 'pointer', padding: '0 4px', opacity: 0.5 }} title="Forward">
                             ➤
+                        </button>
+                    )}
+                    {/* P2-5: Bookmark */}
+                    {!isFailed && !isSending && !isDeleted && onBookmark && (
+                        <button onClick={() => onBookmark(message)} style={{ fontSize: 11, color: isBookmarked ? C.blue : C.textSec, background: 'transparent', border: 'none', cursor: 'pointer', padding: '0 4px', opacity: isBookmarked ? 1 : 0.5 }} title={isBookmarked ? "Remove Bookmark" : "Bookmark"}>
+                            📌
+                        </button>
+                    )}
+                    {/* P2-1: Label (Admin only) */}
+                    {!isFailed && !isSending && !isDeleted && onLabel && (
+                        <button onClick={() => onLabel(message)} style={{ fontSize: 11, color: labelString ? C.blue : C.textSec, background: 'transparent', border: 'none', cursor: 'pointer', padding: '0 4px', opacity: labelString ? 1 : 0.5 }} title="Label">
+                            🏷️
                         </button>
                     )}
                     {/* P3-12: Auto-Translation */}
@@ -2033,6 +2045,19 @@ export default function ClubMessages() {
                                             onEdit={editMessage}
                                             onReply={(msg) => setReplyTo({ id: msg.id, senderName: msg.sender_id === user?.id ? 'You' : (activeConversation.otherUser?.display_name || activeConversation.otherUser?.username || 'User'), preview: msg.content?.slice(0, 80) })}
                                             onForward={(msg) => setForwardingMessage({ content: msg.content, senderName: msg.sender_id === user?.id ? 'You' : (activeConversation.otherUser?.display_name || 'User') })}
+                                            onBookmark={(msg) => {
+                                                if (bookmarks.some(b => b.id === msg.id)) setBookmarks(prev => prev.filter(b => b.id !== msg.id));
+                                                else setBookmarks(prev => [...prev, msg]);
+                                            }}
+                                            isBookmarked={bookmarks.some(b => b.id === msg.id)}
+                                            onLabel={['owner', 'admin'].includes(currentUserMembership?.role) ? (msg) => {
+                                                const newLabel = window.prompt("Enter label (e.g. Action Required, Important, Payment):", messageLabels[msg.id] || '');
+                                                if (newLabel !== null) {
+                                                    if (!newLabel) setMessageLabels(prev => { const d = { ...prev }; delete d[msg.id]; return d; });
+                                                    else setMessageLabels(prev => ({ ...prev, [msg.id]: newLabel }));
+                                                }
+                                            } : null}
+                                            labelString={messageLabels[msg.id]}
                                         />
                                     </div>
                                 );

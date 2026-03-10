@@ -258,6 +258,79 @@ function ConfettiBurst({ active }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// THEME PARTICLES — Dynamic background weather/effects based on theme
+// ═══════════════════════════════════════════════════════════════════════════
+
+function ThemeParticles({ config }) {
+  if (!config) return null;
+  const { type, count } = config;
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 10 }}>
+      <style>
+        {`
+          @keyframes driftDown {
+            0% { transform: translateY(-10%) translateX(0); opacity: 0; }
+            10% { opacity: 0.8; }
+            90% { opacity: 0.8; }
+            100% { transform: translateY(110%) translateX(20px); opacity: 0; }
+          }
+          @keyframes floatUp {
+            0% { transform: translateY(110%) scale(0.5); opacity: 0; }
+            50% { opacity: 0.6; }
+            100% { transform: translateY(-10%) scale(1.2); opacity: 0; }
+          }
+          @keyframes firefly {
+            0%, 100% { opacity: 0; transform: translate(0, 0) scale(1); }
+            50% { opacity: 0.8; transform: translate(15px, -15px) scale(1.5); }
+          }
+        `}
+      </style>
+      {Array.from({ length: count }).map((_, i) => {
+        let animName = '';
+        let color = '#fff';
+        let size = 3;
+
+        if (type === 'snow') {
+          animName = 'driftDown';
+          size = 2 + Math.random() * 3;
+          color = 'rgba(255,255,255,0.7)';
+        } else if (type === 'goldDust') {
+          animName = 'floatUp';
+          size = 1 + Math.random() * 2;
+          color = 'rgba(255,215,0,0.6)';
+        } else if (type === 'fireflies') {
+          animName = 'firefly';
+          size = 2 + Math.random() * 2;
+          color = 'rgba(167,243,208,0.8)'; // Greenish glow
+        }
+
+        const left = Math.random() * 100;
+        const dur = (type === 'fireflies' ? 3 : 8) + Math.random() * 5;
+        const delay = Math.random() * -10;
+
+        return (
+          <div
+            key={i}
+            style={{
+              position: 'absolute',
+              left: left + '%',
+              top: type === 'fireflies' ? (20 + Math.random() * 60) + '%' : '-10%',
+              width: size,
+              height: size,
+              background: color,
+              borderRadius: '50%',
+              boxShadow: type === 'goldDust' || type === 'fireflies' ? `0 0 5px ${color}` : 'none',
+              animation: `${animName} ${dur}s linear ${delay}s infinite`,
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // HAND STRENGTH METER — visual indicator for hero's relative hand strength
 // ═══════════════════════════════════════════════════════════════════════════
 
