@@ -2282,6 +2282,16 @@ export default function ClubMessages() {
                         <button onClick={() => setShowWallet(prev => !prev)} style={{ ...S.newBtn, background: showWallet ? '#2374E1' : 'transparent' }} title="Wallet">
                             💰
                         </button>
+                        {/* P2-5: Bookmarks */}
+                        <button onClick={() => setShowBookmarks(!showBookmarks)} style={{ ...S.newBtn, background: showBookmarks ? C.blue : 'transparent' }} title="Saved Messages">
+                            📌
+                        </button>
+                        {/* P2-3: Broadcast Mode (Admin only) */}
+                        {['owner', 'admin'].includes(currentUserMembership?.role) && (
+                            <button onClick={() => setShowBroadcast(!showBroadcast)} style={{ ...S.newBtn, background: showBroadcast ? C.blue : 'transparent' }} title="Broadcast Message">
+                                📢
+                            </button>
+                        )}
                         <button onClick={() => { setSearchQuery(''); document.querySelector('[placeholder*="Search Club"]')?.focus(); }} style={S.newBtn} title="New Message">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill={C.blue}><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" /></svg>
                         </button>
@@ -2289,6 +2299,67 @@ export default function ClubMessages() {
                 </div>
 
                 {/* P3-1: Filter Tabs */}
+
+                {/* P2-5: Bookmarks Drawer */}
+                {showBookmarks && (
+                    <div style={{ background: C.bg, position: 'absolute', top: 60, bottom: 65, left: 0, right: 0, zIndex: 50, display: 'flex', flexDirection: 'column' }}>
+                        <div style={{ padding: 16, background: C.card, borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <button onClick={() => setShowBookmarks(false)} style={S.backBtn}>✕</button>
+                            <span style={{ fontSize: 16, fontWeight: 600, color: C.text }}>Saved Messages</span>
+                        </div>
+                        <div style={{ padding: 16, flex: 1, overflowY: 'auto' }}>
+                            {bookmarks.length === 0 ? (
+                                <div style={{ color: C.textSec, textAlign: 'center', marginTop: 40, fontSize: 14 }}>No saved messages yet.</div>
+                            ) : (
+                                bookmarks.map(b => (
+                                    <div key={b.id} style={{ background: C.card, padding: 16, borderRadius: 12, marginBottom: 8, position: 'relative' }}>
+                                        <div style={{ fontSize: 12, color: C.textSec, marginBottom: 4, display: 'flex', justifyContent: 'space-between' }}>
+                                            <span>From: {b.sender_id === user?.id ? 'You' : 'Someone'}</span>
+                                            <span>{formatDateSeparator(b.created_at)}</span>
+                                        </div>
+                                        <div style={{ fontSize: 14, color: C.text, wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>{b.content}</div>
+                                        <button onClick={() => setBookmarks(prev => prev.filter(x => x.id !== b.id))} style={{ position: 'absolute', top: 12, right: 12, background: 'transparent', border: 'none', color: C.textSec, cursor: 'pointer', fontSize: 16 }}>✕</button>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* P2-3: Broadcast Drawer */}
+                {showBroadcast && (
+                    <div style={{ padding: '16px', background: C.card, borderBottom: `1px solid ${C.border}` }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 8 }}>📢 Broadcast to All Contacts</div>
+                        <p style={{ fontSize: 11, color: C.textSec, marginBottom: 12 }}>Send a massive announcement. It will be sent individually to all active conversations.</p>
+                        <textarea value={broadcastText} onChange={e => setBroadcastText(e.target.value)} placeholder="Type announcement here..."
+                            style={{ width: '100%', minHeight: 80, background: C.hoverBg, border: 'none', borderRadius: 8, color: C.text, padding: 12, outline: 'none', fontSize: 14, resize: 'none' }} />
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
+                            <button onClick={async () => {
+                                if (!broadcastText.trim()) return;
+                                setBroadcastSending(true);
+                                let count = 0;
+                                const bToken = getAccessToken();
+                                for (const c of conversations) {
+                                    if (archivedConvIds.includes(c.id)) continue;
+                                    try {
+                                        await fetch('/api/messenger/send-message', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json', ...(bToken ? { Authorization: `Bearer ${bToken}` } : {}) },
+                                            body: JSON.stringify({ conversationId: c.id, content: `📢 [BROADCAST]\n${broadcastText}` })
+                                        });
+                                        count++;
+                                    } catch (e) { }
+                                }
+                                setBroadcastSending(false);
+                                setBroadcastText('');
+                                setShowBroadcast(false);
+                                setToast({ type: 'success', message: `Broadcast sent to ${count} conversations` });
+                            }} disabled={broadcastSending || !broadcastText.trim()} style={{ background: C.blue, color: 'white', border: 'none', padding: '8px 20px', borderRadius: 20, cursor: 'pointer', fontWeight: 600, opacity: (broadcastSending || !broadcastText.trim()) ? 0.5 : 1 }}>
+                                {broadcastSending ? 'Sending...' : 'Send Broadcast'}
+                            </button>
+                        </div>
+                    </div>
+                )}
 
                 {/* P3-8: Global Search Panel */}
                 {showGlobalSearch && (

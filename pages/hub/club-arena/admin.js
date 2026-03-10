@@ -3337,6 +3337,291 @@ function PromoWalletModal({ clubId, userRole, apiCall, showToast, onClose, FB, S
             )}
 
             {/* ═══════════════════════════════════════════════════════════════════════
+                PLAYER SESSIONS MODAL
+            ═══════════════════════════════════════════════════════════════════════ */}
+            {activeModal === 'sessions' && (
+                <div style={S.modalOverlay} onClick={() => setActiveModal(null)}>
+                    <div style={{ ...S.modal, maxWidth: 800 }} onClick={e => e.stopPropagation()}>
+                        <div style={S.modalHeader}>
+                            <span style={S.modalTitle}>📡 Live Player Sessions</span>
+                            <button style={S.modalClose} onClick={() => setActiveModal(null)}>&times;</button>
+                        </div>
+                        <div style={{ ...S.modalBody, padding: 0 }}>
+                            {sessionsLoading && !sessionsData ? (
+                                <div style={{ padding: 40, textAlign: 'center' }}><SkeletonDark variant="table-rows" rows={5} /></div>
+                            ) : sessionsData ? (
+                                <>
+                                    {/* Summary Bar */}
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 1, background: FB.border, marginBottom: 16 }}>
+                                        <div style={{ background: FB.cardBg, padding: '16px 20px', textAlign: 'center' }}>
+                                            <div style={{ fontSize: 24, fontWeight: 700, color: FB.success }}>{sessionsData.summary?.online || 0}</div>
+                                            <div style={{ fontSize: 11, color: FB.textSecondary, textTransform: 'uppercase' }}>Online Now</div>
+                                        </div>
+                                        <div style={{ background: FB.cardBg, padding: '16px 20px', textAlign: 'center' }}>
+                                            <div style={{ fontSize: 24, fontWeight: 700, color: '#F7C52A' }}>{sessionsData.summary?.idle || 0}</div>
+                                            <div style={{ fontSize: 11, color: FB.textSecondary, textTransform: 'uppercase' }}>Idle ({'<'} 1h)</div>
+                                        </div>
+                                        <div style={{ background: FB.cardBg, padding: '16px 20px', textAlign: 'center' }}>
+                                            <div style={{ fontSize: 24, fontWeight: 700, color: FB.primary }}>{sessionsData.summary?.activeTables || 0}</div>
+                                            <div style={{ fontSize: 11, color: FB.textSecondary, textTransform: 'uppercase' }}>Active Tables</div>
+                                        </div>
+                                        <div style={{ background: FB.cardBg, padding: '16px 20px', textAlign: 'center' }}>
+                                            <div style={{ fontSize: 24, fontWeight: 700, color: '#A855F7' }}>{sessionsData.summary?.totalSeated || 0}</div>
+                                            <div style={{ fontSize: 11, color: FB.textSecondary, textTransform: 'uppercase' }}>Total Seated</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Player List */}
+                                    <div style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+                                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                                            <thead style={{ position: 'sticky', top: 0, background: FB.cardBg, zIndex: 10 }}>
+                                                <tr style={{ borderBottom: `1px solid ${FB.border}`, color: FB.textSecondary, textAlign: 'left' }}>
+                                                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>Player</th>
+                                                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>Status</th>
+                                                    <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>24h Volume</th>
+                                                    <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>Chip Balance</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {(sessionsData.sessions || []).map((s, i) => (
+                                                    <tr key={i} style={{ borderBottom: `1px solid ${FB.border}` }}>
+                                                        <td style={{ padding: '12px 16px' }}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                                                <img src={resolveAvatarDisplay(s.avatarUrl)} alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} />
+                                                                <div>
+                                                                    <div style={{ fontWeight: 600, color: FB.textPrimary }}>{s.displayName}</div>
+                                                                    <div style={{ fontSize: 11, color: FB.textSecondary }}>{s.role}</div>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td style={{ padding: '12px 16px' }}>
+                                                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 8px', borderRadius: 4, background: FB.background }}>
+                                                                <div style={{
+                                                                    width: 8, height: 8, borderRadius: '50%',
+                                                                    background: s.status === 'online' ? FB.success : s.status === 'idle' ? '#F7C52A' : s.status === 'away' ? FB.textSecondary : '#3E4042',
+                                                                    boxShadow: s.status === 'online' ? `0 0 8px ${FB.success}` : 'none'
+                                                                }} />
+                                                                <span style={{ fontSize: 11, textTransform: 'uppercase', fontWeight: 700, color: s.status === 'online' ? FB.success : FB.textSecondary }}>
+                                                                    {s.status}
+                                                                </span>
+                                                            </div>
+                                                        </td>
+                                                        <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 600, color: s.volume24h > 0 ? FB.primary : FB.textSecondary }}>
+                                                            {s.volume24h > 0 ? s.volume24h.toLocaleString() : '-'}
+                                                        </td>
+                                                        <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 600, color: '#fff' }}>
+                                                            {s.chipBalance.toLocaleString()}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </>
+                            ) : (
+                                <div style={{ padding: 40, textAlign: 'center', color: FB.textSecondary }}>No data available</div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ═══════════════════════════════════════════════════════════════════════
+                SMART RECOMMENDATIONS MODAL
+            ═══════════════════════════════════════════════════════════════════════ */}
+            {activeModal === 'smart_recs' && (
+                <div style={S.modalOverlay} onClick={() => setActiveModal(null)}>
+                    <div style={{ ...S.modal, maxWidth: 640 }} onClick={e => e.stopPropagation()}>
+                        <div style={S.modalHeader}>
+                            <span style={S.modalTitle}>🧠 AI Table Recommender</span>
+                            <button style={S.modalClose} onClick={() => setActiveModal(null)}>&times;</button>
+                        </div>
+                        <div style={{ ...S.modalBody, background: FB.background }}>
+                            {smartRecsLoading && !smartRecsData ? (
+                                <div style={{ padding: 30 }}><SkeletonDark variant="news-feed" count={3} /></div>
+                            ) : smartRecsData?.recommendations ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                    {smartRecsData.recommendations.map((rec, i) => {
+                                        const color = rec.type === 'success' ? FB.success : rec.type === 'warning' ? '#F7C52A' : FB.primary;
+                                        return (
+                                            <div key={i} style={{ display: 'flex', gap: 16, background: FB.cardBg, padding: 16, borderRadius: 12, borderLeft: `4px solid ${color}`, boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
+                                                <div style={{ fontSize: 24 }}>{rec.icon}</div>
+                                                <div style={{ flex: 1 }}>
+                                                    <h4 style={{ margin: '0 0 4px 0', fontSize: 16, color: '#fff' }}>{rec.title}</h4>
+                                                    <p style={{ margin: 0, fontSize: 13, color: FB.textSecondary, lineHeight: 1.5 }}>{rec.desc}</p>
+                                                    {rec.action === 'create_table' && (
+                                                        <button onClick={() => { setActiveModal('tables'); setShowCreateTable(true); }} style={{ marginTop: 12, padding: '6px 16px', background: FB.primary, color: '#fff', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Create Table ➔</button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <div style={{ padding: 40, textAlign: 'center', color: FB.textSecondary }}>Analysis unavailable</div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ═══════════════════════════════════════════════════════════════════════
+                CLUB BRANDING & THEMING MODAL
+            ═══════════════════════════════════════════════════════════════════════ */}
+            {activeModal === 'branding' && brandingTheme && (
+                <div style={S.modalOverlay} onClick={() => setActiveModal(null)}>
+                    <div style={{ ...S.modal, maxWidth: 500 }} onClick={e => e.stopPropagation()}>
+                        <div style={S.modalHeader}>
+                            <span style={S.modalTitle}>🎨 Club Branding</span>
+                            <button style={S.modalClose} onClick={() => setActiveModal(null)}>&times;</button>
+                        </div>
+                        <div style={S.modalBody}>
+                            <p style={{ fontSize: 13, color: FB.textSecondary, marginBottom: 20 }}>Customize the look and feel of your club for all members.</p>
+
+                            <div style={{ marginBottom: 16 }}>
+                                <label style={S.formLabel}>Primary Brand Color (Hex)</label>
+                                <div style={{ display: 'flex', gap: 10 }}>
+                                    <input type="color" value={brandingTheme.primaryColor || '#2374E1'} onChange={e => setBrandingTheme({ ...brandingTheme, primaryColor: e.target.value })} style={{ width: 40, height: 40, padding: 0, border: 'none', borderRadius: 8, cursor: 'pointer', background: 'transparent' }} />
+                                    <input type="text" value={brandingTheme.primaryColor || '#2374E1'} onChange={e => setBrandingTheme({ ...brandingTheme, primaryColor: e.target.value })} style={{ ...S.formInput, flex: 1, fontFamily: 'monospace' }} />
+                                </div>
+                            </div>
+
+                            <div style={{ marginBottom: 16 }}>
+                                <label style={S.formLabel}>Table Felt Color</label>
+                                <select value={brandingTheme.tableFelt || 'default'} onChange={e => setBrandingTheme({ ...brandingTheme, tableFelt: e.target.value })} style={S.formInput}>
+                                    <option value="default">SmarterPoker Dark (Default)</option>
+                                    <option value="green">Classic Green</option>
+                                    <option value="blue">Casino Blue</option>
+                                    <option value="red">High Roller Red</option>
+                                    <option value="purple">Royal Purple</option>
+                                </select>
+                            </div>
+
+                            <div style={{ marginBottom: 24 }}>
+                                <label style={S.formLabel}>Chip Style</label>
+                                <select value={brandingTheme.chipStyle || 'default'} onChange={e => setBrandingTheme({ ...brandingTheme, chipStyle: e.target.value })} style={S.formInput}>
+                                    <option value="default">SmarterPoker Standard (Default)</option>
+                                    <option value="classic">Classic Clay</option>
+                                    <option value="modern">Modern Minimalist</option>
+                                    <option value="neon">Neon Cyberpunk</option>
+                                </select>
+                            </div>
+
+                            <button onClick={saveClubBranding} disabled={brandingSaving} style={{ width: '100%', padding: 14, background: FB.primary, color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: brandingSaving ? 'not-allowed' : 'pointer' }}>
+                                {brandingSaving ? 'Saving...' : 'Save Theme Preferences'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ═══════════════════════════════════════════════════════════════════════
+                CLUB BROADCASTS (TABLE CHAT) MODAL
+            ═══════════════════════════════════════════════════════════════════════ */}
+            {activeModal === 'telecom' && (
+                <div style={S.modalOverlay} onClick={() => setActiveModal(null)}>
+                    <div style={{ ...S.modal, maxWidth: 500 }} onClick={e => e.stopPropagation()}>
+                        <div style={S.modalHeader}>
+                            <span style={S.modalTitle}>🎙️ Club Broadcasts</span>
+                            <button style={S.modalClose} onClick={() => setActiveModal(null)}>&times;</button>
+                        </div>
+                        <div style={S.modalBody}>
+                            <p style={{ fontSize: 13, color: FB.textSecondary, marginBottom: 20 }}>Send a dealer announcement to a specific table. This appears in the in-game chat for all seated players.</p>
+
+                            <div style={{ marginBottom: 16 }}>
+                                <label style={S.formLabel}>Target Table</label>
+                                <select value={dealerMsgTable} onChange={e => setDealerMsgTable(e.target.value)} style={S.formInput}>
+                                    <option value="">-- Select a table --</option>
+                                    {tables.map(t => (
+                                        <option key={t.id} value={t.id}>{t.name} ({t.small_blind}/{t.big_blind} {t.game_variant?.toUpperCase()})</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div style={{ marginBottom: 24 }}>
+                                <label style={S.formLabel}>Dealer Message</label>
+                                <textarea
+                                    value={dealerMsgText}
+                                    onChange={e => setDealerMsgText(e.target.value)}
+                                    placeholder="e.g. Last 3 orbits before table break!"
+                                    style={{ ...S.formInput, height: 100, resize: 'none' }}
+                                    maxLength={200}
+                                />
+                                <div style={{ fontSize: 11, color: FB.textSecondary, textAlign: 'right', marginTop: 4 }}>{dealerMsgText.length} / 200</div>
+                            </div>
+
+                            <button
+                                onClick={sendDealerMessage}
+                                disabled={!dealerMsgTable || !dealerMsgText.trim() || dealerMsgSending}
+                                style={{ width: '100%', padding: 14, background: (!dealerMsgTable || !dealerMsgText.trim() || dealerMsgSending) ? FB.border : '#F43F5E', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: (!dealerMsgTable || !dealerMsgText.trim() || dealerMsgSending) ? 'not-allowed' : 'pointer' }}
+                            >
+                                {dealerMsgSending ? 'Sending...' : 'Broadcast to Table'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ═══════════════════════════════════════════════════════════════════════
+                LOBBY ORDERING MODAL
+            ═══════════════════════════════════════════════════════════════════════ */}
+            {activeModal === 'lobby_order' && (
+                <div style={S.modalOverlay} onClick={() => setActiveModal(null)}>
+                    <div style={{ ...S.modal, maxWidth: 500 }} onClick={e => e.stopPropagation()}>
+                        <div style={S.modalHeader}>
+                            <span style={S.modalTitle}>↕️ Lobby Ordering</span>
+                            <button style={S.modalClose} onClick={() => setActiveModal(null)}>&times;</button>
+                        </div>
+                        <div style={{ ...S.modalBody, padding: 0 }}>
+                            <div style={{ padding: '16px 20px', background: FB.background, fontSize: 13, color: FB.textSecondary, borderBottom: `1px solid ${FB.border}` }}>
+                                Drag tables to reorder them in the player lobby. Top tables get the most visibility.
+                            </div>
+                            <div style={{ maxHeight: '50vh', overflowY: 'auto', padding: 16 }}>
+                                {lobbyOrder.length === 0 ? (
+                                    <div style={{ textAlign: 'center', color: FB.textSecondary, padding: 20 }}>No tables found</div>
+                                ) : (
+                                    lobbyOrder.map((tid, idx) => {
+                                        const t = tables.find(x => x.id === tid);
+                                        if (!t) return null;
+                                        return (
+                                            <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, background: FB.cardBg, border: `1px solid ${FB.border}`, borderRadius: 8, marginBottom: 8, cursor: 'grab' }}
+                                                draggable
+                                                onDragStart={e => e.dataTransfer.setData('text/plain', idx)}
+                                                onDragOver={e => e.preventDefault()}
+                                                onDrop={e => {
+                                                    e.preventDefault();
+                                                    const fromIdx = Number(e.dataTransfer.getData('text/plain'));
+                                                    const toIdx = idx;
+                                                    if (fromIdx === toIdx) return;
+                                                    const newOrder = [...lobbyOrder];
+                                                    const [moved] = newOrder.splice(fromIdx, 1);
+                                                    newOrder.splice(toIdx, 0, moved);
+                                                    setLobbyOrder(newOrder);
+                                                }}
+                                            >
+                                                <div style={{ color: FB.textSecondary, fontSize: 18, cursor: 'grab' }}>≡</div>
+                                                <div style={{ width: 24, height: 24, borderRadius: '50%', background: FB.background, color: FB.textSecondary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700 }}>{idx + 1}</div>
+                                                <div style={{ flex: 1 }}>
+                                                    <div style={{ fontWeight: 600, color: FB.textPrimary }}>{t.name}</div>
+                                                    <div style={{ fontSize: 11, color: FB.textSecondary }}>{t.small_blind}/{t.big_blind} {t.game_variant?.toUpperCase()}</div>
+                                                </div>
+                                                <div style={{ fontSize: 12, color: t.status === 'playing' ? FB.success : FB.textSecondary }}>{t.current_players}/{t.max_players}</div>
+                                            </div>
+                                        );
+                                    })
+                                )}
+                            </div>
+                            <div style={{ ...S.modalFooter, borderTop: `1px solid ${FB.border}` }}>
+                                <button onClick={saveLobbyOrder} disabled={lobbyOrderSaving} style={{ width: '100%', padding: 14, background: FB.primary, color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: lobbyOrderSaving ? 'not-allowed' : 'pointer' }}>
+                                    {lobbyOrderSaving ? 'Saving...' : 'Save Lobby Order'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ═══════════════════════════════════════════════════════════════════════
                 COMMAND PALETTE (Ctrl+K / Cmd+K)
             ═══════════════════════════════════════════════════════════════════════ */}
             {shortcuts.paletteOpen && (
