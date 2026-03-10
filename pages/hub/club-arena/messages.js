@@ -1864,6 +1864,28 @@ export default function ClubMessages() {
                         </div>
                     )}
 
+                    {/* P3-6: Smart Quick Replies */}
+                    {messages.length > 0 && (() => {
+                        const lastReceived = [...messages].reverse().find(m => m.sender_id !== user?.id && !m.is_deleted);
+                        if (!lastReceived) return null;
+                        const lc = (lastReceived.content || '').toLowerCase();
+                        let suggestions = [];
+                        if (lc.includes('?') || lc.includes('when') || lc.includes('what') || lc.includes('how')) suggestions = ['Let me check', 'I\'ll get back to you', 'Good question!'];
+                        else if (lc.includes('thanks') || lc.includes('thank') || lc.includes('ty')) suggestions = ['You\'re welcome! 😊', 'Anytime!', 'Happy to help'];
+                        else if (lc.includes('gg') || lc.includes('nice') || lc.includes('well played')) suggestions = ['Thanks! GG 🏆', 'You too!', 'Good game!'];
+                        else if (lc.includes('hi') || lc.includes('hey') || lc.includes('hello') || lc.includes('sup')) suggestions = ['Hey! 👋', 'What\'s up?', 'How\'s it going?'];
+                        else suggestions = ['Got it 👍', 'Thanks!', 'Sounds good'];
+                        return (
+                            <div style={{ display: 'flex', gap: 6, padding: '6px 16px', overflowX: 'auto', flexShrink: 0 }}>
+                                {suggestions.map(s => (
+                                    <button key={s} onClick={() => sendMessage(s)} style={{ padding: '6px 14px', borderRadius: 16, border: `1px solid ${C.border}`, background: C.hoverBg, color: C.text, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, transition: 'all 0.15s' }}>
+                                        {s}
+                                    </button>
+                                ))}
+                            </div>
+                        );
+                    })()}
+
                     {/* Reply Preview Bar */}
                     {replyTo && (
                         <div style={{ padding: '8px 16px', background: C.card, borderTop: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1880,6 +1902,44 @@ export default function ClubMessages() {
                     <MessageInput onSend={(text) => { sendMessage(text); }} onMediaUpload={handleMediaUpload} onTyping={broadcastTyping} onGifToggle={() => setShowGifPicker(!showGifPicker)} showGifActive={showGifPicker} />
                     <ClubArenaBottomNav clubId={clubIdParam} activePage="messages" userRole={currentUserMembership?.role} />
                 </div>
+
+                {/* P3-5: Forward Message Modal — fullscreen overlay */}
+                {forwardingMessage && (
+                    <div style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'rgba(0,0,0,0.8)', display: 'flex', flexDirection: 'column' }}>
+                        <div style={{ padding: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <button onClick={() => setForwardingMessage(null)} style={{ background: 'transparent', border: 'none', color: 'white', fontSize: 20, cursor: 'pointer' }}>✕</button>
+                            <span style={{ color: 'white', fontWeight: 600, fontSize: 16 }}>Forward Message</span>
+                        </div>
+                        <div style={{ padding: '0 16px 8px', background: C.card, margin: '0 16px', borderRadius: 12, maxHeight: 60, overflow: 'hidden' }}>
+                            <div style={{ fontSize: 12, color: C.textSec, padding: '8px 0' }}>
+                                <span style={{ fontWeight: 600 }}>{forwardingMessage.senderName}:</span> {forwardingMessage.content?.slice(0, 100)}
+                            </div>
+                        </div>
+                        <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
+                            <div style={{ color: C.textSec, fontSize: 13, marginBottom: 8 }}>Select a conversation:</div>
+                            {conversations.filter(c => c.id !== activeConversation?.id && !archivedConvIds.includes(c.id)).map(conv => (
+                                <div key={conv.id} onClick={async () => {
+                                    const fwdText = `[Forwarded from ${forwardingMessage.senderName}]\n${forwardingMessage.content}`;
+                                    try {
+                                        const fwdToken = getAccessToken();
+                                        await fetch('/api/messenger/send-message', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json', ...(fwdToken ? { Authorization: `Bearer ${fwdToken}` } : {}) },
+                                            body: JSON.stringify({ conversationId: conv.id, content: fwdText })
+                                        });
+                                        setToast({ type: 'info', message: `Forwarded to ${conv.otherUser?.display_name || conv.otherUser?.username}` });
+                                    } catch (e) {
+                                        setToast({ type: 'error', message: 'Forward failed' });
+                                    }
+                                    setForwardingMessage(null);
+                                }} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', cursor: 'pointer', borderRadius: 8, background: C.card, marginBottom: 4 }}>
+                                    <Avatar src={conv.otherUser?.avatar_url} name={conv.otherUser?.username} size={40} />
+                                    <span style={{ color: C.text, fontWeight: 500 }}>{conv.otherUser?.display_name || conv.otherUser?.username}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {/* Incoming call notification banner — polished */}
                 {incomingCall && (

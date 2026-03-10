@@ -16,7 +16,7 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
+import { checkIdempotency, cacheResponse } from '../../../src/lib/club-arena/idempotency';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,

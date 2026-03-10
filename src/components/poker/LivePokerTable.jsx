@@ -2604,10 +2604,113 @@ function TournamentHUD({ tournamentId, userId }) {
 
 
 // ═══════════════════════════════════════════════════════════════════════════
+// SESSION STATS OVERLAY — expanded stats panel with VPIP/PFR/sparkline
+// ═══════════════════════════════════════════════════════════════════════════
+
+function SessionStatsOverlay({ sessionStats, myStack, onClose }) {
+  if (!sessionStats || !sessionStats.initialBuyIn) return null;
+
+  const pnl = myStack - sessionStats.initialBuyIn - (sessionStats.totalAdded || 0);
+  const hrs = sessionStats.sessionStart ? ((Date.now() - sessionStats.sessionStart) / 3600000) : 0;
+  const handsPerHour = hrs > 0 ? Math.round((sessionStats.handsPlayed || 0) / hrs) : 0;
+  const vpip = sessionStats.handsPlayed > 0 ? ((sessionStats.vpipCount || 0) / sessionStats.handsPlayed * 100).toFixed(0) : '0';
+  const pfr = sessionStats.handsPlayed > 0 ? ((sessionStats.pfrCount || 0) / sessionStats.handsPlayed * 100).toFixed(0) : '0';
+
+  // Mini sparkline from P&L history
+  const pnlHistory = sessionStats.pnlHistory || [];
+  const sparklinePoints = pnlHistory.length > 1 ? (() => {
+    const min = Math.min(...pnlHistory);
+    const max = Math.max(...pnlHistory);
+    const range = max - min || 1;
+    const w = 120;
+    const h = 28;
+    return pnlHistory.map((v, i) => {
+      const x = (i / (pnlHistory.length - 1)) * w;
+      const y = h - ((v - min) / range) * h;
+      return `${x},${y}`;
+    }).join(' ');
+  })() : null;
+
+  const pnlColor = pnl > 0 ? '#4caf50' : pnl < 0 ? '#ef5350' : '#888';
+
+  const StatBox = ({ label, value, color = '#E4E6EB' }) => (
+    <div style={{ textAlign: 'center', minWidth: 55 }}>
+      <div style={{ fontSize: 16, fontWeight: 800, color, fontVariantNumeric: 'tabular-nums' }}>{value}</div>
+      <div style={{ fontSize: 8, fontWeight: 600, color: '#65676B', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
+    </div>
+  );
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      style={{
+        position: 'absolute', top: 60, left: 8, right: 8,
+        background: 'rgba(0,0,0,0.92)', borderRadius: 14,
+        border: '1px solid rgba(255,255,255,0.08)',
+        padding: '14px 16px', zIndex: 35,
+        backdropFilter: 'blur(12px)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+      }}
+    >
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+        <span style={{ color: '#E4E6EB', fontSize: 13, fontWeight: 700 }}>📊 Session Stats</span>
+        <button onClick={onClose} style={{
+          background: 'none', border: 'none', color: '#65676B', fontSize: 18,
+          cursor: 'pointer', padding: '0 4px', lineHeight: 1,
+        }}>×</button>
+      </div>
+
+      {/* Stat grid */}
+      <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: 12 }}>
+        <StatBox label="P&L" value={`${pnl >= 0 ? '+' : ''}${pnl.toLocaleString()}`} color={pnlColor} />
+        <StatBox label="Hands" value={sessionStats.handsPlayed || 0} />
+        <StatBox label="VPIP" value={`${vpip}%`} color={parseInt(vpip) > 40 ? '#f59e0b' : '#4caf50'} />
+        <StatBox label="PFR" value={`${pfr}%`} color={parseInt(pfr) > 30 ? '#f59e0b' : '#3b82f6'} />
+        <StatBox label="H/Hr" value={handsPerHour} />
+      </div>
+
+      {/* Sparkline P&L over time */}
+      {sparklinePoints && (
+        <div style={{ marginBottom: 8 }}>
+          <div style={{ fontSize: 9, color: '#65676B', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Session P&L Trend</div>
+          <svg width="100%" height="32" viewBox="0 0 120 28" preserveAspectRatio="none" style={{ borderRadius: 4 }}>
+            <rect width="120" height="28" fill="rgba(255,255,255,0.03)" rx="2" />
+            {/* Zero line */}
+            {pnlHistory.some(v => v >= 0) && pnlHistory.some(v => v < 0) && (
+              <line x1="0" y1="14" x2="120" y2="14" stroke="rgba(255,255,255,0.1)" strokeDasharray="2,2" />
+            )}
+            <polyline
+              points={sparklinePoints}
+              fill="none"
+              stroke={pnlColor}
+              strokeWidth="1.5"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+            />
+          </svg>
+        </div>
+      )}
+
+      {/* Footer stats */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#65676B' }}>
+        <span>Buy-in: {sessionStats.initialBuyIn?.toLocaleString()}{sessionStats.totalAdded > 0 ? ` +${sessionStats.totalAdded.toLocaleString()}` : ''}</span>
+        <span>{hrs.toFixed(1)} hours</span>
+        {sessionStats.biggestPot > 0 && <span>Max Pot: {sessionStats.biggestPot.toLocaleString()}</span>}
+      </div>
+    </motion.div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // TABLE INFO BAR
 // ═══════════════════════════════════════════════════════════════════════════
 
 function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, isSitting, isSittingOut, straddleEnabled, straddleOn, onToggleStraddle, autoTopUpOn, onToggleAutoTopUp, autoMuckOn, onToggleAutoMuck, lastHandResult, onShowLastHand, sessionStats, myStack }) {
+  const [showStats, setShowStats] = useState(false);
+  const [autoRebuyOn, setAutoRebuyOn] = useState(false);
   if (!tableState) return null;
 
   const { game } = tableState;
@@ -2712,9 +2815,32 @@ function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, is
             onClick={onToggleAutoMuck}
             color={autoMuckOn ? '#8b5cf6' : undefined}
           />
+          <SmallButton
+            label={autoRebuyOn ? '✓ Rebuy' : 'Rebuy'}
+            onClick={() => setAutoRebuyOn(!autoRebuyOn)}
+            color={autoRebuyOn ? '#f59e0b' : undefined}
+          />
+          {sessionStats?.initialBuyIn > 0 && (
+            <SmallButton
+              label={showStats ? '✓ Stats' : '📊'}
+              onClick={() => setShowStats(!showStats)}
+              color={showStats ? '#3b82f6' : undefined}
+            />
+          )}
           <SmallButton label="Leave" onClick={onStandUp} color={T.foldRed} />
         </div>
       )}
+
+      {/* Session Stats Overlay — expandable panel */}
+      <AnimatePresence>
+        {showStats && isSitting && sessionStats && (
+          <SessionStatsOverlay
+            sessionStats={sessionStats}
+            myStack={myStack}
+            onClose={() => setShowStats(false)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

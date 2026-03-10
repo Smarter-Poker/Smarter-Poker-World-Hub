@@ -6,7 +6,7 @@ import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
 import dynamic from 'next/dynamic';
 
-const UniversalHeader = dynamic(() => import('../../../src/components/navigation/UniversalHeader'), { ssr: false });
+const UniversalHeader = dynamic(() => import('../../../src/components/ui/UniversalHeader'), { ssr: false });
 const GameCard = dynamic(() => import('../../../src/components/club-arena/GameCard'), { ssr: false });
 const ClubArenaBottomNav = dynamic(() => import('../../../src/components/club-arena/ClubArenaBottomNav'), { ssr: false });
 
