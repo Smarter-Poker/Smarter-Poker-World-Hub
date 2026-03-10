@@ -365,6 +365,13 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
             {!isOwn && (showAvatar ? <Avatar src={sender?.avatar_url} name={sender?.username || sender?.display_name} size={28} showOnline={false} /> : <div style={{ width: 28 }} />)}
 
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: isOwn ? 'flex-end' : 'flex-start', maxWidth: '70%' }}>
+                {/* Quoted reply bubble */}
+                {replyRef && (
+                    <div style={{ padding: '4px 10px', marginBottom: 2, borderRadius: 12, background: 'rgba(255,255,255,0.08)', borderLeft: `3px solid ${C.blue}`, fontSize: 12, color: C.textSec, maxWidth: '100%' }}>
+                        <div style={{ fontWeight: 600, fontSize: 11, color: C.blue, marginBottom: 1 }}>{replyRef.senderName || 'User'}</div>
+                        <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{replyRef.preview?.slice(0, 60)}{replyRef.preview?.length > 60 ? '...' : ''}</div>
+                    </div>
+                )}
                 {imageMatch ? (
                     <img src={imageMatch[1]} alt="Shared Image" style={{ maxWidth: '100%', borderRadius: 12, cursor: 'pointer' }} onClick={() => window.open(imageMatch[1], '_blank')} />
                 ) : videoMatch ? (
@@ -527,6 +534,9 @@ export default function ClubMessages() {
 
     // Message search state
     const [messageSearchQuery, setMessageSearchQuery] = useState('');
+
+    // Reply-To state
+    const [replyTo, setReplyTo] = useState(null);
 
     // GIF picker state
     const [showGifPicker, setShowGifPicker] = useState(false);

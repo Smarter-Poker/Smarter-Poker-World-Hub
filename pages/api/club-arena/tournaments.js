@@ -645,6 +645,130 @@ export default async function handler(req, res) {
         return res.json({ success: true, refunded: (registrations || []).length });
       }
 
+      // ═══════════════════════════════════════════════════════
+      // UPDATE (EDIT TOURNAMENT — PRE-START ONLY) [Improvement #9]
+      // ═══════════════════════════════════════════════════════
+      case 'update': {
+        const { tournamentId, updates } = params;
+        if (!tournamentId) return res.status(400).json({ success: false, error: 'tournamentId required' });
+        if (!updates || typeof updates !== 'object') return res.status(400).json({ success: false, error: 'updates object required' });
+
+        // Fetch tournament
+        const { data: tourn } = await supabaseAdmin
+          .from('club_tournaments')
+          .select('*')
+          .eq('id', tournamentId)
+          .maybeSingle();
+
+        if (!tourn) return res.status(404).json({ success: false, error: 'Tournament not found' });
+
+        // Only editable before running
+        if (!['scheduled', 'registering'].includes(tourn.status)) {
+          return res.status(400).json({ success: false, error: 'Cannot edit a tournament that has already started' });
+        }
+
+        // Verify admin
+        const { data: updMember } = await supabaseAdmin
+          .from('club_members')
+          .select('role')
+          .eq('club_id', tourn.club_id)
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (!updMember || !['owner', 'admin', 'manager'].includes(updMember.role)) {
+          return res.status(403).json({ success: false, error: 'Only club admins can edit tournaments' });
+        }
+
+        // Whitelist of editable fields
+        const allowedFields = [
+          'name', 'buy_in', 'max_players', 'starting_chips', 'variant',
+          'scheduled_start', 'late_reg_levels', 'guaranteed_prize',
+        ];
+        const safeUpdates = {};
+        for (const [key, val] of Object.entries(updates)) {
+          if (allowedFields.includes(key)) safeUpdates[key] = val;
+        }
+
+        // Also allow editing settings sub-fields
+        if (updates.settings && typeof updates.settings === 'object') {
+          const existingSettings = tourn.settings || {};
+          safeUpdates.settings = { ...existingSettings, ...updates.settings };
+        }
+
+        if (Object.keys(safeUpdates).length === 0) {
+          return res.status(400).json({ success: false, error: 'No valid fields to update' });
+        }
+
+        const { error: updErr } = await supabaseAdmin
+          .from('club_tournaments')
+          .update(safeUpdates)
+          .eq('id', tournamentId);
+
+        if (updErr) {
+          console.error('[Tournament] Update failed:', updErr);
+          return res.status(500).json({ success: false, error: 'Update failed' });
+        }
+
+        return res.json({ success: true, updated: Object.keys(safeUpdates) });
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // SPIN & GO MULTIPLIER DRAWING [Improvement #10]
+      // ═══════════════════════════════════════════════════════
+      case 'spin_draw_multiplier': {
+        const { tournamentId } = params;
+        if (!tournamentId) return res.status(400).json({ success: false, error: 'tournamentId required' });
+
+        const { data: tourn } = await supabaseAdmin
+          .from('club_tournaments')
+          .select('*')
+          .eq('id', tournamentId)
+          .maybeSingle();
+
+        if (!tourn) return res.status(404).json({ success: false, error: 'Tournament not found' });
+        if (tourn.type !== 'spin') return res.status(400).json({ success: false, error: 'Not a Spin & Go tournament' });
+
+        // If already drawn, return the existing multiplier
+        if (tourn.settings?.spin_multiplier) {
+          return res.json({ success: true, multiplier: tourn.settings.spin_multiplier, alreadyDrawn: true });
+        }
+
+        // Weighted probability table (standard Spin & Go distribution)
+        const multiplierTable = [
+          { multiplier: 2, weight: 750000 }, // 75%
+          { multiplier: 3, weight: 125000 }, // 12.5%
+          { multiplier: 5, weight: 75000 }, // 7.5%
+          { multiplier: 10, weight: 35000 }, // 3.5%
+          { multiplier: 25, weight: 10000 }, // 1.0%
+          { multiplier: 50, weight: 3500 }, // 0.35%
+          { multiplier: 100, weight: 1000 }, // 0.1%
+          { multiplier: 250, weight: 400 }, // 0.04%
+          { multiplier: 1000, weight: 100 }, // 0.01%
+        ];
+
+        const totalWeight = multiplierTable.reduce((s, e) => s + e.weight, 0);
+        let roll = Math.floor(Math.random() * totalWeight);
+        let drawnMultiplier = 2; // fallback
+        for (const entry of multiplierTable) {
+          roll -= entry.weight;
+          if (roll <= 0) { drawnMultiplier = entry.multiplier; break; }
+        }
+
+        // Compute prize pool
+        const basePrize = (tourn.buy_in || 0) * (tourn.max_players || 3);
+        const spinPrizePool = basePrize * drawnMultiplier;
+
+        // Persist the drawn multiplier and prize pool
+        const newSettings = { ...(tourn.settings || {}), spin_multiplier: drawnMultiplier };
+        await supabaseAdmin
+          .from('club_tournaments')
+          .update({ settings: newSettings, prize_pool: spinPrizePool })
+          .eq('id', tournamentId);
+
+        console.log(`[Tournament] Spin & Go multiplier drawn: ${drawnMultiplier}x for ${tournamentId} (prize: ${spinPrizePool})`);
+        return res.json({ success: true, multiplier: drawnMultiplier, prizePool: spinPrizePool });
+      }
+
       default:
         return res.status(400).json({ success: false, error: `Unknown action: ${action}` });
     }

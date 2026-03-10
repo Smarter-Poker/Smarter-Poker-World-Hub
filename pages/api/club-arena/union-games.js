@@ -93,10 +93,10 @@ export default async function handler(req, res) {
 
       const { data: tournaments, error } = await supabaseAdmin
         .from('club_tournaments')
-        .select('id, club_id, name, status, game_type, buy_in, starting_chips, max_players, registered_count, prize_pool, guaranteed_prize, start_time, late_reg_levels, rebuy_enabled, rebuy_levels, addon_enabled, settings, created_at')
+        .select('id, club_id, name, status, type, variant, buy_in, starting_chips, max_players, registered_count, prize_pool, guaranteed_prize, scheduled_start, late_reg_levels, rebuy_enabled, rebuy_levels, addon_enabled, settings, created_at')
         .in('club_id', clubIds)
         .in('status', statusFilter)
-        .order('start_time', { ascending: true })
+        .order('scheduled_start', { ascending: true })
         .limit(50);
 
       if (error) throw error;
@@ -118,7 +118,7 @@ export default async function handler(req, res) {
       const tableStatusFilter = params.statusFilter;
       let tablesQuery = supabaseAdmin
         .from('tables')
-        .select('id, club_id, name, status, game_type, game_variant, small_blind, big_blind, min_buyin, max_buyin, min_buy_in, max_buy_in, current_players, max_seats, max_players, settings, created_at')
+        .select('id, club_id, name, status, game_type, game_variant, small_blind, big_blind, min_buyin, max_buyin, min_buy_in, max_buy_in, current_players, max_players, settings, created_at')
         .in('club_id', clubIds)
         .order('created_at', { ascending: false })
         .limit(100);
@@ -184,17 +184,15 @@ export default async function handler(req, res) {
         .insert({
           club_id: resolvedClubId,
           name: name.trim(),
-          game_type: variant || game_type || 'nlhe',
+          variant: variant || game_type || 'nlhe',
           buy_in: resolvedBuyIn,
           starting_chips: resolvedStartChips,
           max_players: resolvedMaxPlayers,
-          blind_levels: Math.max(1, parseInt(blind_levels) || 15),
-          blind_duration: Math.max(1, parseInt(blind_duration) || 10),
           late_reg_levels: Math.max(0, parseInt(lateRegLevels || late_reg_levels) || 6),
-          start_time: scheduledStart || start_time || new Date(Date.now() + 3600000).toISOString(),
+          scheduled_start: scheduledStart || start_time || new Date(Date.now() + 3600000).toISOString(),
           guaranteed_prize: resolvedGuarantee,
-          rebuy_allowed: rebuyEnabled ?? rebuy_allowed ?? true,
-          addon_allowed: addonEnabled ?? addon_allowed ?? false,
+          rebuy_enabled: rebuyEnabled ?? rebuy_allowed ?? true,
+          addon_enabled: addonEnabled ?? addon_allowed ?? false,
           status: 'scheduled',
           prize_pool: 0,
           registered_count: 0,
@@ -243,12 +241,12 @@ export default async function handler(req, res) {
           small_blind: sb,
           big_blind: bb,
           ante: parseInt(ante) || 0,
-          max_seats: parseInt(maxPlayers || max_seats) || 9,
+          max_players: parseInt(maxPlayers || max_seats) || 9,
           min_buyin: parseInt(minBuyIn || min_buyin) || sb * 40,
           max_buyin: parseInt(maxBuyIn || max_buyin) || bb * 200,
-          action_time: parseInt(actionTime) || 30,
+          action_time_seconds: parseInt(actionTime) || 30,
           rake_percent: parseFloat(rakePercent) || 5,
-          rake_cap: parseFloat(rakeCap) || 3,
+          rake_cap_bb: parseFloat(rakeCap) || 3,
           status: 'waiting',
           current_players: 0,
           created_by: auth.user.id,
