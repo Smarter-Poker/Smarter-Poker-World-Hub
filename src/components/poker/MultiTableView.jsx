@@ -968,14 +968,19 @@ export default function MultiTableView({ supabase, userId, initialTable, onExit 
         })}
       </div>
 
-      {/* ── TableChatHUD bound to active table (GAP 6) ── */}
-      {activeTable && (
-        <TableChatHUD
-          tableId={activeTable.tableId}
-          userId={userId}
-          isMuted={false}
-        />
-      )}
+      {/* ── TableChatHUDs mapped for all tables to keep WebSockets alive (GAP 6) ── */}
+      {tables.map(t => (
+        <div 
+          key={`chat-${t.tableId}`} 
+          style={{ display: activeTable?.tableId === t.tableId ? 'block' : 'none' }}
+        >
+          <TableChatHUD
+            tableId={t.tableId}
+            userId={userId}
+            isMuted={false}
+          />
+        </div>
+      ))}
 
       {/* ── Close Confirmation Modal (GAP 4) ── */}
       {closeConfirm && (

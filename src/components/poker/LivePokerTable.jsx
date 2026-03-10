@@ -3776,6 +3776,22 @@ function LivePokerTable({
   const [preAction, setPreAction] = useState(null); // 'fold' | 'check_fold' | 'check' | 'call_any' | null
   const [showLastHand, setShowLastHand] = useState(false);
 
+  // Toggle States
+  const [sitOutNextBB, setSitOutNextBB] = useState(false);
+  const [straddleOn, setStraddleOn] = useState(false);
+  const handleToggleStraddle = useCallback(() => {
+    const newVal = !straddleOn;
+    setStraddleOn(newVal);
+    send(newVal ? 'declare_straddle' : 'cancel_straddle', {});
+  }, [send, straddleOn]);
+
+  const [autoTopUpOn, setAutoTopUpOn] = useState(false);
+  const handleToggleAutoTopUp = useCallback(() => {
+    const newVal = !autoTopUpOn;
+    setAutoTopUpOn(newVal);
+    send('set_auto_topup', { enabled: newVal });
+  }, [send, autoTopUpOn]);
+
   // ═══ WAITLIST STATE ═══
   const [waitlistState, setWaitlistState] = useState({ onWaitlist: false, position: null, loading: false });
   const tableFull = !isSitting && tableState?.seats?.length > 0 && tableState.seats.every(s => s.player?.id != null && s.status !== 'empty');
@@ -4056,7 +4072,6 @@ function LivePokerTable({
   }, [isSittingOut, tableState?.game?.phase, send]);
   const handleSitOut = useCallback(() => send('sit_out', {}), [send]);
   const handleSitIn = useCallback(() => { setSitOutNextBB(false); send('sit_in', {}); }, [send]);
-  const [sitOutNextBB, setSitOutNextBB] = useState(false);
 
   // Sit Out Next BB: after each hand, check if we should sit out
   useEffect(() => {
@@ -4065,18 +4080,6 @@ function LivePokerTable({
     send('sit_out', {});
     setSitOutNextBB(false);
   }, [result, sitOutNextBB, isSittingOut, send]);
-  const [straddleOn, setStraddleOn] = useState(false);
-  const handleToggleStraddle = useCallback(() => {
-    const newVal = !straddleOn;
-    setStraddleOn(newVal);
-    send(newVal ? 'declare_straddle' : 'cancel_straddle', {});
-  }, [send, straddleOn]);
-  const [autoTopUpOn, setAutoTopUpOn] = useState(false);
-  const handleToggleAutoTopUp = useCallback(() => {
-    const newVal = !autoTopUpOn;
-    setAutoTopUpOn(newVal);
-    send('set_auto_topup', { enabled: newVal });
-  }, [send, autoTopUpOn]);
 
   // ═══ WAVE A: BB DISPLAY TOGGLE ═══
   const [showStackInBB, setShowStackInBB] = useState(() => {
