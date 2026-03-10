@@ -93,6 +93,7 @@ function TableTabBar({
   slots,
   activeIndex,
   actionNeeded,
+  connectionStatus,
   onSwitch,
   onClose,
   onEmpty,
@@ -151,6 +152,7 @@ function TableTabBar({
 
         const isActive = idx === activeIndex;
         const needsAction = actionNeeded.has(slot.tableId);
+        const isDisconnected = connectionStatus?.[slot.tableId] === 'disconnected';
         const showPulse = needsAction && !isActive;
 
         return (
@@ -169,9 +171,11 @@ function TableTabBar({
               background: isActive ? T.tabActive : T.tabInactive,
               border: isActive
                 ? `2px solid ${T.borderActive}`
-                : showPulse
-                  ? `2px solid ${T.gold}`
-                  : `1px solid ${T.borderInactive}`,
+                : isDisconnected
+                  ? `2px solid ${T.danger}`
+                  : showPulse
+                    ? `2px solid ${T.gold}`
+                    : `1px solid ${T.borderInactive}`,
               borderRadius: 10,
               cursor: isActive ? 'default' : 'pointer',
               transition: showPulse ? 'none' : 'all 0.2s',
@@ -196,9 +200,9 @@ function TableTabBar({
               }} />
             )}
 
-            {/* Variant label */}
+            {/* Variant label + Disconnect Warning */}
             <span style={{
-              color: isActive ? T.textBright : T.textDim,
+              color: isDisconnected ? T.danger : (isActive ? T.textBright : T.textDim),
               fontSize: 12,
               fontWeight: isActive ? 700 : 600,
               whiteSpace: 'nowrap',
@@ -208,7 +212,7 @@ function TableTabBar({
               flex: 1,
               textAlign: 'center',
             }}>
-              {slot.variant}{slot.stakes ? ` ${slot.stakes}` : ''}
+              {isDisconnected ? '⚠️ Offline' : `${slot.variant}${slot.stakes ? ` ${slot.stakes}` : ''}`}
             </span>
 
             {/* Close "×" button */}
@@ -321,7 +325,7 @@ function CloseConfirmation({ tableName, onConfirm, onCancel }) {
 // ═══════════════════════════════════════════════════════════════════════
 // Single Table Slot Wrapper (with GAP 1 JS-based fixed-element offset)
 // ═══════════════════════════════════════════════════════════════════════
-function TableSlot({ supabase, tableId, userId, displayName, avatarUrl, isVisible, onActionNeeded, onActionCleared, onLeave }) {
+function TableSlot({ supabase, tableId, userId, displayName, avatarUrl, isVisible, onActionNeeded, onActionCleared, onLeave, onConnectionStatus, onTableMove }) {
   const slotRef = useRef(null);
 
   // GAP 1 FIX: React inline styles can't be targeted by CSS attribute selectors.
@@ -379,9 +383,12 @@ function TableSlot({ supabase, tableId, userId, displayName, avatarUrl, isVisibl
         userId={userId}
         displayName={displayName}
         avatarUrl={avatarUrl}
+        isActive={isVisible} // Battery Saver Mode (throttles to 1fps in LivePokerTable when false)
         onActionRequired={onActionNeeded}
         onActionCleared={onActionCleared}
         onLeave={() => onLeave(tableId)}
+        onConnectionStatus={onConnectionStatus}
+        onTableMove={onTableMove}
       />
     </div>
   );
@@ -463,9 +470,10 @@ export default function MultiTableView({ supabase, userId, initialTable, onExit 
 
   const {
     slots, tables, activeIndex, activeTable, viewMode,
-    actionNeeded, bbjWin, setBbjWin, canOpenMore,
+    actionNeeded, connectionStatus, bbjWin, setBbjWin, canOpenMore,
     openTable, closeTable, switchTo, toggleView,
     markActionNeeded, clearActionNeeded, clearSession,
+    updateTableId, updateConnectionStatus,
     pendingSlotIndex, setPendingSlotIndex, getNextEmptySlot,
   } = useMultiTable({ supabase, userId });
 
@@ -672,6 +680,7 @@ export default function MultiTableView({ supabase, userId, initialTable, onExit 
           slots={slots}
           activeIndex={activeIndex}
           actionNeeded={actionNeeded}
+          connectionStatus={connectionStatus}
           onSwitch={handleSwitch}
           onClose={handleCloseRequest}
           onEmpty={handleEmptySlot}
@@ -702,6 +711,7 @@ export default function MultiTableView({ supabase, userId, initialTable, onExit 
         slots={slots}
         activeIndex={activeIndex}
         actionNeeded={actionNeeded}
+        connectionStatus={connectionStatus}
         onSwitch={handleSwitch}
         onClose={handleCloseRequest}
         onEmpty={handleEmptySlot}
@@ -782,6 +792,8 @@ export default function MultiTableView({ supabase, userId, initialTable, onExit 
                 onActionNeeded={markActionNeeded}
                 onActionCleared={clearActionNeeded}
                 onLeave={handleCloseRequest}
+                onConnectionStatus={(status) => updateConnectionStatus(slot.tableId, status)}
+                onTableMove={(oldId, newId) => updateTableId(oldId, newId)}
               />
             </div>
           );

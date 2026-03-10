@@ -72,6 +72,9 @@ export function useMultiTable({ supabase, userId }) {
   // Track BBJ wins
   const [bbjWin, setBbjWin] = useState(null);
 
+  // Track WebSocket connection status per slot (for offline indicators)
+  const [connectionStatus, setConnectionStatus] = useState({});
+
   // Which "+" slot was tapped — lobby uses this to know where to put the next table
   const [pendingSlotIndex, setPendingSlotIndex] = useState(initialState.pendingSlotIndex);
 
@@ -80,6 +83,9 @@ export function useMultiTable({ supabase, userId }) {
 
   // Auto-switch timer ref
   const autoSwitchRef = useRef(null);
+  
+  // Audio debounce ref (Anti-Spam 500ms lock)
+  const lastAudioPlayRef = useRef(0);
 
   // CRITICAL: Ref to track latest slots/activeIndex for closures that run asynchronously
   // (avoids stale closure bug in closeTable/markActionNeeded)
@@ -169,6 +175,12 @@ export function useMultiTable({ supabase, userId }) {
       next.delete(tableId);
       return next;
     });
+    // Clear connection status for this table
+    setConnectionStatus(prev => {
+      const next = { ...prev };
+      delete next[tableId];
+      return next;
+    });
     // Move active to nearest filled slot — use slotsRef to get the LATEST state
     setActiveIndex(prev => {
       const currentSlots = slotsRef.current;
@@ -197,13 +209,17 @@ export function useMultiTable({ supabase, userId }) {
       return next;
     });
 
-    // Play notification sound
+    // Play notification sound (debounced 500ms to prevent spam overlap if 4 tables ping instantly)
     try {
-      if (!notifSoundRef.current) {
-        notifSoundRef.current = new Audio('/sounds/action-needed.mp3');
-        notifSoundRef.current.volume = 0.3;
+      const now = Date.now();
+      if (now - lastAudioPlayRef.current > 500) {
+        lastAudioPlayRef.current = now;
+        if (!notifSoundRef.current) {
+          notifSoundRef.current = new Audio('/sounds/action-needed.mp3');
+          notifSoundRef.current.volume = 0.3;
+        }
+        notifSoundRef.current.play().catch(() => {});
       }
-      notifSoundRef.current.play().catch(() => {});
     } catch (_) { /* no sound available */ }
 
     // Auto-switch: if active table has no action, switch to this one after 3s
@@ -265,6 +281,48 @@ export function useMultiTable({ supabase, userId }) {
     setViewMode(prev => prev === 'single' ? 'tile' : 'single');
   }, []);
 
+  /**
+   * Track WebSocket connection status (for offline indicator)
+   */
+  const updateConnectionStatus = useCallback((tableId, status) => {
+    setConnectionStatus(prev => {
+      if (prev[tableId] === status) return prev;
+      return { ...prev, [tableId]: status };
+    });
+  }, []);
+
+  /**
+   * Hot-swap table ID (for MTT auto-moves when a player is balanced)
+   */
+  const updateTableId = useCallback((oldId, newId) => {
+    if (oldId === newId) return;
+    setSlots(prev => {
+      const idx = prev.findIndex(s => s?.tableId === oldId);
+      if (idx < 0) return prev;
+      const next = [...prev];
+      next[idx] = { ...next[idx], tableId: newId };
+      return next;
+    });
+    
+    // Migrate action-needed flag
+    setActionNeeded(prev => {
+      if (!prev.has(oldId)) return prev;
+      const next = new Set(prev);
+      next.delete(oldId);
+      next.add(newId);
+      return next;
+    });
+
+    // Migrate connection status
+    setConnectionStatus(prev => {
+      if (prev[oldId] === undefined) return prev;
+      const next = { ...prev };
+      next[newId] = next[oldId];
+      delete next[oldId];
+      return next;
+    });
+  }, []);
+
   // Cleanup auto-switch on unmount
   useEffect(() => {
     return () => {
@@ -279,6 +337,7 @@ export function useMultiTable({ supabase, userId }) {
     activeTable,
     viewMode,
     actionNeeded,
+    connectionStatus,
     bbjWin,
     setBbjWin,
     canOpenMore,
@@ -288,8 +347,10 @@ export function useMultiTable({ supabase, userId }) {
     getNextEmptySlot,
     openTable,
     closeTable,
+    updateTableId,
     switchTo,
     toggleView,
+    updateConnectionStatus,
     markActionNeeded,
     clearActionNeeded,
     clearSession,
