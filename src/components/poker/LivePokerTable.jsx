@@ -3984,6 +3984,7 @@ function LivePokerTable({
     setShowStackInBB(prev => {
       const next = !prev;
       if (typeof window !== 'undefined') localStorage.setItem('poker-stack-bb', String(next));
+      try { eventBus.emit('DATA_MUTATED', 'bb_display_toggled'); } catch (_) {}
       return next;
     });
   }, []);
@@ -4003,6 +4004,7 @@ function LivePokerTable({
       const modes = ['dealt', 'rank', 'suit'];
       const next = modes[(modes.indexOf(prev) + 1) % modes.length];
       if (typeof window !== 'undefined') localStorage.setItem('poker-card-sort', next);
+      try { eventBus.emit('DATA_MUTATED', 'card_sort_changed'); } catch (_) {}
       return next;
     });
   }, []);
@@ -4016,6 +4018,7 @@ function LivePokerTable({
     setHapticEnabled(prev => {
       const next = !prev;
       if (typeof window !== 'undefined') localStorage.setItem('poker-haptic', String(next));
+      try { eventBus.emit('DATA_MUTATED', 'haptic_toggled'); } catch (_) {}
       return next;
     });
   }, []);

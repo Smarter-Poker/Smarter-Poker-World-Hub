@@ -50,7 +50,7 @@ const SUIT_SYMBOLS = { h: '♥', d: '♦', c: '♣', s: '♠' };
 const SUIT_COLORS = { h: '#E74C3C', d: '#3498DB', c: '#27AE60', s: '#2C3E50' };
 
 // ─── Quick Reactions (local state with emoji reactions) ─────────────────
-const REACTIONS = ['🔥', '🤮', '😤', '🤯', '👏'];
+const REACTIONS = ['FIRE', 'BAD', 'TILT', 'SHOCK', 'GG'];
 
 function HandReactionBar({ handId }) {
     const storageKey = `hh-reactions-${handId}`;
@@ -569,7 +569,7 @@ export default function HandHistories() {
                             <NotificationBell userId={user?.id} />
                         </div>
                         <button onClick={() => setShowWallet(prev => !prev)} style={{ background: showWallet ? FB.primary : FB.cardBg, border: `1px solid ${showWallet ? FB.primary : FB.border}`, color: showWallet ? '#fff' : FB.textSecondary, padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>
-                            💰 {showWallet ? 'Hide' : 'Wallet'}
+                            {showWallet ? 'Hide Wallet' : 'Wallet'}
                         </button>
                     </div>
 
@@ -643,7 +643,7 @@ export default function HandHistories() {
                                 onClick={exportCSV}
                                 style={{ padding: '6px 14px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${FB.border}`, background: FB.cardBg, color: FB.textPrimary }}
                             >
-                                📥 Export CSV
+                                Export CSV
                             </button>
                         </div>
                     )}
@@ -835,7 +835,7 @@ export default function HandHistories() {
                                             return FB.textSecondary;
                                         };
 
-                                        const streetLabel = street === 'preflop' ? '🃏 Preflop'
+                                        const streetLabel = street === 'preflop' ? 'Preflop'
                                             : street === 'flop' ? ' Flop' : street === 'turn' ? ' Turn' : ' River';
 
                                         return (
