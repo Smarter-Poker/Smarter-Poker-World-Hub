@@ -40,6 +40,9 @@ export default async function handler(req, res) {
     const lockCheck = await checkSettlementLock(supabaseAdmin, clubId);
     if (lockCheck.locked) return sendLockedResponse(res, lockCheck);
 
+    // Rate limit
+    if (!applyRateLimit(req, res, 'club-arena/marketplace-purchase')) return;
+
     try {
         // Get member
         const { data: member, error: memErr } = await supabaseAdmin

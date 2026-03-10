@@ -55,6 +55,9 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: `action must be one of: ${validActions.join(', ')}` });
   }
 
+  // Rate limit
+  if (!applyRateLimit(req, res, 'club-arena/agent-credit')) return;
+
   // Settlement lock check — block during Monday 4:00-4:10 AM CST
   const lockCheck = await checkSettlementLock(supabaseAdmin, clubId);
   if (lockCheck.locked) return sendLockedResponse(res, lockCheck);

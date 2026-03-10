@@ -90,19 +90,19 @@ export default function TableChatHUD({ tableId, userId, isMuted = false }) {
         setMessages(prev => [...prev.slice(-49), optMsg]);
         haptic('tap');
 
-        // Note: Real insertion happens via Supabase RPC or direct insert
-        // The backend handles rate limiting and mute checks 
-        const { error } = await supabase
-            .from('table_chat')
-            .insert({
-                table_id: tableId,
-                sender_id: userId,
-                message: text,
-                message_type: 'player'
-            });
+        // Route through hardened API (sanitization + rate limiting + mute enforcement)
+        const token = (typeof localStorage !== 'undefined' && (() => {
+            try { const a = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}'); return a?.access_token; } catch { return null; }
+        })()) || null;
 
-        if (error) {
-            console.error('Failed to send message:', error);
+        const resp = await fetch('/api/club-arena/table-chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+            body: JSON.stringify({ action: 'send', tableId, message: text }),
+        });
+
+        if (!resp.ok) {
+            console.error('Failed to send message:', resp.status);
             // Revert optimistic insert on failure
             setMessages(prev => prev.filter(m => m.id !== optMsg.id));
         }

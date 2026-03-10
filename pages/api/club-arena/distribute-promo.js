@@ -58,6 +58,9 @@ export default async function handler(req, res) {
 
   if (!member) return res.status(403).json({ error: 'Not a member of this club' });
 
+  // Rate limit
+  if (!applyRateLimit(req, res, 'club-arena/distribute-promo')) return;
+
   try {
     switch (action) {
       // ═══════════════════════════════════════════════════════
