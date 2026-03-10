@@ -61,7 +61,7 @@ export default async function handler(req, res) {
         // Find club by 5-digit club_id
         const { data: club, error: findErr } = await supabaseAdmin
             .from('clubs')
-            .select('id, member_count')
+            .select('id, member_count, requires_approval, is_public')
             .eq('club_id', codeNum)
             .maybeSingle();
 
@@ -144,19 +144,43 @@ export default async function handler(req, res) {
         }
 
         // Insert membership
+        const memberStatus = club.requires_approval ? 'pending' : 'active';
         const { error: joinErr } = await supabaseAdmin
             .from('club_members')
             .insert({
                 club_id: club.id,
                 user_id: user.id,
                 role: 'player',
-                status: 'active',
+                status: memberStatus,
                 chip_balance: 0,
                 agent_id: resolvedAgentUserId,
                 joined_at: new Date().toISOString(),
             });
 
         if (joinErr) throw joinErr;
+
+        // If pending, notify owner and return early
+        if (memberStatus === 'pending') {
+            // Notify club owner
+            try {
+                const { notifyClubAdmins } = require('../../../src/lib/club-arena/notify');
+                const { data: profile } = await supabaseAdmin.from('profiles').select('display_name, username').eq('id', user.id).maybeSingle();
+                const playerName = profile?.display_name || profile?.username || 'A new player';
+                await notifyClubAdmins(supabaseAdmin, club.id, {
+                    type: 'join_request',
+                    title: '🙋 New Join Request',
+                    message: `${playerName} is requesting to join your club.`,
+                    data: { userId: user.id, clubId: club.id },
+                });
+            } catch (_) { /* non-fatal */ }
+
+            return res.status(200).json({
+                success: true,
+                status: 'pending',
+                message: 'Your request has been submitted. The club owner will review it.',
+                club: { id: club.id, club_id: codeNum },
+            });
+        }
 
         // Atomically increment agent's player count
         if (resolvedAgentUserId) {

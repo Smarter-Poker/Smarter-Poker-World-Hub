@@ -154,6 +154,7 @@ function JoinClubModal({ onClose, onJoined, user, initialAgentCode }) {
     const [agentPlayerNumber, setAgentPlayerNumber] = useState(initialAgentCode || '');
     const [isJoining, setIsJoining] = useState(false);
     const [error, setError] = useState('');
+    const [pendingMessage, setPendingMessage] = useState('');
 
     const handleJoin = async () => {
         if (!clubCode.trim()) {
@@ -167,9 +168,15 @@ function JoinClubModal({ onClose, onJoined, user, initialAgentCode }) {
                 clubCode: clubCode.trim(),
                 ...(agentPlayerNumber.trim() ? { agentPlayerNumber: agentPlayerNumber.trim() } : {}),
             });
-            busEmit.dataMutated('club_joined');
-            onJoined(result.club);
-            onClose();
+            if (result.status === 'pending') {
+                setError('');
+                setIsJoining(false);
+                setPendingMessage(result.message || 'Your request has been submitted. The club owner will review it.');
+            } else {
+                busEmit.dataMutated('club_joined');
+                onJoined(result.club);
+                onClose();
+            }
         } catch (err) {
             setError(err.message || 'Failed to join club');
         } finally {
@@ -209,9 +216,16 @@ function JoinClubModal({ onClose, onJoined, user, initialAgentCode }) {
                     </div>
                 </div>
                 {error && <div style={{ color: '#ff4d4d', marginBottom: '16px', fontSize: '13px' }}>{error}</div>}
-                <button onClick={handleJoin} disabled={isJoining} style={actionBtnPrimary}>
-                    {isJoining ? 'Joining...' : 'Join Club'}
-                </button>
+                {pendingMessage ? (
+                    <div style={{ textAlign: 'center' }}>
+                        <div style={{ color: '#31A24C', marginBottom: '16px', fontSize: '14px', fontWeight: 600 }}>✅ {pendingMessage}</div>
+                        <button onClick={onClose} style={actionBtnPrimary}>OK</button>
+                    </div>
+                ) : (
+                    <button onClick={handleJoin} disabled={isJoining} style={actionBtnPrimary}>
+                        {isJoining ? 'Joining...' : 'Join Club'}
+                    </button>
+                )}
             </div>
         </div>
     );
@@ -957,10 +971,14 @@ export default function ClubArenaPage() {
                                         onClick={async () => {
                                             if (!user) { showToast('Please sign in first'); return; }
                                             try {
-                                                await apiCall('/api/club-arena/join-club', { clubCode: String(pc.clubId) });
-                                                busEmit.dataMutated('club_joined');
-                                                showToast(`Joined ${pc.name}!`);
-                                                loadUserData();
+                                                const result = await apiCall('/api/club-arena/join-club', { clubCode: String(pc.clubId) });
+                                                if (result.status === 'pending') {
+                                                    showToast(`Request sent to ${pc.name}! Waiting for owner approval.`);
+                                                } else {
+                                                    busEmit.dataMutated('club_joined');
+                                                    showToast(`Joined ${pc.name}!`);
+                                                    loadUserData();
+                                                }
                                             } catch (e) {
                                                 if (e.message?.includes('Already')) {
                                                     router.push(`/hub/club-arena/lobby?club=${pc.clubId}`);

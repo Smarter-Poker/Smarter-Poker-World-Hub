@@ -74,6 +74,8 @@ export default function Cashier() {
     const [showBuyInModal, setShowBuyInModal] = useState(false);
     const [showCashOutModal, setShowCashOutModal] = useState(false);
     const [buyInAmount, setBuyInAmount] = useState('');
+    const [buyInConfirmed, setBuyInConfirmed] = useState(false);
+    const [buyInPendingAmount, setBuyInPendingAmount] = useState(null);
     const [cashOutAmount, setCashOutAmount] = useState('');
     const [processing, setProcessing] = useState(false);
     const [showLeaveModal, setShowLeaveModal] = useState(false);
@@ -373,13 +375,12 @@ export default function Cashier() {
         }
 
         // P3 ENH-11: High-value confirmation gate (>10,000 chips)
-        if (amount >= 10000) {
-            const confirmed = window.prompt(`⚠️ Large transaction: ${amount.toLocaleString()} chips for ${diamondCost} 💎.\nType CONFIRM to proceed:`);
-            if (confirmed?.trim().toUpperCase() !== 'CONFIRM') {
-                showToast('Transaction cancelled', 'error');
-                return;
-            }
+        if (amount >= 10000 && !buyInConfirmed) {
+            setBuyInPendingAmount(amount);
+            return; // Show confirmation UI instead of blocking prompt
         }
+        setBuyInConfirmed(false);
+        setBuyInPendingAmount(null);
 
         isProcessingRef.current = true;
         setProcessing(true);
@@ -1394,16 +1395,38 @@ export default function Cashier() {
                             )}
                         </div>
                         <div style={S.modalFooter}>
-                            <button
-                                style={{
-                                    ...S.modalSubmit,
-                                    opacity: processing || !buyInAmount || getDiamondCost(buyInAmount) > diamondBalance ? 0.5 : 1
-                                }}
-                                onClick={handleBuyIn}
-                                disabled={processing || !buyInAmount || getDiamondCost(buyInAmount) > diamondBalance}
-                            >
-                                {processing ? 'Processing...' : `Buy ${parseInt(buyInAmount || 0).toLocaleString()} Chips`}
-                            </button>
+                            {buyInPendingAmount ? (
+                                <div style={{ textAlign: 'center' }}>
+                                    <div style={{ color: '#FFA726', fontSize: 13, fontWeight: 700, marginBottom: 10 }}>
+                                        ⚠️ Large transaction: {buyInPendingAmount.toLocaleString()} chips for {getDiamondCost(buyInPendingAmount)} 💎
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 10 }}>
+                                        <button
+                                            style={{ ...S.modalSubmit, flex: 1, background: '#3E4042' }}
+                                            onClick={() => { setBuyInPendingAmount(null); setBuyInConfirmed(false); }}
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            style={{ ...S.modalSubmit, flex: 1 }}
+                                            onClick={() => { setBuyInConfirmed(true); setBuyInPendingAmount(null); setTimeout(() => handleBuyIn(), 50); }}
+                                        >
+                                            Confirm Purchase
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <button
+                                    style={{
+                                        ...S.modalSubmit,
+                                        opacity: processing || !buyInAmount || getDiamondCost(buyInAmount) > diamondBalance ? 0.5 : 1
+                                    }}
+                                    onClick={handleBuyIn}
+                                    disabled={processing || !buyInAmount || getDiamondCost(buyInAmount) > diamondBalance}
+                                >
+                                    {processing ? 'Processing...' : `Buy ${parseInt(buyInAmount || 0).toLocaleString()} Chips`}
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
