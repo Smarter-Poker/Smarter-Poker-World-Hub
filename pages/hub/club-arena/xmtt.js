@@ -9,6 +9,7 @@ import dynamic from 'next/dynamic';
 const UniversalHeader = dynamic(() => import('../../../src/components/ui/UniversalHeader'), { ssr: false });
 const GameCard = dynamic(() => import('../../../src/components/club-arena/GameCard'), { ssr: false });
 const ClubArenaBottomNav = dynamic(() => import('../../../src/components/club-arena/ClubArenaBottomNav'), { ssr: false });
+import SEOHead from '../../../src/components/seo/SEOHead';
 
 const FB = {
     bg: '#18191A', card: '#242526', text: '#E4E6EB', dim: '#B0B3B8',
@@ -73,6 +74,7 @@ export default function XMTTHub() {
 
     return (
         <div style={{ background: FB.bg, minHeight: '100vh', color: FB.text }}>
+            <SEOHead title="XMTT Hub — Cross-Club Tournaments" description="Browse and register for cross-club tournaments." canonical="/hub/club-arena/xmtt" noindex />
             <UniversalHeader pageDepth={2} />
 
             {/* Page Header */}
