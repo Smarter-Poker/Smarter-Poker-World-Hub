@@ -26,7 +26,7 @@ export default async function handler(req, res) {
         // ═══════════════════════════════════════════════════════
         const { data: scheduledTournaments } = await supabase
             .from('club_tournaments')
-            .select('id, name, status, club_id, type, variant, buy_in, starting_chips, scheduled_start, registered_count, max_players, settings')
+            .select('id, name, status, club_id, type, variant, buy_in, starting_chips, scheduled_start, registered_count, max_players, settings, reminder_sent')
             .in('status', ['scheduled', 'registering'])
             .not('scheduled_start', 'is', null)
             .lte('scheduled_start', now.toISOString())
@@ -106,7 +106,7 @@ export default async function handler(req, res) {
 
         const { data: upcomingTournaments } = await supabase
             .from('club_tournaments')
-            .select('id, name, club_id, scheduled_start, settings')
+            .select('id, name, club_id, scheduled_start, settings, reminder_sent')
             .in('status', ['scheduled', 'registering'])
             .not('scheduled_start', 'is', null)
             .gte('scheduled_start', reminderStart.toISOString())
@@ -114,7 +114,7 @@ export default async function handler(req, res) {
             .limit(20);
 
         for (const tourn of (upcomingTournaments || [])) {
-            if (tourn.settings?.reminder_sent) continue;
+            if (tourn.reminder_sent) continue;
 
             try {
                 const { data: regs } = await supabase
@@ -137,10 +137,9 @@ export default async function handler(req, res) {
                 }
 
                 // Mark reminder as sent (deduplication)
-                const updSettings = { ...(tourn.settings || {}), reminder_sent: true };
                 await supabase
                     .from('club_tournaments')
-                    .update({ settings: updSettings })
+                    .update({ reminder_sent: true })
                     .eq('id', tourn.id);
 
                 console.log(`[TournCron] Sent ${regs?.length || 0} reminders for ${tourn.name}`);

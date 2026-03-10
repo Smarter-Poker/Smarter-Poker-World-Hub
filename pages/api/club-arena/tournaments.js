@@ -729,8 +729,8 @@ export default async function handler(req, res) {
         if (tourn.type !== 'spin') return res.status(400).json({ success: false, error: 'Not a Spin & Go tournament' });
 
         // If already drawn, return the existing multiplier
-        if (tourn.settings?.spin_multiplier) {
-          return res.json({ success: true, multiplier: tourn.settings.spin_multiplier, alreadyDrawn: true });
+        if (tourn.spin_multiplier) {
+          return res.json({ success: true, multiplier: tourn.spin_multiplier, alreadyDrawn: true });
         }
 
         // Weighted probability table (standard Spin & Go distribution)
@@ -759,10 +759,9 @@ export default async function handler(req, res) {
         const spinPrizePool = basePrize * drawnMultiplier;
 
         // Persist the drawn multiplier and prize pool
-        const newSettings = { ...(tourn.settings || {}), spin_multiplier: drawnMultiplier };
         await supabaseAdmin
           .from('club_tournaments')
-          .update({ settings: newSettings, prize_pool: spinPrizePool })
+          .update({ spin_multiplier: drawnMultiplier, prize_pool: spinPrizePool })
           .eq('id', tournamentId);
 
         console.log(`[Tournament] Spin & Go multiplier drawn: ${drawnMultiplier}x for ${tournamentId} (prize: ${spinPrizePool})`);
