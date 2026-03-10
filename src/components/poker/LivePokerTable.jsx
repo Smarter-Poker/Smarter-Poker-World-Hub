@@ -776,7 +776,7 @@ function CardImg({ card, width = 48, faceDown = false, style = {}, delay = 0, ca
 
 function PlayerSeat({
   seat, position, isHero, isCurrentActor, timerState, onClick, onNote, noteColor, noteType,
-  numHoleCards = 2, isWinner = false, equity = null, gamePosition = null,
+  numHoleCards = 2, isWinner = false, equity = null, gamePosition = null, board = [],
 }) {
   const { status, player, stack, holeCards, isFolded, invested } = seat;
   const isEmpty = status === 'empty' || status === 'reserved';

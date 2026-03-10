@@ -348,6 +348,8 @@ export default function ClubArenaPage() {
 
     // Terms of Service — null=loading, false=not accepted, true=accepted
     const [tosAccepted, setTosAccepted] = useState(null);
+    const [tosAgreed, setTosAgreed] = useState(false);
+    const [tosSubmitting, setTosSubmitting] = useState(false);
 
     // Auto-open join modal if ?agent= URL param present (agent's player_number)
     useEffect(() => {
@@ -550,21 +552,18 @@ export default function ClubArenaPage() {
     const [tosError, setTosError] = useState(false);
 
     const handleAcceptTOS = async () => {
+        if (!tosAgreed) return;
         setTosError(false);
+        setTosSubmitting(true);
         try {
-            const token = getAccessToken();
-            if (!token) { setTosError(true); return; }
-            const res = await fetch('/api/club-arena/accept-tos', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            });
-            if (!res.ok) { setTosError(true); return; }
-            const d = await res.json();
+            const d = await apiCall('/api/club-arena/accept-tos', {});
             if (d.success) setTosAccepted(true);
             else setTosError(true);
         } catch (e) {
             console.error('[TOS] Accept failed:', e);
             setTosError(true);
+        } finally {
+            setTosSubmitting(false);
         }
     };
 
@@ -1128,16 +1127,51 @@ export default function ClubArenaPage() {
                                 <p style={{ marginBottom: 16 }}><strong style={{ color: '#fff' }}>7. Modifications</strong> — Smarter Poker reserves the right to modify these terms at any time. Continued use of Club Arena constitutes acceptance of updated terms.</p>
                             </div>
                             <div style={{ padding: '16px 24px 24px', textAlign: 'center' }}>
-                                <button
-                                    onClick={handleAcceptTOS}
+                                {/* Checkbox to agree */}
+                                <label
                                     style={{
-                                        width: '100%', padding: '14px 0', fontSize: 16, fontWeight: 800,
-                                        background: 'linear-gradient(135deg, #2374E1, #1a5bb8)',
-                                        color: '#fff', border: 'none', borderRadius: 10, cursor: 'pointer',
-                                        boxShadow: '0 4px 15px rgba(35,116,225,0.4)',
+                                        display: 'flex', alignItems: 'center', gap: 10,
+                                        cursor: 'pointer', marginBottom: 16, padding: '12px 14px',
+                                        background: tosAgreed ? 'rgba(35,116,225,0.1)' : 'rgba(255,255,255,0.04)',
+                                        border: tosAgreed ? '1px solid rgba(35,116,225,0.4)' : '1px solid rgba(255,255,255,0.1)',
+                                        borderRadius: 10, transition: 'all 0.2s ease',
                                     }}
                                 >
-                                    I Agree — Enter Club Arena
+                                    <div
+                                        onClick={(e) => { e.preventDefault(); setTosAgreed(prev => !prev); }}
+                                        style={{
+                                            width: 22, height: 22, borderRadius: 6, flexShrink: 0,
+                                            border: tosAgreed ? '2px solid #2374E1' : '2px solid rgba(255,255,255,0.25)',
+                                            background: tosAgreed ? '#2374E1' : 'transparent',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            transition: 'all 0.2s ease', cursor: 'pointer',
+                                        }}
+                                    >
+                                        {tosAgreed && (
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                                <polyline points="20 6 9 17 4 12" />
+                                            </svg>
+                                        )}
+                                    </div>
+                                    <span style={{ color: '#b0b0b0', fontSize: 13, textAlign: 'left', lineHeight: 1.4 }}>
+                                        I have read and agree to the Club Arena Terms of Service
+                                    </span>
+                                </label>
+                                <button
+                                    onClick={handleAcceptTOS}
+                                    disabled={!tosAgreed || tosSubmitting}
+                                    style={{
+                                        width: '100%', padding: '14px 0', fontSize: 16, fontWeight: 800,
+                                        background: tosAgreed ? 'linear-gradient(135deg, #2374E1, #1a5bb8)' : 'rgba(255,255,255,0.08)',
+                                        color: tosAgreed ? '#fff' : 'rgba(255,255,255,0.3)',
+                                        border: 'none', borderRadius: 10,
+                                        cursor: tosAgreed && !tosSubmitting ? 'pointer' : 'not-allowed',
+                                        boxShadow: tosAgreed ? '0 4px 15px rgba(35,116,225,0.4)' : 'none',
+                                        opacity: tosSubmitting ? 0.6 : 1,
+                                        transition: 'all 0.3s ease',
+                                    }}
+                                >
+                                    {tosSubmitting ? 'Saving...' : 'I Agree — Enter Club Arena'}
                                 </button>
                                 {tosError && (
                                     <p style={{ color: '#FA383E', fontSize: 12, marginTop: 8 }}>
