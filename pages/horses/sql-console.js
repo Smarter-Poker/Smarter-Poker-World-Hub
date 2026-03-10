@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { supabase } from '../../src/lib/supabase';
 import { useRouter } from 'next/router';
+import { eventBus, EventType } from '../../src/engine/EventBus';
 
 export default function OmnichannelSQLConsole() {
     const router = useRouter();
@@ -13,8 +14,10 @@ export default function OmnichannelSQLConsole() {
     const [allowDestructive, setAllowDestructive] = useState(false);
     const [result, setResult] = useState(null);
 
-    // Auth Verification
+    // Auth & Bus Verification
     useEffect(() => {
+        let authSubscription = null;
+
         const verifyAuth = async () => {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
@@ -30,6 +33,22 @@ export default function OmnichannelSQLConsole() {
             setLoadingConfig(false);
         };
         verifyAuth();
+
+        // 1. Strict Auth Listener
+        const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_OUT' || !session) router.push('/login');
+        });
+        authSubscription = authListener?.subscription;
+
+        // 2. Global EventBus Listener
+        const unsubMutated = eventBus.on(EventType.DATA_MUTATED, (event) => {
+            console.log('Global data mutation detected, console remains active.', event);
+        });
+
+        return () => {
+            authSubscription?.unsubscribe();
+            unsubMutated();
+        };
     }, [router]);
 
     const handleExecute = async () => {

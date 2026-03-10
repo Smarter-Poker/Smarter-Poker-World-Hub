@@ -43,7 +43,7 @@ export default function ForgotPasswordPage() {
         setError('');
 
         if (!isValidEmail(email)) {
-            setError('Please enter a valid email address');
+            setError('Please Enter A Valid Email Address');
             return;
         }
 

@@ -77,7 +77,7 @@ export default function LoginPage() {
 
             // Contextual Error Recovery
             if (err.message && err.message.toLowerCase().includes('invalid login credentials')) {
-                setError('Invalid password. If you forgot it, use the Magic Link below to sign in instantly without a password!');
+                setError('Invalid Password. If You Forgot It, Use The Magic Link Below To Sign In Instantly Without A Password!');
             } else {
                 setError(err.message || 'Login failed');
             }
@@ -129,7 +129,7 @@ export default function LoginPage() {
         // Safe check
         const safeEmail = email ? email.trim().toLowerCase() : '';
         if (!safeEmail) {
-            setError('Please enter your email');
+            setError('Please Enter Your Email');
             return;
         }
         setIsLoading(true);

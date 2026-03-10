@@ -58,7 +58,7 @@ export default function SignInPage() {
 
             // Contextual Error Recovery
             if (err.message && err.message.toLowerCase().includes('invalid login credentials')) {
-                setError('Invalid password. If you forgot it, use the "Sign Up" or "Continue with Google" options.');
+                setError('Invalid Password. If You Forgot It, Use The "Sign Up" Or "Continue With Google" Options.');
             } else {
                 setError(err.message || 'Invalid email or password');
             }

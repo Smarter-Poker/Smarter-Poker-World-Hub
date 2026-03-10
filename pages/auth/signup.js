@@ -383,38 +383,38 @@ export default function SignUpPage() {
 
         // Validate alias availability
         if (aliasAvailable === false) {
-            setError('Please choose a different poker alias');
+            setError('Please Choose A Different Poker Alias');
             return;
         }
 
         if (formData.pokerAlias.length < 3) {
-            setError('Poker alias must be at least 3 characters');
+            setError('Poker Alias Must Be At Least 3 Characters');
             return;
         }
 
         if (formData.pokerAlias.length > 20) {
-            setError('Poker alias must be 20 characters or less');
+            setError('Poker Alias Must Be 20 Characters Or Less');
             return;
         }
 
         if (!isValidEmail(formData.email)) {
-            setError('Please enter a valid email address');
+            setError('Please Enter A Valid Email Address');
             return;
         }
 
         if (formData.password.length < 6) {
-            setError('Password must be at least 6 characters');
+            setError('Password Must Be At Least 6 Characters');
             return;
         }
 
         if (formData.password !== formData.confirmPassword) {
-            setError('Passwords do not match');
+            setError('Passwords Do Not Match');
             return;
         }
 
         // Birthdate validation - must be 18+ (using dropdown values)
         if (!formData.birthMonth || !formData.birthDay || !formData.birthYear) {
-            setError('Please select your complete birth date');
+            setError('Please Select Your Complete Birth Date');
             return;
         }
         const birthDate = new Date(`${formData.birthYear}-${formData.birthMonth}-${formData.birthDay}`);
@@ -422,19 +422,19 @@ export default function SignUpPage() {
         const age = today.getFullYear() - birthDate.getFullYear();
         const monthDiff = today.getMonth() - birthDate.getMonth();
         if (age < 18 || (age === 18 && monthDiff < 0) || (age === 18 && monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-            setError('You must be 18 years or older to create an account');
+            setError('You Must Be 18 Years Or Older To Create An Account');
             return;
         }
 
         // 18+ Age Verification Check
         if (!ageConfirmed) {
-            setError('You must confirm you are 18+ years of age');
+            setError('You Must Confirm You Are 18+ Years Of Age');
             return;
         }
 
         const cleanPhone = formData.phone.replace(/\D/g, '');
         if (cleanPhone.length !== 10) {
-            setError('Please enter a valid 10-digit phone number');
+            setError('Please Enter A Valid 10-Digit Phone Number');
             return;
         }
 
@@ -644,7 +644,7 @@ export default function SignUpPage() {
         setError('');
 
         if (verificationCode.length < 6) {
-            setError('Please enter the complete verification code');
+            setError('Please Enter The Complete Verification Code');
             return;
         }
 
