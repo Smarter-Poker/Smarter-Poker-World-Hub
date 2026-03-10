@@ -117,7 +117,7 @@ const VC = {
   flo: { label: 'FLO', color: '#14B8A6', accent: '#14B8A6' },
   mixed: { label: 'MIX', color: '#EAB308', accent: '#EAB308' },
   ofc: { label: 'OFC', color: '#EC4899', accent: '#EC4899' },
-  pineapple: { label: '🍍', color: '#F1C40F', accent: '#F1C40F' },
+  pineapple: { label: 'PA', color: '#F1C40F', accent: '#F1C40F' },
   spin: { label: 'SPIN', color: '#F1C40F', accent: '#F1C40F' },
 };
 const DV = { label: '?', color: '#888', accent: '#555' };

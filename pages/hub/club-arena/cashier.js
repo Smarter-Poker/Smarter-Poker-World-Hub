@@ -1218,12 +1218,12 @@ export default function Cashier() {
                                     <>
                                         {filtered.slice(0, txPage * TX_PAGE_SIZE).map((tx, i) => {
                                             const txIcons = {
-                                                buyin: '➕', deposit: '➕', withdrawal: '➖', cashout: '💳',
-                                                win: '🏆', loss: '📉', rake: '🎰', send: '➡️', receive: '⬅️',
-                                                purchase: '🛍️', rakeback: '🎁', bonus: '⭐', promo: '🎨',
-                                                transfer_in: '⬅️', transfer_out: '➡️', admin_credit: '⭐',
+                                                buyin: '+', deposit: '+', withdrawal: '-', cashout: 'CO',
+                                                win: 'W', loss: 'L', rake: 'R', send: '>', receive: '<',
+                                                purchase: 'P', rakeback: 'RB', bonus: 'B', promo: 'PR',
+                                                transfer_in: '<', transfer_out: '>', admin_credit: 'AC',
                                             };
-                                            const icon = txIcons[tx.transaction_type] || '💱';
+                                            const icon = txIcons[tx.transaction_type] || 'TX';
                                             const isPos = (tx.amount || 0) >= 0;
                                             const isExpanded = expandedTx === (tx.id || i);
                                             return (

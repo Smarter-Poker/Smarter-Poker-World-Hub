@@ -4061,6 +4061,37 @@ function LivePokerTable({
     }
     return null;
   });
+
+  // ═══ WAVE B: SMART HUD TOGGLE ═══
+  const [showHUD, setShowHUD] = useState(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('poker-show-hud') === 'true';
+    return false;
+  });
+  const handleToggleHUD = useCallback(() => {
+    setShowHUD(prev => {
+      const next = !prev;
+      if (typeof window !== 'undefined') localStorage.setItem('poker-show-hud', String(next));
+      try { eventBus.emit('DATA_MUTATED', 'hud_toggled'); } catch (_) {}
+      return next;
+    });
+  }, []);
+
+  // ═══ WAVE B: 4-COLOR DECK TOGGLE ═══
+  const [fourColorDeck, setFourColorDeck] = useState(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('poker-4color-deck') === 'true';
+    return false;
+  });
+  const handleToggleFourColor = useCallback(() => {
+    setFourColorDeck(prev => {
+      const next = !prev;
+      if (typeof window !== 'undefined') localStorage.setItem('poker-4color-deck', String(next));
+      try { eventBus.emit('DATA_MUTATED', 'four_color_deck_toggled'); } catch (_) {}
+      return next;
+    });
+  }, []);
+
+  // ═══ WAVE B: TABLE LEADERBOARD TOGGLE ═══
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
   const handleChat = useCallback((message) => {
     soundRef.current?.play('chat');
     send('send_chat', { message });

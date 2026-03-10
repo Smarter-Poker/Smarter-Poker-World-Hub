@@ -29,6 +29,7 @@ import LobbyStatsBar from '../../../src/components/club-arena/LobbyStatsBar';
 import { haptic } from '../../../src/lib/club-arena/haptic';
 import { usePullToRefresh } from '../../../src/hooks/usePullToRefresh';
 import useMiniStatePoller from '../../../src/hooks/useMiniStatePoller';
+import useMiniViewSounds from '../../../src/hooks/useMiniViewSounds';
 
 // Dynamic imports — GameCard + DynamicWallet use browser APIs, must be client-only
 const GameCard = dynamic(
@@ -130,7 +131,38 @@ export default function ClubLobby() {
     usePullToRefresh({ onRefresh: () => loadClubData?.() });
 
     // ── Live Table Mini-State Poller ──
-    const { miniStates, observerRef } = useMiniStatePoller();
+    const { miniStates, observerRef, wsLatency } = useMiniStatePoller();
+
+    // ── Sound Pack ──
+    const {
+      playChipStack,
+      playCardFlip,
+      playFoldWhoosh,
+      playWinnerChime,
+    } = useMiniViewSounds();
+
+    // ── Bus Listeners for Sound Pack + Real-time Events ──
+    useEffect(() => {
+      let busListen;
+      try {
+        const mod = require('../../../src/engine/EventBus');
+        busListen = mod.busListen;
+      } catch { return; }
+      if (!busListen) return;
+
+      const unsubs = [];
+
+      // Play chip sound on pot change
+      unsubs.push(busListen('mini_state_pot_change', () => playChipStack()));
+
+      // Play card flip on phase change (new community cards dealt)
+      unsubs.push(busListen('mini_state_phase_change', () => playCardFlip()));
+
+      // Play winner chime on payout flash
+      unsubs.push(busListen('mini_state_winner_flash', () => playWinnerChime()));
+
+      return () => unsubs.forEach(u => typeof u === 'function' && u());
+    }, [playChipStack, playCardFlip, playWinnerChime]);
 
     const router = useRouter();
     const clubIdParam = router.query?.club || null;
