@@ -533,6 +533,9 @@ export default function ClubMessages() {
     const [loadingMore, setLoadingMore] = useState(false);
     const messagesContainerRef = useRef(null);
 
+    // Online presence state
+    const [onlineUsers, setOnlineUsers] = useState(new Set());
+
     // Wallet data (real-time balances)
     const walletData = useWalletData({ supabase, userId: user?.id, clubId: club?.id });
 
@@ -545,6 +548,37 @@ export default function ClubMessages() {
             }
         };
     }, []);
+
+    // ═══════════════════════════════════════════════════════════════════════
+    //  ONLINE PRESENCE TRACKER (Supabase Presence API)
+    // ═══════════════════════════════════════════════════════════════════════
+    useEffect(() => {
+        if (!user?.id || !club?.id) return;
+
+        const presenceChannel = supabase.channel(`presence:club-${club.id}`, {
+            config: { presence: { key: user.id } }
+        });
+
+        presenceChannel
+            .on('presence', { event: 'sync' }, () => {
+                const state = presenceChannel.presenceState();
+                const ids = new Set(Object.keys(state));
+                setOnlineUsers(ids);
+            })
+            .subscribe(async (status) => {
+                if (status === 'SUBSCRIBED') {
+                    await presenceChannel.track({
+                        user_id: user.id,
+                        username: user.username || user.display_name,
+                        online_at: new Date().toISOString()
+                    });
+                }
+            });
+
+        return () => {
+            supabase.removeChannel(presenceChannel);
+        };
+    }, [user?.id, club?.id]);
 
     // ═══════════════════════════════════════════════════════════════════════
     //  BULLETPROOF AUTH
@@ -715,7 +749,15 @@ export default function ClubMessages() {
                     const otherMember = clubMembers.find(m => m.user_id === otherId);
                     return otherMember ? canMessageUser(otherMember) : false;
                 });
-                setConversations(clubConversations);
+                // Enrich with online presence
+                const enriched = clubConversations.map(conv => ({
+                    ...conv,
+                    otherUser: conv.otherUser ? {
+                        ...conv.otherUser,
+                        online: onlineUsers.has(conv.otherUser.id)
+                    } : conv.otherUser
+                }));
+                setConversations(enriched);
             }
         } catch (e) {
             console.error('[ClubMessages] loadConversations error:', e);
@@ -1512,11 +1554,11 @@ export default function ClubMessages() {
                         <button onClick={() => { setView('list'); setShowMessageSearch(false); setShowUserInfo(false); setShowGifPicker(false); }} style={S.backBtn}>
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" /></svg>
                         </button>
-                        <Avatar src={otherUser?.avatar_url} name={otherUser?.username || otherUser?.display_name} size={40} />
+                        <Avatar src={otherUser?.avatar_url} name={otherUser?.username || otherUser?.display_name} size={40} online={onlineUsers.has(otherUser?.id)} />
                         <div style={{ flex: 1 }}>
                             <div style={S.chatName}>{otherUser?.display_name || otherUser?.username}</div>
-                            <div style={{ fontSize: 12, color: typingUser ? C.green : C.textSec }}>
-                                {typingUser ? `${typingUser} is typing...` : 'Club Member'}
+                            <div style={{ fontSize: 12, color: typingUser ? C.green : onlineUsers.has(otherUser?.id) ? C.green : C.textSec }}>
+                                {typingUser ? `${typingUser} is typing...` : onlineUsers.has(otherUser?.id) ? '● Online' : 'Club Member'}
                             </div>
                         </div>
 
