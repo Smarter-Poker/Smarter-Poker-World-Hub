@@ -6,6 +6,7 @@
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getAccessToken } from '../../lib/authUtils';
+import Link from 'next/link';
 
 const FB = {
   bg: '#242526', card: '#18191A', text: '#E4E6EB', dim: '#B0B3B8',
@@ -179,12 +180,12 @@ export default function NotificationBell({ userId }) {
 
           {/* Footer */}
           <div style={{ padding: '8px 16px', borderTop: `1px solid ${FB.border}`, textAlign: 'center' }}>
-            <a
+            <Link
               href="/hub/notifications"
               style={{ color: FB.primary, fontSize: 12, fontWeight: 600, textDecoration: 'none' }}
             >
               View All Notifications
-            </a>
+            </Link>
           </div>
         </div>
       )}
