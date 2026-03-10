@@ -460,6 +460,9 @@ export const ChatWindow = ({
                 window.removeEventListener('keydown', resetIdle);
                 clearTimeout(idleTimeoutRef.current);
             };
+        }
+    }, []);
+
     // Phase 6: EventBus real-time listener (Comprehensive Layer)
     useEffect(() => {
         const handleReceived = (event) => {
