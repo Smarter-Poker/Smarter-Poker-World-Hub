@@ -189,27 +189,40 @@ export default function ClubLobby() {
     useEffect(() => {
         if (!club?.id) return;
 
-        // Refresh tournament list when a tournament is created/started elsewhere
+        // Refresh tournament + table list when events arrive from other pages
         const unsubMutated = eventBus.on(EventType.DATA_MUTATED, async (event) => {
-            const triggerEntities = ['tournament_created', 'tournament_started', 'tournament_cancelled', 'tournament_registration'];
-            if (!triggerEntities.includes(event?.payload?.entity)) return;
-            try {
-                const token = await getAuthToken().catch(() => null);
-                if (!token) return;
-                const res = await fetch('/api/club-arena/tournaments', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                    body: JSON.stringify({
-                        action: 'list',
-                        clubId: club.id,
-                        status: ['scheduled', 'registering', 'running'],
-                    }),
-                });
-                if (res.ok) {
-                    const d = await res.json();
-                    setTournaments(d.tournaments || d.data || []);
-                }
-            } catch (_) { /* silent — realtime subscription is primary */ }
+            const entity = event?.payload?.entity;
+            const tournamentEntities = ['tournament_created', 'tournament_started', 'tournament_cancelled', 'tournament_registration'];
+            const tableEntities = ['table_action', 'table_created', 'table_settings_updated'];
+            if (!tournamentEntities.includes(entity) && !tableEntities.includes(entity)) return;
+
+            // Refresh tables on table events
+            if (tableEntities.includes(entity)) {
+                supabase.from('tables').select('*').eq('club_id', club.id)
+                    .neq('status', 'deleted').neq('status', 'closed').limit(100)
+                    .then(({ data }) => { if (data) setTables(data); });
+            }
+
+            // Refresh tournaments on tournament events
+            if (tournamentEntities.includes(entity)) {
+                try {
+                    const token = await getAuthToken().catch(() => null);
+                    if (!token) return;
+                    const res = await fetch('/api/club-arena/tournaments', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                        body: JSON.stringify({
+                            action: 'list',
+                            clubId: club.id,
+                            status: ['scheduled', 'registering', 'running'],
+                        }),
+                    });
+                    if (res.ok) {
+                        const d = await res.json();
+                        setTournaments(d.tournaments || d.data || []);
+                    }
+                } catch (_) { /* silent — realtime subscription is primary */ }
+            }
         });
 
         // When a new table is announced via bus (e.g. from admin creating one),
