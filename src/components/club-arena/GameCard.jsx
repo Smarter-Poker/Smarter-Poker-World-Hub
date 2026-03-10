@@ -321,7 +321,7 @@ function CashCard({ table: t, assetMap, onPress, avgVpip }) {
 function TournamentCard({ tournament: t, assetMap, onPress }) {
   const variant = t.game_variant || t.variant || 'nlh';
   const isSpin = t.type === 'spin' || variant === 'spin';
-  const isMTT = t.type === 'mtt';
+  const isMTT = t.type === 'mtt' || t.type === 'xmtt'; // BUG-8 FIX: XMTT is an MTT variant
   const vc = isSpin ? VC.spin : (VC[variant] || DV);
 
   const stickers = getGameStickers(t);
@@ -342,7 +342,7 @@ function TournamentCard({ tournament: t, assetMap, onPress }) {
     : (t.guaranteed_prize || t.settings?.gtd_amount || 0);
 
   // Type badge
-  const typeLabel = isSpin ? 'SPIN' : isMTT ? 'MTT' : 'SNG';
+  const typeLabel = isSpin ? 'SPIN' : t.type === 'xmtt' ? 'XMTT' : isMTT ? 'MTT' : 'SNG';
 
   // Countdown
   const countdown = useCountdown(isLive ? null : startDate);
@@ -440,7 +440,7 @@ export default function GameCard({ game, assetMap = {}, onPress, avgVpip }) {
   if (!game) return null;
   const isTournament =
     game.game_type === 'tournament' || game.game_type === 'sng' || game.game_type === 'mtt' ||
-    game.type === 'sng' || game.type === 'mtt' || game.type === 'spin' ||
+    game.type === 'sng' || game.type === 'mtt' || game.type === 'spin' || game.type === 'xmtt' || // BUG-8 FIX
     game.registered_count != null;
   return isTournament
     ? <TournamentCard tournament={game} assetMap={assetMap} onPress={onPress} />

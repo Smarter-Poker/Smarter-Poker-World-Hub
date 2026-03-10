@@ -8,6 +8,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 const { isUUID } = require('../../../src/lib/club-arena/validate');
+const { safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,

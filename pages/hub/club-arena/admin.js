@@ -11,7 +11,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
-import { getAccessToken } from '../../../src/lib/authUtils';
+// getAccessToken now handled by centralized apiClient
 import useTrainingBus from '../../../src/hooks/useTrainingBus'; import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import SkeletonDark from '../../../src/components/ui/SkeletonDark';
 import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
@@ -808,6 +808,8 @@ export default function Admin() {
 
     return (
         <>
+            {/* Pulse animation for live table indicators */}
+            <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }`}</style>
             <SEOHead
                 title="Club Arena — Admin"
                 description="Club Arena Administration Panel."

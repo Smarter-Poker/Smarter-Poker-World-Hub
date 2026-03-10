@@ -67,6 +67,17 @@ const C = {
     otherBubble: '#3A3B3C',
 };
 
+// Inject CSS keyframes (once)
+if (typeof document !== 'undefined' && !document.getElementById('club-messages-anim')) {
+    const style = document.createElement('style');
+    style.id = 'club-messages-anim';
+    style.textContent = `
+        @keyframes pulse { 0%,100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.2); } }
+        @keyframes slideDown { from { opacity: 0; transform: translateX(-50%) translateY(-20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+    `;
+    document.head.appendChild(style);
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 //  SVG ICONS
 // ═══════════════════════════════════════════════════════════════════════════
@@ -125,6 +136,45 @@ function formatMessageTime(timestamp) {
     return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 }
 
+function formatDateSeparator(timestamp) {
+    if (!timestamp) return '';
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffDays = Math.floor((now.setHours(0, 0, 0, 0) - new Date(date).setHours(0, 0, 0, 0)) / 86400000);
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return date.toLocaleDateString([], { weekday: 'long' });
+    return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined });
+}
+
+function isSameDay(ts1, ts2) {
+    if (!ts1 || !ts2) return false;
+    const d1 = new Date(ts1), d2 = new Date(ts2);
+    return d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
+}
+
+// URL detection regex for clickable links
+const URL_REGEX = /(https?:\/\/[^\s<>"']+)/gi;
+
+function renderTextWithLinks(text) {
+    if (!text || typeof text !== 'string') return text;
+    const parts = text.split(URL_REGEX);
+    if (parts.length === 1) return text;
+    return parts.map((part, i) => {
+        // Reset regex lastIndex since it's global
+        URL_REGEX.lastIndex = 0;
+        if (URL_REGEX.test(part)) {
+            URL_REGEX.lastIndex = 0;
+            const display = part.length > 50 ? part.substring(0, 47) + '...' : part;
+            return <a key={i} href={part} target="_blank" rel="noopener noreferrer" style={{ color: '#58A6FF', textDecoration: 'underline', wordBreak: 'break-all' }}>{display}</a>;
+        }
+        return part;
+    });
+}
+
+// Quick reaction emoji set
+const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
+
 // ═══════════════════════════════════════════════════════════════════════════
 //  AVATAR COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
@@ -176,7 +226,7 @@ function Toast({ toast, onDismiss }) {
 // ⌨ MESSAGE INPUT COMPONENT (Full-featured)
 // ═══════════════════════════════════════════════════════════════════════════
 
-function MessageInput({ onSend, onMediaUpload, disabled }) {
+function MessageInput({ onSend, onMediaUpload, disabled, onTyping, onGifToggle, showGifActive }) {
     const [text, setText] = useState('');
     const [showEmoji, setShowEmoji] = useState(false);
     const [uploading, setUploading] = useState(false);
@@ -184,7 +234,7 @@ function MessageInput({ onSend, onMediaUpload, disabled }) {
     const inputRef = useRef(null);
     const fileInputRef = useRef(null);
 
-    const emojis = ['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''];
+    const emojis = ['😂', '❤️', '👍', '🔥', '😎', '😢', '😱', '🙌', '🎉', '👀', '💯', '✌️', '🤔', '🙏', '💥', '🏆'];
 
     const handleSend = () => {
         if (!text.trim()) return;
@@ -201,8 +251,13 @@ function MessageInput({ onSend, onMediaUpload, disabled }) {
         }
     };
 
+    const handleInputChange = (e) => {
+        setText(e.target.value);
+        onTyping?.();
+    };
+
     const handleQuickLike = () => {
-        onSend('');
+        onSend('👍');
     };
 
     return (
@@ -232,9 +287,17 @@ function MessageInput({ onSend, onMediaUpload, disabled }) {
                 )}
             </button>
 
+            {/* GIF button */}
+            {onGifToggle && (
+                <button onClick={onGifToggle} title="Send GIF"
+                    style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: showGifActive ? C.blue : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: showGifActive ? '#fff' : C.blue }}>GIF</span>
+                </button>
+            )}
+
             {/* Input wrapper */}
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', background: C.hoverBg, borderRadius: 24, padding: '0 12px', position: 'relative' }}>
-                <input ref={inputRef} type="text" value={text} onChange={(e) => setText(e.target.value)} onKeyDown={handleKeyDown} placeholder="Aa" disabled={disabled}
+                <input ref={inputRef} type="text" value={text} onChange={handleInputChange} onKeyDown={handleKeyDown} placeholder="Aa" disabled={disabled}
                     style={{ flex: 1, border: 'none', background: 'transparent', padding: '10px 0', fontSize: 15, outline: 'none', color: C.text }} />
 
                 <button onClick={() => setShowEmoji(!showEmoji)} title="Choose Emoji"
@@ -274,28 +337,99 @@ function MessageInput({ onSend, onMediaUpload, disabled }) {
 //  MESSAGE BUBBLE COMPONENT (with media support)
 // ═══════════════════════════════════════════════════════════════════════════
 
-function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInGroup }) {
+function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInGroup, onRetry, onDelete, onReact }) {
+    const [showReactions, setShowReactions] = useState(false);
     const content = message.content || message.message || '';
+    const isFailed = message.status === 'failed';
+    const isSending = message.status === 'sending';
+    const isDeleted = message.is_deleted;
 
     // Check for image markdown: [Image](url)
     const imageMatch = content.match(/\[Image\]\(([^)]+)\)/);
     const videoMatch = content.match(/\[Video\]\(([^)]+)\)/);
 
+    if (isDeleted) {
+        return (
+            <div style={{ display: 'flex', flexDirection: isOwn ? 'row-reverse' : 'row', alignItems: 'flex-end', gap: 8, marginBottom: isLastInGroup ? 16 : 2, paddingLeft: isOwn ? 60 : 12, paddingRight: isOwn ? 12 : 60 }}>
+                <div style={{ maxWidth: '70%', padding: '8px 12px', borderRadius: 18, background: 'transparent', border: `1px solid ${C.border}`, color: C.textSec, fontSize: 14, fontStyle: 'italic' }}>
+                    🚫 Message deleted
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div style={{ display: 'flex', flexDirection: isOwn ? 'row-reverse' : 'row', alignItems: 'flex-end', gap: 8, marginBottom: isLastInGroup ? 16 : 2, paddingLeft: isOwn ? 60 : 12, paddingRight: isOwn ? 12 : 60 }}>
+        <div style={{ display: 'flex', flexDirection: isOwn ? 'row-reverse' : 'row', alignItems: 'flex-end', gap: 8, marginBottom: isLastInGroup ? 16 : 2, paddingLeft: isOwn ? 60 : 12, paddingRight: isOwn ? 12 : 60, position: 'relative' }}
+            onMouseEnter={() => setShowReactions(false)}
+        >
             {!isOwn && (showAvatar ? <Avatar src={sender?.avatar_url} name={sender?.username || sender?.display_name} size={28} showOnline={false} /> : <div style={{ width: 28 }} />)}
 
-            {imageMatch ? (
-                <img src={imageMatch[1]} alt="Shared Image" style={{ maxWidth: '70%', borderRadius: 12, cursor: 'pointer' }} onClick={() => window.open(imageMatch[1], '_blank')} />
-            ) : videoMatch ? (
-                <video src={videoMatch[1]} controls style={{ maxWidth: '70%', borderRadius: 12 }} />
-            ) : (
-                <div style={{ maxWidth: '70%', padding: '8px 12px', borderRadius: isOwn ? '18px 18px 4px 18px' : '18px 18px 18px 4px', background: isOwn ? C.ownBubble : C.otherBubble, color: 'white', fontSize: 15, lineHeight: 1.4, wordBreak: 'break-word' }}>
-                    {content}
-                </div>
-            )}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: isOwn ? 'flex-end' : 'flex-start', maxWidth: '70%' }}>
+                {imageMatch ? (
+                    <img src={imageMatch[1]} alt="Shared Image" style={{ maxWidth: '100%', borderRadius: 12, cursor: 'pointer' }} onClick={() => window.open(imageMatch[1], '_blank')} />
+                ) : videoMatch ? (
+                    <video src={videoMatch[1]} controls style={{ maxWidth: '100%', borderRadius: 12 }} />
+                ) : (
+                    <div style={{
+                        padding: '8px 12px',
+                        borderRadius: isOwn ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                        background: isFailed ? 'rgba(228,30,63,0.3)' : isOwn ? C.ownBubble : C.otherBubble,
+                        color: 'white', fontSize: 15, lineHeight: 1.4, wordBreak: 'break-word',
+                        opacity: isSending ? 0.6 : 1,
+                        position: 'relative',
+                    }}>
+                        {renderTextWithLinks(content)}
 
-            {showTime && <span style={{ fontSize: 11, color: C.textSec, whiteSpace: 'nowrap', alignSelf: 'center' }}>{formatMessageTime(message.created_at)}</span>}
+                        {/* Quick react button (on hover) */}
+                        {!isFailed && !isSending && (
+                            <button
+                                onClick={(e) => { e.stopPropagation(); setShowReactions(!showReactions); }}
+                                style={{ position: 'absolute', top: -12, [isOwn ? 'left' : 'right']: -8, width: 24, height: 24, borderRadius: '50%', background: C.card, border: `1px solid ${C.border}`, cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.7, padding: 0 }}
+                                title="React"
+                            >😀</button>
+                        )}
+
+                        {/* Reaction picker */}
+                        {showReactions && (
+                            <div style={{ position: 'absolute', top: -40, [isOwn ? 'left' : 'right']: 0, display: 'flex', gap: 2, background: C.card, borderRadius: 20, padding: '4px 8px', boxShadow: '0 4px 16px rgba(0,0,0,0.4)', zIndex: 50 }}>
+                                {REACTION_EMOJIS.map(emoji => (
+                                    <button key={emoji} onClick={() => { onReact?.(message.id, emoji); setShowReactions(false); }}
+                                        style={{ width: 28, height: 28, border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 16, borderRadius: '50%', padding: 0 }}>
+                                        {emoji}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Reactions display */}
+                {message.reactions && Object.keys(message.reactions).length > 0 && (
+                    <div style={{ display: 'flex', gap: 4, marginTop: 2 }}>
+                        {Object.entries(message.reactions).map(([emoji, count]) => (
+                            <span key={emoji} style={{ background: C.hoverBg, borderRadius: 12, padding: '2px 6px', fontSize: 12, cursor: 'pointer' }}>{emoji} {count > 1 ? count : ''}</span>
+                        ))}
+                    </div>
+                )}
+
+                {/* Status indicators */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                    {showTime && <span style={{ fontSize: 11, color: C.textSec, whiteSpace: 'nowrap' }}>{formatMessageTime(message.created_at)}</span>}
+                    {isOwn && isSending && <span style={{ fontSize: 11, color: C.textSec }}>⏳</span>}
+                    {isOwn && message.status === 'sent' && <span style={{ fontSize: 11, color: C.textSec }}>✓</span>}
+                    {isOwn && message.read_at && <span style={{ fontSize: 11, color: C.blue }}>✓✓</span>}
+                    {isFailed && (
+                        <button onClick={() => onRetry?.(message)} style={{ fontSize: 12, color: C.red, background: 'transparent', border: 'none', cursor: 'pointer', padding: '2px 6px', fontWeight: 600 }}>
+                            ⚠️ Retry
+                        </button>
+                    )}
+                    {isOwn && !isFailed && !isSending && onDelete && (
+                        <button onClick={() => onDelete?.(message.id)} style={{ fontSize: 11, color: C.textSec, background: 'transparent', border: 'none', cursor: 'pointer', padding: '0 4px', opacity: 0.5 }} title="Delete">
+                            🗑️
+                        </button>
+                    )}
+                </div>
+            </div>
         </div>
     );
 }
@@ -376,9 +510,28 @@ export default function ClubMessages() {
     const [callingUser, setCallingUser] = useState(null);
     const [showUserInfo, setShowUserInfo] = useState(false);
     const [showMessageSearch, setShowMessageSearch] = useState(false);
-    const [incomingCall, setIncomingCall] = useState(null); // { callerId, callerName, callerAvatar, callType, roomName }
+    const [incomingCall, setIncomingCall] = useState(null);
     const [showWallet, setShowWallet] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
+
+    // Typing indicator state
+    const [typingUser, setTypingUser] = useState(null);
+    const typingTimeoutRef = useRef(null);
+    const lastTypingBroadcast = useRef(0);
+
+    // Message search state
+    const [messageSearchQuery, setMessageSearchQuery] = useState('');
+
+    // GIF picker state
+    const [showGifPicker, setShowGifPicker] = useState(false);
+    const [gifSearchQuery, setGifSearchQuery] = useState('');
+    const [gifResults, setGifResults] = useState([]);
+    const [gifLoading, setGifLoading] = useState(false);
+
+    // Pagination state
+    const [hasMoreMessages, setHasMoreMessages] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const messagesContainerRef = useRef(null);
 
     // Wallet data (real-time balances)
     const walletData = useWalletData({ supabase, userId: user?.id, clubId: club?.id });
@@ -989,6 +1142,195 @@ export default function ClubMessages() {
     };
 
     // ═══════════════════════════════════════════════════════════════════════
+    //  TYPING INDICATORS
+    // ═══════════════════════════════════════════════════════════════════════
+
+    // Listen for other user's typing broadcasts
+    useEffect(() => {
+        if (!activeConversation?.id || !user?.id) return;
+
+        const typingChannel = supabase
+            .channel(`typing:${activeConversation.id}`)
+            .on('broadcast', { event: 'typing' }, ({ payload }) => {
+                if (payload.userId !== user.id) {
+                    setTypingUser(payload.username || 'Someone');
+                    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+                    typingTimeoutRef.current = setTimeout(() => setTypingUser(null), 3000);
+                }
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(typingChannel);
+            if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+            setTypingUser(null);
+        };
+    }, [activeConversation?.id, user?.id]);
+
+    // Broadcast our typing state (throttled to every 3 seconds)
+    const broadcastTyping = () => {
+        if (!user || !activeConversation?.id) return;
+        const now = Date.now();
+        if (now - lastTypingBroadcast.current < 3000) return;
+        lastTypingBroadcast.current = now;
+
+        supabase.channel(`typing:${activeConversation.id}`).send({
+            type: 'broadcast',
+            event: 'typing',
+            payload: { userId: user.id, username: user.display_name || user.username },
+        }).catch(() => { });
+    };
+
+    // ═══════════════════════════════════════════════════════════════════════
+    //  RETRY FAILED MESSAGE
+    // ═══════════════════════════════════════════════════════════════════════
+
+    const retryMessage = async (failedMsg) => {
+        if (!user || !activeConversation) return;
+
+        // Remove failed status
+        setMessages(prev => prev.map(m => m.id === failedMsg.id ? { ...m, status: 'sending' } : m));
+
+        try {
+            const { data: msgId, error } = await supabase.rpc('fn_send_message', {
+                p_conversation_id: activeConversation.id,
+                p_sender_id: user.id,
+                p_content: failedMsg.content || failedMsg.message,
+            });
+
+            if (error) throw error;
+            setMessages(prev => prev.map(m => m.id === failedMsg.id ? { ...m, id: msgId, status: 'sent' } : m));
+            busEmit.messageSent(activeConversation.id, activeConversation.otherUser?.id);
+            setToast({ type: 'success', message: 'Message sent!' });
+        } catch (e) {
+            console.error('[ClubMessages] Retry failed:', e);
+            setMessages(prev => prev.map(m => m.id === failedMsg.id ? { ...m, status: 'failed' } : m));
+            setToast({ type: 'error', message: 'Retry failed. Please try again.' });
+        }
+    };
+
+    // ═══════════════════════════════════════════════════════════════════════
+    //  DELETE / UNSEND MESSAGE
+    // ═══════════════════════════════════════════════════════════════════════
+
+    const deleteMessage = async (messageId) => {
+        if (!messageId || messageId.toString().startsWith('temp-')) return;
+
+        // Optimistic update
+        setMessages(prev => prev.map(m => m.id === messageId ? { ...m, is_deleted: true, content: '' } : m));
+
+        try {
+            const { error } = await supabase
+                .from('social_messages')
+                .update({ is_deleted: true, content: '[Message deleted]' })
+                .eq('id', messageId)
+                .eq('sender_id', user?.id);
+
+            if (error) throw error;
+            setToast({ type: 'info', message: 'Message deleted' });
+        } catch (e) {
+            console.error('[ClubMessages] Delete failed:', e);
+            // Revert
+            setMessages(prev => prev.map(m => m.id === messageId ? { ...m, is_deleted: false } : m));
+            setToast({ type: 'error', message: 'Failed to delete message' });
+        }
+    };
+
+    // ═══════════════════════════════════════════════════════════════════════
+    //  MESSAGE REACTIONS (optimistic — stored locally)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    const reactToMessage = (messageId, emoji) => {
+        setMessages(prev => prev.map(m => {
+            if (m.id !== messageId) return m;
+            const reactions = { ...(m.reactions || {}) };
+            reactions[emoji] = (reactions[emoji] || 0) + 1;
+            return { ...m, reactions };
+        }));
+    };
+
+    // ═══════════════════════════════════════════════════════════════════════
+    //  GIF SEARCH (Tenor API)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    const searchGifs = async (query) => {
+        if (!query.trim()) {
+            setGifResults([]);
+            return;
+        }
+        setGifLoading(true);
+        try {
+            // Use Tenor API v2 (free tier, no API key needed for basic search)
+            const resp = await fetch(`https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(query)}&key=AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ&limit=12&media_filter=tinygif`);
+            const data = await resp.json();
+            setGifResults((data.results || []).map(g => ({
+                url: g.media_formats?.tinygif?.url || g.media_formats?.gif?.url,
+                preview: g.media_formats?.nanogif?.url || g.media_formats?.tinygif?.url,
+                title: g.content_description || '',
+            })).filter(g => g.url));
+        } catch (e) {
+            console.error('[ClubMessages] GIF search failed:', e);
+            setGifResults([]);
+        } finally {
+            setGifLoading(false);
+        }
+    };
+
+    const sendGif = (gifUrl) => {
+        sendMessage(`[Image](${gifUrl})`);
+        setShowGifPicker(false);
+        setGifSearchQuery('');
+        setGifResults([]);
+    };
+
+    // ═══════════════════════════════════════════════════════════════════════
+    //  PAGINATION (Load More Messages)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    const loadMoreMessages = async () => {
+        if (!activeConversation?.id || !user?.id || loadingMore || !hasMoreMessages) return;
+
+        setLoadingMore(true);
+        const oldestMsg = messages[0];
+        const container = messagesContainerRef.current;
+        const scrollHeightBefore = container?.scrollHeight || 0;
+
+        try {
+            const msgToken = getAccessToken();
+            const resp = await fetch('/api/messenger/get-messages', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(msgToken ? { Authorization: `Bearer ${msgToken}` } : {}),
+                },
+                body: JSON.stringify({
+                    conversationId: activeConversation.id,
+                    userId: user.id,
+                    before: oldestMsg?.created_at,
+                    limit: 50,
+                }),
+            });
+            const result = await resp.json();
+            if (result.success && result.messages?.length > 0) {
+                setMessages(prev => [...result.messages, ...prev]);
+                // Preserve scroll position
+                requestAnimationFrame(() => {
+                    if (container) {
+                        container.scrollTop = container.scrollHeight - scrollHeightBefore;
+                    }
+                });
+                if (result.messages.length < 50) setHasMoreMessages(false);
+            } else {
+                setHasMoreMessages(false);
+            }
+        } catch (e) {
+            console.error('[ClubMessages] Load more failed:', e);
+        } finally {
+            setLoadingMore(false);
+        }
+    };
+
+    // ═══════════════════════════════════════════════════════════════════════
     //  RENDER
     // ═══════════════════════════════════════════════════════════════════════
 
@@ -1030,6 +1372,9 @@ export default function ClubMessages() {
     // Chat View
     if (view === 'chat' && activeConversation) {
         const otherUser = activeConversation.otherUser;
+        const filteredMessages = messageSearchQuery.trim()
+            ? messages.filter(m => (m.content || m.message || '').toLowerCase().includes(messageSearchQuery.toLowerCase()))
+            : messages;
 
         return (
             <>
@@ -1039,18 +1384,20 @@ export default function ClubMessages() {
 
                     {/* Chat Header with Call Buttons */}
                     <div style={S.chatHeader}>
-                        <button onClick={() => setView('list')} style={S.backBtn}>
+                        <button onClick={() => { setView('list'); setShowMessageSearch(false); setShowUserInfo(false); setShowGifPicker(false); }} style={S.backBtn}>
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" /></svg>
                         </button>
                         <Avatar src={otherUser?.avatar_url} name={otherUser?.username || otherUser?.display_name} size={40} />
                         <div style={{ flex: 1 }}>
                             <div style={S.chatName}>{otherUser?.display_name || otherUser?.username}</div>
-                            <div style={{ fontSize: 12, color: C.textSec }}>Club Member</div>
+                            <div style={{ fontSize: 12, color: typingUser ? C.green : C.textSec }}>
+                                {typingUser ? `${typingUser} is typing...` : 'Club Member'}
+                            </div>
                         </div>
 
                         {/* Action Buttons */}
                         <div style={{ display: 'flex', gap: 8 }}>
-                            <button onClick={() => setShowMessageSearch(!showMessageSearch)} style={S.iconBtn} title="Search Messages">
+                            <button onClick={() => { setShowMessageSearch(!showMessageSearch); if (showMessageSearch) setMessageSearchQuery(''); }} style={{ ...S.iconBtn, background: showMessageSearch ? C.hoverBg : 'transparent' }} title="Search Messages">
                                 <SearchIcon size={20} />
                             </button>
                             <button onClick={() => startCall('audio')} style={S.iconBtn} title="Voice Call">
@@ -1059,64 +1406,208 @@ export default function ClubMessages() {
                             <button onClick={() => startCall('video')} style={S.iconBtn} title="Video Call">
                                 <VideoIcon size={20} />
                             </button>
-                            <button onClick={() => setShowUserInfo(!showUserInfo)} style={S.iconBtn} title="User Info">
+                            <button onClick={() => setShowUserInfo(!showUserInfo)} style={{ ...S.iconBtn, background: showUserInfo ? C.hoverBg : 'transparent' }} title="User Info">
                                 <InfoIcon size={20} />
                             </button>
                         </div>
                     </div>
 
-                    {/* Messages */}
-                    <div style={S.messagesContainer}>
-                        {messages.length === 0 ? (
-                            <div style={{ ...S.emptyState, padding: '40px 20px' }}>
-                                <Avatar src={otherUser?.avatar_url} name={otherUser?.username} size={80} showOnline={false} />
-                                <p style={{ marginTop: 16, fontSize: 16, fontWeight: 600, color: C.text }}>{otherUser?.display_name || otherUser?.username}</p>
-                                <p style={{ fontSize: 14, color: C.textSec }}>Start Your Conversation</p>
+                    {/* Search within messages bar */}
+                    {showMessageSearch && (
+                        <div style={{ padding: '8px 16px', background: C.card, borderBottom: `1px solid ${C.border}`, display: 'flex', gap: 8, alignItems: 'center' }}>
+                            <input
+                                type="text"
+                                value={messageSearchQuery}
+                                onChange={(e) => setMessageSearchQuery(e.target.value)}
+                                placeholder="Search in messages..."
+                                autoFocus
+                                style={{ flex: 1, padding: '8px 12px', borderRadius: 20, border: 'none', background: C.hoverBg, color: C.text, fontSize: 14, outline: 'none' }}
+                            />
+                            {messageSearchQuery && (
+                                <span style={{ fontSize: 12, color: C.textSec, whiteSpace: 'nowrap' }}>
+                                    {filteredMessages.length} {filteredMessages.length === 1 ? 'result' : 'results'}
+                                </span>
+                            )}
+                        </div>
+                    )}
+
+                    {/* User Info Panel (slide-down) */}
+                    {showUserInfo && (
+                        <div style={{ padding: '16px', background: C.card, borderBottom: `1px solid ${C.border}`, textAlign: 'center' }}>
+                            <Avatar src={otherUser?.avatar_url} name={otherUser?.username} size={72} showOnline={false} />
+                            <div style={{ marginTop: 8 }}>
+                                <div style={{ fontSize: 18, fontWeight: 700, color: C.text }}>{otherUser?.display_name || otherUser?.username}</div>
+                                <div style={{ fontSize: 13, color: C.textSec, marginTop: 2 }}>@{otherUser?.username}</div>
+                                {(() => {
+                                    const memberData = clubMembers.find(m => m.user_id === otherUser?.id);
+                                    return memberData ? (
+                                        <div style={{ marginTop: 8, display: 'flex', justifyContent: 'center', gap: 8 }}>
+                                            <span style={{ background: C.hoverBg, padding: '4px 12px', borderRadius: 12, fontSize: 12, color: C.blue, fontWeight: 600, textTransform: 'capitalize' }}>
+                                                {memberData.role}
+                                            </span>
+                                            {memberData.agent_id && (
+                                                <span style={{ background: C.hoverBg, padding: '4px 12px', borderRadius: 12, fontSize: 12, color: C.textSec }}>
+                                                    Has Agent
+                                                </span>
+                                            )}
+                                        </div>
+                                    ) : null;
+                                })()}
                             </div>
+                        </div>
+                    )}
+
+                    {/* Messages */}
+                    <div ref={messagesContainerRef} style={S.messagesContainer} onScroll={(e) => {
+                        if (e.target.scrollTop === 0 && hasMoreMessages && !loadingMore) {
+                            loadMoreMessages();
+                        }
+                    }}>
+                        {/* Load more indicator */}
+                        {loadingMore && (
+                            <div style={{ textAlign: 'center', padding: '12px', color: C.textSec, fontSize: 13 }}>
+                                Loading older messages...
+                            </div>
+                        )}
+                        {hasMoreMessages && messages.length >= 50 && !loadingMore && (
+                            <div style={{ textAlign: 'center', padding: '8px' }}>
+                                <button onClick={loadMoreMessages} style={{ background: 'transparent', border: `1px solid ${C.border}`, color: C.blue, padding: '6px 16px', borderRadius: 20, cursor: 'pointer', fontSize: 13 }}>
+                                    Load older messages
+                                </button>
+                            </div>
+                        )}
+
+                        {filteredMessages.length === 0 ? (
+                            messageSearchQuery ? (
+                                <div style={{ ...S.emptyState, padding: '40px 20px' }}>
+                                    <p style={{ fontSize: 14, color: C.textSec }}>No messages matching "{messageSearchQuery}"</p>
+                                </div>
+                            ) : (
+                                <div style={{ ...S.emptyState, padding: '40px 20px' }}>
+                                    <Avatar src={otherUser?.avatar_url} name={otherUser?.username} size={80} showOnline={false} />
+                                    <p style={{ marginTop: 16, fontSize: 16, fontWeight: 600, color: C.text }}>{otherUser?.display_name || otherUser?.username}</p>
+                                    <p style={{ fontSize: 14, color: C.textSec }}>Start Your Conversation</p>
+                                </div>
+                            )
                         ) : (
-                            messages.map((msg, i) => {
+                            filteredMessages.map((msg, i) => {
                                 const isOwn = msg.sender_id === user.id;
-                                const next = messages[i + 1];
+                                const next = filteredMessages[i + 1];
+                                const prev = filteredMessages[i - 1];
                                 const showAvatar = !isOwn && (!next || next.sender_id !== msg.sender_id);
                                 const showTime = !next || next.sender_id !== msg.sender_id;
                                 const isLastInGroup = !next || next.sender_id !== msg.sender_id;
 
-                                return <MessageBubble key={msg.id} message={msg} isOwn={isOwn} showAvatar={showAvatar} sender={isOwn ? user : activeConversation.otherUser} showTime={showTime} isLastInGroup={isLastInGroup} />;
+                                // Date separator
+                                const showDateSep = !prev || !isSameDay(prev.created_at, msg.created_at);
+
+                                return (
+                                    <div key={msg.id}>
+                                        {showDateSep && (
+                                            <div style={{ textAlign: 'center', padding: '16px 0 8px', display: 'flex', alignItems: 'center', gap: 12, paddingLeft: 16, paddingRight: 16 }}>
+                                                <div style={{ flex: 1, height: 1, background: C.border }} />
+                                                <span style={{ fontSize: 12, color: C.textSec, fontWeight: 500, whiteSpace: 'nowrap' }}>{formatDateSeparator(msg.created_at)}</span>
+                                                <div style={{ flex: 1, height: 1, background: C.border }} />
+                                            </div>
+                                        )}
+                                        <MessageBubble
+                                            message={msg}
+                                            isOwn={isOwn}
+                                            showAvatar={showAvatar}
+                                            sender={isOwn ? user : activeConversation.otherUser}
+                                            showTime={showTime}
+                                            isLastInGroup={isLastInGroup}
+                                            onRetry={retryMessage}
+                                            onDelete={deleteMessage}
+                                            onReact={reactToMessage}
+                                        />
+                                    </div>
+                                );
                             })
+                        )}
+
+                        {/* Typing indicator */}
+                        {typingUser && (
+                            <div style={{ padding: '4px 12px 8px 52px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <div style={{ background: C.otherBubble, borderRadius: 18, padding: '8px 14px', display: 'flex', gap: 4, alignItems: 'center' }}>
+                                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: C.textSec, animation: 'pulse 1.2s infinite', animationDelay: '0s' }} />
+                                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: C.textSec, animation: 'pulse 1.2s infinite', animationDelay: '0.3s' }} />
+                                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: C.textSec, animation: 'pulse 1.2s infinite', animationDelay: '0.6s' }} />
+                                </div>
+                            </div>
                         )}
                         <div ref={messagesEndRef} />
                     </div>
 
-                    <MessageInput onSend={sendMessage} onMediaUpload={handleMediaUpload} />
+                    {/* GIF Picker */}
+                    {showGifPicker && (
+                        <div style={{ background: C.card, borderTop: `1px solid ${C.border}`, padding: 12, maxHeight: 280, overflowY: 'auto' }}>
+                            <div style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+                                <input
+                                    type="text"
+                                    value={gifSearchQuery}
+                                    onChange={(e) => { setGifSearchQuery(e.target.value); searchGifs(e.target.value); }}
+                                    placeholder="Search GIFs..."
+                                    autoFocus
+                                    style={{ flex: 1, padding: '8px 12px', borderRadius: 20, border: 'none', background: C.hoverBg, color: C.text, fontSize: 14, outline: 'none' }}
+                                />
+                                <button onClick={() => { setShowGifPicker(false); setGifSearchQuery(''); setGifResults([]); }} style={{ background: 'transparent', border: 'none', color: C.textSec, cursor: 'pointer', fontSize: 18 }}>✕</button>
+                            </div>
+                            {gifLoading && <div style={{ textAlign: 'center', color: C.textSec, fontSize: 13, padding: 16 }}>Searching...</div>}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
+                                {gifResults.map((gif, i) => (
+                                    <img key={i} src={gif.preview || gif.url} alt={gif.title} onClick={() => sendGif(gif.url)}
+                                        style={{ width: '100%', height: 80, objectFit: 'cover', borderRadius: 8, cursor: 'pointer' }}
+                                        loading="lazy"
+                                    />
+                                ))}
+                            </div>
+                            {!gifLoading && gifSearchQuery && gifResults.length === 0 && (
+                                <div style={{ textAlign: 'center', color: C.textSec, fontSize: 13, padding: 16 }}>No GIFs found</div>
+                            )}
+                            {!gifSearchQuery && (
+                                <div style={{ textAlign: 'center', color: C.textSec, fontSize: 13, padding: 16 }}>Type to search for GIFs</div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Enhanced Message Input */}
+                    <MessageInput onSend={sendMessage} onMediaUpload={handleMediaUpload} onTyping={broadcastTyping} onGifToggle={() => setShowGifPicker(!showGifPicker)} showGifActive={showGifPicker} />
                     <ClubArenaBottomNav clubId={clubIdParam} activePage="messages" userRole={currentUserMembership?.role} />
                 </div>
 
-                {/* LiveKit Video Call Modal */}
-                {/* Incoming call notification banner */}
+                {/* Incoming call notification banner — polished */}
                 {incomingCall && (
                     <div style={{
                         position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)',
-                        zIndex: 9999, background: '#1877F2', borderRadius: 16, padding: '16px 24px',
+                        zIndex: 9999, background: 'linear-gradient(135deg, #1877F2 0%, #0057B8 100%)', borderRadius: 16, padding: '16px 24px',
                         display: 'flex', alignItems: 'center', gap: 16, boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-                        minWidth: 320, maxWidth: 400,
+                        minWidth: 320, maxWidth: 400, animation: 'slideDown 0.3s ease',
                     }}>
-                        {incomingCall.callerAvatar && (
-                            <img src={incomingCall.callerAvatar} alt="" style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover' }} />
+                        {incomingCall.callerAvatar ? (
+                            <img src={incomingCall.callerAvatar} alt="" style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,255,255,0.3)' }} />
+                        ) : (
+                            <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>📞</div>
                         )}
                         <div style={{ flex: 1 }}>
                             <div style={{ color: '#fff', fontWeight: 700, fontSize: 15 }}>{incomingCall.callerName}</div>
-                            <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13 }}>
-                                Incoming {incomingCall.callType === 'video' ? '[VIDEO] Video' : '[CALL] Voice'} Call
+                            <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                {incomingCall.callType === 'video' ? <VideoIcon size={14} color="rgba(255,255,255,0.8)" /> : <PhoneIcon size={14} color="rgba(255,255,255,0.8)" />}
+                                Incoming {incomingCall.callType === 'video' ? 'Video' : 'Voice'} Call
                             </div>
                         </div>
                         <button onClick={handleAcceptCall} style={{
                             background: '#31A24C', border: 'none', borderRadius: 50, width: 44, height: 44,
-                            cursor: 'pointer', fontSize: 20, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        }} title="Accept">[OK]</button>
+                            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }} title="Accept">
+                            <PhoneIcon size={20} color="#fff" />
+                        </button>
                         <button onClick={handleRejectCall} style={{
                             background: '#FA383E', border: 'none', borderRadius: 50, width: 44, height: 44,
-                            cursor: 'pointer', fontSize: 20, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        }} title="Reject">[X]</button>
+                            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }} title="Reject">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28-.79-.73-1.68-1.36-2.66-1.85-.33-.16-.56-.5-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z" /></svg>
+                        </button>
                     </div>
                 )}
 

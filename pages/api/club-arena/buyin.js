@@ -16,6 +16,7 @@ const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
 const { isUUID, validateAmount, rejectBadPayload } = require('../../../src/lib/club-arena/validate');
 const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
+const { safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,

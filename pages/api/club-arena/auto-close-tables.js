@@ -8,26 +8,27 @@
  * Body: { clubId? } — optional: only check tables for a specific club
  * Auth: requires admin or engine-key
  */
-const { createClient } = require('@supabase/supabase-js');
-const apiRateLimit = require('../../../src/lib/club-arena/apiRateLimit');
-const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
+import { createClient } from '@supabase/supabase-js';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { checkIdempotency, cacheResponse } from '../../../src/lib/club-arena/idempotency';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-    if (apiRateLimit(req, res)) return;
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
     if (checkIdempotency(req, res)) return;
 
     // Auth: engine-key or admin bearer token
     const engineKey = req.headers['x-engine-key'] || req.body?.engineKey;
     const validEngineKey = engineKey && engineKey === process.env.ENGINE_INTERNAL_SECRET;
 
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
     if (!validEngineKey) {
         const token = req.headers['authorization']?.replace('Bearer ', '');
         if (!token) return res.status(401).json({ error: 'Unauthorized' });
-        const supabase = createClient(supabaseUrl, supabaseKey);
         const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
         if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
         // Verify caller is a platform admin
@@ -37,7 +38,6 @@ module.exports = async function handler(req, res) {
         }
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
     const { clubId } = req.body || {};
 
     try {
@@ -63,12 +63,12 @@ module.exports = async function handler(req, res) {
             const hoursElapsed = (now - createdAt) / (1000 * 60 * 60);
 
             if (hoursElapsed >= gameLengthHours) {
-                // Close the table
+                // Close the table — atomic guard ensures no double-close
                 const { error: closeErr } = await supabase
                     .from('tables')
                     .update({ status: 'closed', updated_at: new Date().toISOString() })
                     .eq('id', table.id)
-                    .in('status', ['active', 'running', 'waiting']); // atomic guard
+                    .in('status', ['active', 'running', 'waiting']);
 
                 if (!closeErr) {
                     closedCount++;
@@ -93,4 +93,4 @@ module.exports = async function handler(req, res) {
         console.error('[auto-close-tables] Error:', err);
         return res.status(500).json({ error: 'Failed to check table game lengths' });
     }
-};
+}

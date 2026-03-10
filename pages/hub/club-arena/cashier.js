@@ -97,6 +97,15 @@ export default function Cashier() {
     const TX_PAGE_SIZE = 20;
     const isProcessingRef = useRef(false);
 
+    // ENH-6: Expandable transactions
+    const [expandedTx, setExpandedTx] = useState(null);
+
+    // ENH-10: Pull-to-refresh
+    const [pullRefreshing, setPullRefreshing] = useState(false);
+    const pullStartY = useRef(0);
+    const pullDelta = useRef(0);
+    const containerRef = useRef(null);
+
     // Modal states
     const [showBuyInModal, setShowBuyInModal] = useState(false);
     const [showCashOutModal, setShowCashOutModal] = useState(false);
@@ -122,12 +131,17 @@ export default function Cashier() {
     // Real-time wallet data
     const walletData = useWalletData({ supabase, userId: user?.id, clubId: club?.id });
 
-    const showToast = (message, type = 'success') => {
-        setToast({ message, type });
-        setTimeout(() => setToast(null), 3000);
+    const showToast = (message, type = 'success', action = null) => {
+        setToast({ message, type, action });
+        setTimeout(() => setToast(null), action ? 5000 : 3000);
     };
 
-    // Load data
+    // ENH-8: Haptic feedback utility
+    const haptic = (style = 'light') => {
+        try { if (navigator.vibrate) navigator.vibrate(style === 'success' ? [15, 50, 15] : style === 'error' ? [30, 30, 30] : 10); } catch (_) { }
+    };
+
+    // Load data — ENH-5: Parallel fetch with Promise.allSettled
     const loadData = useCallback(async (signal) => {
         if (!clubIdParam) return;
         setIsLoading(true);
@@ -162,67 +176,33 @@ export default function Cashier() {
                     .maybeSingle();
                 if (clubData) setClub(clubData);
 
-                // Get user's club membership and chip balance
+                // ENH-5: Parallel fetch — all club-dependent queries at once
                 if (clubData) {
-                    const { data: memberData } = await supabase
-                        .from('club_members')
-                        .select('*')
-                        .eq('club_id', clubData.id)
-                        .eq('user_id', authUser.id)
-                        .maybeSingle();
-                    if (memberData) {
-                        setMembership(memberData);
-                        setChipBalance(memberData.chip_balance || 0);
+                    const token = await getAuthToken();
+                    const [memberRes, txnRes, cashoutRes, histRes, rbRes] = await Promise.allSettled([
+                        supabase.from('club_members').select('*').eq('club_id', clubData.id).eq('user_id', authUser.id).maybeSingle(),
+                        supabase.from('chip_transactions').select('*').eq('club_id', clubData.id)
+                            .or(`from_user_id.eq.${authUser.id},to_user_id.eq.${authUser.id}`)
+                            .order('created_at', { ascending: false }).limit(100),
+                        supabase.from('cashout_requests').select('*').eq('club_id', clubData.id)
+                            .eq('player_id', authUser.id).in('status', ['pending', 'approved'])
+                            .order('created_at', { ascending: false }).limit(10),
+                        token ? fetch(`/api/club-arena/cashout-history?clubId=${clubData.id}`, {
+                            headers: { Authorization: `Bearer ${token}` }, signal,
+                        }).then(r => r.ok ? r.json() : null).catch(() => null) : Promise.resolve(null),
+                        token ? fetch(`/api/club-arena/rakeback?clubId=${clubData.id}&action=status`, {
+                            headers: { Authorization: `Bearer ${token}` }, signal,
+                        }).then(r => r.ok ? r.json() : null).catch(() => null) : Promise.resolve(null),
+                    ]);
+
+                    if (memberRes.status === 'fulfilled' && memberRes.value?.data) {
+                        setMembership(memberRes.value.data);
+                        setChipBalance(memberRes.value.data.chip_balance || 0);
                     }
-
-                    // Get transaction history for this club (both sent AND received)
-                    const { data: txns } = await supabase
-                        .from('chip_transactions')
-                        .select('*')
-                        .eq('club_id', clubData.id)
-                        .or(`from_user_id.eq.${authUser.id},to_user_id.eq.${authUser.id}`)
-                        .order('created_at', { ascending: false })
-                        .limit(20);
-                    setTransactions(txns || []);
-
-                    // Get pending cashout requests for this user
-                    const { data: cashouts } = await supabase
-                        .from('cashout_requests')
-                        .select('*')
-                        .eq('club_id', clubData.id)
-                        .eq('player_id', authUser.id)
-                        .in('status', ['pending', 'approved'])
-                        .order('created_at', { ascending: false })
-                        .limit(10);
-                    setPendingCashouts(cashouts || []);
-
-                    // Load full cashout history (all statuses) via API
-                    try {
-                        const token = await getAuthToken();
-                        if (token) {
-                            const histRes = await fetch(`/api/club-arena/cashout-history?clubId=${clubData.id}`, {
-                                headers: { Authorization: `Bearer ${token}` },
-                                signal,
-                            });
-                            if (histRes.ok) {
-                                const histData = await histRes.json();
-                                setCashoutHistory(histData.cashouts || []);
-                            }
-                        }
-                    } catch (e) { /* cashout history is optional */ }
-
-                    // Load rakeback info
-                    try {
-                        const rbToken = await getAuthToken();
-                        const rbRes = await fetch(`/api/club-arena/rakeback?clubId=${clubData.id}&action=status`, {
-                            headers: { Authorization: `Bearer ${rbToken}` },
-                            signal,
-                        });
-                        if (rbRes.ok) {
-                            const rbData = await rbRes.json();
-                            setRakebackInfo(rbData);
-                        }
-                    } catch (e) { /* rakeback is optional */ }
+                    if (txnRes.status === 'fulfilled') setTransactions(txnRes.value?.data || []);
+                    if (cashoutRes.status === 'fulfilled') setPendingCashouts(cashoutRes.value?.data || []);
+                    if (histRes.status === 'fulfilled' && histRes.value) setCashoutHistory(histRes.value.cashouts || []);
+                    if (rbRes.status === 'fulfilled' && rbRes.value) setRakebackInfo(rbRes.value);
                 }
             }
         } catch (e) {
@@ -262,6 +242,7 @@ export default function Cashier() {
             });
 
         // Subscribe to cashout_requests changes (status updates from agent)
+        // ENH-1: Show cashout approval toast
         const cashoutChannel = supabase
             .channel(`cashier-cashouts-${club.id}-${user.id}`)
             .on('postgres_changes', {
@@ -271,16 +252,17 @@ export default function Cashier() {
                 filter: `club_id=eq.${club.id}`,
             }, (payload) => {
                 if (payload.new?.player_id === user.id || payload.old?.player_id === user.id) {
-                    loadData(); // Full refresh on cashout status change
+                    if (payload.new?.status === 'approved' && payload.old?.status === 'pending') {
+                        showToast(`✅ Cashout of ${(payload.new.amount || 0).toLocaleString()} chips approved!`, 'success');
+                        haptic('success');
+                    }
+                    loadData();
                 }
             })
-            .subscribe((status) => {
-                if (status !== 'SUBSCRIBED') {
-
-                }
-            });
+            .subscribe();
 
         // Subscribe to chip_transactions (live transaction history)
+        // ENH-1: Show incoming chip notification toast
         const txnChannel = supabase
             .channel(`cashier-txns-${club.id}-${user.id}`)
             .on('postgres_changes', {
@@ -289,15 +271,20 @@ export default function Cashier() {
                 table: 'chip_transactions',
                 filter: `club_id=eq.${club.id}`,
             }, (payload) => {
-                if (payload.new?.from_user_id === user.id || payload.new?.to_user_id === user.id) {
+                const tx = payload.new;
+                if (!tx) return;
+                const isIncoming = tx.to_user_id === user.id && tx.from_user_id !== user.id;
+                if (isIncoming && tx.amount > 0) {
+                    const label = tx.transaction_type === 'rakeback' ? '🎁 Rakeback' :
+                        tx.transaction_type === 'admin_credit' ? '⭐ Admin Credit' : '💰 Chips Received';
+                    showToast(`${label}: +${(tx.amount || 0).toLocaleString()} chips`, 'success');
+                    haptic('success');
+                }
+                if (tx.from_user_id === user.id || tx.to_user_id === user.id) {
                     loadData();
                 }
             })
-            .subscribe((status) => {
-                if (status !== 'SUBSCRIBED') {
-
-                }
-            });
+            .subscribe();
 
         // TIER 2 REALTIME: Cross-tab sync for chip balance via BroadcastChannel
         let bc = null;
@@ -346,7 +333,8 @@ export default function Cashier() {
         const diamondCost = Math.ceil((amount / 100) * 38);
 
         if (diamondCost > diamondBalance) {
-            showToast(`Not enough diamonds. Need ${diamondCost}`, 'error');
+            // ENH-3: Insufficient diamond toast with Buy Diamonds action
+            showToast(`Not enough diamonds. Need ${diamondCost}`, 'error', { label: 'Buy Diamonds', onClick: () => router.push('/hub/diamond-store') });
             return;
         }
 
@@ -577,7 +565,24 @@ export default function Cashier() {
                 noindex={true}
             />
 
-            <div style={S.page}>
+            <div style={S.page}
+                ref={containerRef}
+                onTouchStart={(e) => { pullStartY.current = e.touches[0].clientY; pullDelta.current = 0; }}
+                onTouchMove={(e) => {
+                    if (window.scrollY > 0 || pullRefreshing) return;
+                    pullDelta.current = e.touches[0].clientY - pullStartY.current;
+                }}
+                onTouchEnd={async () => {
+                    if (pullDelta.current > 80 && window.scrollY === 0 && !pullRefreshing) {
+                        setPullRefreshing(true);
+                        haptic('light');
+                        await loadData();
+                        setPullRefreshing(false);
+                    }
+                    pullDelta.current = 0;
+                }}
+                role="main" aria-label="Club Arena Cashier"
+            >
                 <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
                 <HamburgerMenu
                     isOpen={menuOpen}
@@ -590,7 +595,14 @@ export default function Cashier() {
                 />
 
                 <div style={S.container}>
-                    <button onClick={() => router.push(`/hub/club-arena/lobby?club=${clubIdParam}`)} style={S.backBtn}>
+                    {/* ENH-10: Pull-to-refresh indicator */}
+                    {pullRefreshing && (
+                        <div style={{ textAlign: 'center', padding: '12px 0', color: FB.textSecondary, fontSize: 13 }}>
+                            <span style={{ animation: 'spin 0.8s linear infinite', display: 'inline-block' }}>↻</span> Refreshing...
+                            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                        </div>
+                    )}
+                    <button onClick={() => router.push(`/hub/club-arena/lobby?club=${clubIdParam}`)} style={S.backBtn} aria-label="Back to lobby">
                         &#8592; Back to Lobby
                     </button>
 
@@ -640,11 +652,12 @@ export default function Cashier() {
                             </HubErrorBoundary>
 
                             {/* Action Buttons */}
-                            <div style={S.actionGrid}>
+                            <div style={S.actionGrid} role="group" aria-label="Cashier actions">
                                 <button
                                     style={{ ...S.actionBtn, ...(diamondBalance < 38 ? S.actionBtnDisabled : {}) }}
                                     onClick={() => diamondBalance >= 38 && setShowBuyInModal(true)}
                                     disabled={diamondBalance < 38}
+                                    aria-label={diamondBalance < 38 ? 'Buy Chips - insufficient diamonds' : 'Buy Chips'}
                                 >
                                     Buy Chips
                                 </button>
@@ -652,6 +665,7 @@ export default function Cashier() {
                                     style={{ ...S.actionBtn, background: FB.success, ...(chipBalance < 100 ? S.actionBtnDisabled : {}) }}
                                     onClick={() => chipBalance >= 100 && setShowCashOutModal(true)}
                                     disabled={chipBalance < 100}
+                                    aria-label={chipBalance < 100 ? 'Cash Out - minimum 100 chips' : 'Cash Out'}
                                 >
                                     Cash Out
                                 </button>
@@ -678,10 +692,30 @@ export default function Cashier() {
                                             ...S.listItem,
                                             border: `1px solid ${co.status === 'approved' ? FB.success : '#F5A623'}`,
                                             background: co.status === 'approved' ? 'rgba(49,162,76,0.08)' : 'rgba(245,166,35,0.08)',
-                                        }}>
+                                        }} role="listitem" aria-label={`Cashout ${co.status}: ${co.amount} chips`}>
+                                            {/* ENH-2: Cashout 3-step progress tracker */}
+                                            <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 0 }}>
+                                                {['Requested', 'Approved', 'Completed'].map((step, idx) => {
+                                                    const activeIdx = co.status === 'completed' ? 2 : co.status === 'approved' ? 1 : 0;
+                                                    const isActive = idx <= activeIdx;
+                                                    return (
+                                                        <div key={step} style={{ display: 'flex', alignItems: 'center', flex: idx < 2 ? 1 : 'none' }}>
+                                                            <div style={{
+                                                                width: 20, height: 20, borderRadius: '50%', fontSize: 10, fontWeight: 800,
+                                                                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                                                                background: isActive ? (idx === 2 ? FB.success : FB.primary) : FB.hover,
+                                                                color: isActive ? '#fff' : FB.textSecondary,
+                                                                border: `2px solid ${isActive ? (idx === 2 ? FB.success : FB.primary) : FB.border}`,
+                                                            }}>{idx + 1}</div>
+                                                            <div style={{ fontSize: 9, color: isActive ? FB.textPrimary : FB.textSecondary, marginLeft: 4, fontWeight: isActive ? 700 : 400 }}>{step}</div>
+                                                            {idx < 2 && <div style={{ flex: 1, height: 2, background: isActive && idx < activeIdx ? FB.primary : FB.border, margin: '0 6px' }} />}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
                                             <div style={{ flex: 1 }}>
                                                 <div style={{ fontSize: '14px', fontWeight: 600, color: FB.textPrimary }}>
-                                                    {co.status === 'pending' ? ' Awaiting Agent Approval' : ' Approved'}
+                                                    {co.status === 'pending' ? '⏳ Awaiting Agent Approval' : '✅ Approved'}
                                                 </div>
                                                 <div style={S.txDate}>
                                                     {co.created_at ? new Date(co.created_at).toLocaleString() : 'N/A'}
@@ -829,10 +863,51 @@ export default function Cashier() {
                                         background: 'rgba(35,116,225,0.08)', border: '1px solid rgba(35,116,225,0.25)',
                                         color: '#2374E1', fontSize: '14px', fontWeight: 700, cursor: 'pointer',
                                     }}
+                                    aria-label="Send chips to a club member"
                                 >
                                     💸 Send Chips to a Club Member
                                 </button>
                             </div>
+
+                            {/* ENH-7: Chip Flow Mini-Chart (7-day sparkline) */}
+                            {transactions.length > 0 && (() => {
+                                const now = Date.now();
+                                const dayMs = 86400000;
+                                const days = Array.from({ length: 7 }, (_, i) => {
+                                    const dayStart = now - (6 - i) * dayMs;
+                                    const dayEnd = dayStart + dayMs;
+                                    let inflow = 0, outflow = 0;
+                                    transactions.forEach(tx => {
+                                        const t = new Date(tx.created_at).getTime();
+                                        if (t >= dayStart && t < dayEnd) {
+                                            if ((tx.amount || 0) >= 0) inflow += tx.amount || 0;
+                                            else outflow += Math.abs(tx.amount || 0);
+                                        }
+                                    });
+                                    return { inflow, outflow, label: new Date(dayStart).toLocaleDateString('en', { weekday: 'short' }) };
+                                });
+                                const maxVal = Math.max(...days.map(d => Math.max(d.inflow, d.outflow)), 1);
+                                return (
+                                    <div style={{ marginBottom: 20, background: FB.cardBg, borderRadius: 12, padding: '14px 16px', border: `1px solid ${FB.border}` }}>
+                                        <h2 style={{ ...S.sectionTitle, marginBottom: 10 }}>7-Day Chip Flow</h2>
+                                        <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', height: 60 }} role="img" aria-label="7-day chip flow chart">
+                                            {days.map((d, i) => (
+                                                <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                                                    <div style={{ width: '100%', display: 'flex', gap: 1, alignItems: 'flex-end', height: 44 }}>
+                                                        <div style={{ flex: 1, background: FB.success, borderRadius: '3px 3px 0 0', height: `${Math.max((d.inflow / maxVal) * 44, d.inflow > 0 ? 3 : 0)}px`, transition: 'height 0.3s ease' }} title={`In: ${d.inflow.toLocaleString()}`} />
+                                                        <div style={{ flex: 1, background: FB.danger, borderRadius: '3px 3px 0 0', height: `${Math.max((d.outflow / maxVal) * 44, d.outflow > 0 ? 3 : 0)}px`, transition: 'height 0.3s ease' }} title={`Out: ${d.outflow.toLocaleString()}`} />
+                                                    </div>
+                                                    <div style={{ fontSize: 9, color: FB.textSecondary, fontWeight: 600 }}>{d.label}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <div style={{ display: 'flex', gap: 12, marginTop: 8, fontSize: 10, color: FB.textSecondary }}>
+                                            <span><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, background: FB.success, marginRight: 4 }} />In</span>
+                                            <span><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, background: FB.danger, marginRight: 4 }} />Out</span>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
 
                             {/* Transaction History */}
                             <h2 style={S.sectionTitle}>Transaction History</h2>
@@ -840,30 +915,48 @@ export default function Cashier() {
                                 <>
                                     {transactions.slice(0, txPage * TX_PAGE_SIZE).map((tx, i) => {
                                         const txIcons = {
-                                            buyin: '[+]', deposit: '[+]', withdrawal: '[-]', cashout: '[-]',
-                                            win: '[W]', loss: '[L]', rake: '[R]', send: '[>]', receive: '[<]',
-                                            purchase: '[$]', rakeback: '[RB]', bonus: '[+]', promo: '[P]',
+                                            buyin: '➕', deposit: '➕', withdrawal: '➖', cashout: '💳',
+                                            win: '🏆', loss: '📉', rake: '🎰', send: '➡️', receive: '⬅️',
+                                            purchase: '🛍️', rakeback: '🎁', bonus: '⭐', promo: '🎨',
+                                            transfer_in: '⬅️', transfer_out: '➡️', admin_credit: '⭐',
                                         };
-                                        const icon = txIcons[tx.transaction_type] || '[?]';
+                                        const icon = txIcons[tx.transaction_type] || '💱';
                                         const isPos = (tx.amount || 0) >= 0;
+                                        const isExpanded = expandedTx === (tx.id || i);
                                         return (
-                                            <div key={tx.id || i} style={{ ...S.listItem, gap: '10px', alignItems: 'center', display: 'flex' }}>
-                                                <div style={{ fontSize: 20, flexShrink: 0 }}>{icon}</div>
-                                                <div style={{ flex: 1, minWidth: 0 }}>
-                                                    <div style={S.txType}>{getTransactionLabel(tx.transaction_type)}</div>
-                                                    <div style={S.txDate}>
-                                                        {tx.notes ? <span style={{ color: '#B0B3B8' }}>{tx.notes.slice(0, 40)} · </span> : null}
-                                                        {tx.created_at ? new Date(tx.created_at).toLocaleString() : 'N/A'}
+                                            <div key={tx.id || i}
+                                                onClick={() => setExpandedTx(isExpanded ? null : (tx.id || i))}
+                                                style={{ ...S.listItem, gap: '10px', display: 'flex', flexDirection: 'column', cursor: 'pointer', transition: 'background 0.15s' }}
+                                                role="button" aria-expanded={isExpanded} aria-label={`${getTransactionLabel(tx.transaction_type)}: ${tx.amount} chips`}
+                                            >
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%' }}>
+                                                    <div style={{ fontSize: 20, flexShrink: 0 }}>{icon}</div>
+                                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                                        <div style={S.txType}>{getTransactionLabel(tx.transaction_type)}</div>
+                                                        <div style={S.txDate}>
+                                                            {tx.notes ? <span style={{ color: '#B0B3B8' }}>{tx.notes.slice(0, 40)} · </span> : null}
+                                                            {tx.created_at ? new Date(tx.created_at).toLocaleString() : 'N/A'}
+                                                        </div>
+                                                    </div>
+                                                    <div style={{
+                                                        ...S.txAmount,
+                                                        color: isPos ? FB.success : FB.danger,
+                                                        background: isPos ? 'rgba(49,162,76,0.1)' : 'rgba(250,56,62,0.1)',
+                                                        borderRadius: 6, padding: '3px 8px',
+                                                    }}>
+                                                        {isPos ? '+' : ''}{(tx.amount || 0).toLocaleString()}
                                                     </div>
                                                 </div>
-                                                <div style={{
-                                                    ...S.txAmount,
-                                                    color: isPos ? FB.success : FB.danger,
-                                                    background: isPos ? 'rgba(49,162,76,0.1)' : 'rgba(250,56,62,0.1)',
-                                                    borderRadius: 6, padding: '3px 8px',
-                                                }}>
-                                                    {isPos ? '+' : ''}{(tx.amount || 0).toLocaleString()}
-                                                </div>
+                                                {/* ENH-6: Expanded transaction detail */}
+                                                {isExpanded && (
+                                                    <div style={{ width: '100%', paddingTop: 8, borderTop: `1px solid ${FB.border}`, fontSize: 12, color: FB.textSecondary, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px' }}>
+                                                        <div><strong style={{ color: FB.textPrimary }}>Type:</strong> {getTransactionLabel(tx.transaction_type)}</div>
+                                                        <div><strong style={{ color: FB.textPrimary }}>Amount:</strong> {(tx.amount || 0).toLocaleString()}</div>
+                                                        {tx.notes && <div style={{ gridColumn: '1 / -1' }}><strong style={{ color: FB.textPrimary }}>Note:</strong> {tx.notes}</div>}
+                                                        <div><strong style={{ color: FB.textPrimary }}>Date:</strong> {tx.created_at ? new Date(tx.created_at).toLocaleString() : 'N/A'}</div>
+                                                        {tx.id && <div><strong style={{ color: FB.textPrimary }}>ID:</strong> <span style={{ fontFamily: 'monospace', fontSize: 10 }}>{tx.id.slice(0, 8)}…</span></div>}
+                                                    </div>
+                                                )}
                                             </div>
                                         );
                                     })}
@@ -1116,14 +1209,27 @@ export default function Cashier() {
                 </div>
             )}
 
-            {/* Toast Notification */}
+            {/* Toast Notification — ENH-3 action button support */}
             {toast && (
                 <div style={{
                     ...S.toast,
                     background: toast.type === 'error' ? FB.danger : FB.success,
-                    color: '#fff'
-                }}>
-                    {toast.message}
+                    color: '#fff',
+                    display: 'flex', alignItems: 'center', gap: 10,
+                }} role="alert" aria-live="polite">
+                    <span style={{ flex: 1 }}>{toast.message}</span>
+                    {toast.action && (
+                        <button
+                            onClick={toast.action.onClick}
+                            style={{
+                                background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.4)',
+                                color: '#fff', borderRadius: 6, padding: '4px 12px', fontSize: 12,
+                                fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
+                            }}
+                        >
+                            {toast.action.label}
+                        </button>
+                    )}
                 </div>
             )}
         </>
