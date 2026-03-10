@@ -416,6 +416,17 @@ function CashCard({ table: t, assetMap, onPress, onSpectate, onWaitlist, avgVpip
 
       {isLive && ensureLivePulse()}
     </button>
+    {expandModal && (
+      <MiniViewExpandModal
+        miniState={miniState}
+        maxSeats={max}
+        blinds={`${fmtBlind(sb)}/${fmtBlind(bb)}`}
+        variant={vc.label}
+        accentColor={vc.accent}
+        onClose={() => setExpandModal(false)}
+      />
+    )}
+    </>
   );
 }
 

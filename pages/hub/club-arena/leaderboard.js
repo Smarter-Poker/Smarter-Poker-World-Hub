@@ -247,6 +247,7 @@ const MemoizedLeaderboardRow = React.memo(({ member, rank, isCurrentUser, S, FB,
         </div>
     );
 });
+MemoizedLeaderboardRow.displayName = 'MemoizedLeaderboardRow';
 
 export default function Leaderboard() {
     useTrainingBus('club-arena-leaderboard');

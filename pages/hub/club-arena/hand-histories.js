@@ -152,6 +152,7 @@ const MemoizedHandCard = React.memo(({ hand, setSelectedHand, renderCardRow, get
         </div>
     );
 });
+MemoizedHandCard.displayName = 'MemoizedHandCard';
 
 export default function HandHistories() {
     useTrainingBus('club-arena-hand-histories');

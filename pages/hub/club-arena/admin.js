@@ -24,6 +24,7 @@ import NotificationBell from '../../../src/components/club-arena/NotificationBel
 import dynamic from 'next/dynamic';
 import useWalletData from '../../../src/hooks/useWalletData';
 const DynamicWallet = dynamic(() => import('../../../src/components/club-arena/DynamicWallet'), { ssr: false });
+const AdminTableHeatmap = dynamic(() => import('../../../src/components/club-arena/AdminTableHeatmap'), { ssr: false });
 const ClubAnnouncementBanner = dynamic(() => import('../../../src/components/club-arena/ClubAnnouncementBanner'), { ssr: false });
 const CreateTableModal = dynamic(() => import('../../../src/components/club-arena/CreateTableModal'), { ssr: false });
 
@@ -98,6 +99,7 @@ const MemoizedMemberRow = React.memo(({ member, agents, downlineCount, assignedA
         )}
     </div>
 ));
+MemoizedMemberRow.displayName = 'MemoizedMemberRow';
 
 export default function Admin() {
     useTrainingBus('club-arena-admin');
