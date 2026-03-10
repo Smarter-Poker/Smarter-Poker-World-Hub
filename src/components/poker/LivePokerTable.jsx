@@ -3842,34 +3842,15 @@ function LivePokerTable({
   const [preActionFired, setPreActionFired] = useState(null); // { action, ts }
   const preActionCleanupRef = useRef(null);
 
-  // ═══ RUN-IT-TWICE PROMPT STATE ═══
-  const [ritPrompt, setRitPrompt] = useState(false);
-  const ritTimerRef = useRef(null);
+  // ═══ RUN-IT-TWICE / THRICE PROMPT (from backend result.runItOffer) ═══
+  const offer = result?.runItOffer;
+  const isRitOfferActive = !!offer && (offer.proposerId === String(userId) || offer.responderIds.includes(String(userId)));
+  const isRitProposer = offer?.proposerId === String(userId);
+  const isRitResponder = offer?.responderIds.includes(String(userId));
 
-  // Show RIT prompt when all-in detected and config enabled — only for players who are all-in
-  useEffect(() => {
-    const allInDetected = tableState?.game?.phase === 'showdown' && tableState?.game?.allInRunout;
-    const ritEnabled = tableState?.config?.runItTwice;
-    // Only show RIT to players who are actually all-in in this hand
-    const heroAllIn = isSitting && tableState?.game?.players?.some(
-      p => String(p.id) === String(userId) && p.isAllIn
-    );
-    if (allInDetected && ritEnabled && heroAllIn && !ritPrompt) {
-      setRitPrompt(true);
-      // Auto-decline after 10 seconds
-      ritTimerRef.current = setTimeout(() => {
-        send('respond_run_it', { choice: 'decline' });
-        setRitPrompt(false);
-      }, 10000);
-    }
-    return () => { if (ritTimerRef.current) clearTimeout(ritTimerRef.current); };
-  }, [tableState?.game?.phase, tableState?.game?.allInRunout, tableState?.config?.runItTwice, isSitting, userId]);
-
-  const handleRITResponse = useCallback((accepted) => {
-    if (ritTimerRef.current) clearTimeout(ritTimerRef.current);
-    send('respond_run_it', { choice: accepted ? 'twice' : 'decline' });
-    setRitPrompt(false);
-    try { eventBus.emit('DATA_MUTATED', `rit_response_${accepted ? 'accepted' : 'declined'}`); } catch (_e) {}
+  const handleRITResponse = useCallback((choice) => {
+    send('respond_run_it', { choice });
+    try { eventBus.emit('DATA_MUTATED', `rit_response_${choice}`); } catch (_e) {}
   }, [send]);
 
   // ═══ HERO SEAT ROTATION — Always place hero at bottom center (position 0) ═══
@@ -5153,9 +5134,9 @@ function LivePokerTable({
         </div>
       )}
 
-      {/* ═══ RUN-IT-TWICE PROMPT ═══ */}
+      {/* ═══ RUN-IT MULTIPLE PROMPT (Backend Driven) ═══ */}
       <AnimatePresence>
-        {ritPrompt && (
+        {isRitOfferActive && (
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -5170,33 +5151,68 @@ function LivePokerTable({
           >
             <div style={{ fontSize: 28, marginBottom: 6 }}>🎰🎰</div>
             <div style={{ color: '#a855f7', fontSize: 18, fontWeight: 800, marginBottom: 4, letterSpacing: 1 }}>
-              RUN IT TWICE?
+              {isRitProposer ? 'YOU HAVE THE BEST HAND' : 'RUN IT MULTIPLE TIMES?'}
             </div>
             <div style={{ color: '#B0B3B8', fontSize: 12, marginBottom: 14 }}>
-              Deal two separate boards for the remaining cards
+              {isRitProposer ? 'Choose how many boards to run:' : 'The leader proposes multiple boards. Accept or decline.'}
             </div>
-            <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-              <button
-                onClick={() => handleRITResponse(true)}
-                style={{
-                  background: 'linear-gradient(135deg, #22c55e, #16a34a)',
-                  border: 'none', borderRadius: 10, color: '#fff',
-                  fontSize: 14, fontWeight: 800, padding: '10px 28px', cursor: 'pointer',
-                }}
-              >
-                Yes
-              </button>
-              <button
-                onClick={() => handleRITResponse(false)}
-                style={{
-                  background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
-                  borderRadius: 10, color: '#E4E6EB',
-                  fontSize: 14, fontWeight: 700, padding: '10px 28px', cursor: 'pointer',
-                }}
-              >
-                No
-              </button>
-            </div>
+            
+            {isRitProposer ? (
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+                <button
+                  onClick={() => handleRITResponse('once')}
+                  style={{
+                    background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
+                    borderRadius: 10, color: '#E4E6EB', fontSize: 14, fontWeight: 700, padding: '10px 20px', cursor: 'pointer',
+                  }}
+                >
+                  Just Once
+                </button>
+                <button
+                  onClick={() => handleRITResponse('twice')}
+                  style={{
+                    background: 'linear-gradient(135deg, #a855f7, #9333ea)', border: 'none',
+                    borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 800, padding: '10px 20px', cursor: 'pointer',
+                  }}
+                >
+                  Twice
+                </button>
+                <button
+                  onClick={() => handleRITResponse('thrice')}
+                  style={{
+                    background: 'linear-gradient(135deg, #22c55e, #16a34a)', border: 'none',
+                    borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 800, padding: '10px 20px', cursor: 'pointer',
+                  }}
+                >
+                  Three Times
+                </button>
+              </div>
+            ) : isRitResponder ? (
+              offer.proposal ? (
+                <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+                  <button
+                    onClick={() => handleRITResponse('accept')}
+                    style={{
+                      background: 'linear-gradient(135deg, #22c55e, #16a34a)', border: 'none',
+                      borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 800, padding: '10px 28px', cursor: 'pointer',
+                    }}
+                  >
+                    Accept {offer.proposal === 'thrice' ? '3x' : '2x'}
+                  </button>
+                  <button
+                    onClick={() => handleRITResponse('decline')}
+                    style={{
+                      background: 'rgba(255,255,255,0.1)', border: '1px solid #ef4444',
+                      borderRadius: 10, color: '#ef4444', fontSize: 14, fontWeight: 700, padding: '10px 28px', cursor: 'pointer',
+                    }}
+                  >
+                    Decline
+                  </button>
+                </div>
+              ) : (
+                <div style={{ color: '#fff', fontSize: 14 }}>Waiting for proposer to choose...</div>
+              )
+            ) : null}
           </motion.div>
         )}
       </AnimatePresence>
