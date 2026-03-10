@@ -707,6 +707,48 @@ export default function ClubMessages() {
     const [globalSearchResults, setGlobalSearchResults] = useState([]);
     const [globalSearchLoading, setGlobalSearchLoading] = useState(false);
 
+    // ═══ PHASE 2 — Premium Features ═══
+
+    // P2-1: Message Labels
+    const [messageLabels, setMessageLabels] = usePersistedState('sp-msg-labels', {});
+
+    // P2-2: Disappearing Messages
+    const [disappearingConvIds, setDisappearingConvIds] = usePersistedState('sp-disappearing-convs', []);
+
+    // P2-3: Broadcast Mode
+    const [showBroadcast, setShowBroadcast] = useState(false);
+    const [broadcastText, setBroadcastText] = useState('');
+    const [broadcastSending, setBroadcastSending] = useState(false);
+
+    // P2-4: Scheduled Messages
+    const [scheduledMessages, setScheduledMessages] = usePersistedState('sp-scheduled-msgs', []);
+    const [showScheduler, setShowScheduler] = useState(false);
+    const [scheduleTime, setScheduleTime] = useState('');
+
+    // P2-5: Message Bookmarks
+    const [bookmarks, setBookmarks] = usePersistedState('sp-msg-bookmarks', []);
+    const [showBookmarks, setShowBookmarks] = useState(false);
+
+    // P2-6: Chat Themes
+    const [chatThemes, setChatThemes] = usePersistedState('sp-chat-themes', {});
+    const chatThemePresets = [
+        { name: 'Default', bg: C.bg },
+        { name: 'Midnight', bg: 'linear-gradient(180deg, #0a0a2e 0%, #1a1a3e 100%)' },
+        { name: 'Emerald', bg: 'linear-gradient(180deg, #0d1117 0%, #0a1a0a 100%)' },
+        { name: 'Crimson', bg: 'linear-gradient(180deg, #1a0a0a 0%, #2a1010 100%)' },
+        { name: 'Ocean', bg: 'linear-gradient(180deg, #0a1929 0%, #0d2137 100%)' },
+        { name: 'Gold', bg: 'linear-gradient(180deg, #1a1500 0%, #2a2200 100%)' },
+    ];
+
+    // P2-7: Message Templates
+    const [templates, setTemplates] = usePersistedState('sp-msg-templates', [
+        { id: 1, text: 'Your funds are ready for pickup! 💰', label: 'Cashout' },
+        { id: 2, text: 'Tournament starts in 30 minutes! 🏆 Don\'t miss it.', label: 'Tournament' },
+        { id: 3, text: 'Please verify your account to continue playing.', label: 'Verify' },
+        { id: 4, text: 'Welcome to the club! Let me know if you need anything. 👋', label: 'Welcome' },
+    ]);
+    const [showTemplates, setShowTemplates] = useState(false);
+
     // GIF picker state
     const [showGifPicker, setShowGifPicker] = useState(false);
     const [gifSearchQuery, setGifSearchQuery] = useState('');

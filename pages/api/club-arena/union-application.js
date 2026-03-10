@@ -87,6 +87,12 @@ export default async function handler(req, res) {
   const { action, clubId, applicationId, unionId: bodyUnionId, message, reason, commissionRate } = req.body;
   if (!action) return res.status(400).json({ success: false, error: 'action required' });
 
+  // Zod validation — reject malformed payloads before DB queries
+  const validation = validateUnionApplication(req.body);
+  if (!validation.success) {
+    return res.status(400).json({ success: false, error: validation.error });
+  }
+
   try {
     // ═══════════════════════════════════════════════════════════════
     // APPLY — Club owner submits application to Midway Union
