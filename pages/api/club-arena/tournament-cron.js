@@ -1,7 +1,7 @@
 // /pages/api/club-arena/tournament-cron.js
 // Scheduled endpoint for tournament auto-start and push notification reminders
 // Called by Vercel Cron or external scheduler every 60 seconds
-import { supabaseServerClient } from '../../../src/lib/supabase-server';
+import { getSupabase } from '../../../src/lib/supabase';
 
 export default async function handler(req, res) {
     // Only allow GET (cron) or POST with secret
@@ -11,7 +11,7 @@ export default async function handler(req, res) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const supabase = supabaseServerClient(req, res);
+    const supabase = getSupabase();
     const now = new Date();
     const results = { autoStarted: 0, reminders: 0, errors: [] };
 

@@ -528,22 +528,49 @@ export default function Admin() {
             return;
         }
 
+        const name = selectedMember.profiles?.display_name || selectedMember.profiles?.username;
+
+        // OPTIMISTIC UI: Immediately show the chips as sent
+        const previousBalance = selectedMember.chip_balance || 0;
+        setMembers(prev => prev.map(m =>
+            m.user_id === selectedMember.user_id
+                ? { ...m, chip_balance: (m.chip_balance || 0) + amount, _confirming: true }
+                : m
+        ));
+        showToast(`⚡ ${amount.toLocaleString()} chips sent to ${name} (confirming...)`);
+        const savedMember = selectedMember;
+        setSelectedMember(null);
+        setChipAmount('');
+
         setProcessing(true);
         try {
-            const result = await apiCall('/api/club-arena/distribute-chips', {
+            await apiCall('/api/club-arena/distribute-chips', {
                 clubId: club.id,
-                toUserId: selectedMember.user_id,
+                toUserId: savedMember.user_id,
                 amount,
                 notes: `Admin distribution by ${user?.email || 'admin'}`,
             });
 
-            const name = selectedMember.profiles?.display_name || selectedMember.profiles?.username;
-            showToast(`${amount.toLocaleString()} chips sent to ${name}`);
+            // Confirmed — remove confirming badge
+            setMembers(prev => prev.map(m =>
+                m.user_id === savedMember.user_id
+                    ? { ...m, _confirming: false, _confirmed: true }
+                    : m
+            ));
+            setTimeout(() => {
+                setMembers(prev => prev.map(m =>
+                    m.user_id === savedMember.user_id ? { ...m, _confirmed: false } : m
+                ));
+            }, 3000);
+            showToast(`✅ ${amount.toLocaleString()} chips confirmed to ${name}`);
             busEmit.dataMutated('chips_distributed');
-            setSelectedMember(null);
-            setChipAmount('');
-            loadData();
         } catch (e) {
+            // ROLLBACK: Reverse the optimistic update
+            setMembers(prev => prev.map(m =>
+                m.user_id === savedMember.user_id
+                    ? { ...m, chip_balance: previousBalance, _confirming: false }
+                    : m
+            ));
             showToast(e.message || 'Failed to distribute chips', 'error');
         } finally {
             setProcessing(false);
@@ -922,7 +949,7 @@ export default function Admin() {
                                     💰 Mint
                                 </button>
                                 <button
-                                    onClick={() => { setActiveModal('tables'); loadTables(); setShowCreateTable(true); }}
+                                    onClick={() => { setActiveModal('tables'); loadTables(); loadTemplates(); setShowCreateTable(true); }}
                                     style={{ flex: '1 1 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '12px 10px', background: 'rgba(14,165,233,0.12)', border: '1px solid rgba(14,165,233,0.3)', borderRadius: 10, color: '#0EA5E9', fontWeight: 700, fontSize: 13, cursor: 'pointer', transition: 'all 0.15s' }}
                                     onMouseEnter={e => e.currentTarget.style.background = 'rgba(14,165,233,0.25)'}
                                     onMouseLeave={e => e.currentTarget.style.background = 'rgba(14,165,233,0.12)'}
@@ -1104,22 +1131,64 @@ export default function Admin() {
                             <button style={S.modalClose} onClick={() => setActiveModal(null)}>&times;</button>
                         </div>
                         <div style={S.modalBody}>
-                            <div style={S.statsGrid}>
-                                <div style={S.statCard}>
-                                    <div style={S.statValue}>{stats.totalMembers}</div>
-                                    <div style={S.statLabel}>Total Members</div>
+                            {/* Club Health Dashboard */}
+                            <div style={{ marginBottom: 20 }}>
+                                <div style={{ fontSize: 12, fontWeight: 700, color: '#00d4ff', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.5px' }}>📊 Club Health Dashboard</div>
+                                <div className="ca-health-grid">
+                                    <div className="ca-health-card">
+                                        <div className="ca-health-value">{stats.totalMembers}</div>
+                                        <div className="ca-health-label">Members</div>
+                                    </div>
+                                    <div className="ca-health-card">
+                                        <div className="ca-health-value">{stats.activeTables}</div>
+                                        <div className="ca-health-label">Active Tables</div>
+                                    </div>
+                                    <div className="ca-health-card">
+                                        <div className="ca-health-value" style={{ color: '#4ade80' }}>{stats.totalRake.toLocaleString()}</div>
+                                        <div className="ca-health-label">Total Rake</div>
+                                    </div>
+                                    <div className="ca-health-card">
+                                        <div className="ca-health-value">{stats.handsPlayed.toLocaleString()}</div>
+                                        <div className="ca-health-label">Hands Played</div>
+                                    </div>
+                                    <div className="ca-health-card">
+                                        <div className="ca-health-value" style={{ color: stats.handsPlayed > 0 ? '#4ade80' : '#B0B3B8' }}>{stats.handsPlayed > 0 && stats.activeTables > 0 ? Math.round(stats.handsPlayed / Math.max(1, stats.activeTables)).toLocaleString() : '—'}</div>
+                                        <div className="ca-health-label">Hands/Table</div>
+                                    </div>
+                                    <div className="ca-health-card">
+                                        <div className="ca-health-value" style={{ color: stats.totalRake > 0 ? '#fbbf24' : '#B0B3B8' }}>{stats.totalRake > 0 && stats.handsPlayed > 0 ? (stats.totalRake / stats.handsPlayed).toFixed(1) : '—'}</div>
+                                        <div className="ca-health-label">Avg Rake/Hand</div>
+                                    </div>
+                                    <div className="ca-health-card">
+                                        <div className="ca-health-value" style={{ color: stats.totalMembers > 0 ? '#00d4ff' : '#B0B3B8' }}>{stats.totalMembers > 0 ? `${Math.round((stats.activeTables / Math.max(1, stats.totalMembers)) * 100)}%` : '—'}</div>
+                                        <div className="ca-health-label">Table Utilization</div>
+                                    </div>
+                                    <div className="ca-health-card">
+                                        <div className="ca-health-value" style={{ color: club?.chip_treasury > 0 ? '#4ade80' : '#f87171' }}>{(club?.chip_treasury || 0).toLocaleString()}</div>
+                                        <div className="ca-health-label">Treasury</div>
+                                    </div>
                                 </div>
-                                <div style={S.statCard}>
-                                    <div style={S.statValue}>{stats.activeTables}</div>
-                                    <div style={S.statLabel}>Active Tables</div>
-                                </div>
-                                <div style={S.statCard}>
-                                    <div style={{ ...S.statValue, color: FB.success }}>{stats.totalRake.toLocaleString()}</div>
-                                    <div style={S.statLabel}>Total Rake</div>
-                                </div>
-                                <div style={S.statCard}>
-                                    <div style={S.statValue}>{stats.handsPlayed.toLocaleString()}</div>
-                                    <div style={S.statLabel}>Hands Played</div>
+                            </div>
+
+                            <div style={{ borderTop: `1px solid ${FB.border}`, paddingTop: 16 }}>
+                                <div style={{ fontSize: 12, fontWeight: 700, color: FB.textSecondary, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Legacy Stats</div>
+                                <div style={S.statsGrid}>
+                                    <div style={S.statCard}>
+                                        <div style={S.statValue}>{stats.totalMembers}</div>
+                                        <div style={S.statLabel}>Total Members</div>
+                                    </div>
+                                    <div style={S.statCard}>
+                                        <div style={S.statValue}>{stats.activeTables}</div>
+                                        <div style={S.statLabel}>Active Tables</div>
+                                    </div>
+                                    <div style={S.statCard}>
+                                        <div style={{ ...S.statValue, color: FB.success }}>{stats.totalRake.toLocaleString()}</div>
+                                        <div style={S.statLabel}>Total Rake</div>
+                                    </div>
+                                    <div style={S.statCard}>
+                                        <div style={S.statValue}>{stats.handsPlayed.toLocaleString()}</div>
+                                        <div style={S.statLabel}>Hands Played</div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -1934,8 +2003,12 @@ export default function Admin() {
                                             </div>
                                             <span style={{ fontSize: 11, color: FB.textSecondary }}>{flag.created_at ? new Date(flag.created_at).toLocaleString() : ''}</span>
                                         </div>
-                                        <div style={{ fontSize: 12, color: FB.textSecondary, marginBottom: 8 }}>
-                                            Player: <strong style={{ color: FB.textPrimary }}>{flag.player?.display_name || flag.player?.username || flag.user_id}</strong>{flag.description && <> — {flag.description}</>}
+                                        <div style={{ fontSize: 12, color: FB.textSecondary, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                            Player: <strong style={{ color: FB.textPrimary }}>{flag.player?.display_name || flag.player?.username || flag.user_id}</strong>
+                                            <span className={`ca-trust-badge ${flag.trust_score >= 80 ? 'ca-trust-high' : flag.trust_score >= 50 ? 'ca-trust-medium' : 'ca-trust-low'}`}>
+                                                {flag.trust_score >= 80 ? '🛡️' : flag.trust_score >= 50 ? '⚠️' : '🔴'} {flag.trust_score || '??'}
+                                            </span>
+                                            {flag.description && <> — {flag.description}</>}
                                         </div>
                                         <div style={{ display: 'flex', gap: 8 }}>
                                             {['dismiss', 'reviewed', 'kick'].map(verdict => (

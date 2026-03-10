@@ -12,6 +12,7 @@ import { notifyUser } from '../../../src/lib/club-arena/notify';
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
 const { sanitizeNote, safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
 const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
+const { checkVelocity } = require('../../../src/lib/club-arena/velocityCheck');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,

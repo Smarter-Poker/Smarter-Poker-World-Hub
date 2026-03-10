@@ -434,7 +434,7 @@ export default async function handler(req, res) {
 
       const { error } = await supabaseAdmin
         .from('tables')
-        .update({ status: 'closed', closed_at: new Date().toISOString() })
+        .update({ status: 'closed' })
         .eq('id', tableId);
 
       if (error) throw error;
