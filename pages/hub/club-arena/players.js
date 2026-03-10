@@ -174,12 +174,12 @@ export default function Players() {
 
     // ── Realtime: member join/leave/online status refreshes ───────────────
     useEffect(() => {
-        if (!clubIdParam) return;
+        if (!club?.id) return;
         const ch = supabase
-            .channel(`players-live:${clubIdParam}`)
+            .channel(`players-live:${club.id}`)
             .on('postgres_changes', {
                 event: '*', schema: 'public', table: 'club_members',
-                filter: `club_id=eq.${clubIdParam}`
+                filter: `club_id=eq.${club.id}`
             }, () => loadData())
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' },
                 () => loadData())
@@ -188,7 +188,7 @@ export default function Players() {
                 }
             });
         return () => { supabase.removeChannel(ch); };
-    }, [clubIdParam, loadData]);
+    }, [club?.id, loadData]);
 
     // ── Event Bus: refresh on cross-page data mutations ───────────────────
     useEffect(() => {

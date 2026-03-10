@@ -74,6 +74,7 @@ export default function TournamentsPage() {
   const [user, setUser] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [clubInfo, setClubInfo] = useState(null);
+  const [resolvedClubUUID, setResolvedClubUUID] = useState(null);
   const [tournaments, setTournaments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -108,11 +109,21 @@ export default function TournamentsPage() {
     if (!clubId || !user) return;
     setLoading(true);
 
+    // Resolve club ID — URL may have UUID or numeric club_id
+    let resolvedId = clubId;
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clubId);
+    if (!isUUID) {
+      const { data: clubRow } = await supabase.from('clubs').select('id').eq('club_id', clubId).maybeSingle();
+      if (!clubRow) { setLoading(false); return; }
+      resolvedId = clubRow.id;
+    }
+    setResolvedClubUUID(resolvedId);
+
     // Club info + role
     const { data: member } = await supabase
       .from('club_members')
       .select('role, chip_balance, clubs(name, avatar_url)')
-      .eq('club_id', clubId)
+      .eq('club_id', resolvedId)
       .eq('user_id', user.id)
       .maybeSingle();
 
@@ -142,12 +153,13 @@ export default function TournamentsPage() {
 
     // Listen to changes on club_tournaments to instantly refresh the list
     // when AI horses or humans register (registered_count updates)
-    const channel = supabase.channel(`tournaments_list_${clubId}`)
+    const rtClubId = resolvedClubUUID || clubId;
+    const channel = supabase.channel(`tournaments_list_${rtClubId}`)
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'club_tournaments',
-        filter: `club_id=eq.${clubId}`
+        filter: `club_id=eq.${rtClubId}`
       }, () => {
         // We use a slight delay so rapid burst AI registrations don't spam the API
         setTimeout(() => loadData(), 500);
@@ -509,11 +521,12 @@ function CreateTournamentModal({ clubId, onClose, onCreated, onError = () => { }
   useEffect(() => {
     if (form.type !== 'xmtt' || !clubId) return;
     (async () => {
+      const cid = resolvedClubUUID || clubId;
       // Find this club's union
       const { data: uc } = await supabase
         .from('union_clubs')
         .select('union_id')
-        .eq('club_id', clubId)
+        .eq('club_id', cid)
         .limit(1);
       if (!uc?.length) { setSisterClubs([]); return; }
 
@@ -524,7 +537,7 @@ function CreateTournamentModal({ clubId, onClose, onCreated, onError = () => { }
         .eq('union_id', uc[0].union_id);
 
       const sisters = (allUc || [])
-        .filter(u => u.club_id !== clubId && u.clubs)
+        .filter(u => u.club_id !== cid && u.clubs)
         .map(u => ({ id: u.clubs.id, name: u.clubs.name, logo: u.clubs.avatar_url }));
       setSisterClubs(sisters);
       // Auto-select all sister clubs

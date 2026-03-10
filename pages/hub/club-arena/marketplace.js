@@ -182,23 +182,23 @@ export default function Marketplace() {
 
     // ── Realtime: live shop item/purchase updates ─────────────────────────
     useEffect(() => {
-        if (!clubIdParam) return;
+        if (!club?.id) return;
         const ch = supabase
-            .channel(`shop-live:${clubIdParam}`)
+            .channel(`shop-live:${club.id}`)
             .on('postgres_changes', {
                 event: '*', schema: 'public', table: 'club_shop_items',
-                filter: `club_id=eq.${clubIdParam}`
+                filter: `club_id=eq.${club.id}`
             }, () => loadData())
             .on('postgres_changes', {
                 event: 'INSERT', schema: 'public', table: 'club_shop_purchases',
-                filter: `club_id=eq.${clubIdParam}`
+                filter: `club_id=eq.${club.id}`
             }, () => loadData())
             .subscribe((status) => {
                 if (status !== 'SUBSCRIBED') {
                 }
             });
         return () => { supabase.removeChannel(ch); };
-    }, [clubIdParam, loadData]);
+    }, [club?.id, loadData]);
 
     // ── Event Bus: refresh on cross-page chip mutations ───────────────────
     useEffect(() => {

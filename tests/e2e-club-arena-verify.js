@@ -92,6 +92,12 @@ c('Table page: noindex on all states', () => { const x = fs.readFileSync('pages/
 c('Hand-histories: copiedHandId state', () => fs.readFileSync('pages/hub/club-arena/hand-histories.js', 'utf8').includes('copiedHandId'));
 c('Hand-histories: copy button', () => fs.readFileSync('pages/hub/club-arena/hand-histories.js', 'utf8').includes('Copy ID'));
 
+// BUG HUNT: Realtime filters use resolved UUID instead of raw clubIdParam
+c('hand-histories: realtime uses club.id', () => fs.readFileSync('pages/hub/club-arena/hand-histories.js', 'utf8').includes("filter: `club_id=eq.${club.id}`"));
+c('players: realtime uses club.id', () => fs.readFileSync('pages/hub/club-arena/players.js', 'utf8').includes("filter: `club_id=eq.${club.id}`"));
+c('marketplace: realtime uses club.id', () => fs.readFileSync('pages/hub/club-arena/marketplace.js', 'utf8').includes("filter: `club_id=eq.${club.id}`"));
+c('tournaments: resolves numeric club codes', () => fs.readFileSync('pages/hub/club-arena/tournaments.js', 'utf8').includes('resolvedClubUUID'));
+
 console.log();
 console.log('═══════════════════════════════════');
 console.log(pass + '/' + total);

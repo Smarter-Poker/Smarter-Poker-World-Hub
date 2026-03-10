@@ -346,12 +346,12 @@ export default function HandHistories() {
 
     // ── Realtime: auto-refresh when new hands are recorded ────────────────
     useEffect(() => {
-        if (!clubIdParam) return;
+        if (!club?.id) return;
         const ch = supabase
-            .channel(`hands-live:${clubIdParam}`)
+            .channel(`hands-live:${club.id}`)
             .on('postgres_changes', {
                 event: 'INSERT', schema: 'public', table: 'hand_histories',
-                filter: `club_id=eq.${clubIdParam}`
+                filter: `club_id=eq.${club.id}`
             }, () => {
                 setPage(0);
                 loadData(true);
@@ -362,7 +362,7 @@ export default function HandHistories() {
                 }
             });
         return () => { supabase.removeChannel(ch); };
-    }, [clubIdParam, loadData]);
+    }, [club?.id, loadData]);
 
     // ── Event Bus: refresh when other pages mutate data (hand complete, etc.) ──
     useEffect(() => {
