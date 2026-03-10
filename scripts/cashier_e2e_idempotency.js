@@ -112,8 +112,8 @@ async function runIdempotencyE2E() {
         console.log(`- Errors: ${errorCount}`);
 
         // Verify final balances
-        const { data: finalProfile, error: fpErr } = await supabase.from('profiles').select('diamonds').eq('id', user.id).single();
-        const { data: finalMember, error: fmErr } = await supabase.from('club_members').select('chip_balance').eq('user_id', user.id).eq('club_id', club.id).single();
+        const { data: finalProfile, error: fpErr } = await supabase.from('profiles').select('diamonds').eq('id', user.id).maybeSingle();
+        const { data: finalMember, error: fmErr } = await supabase.from('club_members').select('chip_balance').eq('user_id', user.id).eq('club_id', club.id).maybeSingle();
 
         if (fpErr || fmErr) throw new Error(`Fetch Balance Errors: ${JSON.stringify(fpErr || fmErr)}`);
 
