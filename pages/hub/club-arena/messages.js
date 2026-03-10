@@ -900,12 +900,12 @@ export default function ClubMessages() {
         runPoll();
 
         // Listen for real-time EventBus signals to instantly refetch conversation previews
-        const offBus = bus.on('DATA_MUTATED', (source) => {
+        const offBus = eventBus.on('DATA_MUTATED', (source) => {
             if (source === 'message_sent' || source === 'message_read') {
                 if (user && clubMemberIds.size > 0) loadConversations();
             }
         });
-        const offMsg = bus.on('MESSAGE_RECEIVED', () => {
+        const offMsg = eventBus.on('MESSAGE_RECEIVED', () => {
             if (user && clubMemberIds.size > 0) loadConversations();
         });
 
@@ -915,7 +915,7 @@ export default function ClubMessages() {
             offBus();
             offMsg();
         };
-    }, [user, clubMemberIds, bus]);
+    }, [user, clubMemberIds]);
 
     // ═══════════════════════════════════════════════════════════════════════
     //  MESSAGING HIERARCHY PERMISSION CHECKER
