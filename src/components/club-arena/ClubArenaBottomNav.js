@@ -95,9 +95,51 @@ export default function ClubArenaBottomNav({ clubId, activePage, userRole }) {
     // HARDENED: Don't render if no clubId - prevents broken links
     if (!clubId) return null;
 
+    const [unreadCount, setUnreadCount] = useState(0);
+    const bus = useTrainingBus();
+
+    // Fetch initial unread count and listen for real-time updates
+    useEffect(() => {
+        if (!clubId) return;
+        let isMounted = true;
+
+        const fetchUnread = async () => {
+            try {
+                const { createClient } = await import('../../lib/supabase');
+                const supabase = createClient();
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session?.user?.id) return;
+
+                // Eager fetch just for badges
+                const { count } = await supabase
+                    .from('social_conversation_participants')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('user_id', session.user.id)
+                    .gt('unread_count', 0)
+                    .eq('club_id', clubId); // Assuming club scoping
+
+                if (isMounted) setUnreadCount(count || 0);
+            } catch (e) {
+                console.error('[BottomNav] Failed to fetch unread:', e);
+            }
+        };
+        fetchUnread();
+
+        const offMsg = bus.on('MESSAGE_RECEIVED', () => setUnreadCount(prev => prev + 1));
+        const offRead = bus.on('DATA_MUTATED', (source) => {
+            if (source === 'message_read' || source === 'message_sent') fetchUnread();
+        });
+
+        return () => {
+            isMounted = false;
+            offMsg();
+            offRead();
+        };
+    }, [clubId, bus]);
+
     const navItems = [
         { key: 'lobby', label: 'Lobby', href: `/hub/club-arena/lobby?club=${clubId}`, Icon: LobbyIcon },
-        { key: 'messages', label: 'Messages', href: `/hub/club-arena/messages?club=${clubId}`, Icon: MessagesIcon },
+        { key: 'messages', label: 'Messages', href: `/hub/club-arena/messages?club=${clubId}`, Icon: MessagesIcon, badge: unreadCount },
         { key: 'players', label: 'Players', href: `/hub/club-arena/players?club=${clubId}`, Icon: PlayersIcon },
         { key: 'cashier', label: 'Cashier', href: `/hub/club-arena/cashier?club=${clubId}`, Icon: CashierIcon },
         { key: 'data', label: 'Data', href: `/hub/club-arena/player-stats?club=${clubId}`, Icon: DataIcon },
@@ -110,16 +152,28 @@ export default function ClubArenaBottomNav({ clubId, activePage, userRole }) {
     return (
         <nav style={S.bottomNav}>
             <div style={S.bottomNavItems}>
-                {navItems.map(({ key, label, href, Icon }) => (
+                {navItems.map(({ key, label, href, Icon, badge }) => (
                     <Link
                         key={key}
                         href={href}
                         style={{
                             ...S.bottomNavItem,
-                            color: activePage === key ? FB.primary : FB.textSecondary
+                            color: activePage === key ? FB.primary : FB.textSecondary,
+                            position: 'relative'
                         }}
                     >
                         <Icon />
+                        {badge > 0 && (
+                            <div style={{
+                                position: 'absolute', top: 4, right: 12,
+                                background: '#E41E3F', color: '#fff', fontSize: 10,
+                                fontWeight: 'bold', width: 16, height: 16,
+                                borderRadius: '50%', display: 'flex', alignItems: 'center',
+                                justifyContent: 'center', border: `2px solid ${FB.cardBg}`
+                            }}>
+                                {badge > 9 ? '9+' : badge}
+                            </div>
+                        )}
                         <span style={S.bottomNavLabel}>{label}</span>
                     </Link>
                 ))}
