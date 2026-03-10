@@ -59,6 +59,7 @@ export default function ClubLobby() {
     const [activeFilter, setActiveFilter] = useState(_lobbyFilters.activeFilter);
     const [chipBalance, setChipBalance] = useState(0);
     const [membership, setMembership] = useState(null);
+    const primaryColor = club?.settings?.primaryColor || '#2D88FF'; // Default to FB.primary
     const [showCreateGame, setShowCreateGame] = useState(null); // null | { tab?, variant? }
     const [creatingTable, setCreatingTable] = useState(false);
     const [isEditingDescription, setIsEditingDescription] = useState(false);
@@ -130,6 +131,16 @@ export default function ClubLobby() {
         }
         return true;
     }).sort((a, b) => {
+        // Custom Admin Ordering (Phase 3)
+        const orderArr = club?.settings?.lobbyOrder || [];
+        if (orderArr.length > 0) {
+            const indexA = orderArr.indexOf(a.id);
+            const indexB = orderArr.indexOf(b.id);
+            if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+            if (indexA !== -1) return -1;
+            if (indexB !== -1) return 1;
+        }
+
         switch (sortBy) {
             case 'players': return (b.current_players || 0) - (a.current_players || 0);
             case 'stakes': return (b.big_blind || 0) - (a.big_blind || 0);
@@ -294,6 +305,16 @@ export default function ClubLobby() {
                 table: 'club_tournaments',
                 filter: `club_id=eq.${club.id}`,
             }, () => { loadClubData(); })
+            .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'clubs',
+                filter: `id=eq.${club.id}`,
+            }, (payload) => {
+                if (payload.new?.settings) {
+                    setClub(prev => prev ? { ...prev, ...payload.new } : prev);
+                }
+            })
             .subscribe((status) => {
                 if (status !== 'SUBSCRIBED') {
 
@@ -555,7 +576,7 @@ export default function ClubLobby() {
                                         />
                                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                                             <button style={{ ...styles.actionBtn, padding: '4px 12px', fontSize: '12px' }} onClick={() => setIsEditingDescription(false)}>Cancel</button>
-                                            <button style={{ ...styles.actionBtn, padding: '4px 12px', fontSize: '12px', background: FB.primary, color: '#fff', borderColor: FB.primary }} onClick={handleSaveDescription}>Save</button>
+                                            <button style={{ ...styles.actionBtn, padding: '4px 12px', fontSize: '12px', background: primaryColor, color: '#fff', borderColor: primaryColor }} onClick={handleSaveDescription}>Save</button>
                                         </div>
                                     </div>
                                 ) : (
@@ -605,7 +626,12 @@ export default function ClubLobby() {
                                         key={filter.key}
                                         style={{
                                             ...styles.filterTab,
-                                            ...(activeFilter === filter.key ? styles.filterTabActive : {})
+                                            ...(activeFilter === filter.key ? {
+                                                ...styles.filterTabActive,
+                                                background: `${primaryColor}26`,
+                                                color: primaryColor,
+                                                borderColor: primaryColor
+                                            } : {})
                                         }}
                                         onClick={() => { haptic('tap'); setActiveFilter(filter.key); }}
                                     >
