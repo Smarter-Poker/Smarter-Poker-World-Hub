@@ -158,6 +158,173 @@ function MysteryBountyOverlay({ amount, onComplete }) {
   );
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// FLOATING ACTION LABEL — rises from seat when player acts
+// ═══════════════════════════════════════════════════════════════════════════
+
+const ACTION_LABEL_COLORS = {
+  fold: '#ef4444', check: '#3b82f6', call: '#22c55e',
+  bet: '#f59e0b', raise: '#f59e0b', all_in: '#a855f7',
+};
+
+function FloatingActionLabel({ action, amount, position }) {
+  if (!action || !position) return null;
+  const color = ACTION_LABEL_COLORS[action] || '#fff';
+  const label = action === 'all_in' ? 'ALL-IN'
+    : action === 'fold' ? 'FOLD'
+      : action === 'check' ? 'CHECK'
+        : action === 'call' ? `CALL ${amount ? amount.toLocaleString() : ''}`
+          : action === 'bet' ? `BET ${amount ? amount.toLocaleString() : ''}`
+            : action === 'raise' ? `RAISE ${amount ? amount.toLocaleString() : ''}`
+              : action.toUpperCase();
+
+  return (
+    <motion.div
+      key={`action-${Date.now()}`}
+      initial={{ opacity: 1, y: 0, scale: 0.7 }}
+      animate={{ opacity: 0, y: -40, scale: 1.1 }}
+      transition={{ duration: 1.5, ease: 'easeOut' }}
+      style={{
+        position: 'absolute',
+        left: `${position.x}%`,
+        top: `${position.y - 8}%`,
+        transform: 'translate(-50%, -100%)',
+        color,
+        fontSize: 13,
+        fontWeight: 900,
+        textShadow: `0 0 8px ${color}80, 0 2px 4px rgba(0,0,0,0.8)`,
+        letterSpacing: 1,
+        whiteSpace: 'nowrap',
+        pointerEvents: 'none',
+        zIndex: 80,
+      }}
+    >
+      {label}
+    </motion.div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CONFETTI BURST — particle celebration on big pot wins (50× BB+)
+// ═══════════════════════════════════════════════════════════════════════════
+
+function ConfettiBurst({ active }) {
+  const [particles, setParticles] = useState([]);
+
+  useEffect(() => {
+    if (!active) { setParticles([]); return; }
+    const colors = ['#FFD700', '#FF6B6B', '#4ECDC4', '#a855f7', '#22c55e', '#f59e0b', '#3b82f6', '#ec4899'];
+    const newParticles = Array.from({ length: 40 }, (_, i) => ({
+      id: i,
+      x: 50 + (Math.random() - 0.5) * 80,
+      y: 30 + (Math.random() - 0.5) * 40,
+      color: colors[i % colors.length],
+      size: 4 + Math.random() * 6,
+      rotation: Math.random() * 360,
+      delay: Math.random() * 0.3,
+    }));
+    setParticles(newParticles);
+    const t = setTimeout(() => setParticles([]), 2500);
+    return () => clearTimeout(t);
+  }, [active]);
+
+  if (!particles.length) return null;
+
+  return (
+    <>
+      {particles.map(p => (
+        <motion.div
+          key={p.id}
+          initial={{ left: '50%', top: '40%', opacity: 1, scale: 1, rotate: 0 }}
+          animate={{
+            left: `${p.x}%`, top: `${p.y}%`,
+            opacity: 0, scale: [1, 1.5, 0.5],
+            rotate: p.rotation,
+          }}
+          transition={{ duration: 1.8, delay: p.delay, ease: 'easeOut' }}
+          style={{
+            position: 'absolute',
+            width: p.size, height: p.size,
+            background: p.color,
+            borderRadius: Math.random() > 0.5 ? '50%' : '2px',
+            pointerEvents: 'none',
+            zIndex: 90,
+            boxShadow: `0 0 4px ${p.color}80`,
+          }}
+        />
+      ))}
+    </>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// EQUITY PROGRESS BAR — animated win% on all-in
+// ═══════════════════════════════════════════════════════════════════════════
+
+function EquityBar({ players }) {
+  if (!players || players.length < 2) return null;
+
+  // Sort by equity descending for visual consistency
+  const sorted = [...players].sort((a, b) => (b.equity || 0) - (a.equity || 0));
+  const eqColors = ['#22c55e', '#ef4444', '#f59e0b', '#3b82f6', '#a855f7', '#ec4899'];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scaleX: 0 }}
+      animate={{ opacity: 1, scaleX: 1 }}
+      transition={{ duration: 0.5 }}
+      style={{
+        position: 'absolute',
+        bottom: '18%',
+        left: '15%',
+        right: '15%',
+        zIndex: 60,
+        borderRadius: 8,
+        overflow: 'hidden',
+        height: 14,
+        display: 'flex',
+        background: 'rgba(0,0,0,0.6)',
+        border: '1px solid rgba(255,255,255,0.1)',
+      }}
+    >
+      {sorted.map((p, i) => (
+        <motion.div
+          key={p.id || i}
+          initial={{ width: 0 }}
+          animate={{ width: `${p.equity || 0}%` }}
+          transition={{ duration: 1.2, delay: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
+          style={{
+            height: '100%',
+            background: eqColors[i % eqColors.length],
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 9,
+            fontWeight: 900,
+            color: '#fff',
+            textShadow: '0 1px 2px rgba(0,0,0,0.8)',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            minWidth: (p.equity || 0) > 15 ? 'auto' : 0,
+          }}
+        >
+          {(p.equity || 0) > 15 ? `${(p.equity || 0).toFixed(0)}%` : ''}
+        </motion.div>
+      ))}
+    </motion.div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HAPTIC FEEDBACK — mobile vibration for key events
+// ═══════════════════════════════════════════════════════════════════════════
+
+function haptic(type = 'light') {
+  if (typeof navigator === 'undefined' || !navigator.vibrate) return;
+  const patterns = { light: [10], medium: [30], heavy: [50], double: [20, 40, 20], allIn: [50, 30, 80] };
+  try { navigator.vibrate(patterns[type] || patterns.light); } catch (_) { }
+}
+
 // Dynamic theme — updated when user changes theme, read by all sub-components
 let T = getActiveTheme();
 
@@ -518,6 +685,7 @@ function PlayerSeat({
                 : isCurrentActor
                   ? `3px solid ${T.accent}`
                   : '2px solid rgba(255,255,255,0.15)',
+            animation: isCurrentActor && !isWinner ? 'seatPulse 1.8s ease-in-out infinite' : 'none',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -684,7 +852,12 @@ function PlayerSeat({
 // COMMUNITY CARDS
 // ═══════════════════════════════════════════════════════════════════════════
 
-function CommunityCards({ cards = [], boards }) {
+function CommunityCards({ cards = [], boards, prevCardCount }) {
+  // Track the index of newly dealt cards for spotlight effect
+  const isNewCard = useCallback((idx) => {
+    // Spotlight the last card dealt when going from 3→4 (turn) or 4→5 (river)
+    return (cards.length === 4 && idx === 3) || (cards.length === 5 && idx === 4);
+  }, [cards.length]);
   // Multi-board mode (double/triple board)
   if (boards && boards.length > 1 && boards.some(b => b.length > 0)) {
     return (
@@ -744,7 +917,14 @@ function CommunityCards({ cards = [], boards }) {
         }}
       />
       {cards.map((card, i) => (
-        <CardImg key={`cc-${i}`} card={card} width={52} delay={i * 0.12} />
+        <motion.div
+          key={`cc-${i}`}
+          style={{
+            animation: isNewCard(i) ? 'cardSpotlight 1.5s ease-in-out' : 'none',
+          }}
+        >
+          <CardImg card={card} width={52} delay={i * 0.12} />
+        </motion.div>
       ))}
     </div>
   );
@@ -938,9 +1118,11 @@ function ActionPanel({ actions, onAction, stack, currentBet, bigBlind, potTotal 
   if (!actions || actions.length === 0) return null;
 
   const presets = betOrRaise ? [
-    { label: '½ Pot', amount: Math.max(minBet, Math.floor((potTotal || bigBlind * 2) * 0.5)) },
-    { label: '¾ Pot', amount: Math.max(minBet, Math.floor((potTotal || bigBlind * 2) * 0.75)) },
+    { label: '⅓', amount: Math.max(minBet, Math.floor((potTotal || bigBlind * 2) * 0.33)) },
+    { label: '½', amount: Math.max(minBet, Math.floor((potTotal || bigBlind * 2) * 0.5)) },
+    { label: '⅔', amount: Math.max(minBet, Math.floor((potTotal || bigBlind * 2) * 0.67)) },
     { label: 'Pot', amount: Math.max(minBet, potTotal || bigBlind * 2) },
+    { label: '2×', amount: Math.max(minBet, (potTotal || bigBlind * 2) * 2) },
   ].filter(p => p.amount <= maxBet) : [];
 
   return (
@@ -2179,7 +2361,7 @@ function TournamentHUD({ tournamentId, userId }) {
 // TABLE INFO BAR
 // ═══════════════════════════════════════════════════════════════════════════
 
-function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, isSitting, isSittingOut, straddleEnabled, straddleOn, onToggleStraddle, autoTopUpOn, onToggleAutoTopUp, lastHandResult, onShowLastHand, sessionStats, myStack }) {
+function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, isSitting, isSittingOut, straddleEnabled, straddleOn, onToggleStraddle, autoTopUpOn, onToggleAutoTopUp, autoMuckOn, onToggleAutoMuck, lastHandResult, onShowLastHand, sessionStats, myStack }) {
   if (!tableState) return null;
 
   const { game } = tableState;
@@ -2278,6 +2460,11 @@ function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, is
             label={autoTopUpOn ? '✓ Top Up' : 'Top Up'}
             onClick={onToggleAutoTopUp}
             color={autoTopUpOn ? '#34C759' : undefined}
+          />
+          <SmallButton
+            label={autoMuckOn ? '✓ Muck' : 'Muck'}
+            onClick={onToggleAutoMuck}
+            color={autoMuckOn ? '#8b5cf6' : undefined}
           />
           <SmallButton label="Leave" onClick={onStandUp} color={T.foldRed} />
         </div>
@@ -2520,7 +2707,26 @@ function ResultOverlay({ result, send, userId }) {
             {w.displayName || w.playerId} wins {w.amount?.toLocaleString()}
           </div>
           {w.handDescription && (
-            <div style={{ color: T.textSecondary, fontSize: 12 }}>{w.handDescription}</div>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.3, duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }}
+              style={{
+                display: 'inline-block',
+                background: 'linear-gradient(135deg, #FFD700, #f59e0b)',
+                color: '#000',
+                fontSize: 11,
+                fontWeight: 900,
+                padding: '3px 12px',
+                borderRadius: 20,
+                letterSpacing: 0.5,
+                textTransform: 'uppercase',
+                boxShadow: '0 0 12px rgba(255,215,0,0.4), 0 2px 6px rgba(0,0,0,0.3)',
+                marginTop: 4,
+              }}
+            >
+              {w.handDescription}
+            </motion.div>
           )}
         </div>
       ))}
@@ -2694,10 +2900,10 @@ function LivePokerTable({
     const phase = tableState.game.phase;
     const prev = prevPhaseRef.current;
     if (prev !== phase) {
-      if (phase === 'preflop' && prev === 'idle') sm.play('deal');
-      if (phase === 'flop' && prev === 'preflop') sm.play('deal');
-      if (phase === 'turn' && prev === 'flop') sm.play('deal');
-      if (phase === 'river' && prev === 'turn') sm.play('deal');
+      if (phase === 'preflop' && prev === 'idle') { sm.play('deal'); haptic('medium'); }
+      if (phase === 'flop' && prev === 'preflop') { sm.play('deal'); haptic('light'); }
+      if (phase === 'turn' && prev === 'flop') { sm.play('deal'); haptic('light'); }
+      if (phase === 'river' && prev === 'turn') { sm.play('deal'); haptic('light'); }
       if (phase === 'showdown') sm.play('showdown');
       prevPhaseRef.current = phase;
     }
@@ -2718,6 +2924,7 @@ function LivePokerTable({
     const sm = soundRef.current;
     if (!sm || !legalActions || legalActions.length === 0) return;
     sm.play('yourTurn');
+    haptic('double');
   }, [legalActions]);
 
   // Sound for timer warning
@@ -2881,6 +3088,37 @@ function LivePokerTable({
     if (result) setPreAction(null);
   }, [result]);
 
+  // ═══ FLOATING ACTION LABELS ═══
+  const [floatingLabels, setFloatingLabels] = useState([]);
+  const floatingIdRef = useRef(0);
+
+  // Track actions from broadcasts for floating labels
+  useEffect(() => {
+    if (!tableState?.game?.lastAction) return;
+    const la = tableState.game.lastAction;
+    if (la.seatIndex == null) return;
+    const seatIdx = la.seatIndex;
+    const visualIdx = rotatedPositionMap ? rotatedPositionMap[seatIdx] : seatIdx;
+    const pos = positions[visualIdx] || positions[0];
+    const id = ++floatingIdRef.current;
+    setFloatingLabels(prev => [...prev.slice(-5), { id, action: la.type, amount: la.amount, position: pos }]);
+    const t = setTimeout(() => setFloatingLabels(prev => prev.filter(l => l.id !== id)), 1800);
+    return () => clearTimeout(t);
+  }, [tableState?.game?.lastAction?.seq, rotatedPositionMap, positions]);
+
+  // ═══ AUTO-MUCK TOGGLE ═══
+  const [autoMuck, setAutoMuck] = useState(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('poker-auto-muck') !== 'false';
+    return true;
+  });
+  const handleToggleAutoMuck = useCallback(() => {
+    setAutoMuck(prev => {
+      const next = !prev;
+      if (typeof window !== 'undefined') localStorage.setItem('poker-auto-muck', String(next));
+      return next;
+    });
+  }, []);
+
   // ═══════════════════════════════════════════════════════════════════
   // ACTION HANDLERS (use send from hook)
   // ═══════════════════════════════════════════════════════════════════
@@ -2892,6 +3130,10 @@ function LivePokerTable({
       const soundMap = { fold: 'fold', check: 'check', call: 'call', bet: 'bet', raise: 'raise', all_in: 'allIn' };
       if (soundMap[action.type]) sm.play(soundMap[action.type]);
     }
+    // Haptic feedback on mobile
+    if (action?.type === 'all_in') haptic('allIn');
+    else if (action?.type === 'fold') haptic('light');
+    else haptic('medium');
     send('player_action', { action });
   }, [send]);
 
@@ -3138,6 +3380,29 @@ function LivePokerTable({
               seats={seats}
             />
           )}
+
+          {/* Confetti burst on big pots (≥50× BB) */}
+          <ConfettiBurst
+            active={!!(result?.winners && tableState?.config?.bigBlind &&
+              (result.winners.reduce((s, w) => s + (w.amount || 0), 0) >= tableState.config.bigBlind * 50))}
+          />
+
+          {/* Equity progress bar on all-in */}
+          {result?.allInEquity?.players && (
+            <EquityBar players={result.allInEquity.players} />
+          )}
+
+          {/* Floating action labels */}
+          <AnimatePresence>
+            {floatingLabels.map(fl => (
+              <FloatingActionLabel
+                key={fl.id}
+                action={fl.action}
+                amount={fl.amount}
+                position={fl.position}
+              />
+            ))}
+          </AnimatePresence>
         </div>
 
         {/* Seats — rotated so hero is always at bottom center */}
@@ -3253,6 +3518,8 @@ function LivePokerTable({
         onToggleStraddle={handleToggleStraddle}
         autoTopUpOn={autoTopUpOn}
         onToggleAutoTopUp={handleToggleAutoTopUp}
+        autoMuckOn={autoMuck}
+        onToggleAutoMuck={handleToggleAutoMuck}
         lastHandResult={lastHandResult}
         onShowLastHand={() => setShowLastHand(true)}
         sessionStats={sessionStats}
@@ -3929,6 +4196,8 @@ function LivePokerTable({
         @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.3); } }
         @keyframes winGlow { 0% { filter: drop-shadow(0 0 8px #FFD700); } 100% { filter: drop-shadow(0 0 20px #FFD700) drop-shadow(0 0 40px rgba(255,215,0,0.4)); } }
         @keyframes yourTurnPulse { 0% { box-shadow: 0 4px 20px rgba(35,116,225,0.6); transform: translateX(-50%) scale(1); } 100% { box-shadow: 0 4px 30px rgba(99,102,241,0.9); transform: translateX(-50%) scale(1.05); } }
+        @keyframes seatPulse { 0%, 100% { box-shadow: 0 0 12px rgba(35,116,225,0.3); } 50% { box-shadow: 0 0 28px rgba(35,116,225,0.7), 0 0 48px rgba(35,116,225,0.3); } }
+        @keyframes cardSpotlight { 0% { filter: brightness(1); } 50% { filter: brightness(1.3) drop-shadow(0 0 12px rgba(255,215,0,0.6)); } 100% { filter: brightness(1); } }
       `}</style>
     </div>
   );
