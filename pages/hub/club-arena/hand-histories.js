@@ -724,7 +724,7 @@ export default function HandHistories() {
                                     }}
                                     style={{ background: 'none', border: `1px solid ${FB.border}`, borderRadius: 4, color: copiedHandId ? FB.success : FB.textSecondary, fontSize: 10, padding: '2px 8px', cursor: 'pointer' }}
                                 >
-                                    {copiedHandId ? '✓ Copied' : 'Copy ID'}
+                                    {copiedHandId ? ' Copied' : 'Copy ID'}
                                 </button>
                             </div>
                             {/* Result */}

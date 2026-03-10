@@ -530,7 +530,7 @@ export default function Players() {
                                 onClick={() => bulkMode ? exitBulkMode() : setBulkMode(true)}
                                 style={{ padding: '8px 14px', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer', border: bulkMode ? `1px solid ${FB.danger}` : `1px solid ${FB.primary}`, background: bulkMode ? FB.danger + '18' : FB.primary + '18', color: bulkMode ? FB.danger : FB.primary }}
                             >
-                                {bulkMode ? '✕ Cancel Bulk' : '☐ Bulk Select'}
+                                {bulkMode ? ' Cancel Bulk' : ' Bulk Select'}
                             </button>
                             {bulkMode && (
                                 <>
@@ -570,7 +570,7 @@ export default function Players() {
                                     {/* Bulk checkbox */}
                                     {bulkMode && !isMe && (
                                         <div style={{ width: 22, height: 22, borderRadius: 4, border: `2px solid ${isSelected ? FB.primary : FB.border}`, background: isSelected ? FB.primary : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginRight: 4, transition: 'all 0.15s' }}>
-                                            {isSelected && <span style={{ color: '#fff', fontSize: 14, lineHeight: 1 }}>✓</span>}
+                                            {isSelected && <span style={{ color: '#fff', fontSize: 14, lineHeight: 1 }}></span>}
                                         </div>
                                     )}
                                     <div style={S.avatarWrapper}>

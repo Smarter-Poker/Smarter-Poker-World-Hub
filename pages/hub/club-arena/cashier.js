@@ -294,7 +294,7 @@ export default function Cashier() {
             }, (payload) => {
                 if (payload.new?.player_id === user.id || payload.old?.player_id === user.id) {
                     if (payload.new?.status === 'approved' && payload.old?.status === 'pending') {
-                        showToast(`✅ Cashout of ${(payload.new.amount || 0).toLocaleString()} chips approved!`, 'success');
+                        showToast(` Cashout of ${(payload.new.amount || 0).toLocaleString()} chips approved!`, 'success');
                         haptic('success');
                     }
                     loadData();
@@ -402,7 +402,7 @@ export default function Cashier() {
                 chipAmount: amount,
             });
 
-            showToast(`Bought ${amount.toLocaleString()} chips for ${diamondCost} 💎`, 'success');
+            showToast(`Bought ${amount.toLocaleString()} chips for ${diamondCost} `, 'success');
             haptic('success');
             playSound('buyin');
             setShowBuyInModal(false);
@@ -822,7 +822,7 @@ export default function Cashier() {
                                         animation: 'fadeInSlide 0.3s ease',
                                     }}
                                 >
-                                    🔁 Re-Buy {lastBuyInAmount.toLocaleString()} Chips
+                                     Re-Buy {lastBuyInAmount.toLocaleString()} Chips
                                     <span style={{ fontSize: 11, opacity: 0.7, fontWeight: 400 }}>· Tap to repeat</span>
                                 </button>
                             )}
@@ -895,7 +895,7 @@ export default function Cashier() {
                                                 </div>
                                                 <div style={{ flex: 1 }}>
                                                     <div style={{ fontSize: '14px', fontWeight: 600, color: FB.textPrimary }}>
-                                                        {co.status === 'pending' ? '⏳ Awaiting Agent Approval' : '✅ Approved'}
+                                                        {co.status === 'pending' ? ' Awaiting Agent Approval' : ' Approved'}
                                                     </div>
                                                     <div style={S.txDate}>
                                                         {co.created_at ? new Date(co.created_at).toLocaleString() : 'N/A'}
@@ -1046,7 +1046,7 @@ export default function Cashier() {
                                     }}
                                     aria-label="Send chips to a club member"
                                 >
-                                    💸 Send Chips to a Club Member
+                                     Send Chips to a Club Member
                                 </button>
                             </div>
 
@@ -1123,10 +1123,10 @@ export default function Cashier() {
                                                 alignItems: 'center', cursor: 'pointer', fontSize: 14, fontWeight: 700,
                                             }}
                                         >
-                                            <span>📊 Monthly P&L Summary</span>
+                                            <span> Monthly P&L Summary</span>
                                             <span style={{ fontSize: 20, fontWeight: 800, color: monthNet >= 0 ? FB.success : FB.danger }}>
                                                 {monthNet >= 0 ? '+' : ''}{monthNet.toLocaleString()}
-                                                <span style={{ fontSize: 11, color: FB.textSecondary, marginLeft: 8 }}>{showPnL ? '▲' : '▼'}</span>
+                                                <span style={{ fontSize: 11, color: FB.textSecondary, marginLeft: 8 }}>{showPnL ? '' : ''}</span>
                                             </span>
                                         </button>
                                         {showPnL && (
@@ -1289,7 +1289,7 @@ export default function Cashier() {
                                                     fontSize: 12, cursor: 'pointer',
                                                 }}
                                             >
-                                                💾 Export Transactions (CSV)
+                                                 Export Transactions (CSV)
                                             </button>
                                         )}
                                     </>
@@ -1451,7 +1451,7 @@ export default function Cashier() {
                             {buyInPendingAmount ? (
                                 <div style={{ textAlign: 'center' }}>
                                     <div style={{ color: '#FFA726', fontSize: 13, fontWeight: 700, marginBottom: 10 }}>
-                                        ⚠️ Large transaction: {buyInPendingAmount.toLocaleString()} chips for {getDiamondCost(buyInPendingAmount)} 💎
+                                         Large transaction: {buyInPendingAmount.toLocaleString()} chips for {getDiamondCost(buyInPendingAmount)} 
                                     </div>
                                     <div style={{ display: 'flex', gap: 10 }}>
                                         <button

@@ -97,7 +97,7 @@ function MiniViewExpandModal({ miniState, maxSeats, blinds, variant, accentColor
         background: 'rgba(0,0,0,0.5)', borderRadius: '50%',
         width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
       }} onClick={onClose}>
-        ✕
+        
       </div>
     </div>
   );
@@ -367,7 +367,7 @@ function CashCard({ table: t, assetMap, onPress, onSpectate, onWaitlist, avgVpip
               onClick={(e) => { e.stopPropagation(); onSpectate?.(t); }}
               style={S.spectateBtn}
             >
-              👁️ Watch
+               Watch
             </div>
           </div>
         ) : (
@@ -427,7 +427,7 @@ function CashCard({ table: t, assetMap, onPress, onSpectate, onWaitlist, avgVpip
           onClick={(e) => { e.stopPropagation(); onWaitlist(t); }}
           style={S.waitlistBtn}
         >
-          📋 Join Waitlist
+           Join Waitlist
         </button>
       )}
 
@@ -543,7 +543,7 @@ function TournamentCard({ tournament: t, assetMap, onPress, onSpectate, onQuickR
               onClick={(e) => { e.stopPropagation(); onSpectate?.(t); }}
               style={S.spectateBtn}
             >
-              👁️ Watch
+               Watch
             </div>
           </div>
         ) : (
@@ -606,7 +606,7 @@ function TournamentCard({ tournament: t, assetMap, onPress, onSpectate, onQuickR
             background: fillPct >= 100 ? 'linear-gradient(90deg, #31A24C, #00E676)' : 'linear-gradient(90deg, #FFD700, #FFA000)',
           }} />
           <span style={S.prizeBarLabel}>
-            {fmtChips(currentPool)}{fillPct < 100 ? ` / ${fmtChips(gtdTarget)} GTD` : ' GTD MET ✓'}
+            {fmtChips(currentPool)}{fillPct < 100 ? ` / ${fmtChips(gtdTarget)} GTD` : ' GTD MET '}
           </span>
         </div>
       )}
@@ -633,7 +633,7 @@ function TournamentCard({ tournament: t, assetMap, onPress, onSpectate, onQuickR
           </button>
         ) : t.is_registered ? (
           <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-            <span style={{ fontSize: 8, color: '#00E676', fontWeight: 700 }}>✓ REG</span>
+            <span style={{ fontSize: 8, color: '#00E676', fontWeight: 700 }}> REG</span>
             {!isLive && generateCalendarUrl(t) && (
               <a
                 href={generateCalendarUrl(t)}
@@ -643,7 +643,7 @@ function TournamentCard({ tournament: t, assetMap, onPress, onSpectate, onQuickR
                 style={{ fontSize: 8, color: '#2374E1', fontWeight: 600, textDecoration: 'none', background: '#2374E120', padding: '1px 4px', borderRadius: 4, border: '1px solid #2374E140' }}
                 title="Add to Google Calendar"
               >
-                📅 Cal
+                 Cal
               </a>
             )}
           </div>
