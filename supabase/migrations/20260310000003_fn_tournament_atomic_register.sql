@@ -115,10 +115,3 @@ BEGIN
   );
 END;
 $$;
-
--- Lockdown: only service_role can call this
-REVOKE ALL ON FUNCTION public.fn_tournament_atomic_register(UUID, UUID, UUID, NUMERIC) FROM PUBLIC;
-REVOKE ALL ON FUNCTION public.fn_tournament_atomic_register(UUID, UUID, UUID, NUMERIC) FROM anon;
-REVOKE ALL ON FUNCTION public.fn_tournament_atomic_register(UUID, UUID, UUID, NUMERIC) FROM authenticated;
-
-DO $$ BEGIN RAISE NOTICE 'fn_tournament_atomic_register created — advisory lock serialization active'; END $$;
