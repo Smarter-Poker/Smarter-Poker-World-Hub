@@ -1454,6 +1454,27 @@ export default function ClubMessages() {
         iconBtn: { width: 36, height: 36, borderRadius: '50%', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' },
     };
 
+    if (!clubIdParam) {
+        return (
+            <>
+                <SEOHead
+                    noindex
+                    title="Club Arena — Messages"
+                    description="View Your Club Arena Messages."
+                    canonical="/hub/club-arena/messages"
+                />
+                <div style={S.page}>
+                    <UniversalHeader pageDepth={2} />
+                    <div style={S.emptyState}>
+                        <p style={{ marginBottom: 16, fontSize: 16, fontWeight: 500 }}>Invalid Club.</p>
+                        <p style={{ marginBottom: 24, fontSize: 14 }}>Please return to your Hub.</p>
+                        <button onClick={() => router.push('/hub')} style={{ background: C.card, border: `1px solid ${C.border}`, color: C.blue, padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', fontSize: '15px', fontWeight: 600 }}>Go to Hub</button>
+                    </div>
+                </div>
+            </>
+        );
+    }
+
     // Loading
     if (isLoading) {
         return (
