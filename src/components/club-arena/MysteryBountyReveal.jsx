@@ -121,9 +121,13 @@ function fireConfetti(isJackpot) {
     }).catch(() => { /* canvas-confetti not available */ });
 }
 
-export default function MysteryBountyReveal({ reveal, onDismiss }) {
+export default function MysteryBountyReveal({ reveal: propReveal, onDismiss }) {
     const [phase, setPhase] = useState('idle'); // idle | envelope | reveal | done
+    const [busReveal, setBusReveal] = useState(null);
     const timerRef = useRef(null);
+
+    // Merge: props take priority, bus events fill in when props are null
+    const reveal = propReveal || busReveal;
 
     // Calculate isJackpot here, as it's used in the useEffect
     const tier = reveal?.tierLabel
@@ -133,6 +137,23 @@ export default function MysteryBountyReveal({ reveal, onDismiss }) {
 
     // Ensure keyframes are injected on first render
     useEffect(() => { ensureMysteryKeyframes(); }, []);
+
+    // ── EventBus: Listen for MYSTERY_BOUNTY_REVEALED from TournamentDirector ──
+    useEffect(() => {
+        const unsub = eventBus.on(EventType.MYSTERY_BOUNTY_REVEALED, (e) => {
+            const payload = e?.payload || e;
+            if (payload?.playerName && payload?.amount) {
+                setBusReveal({
+                    playerName: payload.playerName,
+                    amount: payload.amount,
+                    tierLabel: payload.tierLabel,
+                    isJackpot: payload.isJackpot,
+                    avgBounty: payload.avgBounty,
+                });
+            }
+        });
+        return () => unsub();
+    }, []);
 
     useEffect(() => {
         if (!reveal) {
@@ -168,6 +189,7 @@ export default function MysteryBountyReveal({ reveal, onDismiss }) {
             }
             const t2 = setTimeout(() => {
                 setPhase('done');
+                setBusReveal(null); // Clear bus-triggered reveal
                 onDismiss?.();
             }, 5000);
             timerRef.current = [...(timerRef.current || []), t2];
@@ -188,7 +210,7 @@ export default function MysteryBountyReveal({ reveal, onDismiss }) {
 
     return (
         <div
-            onClick={() => { setPhase('done'); onDismiss?.(); }}
+            onClick={() => { setPhase('done'); setBusReveal(null); onDismiss?.(); }}
             style={{
                 position: 'fixed', inset: 0, zIndex: 99999,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',

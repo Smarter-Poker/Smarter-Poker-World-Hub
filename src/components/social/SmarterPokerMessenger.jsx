@@ -480,6 +480,7 @@ export const ChatWindow = ({
         // P4-2: Forward (open modal)
         if (action === 'forward') {
             setForwardMsg(msg);
+            busEmit.messageForwarded(conversationId, null);
         }
         // P4-7: Thread reply
         if (action === 'thread') {
@@ -910,7 +911,7 @@ export const ChatWindow = ({
                     <button className="input-btn" onClick={() => fileInputRef.current?.click()} title="Attach File">📎</button>
                     <input type="file" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileUpload} />
                     {/* P5-3: Voice recording button */}
-                    <button className={`input-btn ${isRecording ? 'recording' : ''}`} onClick={() => { if (!isRecording) { setIsRecording(true); setTimeout(() => { setIsRecording(false); onSend?.('🎤 Voice message (0:03)'); }, 3000); } }} title={isRecording ? 'Recording...' : 'Voice Message'}>{isRecording ? '🔴' : '🎤'}</button>
+                    <button className={`input-btn ${isRecording ? 'recording' : ''}`} onClick={() => { if (!isRecording) { setIsRecording(true); setTimeout(() => { setIsRecording(false); onSend?.('🎤 Voice message (0:03)'); busEmit.voiceMessageSent(conversationId, '0:03'); }, 3000); } }} title={isRecording ? 'Recording...' : 'Voice Message'}>{isRecording ? '🔴' : '🎤'}</button>
                     <button className="input-btn">🎁</button>
 
                     <div className="input-wrapper">

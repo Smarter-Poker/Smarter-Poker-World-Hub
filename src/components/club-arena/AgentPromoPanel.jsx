@@ -12,7 +12,7 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { apiCall } from '../../lib/club-arena/apiClient';
-import { busEmit } from '../../engine/EventBus';
+import { eventBus, EventType, busEmit } from '../../engine/EventBus';
 import { resolveAvatarDisplay } from '../../lib/resolveAvatarDisplay';
 import { haptic } from '../../lib/club-arena/haptic';
 
@@ -73,6 +73,15 @@ export default function AgentPromoPanel({ clubId, userId, role, onDistribute }) 
     }, [clubId, userId, isAgent]);
 
     useEffect(() => { loadData(); }, [loadData]);
+
+    // ── EventBus: Auto-refresh when admin grants promo or data changes ──
+    useEffect(() => {
+        const unsub = eventBus.on(EventType.DATA_MUTATED, (e) => {
+            const relevant = ['promo_distributed', 'promo_granted', 'chips_distributed', 'chips_minted'];
+            if (relevant.includes(e?.payload?.entity)) loadData();
+        });
+        return () => unsub();
+    }, [loadData]);
 
     const handleDistribute = async () => {
         if (!selectedPlayer || !amount) return;
