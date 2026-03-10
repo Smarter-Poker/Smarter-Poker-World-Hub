@@ -38,10 +38,14 @@ export default function SignInPage() {
         setError('');
         setLoading(true);
 
+        // [HARDENED] Military-Grade sanitization to prevent accidental trailing spaces
+        const safeEmail = email.trim().toLowerCase();
+        const safePassword = password.trim();
+
         try {
             const { data, error } = await supabase.auth.signInWithPassword({
-                email: email,
-                password: password,
+                email: safeEmail,
+                password: safePassword,
             });
 
             if (error) throw error;
@@ -51,7 +55,13 @@ export default function SignInPage() {
             router.push('/hub');
         } catch (err) {
             console.error('Sign in error:', err);
-            setError(err.message || 'Invalid email or password');
+
+            // Contextual Error Recovery
+            if (err.message && err.message.toLowerCase().includes('invalid login credentials')) {
+                setError('Invalid password. If you forgot it, use the "Sign Up" or "Continue with Google" options.');
+            } else {
+                setError(err.message || 'Invalid email or password');
+            }
         } finally {
             setLoading(false);
         }

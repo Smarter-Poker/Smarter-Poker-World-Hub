@@ -1227,6 +1227,12 @@ export default function HorsesAdmin() {
             🎟️ Promo Codes
           </button>
           <button
+            onClick={() => window.location.href = '/horses/sql-console'}
+            style={{ fontWeight: 'bold', color: '#10b981' }}
+          >
+            🧠 SQL Console
+          </button>
+          <button
             className={activeTab === 'economy' ? styles.active : ''}
             onClick={() => {
               setActiveTab('economy');
