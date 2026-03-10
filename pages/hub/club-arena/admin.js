@@ -342,11 +342,15 @@ export default function Admin() {
     // ── Event Bus: refresh admin on cross-page mutations ──────────────────
     useEffect(() => {
         const unsub = eventBus.on(EventType.DATA_MUTATED, (e) => {
-            const relevant = ['tournament_created', 'tournament_registration', 'chips_distributed', 'chips_minted', 'cashout_requested', 'cashout_approved', 'cashout_cancelled', 'rakeback_distributed', 'marketplace_purchase', 'union_club_added', 'agent_credit_issued', 'agent_commission_updated', 'agent_hierarchy_updated', 'promo_distributed'];
-            if (relevant.includes(e?.payload?.entity)) loadData();
+            const entity = e?.payload?.entity;
+            const relevantData = ['tournament_created', 'tournament_registration', 'chips_distributed', 'chips_minted', 'cashout_requested', 'cashout_approved', 'cashout_cancelled', 'rakeback_distributed', 'marketplace_purchase', 'union_club_added', 'agent_credit_issued', 'agent_commission_updated', 'agent_hierarchy_updated', 'promo_distributed'];
+            const relevantTables = ['table_action', 'table_created', 'table_settings_updated'];
+
+            if (relevantData.includes(entity)) loadData();
+            if (relevantTables.includes(entity)) loadTables();
         });
         return () => unsub();
-    }, [loadData]);
+    }, [loadData, loadTables]);
 
     // Load announcements or shop items when those modals open
     useEffect(() => {
