@@ -161,14 +161,28 @@ export default async function handler(req, res) {
 
     // ═════════════════════════════════════════════════════════════
     // 6+7. Execute clawback: atomic debit player (with balance check), credit agent
-    // Uses fn_debit_chips which atomically does SET chip_balance = chip_balance - N 
-    // WHERE chip_balance >= N, preventing negative balances without TOCTOU
+    // Uses optimistic lock to replace fn_debit_chips (PGRST202 locked)
     // ═════════════════════════════════════════════════════════════
-    const { error: debitErr } = await supabaseAdmin.rpc('fn_debit_chips', {
-      p_club_id: clubId,
-      p_user_id: txn.to_user_id,
-      p_amount: clawbackAmount,
-    });
+    const { data: playerMemberInit } = await supabaseAdmin
+      .from('club_members').select('chip_balance')
+      .eq('club_id', clubId).eq('user_id', txn.to_user_id)
+      .maybeSingle();
+
+    const availableInit = Math.floor(playerMemberInit?.chip_balance || 0);
+
+    let debitErr = null;
+    if (availableInit >= clawbackAmount) {
+      const { data: updatedP } = await supabaseAdmin
+        .from('club_members')
+        .update({ chip_balance: availableInit - clawbackAmount })
+        .eq('club_id', clubId).eq('user_id', txn.to_user_id)
+        .eq('chip_balance', availableInit) // Optimistic lock
+        .select('id').maybeSingle();
+
+      if (!updatedP) debitErr = new Error('Concurrent transaction, falling back to partial check.');
+    } else {
+      debitErr = new Error('Insufficient balance');
+    }
 
     if (debitErr) {
       // ═══════════════════════════════════════════════════════════
@@ -200,13 +214,16 @@ export default async function handler(req, res) {
         });
       }
 
-      // Retry with the available amount
+      // Retry with the available amount using optimistic lock
       const partialAmount = Math.min(available, clawbackAmount);
-      const { error: retryDebitErr } = await supabaseAdmin.rpc('fn_debit_chips', {
-        p_club_id: clubId,
-        p_user_id: txn.to_user_id,
-        p_amount: partialAmount,
-      });
+      const { data: retryDebit } = await supabaseAdmin
+        .from('club_members')
+        .update({ chip_balance: available - partialAmount })
+        .eq('club_id', clubId).eq('user_id', txn.to_user_id)
+        .eq('chip_balance', available)
+        .select('id').maybeSingle();
+
+      const retryDebitErr = !retryDebit ? new Error("Concurrent transaction") : null;
 
       if (retryDebitErr) {
         // Even partial failed — unclaim and fail gracefully
@@ -312,10 +329,12 @@ export default async function handler(req, res) {
     // ═════════════════════════════════════════════════════════════
     // 6b. FULL CLAWBACK succeeded — credit agent
     // ═════════════════════════════════════════════════════════════
-    const { error: creditErr } = await supabaseAdmin.rpc('fn_credit_chips', {
-      p_club_id: clubId,
-      p_user_id: user.id,
-      p_amount: clawbackAmount,
+    const { error: creditErr } = await supabaseAdmin.rpc('fn_atomic_increment_field', {
+      p_table: 'club_members',
+      p_field: 'chip_balance',
+      p_increment: clawbackAmount,
+      p_where_club_id: clubId,
+      p_where_user_id: user.id,
     });
 
     if (creditErr) {

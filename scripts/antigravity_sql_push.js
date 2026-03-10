@@ -130,7 +130,7 @@ async function connectWithRetry() {
                 const client = await pool.connect();
                 await client.query('SELECT 1');
                 return { client, pool };
-            } catch (e) { /* try next */ }
+            } catch (e) { console.error('DB ERROR:', e.message); /* try next */ }
         }
         if (attempt < MAX_CONNECT_RETRIES) {
             const delay = CONNECT_RETRY_DELAY_MS * attempt;
