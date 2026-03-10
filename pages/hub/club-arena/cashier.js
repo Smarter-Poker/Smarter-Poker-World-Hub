@@ -355,7 +355,7 @@ export default function Cashier() {
             const relevant = [
                 'chips_distributed', 'chips_minted', 'cashout_approved', 'cashout_requested', 'cashout_cancelled',
                 'marketplace_purchase', 'rakeback_distributed', 'table_action', 'tournament_registration',
-                'tournament_cancelled', 'agent_credit_issued', 'diamond_purchase'
+                'tournament_cancelled', 'agent_credit_issued', 'diamond_purchase', 'promo_distributed'
             ];
             if (relevant.includes(e?.payload?.entity)) loadData();
         });
