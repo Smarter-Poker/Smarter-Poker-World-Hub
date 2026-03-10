@@ -1,7 +1,13 @@
 // /pages/api/club-arena/tournament-cron.js
 // Scheduled endpoint for tournament auto-start and push notification reminders
 // Called by Vercel Cron or external scheduler every 60 seconds
-import { getSupabase } from '../../../src/lib/supabase';
+import { createClient } from '../../../src/lib/supabaseServerClient';
+import { notifyUser } from '../../../src/lib/club-arena/notify';
+
+const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 export default async function handler(req, res) {
     // Only allow GET (cron) or POST with secret
@@ -11,22 +17,16 @@ export default async function handler(req, res) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const supabase = getSupabase();
     const now = new Date();
     const results = { autoStarted: 0, reminders: 0, errors: [] };
 
     try {
         // ═══════════════════════════════════════════════════════
         // 1. SCHEDULED AUTO-START [Improvement #8]
-        // Tournaments with scheduled_start <= now AND status = 'scheduled'
-        // → transition to 'registering'
-        // Tournaments with scheduled_start <= now AND status = 'registering'
-        //   AND registered_count >= min_players
-        // → transition to 'running' (engine start)
         // ═══════════════════════════════════════════════════════
         const { data: scheduledTournaments } = await supabase
             .from('club_tournaments')
-            .select('id, name, status, club_id, scheduled_start, registered_count, max_players, settings')
+            .select('id, name, status, club_id, type, variant, buy_in, starting_chips, scheduled_start, registered_count, max_players, settings')
             .in('status', ['scheduled', 'registering'])
             .not('scheduled_start', 'is', null)
             .lte('scheduled_start', now.toISOString())
@@ -44,10 +44,9 @@ export default async function handler(req, res) {
                     console.log(`[TournCron] Opened registration for ${tourn.name} (${tourn.id})`);
                     results.autoStarted++;
                 } else if (tourn.status === 'registering') {
-                    // Check if past scheduled start and has enough players
                     const minPlayers = tourn.settings?.min_players || 2;
                     if (tourn.registered_count >= minPlayers) {
-                        // Auto-start: call the same engine init used by the 'start' action
+                        // Auto-start: init the poker engine
                         const { getController } = require('../../../src/lib/poker-engine/GameController');
                         const controller = await getController();
 
@@ -65,16 +64,18 @@ export default async function handler(req, res) {
                             clubId: tourn.club_id,
                             type: tourn.type || 'mtt',
                             variant: tourn.variant || 'nlh',
-                            buyIn: tourn.buy_in,
+                            buyIn: tourn.buy_in || 100,
                             startingChips: tourn.starting_chips || 10000,
                             maxPlayers: tourn.max_players || 100,
                             ...(tourn.settings || {}),
                         });
 
                         if (createResult.success) {
-                            // Register all players in the engine
                             for (const reg of (regs || [])) {
-                                await controller.registerForTournament(tourn.id, reg.user_id, reg.display_name || 'Player', { chipsAlreadyLocked: true });
+                                await controller.registerForTournament(
+                                    tourn.id, reg.user_id, reg.display_name || 'Player',
+                                    { chipsAlreadyLocked: true }
+                                );
                             }
                             await controller.startTournament(tourn.id);
 
@@ -83,7 +84,7 @@ export default async function handler(req, res) {
                                 .update({ status: 'running', started_at: now.toISOString() })
                                 .eq('id', tourn.id);
 
-                            console.log(`[TournCron] Auto-started tournament ${tourn.name} (${tourn.id}) with ${regs?.length || 0} players`);
+                            console.log(`[TournCron] Auto-started ${tourn.name} (${tourn.id}) with ${regs?.length || 0} players`);
                             results.autoStarted++;
                         } else {
                             console.error(`[TournCron] Engine create failed for ${tourn.id}:`, createResult.error);
@@ -99,10 +100,9 @@ export default async function handler(req, res) {
 
         // ═══════════════════════════════════════════════════════
         // 2. PUSH NOTIFICATION REMINDERS [Improvement #5]
-        // Send 15-min reminder to registered players
         // ═══════════════════════════════════════════════════════
-        const reminderWindow = new Date(now.getTime() + 15 * 60 * 1000); // 15 min from now
-        const reminderStart = new Date(now.getTime() + 14 * 60 * 1000); // 14-15 min window
+        const reminderWindow = new Date(now.getTime() + 15 * 60 * 1000);
+        const reminderStart = new Date(now.getTime() + 14 * 60 * 1000);
 
         const { data: upcomingTournaments } = await supabase
             .from('club_tournaments')
@@ -114,11 +114,9 @@ export default async function handler(req, res) {
             .limit(20);
 
         for (const tourn of (upcomingTournaments || [])) {
-            // Skip if reminder already sent (tracked in settings)
             if (tourn.settings?.reminder_sent) continue;
 
             try {
-                // Fetch registered players
                 const { data: regs } = await supabase
                     .from('tournament_registrations')
                     .select('user_id')
@@ -126,11 +124,8 @@ export default async function handler(req, res) {
                     .eq('status', 'registered')
                     .limit(500);
 
-                // Notify each registered player
-                // Inline stub — notifications module not yet available
-                const notifyUser = async () => { }; // TODO: wire to OneSignal when notifications module is built
                 for (const reg of (regs || [])) {
-                    await notifyUser(supabase, {
+                    notifyUser(supabase, {
                         userId: reg.user_id,
                         type: 'tournament_reminder',
                         title: `⏰ ${tourn.name} starts in 15 minutes!`,
@@ -141,7 +136,7 @@ export default async function handler(req, res) {
                     results.reminders++;
                 }
 
-                // Mark reminder as sent
+                // Mark reminder as sent (deduplication)
                 const updSettings = { ...(tourn.settings || {}), reminder_sent: true };
                 await supabase
                     .from('club_tournaments')

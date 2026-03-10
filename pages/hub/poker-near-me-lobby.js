@@ -367,6 +367,17 @@ export default function PokerNearMeLobby() {
   // 🚌 Bus — emit SESSION_START on mount, SESSION_END on unmount
   const bus = useTrainingBus('poker-near-me-lobby');
 
+  // ─── Global EventBus for cross-component communication ───
+  // Maps 'venue:favorite' and 'venue:unfavorite' events to local 'favorites' state
+  useTrainingBus(null, {
+    'venue:favorite': (venueId) => setFavorites(prev => ({ ...prev, [venueId]: true })),
+    'venue:unfavorite': (venueId) => setFavorites(prev => {
+      const newState = { ...prev };
+      delete newState[venueId];
+      return newState;
+    }),
+  });
+
   // ─── Core State ───
   const [activePod, setActivePod] = useState(null);
   const [showPanel, setShowPanel] = useState(false);
@@ -722,8 +733,30 @@ export default function PokerNearMeLobby() {
       }
     };
     window.addEventListener('pnm:favorites-changed', handleFavoritesChanged);
-    return () => window.removeEventListener('pnm:favorites-changed', handleFavoritesChanged);
-  }, []);
+
+    // Global EventBus sync
+    const handleBusFavSync = (data) => {
+      if (data && data.venueId) {
+        setFavorites(prev => ({ ...prev, [data.venueId]: true }));
+      }
+    };
+    const handleBusUnfavSync = (data) => {
+      if (data && data.venueId) {
+        setFavorites(prev => ({ ...prev, [data.venueId]: false }));
+      }
+    };
+    let unsubFav, unsubUnfav;
+    if (bus && bus.on) {
+      unsubFav = bus.on('venue:favorite', handleBusFavSync);
+      unsubUnfav = bus.on('venue:unfavorite', handleBusUnfavSync);
+    }
+
+    return () => {
+      window.removeEventListener('pnm:favorites-changed', handleFavoritesChanged);
+      if (unsubFav) unsubFav();
+      if (unsubUnfav) unsubUnfav();
+    };
+  }, [bus]);
 
   // ─── GPS ───
   const gpsErrorTimeoutRef = useRef(null);
