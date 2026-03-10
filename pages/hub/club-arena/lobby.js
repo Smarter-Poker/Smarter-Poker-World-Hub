@@ -75,7 +75,11 @@ function navigateToTableMT(router, table, club, showToastFn) {
   let slots;
   try {
     const raw = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(MT_STORAGE_KEY) : null;
-    slots = raw ? JSON.parse(raw) : [null, null, null, null];
+    try {
+        slots = raw ? JSON.parse(raw) : [null, null, null, null];
+    } catch (e) {
+        slots = [null, null, null, null];
+    }
     if (!Array.isArray(slots) || slots.length !== 4) slots = [null, null, null, null];
   } catch (_) {
     slots = [null, null, null, null];

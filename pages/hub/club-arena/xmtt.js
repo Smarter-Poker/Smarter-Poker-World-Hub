@@ -108,6 +108,8 @@ export default function XMTTHub() {
         loadData(user, newTab);
     };
 
+    if (!user) return null;
+
     return (
         <div style={{ background: FB.background, minHeight: '100vh', color: FB.textPrimary }}>
             <SEOHead title="XMTT Hub — Cross-Club Tournaments" description="Browse and register for cross-club tournaments." canonical="/hub/club-arena/xmtt" noindex />

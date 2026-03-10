@@ -146,13 +146,7 @@ export default function UnionDashboard() {
     const [announceClub, setAnnounceClub] = useState('all');
     const [announceProcessing, setAnnounceProcessing] = useState(false);
 
-    // Live Activity Feed State (simulated real-time events)
-    const [activityFeed, setActivityFeed] = useState([
-        { id: 1, type: 'game', text: '🏆 Tournament "Sunday Showdown" created by Shark Club', time: '12m ago', color: FB.gold },
-        { id: 2, type: 'money', text: '💰 $4,200 Settlement period #14 closed', time: '45m ago', color: FB.success },
-        { id: 3, type: 'game', text: '🃏 NLH $1/$2 table opened (6 players seated)', time: '2h ago', color: FB.primary },
-        { id: 4, type: 'admin', text: '🛡️ "Apex Poker" application approved', time: '4h ago', color: FB.purple }
-    ]);
+    // Live Activity Feed State is now driven by dashboard.activityFeed from the API
 
     // Calculate Union Health Score
     const calculateHealthScore = useCallback(() => {
@@ -793,7 +787,9 @@ export default function UnionDashboard() {
                                 Live Activity Feed
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                {activityFeed.map(item => (
+                                {(dashboard?.activityFeed || []).length === 0 ? (
+                                    <div style={{ fontSize: 12, color: FB.textSecondary, fontStyle: 'italic' }}>No recent activity</div>
+                                ) : (dashboard?.activityFeed || []).map(item => (
                                     <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 }}>
                                         <span style={{ color: item.color || FB.textSecondary }}>{item.text}</span>
                                         <span style={{ color: FB.textSecondary, fontSize: 11 }}>{item.time}</span>

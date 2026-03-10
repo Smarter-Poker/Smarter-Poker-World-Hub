@@ -589,8 +589,9 @@ class TournamentController extends EventEmitter {
       return;
     }
 
+    const crypto = require('crypto');
     const totalWeight = SPIN_MULTIPLIERS.reduce((s, m) => s + m.weight, 0);
-    let roll = Math.floor(Math.random() * totalWeight);
+    let roll = crypto.randomInt(0, totalWeight);
 
     for (const entry of SPIN_MULTIPLIERS) {
       roll -= entry.weight;

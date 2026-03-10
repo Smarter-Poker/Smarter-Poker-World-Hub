@@ -224,6 +224,35 @@ export default async function handler(req, res) {
       .filter(a => !a.is_prepaid)
       .reduce((s, a) => s + (a.credit_used || 0), 0);
 
+    // 7.5. Aggregate Live Activity Feed (Recent Transactions, Tournaments, Tables)
+    let activityFeed = [];
+    if (clubIds.length > 0) {
+      try {
+        const [{ data: txs }, { data: tourns }, { data: recentTables }] = await Promise.all([
+          supabaseAdmin.from('union_wallet_transactions').select('id, amount, transaction_type, notes, created_at').eq('union_id', unionId).order('created_at', { ascending: false }).limit(3),
+          supabaseAdmin.from('club_tournaments').select('id, name, status, created_at').in('club_id', clubIds).order('created_at', { ascending: false }).limit(3),
+          supabaseAdmin.from('tables').select('id, name, stakes, status, created_at').in('club_id', clubIds).order('created_at', { ascending: false }).limit(3)
+        ]);
+
+        const cMap = { success: '#31A24C', primary: '#2374E1', gold: '#F7C52A' };
+        
+        const feedItems = [
+          ...(txs || []).map(t => ({ id: `tx_${t.id}`, type: 'money', text: `💰 ${t.transaction_type} ${(t.amount || 0).toLocaleString()} chips`, ts: new Date(t.created_at).getTime(), color: cMap.success })),
+          ...(tourns || []).map(t => ({ id: `tr_${t.id}`, type: 'game', text: `🏆 Tournament "${t.name}" added`, ts: new Date(t.created_at).getTime(), color: cMap.gold })),
+          ...(recentTables || []).map(t => ({ id: `tb_${t.id}`, type: 'game', text: `🃏 Table "${t.name}" (${t.stakes || ''}) opened`, ts: new Date(t.created_at).getTime(), color: cMap.primary }))
+        ];
+        
+        feedItems.sort((a, b) => b.ts - a.ts);
+        activityFeed = feedItems.slice(0, 5).map(item => {
+          const diffMins = Math.floor((Date.now() - item.ts) / 60000);
+          const timeStr = diffMins < 1 ? 'Just now' : diffMins < 60 ? `${diffMins}m ago` : `${Math.floor(diffMins/60)}h ${diffMins%60}m ago`;
+          return { id: item.id, type: item.type, text: item.text, time: timeStr, color: item.color };
+        });
+      } catch (e) {
+        console.error('[UnionDashboard API] Activity Feed build failed:', e);
+      }
+    }
+
     // Use current/open period rake for hold estimate (not lifetime)
     const currentPeriodRake = periods
       .filter(p => p.status === 'open')
@@ -236,6 +265,7 @@ export default async function handler(req, res) {
       adminRole: unionAdmin.role,
       pendingApplications: pendingApps || 0,
       pendingLeaveRequests: pendingLeave || 0,
+      activityFeed,
       ...(commissionHistory !== undefined ? { commissionHistory } : {}),
       wallets: {
         chip_balance: Number(union.chip_balance || 0),
