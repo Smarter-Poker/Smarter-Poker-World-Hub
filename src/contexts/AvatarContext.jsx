@@ -140,8 +140,8 @@ export function AvatarProvider({ children }) {
                 });
                 clearTimeout(timeoutId);
                 const data = await res.json();
-                if (data.created) {
-                    console.log('[ANTIGRAVITY] Profile was missing - created:', data.profile?.username);
+                if (data.created || data.isBrandNew) {
+                    console.log('[ANTIGRAVITY] Profile was missing or brand new - checking welcome modal for:', data.profile?.username);
 
                     // ═════════════════════════════════════════════════════════════
                     // NEW USER WELCOME PACKAGE: Trigger welcome modal
@@ -152,6 +152,8 @@ export function AvatarProvider({ children }) {
                         setShowWelcomeModal(true);
                         // Dispatch VIP bus event so header updates immediately
                         window.dispatchEvent(new CustomEvent('vip-status-changed', { detail: { vipGranted: true } }));
+                        // Hydrate diamond balance across the UI immediately
+                        window.dispatchEvent(new Event('diamond-balance-refresh'));
                     }
                 }
             } catch (err) {

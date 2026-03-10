@@ -2,7 +2,7 @@
  CLUB ARENA — Cashier | FULLY WIRED
  SmarterPoker Dark Theme | Buy-In, Cash-Out, Transaction History
  ═══════════════════════════════════════════════════════════════════════════════ */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';

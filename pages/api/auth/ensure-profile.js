@@ -74,10 +74,16 @@ export default async function handler(req, res) {
                 })
                 .eq('id', user_id);
 
+            // ── ANTIGRAVITY FIX: Detect if profile was JUST created by the DB trigger ──
+            const createdTime = new Date(existingProfile.created_at).getTime();
+            const now = Date.now();
+            const isBrandNew = (now - createdTime) < 60000; // Created in last 60 seconds
+
             return res.json({
                 status: 'EXISTS',
                 profile: existingProfile,
-                created: false
+                created: false,
+                isBrandNew
             });
         }
 

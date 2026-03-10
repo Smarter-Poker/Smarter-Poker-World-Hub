@@ -15,6 +15,7 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { notifyUser } from '../../../src/lib/club-arena/notify';
+import { validateSettlement } from '../../../src/contracts/orb4_syndicate';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
 
@@ -38,13 +39,14 @@ export default async function handler(req, res) {
   const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
   if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-  const { clubId, action, periodId, commissionId } = req.body;
-  if (!clubId || !action) return res.status(400).json({ success: false, error: 'clubId and action required' });
-
-  const validActions = ['open', 'close', 'pay', 'pay_all', 'status'];
-  if (!validActions.includes(action)) {
-    return res.status(400).json({ success: false, error: `action must be one of: ${validActions.join(', ')}` });
+  // RED TEAM: Zod Contract Validation (MANDATE: Reject 100% with 400 Bad Request before hitting Postgres)
+  const validation = validateSettlement(req.body);
+  if (!validation.success) {
+    return res.status(400).json({ success: false, error: validation.error });
   }
+
+  const payload = validation.data;
+  const { clubId, action, periodId, commissionId } = payload;
 
   // CONCURRENCY: Idempotency guard — prevent double-taps (especially on open/close)
   if (checkIdempotency(req, res)) return;

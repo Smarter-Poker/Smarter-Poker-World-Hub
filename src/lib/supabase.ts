@@ -30,16 +30,35 @@ if (typeof window !== 'undefined' && supabaseUrl) {
    console.log('[Supabase] Init:', supabaseUrl.substring(8, 30) + '...');
 }
 
+let _supabase: any = null;
+
+function getSupabase() {
+   if (!_supabase) {
+      // During Vercel SSG build, env vars may be omitted. 
+      // Use placeholders to satisfy createClient URL parser, preventing build crash.
+      const safeUrl = supabaseUrl || 'https://build-placeholder.supabase.co';
+      const safeKey = supabaseAnonKey || 'build-placeholder-key';
+
+      _supabase = createClient(safeUrl, safeKey, {
+         auth: {
+            autoRefreshToken: true,
+            persistSession: true,
+            detectSessionInUrl: true,
+            storageKey: 'smarter-poker-auth',
+         },
+      });
+   }
+   return _supabase;
+}
+
 /**
  * Create Supabase client with stable session persistence.
+ * Wrapped in a Proxy to implement lazy-initialization without breaking module imports.
  */
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-   auth: {
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: true,
-      storageKey: 'smarter-poker-auth',
-   },
-});
+export const supabase = new Proxy({}, {
+   get(target, prop) {
+      return getSupabase()[prop as keyof typeof _supabase];
+   }
+}) as ReturnType<typeof createClient>;
 
 export default supabase;

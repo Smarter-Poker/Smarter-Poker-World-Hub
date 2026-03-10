@@ -282,6 +282,98 @@ export default function ThreePillHeader({
         };
     }, []);
 
+    // ── Diamond balance auto-refresh when rewards are earned ──
+    useEffect(() => {
+        const refreshBalance = async () => {
+            if (!user?.id) return;
+            try {
+                // Get access token for JWT auth
+                let accessToken = null;
+                try {
+                    const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+                    accessToken = authData?.access_token || null;
+                } catch (e) { }
+
+                const response = await fetch('/api/user/get-header-stats', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
+                    },
+                    body: JSON.stringify({ userId: user.id }),
+                });
+                const result = await response.json();
+                if (result.success && result.profile) {
+                    setStats({ diamonds: result.profile.diamonds });
+                    // Update localStorage cache with new balance
+                    try {
+                        const cached = JSON.parse(localStorage.getItem('sp-cached-header-user') || '{}');
+                        cached.diamonds = result.profile.diamonds;
+                        localStorage.setItem('sp-cached-header-user', JSON.stringify(cached));
+                    } catch (_) { }
+                    console.log('[ThreePillHeader] Diamond Balance refreshed:', result.profile.diamonds);
+                }
+            } catch (e) {
+                console.warn('[ThreePillHeader] Balance refresh failed:', e.message);
+            }
+        };
+
+        window.addEventListener('diamond-balance-refresh', refreshBalance);
+        return () => window.removeEventListener('diamond-balance-refresh', refreshBalance);
+    }, [user?.id]);
+
+    // ── VIP status bus listener — updates VIP badge in real time ──
+    // Triggered by AvatarContext after successful signup
+    useEffect(() => {
+        const handleProfileUpdate = async () => {
+            // Re-fetch header stats to pick up all profile changes
+            if (!user?.id) return;
+            try {
+                // Get access token for JWT auth
+                let accessToken = null;
+                try {
+                    const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+                    accessToken = authData?.access_token || null;
+                } catch (e) { }
+
+                const response = await fetch('/api/user/get-header-stats', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
+                    },
+                    body: JSON.stringify({ userId: user.id }),
+                });
+                const result = await response.json();
+                if (result.success && result.profile) {
+                    setStats({ diamonds: result.profile.diamonds });
+                    setUser(prev => ({
+                        ...prev,
+                        avatar: result.profile.avatar_url || prev?.avatar,
+                        name: result.profile.full_name || result.profile.username || prev?.name
+                    }));
+                    // Update localStorage cache with fresh profile data
+                    try {
+                        localStorage.setItem('sp-cached-header-user', JSON.stringify({
+                            avatar: result.profile.avatar_url,
+                            name: result.profile.full_name || result.profile.username,
+                            diamonds: result.profile.diamonds || 0,
+                            is_vip: !!result.profile.is_vip
+                        }));
+                    } catch (_) { }
+                    console.log('[ThreePillHeader] 🚌 Profile refreshed via bus event');
+                }
+            } catch (e) {
+                console.warn('[ThreePillHeader] Profile refresh failed:', e.message);
+            }
+        };
+
+        window.addEventListener('profile-updated', handleProfileUpdate);
+        return () => {
+            window.removeEventListener('profile-updated', handleProfileUpdate);
+        };
+    }, [user?.id]);
+
     // ── TIER 2: Avatar Changes Cross-Tab Sync ──
     // Listen for avatar changes from AvatarContext and other tabs
     useEffect(() => {
