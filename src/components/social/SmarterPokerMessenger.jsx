@@ -779,6 +779,38 @@ export const ChatWindow = ({
                 </div>
             )}
 
+            {/* P5-2: Emoji Picker Overlay */}
+            {showEmojiPicker && (
+                <div className="emoji-picker-overlay">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                        <strong>React</strong>
+                        <button style={{ background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setShowEmojiPicker(null)}>✕</button>
+                    </div>
+                    {EMOJI_GRID.map(group => (
+                        <div key={group.cat} style={{ marginBottom: 4 }}>
+                            <span style={{ fontSize: 9, color: '#999', textTransform: 'uppercase' }}>{group.cat}</span>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                                {group.emojis.map((em, i) => (
+                                    <button key={i} className="emoji-pick-btn" onClick={() => handleReaction(showEmojiPicker, em)}>{em}</button>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* P5-6: Edit Modal */}
+            {editingMsg && (
+                <div style={{ padding: '6px 8px', background: '#fff9e6', borderBottom: '1px solid #ffd700', fontSize: 11 }}>
+                    <strong>✏️ Editing message</strong>
+                    <input type="text" value={editText} onChange={e => setEditText(e.target.value)} onKeyPress={handleKeyPress} style={{ width: '100%', border: '1px solid #ddd', borderRadius: 6, padding: '4px 8px', fontSize: 12, marginTop: 4, boxSizing: 'border-box' }} autoFocus />
+                    <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
+                        <button style={{ background: '#0088ff', color: 'white', border: 'none', borderRadius: 4, padding: '3px 10px', fontSize: 11, cursor: 'pointer' }} onClick={handleSaveEdit}>Save</button>
+                        <button style={{ background: '#ddd', border: 'none', borderRadius: 4, padding: '3px 10px', fontSize: 11, cursor: 'pointer' }} onClick={() => { setEditingMsg(null); setEditText(''); }}>Cancel</button>
+                    </div>
+                </div>
+            )}
+
             {/* Messages */}
             <div className="chat-messages">
                 {messages.filter(msg => {

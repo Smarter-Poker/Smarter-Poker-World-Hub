@@ -113,14 +113,45 @@ export default function useMiniStatePoller() {
         setMiniStates(prev => {
           const next = new Map(prev);
           const state = { ...payload, _fetchedAt: now };
+          const existing = prev.get(state.tableId);
 
-          // Emit EventBus event on hand number change
-          if (_busEmit && state.handNumber) {
-            const prevHand = prevHandNumbers.current.get(state.tableId);
-            if (prevHand !== undefined && prevHand !== state.handNumber) {
-              _busEmit.dataMutated('mini_state_hand_change');
+          // ── EventBus emissions for all significant state changes ──
+          if (_busEmit) {
+            // Hand number change
+            if (state.handNumber) {
+              const prevHand = prevHandNumbers.current.get(state.tableId);
+              if (prevHand !== undefined && prevHand !== state.handNumber) {
+                _busEmit.dataMutated('mini_state_hand_change');
+              }
+              prevHandNumbers.current.set(state.tableId, state.handNumber);
             }
-            prevHandNumbers.current.set(state.tableId, state.handNumber);
+
+            // Phase transition (preflop → flop, etc.)
+            if (existing && existing.phase !== state.phase) {
+              _busEmit.dataMutated('mini_state_phase_change');
+            }
+
+            // Winner flash (new hand result appeared)
+            if (state.lastHandResult && (!existing?.lastHandResult || 
+                existing.lastHandResult.timestamp !== state.lastHandResult.timestamp)) {
+              _busEmit.dataMutated('mini_state_winner_flash');
+            }
+
+            // Chat message
+            if (state.lastChatMessage && (!existing?.lastChatMessage ||
+                existing.lastChatMessage.timestamp !== state.lastChatMessage.timestamp)) {
+              _busEmit.dataMutated('mini_state_chat_message');
+            }
+
+            // Emoji reaction
+            if (state.emojiReactions?.length > (existing?.emojiReactions?.length || 0)) {
+              _busEmit.dataMutated('mini_state_emoji_reaction');
+            }
+
+            // Pot change (significant)
+            if (existing && state.potTotal !== existing.potTotal && state.potTotal > 0) {
+              _busEmit.dataMutated('mini_state_pot_change');
+            }
           }
 
           next.set(state.tableId, state);

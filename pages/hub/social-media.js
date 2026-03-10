@@ -65,6 +65,7 @@ import { useSocialStore } from '../../src/stores/socialStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import toast from '../../src/stores/toastStore';
 import { getAccessToken } from '../../src/lib/authUtils';
+import useTrainingBus from '../../src/hooks/useTrainingBus';
 
 // Light Theme Colors (SmarterPoker-style)
 const C = {
@@ -3917,6 +3918,7 @@ function ClubPagesView({ C, pages, setPages, loading, setLoading, category, setC
 
 export default function SocialMediaPage() {
     const router = useRouter();
+    useTrainingBus('social-media');
 
     // Auto-prefetch profile data when posts scroll into view
     useFeedPrefetchObserver();

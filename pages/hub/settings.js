@@ -23,6 +23,7 @@ import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import InviteFriendsModal from '../../src/components/ui/InviteFriendsModal';
 import { getAccessToken } from '../../src/lib/authUtils';
+import useTrainingBus from '../../src/hooks/useTrainingBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TOGGLE SWITCH COMPONENT
@@ -77,6 +78,7 @@ function Select({ value, onChange, options, label }) {
 // ═══════════════════════════════════════════════════════════════════════════
 export default function SettingsPage() {
     const router = useRouter();
+    useTrainingBus('settings');
     const { avatar, isVip, user: contextUser, initializing } = useAvatar();
     const [userProfile, setUserProfile] = useState(null);
     const [localUser, setLocalUser] = useState(null); //  Fallback from localStorage

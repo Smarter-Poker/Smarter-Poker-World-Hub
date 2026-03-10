@@ -19,6 +19,7 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 // God-Mode Stack
 import { useProfileStore } from '../../src/stores/profileStore';
 import { getAccessToken } from '../../src/lib/authUtils';
+import useTrainingBus from '../../src/hooks/useTrainingBus';
 
 // Light Theme Colors
 const C = {
@@ -238,6 +239,7 @@ function PokerResumeBadge({ hendonData, onRefresh, isRefreshing, syncStatus }) {
 
 export default function ProfilePage() {
     const router = useRouter();
+    useTrainingBus('profile-edit');
     const { avatar } = useAvatar();
 
     // Zustand Global State (replaces UI-related useState)
