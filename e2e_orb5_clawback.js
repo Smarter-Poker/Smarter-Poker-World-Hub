@@ -28,16 +28,16 @@ async function runTest() {
     try {
         // 1. Provision Test Club & Users
         const { data: testClub, error: clubErr } = await supabase.from('clubs')
-            .insert({ name: `ORB-5 E2E Test Club ${Date.now()}` }).select('id').single();
+            .insert({ name: `ORB-5 E2E Test Club ${Date.now()}` }).select('id').maybeSingle();
         if (clubErr) throw new Error(`Club creation failed: ${clubErr.message}`);
         const clubId = testClub.id;
 
         const { data: testOwner, error: ownerErr } = await supabase.from('profiles')
-            .insert({ display_name: 'ORB-5 Test Agent' }).select('id').single();
+            .insert({ display_name: 'ORB-5 Test Agent' }).select('id').maybeSingle();
         if (ownerErr) throw new Error(`Agent creation failed: ${ownerErr.message}`);
 
         const { data: testPlayer, error: playerErr } = await supabase.from('profiles')
-            .insert({ display_name: `orb5_player_${Date.now()}` }).select('id').single();
+            .insert({ display_name: `orb5_player_${Date.now()}` }).select('id').maybeSingle();
         if (playerErr) throw new Error(`Player creation failed: ${playerErr.message}`);
 
         // Agents Record
@@ -76,7 +76,7 @@ async function runTest() {
             console.log(`🛡️  Initial debit rejected as expected (Requested 50k, only has 20k). Triggering Graceful Partial...`);
 
             // Fetch actual balance
-            const { data: pMember } = await supabase.from('club_members').select('chip_balance').eq('club_id', clubId).eq('user_id', testPlayer.id).single();
+            const { data: pMember } = await supabase.from('club_members').select('chip_balance').eq('club_id', clubId).eq('user_id', testPlayer.id).maybeSingle();
 
             if (pMember && pMember.chip_balance > 0) {
                 partialAmount = pMember.chip_balance;
@@ -91,8 +91,8 @@ async function runTest() {
         }
 
         // 4. Verification Assertions
-        const { data: finalPlayer } = await supabase.from('club_members').select('chip_balance').eq('club_id', clubId).eq('user_id', testPlayer.id).single();
-        const { data: finalAgent } = await supabase.from('club_members').select('chip_balance').eq('club_id', clubId).eq('user_id', testOwner.id).single();
+        const { data: finalPlayer } = await supabase.from('club_members').select('chip_balance').eq('club_id', clubId).eq('user_id', testPlayer.id).maybeSingle();
+        const { data: finalAgent } = await supabase.from('club_members').select('chip_balance').eq('club_id', clubId).eq('user_id', testOwner.id).maybeSingle();
 
         console.log("\n📊 Verification Assertions:");
 

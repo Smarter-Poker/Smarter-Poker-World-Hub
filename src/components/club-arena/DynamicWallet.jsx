@@ -14,7 +14,7 @@
  * + buttons: Buy Diamonds (all), Mint Chips (union)
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 
 // ─── Inject BBJ pulse keyframes ONCE globally ─────────────────────────
 let _injected = false;

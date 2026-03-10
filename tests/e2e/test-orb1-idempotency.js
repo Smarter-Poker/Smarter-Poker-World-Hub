@@ -16,7 +16,7 @@ async function run() {
 
     try {
         console.log('1. Finding a valid club...');
-        const { data: club } = await supabaseAdmin.from('clubs').select('id').limit(1).single();
+        const { data: club } = await supabaseAdmin.from('clubs').select('id').limit(1).maybeSingle();
         if (!club) throw new Error('No club found to test with.');
 
         console.log('2. Generating test tenant...', testEmail);
@@ -88,8 +88,8 @@ async function run() {
         console.log(`Cached Responses Returned: ${cachedResponses} (Expected: 4)`);
 
         // Verify DB balances
-        const { data: profile } = await supabaseAdmin.from('profiles').select('diamonds').eq('id', userId).single();
-        const { data: member } = await supabaseAdmin.from('club_members').select('chip_balance').eq('club_id', club.id).eq('user_id', userId).single();
+        const { data: profile } = await supabaseAdmin.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
+        const { data: member } = await supabaseAdmin.from('club_members').select('chip_balance').eq('club_id', club.id).eq('user_id', userId).maybeSingle();
 
         console.log(`\nFinal Diamond Balance: ${profile.diamonds} (Expected: 810)`);
         console.log(`Final Chip Balance: ${member.chip_balance} (Expected: 500)`);
