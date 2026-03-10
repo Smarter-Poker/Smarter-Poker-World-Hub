@@ -27,7 +27,6 @@ import '../src/styles/worlds/trivia.css';
 import '../src/styles/commander-futuristic.css';
 import '../styles/landing.css';
 import '../styles/avatar-shimmer.css';
-import ToastProvider from '../src/components/club-arena/ToastProvider';
 import { Orbitron, Inter, Plus_Jakarta_Sans, Space_Grotesk, Rajdhani } from 'next/font/google';
 
 const orbitron = Orbitron({
