@@ -22,6 +22,19 @@ export default async function handler(req, res) {
 
     try {
         // ═══════════════════════════════════════════════════════
+        // 0. ACQUIRE CONCURRENCY LOCK (IMPROVEMENT #1)
+        // ═══════════════════════════════════════════════════════
+        const { data: lockResult, error: lockErr } = await supabase.rpc('fn_try_cron_lock', {
+            p_lock_name: 'tournament_cron_execution_lock'
+        });
+
+        if (lockErr) throw new Error(`Lock error: ${lockErr.message}`);
+        if (!lockResult) {
+            console.log('[TournCron] Execution aborted: Process currently locked by another instance.');
+            return res.json({ success: true, locked: true, message: 'Cron is already running' });
+        }
+
+        // ═══════════════════════════════════════════════════════
         // 1. SCHEDULED AUTO-START [Improvement #8]
         // ═══════════════════════════════════════════════════════
         const { data: scheduledTournaments } = await supabase
@@ -90,6 +103,53 @@ export default async function handler(req, res) {
                             console.error(`[TournCron] Engine create failed for ${tourn.id}:`, createResult.error);
                             results.errors.push({ id: tourn.id, error: createResult.error });
                         }
+                    } else {
+                        // ═══════════════════════════════════════════════════════
+                        // AUTO-CANCEL [Improvement #8 Extension]
+                        // ═══════════════════════════════════════════════════════
+                        console.log(`[TournCron] Cancelling ${tourn.name} (${tourn.id}) - Not enough players (${tourn.registered_count}/${minPlayers})`);
+
+                        const { data: regsToRefund } = await supabase
+                            .from('tournament_registrations')
+                            .select('id, user_id, buy_in_amount')
+                            .eq('tournament_id', tourn.id)
+                            .eq('status', 'registered');
+
+                        for (const reg of (regsToRefund || [])) {
+                            try {
+                                // Refund chips
+                                await supabase.rpc('unlock_chips_from_table', {
+                                    p_user_id: reg.user_id,
+                                    p_club_id: tourn.club_id,
+                                    p_table_id: tourn.id,
+                                    p_amount: reg.buy_in_amount,
+                                });
+
+                                // Mark refunded
+                                await supabase
+                                    .from('tournament_registrations')
+                                    .update({ status: 'refunded' })
+                                    .eq('id', reg.id);
+
+                                // Notify player
+                                notifyUser(supabase, {
+                                    userId: reg.user_id,
+                                    type: 'tournament_cancelled',
+                                    title: `❌ Cancelled: ${tourn.name}`,
+                                    message: `${tourn.name} was cancelled (not enough players). Chips refunded.`,
+                                    data: { tournamentId: tourn.id, clubId: tourn.club_id },
+                                }).catch(() => { });
+
+                            } catch (refErr) {
+                                console.error(`[TournCron] Refund FAILED for user ${reg.user_id}:`, refErr.message);
+                            }
+                        }
+
+                        // Mark tournament as cancelled
+                        await supabase
+                            .from('club_tournaments')
+                            .update({ status: 'cancelled' })
+                            .eq('id', tourn.id);
                     }
                 }
             } catch (err) {
@@ -153,5 +213,12 @@ export default async function handler(req, res) {
     } catch (err) {
         console.error('[TournCron] Fatal:', err.message);
         return res.status(500).json({ success: false, error: err.message });
+    } finally {
+        // ═══════════════════════════════════════════════════════
+        // RELEASE CONCURRENCY LOCK
+        // ═══════════════════════════════════════════════════════
+        await supabase.rpc('fn_release_cron_lock', {
+            p_lock_name: 'tournament_cron_execution_lock'
+        }).catch(err => console.error('[TournCron] Failed to release lock:', err.message));
     }
 }

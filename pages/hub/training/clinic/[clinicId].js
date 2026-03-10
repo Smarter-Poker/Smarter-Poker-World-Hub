@@ -24,7 +24,6 @@ const QUESTIONS_PER_CLINIC = 10;
 
 export default function ClinicPlayPage() {
     const router = useRouter();
-    if (!router.isReady) return null;
     const { clinicId } = router.query;
     const bus = useTrainingBus('clinic', { clinicId });
     const { recordSession } = useTrainingProgress();
@@ -222,7 +221,7 @@ export default function ClinicPlayPage() {
     }, [clinic, questionIndex, showResult, selectedAnswer, isComplete, sendClinicDataToIframe]);
 
     // Loading state
-    if (loading || !clinic) {
+    if (!router.isReady || loading || !clinic) {
         return (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0a1628' }}>
                 <motion.div

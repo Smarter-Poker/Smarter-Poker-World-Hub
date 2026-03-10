@@ -86,7 +86,6 @@ async function connectWithRetry(tableId, token, maxAttempts = 5) {
 
 export default function ClubArenaTable() {
   const router = useRouter();
-  if (!router.isReady) return null;
 
   const { tableId, tournament: tournamentId } = router.query;
   useTrainingBus('club-arena-table');
@@ -266,7 +265,7 @@ export default function ClubArenaTable() {
   }, [error, handleRetry]);
 
   // ── Loading screen ──
-  if (loading || !user) return (
+  if (!router.isReady || loading || !user) return (
     <div style={{
       background: FB.background, minHeight: '100vh',
       display: 'flex', flexDirection: 'column',
