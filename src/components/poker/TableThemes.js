@@ -16,7 +16,7 @@ export const TABLE_THEMES = {
     label: 'Classic Green',
     preview: '#0f2912',
     cardBack: '/images/card-backs/blue.jpg',
-    
+
     feltDark: '#0c1a0e',
     feltGrad1: '#0a1f0d',
     feltGrad2: '#0f2912',
@@ -44,6 +44,8 @@ export const TABLE_THEMES = {
     timerNormal: '#22c55e',
     disconnected: '#6b7280',
     sittingOut: '#4b5563',
+
+    particles: { type: 'fireflies', count: 15 },
   },
 
   royalBlue: {
@@ -184,6 +186,8 @@ export const TABLE_THEMES = {
     timerNormal: '#4ade80',
     disconnected: '#6b7280',
     sittingOut: '#4b5563',
+
+    particles: { type: 'snow', count: 40 },
   },
 
   goldLuxury: {
@@ -219,6 +223,8 @@ export const TABLE_THEMES = {
     timerNormal: '#4ade80',
     disconnected: '#6b7280',
     sittingOut: '#4b5563',
+
+    particles: { type: 'goldDust', count: 30 },
   },
 
   darkNight: {

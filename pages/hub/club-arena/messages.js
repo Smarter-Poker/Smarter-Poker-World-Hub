@@ -228,7 +228,7 @@ function Toast({ toast, onDismiss }) {
 // ⌨ MESSAGE INPUT COMPONENT (Full-featured)
 // ═══════════════════════════════════════════════════════════════════════════
 
-function MessageInput({ onSend, onMediaUpload, disabled, onTyping, onGifToggle, showGifActive }) {
+function MessageInput({ onSend, onMediaUpload, disabled, onTyping, onGifToggle, showGifActive, onTemplateToggle, showTemplateActive, onScheduleToggle }) {
     const [text, setText] = useState('');
     const [showEmoji, setShowEmoji] = useState(false);
     const [uploading, setUploading] = useState(false);
@@ -299,6 +299,22 @@ function MessageInput({ onSend, onMediaUpload, disabled, onTyping, onGifToggle, 
                 <button onClick={onGifToggle} title="Send GIF"
                     style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: showGifActive ? C.blue : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
                     <span style={{ fontSize: 13, fontWeight: 700, color: showGifActive ? '#fff' : C.blue }}>GIF</span>
+                </button>
+            )}
+
+            {/* P2-7: Templates Button */}
+            {onTemplateToggle && (
+                <button onClick={onTemplateToggle} title="Message Templates"
+                    style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: showTemplateActive ? C.blue : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+                    <span style={{ fontSize: 16 }}>📋</span>
+                </button>
+            )}
+
+            {/* P2-4: Schedule Button */}
+            {onScheduleToggle && (
+                <button onClick={onScheduleToggle} title="Schedule Message"
+                    style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+                    <span style={{ fontSize: 16 }}>⏰</span>
                 </button>
             )}
 
@@ -2102,8 +2118,22 @@ export default function ClubMessages() {
                         </div>
                     )}
 
+                    {/* P2-7: Templates Drawer */}
+                    {showTemplates && (
+                        <div style={{ margin: '0 16px', padding: '12px', background: C.card, borderRadius: '12px 12px 0 0', display: 'flex', flexDirection: 'column', gap: 6, border: `1px solid ${C.border}`, borderBottom: 'none' }}>
+                            <div style={{ fontSize: 11, color: C.textSec, fontWeight: 600, paddingBottom: 4 }}>INSERT TEMPLATE</div>
+                            {templates.map(t => (
+                                <button key={t.id} onClick={() => { sendMessage(t.text); setShowTemplates(false); }}
+                                    style={{ textAlign: 'left', padding: '10px 12px', background: C.hoverBg, border: 'none', borderRadius: 8, color: C.text, cursor: 'pointer', display: 'flex', gap: 12, alignItems: 'center' }}>
+                                    <span style={{ background: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: 12, fontSize: 10, color: C.textSec }}>{t.label}</span>
+                                    <span style={{ fontSize: 13, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.text}</span>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
                     {/* Enhanced Message Input */}
-                    <MessageInput onSend={(text) => { sendMessage(text); }} onMediaUpload={handleMediaUpload} onTyping={broadcastTyping} onGifToggle={() => setShowGifPicker(!showGifPicker)} showGifActive={showGifPicker} />
+                    <MessageInput onSend={(text) => { sendMessage(text); }} onMediaUpload={handleMediaUpload} onTyping={broadcastTyping} onGifToggle={() => setShowGifPicker(!showGifPicker)} showGifActive={showGifPicker} onTemplateToggle={() => setShowTemplates(!showTemplates)} showTemplateActive={showTemplates} onScheduleToggle={() => setShowScheduler(true)} />
                     <ClubArenaBottomNav clubId={clubIdParam} activePage="messages" userRole={currentUserMembership?.role} />
                 </div>
 

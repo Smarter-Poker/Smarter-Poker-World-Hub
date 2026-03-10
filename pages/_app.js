@@ -589,40 +589,42 @@ export default function App({ Component, pageProps }) {
                               <HubErrorBoundary name="Toast Container" fallback={<></>}>
                                 <ToastContainer />
                               </HubErrorBoundary>
-                              <HubErrorBoundary name="Notification Prompt" fallback={<></>}>
-                                <GlobalNotificationPrompt />
-                              </HubErrorBoundary>
-                              <HubErrorBoundary name="PWA Install Prompt" fallback={<></>}>
-                                <PWAInstallPrompt />
-                              </HubErrorBoundary>
-                              <HubErrorBoundary name="Phone Verify Gate" fallback={<></>}>
-                                <PhoneVerifyGate />
-                              </HubErrorBoundary>
-                              <HubErrorBoundary name="Proactive Help" fallback={<></>}>
-                                <ProactiveHelp
-                                  onAccept={() => {
-                                    // Open Jarvis when user accepts help
-                                    if (typeof window !== 'undefined') {
-                                      window.dispatchEvent(new CustomEvent('open-jarvis'));
-                                    }
-                                  }}
-                                  onDismiss={() => {
-                                    console.log('[ProactiveHelp] User dismissed help prompt');
-                                  }}
-                                />
-                              </HubErrorBoundary>
-                              <HubErrorBoundary name="Jarvis Panel" fallback={<></>}>
-                                <JarvisPanel isOpen={isJarvisOpen} onClose={onJarvisClose} />
-                              </HubErrorBoundary>
-                              <HubErrorBoundary name="Global Error Catcher" fallback={<></>}>
-                                <GlobalErrorCatcher />
-                              </HubErrorBoundary>
-                              <HubErrorBoundary name="Chunk Load Recovery" fallback={<></>}>
-                                <ChunkLoadRecovery />
-                              </HubErrorBoundary>
-                              <HubErrorBoundary name="Geeves Floating Orb" fallback={<></>}>
-                                <GeevesFloatingOrb />
-                              </HubErrorBoundary>
+                              <ToastProvider>
+                                <HubErrorBoundary name="Notification Prompt" fallback={<></>}>
+                                  <GlobalNotificationPrompt />
+                                </HubErrorBoundary>
+                                <HubErrorBoundary name="PWA Install Prompt" fallback={<></>}>
+                                  <PWAInstallPrompt />
+                                </HubErrorBoundary>
+                                <HubErrorBoundary name="Phone Verify Gate" fallback={<></>}>
+                                  <PhoneVerifyGate />
+                                </HubErrorBoundary>
+                                <HubErrorBoundary name="Proactive Help" fallback={<></>}>
+                                  <ProactiveHelp
+                                    onAccept={() => {
+                                      // Open Jarvis when user accepts help
+                                      if (typeof window !== 'undefined') {
+                                        window.dispatchEvent(new CustomEvent('open-jarvis'));
+                                      }
+                                    }}
+                                    onDismiss={() => {
+                                      console.log('[ProactiveHelp] User dismissed help prompt');
+                                    }}
+                                  />
+                                </HubErrorBoundary>
+                                <HubErrorBoundary name="Jarvis Panel" fallback={<></>}>
+                                  <JarvisPanel isOpen={isJarvisOpen} onClose={onJarvisClose} />
+                                </HubErrorBoundary>
+                                <HubErrorBoundary name="Global Error Catcher" fallback={<></>}>
+                                  <GlobalErrorCatcher />
+                                </HubErrorBoundary>
+                                <HubErrorBoundary name="Chunk Load Recovery" fallback={<></>}>
+                                  <ChunkLoadRecovery />
+                                </HubErrorBoundary>
+                                <HubErrorBoundary name="Geeves Floating Orb" fallback={<></>}>
+                                  <GeevesFloatingOrb />
+                                </HubErrorBoundary>
+                              </ToastProvider>
                             </WorldThemeProvider>
                           </ActiveIdentityProvider>
                         </NavigationGuard>
