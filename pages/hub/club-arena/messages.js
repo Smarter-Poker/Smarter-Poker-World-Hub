@@ -438,13 +438,14 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
 //  CONVERSATION LIST ITEM
 // ═══════════════════════════════════════════════════════════════════════════
 
-function ConversationItem({ conversation, isActive, onClick }) {
+function ConversationItem({ conversation, isActive, onClick, isPinned, onPin }) {
     const otherUser = conversation.otherUser;
     const lastMsg = conversation.last_message_preview;
     const isUnread = conversation.unreadCount > 0;
 
     return (
-        <div onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', cursor: 'pointer', background: isActive ? C.hoverBg : 'transparent', borderRadius: 8, margin: '2px 8px', transition: 'background 0.15s' }}>
+        <div onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', cursor: 'pointer', background: isActive ? C.hoverBg : 'transparent', borderRadius: 8, margin: '2px 8px', transition: 'background 0.15s', position: 'relative' }}>
+            {isPinned && <div style={{ position: 'absolute', top: 4, left: 14, fontSize: 10, color: C.blue }}>📌</div>}
             <Avatar src={otherUser?.avatar_url} name={otherUser?.username || otherUser?.display_name} size={56} online={otherUser?.online} />
             <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: isUnread ? 600 : 500, fontSize: 15, color: C.text, marginBottom: 2 }}>{otherUser?.display_name || otherUser?.username || 'Unknown Player'}</div>
@@ -453,6 +454,11 @@ function ConversationItem({ conversation, isActive, onClick }) {
                     <span style={{ color: C.textSec }}> · {timeAgo(conversation.last_message_at)}</span>
                 </div>
             </div>
+            {onPin && (
+                <button onClick={(e) => { e.stopPropagation(); onPin(conversation.id); }} style={{ width: 28, height: 28, borderRadius: '50%', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 14, color: isPinned ? C.blue : C.textSec, opacity: isPinned ? 1 : 0.5, flexShrink: 0, padding: 0 }} title={isPinned ? 'Unpin' : 'Pin to top'}>
+                    📌
+                </button>
+            )}
             {isUnread && (
                 <div style={{
                     minWidth: conversation.unreadCount > 9 ? 22 : 18,
@@ -535,6 +541,9 @@ export default function ClubMessages() {
 
     // Online presence state
     const [onlineUsers, setOnlineUsers] = useState(new Set());
+
+    // Pinned conversations (persisted locally, max 3)
+    const [pinnedIds, setPinnedIds] = usePersistedState('sp-pinned-convs', []);
 
     // Wallet data (real-time balances)
     const walletData = useWalletData({ supabase, userId: user?.id, clubId: club?.id });
@@ -1866,7 +1875,30 @@ export default function ClubMessages() {
                 </div>
 
                 {conversations.length > 0 ? (
-                    conversations.map((conv, i) => <ConversationItem key={conv.id || i} conversation={conv} isActive={false} onClick={() => openConversation(conv)} />)
+                    [...conversations]
+                        .sort((a, b) => {
+                            const aPinned = pinnedIds.includes(a.id);
+                            const bPinned = pinnedIds.includes(b.id);
+                            if (aPinned && !bPinned) return -1;
+                            if (!aPinned && bPinned) return 1;
+                            return 0;
+                        })
+                        .map((conv, i) => (
+                            <ConversationItem
+                                key={conv.id || i}
+                                conversation={conv}
+                                isActive={false}
+                                isPinned={pinnedIds.includes(conv.id)}
+                                onPin={(convId) => {
+                                    setPinnedIds(prev => {
+                                        if (prev.includes(convId)) return prev.filter(id => id !== convId);
+                                        if (prev.length >= 3) return prev;
+                                        return [...prev, convId];
+                                    });
+                                }}
+                                onClick={() => openConversation(conv)}
+                            />
+                        ))
                 ) : user ? (
                     <div style={S.emptyState}>
                         <div style={S.emptyIcon}></div>

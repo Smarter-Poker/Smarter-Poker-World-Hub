@@ -258,6 +258,166 @@ function ConfettiBurst({ active }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// HAND STRENGTH METER — visual indicator for hero's relative hand strength
+// ═══════════════════════════════════════════════════════════════════════════
+
+const HAND_STRENGTH_RANKS = [
+  { min: 0, max: 15, label: 'Weak', color: '#ef4444', glow: 'rgba(239,68,68,0.3)' },
+  { min: 15, max: 35, label: 'Marginal', color: '#f97316', glow: 'rgba(249,115,22,0.3)' },
+  { min: 35, max: 55, label: 'Medium', color: '#eab308', glow: 'rgba(234,179,8,0.3)' },
+  { min: 55, max: 75, label: 'Strong', color: '#22c55e', glow: 'rgba(34,197,94,0.3)' },
+  { min: 75, max: 90, label: 'Premium', color: '#3b82f6', glow: 'rgba(59,130,246,0.3)' },
+  { min: 90, max: 101, label: 'Monster', color: '#a855f7', glow: 'rgba(168,85,247,0.4)' },
+];
+
+// Simple heuristic hand strength evaluator (preflop + postflop)
+// Returns 0-100 representing relative strength
+function evaluateHandStrength(holeCards, board) {
+  if (!holeCards || holeCards.length < 2) return null;
+  const RANKS_ORDER = '23456789TJQKA';
+  const cardRank = (c) => {
+    if (typeof c === 'number') return c >> 2;
+    if (typeof c === 'string') {
+      const r = c.slice(0, -1).toUpperCase().replace('10', 'T');
+      return RANKS_ORDER.indexOf(r);
+    }
+    return c?.rank != null ? c.rank : 0;
+  };
+  const cardSuit = (c) => {
+    if (typeof c === 'number') return c & 3;
+    if (typeof c === 'string') return c.slice(-1).toLowerCase().charCodeAt(0);
+    return c?.suit ?? 0;
+  };
+
+  const r1 = cardRank(holeCards[0]);
+  const r2 = cardRank(holeCards[1]);
+  const high = Math.max(r1, r2);
+  const low = Math.min(r1, r2);
+  const isPair = r1 === r2;
+  const isSuited = cardSuit(holeCards[0]) === cardSuit(holeCards[1]);
+  const gap = high - low;
+  const isConnected = gap === 1;
+
+  // Base preflop strength (0-100)
+  let strength = 0;
+  if (isPair) {
+    strength = 40 + (high / 12) * 55; // AA = 95, 22 = 40
+  } else {
+    strength = (high / 12) * 35 + (low / 12) * 15; // AKo ~50
+    if (isSuited) strength += 8;
+    if (isConnected) strength += 5;
+    if (gap <= 2) strength += 3;
+    if (gap >= 5) strength -= 5;
+  }
+
+  // Postflop adjustments if board is present
+  if (board && board.length >= 3) {
+    const boardRanks = board.map(c => cardRank(c));
+    const allRanks = [r1, r2, ...boardRanks];
+    const rankCounts = {};
+    allRanks.forEach(r => { rankCounts[r] = (rankCounts[r] || 0) + 1; });
+    const maxCount = Math.max(...Object.values(rankCounts));
+    const pairCount = Object.values(rankCounts).filter(c => c === 2).length;
+
+    // Made hand bonuses
+    if (maxCount >= 4) strength = Math.max(strength, 92); // Quads
+    else if (maxCount === 3 && pairCount >= 1) strength = Math.max(strength, 88); // Full House
+    else if (maxCount === 3) strength = Math.max(strength, 75); // Trips
+    else if (pairCount >= 2) strength = Math.max(strength, 65); // Two Pair
+    else if (maxCount === 2 && (rankCounts[r1] === 2 || rankCounts[r2] === 2)) {
+      // Hero has a pair with the board
+      const pairedRank = rankCounts[r1] === 2 ? r1 : r2;
+      const isTopPair = pairedRank >= Math.max(...boardRanks);
+      strength = Math.max(strength, isTopPair ? 60 : 45);
+    }
+
+    // Flush check (simplified — checks if hero has 2 cards of same suit as 3+ board cards)
+    const allSuits = [cardSuit(holeCards[0]), cardSuit(holeCards[1]), ...board.map(c => cardSuit(c))];
+    const suitCounts = {};
+    allSuits.forEach(s => { suitCounts[s] = (suitCounts[s] || 0) + 1; });
+    const heroSuits = [cardSuit(holeCards[0]), cardSuit(holeCards[1])];
+    heroSuits.forEach(hs => {
+      if ((suitCounts[hs] || 0) >= 5) strength = Math.max(strength, 82); // Flush
+      else if ((suitCounts[hs] || 0) >= 4 && isSuited) strength = Math.max(strength, 55); // Flush draw
+    });
+
+    // Overcards (both cards above all board cards)
+    if (r1 > Math.max(...boardRanks) && r2 > Math.max(...boardRanks) && maxCount < 2) {
+      strength = Math.max(strength, 30);
+    }
+  }
+
+  return Math.min(100, Math.max(0, Math.round(strength)));
+}
+
+function HandStrengthMeter({ holeCards, board, visible }) {
+  if (!visible || !holeCards || holeCards.length < 2) return null;
+  const strength = evaluateHandStrength(holeCards, board);
+  if (strength == null) return null;
+  const tier = HAND_STRENGTH_RANKS.find(t => strength >= t.min && strength < t.max) || HAND_STRENGTH_RANKS[0];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 5 }}
+      animate={{ opacity: 1, y: 0 }}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 6,
+        background: 'rgba(0,0,0,0.8)', borderRadius: 8,
+        padding: '3px 10px', border: `1px solid ${tier.color}40`,
+        boxShadow: `0 0 12px ${tier.glow}`,
+        marginTop: 4,
+      }}
+    >
+      {/* Strength bar */}
+      <div style={{ width: 50, height: 5, background: 'rgba(255,255,255,0.1)', borderRadius: 3, overflow: 'hidden' }}>
+        <motion.div
+          initial={{ width: 0 }}
+          animate={{ width: `${strength}%` }}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
+          style={{ height: '100%', background: tier.color, borderRadius: 3 }}
+        />
+      </div>
+      {/* Label */}
+      <span style={{ fontSize: 9, fontWeight: 700, color: tier.color, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+        {tier.label}
+      </span>
+    </motion.div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// POT ODDS HUD — displays pot odds when hero faces a bet
+// ═══════════════════════════════════════════════════════════════════════════
+
+function PotOddsHUD({ callAmount, potTotal, visible }) {
+  if (!visible || !callAmount || callAmount <= 0 || !potTotal) return null;
+  const potOddsRatio = (potTotal + callAmount) / callAmount;
+  const potOddsPct = ((callAmount / (potTotal + callAmount)) * 100).toFixed(1);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.9 }}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 8,
+        background: 'rgba(0,0,0,0.85)', borderRadius: 10,
+        padding: '4px 12px', marginBottom: 4,
+        border: '1px solid rgba(59,130,246,0.3)',
+        boxShadow: '0 0 15px rgba(59,130,246,0.15)',
+        backdropFilter: 'blur(8px)',
+      }}
+    >
+      <span style={{ fontSize: 10, fontWeight: 600, color: '#93c5fd', textTransform: 'uppercase', letterSpacing: 0.5 }}>Pot Odds</span>
+      <span style={{ fontSize: 13, fontWeight: 800, color: '#60a5fa', fontVariantNumeric: 'tabular-nums' }}>
+        {potOddsRatio.toFixed(1)}:1
+      </span>
+      <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>({potOddsPct}%)</span>
+    </motion.div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // EQUITY PROGRESS BAR — animated win% on all-in
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -630,43 +790,59 @@ function PlayerSeat({
       <div style={{ position: 'relative' }}>
         {showTimer && (
           <>
+            {/* Premium Shot Clock Ring */}
             <svg
-              width={avatarSize + 10}
-              height={avatarSize + 10}
+              width={avatarSize + 14}
+              height={avatarSize + 14}
               style={{
                 position: 'absolute',
-                top: -5, left: -5,
+                top: -7, left: -7,
                 transform: 'rotate(-90deg)',
+                filter: timerState.remaining <= 5 ? `drop-shadow(0 0 8px ${timerColor})` : 'none',
               }}
             >
+              {/* Background track */}
               <circle
-                cx={(avatarSize + 10) / 2}
-                cy={(avatarSize + 10) / 2}
-                r={(avatarSize + 6) / 2}
+                cx={(avatarSize + 14) / 2}
+                cy={(avatarSize + 14) / 2}
+                r={(avatarSize + 8) / 2}
                 fill="none"
-                stroke="rgba(255,255,255,0.1)"
-                strokeWidth={3}
+                stroke="rgba(255,255,255,0.08)"
+                strokeWidth={4}
               />
+              {/* Animated countdown arc */}
               <circle
-                cx={(avatarSize + 10) / 2}
-                cy={(avatarSize + 10) / 2}
-                r={(avatarSize + 6) / 2}
+                cx={(avatarSize + 14) / 2}
+                cy={(avatarSize + 14) / 2}
+                r={(avatarSize + 8) / 2}
                 fill="none"
                 stroke={timerColor}
-                strokeWidth={3}
-                strokeDasharray={Math.PI * (avatarSize + 6)}
-                strokeDashoffset={Math.PI * (avatarSize + 6) * (1 - timerPct / 100)}
+                strokeWidth={4}
+                strokeDasharray={Math.PI * (avatarSize + 8)}
+                strokeDashoffset={Math.PI * (avatarSize + 8) * (1 - timerPct / 100)}
                 strokeLinecap="round"
-                style={{ transition: 'stroke-dashoffset 1s linear, stroke 0.3s' }}
+                style={{
+                  transition: 'stroke-dashoffset 1s linear, stroke 0.3s',
+                  animation: timerState.remaining <= 5 ? 'shotClockPulse 0.6s ease-in-out infinite' : 'none',
+                }}
               />
             </svg>
-            {isTimebank && (
-              <div style={{
-                position: 'absolute', top: -6, right: -6, background: '#FF9800',
-                color: '#000', fontSize: 8, fontWeight: 900, padding: '1px 4px',
-                borderRadius: 4, zIndex: 3, lineHeight: 1.2,
-              }}>TB</div>
-            )}
+            {/* Countdown seconds display */}
+            <div style={{
+              position: 'absolute',
+              top: -12, left: '50%', transform: 'translateX(-50%)',
+              background: timerState.remaining <= 5 ? timerColor : 'rgba(0,0,0,0.85)',
+              color: timerState.remaining <= 5 ? '#000' : '#fff',
+              fontSize: 11, fontWeight: 900, padding: '1px 7px',
+              borderRadius: 6, zIndex: 4, lineHeight: 1.4,
+              fontVariantNumeric: 'tabular-nums',
+              border: `1px solid ${timerState.remaining <= 5 ? timerColor : 'rgba(255,255,255,0.15)'}`,
+              boxShadow: timerState.remaining <= 5 ? `0 0 10px ${timerColor}80` : 'none',
+              animation: timerState.remaining <= 3 ? 'shotClockBlink 0.4s ease-in-out infinite' : 'none',
+              transition: 'background 0.3s, color 0.3s',
+            }}>
+              {isTimebank ? '⏳ ' : ''}{Math.ceil(timerState.remaining)}s
+            </div>
           </>
         )}
 
@@ -1125,6 +1301,8 @@ function ActionPanel({ actions, onAction, stack, currentBet, bigBlind, potTotal 
     { label: '2×', amount: Math.max(minBet, (potTotal || bigBlind * 2) * 2) },
   ].filter(p => p.amount <= maxBet) : [];
 
+  const callAmount = canCall?.amount || 0;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
@@ -1142,6 +1320,10 @@ function ActionPanel({ actions, onAction, stack, currentBet, bigBlind, potTotal 
         zIndex: 30,
       }}
     >
+      {/* Pot Odds HUD — appears when facing a bet/call */}
+      <AnimatePresence>
+        {canCall && <PotOddsHUD callAmount={callAmount} potTotal={potTotal} visible={true} />}
+      </AnimatePresence>
       {/* Bet slider + presets */}
       <AnimatePresence>
         {showSlider && betOrRaise && (

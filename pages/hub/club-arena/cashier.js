@@ -698,14 +698,42 @@ export default function Cashier() {
                                     Buy Chips
                                 </button>
                                 <button
-                                    style={{ ...S.actionBtn, background: FB.success, ...(chipBalance < 100 ? S.actionBtnDisabled : {}) }}
+                                    style={{ ...S.actionBtn, background: FB.success, ...(chipBalance < 100 ? S.actionBtnDisabled : {}), position: 'relative' }}
                                     onClick={() => chipBalance >= 100 && setShowCashOutModal(true)}
                                     disabled={chipBalance < 100}
                                     aria-label={chipBalance < 100 ? 'Cash Out - minimum 100 chips' : 'Cash Out'}
                                 >
                                     Cash Out
+                                    {/* ENH-4: Smart Notification Badge */}
+                                    {pendingCashouts.some(c => c.status === 'approved') && (
+                                        <span style={{
+                                            position: 'absolute', top: -4, right: -4, width: 12, height: 12,
+                                            borderRadius: '50%', background: '#FF3B30',
+                                            boxShadow: '0 0 6px rgba(255,59,48,0.6)',
+                                            animation: 'badgePulse 1.5s ease-in-out infinite',
+                                        }} />
+                                    )}
                                 </button>
                             </div>
+
+                            {/* ENH-5: Quick Re-Buy Pill */}
+                            {reBuyVisible && lastBuyInAmount && (
+                                <button
+                                    onClick={() => { setBuyInAmount(String(lastBuyInAmount)); setShowBuyInModal(true); setReBuyVisible(false); }}
+                                    style={{
+                                        width: '100%', padding: '12px 16px', marginBottom: 12,
+                                        background: 'linear-gradient(135deg, rgba(35,116,225,0.12), rgba(35,116,225,0.06))',
+                                        border: '1px solid rgba(35,116,225,0.3)', borderRadius: 10,
+                                        color: FB.primary, fontSize: 14, fontWeight: 700,
+                                        cursor: 'pointer', display: 'flex', alignItems: 'center',
+                                        justifyContent: 'center', gap: 8,
+                                        animation: 'fadeInSlide 0.3s ease',
+                                    }}
+                                >
+                                    🔁 Re-Buy {lastBuyInAmount.toLocaleString()} Chips
+                                    <span style={{ fontSize: 11, opacity: 0.7, fontWeight: 400 }}>· Tap to repeat</span>
+                                </button>
+                            )}
 
                             {/* Leave Club — non-owners only */}
                             {membership?.role && membership.role !== 'owner' && (
@@ -945,78 +973,160 @@ export default function Cashier() {
                                 );
                             })()}
 
-                            {/* Transaction History */}
-                            <h2 style={S.sectionTitle}>Transaction History</h2>
-                            {transactions.length > 0 ? (
-                                <>
-                                    {transactions.slice(0, txPage * TX_PAGE_SIZE).map((tx, i) => {
-                                        const txIcons = {
-                                            buyin: '➕', deposit: '➕', withdrawal: '➖', cashout: '💳',
-                                            win: '🏆', loss: '📉', rake: '🎰', send: '➡️', receive: '⬅️',
-                                            purchase: '🛍️', rakeback: '🎁', bonus: '⭐', promo: '🎨',
-                                            transfer_in: '⬅️', transfer_out: '➡️', admin_credit: '⭐',
-                                        };
-                                        const icon = txIcons[tx.transaction_type] || '💱';
-                                        const isPos = (tx.amount || 0) >= 0;
-                                        const isExpanded = expandedTx === (tx.id || i);
-                                        return (
-                                            <div key={tx.id || i}
-                                                onClick={() => setExpandedTx(isExpanded ? null : (tx.id || i))}
-                                                style={{ ...S.listItem, gap: '10px', display: 'flex', flexDirection: 'column', cursor: 'pointer', transition: 'background 0.15s' }}
-                                                role="button" aria-expanded={isExpanded} aria-label={`${getTransactionLabel(tx.transaction_type)}: ${tx.amount} chips`}
-                                            >
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%' }}>
-                                                    <div style={{ fontSize: 20, flexShrink: 0 }}>{icon}</div>
-                                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                                        <div style={S.txType}>{getTransactionLabel(tx.transaction_type)}</div>
-                                                        <div style={S.txDate}>
-                                                            {tx.notes ? <span style={{ color: '#B0B3B8' }}>{tx.notes.slice(0, 40)} · </span> : null}
-                                                            {tx.created_at ? new Date(tx.created_at).toLocaleString() : 'N/A'}
-                                                        </div>
-                                                    </div>
-                                                    <div style={{
-                                                        ...S.txAmount,
-                                                        color: isPos ? FB.success : FB.danger,
-                                                        background: isPos ? 'rgba(49,162,76,0.1)' : 'rgba(250,56,62,0.1)',
-                                                        borderRadius: 6, padding: '3px 8px',
-                                                    }}>
-                                                        {isPos ? '+' : ''}{(tx.amount || 0).toLocaleString()}
-                                                    </div>
-                                                </div>
-                                                {/* ENH-6: Expanded transaction detail */}
-                                                {isExpanded && (
-                                                    <div style={{ width: '100%', paddingTop: 8, borderTop: `1px solid ${FB.border}`, fontSize: 12, color: FB.textSecondary, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px' }}>
-                                                        <div><strong style={{ color: FB.textPrimary }}>Type:</strong> {getTransactionLabel(tx.transaction_type)}</div>
-                                                        <div><strong style={{ color: FB.textPrimary }}>Amount:</strong> {(tx.amount || 0).toLocaleString()}</div>
-                                                        {tx.notes && <div style={{ gridColumn: '1 / -1' }}><strong style={{ color: FB.textPrimary }}>Note:</strong> {tx.notes}</div>}
-                                                        <div><strong style={{ color: FB.textPrimary }}>Date:</strong> {tx.created_at ? new Date(tx.created_at).toLocaleString() : 'N/A'}</div>
-                                                        {tx.id && <div><strong style={{ color: FB.textPrimary }}>ID:</strong> <span style={{ fontFamily: 'monospace', fontSize: 10 }}>{tx.id.slice(0, 8)}…</span></div>}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                    {/* OPT-5: Load More pagination */}
-                                    {transactions.length > txPage * TX_PAGE_SIZE && (
+                            {/* ENH-3: Monthly P&L Summary Card */}
+                            {transactions.length > 0 && (() => {
+                                const now = new Date();
+                                const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+                                let monthIn = 0, monthOut = 0, allIn = 0, allOut = 0;
+                                transactions.forEach(tx => {
+                                    const amt = tx.amount || 0;
+                                    const txDate = new Date(tx.created_at);
+                                    if (amt >= 0) { allIn += amt; if (txDate >= monthStart) monthIn += amt; }
+                                    else { allOut += Math.abs(amt); if (txDate >= monthStart) monthOut += Math.abs(amt); }
+                                });
+                                const monthNet = monthIn - monthOut;
+                                const allNet = allIn - allOut;
+                                return (
+                                    <div style={{ marginBottom: 16, background: FB.cardBg, borderRadius: 12, border: `1px solid ${FB.border}`, overflow: 'hidden' }}>
                                         <button
-                                            onClick={() => setTxPage(p => p + 1)}
+                                            onClick={() => setShowPnL(!showPnL)}
                                             style={{
-                                                width: '100%', padding: '12px', marginTop: 8,
-                                                background: FB.hover, border: `1px solid ${FB.border}`,
-                                                borderRadius: 8, color: FB.primary, fontWeight: 700,
-                                                fontSize: 13, cursor: 'pointer',
+                                                width: '100%', padding: '14px 16px', background: 'none', border: 'none',
+                                                color: FB.textPrimary, display: 'flex', justifyContent: 'space-between',
+                                                alignItems: 'center', cursor: 'pointer', fontSize: 14, fontWeight: 700,
                                             }}
                                         >
-                                            Load More ({transactions.length - txPage * TX_PAGE_SIZE} remaining)
+                                            <span>📊 Monthly P&L Summary</span>
+                                            <span style={{ fontSize: 20, fontWeight: 800, color: monthNet >= 0 ? FB.success : FB.danger }}>
+                                                {monthNet >= 0 ? '+' : ''}{monthNet.toLocaleString()}
+                                                <span style={{ fontSize: 11, color: FB.textSecondary, marginLeft: 8 }}>{showPnL ? '▲' : '▼'}</span>
+                                            </span>
                                         </button>
-                                    )}
-                                </>
-                            ) : (
-                                <div style={S.emptyState}>
-                                    <span style={{ fontSize: '40px', display: 'block', marginBottom: '12px' }}></span>
-                                    <p>No Transactions Yet</p>
-                                </div>
-                            )}
+                                        {showPnL && (
+                                            <div style={{ padding: '0 16px 14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                                                <div style={{ background: 'rgba(49,162,76,0.08)', borderRadius: 8, padding: '10px 12px', textAlign: 'center' }}>
+                                                    <div style={{ fontSize: 10, color: FB.textSecondary, marginBottom: 2 }}>THIS MONTH IN</div>
+                                                    <div style={{ fontSize: 18, fontWeight: 800, color: FB.success }}>+{monthIn.toLocaleString()}</div>
+                                                </div>
+                                                <div style={{ background: 'rgba(250,56,62,0.08)', borderRadius: 8, padding: '10px 12px', textAlign: 'center' }}>
+                                                    <div style={{ fontSize: 10, color: FB.textSecondary, marginBottom: 2 }}>THIS MONTH OUT</div>
+                                                    <div style={{ fontSize: 18, fontWeight: 800, color: FB.danger }}>-{monthOut.toLocaleString()}</div>
+                                                </div>
+                                                <div style={{ gridColumn: '1 / -1', background: FB.hover, borderRadius: 8, padding: '10px 12px', textAlign: 'center' }}>
+                                                    <div style={{ fontSize: 10, color: FB.textSecondary, marginBottom: 2 }}>ALL-TIME NET</div>
+                                                    <div style={{ fontSize: 20, fontWeight: 800, color: allNet >= 0 ? FB.success : FB.danger }}>
+                                                        {allNet >= 0 ? '+' : ''}{allNet.toLocaleString()} chips
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })()}
+
+                            {/* Transaction History */}
+                            <h2 style={S.sectionTitle}>Transaction History</h2>
+
+                            {/* ENH-2: Transaction Category Filter Pills */}
+                            <div style={{ display: 'flex', gap: 6, marginBottom: 14, overflowX: 'auto', paddingBottom: 4 }}>
+                                {[{ key: 'all', label: 'All' }, { key: 'buyin', label: 'Buy-Ins' }, { key: 'cashout', label: 'Cashouts' }, { key: 'transfer', label: 'Transfers' }, { key: 'rake', label: 'Rake' }].map(f => (
+                                    <button
+                                        key={f.key}
+                                        onClick={() => { setTxFilter(f.key); setTxPage(1); }}
+                                        style={{
+                                            padding: '6px 14px', borderRadius: 20, fontSize: 12, fontWeight: 700,
+                                            border: txFilter === f.key ? `2px solid ${FB.primary}` : `1px solid ${FB.border}`,
+                                            background: txFilter === f.key ? 'rgba(35,116,225,0.15)' : FB.cardBg,
+                                            color: txFilter === f.key ? FB.primary : FB.textSecondary,
+                                            cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+                                            transition: 'all 0.15s ease',
+                                        }}
+                                    >
+                                        {f.label}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {(() => {
+                                const filterMap = {
+                                    all: () => true,
+                                    buyin: tx => ['buyin', 'deposit'].includes(tx.transaction_type),
+                                    cashout: tx => ['cashout', 'withdrawal'].includes(tx.transaction_type),
+                                    transfer: tx => ['transfer_in', 'transfer_out', 'send', 'receive'].includes(tx.transaction_type),
+                                    rake: tx => ['rake', 'rakeback'].includes(tx.transaction_type),
+                                };
+                                const filtered = transactions.filter(filterMap[txFilter] || (() => true));
+                                return filtered.length > 0 ? (
+                                    <>
+                                        {filtered.slice(0, txPage * TX_PAGE_SIZE).map((tx, i) => {
+                                            const txIcons = {
+                                                buyin: '➕', deposit: '➕', withdrawal: '➖', cashout: '💳',
+                                                win: '🏆', loss: '📉', rake: '🎰', send: '➡️', receive: '⬅️',
+                                                purchase: '🛍️', rakeback: '🎁', bonus: '⭐', promo: '🎨',
+                                                transfer_in: '⬅️', transfer_out: '➡️', admin_credit: '⭐',
+                                            };
+                                            const icon = txIcons[tx.transaction_type] || '💱';
+                                            const isPos = (tx.amount || 0) >= 0;
+                                            const isExpanded = expandedTx === (tx.id || i);
+                                            return (
+                                                <div key={tx.id || i}
+                                                    onClick={() => setExpandedTx(isExpanded ? null : (tx.id || i))}
+                                                    style={{ ...S.listItem, gap: '10px', display: 'flex', flexDirection: 'column', cursor: 'pointer', transition: 'background 0.15s' }}
+                                                    role="button" aria-expanded={isExpanded} aria-label={`${getTransactionLabel(tx.transaction_type)}: ${tx.amount} chips`}
+                                                >
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%' }}>
+                                                        <div style={{ fontSize: 20, flexShrink: 0 }}>{icon}</div>
+                                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                                            <div style={S.txType}>{getTransactionLabel(tx.transaction_type)}</div>
+                                                            <div style={S.txDate}>
+                                                                {tx.notes ? <span style={{ color: '#B0B3B8' }}>{tx.notes.slice(0, 40)} · </span> : null}
+                                                                {tx.created_at ? new Date(tx.created_at).toLocaleString() : 'N/A'}
+                                                            </div>
+                                                        </div>
+                                                        <div style={{
+                                                            ...S.txAmount,
+                                                            color: isPos ? FB.success : FB.danger,
+                                                            background: isPos ? 'rgba(49,162,76,0.1)' : 'rgba(250,56,62,0.1)',
+                                                            borderRadius: 6, padding: '3px 8px',
+                                                        }}>
+                                                            {isPos ? '+' : ''}{(tx.amount || 0).toLocaleString()}
+                                                        </div>
+                                                    </div>
+                                                    {/* ENH-6: Expanded transaction detail */}
+                                                    {isExpanded && (
+                                                        <div style={{ width: '100%', paddingTop: 8, borderTop: `1px solid ${FB.border}`, fontSize: 12, color: FB.textSecondary, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px' }}>
+                                                            <div><strong style={{ color: FB.textPrimary }}>Type:</strong> {getTransactionLabel(tx.transaction_type)}</div>
+                                                            <div><strong style={{ color: FB.textPrimary }}>Amount:</strong> {(tx.amount || 0).toLocaleString()}</div>
+                                                            {tx.notes && <div style={{ gridColumn: '1 / -1' }}><strong style={{ color: FB.textPrimary }}>Note:</strong> {tx.notes}</div>}
+                                                            <div><strong style={{ color: FB.textPrimary }}>Date:</strong> {tx.created_at ? new Date(tx.created_at).toLocaleString() : 'N/A'}</div>
+                                                            {tx.id && <div><strong style={{ color: FB.textPrimary }}>ID:</strong> <span style={{ fontFamily: 'monospace', fontSize: 10 }}>{tx.id.slice(0, 8)}…</span></div>}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                        {/* OPT-5: Load More pagination */}
+                                        {filtered.length > txPage * TX_PAGE_SIZE && (
+                                            <button
+                                                onClick={() => setTxPage(p => p + 1)}
+                                                style={{
+                                                    width: '100%', padding: '12px', marginTop: 8,
+                                                    background: FB.hover, border: `1px solid ${FB.border}`,
+                                                    borderRadius: 8, color: FB.primary, fontWeight: 700,
+                                                    fontSize: 13, cursor: 'pointer',
+                                                }}
+                                            >
+                                                Load More ({filtered.length - txPage * TX_PAGE_SIZE} remaining)
+                                            </button>
+                                        )}
+                                    </>
+                                ) : (
+                                    <div style={S.emptyState}>
+                                        <span style={{ fontSize: '40px', display: 'block', marginBottom: '12px' }}></span>
+                                        <p>{txFilter === 'all' ? 'No Transactions Yet' : `No ${txFilter} transactions`}</p>
+                                    </div>
+                                );
+                            })()}
                         </>
                     )}
                 </div>

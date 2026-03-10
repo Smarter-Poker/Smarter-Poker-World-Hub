@@ -6,7 +6,7 @@ import { useState, useEffect, useCallback } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
-import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
+import { getAuthUser } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
@@ -16,6 +16,7 @@ import usePersistedState from '../../../src/hooks/usePersistedState';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import { resolveAvatarDisplay } from '../../../src/lib/resolveAvatarDisplay';
+import { apiCall, apiGet, getAuthToken } from '../../../src/lib/club-arena/apiClient';
 const SkeletonDark = dynamic(() => import('../../../src/components/ui/SkeletonDark'), { ssr: false });
 const DynamicWallet = dynamic(() => import('../../../src/components/club-arena/DynamicWallet'), { ssr: false });
 
@@ -24,36 +25,6 @@ const FB = {
     textPrimary: '#E4E6EB', textSecondary: '#B0B3B8', border: '#3E4042',
     success: '#31A24C', danger: '#FA383E', gold: '#F7C52A', hover: '#3A3B3C',
     orange: '#F5A623', purple: '#A855F7',
-};
-
-const getAuthToken = () => getAccessToken();
-
-const apiCall = async (endpoint, body) => {
-    const token = await getAuthToken();
-    if (!token) throw new Error('Not authenticated');
-    const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-            'X-Idempotency-Key': crypto.randomUUID(),
-        },
-        body: JSON.stringify(body),
-    });
-    let data;
-    try { data = await res.json(); } catch (e) { throw new Error('Server returned invalid response'); }
-    if (!res.ok) throw new Error(data.error || 'API call failed');
-    return data;
-};
-
-const apiGet = async (url) => {
-    const token = await getAuthToken();
-    if (!token) throw new Error('Not authenticated');
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-    let data;
-    try { data = await res.json(); } catch (e) { throw new Error('Server returned invalid response'); }
-    if (!res.ok) throw new Error(data.error || 'API call failed');
-    return data;
 };
 
 const StatCard = ({ label, value, color, sub }) => (
