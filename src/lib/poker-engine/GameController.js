@@ -1149,13 +1149,16 @@ class GameController {
       if (freq > 0) {
         const count = (this._bombPotCounters.get(tableId) || 0) + 1;
         this._bombPotCounters.set(tableId, count);
+        // Write to the TableManager's game.config so startNextHand() can read it
+        const gameConfig = entry.table?.game?.config;
+        if (gameConfig) gameConfig.bombPotFrequency = freq;
         if (count >= freq) {
           this._bombPotCounters.set(tableId, 0);
-          // Flag the next hand as a bomb pot
-          entry.config.bombPotTriggered = true;
+          // Flag the next hand as a bomb pot on the engine's config
+          if (gameConfig) gameConfig.bombPotTriggered = true;
           console.log(`[GameController] 💣 Bomb Pot triggered on ${tableId} (every ${freq} hands)`);
         } else {
-          entry.config.bombPotTriggered = false;
+          if (gameConfig) gameConfig.bombPotTriggered = false;
         }
       }
     });

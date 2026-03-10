@@ -683,7 +683,11 @@ function getSeatPositions(maxSeats) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 const SUITS = ['clubs', 'diamonds', 'hearts', 'spades'];
-const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'j', 'q', 'k', 'a'];
+const RANKS = ['2','3','4','5','6','7','8','9','T','J','Q','K','A'];
+
+// Card sort constants (hoisted for performance — avoids recreation per render)
+const RANK_ORDER = { '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, 'T': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14 };
+const SUIT_ORDER = { 's': 0, 'h': 1, 'd': 2, 'c': 3 };
 
 function cardIntToPath(card) {
   if (card === null || card === undefined) return null;
@@ -692,9 +696,17 @@ function cardIntToPath(card) {
   return `/cards/${SUITS[suit]}_${RANKS[rank]}.png`;
 }
 
-function CardImg({ card, width = 48, faceDown = false, style = {}, delay = 0, cardBackPath, showdown = false }) {
+function CardImg({ card, width = 48, faceDown = false, style = {}, delay = 0, cardBackPath, showdown = false, fourColorDeck = false }) {
   const height = Math.round(width * 1.4);
   const backPath = cardBackPath || getStoredCardBack();
+
+  // 4-color deck CSS filter — clubs: green, diamonds: blue
+  const fourColorStyle = fourColorDeck && card != null && !faceDown ? (() => {
+    const suit = card % 4; // 0=clubs, 1=diamonds, 2=hearts, 3=spades
+    if (suit === 0) return { filter: 'hue-rotate(110deg) saturate(1.3)' }; // clubs → green
+    if (suit === 1) return { filter: 'hue-rotate(220deg) saturate(1.2)' }; // diamonds → blue
+    return {};
+  })() : {};
 
   // ═══ SHOWDOWN 3D FLIP — card back visible first, then flips to reveal face ═══
   if (showdown && !faceDown && card != null) {
@@ -722,7 +734,7 @@ function CardImg({ card, width = 48, faceDown = false, style = {}, delay = 0, ca
             boxShadow: '0 2px 12px rgba(0,0,0,0.7)',
             border: '1px solid rgba(255,255,255,0.15)',
           }}>
-            {faceSrc && <img src={faceSrc} alt={`Card ${card}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false} />}
+            {faceSrc && <img src={faceSrc} alt={`Card ${card}`} style={{ width: '100%', height: '100%', objectFit: 'cover', ...fourColorStyle }} draggable={false} />}
           </div>
           {/* Back face (card back, visible at start of flip) */}
           <div style={{
@@ -762,7 +774,7 @@ function CardImg({ card, width = 48, faceDown = false, style = {}, delay = 0, ca
         <img
           src={src}
           alt={faceDown ? 'Card' : `Card ${card}`}
-          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          style={{ width: '100%', height: '100%', objectFit: 'cover', ...fourColorStyle }}
           draggable={false}
         />
       )}
@@ -785,9 +797,7 @@ function PlayerSeat({
   const { status, player, stack, holeCards: rawHoleCards, isFolded, invested } = seat;
   const isEmpty = status === 'empty' || status === 'reserved';
 
-  // Card sort logic — only for hero
-  const RANK_ORDER = { '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, 'T': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14 };
-  const SUIT_ORDER = { 's': 0, 'h': 1, 'd': 2, 'c': 3 };
+  // Card sort logic — only for hero (constants hoisted to module level)
   const holeCards = useMemo(() => {
     if (!rawHoleCards || !isHero || cardSortMode === 'dealt') return rawHoleCards;
     const sorted = [...rawHoleCards];
@@ -891,7 +901,7 @@ function PlayerSeat({
             borderRadius: '50%',
             border: `2px solid ${(seat.stats.vpip || 0) > 40 ? '#ef4444' : (seat.stats.vpip || 0) > 25 ? '#f59e0b' : '#22c55e'}`,
             zIndex: 2, pointerEvents: 'none',
-            boxShadow: `0 0 8px ${(seat.stats.vpip || 0) > 40 ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)'}`,
+            boxShadow: `0 0 8px ${(seat.stats.vpip || 0) > 40 ? 'rgba(239,68,68,0.3)' : (seat.stats.vpip || 0) > 25 ? 'rgba(245,158,11,0.3)' : 'rgba(34,197,94,0.3)'}`,
           }} />
         )}
         {showTimer && (
@@ -1170,7 +1180,7 @@ function PlayerSeat({
             } : {}),
           }}>
             {holeCards.map((card, i) => (
-              <CardImg key={i} card={card} width={cardWidth} delay={i * 0.15} showdown={!isHero} />
+              <CardImg key={i} card={card} width={cardWidth} delay={i * 0.15} showdown={!isHero} fourColorDeck={fourColorDeck} />
             ))}
           </div>
           {/* Hand Strength Meter — hero only */}

@@ -893,6 +893,20 @@ export const ChatWindow = ({
                 </div>
             )}
 
+            {/* P6-2: Priority Picker Overlay */}
+            {showPriorityPicker && (
+                <div style={{ padding: '6px 8px', background: '#f8f8ff', borderBottom: '1px solid #ddd', fontSize: 11 }}>
+                    <strong>🚨 Set Priority</strong>
+                    <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+                        {PRIORITY_FLAGS.map(f => (
+                            <button key={f.value} onClick={() => { updatePrefs(p => ({ ...p, priorityFlags: { ...p.priorityFlags, [showPriorityPicker]: f.value } })); setShowPriorityPicker(null); }} style={{ background: 'none', border: '1px solid #ddd', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 12 }}>
+                                {f.emoji} {f.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {/* Messages */}
             <div className="chat-messages">
                 {messages.filter(msg => {
@@ -1461,6 +1475,19 @@ export const ChatWindow = ({
                     0%, 100% { transform: scale(1); }
                     50% { transform: scale(1.2); }
                 }
+
+                /* P6 Styles */
+                .priority-flag {
+                    display: inline-block;
+                    font-size: 9px;
+                    padding: 1px 6px;
+                    border-radius: 8px;
+                    margin-bottom: 2px;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                }
+                .priority-flag.urgent { background: #fde8e8; color: #E41E3F; }
+                .priority-flag.low { background: #e8f5e9; color: #2e7d32; }
 
                 .chat-input {
                     display: flex;

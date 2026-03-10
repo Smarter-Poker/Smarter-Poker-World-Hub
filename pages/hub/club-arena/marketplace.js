@@ -475,14 +475,19 @@ export default function Marketplace() {
 
                             {/* Search */}
                             <div style={{ position: 'relative', marginBottom: 12 }}>
-                                <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: FB.textSecondary, fontSize: 14, fontWeight: 700 }}>Search</span>
                                 <input
                                     type="text"
                                     placeholder="Search items..."
                                     value={searchQuery}
                                     onChange={e => setSearchQuery(e.target.value)}
-                                    style={{ width: '100%', padding: '10px 14px 10px 40px', background: FB.cardBg, border: `1px solid ${FB.border}`, borderRadius: 8, color: FB.textPrimary, fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
+                                    style={{ width: '100%', padding: '10px 14px', background: FB.cardBg, border: `1px solid ${FB.border}`, borderRadius: 8, color: FB.textPrimary, fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
                                 />
+                                {searchQuery && (
+                                    <button
+                                        onClick={() => setSearchQuery('')}
+                                        style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: FB.textSecondary, fontSize: 14, cursor: 'pointer', padding: 4 }}
+                                    >X</button>
+                                )}
                             </div>
 
                             {/* Category Filter (Shop only) */}
