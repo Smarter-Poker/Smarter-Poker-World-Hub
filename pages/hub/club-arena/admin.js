@@ -712,6 +712,68 @@ export default function Admin() {
         });
     };
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ANALYTICS DASHBOARD
+    // ═══════════════════════════════════════════════════════════════════════════
+    const loadAnalytics = useCallback(async () => {
+        if (!club?.id) return;
+        setAnalyticsLoading(true);
+        try {
+            const data = await apiGet(`/api/club-arena/club-analytics?clubId=${club.id}`);
+            if (data.analytics) setAnalytics(data.analytics);
+        } catch (e) {
+            console.error('Failed to load analytics:', e);
+        } finally {
+            setAnalyticsLoading(false);
+        }
+    }, [club?.id]);
+
+    const loadRakeReport = async (period) => {
+        const p = period || rakeReportPeriod;
+        if (!club?.id) return;
+        setRakeReportLoading(true);
+        try {
+            const data = await apiGet(`/api/club-arena/club-analytics?clubId=${club.id}&action=rake_report&period=${p}`);
+            setRakeReport(data);
+        } catch (e) {
+            console.error('Failed to load rake report:', e);
+            showToast('Failed to load rake report', 'error');
+        } finally {
+            setRakeReportLoading(false);
+        }
+    };
+
+    const downloadRakeCSV = async () => {
+        if (!club?.id) return;
+        try {
+            const token = await getAuthToken();
+            const res = await fetch(`/api/club-arena/club-analytics?clubId=${club.id}&action=csv&period=${rakeReportPeriod}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `rake_report_${rakeReportPeriod}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+            showToast('CSV downloaded!');
+        } catch (e) {
+            showToast('Download failed', 'error');
+        }
+    };
+
+    // Auto-load analytics on mount + 60s refresh
+    useEffect(() => {
+        if (club?.id && isAdmin) {
+            loadAnalytics();
+            const timer = setInterval(loadAnalytics, 60000);
+            return () => clearInterval(timer);
+        }
+    }, [club?.id, isAdmin, loadAnalytics]);
+
     const saveTableSettings = async () => {
         if (!editTableModal) return;
         // #9+#10: Enhanced inline validation

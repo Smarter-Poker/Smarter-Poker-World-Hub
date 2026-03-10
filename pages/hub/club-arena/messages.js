@@ -230,9 +230,14 @@ function MessageInput({ onSend, onMediaUpload, disabled, onTyping, onGifToggle, 
     const [text, setText] = useState('');
     const [showEmoji, setShowEmoji] = useState(false);
     const [uploading, setUploading] = useState(false);
+    const [isRecording, setIsRecording] = useState(false);
+    const [recordingDuration, setRecordingDuration] = useState(0);
 
     const inputRef = useRef(null);
     const fileInputRef = useRef(null);
+    const mediaRecorderRef = useRef(null);
+    const audioChunksRef = useRef([]);
+    const recordingTimerRef = useRef(null);
 
     const emojis = ['😂', '❤️', '👍', '🔥', '😎', '😢', '😱', '🙌', '🎉', '👀', '💯', '✌️', '🤔', '🙏', '💥', '🏆'];
 
@@ -262,8 +267,8 @@ function MessageInput({ onSend, onMediaUpload, disabled, onTyping, onGifToggle, 
 
     return (
         <div style={{ padding: '12px 16px', background: C.card, borderTop: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 8 }}>
-            {/* Photo/Video Upload */}
-            <input type="file" ref={fileInputRef} accept="image/*,video/*" style={{ display: 'none' }}
+            {/* Photo/Video/Doc Upload */}
+            <input type="file" ref={fileInputRef} accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv" style={{ display: 'none' }}
                 onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (!file || !onMediaUpload) return;
@@ -292,6 +297,69 @@ function MessageInput({ onSend, onMediaUpload, disabled, onTyping, onGifToggle, 
                 <button onClick={onGifToggle} title="Send GIF"
                     style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: showGifActive ? C.blue : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
                     <span style={{ fontSize: 13, fontWeight: 700, color: showGifActive ? '#fff' : C.blue }}>GIF</span>
+                </button>
+            )}
+
+            {/* P3-10: Voice Recording Button (Hold to Record) */}
+            {onMediaUpload && (
+                <button
+                    onMouseDown={async () => {
+                        try {
+                            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                            const recorder = new MediaRecorder(stream);
+                            mediaRecorderRef.current = recorder;
+                            audioChunksRef.current = [];
+                            recorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
+                            recorder.onstop = async () => {
+                                stream.getTracks().forEach(t => t.stop());
+                                clearInterval(recordingTimerRef.current);
+                                setRecordingDuration(0);
+                                const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+                                if (blob.size > 500) {
+                                    const file = new File([blob], `voice-${Date.now()}.webm`, { type: 'audio/webm' });
+                                    await onMediaUpload(file);
+                                }
+                            };
+                            recorder.start();
+                            setIsRecording(true);
+                            setRecordingDuration(0);
+                            recordingTimerRef.current = setInterval(() => setRecordingDuration(d => d + 1), 1000);
+                        } catch (e) { console.error('Mic access denied:', e); }
+                    }}
+                    onMouseUp={() => { if (mediaRecorderRef.current?.state === 'recording') { mediaRecorderRef.current.stop(); setIsRecording(false); } }}
+                    onTouchStart={async (e) => {
+                        e.preventDefault();
+                        try {
+                            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                            const recorder = new MediaRecorder(stream);
+                            mediaRecorderRef.current = recorder;
+                            audioChunksRef.current = [];
+                            recorder.ondataavailable = (ev) => { if (ev.data.size > 0) audioChunksRef.current.push(ev.data); };
+                            recorder.onstop = async () => {
+                                stream.getTracks().forEach(t => t.stop());
+                                clearInterval(recordingTimerRef.current);
+                                setRecordingDuration(0);
+                                const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+                                if (blob.size > 500) {
+                                    const file = new File([blob], `voice-${Date.now()}.webm`, { type: 'audio/webm' });
+                                    await onMediaUpload(file);
+                                }
+                            };
+                            recorder.start();
+                            setIsRecording(true);
+                            setRecordingDuration(0);
+                            recordingTimerRef.current = setInterval(() => setRecordingDuration(d => d + 1), 1000);
+                        } catch (e) { console.error('Mic access denied:', e); }
+                    }}
+                    onTouchEnd={() => { if (mediaRecorderRef.current?.state === 'recording') { mediaRecorderRef.current.stop(); setIsRecording(false); } }}
+                    style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: isRecording ? C.red : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, transition: 'background 0.2s' }}
+                    title="Hold to record voice message"
+                >
+                    {isRecording ? (
+                        <span style={{ fontSize: 10, color: 'white', fontWeight: 700 }}>{recordingDuration}s</span>
+                    ) : (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z" fill={C.blue} /><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z" fill={C.blue} /></svg>
+                    )}
                 </button>
             )}
 
@@ -352,6 +420,8 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
     // Check for image markdown: [Image](url)
     const imageMatch = content.match(/\[Image\]\(([^)]+)\)/);
     const videoMatch = content.match(/\[Video\]\(([^)]+)\)/);
+    const audioMatch = content.match(/\[Audio\]\(([^)]+)\)/) || content.match(/\[voice-[^\]]*\.webm\]\(([^)]+)\)/);
+    const fileMatch = content.match(/\[(File|PDF|DOC|XLS|TXT|CSV)[^\]]*\]\(([^)]+)\)/i);
 
     if (isDeleted) {
         return (
