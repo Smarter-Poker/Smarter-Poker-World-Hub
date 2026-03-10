@@ -102,14 +102,15 @@ function getPasswordCandidates() {
     const candidates = [];
     if (process.env.SUPABASE_DB_PASSWORD) candidates.push(process.env.SUPABASE_DB_PASSWORD);
     if (process.env.POSTGRES_PASSWORD) candidates.push(process.env.POSTGRES_PASSWORD);
-    candidates.push('215SlalomCt!', 'Bek454545!!', 'gbpAM0n7jNBzY4Co');
+    candidates.push('gbpAM0n7jNBzY4Co', '215SlalomCt!', 'Bek454545!!');
     return [...new Set(candidates)];
 }
 
 const passwords = getPasswordCandidates();
-const connStrings = passwords.map(pw =>
+const connStrings = passwords.flatMap(pw => [
+    `postgresql://postgres:${encodeURIComponent(pw)}@db.kuklfnapbkmacvwxktbh.supabase.co:5432/postgres`,
     `postgresql://postgres.kuklfnapbkmacvwxktbh:${encodeURIComponent(pw)}@aws-0-us-west-2.pooler.supabase.com:5432/postgres`
-);
+]);
 
 // ── Connection with retry ───────────────────────────────────────────────────
 const MAX_CONNECT_RETRIES = 3;

@@ -43,7 +43,8 @@ const SEARCH_HISTORY_MAX = 8;
 const DEFAULT_RADIUS_MILES = 50;
 
 // Tab order for swipe navigation
-const TAB_ORDER = ['venues', 'tours', 'series', 'daily', 'live', 'map', 'favorites', 'roadtrip', 'social', 'alerts', 'nearnow', 'calculator', 'calendar'];
+const TAB_ORDER = ['venues', 'events', 'live', 'map', 'saved', 'more'];
+const EVENTS_SUB_TABS = ['tours', 'series', 'daily', 'calendar'];
 
 // API response cache with TTL
 const apiCache = {};
@@ -616,14 +617,17 @@ export default function PokerNearMePage() {
     // Active tab state — persisted with sortBy and seriesViewMode
     const { filters: uiFilters, setFilter: setUiFilter } = usePersistedFilters('poker-near-me', {
         activeTab: 'venues',
+        activeEventTab: 'daily',
         sortBy: 'default',
         seriesViewMode: 'grid'
     });
 
     const activeTab = uiFilters.activeTab;
+    const activeEventTab = uiFilters.activeEventTab || 'daily';
     const sortBy = uiFilters.sortBy;
     const seriesViewMode = uiFilters.seriesViewMode;
     const setActiveTab = (val) => setUiFilter('activeTab', val);
+    const setActiveEventTab = (val) => setUiFilter('activeEventTab', val);
     const setSortBy = (val) => setUiFilter('sortBy', val);
     const setSeriesViewMode = (val) => setUiFilter('seriesViewMode', val);
 
@@ -1446,12 +1450,28 @@ export default function PokerNearMePage() {
         const elapsed = Date.now() - touchStartRef.current.time;
         // Must be a horizontal swipe: fast, horizontal dominant, > 80px
         if (Math.abs(dx) > 80 && Math.abs(dx) > Math.abs(dy) * 1.5 && elapsed < 500) {
+            // For swiping at the main level
             const currentIdx = TAB_ORDER.indexOf(activeTab);
-            if (currentIdx === -1) return;
-            if (dx < 0 && currentIdx < TAB_ORDER.length - 1) {
-                setActiveTab(TAB_ORDER[currentIdx + 1]);
-            } else if (dx > 0 && currentIdx > 0) {
-                setActiveTab(TAB_ORDER[currentIdx - 1]);
+            if (currentIdx !== -1) {
+                if (dx < 0 && currentIdx < TAB_ORDER.length - 1) {
+                    setActiveTab(TAB_ORDER[currentIdx + 1]);
+                } else if (dx > 0 && currentIdx > 0) {
+                    setActiveTab(TAB_ORDER[currentIdx - 1]);
+                }
+            } else if (activeTab === 'events') {
+                // Nested swiping within events tab
+                const evtIdx = EVENTS_SUB_TABS.indexOf(activeEventTab);
+                if (evtIdx !== -1) {
+                    if (dx < 0 && evtIdx < EVENTS_SUB_TABS.length - 1) {
+                        setActiveEventTab(EVENTS_SUB_TABS[evtIdx + 1]);
+                    } else if (dx > 0 && evtIdx > 0) {
+                        setActiveEventTab(EVENTS_SUB_TABS[evtIdx - 1]);
+                    } else if (dx > 0 && evtIdx === 0) {
+                        setActiveTab('venues'); // Exit left to venues
+                    } else if (dx < 0 && evtIdx === EVENTS_SUB_TABS.length - 1) {
+                        setActiveTab('live'); // Exit right to live
+                    }
+                }
             }
         }
         touchStartRef.current = null;
@@ -1615,51 +1635,40 @@ export default function PokerNearMePage() {
 
     // Render content based on active tab
     const renderContent = () => {
-        if (activeTab === 'map') {
-            return renderMap();
-        }
-        if (activeTab === 'live') {
-            return renderLiveGames();
-        }
-        if (activeTab === 'favorites') {
-            return renderFavorites();
-        }
+        if (activeTab === 'map') return renderMap();
+        if (activeTab === 'live') return renderLiveGames();
+        if (activeTab === 'saved') return renderFavorites();
 
         // For venues tab: show search landing if no search yet, skip skeleton
-        if (activeTab === 'venues' && !hasSearched) {
-            return renderVenues();
-        }
+        if (activeTab === 'venues' && !hasSearched) return renderVenues();
 
-        // Show loading for venues tab specifically
-        if (activeTab === 'venues' && venueLoading) {
-            return renderSkeletons(8);
-        }
-
-        if (loading) {
+        // Show loading
+        if ((activeTab === 'venues' && venueLoading) || loading) {
             return renderSkeletons(8);
         }
 
         switch (activeTab) {
             case 'venues':
                 return renderVenues();
-            case 'tours':
-                return renderTours();
-            case 'series':
-                return renderSeries();
-            case 'daily':
-                return renderDailyTournaments();
-            case 'roadtrip':
-                return <RoadTripPlanner venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} userLocation={userLocation} dailyTournaments={dailyTournaments} series={series} />;
-            case 'social':
-                return <SocialLayer userId={userId} userLocation={userLocation} venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} authToken={user?.access_token} />;
-            case 'alerts':
-                return <TournamentAlerts dailyTournaments={dailyTournaments} userId={userId} authToken={user?.access_token} />;
-            case 'nearnow':
-                return <NearMeNowFeed userLocation={userLocation} venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} />;
-            case 'calculator':
-                return <TripCostCalculator venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} userLocation={userLocation} />;
-            case 'calendar':
-                return <SeasonalCalendar series={series} tours={tours} dailyTournaments={dailyTournaments} />;
+            case 'events':
+                switch (activeEventTab) {
+                    case 'tours': return renderTours();
+                    case 'series': return renderSeries();
+                    case 'calendar': return <SeasonalCalendar series={series} tours={tours} dailyTournaments={dailyTournaments} />;
+                    case 'daily':
+                    default:
+                        return renderDailyTournaments();
+                }
+            case 'more':
+                return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 24, padding: '20px 0' }}>
+                        <RoadTripPlanner venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} userLocation={userLocation} dailyTournaments={dailyTournaments} series={series} />
+                        <SocialLayer userId={userId} userLocation={userLocation} venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} authToken={user?.access_token} />
+                        <TournamentAlerts dailyTournaments={dailyTournaments} userId={userId} authToken={user?.access_token} />
+                        <NearMeNowFeed userLocation={userLocation} venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} />
+                        <TripCostCalculator venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} userLocation={userLocation} />
+                    </div>
+                );
             default:
                 return renderVenues();
         }
@@ -2323,54 +2332,46 @@ export default function PokerNearMePage() {
                     description="Access 483+ Live Poker Venues, Tournament Schedules, And Daily Events Worldwide."
                 >
 
-                    {/* ═══ FUTURISTIC METAL HUD PANEL ═══ */}
-                    <div className="pnm-hud-panel">
-                        <Image src="/images/poker-near-me-hud-frame-clean.png" alt="" width={1024} height={367} className="hud-bg-frame" />
-
-                        <div className="hud-content-overlay">
-                            {/* SEARCH BAR & BUTTON */}
-                            <form className="hud-abs-search-form" onSubmit={handleSearch}>
-                                <input
-                                    type="text"
-                                    className="hud-abs-search-input"
-                                    placeholder=""
-                                    value={searchQuery}
-                                    onChange={handleSearchInputChange}
-                                    autoComplete="off"
-                                />
-                                <button type="submit" className="hud-abs-search-btn" aria-label="Search"></button>
-                            </form>
-
-                            {/* GPS & FILTERS */}
-                            <button className={'hud-abs-gps-btn' + (userLocation ? ' active' : '')} onClick={requestGpsLocation} disabled={gpsLoading} aria-label="Use GPS"></button>
-                            <button className={'hud-abs-filter-btn' + (showFilters ? ' active' : '')} onClick={() => setShowFilters(!showFilters)} aria-label="Filters"></button>
-
-                            {/* TABS */}
-                            <button className="hud-abs-tab hud-abs-tab-venues" onClick={() => setActiveTab('venues')} aria-label="Venues"></button>
-                            <button className="hud-abs-tab hud-abs-tab-tours" onClick={() => setActiveTab('tours')} aria-label="Tours"></button>
-                            <button className="hud-abs-tab hud-abs-tab-series" onClick={() => setActiveTab('series')} aria-label="Series"></button>
-                            <button className="hud-abs-tab hud-abs-tab-daily" onClick={() => setActiveTab('daily')} aria-label="Daily"></button>
-                            <button className="hud-abs-tab hud-abs-tab-live" onClick={() => setActiveTab('live')} aria-label="Live"></button>
-                            <button className="hud-abs-tab hud-abs-tab-map" onClick={() => setActiveTab('map')} aria-label="Map"></button>
-                        </div>
+                    {/* ═══ NATIVE CSS SEARCH & FILTER ROW ═══ */}
+                    <div className="native-search-row">
+                        <form className="native-search-form" onSubmit={handleSearch}>
+                            <input
+                                type="text"
+                                className="native-search-input"
+                                placeholder="City, State, or Zip"
+                                value={searchQuery}
+                                onChange={handleSearchInputChange}
+                                autoComplete="off"
+                            />
+                            <button type="submit" className="native-search-btn" aria-label="Search">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
+                                    <circle cx="12" cy="10" r="3" />
+                                </svg>
+                            </button>
+                        </form>
+                        
+                        <button className={'native-gps-btn' + (userLocation ? ' active' : '')} onClick={requestGpsLocation} disabled={gpsLoading} aria-label="Use GPS">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 000 20 14.5 14.5 0 000-20"/><path d="M2 12h20"/>
+                            </svg>
+                        </button>
+                        <button className={'native-filter-btn' + (showFilters ? ' active' : '')} onClick={() => setShowFilters(!showFilters)} aria-label="Filters">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+                            </svg>
+                        </button>
                     </div>
 
-                    {/* ═══ MOBILE TAB BAR — visible, accessible tab navigation ═══ */}
-                    <div className="mobile-tab-bar" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                    {/* ═══ MOBILE TAB BAR (6 Primary Tabs) ═══ */}
+                    <div className="mobile-tab-bar">
                         {[
-                            { key: 'venues', label: 'Venues', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6" /><circle cx="12" cy="11" r="2" fill="currentColor" stroke="none" /></svg> },
-                            { key: 'tours', label: 'Tours', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" /></svg> },
-                            { key: 'series', label: 'Series', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg> },
-                            { key: 'daily', label: 'Daily', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="3" /><line x1="12" y1="2" x2="12" y2="5" /><line x1="12" y1="19" x2="12" y2="22" /><line x1="2" y1="12" x2="5" y2="12" /><line x1="19" y1="12" x2="22" y2="12" /></svg> },
-                            { key: 'live', label: 'Live', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4" fill="#ef4444" /><circle cx="12" cy="12" r="7" stroke="#ef4444" strokeWidth="1.5" opacity="0.5" /><circle cx="12" cy="12" r="10" stroke="#ef4444" strokeWidth="1" opacity="0.25" /></svg> },
-                            { key: 'map', label: 'Map', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" /><line x1="8" y1="2" x2="8" y2="18" /><line x1="16" y1="6" x2="16" y2="22" /></svg> },
-                            { key: 'favorites', label: 'Saved', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1.8"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" /></svg> },
-                            { key: 'roadtrip', label: 'Trip', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 17h2l2-8h4l-1 4h3l5-6" /><circle cx="6.5" cy="17.5" r="2.5" fill="none" /><circle cx="16.5" cy="17.5" r="2.5" fill="none" /></svg> },
-                            { key: 'social', label: 'Friends', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" /></svg> },
-                            { key: 'alerts', label: 'Alerts', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 01-3.46 0" /><circle cx="18" cy="4" r="2.5" fill="#ef4444" stroke="none" /></svg> },
-                            { key: 'nearnow', label: 'Near Me', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" fill="#d4a853" /><circle cx="12" cy="12" r="7" stroke="#d4a853" strokeWidth="1" opacity="0.4" /><circle cx="12" cy="12" r="10.5" stroke="#d4a853" strokeWidth="0.8" opacity="0.2" /></svg> },
-                            { key: 'calculator', label: 'Cost', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="4" y="2" width="16" height="20" rx="2" /><line x1="8" y1="6" x2="16" y2="6" /><line x1="8" y1="10" x2="16" y2="10" /><line x1="8" y1="14" x2="12" y2="14" /></svg> },
-                            { key: 'calendar', label: 'Calendar', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /><circle cx="8" cy="14" r="1" fill="#22c55e" stroke="none" /><circle cx="12" cy="14" r="1" fill="#3b82f6" stroke="none" /><circle cx="16" cy="14" r="1" fill="#d4a853" stroke="none" /></svg> },
+                            { key: 'venues', label: 'Venues', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" /></svg> },
+                            { key: 'events', label: 'Events', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg> },
+                            { key: 'live', label: 'Live', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4" fill="#ef4444" /><circle cx="12" cy="12" r="7" stroke="#ef4444" strokeWidth="1.5" opacity="0.5" /><circle cx="12" cy="12" r="10" stroke="#ef4444" strokeWidth="1" opacity="0.25" /></svg> },
+                            { key: 'map', label: 'Map', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" /><line x1="8" y1="2" x2="8" y2="18" /><line x1="16" y1="6" x2="16" y2="22" /></svg> },
+                            { key: 'saved', label: 'Saved', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1.8"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" /></svg> },
+                            { key: 'more', label: 'More', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /><circle cx="5" cy="12" r="1" /></svg> },
                         ].map(tab => (
                             <button
                                 key={tab.key}
@@ -2380,10 +2381,25 @@ export default function PokerNearMePage() {
                                 <span className="mtab-icon">{tab.icon}</span>
                                 <span className="mtab-label">{tab.label}</span>
                                 {tab.key === 'live' && liveGames.length > 0 && <span className="mtab-badge">{liveGames.length}</span>}
-                                {tab.key === 'favorites' && Object.keys(favorites).filter(k => favorites[k]).length > 0 && <span className="mtab-badge fav">{Object.keys(favorites).filter(k => favorites[k]).length}</span>}
+                                {tab.key === 'saved' && Object.keys(favorites).filter(k => favorites[k]).length > 0 && <span className="mtab-badge fav">{Object.keys(favorites).filter(k => favorites[k]).length}</span>}
                             </button>
                         ))}
                     </div>
+
+                    {/* EVENT SUB-TABS ROW */}
+                    {activeTab === 'events' && (
+                        <div className="sub-tab-row">
+                            {['tours', 'series', 'daily', 'calendar'].map(sub => (
+                                <button
+                                    key={sub}
+                                    className={'sub-tab-btn' + (activeEventTab === sub ? ' active' : '')}
+                                    onClick={() => setActiveEventTab(sub)}
+                                >
+                                    {sub.charAt(0).toUpperCase() + sub.slice(1)}
+                                </button>
+                            ))}
+                        </div>
+                    )}
 
                     {/* Distance / Geofence notices (below HUD) */}
                     {(userLocation || nearestDistance) && (
@@ -2448,7 +2464,7 @@ export default function PokerNearMePage() {
                                     </div>
                                 </>
                             )}
-                            {activeTab === 'tours' && (
+                            {activeTab === 'events' && activeEventTab === 'tours' && (
                                 <div className="filter-group">
                                     <label>Tour Type</label>
                                     <div className="filter-chips">
@@ -2461,7 +2477,7 @@ export default function PokerNearMePage() {
                                     </div>
                                 </div>
                             )}
-                            {activeTab === 'series' && (
+                            {activeTab === 'events' && activeEventTab === 'series' && (
                                 <>
                                     <div className="filter-group">
                                         <label>Timeframe</label>
@@ -2487,7 +2503,7 @@ export default function PokerNearMePage() {
                                     </div>
                                 </>
                             )}
-                            {activeTab === 'daily' && (
+                            {activeTab === 'events' && activeEventTab === 'daily' && (
                                 <div className="filter-group">
                                     <label>Buy-In Range</label>
                                     <div className="filter-inputs" style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
@@ -2657,84 +2673,93 @@ export default function PokerNearMePage() {
                         z-index: -1;
                     }
 
-                    /* ═══ HUD PANEL ═══ */
-                    .pnm-hud-panel {
+                    /* ═══ CSS NATIVE SEARCH ROW ═══ */
+                    .native-search-row {
                         position: relative;
-                        width: 100%;
-                        max-width: 1400px; /* Constrain ultra-wide stretching */
-                        margin: 0 auto 0;
-                        padding: 0;
+                        display: flex;
+                        gap: 12px;
+                        padding: 16px 20px;
+                        margin: 0 auto;
+                        max-width: 1400px;
+                        z-index: 10;
+                    }
+                    .native-search-form {
+                        flex: 1;
+                        position: relative;
+                        background: rgba(15, 23, 42, 0.85);
+                        backdrop-filter: blur(12px);
+                        border: 1px solid rgba(255, 255, 255, 0.2);
+                        border-radius: 12px;
+                        display: flex;
+                        align-items: center;
                         overflow: hidden;
                     }
-                    .hud-bg-frame {
-                        width: 100%;
-                        height: auto;
-                        display: block;
-                        pointer-events: none;
-                        user-select: none;
-                    }
-                    .hud-content-overlay {
-                        position: absolute;
-                        inset: 0;
-                        z-index: 2;
-                        pointer-events: none; /* Let clicks pass through except where defined */
-                    }
-
-                    /* Interactive overlays via absolute positioning */
-                    .hud-abs-search-form {
-                        position: absolute;
-                        top: 38%;
-                        left: 18.5%;
-                        width: 63%;
-                        height: 12%;
-                        pointer-events: none;
-                    }
-                    .hud-abs-search-input {
-                        position: absolute;
-                        top: 0;
-                        left: 0;
-                        width: 84%;
-                        height: 100%;
-                        background: transparent;
-                        border: none !important;
-                        outline: none !important;
-                        box-shadow: none !important;
-                        color: #fff;
-                        font-size: clamp(14px, 2.5vw, 20px);
-                        padding: 0 16px 0 12%; /* Added padding to clear magnifying glass */
-                        font-family: inherit;
-                        caret-color: #d4a853;
-                        pointer-events: auto;
-                        cursor: text;
-                    }
-                    .hud-abs-search-input:focus {
-                        outline: none !important;
-                        box-shadow: none !important;
-                    }
-                    .hud-abs-search-input::placeholder { color: transparent; }
-                    .hud-abs-search-btn {
-                        position: absolute;
-                        top: 0;
-                        right: 0;
-                        width: 14%;
-                        height: 100%;
+                    .native-search-input {
+                        flex: 1;
                         background: transparent;
                         border: none;
+                        padding: 14px 16px;
+                        color: #fff;
+                        font-size: 16px;
+                        font-family: inherit;
+                        outline: none;
+                    }
+                    .native-search-input::placeholder { color: rgba(255,255,255,0.4); }
+                    .native-search-btn {
+                        background: transparent;
+                        border: none;
+                        color: rgba(255,255,255,0.6);
+                        padding: 0 16px;
                         cursor: pointer;
-                        pointer-events: auto;
-                        outline: none !important;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                    }
+                    .native-gps-btn, .native-filter-btn {
+                        background: rgba(15, 23, 42, 0.85);
+                        backdrop-filter: blur(12px);
+                        border: 1px solid rgba(255, 255, 255, 0.2);
+                        border-radius: 12px;
+                        width: 48px;
+                        flex-shrink: 0;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        color: rgba(255,255,255,0.8);
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+                    .native-gps-btn.active, .native-filter-btn.active {
+                        background: rgba(212, 168, 83, 0.2);
+                        border-color: #d4a853;
+                        color: #d4a853;
                     }
 
-                    .hud-abs-gps-btn { position: absolute; top: 54%; left: 29%; width: 11%; height: 10%; background: transparent; border: none; cursor: pointer; pointer-events: auto; }
-                    .hud-abs-filter-btn { position: absolute; top: 54%; left: 60%; width: 11%; height: 10%; background: transparent; border: none; cursor: pointer; pointer-events: auto; }
-
-                    .hud-abs-tab { position: absolute; top: 68%; height: 10%; background: transparent; border: none; cursor: pointer; pointer-events: auto; }
-                    .hud-abs-tab-venues { left: 23%; width: 9%; }
-                    .hud-abs-tab-tours { left: 33%; width: 8%; }
-                    .hud-abs-tab-series { left: 42%; width: 8.5%; }
-                    .hud-abs-tab-daily { left: 51.5%; width: 7.5%; }
-                    .hud-abs-tab-live { left: 60%; width: 8%; }
-                    .hud-abs-tab-map { left: 69%; width: 8%; }
+                    /* ═══ EVENT SUB-TABS ROW ═══ */
+                    .sub-tab-row {
+                        display: flex;
+                        justify-content: center;
+                        gap: 8px;
+                        padding: 0 20px 16px;
+                        max-width: 1400px;
+                        margin: 0 auto;
+                    }
+                    .sub-tab-btn {
+                        padding: 8px 16px;
+                        background: rgba(15, 23, 42, 0.6);
+                        border: 1px solid rgba(255, 255, 255, 0.1);
+                        border-radius: 20px;
+                        color: rgba(255, 255, 255, 0.7);
+                        font-size: 13px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+                    .sub-tab-btn.active {
+                        background: rgba(212, 168, 83, 0.2);
+                        border-color: #d4a853;
+                        color: #d4a853;
+                    }
 
 
                     /* Main Content */

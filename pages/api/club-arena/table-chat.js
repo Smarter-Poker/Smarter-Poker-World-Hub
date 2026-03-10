@@ -11,15 +11,13 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { sanitizeNote } from '../../../src/lib/club-arena/sanitize';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
 );
-
-// Rate limit: 1 message per second per user
-const rateLimits = new Map();
-const RATE_LIMIT_MS = 1000;
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -37,14 +35,14 @@ export default async function handler(req, res) {
         switch (action) {
             case 'send': {
                 if (!message?.trim()) return res.status(400).json({ error: 'Message required' });
-                if (message.length > 200) return res.status(400).json({ error: 'Message too long (200 char max)' });
+                
+                // 1. Sanitize input to strip XSS, Null Bytes, and Unicode control chars
+                const cleanMessage = sanitizeNote(message, 200);
+                if (!cleanMessage) return res.status(400).json({ error: 'Invalid message content' });
 
-                // Rate limit check
-                const lastSent = rateLimits.get(user.id);
-                if (lastSent && Date.now() - lastSent < RATE_LIMIT_MS) {
-                    return res.status(429).json({ error: 'Slow down! 1 message per second.' });
-                }
-                rateLimits.set(user.id, Date.now());
+                // 2. Centralized Edge-friendly Rate Limiting (1 request per second)
+                // Use custom window for chat to prevent spam, allowing bursts but averaging 1/sec
+                if (!applyRateLimit(req, res, { max: 5, windowMs: 5000, scope: ':chat_send' })) return;
 
                 // Check if user is muted
                 const { data: muteCheck } = await supabaseAdmin
@@ -67,7 +65,7 @@ export default async function handler(req, res) {
                 const chatMsg = {
                     table_id: tableId,
                     user_id: user.id,
-                    message: message.trim().slice(0, 200),
+                    message: cleanMessage,
                     message_type: 'player',
                     display_name: profile?.display_name || 'Player',
                     avatar_url: profile?.avatar_url || null,

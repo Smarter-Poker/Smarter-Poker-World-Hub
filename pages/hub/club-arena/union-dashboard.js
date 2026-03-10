@@ -157,11 +157,24 @@ export default function UnionDashboard() {
         if (!dashboard?.stats) return 100;
         let score = 100;
         const stats = dashboard.stats;
+        
+        // Penalize for inactive gameplay
         if (stats.totalActiveTables === 0 && stats.totalClubs > 0) score -= 15;
-        if (stats.totalAgents === 0) score -= 10;
-        if (dashboard.pendingApplications > 0) score -= 5;
-        if (dashboard.pendingLeaveRequests > 0) score -= 15;
         if (stats.totalWeeklyRake === 0) score -= 10;
+        if (stats.totalAgents === 0) score -= 10;
+        
+        // Administrative backlog penalties
+        if (dashboard.pendingApplications > 0) score -= (dashboard.pendingApplications * 2); // -2 per pending app
+        if (dashboard.pendingLeaveRequests > 0) score -= (dashboard.pendingLeaveRequests * 5); // -5 per pending leave
+        
+        // Structural health: Penalize for "ghost" clubs (clubs with 0 members)
+        const emptyClubs = (dashboard.clubs || []).filter(c => c.member_count === 0).length;
+        if (emptyClubs > 0) score -= (emptyClubs * 5); // -5 per empty club
+        
+        // Financial health: Penalize for severely negative union treasury / un-settled debts
+        if (stats.totalTreasury < -1000000) score -= 20; // Massive debt hole
+        else if (stats.totalTreasury < 0) score -= 5;
+        
         return Math.max(0, Math.min(100, score));
     }, [dashboard]);
 
