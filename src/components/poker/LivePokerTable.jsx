@@ -3435,6 +3435,17 @@ function LivePokerTable({
     }
   }, [legalActions, tableId, onActionRequired, onActionCleared]);
 
+  // Phase 7: Listen for Global Sit Out All from MultiTableView
+  useEffect(() => {
+    const handleGlobalMutate = (payload) => {
+      if (payload === 'global_sit_out_all') {
+        send('sit_out'); // Trigger the backend action for this specific table
+      }
+    };
+    eventBus.on(EventType.DATA_MUTATED, handleGlobalMutate);
+    return () => eventBus.off(EventType.DATA_MUTATED, handleGlobalMutate);
+  }, [send]);
+
   // Theme system
   const [themeId, setThemeId] = useState(() => getStoredThemeId());
   const [cardBack, setCardBack] = useState(() => getStoredCardBack());

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
 import { haptic } from '../../lib/club-arena/haptic';
 import { Z_INDEX } from '../../lib/zIndexAuthority';
+import { eventBus } from '../../engine/EventBus';
 
 export default function TableChatHUD({ tableId, userId, isMuted = false }) {
     const [messages, setMessages] = useState([]);
@@ -53,6 +54,9 @@ export default function TableChatHUD({ tableId, userId, isMuted = false }) {
             }, (payload) => {
                 const msg = payload.new;
                 setMessages(prev => [...prev.slice(-49), msg]);
+
+                // Phase 7: Broadcast to EventBus so Multi-Table tab badges react
+                try { eventBus.emit('chat_message_received', { tableId: msg.table_id || tableId }); } catch (_) {}
 
                 // Trigger haptic and show unread if closed
                 if (!isOpen) {
