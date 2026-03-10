@@ -5,6 +5,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -58,7 +59,7 @@ const ALL_TABS = [
 
 export default function UnionDashboard() {
     useTrainingBus('club-arena-union-dashboard');
-    usePullToRefresh({ onRefresh: () => loadUnionData?.() });
+    usePullToRefresh({ onRefresh: () => loadDashboard?.() });
 
     const router = useRouter();
     const unionIdParam = router.query?.union || null;
@@ -391,11 +392,14 @@ export default function UnionDashboard() {
 
     // ── Event Bus: refresh on cross-page mutations ────────────────────────
     useEffect(() => {
-        const unsub = eventBus.on(EventType.DATA_MUTATED, (e) => {
-            const relevant = ['union_club_added', 'union_club_removed', 'union_announcement', 'chips_minted', 'chips_distributed', 'cashout_approved', 'cashout_cancelled', 'rakeback_distributed', 'tournament_created', 'union_tournament_created', 'settlement_action'];
+        const unsub1 = eventBus.on(EventType.DATA_MUTATED, (e) => {
+            const relevant = ['union_club_added', 'union_club_removed', 'union_announcement', 'chips_minted', 'chips_distributed', 'cashout_approved', 'cashout_cancelled', 'rakeback_distributed', 'tournament_created', 'union_tournament_created', 'settlement_action', 'table_action', 'table_created', 'table_settings_updated', 'tournament_cancelled', 'tournament_started', 'tournament_complete', 'tournament_paused', 'tournament_resumed'];
             if (relevant.includes(e?.payload?.entity)) loadDashboard();
         });
-        return () => unsub();
+        const unsub2 = eventBus.on(EventType.TABLE_OPENED, () => loadDashboard());
+        const unsub3 = eventBus.on(EventType.TABLE_CLOSED, () => loadDashboard());
+        const unsub4 = eventBus.on(EventType.TOURNAMENT_STARTED, () => loadDashboard());
+        return () => { unsub1(); unsub2(); unsub3(); unsub4(); };
     }, [loadDashboard]);
 
     // Wallet loading
@@ -792,7 +796,7 @@ export default function UnionDashboard() {
                                 {activityFeed.map(item => (
                                     <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 }}>
                                         <span style={{ color: item.color || FB.textSecondary }}>{item.text}</span>
-                                        <span style={{ color: FB.dim, fontSize: 11 }}>{item.time}</span>
+                                        <span style={{ color: FB.textSecondary, fontSize: 11 }}>{item.time}</span>
                                     </div>
                                 ))}
                             </div>
@@ -1659,7 +1663,7 @@ export default function UnionDashboard() {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
                                     <span style={{ fontSize: 12, color: FB.textSecondary }}>Club Commission:</span>
                                     <input
-                                        type="number" min="1" max="100" step="1"
+                                        type="number" min="1" max="99" step="1"
                                         value={commissionRates[club.id] ?? String(((club.club_commission_rate || 0.9) * 100).toFixed(0))}
                                         onChange={e => setCommissionRates(prev => ({ ...prev, [club.id]: e.target.value }))}
                                         style={{ width: 64, background: FB.background, color: FB.textPrimary, border: `1px solid ${FB.border}`, borderRadius: 6, padding: '4px 8px', fontSize: 13 }}
@@ -1667,7 +1671,7 @@ export default function UnionDashboard() {
                                     <span style={{ fontSize: 12, color: FB.textSecondary }}>%</span>
                                     <button onClick={async () => {
                                         const val = parseFloat(commissionRates[club.id] || '90');
-                                        if (isNaN(val) || val < 1 || val > 100) { showToast('Rate must be 1–100%', 'error'); return; }
+                                        if (isNaN(val) || val < 1 || val > 99) { showToast('Rate must be 1–99%', 'error'); return; }
                                         try {
                                             await apiCall('/api/club-arena/manage-union', { action: 'update_club_commission', unionId: unionIdParam, clubId: club.id, commissionRate: val / 100 });
                                             showToast(`${club.name} commission set to ${val}%`);
@@ -2254,14 +2258,14 @@ export default function UnionDashboard() {
                         { label: 'Games', icon: '🎮', href: unionIdParam ? `/hub/club-arena/union-games?union=${unionIdParam}` : null },
                     ].map(item => (
                         item.href ? (
-                            <a key={item.label} href={item.href} style={{
+                            <Link key={item.label} href={item.href} style={{
                                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
                                 flex: 1, padding: '8px 4px', textDecoration: 'none',
                                 color: item.active ? '#2374E1' : '#B0B3B8',
                             }}>
                                 <span style={{ fontSize: 11, fontFamily: 'monospace', fontWeight: 700 }}>{item.icon}</span>
                                 <span style={{ fontSize: 11, fontWeight: 600 }}>{item.label}</span>
-                            </a>
+                            </Link>
                         ) : (
                             <div key={item.label} style={{
                                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,

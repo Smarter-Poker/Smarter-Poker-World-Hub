@@ -5,6 +5,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -17,6 +18,8 @@ import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import { haptic } from '../../../src/lib/club-arena/haptic';
 import { usePullToRefresh } from '../../../src/hooks/usePullToRefresh';
 import { resolveAvatarDisplay } from '../../../src/lib/resolveAvatarDisplay';
+import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
+import NotificationBell from '../../../src/components/club-arena/NotificationBell';
 const SkeletonDark = dynamic(() => import('../../../src/components/ui/SkeletonDark'), { ssr: false });
 
 const DynamicWallet = dynamic(
@@ -29,7 +32,11 @@ const FB = {
   border: '#3E4042', primary: '#2374E1', green: '#31A24C', red: '#FA383E',
   gold: '#F7C52A', hover: '#3A3B3C', purple: '#A855F7', teal: '#059669',
   orange: '#ea580c',
+  success: '#31A24C',
 };
+
+// Initialize SWR cache for union-games on client
+if (typeof window !== 'undefined' && !window.__ugCache) window.__ugCache = {};
 
 const STATUS_COLORS = {
   scheduled: '#2374E1', registering: '#31A24C', late_reg: '#059669', running: '#ea580c',
@@ -404,11 +411,11 @@ export default function UnionGames() {
       <div style={{ background: FB.card, padding: '16px 24px', borderBottom: `1px solid ${FB.border}`, display: 'flex', alignItems: 'center', gap: 16 }}>
         <button onClick={() => router.push(`/hub/club-arena/union-dashboard?union=${unionId}`)}
           style={{ background: 'none', border: 'none', color: FB.dim, cursor: 'pointer', fontSize: 20 }}>←</button>
-        <div>
+        <div style={{ flex: 1 }}>
           <h1 style={{ margin: 0, fontSize: 20 }}>Union Games</h1>
           <span style={{ color: FB.dim, fontSize: 13 }}>{unionInfo?.name || 'Loading...'} — {clubs.length} clubs</span>
         </div>
-        <div style={{ flex: 1 }} />
+        <NotificationBell userId={user?.id} />
         <button onClick={() => setShowWallet(prev => !prev)} style={{ background: showWallet ? FB.primary : 'transparent', border: `1px solid ${showWallet ? FB.primary : FB.border}`, color: showWallet ? '#fff' : FB.dim, padding: '6px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
           💰 {showWallet ? 'Hide' : 'Wallet'}
         </button>
@@ -533,6 +540,7 @@ export default function UnionGames() {
       </div>
 
       {/* Content */}
+      <HubErrorBoundary name="UnionGamesContent">
       <div style={{ padding: '0 16px 100px' }}>
         {loading ? (
           <SkeletonDark variant="table-rows" rows={5} />
@@ -674,6 +682,7 @@ export default function UnionGames() {
           )
         )}
       </div>
+      </HubErrorBoundary>
 
       {/* ═══ CREATE TOURNAMENT MODAL ═══ */}
       {showCreateTournament && (
@@ -715,14 +724,14 @@ export default function UnionGames() {
             { label: 'Games', emoji: '🎮', href: null, active: true },
           ].map(item => (
             item.href ? (
-              <a key={item.label} href={item.href} style={{
+              <Link key={item.label} href={item.href} style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
                 flex: 1, padding: '8px 4px', textDecoration: 'none',
                 color: '#B0B3B8',
               }}>
                 <span style={{ fontSize: 20 }}>{item.emoji}</span>
                 <span style={{ fontSize: 11, fontWeight: 600 }}>{item.label}</span>
-              </a>
+              </Link>
             ) : (
               <div key={item.label} style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
