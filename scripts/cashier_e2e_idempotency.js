@@ -7,17 +7,16 @@ const supabase = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const delay = ms => new Promise(res => setTimeout(res, ms));
-
 async function runIdempotencyE2E() {
     console.log('🚀 Starting ORB-1 Escrow Idempotency E2E Test');
 
     const uuid = crypto.randomUUID();
     const email = `orb1_test_user_${uuid}@smarter.poker`;
+    const username = `orb1_${uuid.substring(0, 8)}`;
     const password = 'TestPassword123!';
     const idempotencyKey = crypto.randomUUID();
 
-    console.log(`👤 Creating test tenant: ${email}`);
+    console.log(`👤 Creating test tenant: ${email} (${username})`);
 
     try {
         // 1. Create User
@@ -31,25 +30,10 @@ async function runIdempotencyE2E() {
         const user = authData.user;
         console.log(`✅ User created in auth.users (ID: ${user.id})`);
 
-        // Wait for the auth trigger to create the users row
-        console.log('⏳ Waiting for Auth triggers to replicate user to public.users...');
-        let userInDb = false;
-        for (let i = 0; i < 20; i++) {
-            const { data } = await supabase.from('users').select('id').eq('id', user.id).maybeSingle();
-            if (data) { userInDb = true; break; }
-            await delay(1000);
-        }
-        if (!userInDb) console.warn('⚠️ User not found in public.users - wait loop timed out. Proceeding anyway...');
-
-        // Wait for profiles row
-        console.log('⏳ Waiting for profiles table...');
-        let profileInDb = false;
-        for (let i = 0; i < 20; i++) {
-            const { data } = await supabase.from('profiles').select('id').eq('id', user.id).maybeSingle();
-            if (data) { profileInDb = true; break; }
-            await delay(1000);
-        }
-        if (!profileInDb) console.warn('⚠️ User not found in profiles - wait loop timed out.');
+        // Initialize public tables explicitly to bypass missing triggers
+        console.log('⏳ Initializing public.users and profiles...');
+        await supabase.from('users').insert({ id: user.id, username, email }).maybeSingle();
+        await supabase.from('profiles').insert({ id: user.id, display_name: username }).maybeSingle();
 
         // 2. Fund Profile with Diamonds
         const { error: fundErr } = await supabase.from('profiles').update({ diamonds: 100000 }).eq('id', user.id);
@@ -128,8 +112,8 @@ async function runIdempotencyE2E() {
         console.log(`- Errors: ${errorCount}`);
 
         // Verify final balances
-        const { data: finalProfile, error: fpErr } = await supabase.from('profiles').select('diamonds').eq('id', user.id).maybeSingle();
-        const { data: finalMember, error: fmErr } = await supabase.from('club_members').select('chip_balance').eq('user_id', user.id).eq('club_id', club.id).maybeSingle();
+        const { data: finalProfile, error: fpErr } = await supabase.from('profiles').select('diamonds').eq('id', user.id).single();
+        const { data: finalMember, error: fmErr } = await supabase.from('club_members').select('chip_balance').eq('user_id', user.id).eq('club_id', club.id).single();
 
         if (fpErr || fmErr) throw new Error(`Fetch Balance Errors: ${JSON.stringify(fpErr || fmErr)}`);
 
@@ -167,6 +151,8 @@ async function runIdempotencyE2E() {
                 const u = data.users.find(x => x.email === email);
                 if (u) {
                     await supabase.auth.admin.deleteUser(u.id);
+                    // Clean up users row (auth deletion usually cascades, but just in case)
+                    await supabase.from('users').delete().eq('id', u.id);
                     console.log('✅ Test user deleted');
                 }
             }

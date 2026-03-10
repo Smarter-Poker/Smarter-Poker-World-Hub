@@ -160,6 +160,10 @@ export default function UnionGames() {
 
   const loadTables = useCallback(async () => {
     if (!unionId) return;
+    if (typeof window !== 'undefined' && window.__ugCache.tables && Date.now() - window.__ugCache.ts < 60000) {
+      setTables(window.__ugCache.tables);
+      if (window.__ugCache.clubs) setClubs(window.__ugCache.clubs);
+    }
     try {
       // Pass statusFilter so API queries only what we need (no client-side filtering needed)
       const statusFilter = tableFilter === 'active' ? 'active'
@@ -169,6 +173,12 @@ export default function UnionGames() {
       if (res.success) {
         setTables(res.tables || []);
         if (res.clubs?.length) setClubs(res.clubs);
+
+        if (typeof window !== 'undefined') {
+          window.__ugCache.tables = res.tables || [];
+          if (res.clubs?.length) window.__ugCache.clubs = res.clubs;
+          window.__ugCache.ts = Date.now();
+        }
       } else {
         console.error('[union-games] list_tables:', res.error);
       }
@@ -178,7 +188,9 @@ export default function UnionGames() {
   }, [unionId, tableFilter]);
 
   const loadData = useCallback(async (silent = false) => {
-    if (!silent) setLoading(true);
+    // SWR: Only show loading state if we have NO cached data
+    const hasCache = typeof window !== 'undefined' && (tab === 'tournaments' ? !!window.__ugCache.tournaments : !!window.__ugCache.tables);
+    if (!silent && !hasCache) setLoading(true);
     try {
       if (tab === 'tournaments') await loadTournaments();
       else await loadTables();

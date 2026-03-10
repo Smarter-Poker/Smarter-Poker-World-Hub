@@ -78,7 +78,7 @@ export default async function handler(req, res) {
         display_name: profile?.display_name || profile?.username || 'Player',
         avatar_url: profile?.avatar_url,
         message_type: 'message',
-      }).select('id, created_at').single();
+      }).select('id, created_at').maybeSingle();
 
       if (error) throw error;
 
