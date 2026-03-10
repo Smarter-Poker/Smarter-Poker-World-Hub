@@ -1850,7 +1850,7 @@ export default function Admin() {
                                             <span style={{ fontSize: 11, color: FB.textSecondary }}>{flag.created_at ? new Date(flag.created_at).toLocaleString() : ''}</span>
                                         </div>
                                         <div style={{ fontSize: 12, color: FB.textSecondary, marginBottom: 8 }}>
-                                            Player: <strong style={{ color: FB.textPrimary }}>{flag.player_name || flag.user_id}</strong>{flag.description && <> — {flag.description}</>}
+                                            Player: <strong style={{ color: FB.textPrimary }}>{flag.player?.display_name || flag.player?.username || flag.user_id}</strong>{flag.description && <> — {flag.description}</>}
                                         </div>
                                         <div style={{ display: 'flex', gap: 8 }}>
                                             {['dismiss', 'reviewed', 'kick'].map(verdict => (
@@ -1881,7 +1881,7 @@ export default function Admin() {
                                 ) : acSessions.map((session, i) => (
                                     <div key={session.id || i} style={{ background: FB.background, borderRadius: 10, padding: 14, marginBottom: 10, border: `1px solid ${FB.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <div>
-                                            <div style={{ fontSize: 13, fontWeight: 600, color: FB.textPrimary }}>{session.player_name || session.user_id}</div>
+                                            <div style={{ fontSize: 13, fontWeight: 600, color: FB.textPrimary }}>{session.player?.display_name || session.player?.username || session.user_id}</div>
                                             <div style={{ fontSize: 11, color: FB.textSecondary }}>Table: {session.table_name || session.table_id} • {session.duration_minutes ? `${session.duration_minutes}m` : 'Active'}</div>
                                         </div>
                                         <button disabled={processing} onClick={async () => {

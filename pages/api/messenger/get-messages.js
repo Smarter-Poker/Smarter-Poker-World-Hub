@@ -8,9 +8,9 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+        if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
 
     if (req.method !== 'POST') {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
@@ -29,11 +29,14 @@ export default async function handler(req, res) {
     if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     const userId = user.id; // From JWT, NOT body
-    const { conversationId } = req.body;
+    const { conversationId, before, limit: reqLimit } = req.body;
 
     if (!conversationId) {
         return res.status(400).json({ success: false, error: 'Missing conversationId' });
     }
+
+    // Pagination: cap limit at 200
+    const pageLimit = Math.min(parseInt(reqLimit) || 100, 200);
 
     try {
         // First verify user is a participant in this conversation (security check)
@@ -48,8 +51,8 @@ export default async function handler(req, res) {
             return res.status(403).json({ success: false, error: 'Not a participant in this conversation' });
         }
 
-        // Fetch messages with sender profiles
-        const { data: messages, error } = await supabase
+        // Fetch messages with sender profiles (with pagination support)
+        let query = supabase
             .from('social_messages')
             .select(`
                 id,
@@ -62,7 +65,14 @@ export default async function handler(req, res) {
             .eq('conversation_id', conversationId)
             .eq('is_deleted', false)
             .order('created_at', { ascending: true })
-            .limit(100);
+            .limit(pageLimit);
+
+        // Pagination: load messages before a given timestamp
+        if (before) {
+            query = query.lt('created_at', before);
+        }
+
+        const { data: messages, error } = await query;
 
         if (error) {
             console.error('[ANTIGRAVITY] Error fetching messages:', error);

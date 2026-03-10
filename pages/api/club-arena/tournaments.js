@@ -345,6 +345,40 @@ export default async function handler(req, res) {
           }
         }
 
+        // ── BUG-9 FIX: Late Registration Sync ──
+        // If the tournament is already running, sync the registrant to the engine immediately.
+        if (tourn.status === 'running') {
+          try {
+            const { getController } = require('../../../src/lib/poker-engine/GameController');
+            const controller = await getController();
+
+            // Get the display name saved during fn_tournament_atomic_register
+            const { data: regInfo } = await supabaseAdmin
+              .from('tournament_registrations')
+              .select('display_name')
+              .eq('tournament_id', tournamentId)
+              .eq('user_id', user.id)
+              .maybeSingle();
+
+            // Register and physically seat the player into the live engine.
+            // chipsAlreadyLocked ensures the engine doesn't double-charge them.
+            const engineReg = await controller.registerForTournament(
+              tournamentId,
+              user.id,
+              regInfo?.display_name || 'Player',
+              { chipsAlreadyLocked: true }
+            );
+
+            if (!engineReg.success) {
+              console.error(`[Tournament] Engine late-reg failed for ${user.id}:`, engineReg.error);
+            } else {
+              console.log(`[Tournament] Engine late-reg succeeded for ${user.id}`);
+            }
+          } catch (err) {
+            console.error('[Tournament] Engine late-reg exception:', err.message);
+          }
+        }
+
         // Notify registrant
         notifyUser(supabaseAdmin, {
           userId: user.id, type: 'tournament_registered',

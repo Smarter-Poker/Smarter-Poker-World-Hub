@@ -200,7 +200,7 @@ export default function Marketplace() {
     // ── Event Bus: refresh on cross-page chip mutations ───────────────────
     useEffect(() => {
         const unsub = eventBus.on(EventType.DATA_MUTATED, (e) => {
-            if (['chips_distributed', 'chips_minted', 'cashout_approved'].includes(e?.payload?.entity)) loadData();
+            if (['chips_distributed', 'chips_minted', 'cashout_approved', 'cashout_cancelled'].includes(e?.payload?.entity)) loadData();
         });
         return () => unsub();
     }, [loadData]);
