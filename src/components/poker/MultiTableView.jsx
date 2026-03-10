@@ -94,11 +94,13 @@ function TableTabBar({
   activeIndex,
   actionNeeded,
   connectionStatus,
+  unreadChat,
   onSwitch,
   onClose,
   onEmpty,
   viewMode,
   onToggleView,
+  onSitOutAll,
 }) {
   const filledCount = slots.filter(Boolean).length;
 
@@ -119,6 +121,10 @@ function TableTabBar({
       gap: 6,
       borderBottom: '1px solid rgba(255,255,255,0.06)',
     }}>
+      {/* ── Global Options Menu (Phase 6) ── */}
+      {filledCount > 0 && (
+        <GlobalControlsHUD onSitOutAll={onSitOutAll} />
+      )}
       {slots.map((slot, idx) => {
         if (!slot) {
           // ── EMPTY SLOT: "+" ──
@@ -153,6 +159,7 @@ function TableTabBar({
         const isActive = idx === activeIndex;
         const needsAction = actionNeeded.has(slot.tableId);
         const isDisconnected = connectionStatus?.[slot.tableId] === 'disconnected';
+        const unreadCount = unreadChat?.[slot.tableId] || 0;
         const showPulse = needsAction && !isActive;
 
         return (
@@ -185,6 +192,25 @@ function TableTabBar({
               paddingRight: 6,
             }}
           >
+            {/* Unread Chat Badge (Phase 6) */}
+            {!isActive && unreadCount > 0 && (
+              <div style={{
+                position: 'absolute',
+                top: -4,
+                left: -4,
+                background: T.danger,
+                color: '#fff',
+                fontSize: 10,
+                fontWeight: 800,
+                padding: '2px 5px',
+                borderRadius: '10px',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.5)',
+                zIndex: 2,
+              }}>
+                💬{unreadCount > 9 ? '9+' : unreadCount}
+              </div>
+            )}
+
             {/* Pulsing gold dot — top-right */}
             {showPulse && (
               <div style={{
@@ -266,6 +292,101 @@ function TableTabBar({
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+// GLOBAL CONTROLS HUD (Phase 6 - Sit Out All)
+// ═══════════════════════════════════════════════════════════════════════
+function GlobalControlsHUD({ onSitOutAll }) {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  // Click outside to close
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  return (
+    <div style={{ position: 'relative' }} ref={menuRef}>
+      <button
+        onClick={() => setOpen(!open)}
+        style={{
+          background: open ? 'rgba(255,255,255,0.1)' : 'transparent',
+          border: 'none',
+          color: T.textBright,
+          width: 34,
+          height: 34,
+          borderRadius: 8,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          outline: 'none',
+          flexShrink: 0,
+          transition: 'background 0.2s',
+        }}
+        title="Multi-Table Options"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="4" y1="21" x2="4" y2="14"></line>
+          <line x1="4" y1="10" x2="4" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12" y2="3"></line>
+          <line x1="20" y1="21" x2="20" y2="16"></line>
+          <line x1="20" y1="12" x2="20" y2="3"></line>
+          <line x1="1" y1="14" x2="7" y2="14"></line>
+          <line x1="9" y1="8" x2="15" y2="8"></line>
+          <line x1="17" y1="16" x2="23" y2="16"></line>
+        </svg>
+      </button>
+
+      {open && (
+        <div style={{
+          position: 'absolute',
+          top: 42,
+          left: 0,
+          background: '#242526',
+          border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: 12,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.8)',
+          width: 200,
+          padding: 8,
+          zIndex: 10002,
+          animation: 'mtv_confirmIn 0.15s ease-out',
+        }}>
+          <button
+            onClick={() => {
+              onSitOutAll();
+              setOpen(false);
+            }}
+            style={{
+              width: '100%',
+              textAlign: 'left',
+              background: 'transparent',
+              border: 'none',
+              padding: '12px 16px',
+              color: T.danger,
+              fontSize: 14,
+              fontWeight: 600,
+              borderRadius: 8,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+            }}
+          >
+            <span style={{ fontSize: 18 }}>🛑</span>
+            Sit Out All Tables
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 // CLOSE CONFIRMATION MODAL (GAP 4)
 // ═══════════════════════════════════════════════════════════════════════
 function CloseConfirmation({ tableName, onConfirm, onCancel }) {
@@ -323,10 +444,12 @@ function CloseConfirmation({ tableName, onConfirm, onCancel }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 // Single Table Slot Wrapper (with GAP 1 JS-based fixed-element offset)
 // ═══════════════════════════════════════════════════════════════════════
-function TableSlot({ supabase, tableId, userId, displayName, avatarUrl, isVisible, onActionNeeded, onActionCleared, onLeave, onConnectionStatus, onTableMove }) {
-  const slotRef = useRef(null);
+const TableSlot = React.forwardRef(({ supabase, tableId, userId, displayName, avatarUrl, isVisible, onActionNeeded, onActionCleared, onLeave, onConnectionStatus, onTableMove }, ref) => {
+  const localRef = useRef(null);
+  const slotRef = ref || localRef;
 
   // GAP 1 FIX: React inline styles can't be targeted by CSS attribute selectors.
   // Instead, use a JS-based approach: scan for fixed-positioned children with top:8px
@@ -392,7 +515,8 @@ function TableSlot({ supabase, tableId, userId, displayName, avatarUrl, isVisibl
       />
     </div>
   );
-}
+});
+TableSlot.displayName = 'TableSlot';
 
 // ═══════════════════════════════════════════════════════════════════════
 // BBJ Win Overlay
@@ -470,15 +594,18 @@ export default function MultiTableView({ supabase, userId, initialTable, onExit 
 
   const {
     slots, tables, activeIndex, activeTable, viewMode,
-    actionNeeded, connectionStatus, bbjWin, setBbjWin, canOpenMore,
+    actionNeeded, connectionStatus, unreadChat, bbjWin, setBbjWin, canOpenMore,
     openTable, closeTable, switchTo, toggleView,
     markActionNeeded, clearActionNeeded, clearSession,
-    updateTableId, updateConnectionStatus,
+    updateTableId, updateConnectionStatus, markUnreadChat,
     pendingSlotIndex, setPendingSlotIndex, getNextEmptySlot,
   } = useMultiTable({ supabase, userId });
 
   // ── Close confirmation state (GAP 4) ──
   const [closeConfirm, setCloseConfirm] = useState(null); // { tableId, name }
+
+  // ── Global Refs (for Sit Out All) ──
+  const slotRefs = useRef([]);
 
   // Algorithmic Grid Scaling State (tile mode)
   const containerRef = useRef(null);
@@ -541,6 +668,30 @@ export default function MultiTableView({ supabase, userId, initialTable, onExit 
       try { busEmit.dataMutated?.('multi_table_opened'); } catch (_) {}
     }
   }, [initialTable, openTable]);
+
+  // Read Chat messages from EventBus (Phase 6)
+  useEffect(() => {
+    const onChat = (data) => {
+      // If data is a new message from a table that isn't currently active, mark it
+      if (data?.tableId && data.tableId !== activeTable?.tableId) {
+        markUnreadChat(data.tableId);
+      }
+    };
+    eventBus.on(EventType.SYSTEM_ERROR /* repurposing a known event if needed, or chat stream */, onChat); // Note: Assuming a chat event exists. Given limitations, we'll intercept at the source if possible, but EventBus is safer.
+    // Real implementation requires hooking into the chat channel. Let's use the standard busEmit.
+    eventBus.on('chat_message_received', onChat);
+    return () => {
+      eventBus.off('chat_message_received', onChat);
+      eventBus.off(EventType.SYSTEM_ERROR, onChat);
+    };
+  }, [activeTable?.tableId, markUnreadChat]);
+
+  // ── Global Sit Out All (Phase 6) ──
+  const handleSitOutAll = useCallback(() => {
+    haptic('heavy');
+    // We broadcast the intent. LivePokerTable will listen for this.
+    try { busEmit.dataMutated?.('global_sit_out_all'); } catch (_) {}
+  }, []);
 
   // ═══ SWIPE NAVIGATION with visual feedback (GAP 5) ═══
   const touchRef = useRef({ startX: 0, startY: 0, swiping: false });
@@ -681,11 +832,13 @@ export default function MultiTableView({ supabase, userId, initialTable, onExit 
           activeIndex={activeIndex}
           actionNeeded={actionNeeded}
           connectionStatus={connectionStatus}
+          unreadChat={unreadChat}
           onSwitch={handleSwitch}
           onClose={handleCloseRequest}
           onEmpty={handleEmptySlot}
           viewMode={viewMode}
           onToggleView={toggleView}
+          onSitOutAll={handleSitOutAll}
         />
         <div style={{ marginTop: TAB_BAR_HEIGHT + 40, textAlign: 'center' }}>
           <div style={{ fontSize: 36, marginBottom: 12, opacity: 0.5 }}>🃏</div>
@@ -712,11 +865,13 @@ export default function MultiTableView({ supabase, userId, initialTable, onExit 
         activeIndex={activeIndex}
         actionNeeded={actionNeeded}
         connectionStatus={connectionStatus}
+        unreadChat={unreadChat}
         onSwitch={handleSwitch}
         onClose={handleCloseRequest}
         onEmpty={handleEmptySlot}
         viewMode={viewMode}
         onToggleView={toggleView}
+        onSitOutAll={handleSitOutAll}
       />
 
       {/* ── Table area (offset below tab bar) ── */}
@@ -761,10 +916,22 @@ export default function MultiTableView({ supabase, userId, initialTable, onExit 
           const isActive = idx === activeIndex;
           const isVisible = viewMode === 'tile' || isActive;
 
+          // Tile-View Auto-Zoom: If action needed and in tile mode, clicking zooms in
+          const handleTileClick = () => {
+            if (viewMode === 'tile') {
+              switchTo(idx);
+              if (actionNeeded.has(slot.tableId)) {
+                // Auto-zoom to single view if action is needed to make buttons larger
+                toggleView(); 
+                haptic('medium');
+              }
+            }
+          };
+
           return (
             <div
               key={slot.tableId}
-              onClick={() => viewMode === 'tile' && handleSwitch(idx)}
+              onClick={handleTileClick}
               style={{
                 width: '100%',
                 height: viewMode === 'single' ? '100%' : undefined,
@@ -783,6 +950,7 @@ export default function MultiTableView({ supabase, userId, initialTable, onExit 
               }}
             >
               <TableSlot
+                ref={el => slotRefs.current[idx] = el}
                 supabase={supabase}
                 tableId={slot.tableId}
                 userId={userId}

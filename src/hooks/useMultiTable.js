@@ -75,6 +75,9 @@ export function useMultiTable({ supabase, userId }) {
   // Track WebSocket connection status per slot (for offline indicators)
   const [connectionStatus, setConnectionStatus] = useState({});
 
+  // Track unread chat counts per slot (Phase 6)
+  const [unreadChat, setUnreadChat] = useState({});
+
   // Which "+" slot was tapped — lobby uses this to know where to put the next table
   const [pendingSlotIndex, setPendingSlotIndex] = useState(initialState.pendingSlotIndex);
 
@@ -181,6 +184,12 @@ export function useMultiTable({ supabase, userId }) {
       delete next[tableId];
       return next;
     });
+    // Clear unread chat
+    setUnreadChat(prev => {
+      const next = { ...prev };
+      delete next[tableId];
+      return next;
+    });
     // Move active to nearest filled slot — use slotsRef to get the LATEST state
     setActiveIndex(prev => {
       const currentSlots = slotsRef.current;
@@ -271,6 +280,13 @@ export function useMultiTable({ supabase, userId }) {
         next.delete(tableId);
         return next;
       });
+      // Clear unread chat since user is now looking at it
+      setUnreadChat(prev => {
+        if (!prev[tableId]) return prev;
+        const next = { ...prev };
+        delete next[tableId];
+        return next;
+      });
     }
   }, []); // Stable callback — reads from slotsRef
 
@@ -289,6 +305,16 @@ export function useMultiTable({ supabase, userId }) {
       if (prev[tableId] === status) return prev;
       return { ...prev, [tableId]: status };
     });
+  }, []);
+
+  /**
+   * Track Unread Chat (Phase 6)
+   */
+  const markUnreadChat = useCallback((tableId) => {
+    // Read from ref to check if they are already looking at this table
+    const currentActiveId = slotsRef.current[activeIndexRef.current]?.tableId;
+    if (currentActiveId === tableId) return; // Don't mark unread if currently viewing
+    setUnreadChat(prev => ({ ...prev, [tableId]: (prev[tableId] || 0) + 1 }));
   }, []);
 
   /**
@@ -321,6 +347,15 @@ export function useMultiTable({ supabase, userId }) {
       delete next[oldId];
       return next;
     });
+
+    // Migrate unread chat
+    setUnreadChat(prev => {
+      if (!prev[oldId]) return prev;
+      const next = { ...prev };
+      next[newId] = next[oldId];
+      delete next[oldId];
+      return next;
+    });
   }, []);
 
   // Cleanup auto-switch on unmount
@@ -338,6 +373,7 @@ export function useMultiTable({ supabase, userId }) {
     viewMode,
     actionNeeded,
     connectionStatus,
+    unreadChat,
     bbjWin,
     setBbjWin,
     canOpenMore,
@@ -351,6 +387,7 @@ export function useMultiTable({ supabase, userId }) {
     switchTo,
     toggleView,
     updateConnectionStatus,
+    markUnreadChat,
     markActionNeeded,
     clearActionNeeded,
     clearSession,
