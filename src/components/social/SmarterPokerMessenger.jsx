@@ -13,12 +13,39 @@ import { SPAvatar, SP_COLORS } from './SmarterPokerStyleCard';
 // 💾 PERSISTENCE HOOK (P2 features)
 // ═══════════════════════════════════════════════════════════════════════════
 
+// Disappearing timer options
+const DISAPPEAR_OPTIONS = [
+    { label: 'Off', value: 0 },
+    { label: '1h', value: 3600000 },
+    { label: '6h', value: 21600000 },
+    { label: '24h', value: 86400000 },
+    { label: '7d', value: 604800000 }
+];
+
+// All available label categories (E8)
+const LABEL_CATEGORIES = ['Important', 'Action Required', 'Tournament Info', 'Payment'];
+
+// Theme presets — solids + gradients (E6)
+const THEME_PRESETS = [
+    { label: 'White', value: '#FFFFFF', type: 'solid' },
+    { label: 'Ice Blue', value: '#F0F8FF', type: 'solid' },
+    { label: 'Linen', value: '#FDF5E6', type: 'solid' },
+    { label: 'Mint', value: '#F0FFF0', type: 'solid' },
+    { label: 'Rose', value: '#FDEEED', type: 'solid' },
+    { label: 'Smoke', value: '#F5F5F5', type: 'solid' },
+    { label: 'Sunset', value: 'linear-gradient(180deg, #FFECD2 0%, #FCB69F 100%)', type: 'gradient' },
+    { label: 'Ocean', value: 'linear-gradient(180deg, #E0F7FA 0%, #B2EBF2 100%)', type: 'gradient' },
+    { label: 'Lavender', value: 'linear-gradient(180deg, #F3E5F5 0%, #E1BEE7 100%)', type: 'gradient' },
+    { label: 'Forest', value: 'linear-gradient(180deg, #E8F5E9 0%, #C8E6C9 100%)', type: 'gradient' }
+];
+
 const useMessengerPrefs = () => {
     const [prefs, setPrefs] = useState({
         bookmarks: [],
         labels: {},
         themes: {},
         disappearing: {},
+        scheduledQueue: [],
         templates: [
             "Your funds are ready",
             "Tournament starts in 30 min",
@@ -78,10 +105,14 @@ const MessageBubble = ({ message, isOwn, showAvatar, user, onAction }) => (
                     ))}
                 </div>
             )}
-            {/* Hover Actions */}
+            {/* Hover Actions — E8: Expanded Label Categories */}
             <div className="message-hover-actions">
                 <button onClick={() => onAction?.('bookmark', message)} title={message.isBookmarked ? "Remove Bookmark" : "Save Bookmark"}>📌</button>
-                <button onClick={() => onAction?.('label', message, 'Important')} title="Label: Important">🏷️</button>
+                {LABEL_CATEGORIES.map(cat => (
+                    <button key={cat} onClick={() => onAction?.('label', message, cat)} title={`Label: ${cat}`} style={{ fontSize: 10, padding: '2px 4px' }}>
+                        {cat === 'Important' ? '🔴' : cat === 'Action Required' ? '🟠' : cat === 'Tournament Info' ? '🟢' : '💰'}
+                    </button>
+                ))}
             </div>
         </div>
 
@@ -200,32 +231,56 @@ export const ChatWindow = ({
     onSend,
     onClose,
     onMinimize,
+    onBroadcast,
+    isAdmin = false,
     minimized = false
 }) => {
     const [inputText, setInputText] = useState('');
     const [showThemePicker, setShowThemePicker] = useState(false);
     const [showTemplates, setShowTemplates] = useState(false);
+    const [showTemplateEditor, setShowTemplateEditor] = useState(false);
+    const [newTemplate, setNewTemplate] = useState('');
     const [scheduledTime, setScheduledTime] = useState('');
     const [bookmarksOpen, setBookmarksOpen] = useState(false);
+    const [bookmarkSearch, setBookmarkSearch] = useState('');
+    const [labelFilter, setLabelFilter] = useState('');
+    const [showDisappearMenu, setShowDisappearMenu] = useState(false);
+    const [showScheduledQueue, setShowScheduledQueue] = useState(false);
     const messagesEndRef = useRef(null);
     const [prefs, updatePrefs] = useMessengerPrefs();
 
     const conversationId = conversation?.id;
     const theme = prefs.themes[conversationId] || SP_COLORS.bgWhite;
-    const isDisappearing = prefs.disappearing[conversationId] || false;
+    const disappearMs = prefs.disappearing[conversationId] || 0;
+    const isDisappearing = disappearMs > 0;
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages, showTemplates, showThemePicker]);
 
+    // E4: Restore scheduled queue timers on mount
+    useEffect(() => {
+        const queue = prefs.scheduledQueue || [];
+        queue.forEach(item => {
+            if (item.conversationId === conversationId) {
+                const delayMs = new Date(item.sendAt).getTime() - Date.now();
+                if (delayMs > 0) {
+                    setTimeout(() => { onSend?.(item.text); updatePrefs(p => ({ ...p, scheduledQueue: p.scheduledQueue.filter(q => q.id !== item.id) })); }, delayMs);
+                }
+            }
+        });
+    }, [conversationId]);
+
     const handleSend = () => {
         if (inputText.trim()) {
             if (scheduledTime) {
-                // Scheduled message logic (P2-4)
+                // E4: Persist scheduled message to localStorage queue
                 const delayMs = new Date(scheduledTime).getTime() - Date.now();
+                const queueItem = { id: Date.now(), text: inputText, sendAt: scheduledTime, conversationId };
                 if (delayMs > 0) {
-                    setTimeout(() => onSend?.(inputText), delayMs);
-                    console.log(`[Messenger] Message scheduled to send in ${delayMs}ms`);
+                    setTimeout(() => { onSend?.(inputText); updatePrefs(p => ({ ...p, scheduledQueue: (p.scheduledQueue || []).filter(q => q.id !== queueItem.id) })); }, delayMs);
+                    updatePrefs(p => ({ ...p, scheduledQueue: [...(p.scheduledQueue || []), queueItem] }));
+                    console.log(`[Messenger] Message scheduled to send in ${delayMs}ms — persisted to queue`);
                 } else {
                     onSend?.(inputText);
                 }
@@ -303,7 +358,7 @@ export const ChatWindow = ({
     }
 
     return (
-        <div className="chat-window" style={{ background: theme }}>
+        <div className="chat-window" style={{ background: theme.startsWith('linear') ? undefined : theme, backgroundImage: theme.startsWith('linear') ? theme : undefined }}>
             {/* Header */}
             <div className="chat-header">
                 <SPAvatar src={otherUser?.avatar} size={32} online={otherUser?.online} />
@@ -311,40 +366,84 @@ export const ChatWindow = ({
                     <span className="chat-user-name">{otherUser?.name}</span>
                     <span className="chat-user-status">
                         {otherUser?.online ? 'Active now' : 'Active 2h ago'}
-                        {isDisappearing && <span style={{ marginLeft: 4 }} title="Disappearing Messages On">⏱️ 24h</span>}
+                        {isDisappearing && <span style={{ marginLeft: 4 }} title="Disappearing Messages On">⏱️ {DISAPPEAR_OPTIONS.find(o => o.value === disappearMs)?.label || '24h'}</span>}
                     </span>
                 </div>
                 <div className="chat-header-actions">
+                    {/* E1: Broadcast button for admins */}
+                    {isAdmin && <button className="header-btn" onClick={() => { if (inputText.trim()) onBroadcast?.(inputText); }} title="Broadcast to All Members" style={{ color: inputText.trim() ? '#0088ff' : '#ccc' }}>📢</button>}
+                    {/* E3: Label Filter */}
+                    <select className="label-filter-select" value={labelFilter} onChange={e => setLabelFilter(e.target.value)} title="Filter by Label">
+                        <option value="">All</option>
+                        {LABEL_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                    </select>
                     <button className="header-btn" onClick={() => setShowThemePicker(!showThemePicker)} title="Themes">🎨</button>
-                    <button className="header-btn" onClick={() => updatePrefs(p => ({ ...p, disappearing: { ...p.disappearing, [conversationId]: !isDisappearing }}))} title="Toggle Disappearing Mode">⏱️</button>
+                    {/* E7: Disappearing Timer dropdown */}
+                    <div style={{ position: 'relative', display: 'inline-block' }}>
+                        <button className="header-btn" onClick={() => setShowDisappearMenu(!showDisappearMenu)} title="Disappearing Timer">⏱️</button>
+                        {showDisappearMenu && (
+                            <div className="disappear-menu">
+                                {DISAPPEAR_OPTIONS.map(opt => (
+                                    <button key={opt.value} className={`disappear-opt ${disappearMs === opt.value ? 'active' : ''}`} onClick={() => { updatePrefs(p => ({ ...p, disappearing: { ...p.disappearing, [conversationId]: opt.value } })); setShowDisappearMenu(false); }}>{opt.label}</button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                     <button className="header-btn" onClick={() => setBookmarksOpen(!bookmarksOpen)} title="Saved Messages">📌</button>
+                    {/* E4: Scheduled Queue viewer */}
+                    <button className="header-btn" onClick={() => setShowScheduledQueue(!showScheduledQueue)} title="Pending Messages" style={{ position: 'relative' }}>
+                        ⏰
+                        {(prefs.scheduledQueue || []).filter(q => q.conversationId === conversationId).length > 0 && (
+                            <span style={{ position: 'absolute', top: -2, right: -2, background: '#0088ff', color: 'white', borderRadius: 8, fontSize: 9, padding: '0 3px', fontWeight: 700 }}>
+                                {(prefs.scheduledQueue || []).filter(q => q.conversationId === conversationId).length}
+                            </span>
+                        )}
+                    </button>
                     <button className="header-btn" onClick={onMinimize}>−</button>
                     <button className="header-btn" onClick={onClose}>✕</button>
                 </div>
             </div>
 
-            {/* P2-6 Theme Picker */}
+            {/* E6: Theme Picker with Gradients */}
             {showThemePicker && (
                 <div className="theme-picker-bar">
-                    {['#FFFFFF', '#F0F8FF', '#FDF5E6', '#F0FFF0', '#FDEEED', '#F5F5F5'].map(color => (
+                    {THEME_PRESETS.map(preset => (
                         <div
-                            key={color}
-                            style={{ background: color, border: theme === color ? '2px solid #0088ff' : '1px solid #ddd' }}
+                            key={preset.label}
+                            style={{ background: preset.value, border: theme === preset.value ? '2px solid #0088ff' : '1px solid #ddd' }}
                             className="theme-circle"
-                            onClick={() => { updatePrefs(p => ({ ...p, themes: { ...p.themes, [conversationId]: color }})); setShowThemePicker(false); }}
+                            title={preset.label}
+                            onClick={() => { updatePrefs(p => ({ ...p, themes: { ...p.themes, [conversationId]: preset.value }})); setShowThemePicker(false); }}
                         />
                     ))}
                 </div>
             )}
 
-            {/* P2-5 Bookmarks Drawer */}
+            {/* E4: Scheduled Queue Drawer */}
+            {showScheduledQueue && (
+                <div style={{ maxHeight: 100, overflowY: 'auto', background: '#f0f8ff', borderBottom: '1px solid #ddd', padding: 8, fontSize: 11 }}>
+                    <strong>⏰ Pending Messages</strong>
+                    {(prefs.scheduledQueue || []).filter(q => q.conversationId === conversationId).length === 0 && <p style={{ color: '#999', margin: '4px 0' }}>No scheduled messages</p>}
+                    {(prefs.scheduledQueue || []).filter(q => q.conversationId === conversationId).map((item, i) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', borderBottom: '1px solid #eee' }}>
+                            <span>{item.text?.slice(0, 40)}{item.text?.length > 40 ? '...' : ''}</span>
+                            <span style={{ color: '#0088ff', whiteSpace: 'nowrap', marginLeft: 8 }}>{new Date(item.sendAt).toLocaleTimeString()}</span>
+                            <button style={{ background: 'none', border: 'none', color: '#E41E3F', cursor: 'pointer', fontSize: 10, marginLeft: 4 }} onClick={() => updatePrefs(p => ({ ...p, scheduledQueue: (p.scheduledQueue || []).filter(q => q.id !== item.id) }))}>✕</button>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* E5: Bookmarks Drawer with Search */}
             {bookmarksOpen && (
-                <div style={{ maxHeight: 120, overflowY: 'auto', background: '#fffdf0', borderBottom: '1px solid #ddd', padding: 8, fontSize: 12 }}>
+                <div style={{ maxHeight: 150, overflowY: 'auto', background: '#fffdf0', borderBottom: '1px solid #ddd', padding: 8, fontSize: 12 }}>
                     <strong>📌 Saved Messages</strong>
-                    {prefs.bookmarks.length === 0 && <p style={{ color: '#999', margin: '4px 0' }}>No saved messages yet</p>}
-                    {prefs.bookmarks.map((bm, i) => (
-                        <div key={i} style={{ padding: '4px 0', borderBottom: '1px solid #eee' }}>
-                            {bm.text?.slice(0, 60)}{bm.text?.length > 60 ? '...' : ''}
+                    <input type="text" placeholder="Search saved..." value={bookmarkSearch} onChange={e => setBookmarkSearch(e.target.value)} style={{ width: '100%', border: '1px solid #ddd', borderRadius: 6, padding: '4px 8px', fontSize: 11, marginTop: 4, marginBottom: 4, boxSizing: 'border-box' }} />
+                    {prefs.bookmarks.filter(bm => !bookmarkSearch || bm.text?.toLowerCase().includes(bookmarkSearch.toLowerCase())).length === 0 && <p style={{ color: '#999', margin: '4px 0' }}>{bookmarkSearch ? 'No matches' : 'No saved messages yet'}</p>}
+                    {prefs.bookmarks.filter(bm => !bookmarkSearch || bm.text?.toLowerCase().includes(bookmarkSearch.toLowerCase())).map((bm, i) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid #eee' }}>
+                            <span>{bm.text?.slice(0, 50)}{bm.text?.length > 50 ? '...' : ''}</span>
+                            <button style={{ background: 'none', border: 'none', color: '#E41E3F', cursor: 'pointer', fontSize: 10 }} onClick={() => updatePrefs(p => ({ ...p, bookmarks: p.bookmarks.filter(b => b.id !== bm.id) }))}>✕</button>
                         </div>
                     ))}
                 </div>
@@ -353,15 +452,21 @@ export const ChatWindow = ({
             {/* Messages */}
             <div className="chat-messages">
                 {messages.map((msg, i) => {
-                    // P2-2: Filter disappearing messages older than 24h
-                    if (isDisappearing && msg.timestamp && (Date.now() - new Date(msg.timestamp).getTime() > 24 * 60 * 60 * 1000)) {
+                    // E7: Filter disappearing messages based on selected timer
+                    if (disappearMs > 0 && msg.timestamp && (Date.now() - new Date(msg.timestamp).getTime() > disappearMs)) {
+                        return null;
+                    }
+
+                    // E3: Apply label filter
+                    const msgLabels = prefs.labels[msg.id] || [];
+                    if (labelFilter && !msgLabels.includes(labelFilter)) {
                         return null;
                     }
 
                     const enrichedMsg = {
                         ...msg,
                         isBookmarked: prefs.bookmarks.some(b => b.id === msg.id),
-                        labels: prefs.labels[msg.id] || [],
+                        labels: msgLabels,
                         isDisappearing: isDisappearing
                     };
 
@@ -383,12 +488,23 @@ export const ChatWindow = ({
                 <div ref={messagesEndRef} />
             </div>
 
-            {/* P2-7 Templates Bar */}
+            {/* E2: Templates Bar + Editor */}
             {showTemplates && (
-                <div className="templates-bar">
+                <div className="templates-bar" style={{ flexWrap: 'wrap' }}>
                     {prefs.templates.map((tpl, i) => (
-                        <span key={i} className="template-chip" onClick={() => { setInputText(tpl); setShowTemplates(false); }}>{tpl}</span>
+                        <span key={i} className="template-chip" onClick={() => { setInputText(tpl); setShowTemplates(false); }}>
+                            {tpl}
+                            <button style={{ marginLeft: 4, background: 'none', border: 'none', color: '#E41E3F', cursor: 'pointer', fontSize: 10 }} onClick={(e) => { e.stopPropagation(); updatePrefs(p => ({ ...p, templates: p.templates.filter((_, idx) => idx !== i) })); }}>✕</button>
+                        </span>
                     ))}
+                    <button className="template-chip" style={{ fontWeight: 700 }} onClick={() => setShowTemplateEditor(!showTemplateEditor)}>+ Add</button>
+                </div>
+            )}
+            {/* E2: Template Editor */}
+            {showTemplateEditor && (
+                <div style={{ display: 'flex', gap: 4, padding: '4px 8px', background: '#f9f9f9', borderTop: '1px solid #ddd' }}>
+                    <input type="text" placeholder="New template text..." value={newTemplate} onChange={e => setNewTemplate(e.target.value)} style={{ flex: 1, border: '1px solid #ddd', borderRadius: 6, padding: '4px 8px', fontSize: 11 }} />
+                    <button style={{ background: '#0088ff', color: 'white', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 11, cursor: 'pointer' }} onClick={() => { if (newTemplate.trim()) { updatePrefs(p => ({ ...p, templates: [...p.templates, newTemplate.trim()] })); setNewTemplate(''); setShowTemplateEditor(false); } }}>Save</button>
                 </div>
             )}
 
@@ -569,6 +685,46 @@ export const ChatWindow = ({
                     border-radius: 4px;
                     font-weight: 600;
                 }
+
+                .label-badge.action-required { background: #ff9800; color: white; }
+                .label-badge.tournament-info { background: #4caf50; color: white; }
+                .label-badge.payment { background: #9c27b0; color: white; }
+
+                .label-filter-select {
+                    font-size: 10px;
+                    padding: 2px 4px;
+                    border-radius: 4px;
+                    border: 1px solid #ddd;
+                    background: white;
+                    cursor: pointer;
+                    height: 24px;
+                }
+
+                .disappear-menu {
+                    position: absolute;
+                    top: 32px;
+                    right: 0;
+                    background: white;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                    display: flex;
+                    flex-direction: column;
+                    z-index: 10;
+                    overflow: hidden;
+                }
+
+                .disappear-opt {
+                    background: none;
+                    border: none;
+                    padding: 6px 16px;
+                    font-size: 12px;
+                    cursor: pointer;
+                    text-align: left;
+                    white-space: nowrap;
+                }
+
+                .disappear-opt:hover { background: #f0f0f0; }
+                .disappear-opt.active { background: #e3f2fd; font-weight: 600; color: #0088ff; }
 
                 .chat-input {
                     display: flex;
