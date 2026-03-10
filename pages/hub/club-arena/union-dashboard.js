@@ -144,6 +144,27 @@ export default function UnionDashboard() {
     const [announceClub, setAnnounceClub] = useState('all');
     const [announceProcessing, setAnnounceProcessing] = useState(false);
 
+    // Live Activity Feed State (simulated real-time events)
+    const [activityFeed, setActivityFeed] = useState([
+        { id: 1, type: 'game', text: '🏆 Tournament "Sunday Showdown" created by Shark Club', time: '12m ago', color: FB.gold },
+        { id: 2, type: 'money', text: '💰 $4,200 Settlement period #14 closed', time: '45m ago', color: FB.success },
+        { id: 3, type: 'game', text: '🃏 NLH $1/$2 table opened (6 players seated)', time: '2h ago', color: FB.primary },
+        { id: 4, type: 'admin', text: '🛡️ "Apex Poker" application approved', time: '4h ago', color: FB.purple }
+    ]);
+
+    // Calculate Union Health Score
+    const calculateHealthScore = useCallback(() => {
+        if (!dashboard?.stats) return 100;
+        let score = 100;
+        const stats = dashboard.stats;
+        if (stats.totalActiveTables === 0 && stats.totalClubs > 0) score -= 15;
+        if (stats.totalAgents === 0) score -= 10;
+        if (dashboard.pendingApplications > 0) score -= 5;
+        if (dashboard.pendingLeaveRequests > 0) score -= 15;
+        if (stats.totalWeeklyRake === 0) score -= 10;
+        return Math.max(0, Math.min(100, score));
+    }, [dashboard]);
+
     const showToast = (msg, type = 'info') => {
         setToast({ msg, type });
         setTimeout(() => setToast(null), 3500);
@@ -682,9 +703,20 @@ export default function UnionDashboard() {
                                 color: activeTab === tab.id ? '#fff' : FB.textSecondary,
                                 border: `1px solid ${activeTab === tab.id ? FB.primary : FB.border}`,
                                 borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600,
-                                cursor: 'pointer', whiteSpace: 'nowrap',
+                                cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6,
                             }}>
                             {tab.label}
+                            {/* Smart Notifications / Badges */}
+                            {tab.id === 'manage_clubs' && (dashboard.pendingApplications > 0 || dashboard.pendingLeaveRequests > 0) && (
+                                <span style={{ background: FB.danger, color: '#fff', borderRadius: 10, padding: '2px 6px', fontSize: 10, fontWeight: 800 }}>
+                                    {dashboard.pendingApplications + dashboard.pendingLeaveRequests}
+                                </span>
+                            )}
+                            {tab.id === 'games' && stats?.scheduledTournaments > 0 && (
+                                <span style={{ background: FB.gold, color: '#000', borderRadius: 10, padding: '2px 6px', fontSize: 10, fontWeight: 800 }}>
+                                    {stats.scheduledTournaments}
+                                </span>
+                            )}
                         </button>
                     ))}
                 </div>
