@@ -60,7 +60,7 @@ export default function TournamentSettingsPage() {
         } catch (err) { console.error(err); }
     }
 
-    async function useTemplate(template) {
+    async function applyTemplate(template) {
         setCreating(true);
         setCreateSuccess(null);
 
@@ -319,7 +319,7 @@ export default function TournamentSettingsPage() {
                                         {/* Action Buttons */}
                                         <div className="flex gap-2 mt-3">
                                             <button
-                                                onClick={() => useTemplate(template)}
+                                                onClick={() => applyTemplate(template)}
                                                 disabled={creating}
                                                 className="flex-1 h-9 cmd-btn cmd-btn-primary flex items-center justify-center gap-2 text-sm font-medium rounded-lg"
                                             >
