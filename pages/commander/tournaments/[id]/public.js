@@ -70,39 +70,6 @@ export default function TournamentPublic() {
   const [posting, setPosting] = useState(false);
   const [posted, setPosted] = useState(false);
 
-  useEffect(() => {
-    if (!router.isReady) return;
-
-    const _c = new AbortController();
-    fetchData(_c.signal);
-    const poll = setInterval(() => fetchData(_c.signal), 30000); // fallback — real-time sync handles instant updates
-    return () => { _c.abort(); clearInterval(poll); };
-  }, [id, fetchData]);
-
-  // Supabase Realtime — instant sync when tournament data changes
-  useTournamentRealtime(id, fetchData);
-
-  // EventBus — refresh on cross-page mutations
-  useEffect(() => {
-    const unsub = eventBus.on(EventType.DATA_MUTATED, (e) => {
-      const relevant = ['tournament_updated', 'tournament_registration', 'tournament_created'];
-      if (relevant.includes(e?.payload?.entity)) fetchData();
-    });
-    return () => unsub();
-  }, [fetchData]);
-
-  // Local clock tick
-  useEffect(() => {
-    if (!clock?.is_running) return;
-    const tick = setInterval(() => {
-      setClock(prev => prev ? ({
-        ...prev,
-        time_remaining: Math.max(0, (prev.time_remaining || 0) - 1)
-      }) : null);
-    }, 1000);
-    return () => clearInterval(tick);
-  }, [clock?.is_running, clock?.current_level]);
-
   const fetchData = useCallback(async (signal) => {
     try {
       const fo = signal ? { signal } : {};
@@ -140,7 +107,40 @@ export default function TournamentPublic() {
     finally { setLoading(false); }
   }, [id]);
 
-  // Share button handler
+  useEffect(() => {
+    if (!router.isReady) return;
+
+    const _c = new AbortController();
+    fetchData(_c.signal);
+    const poll = setInterval(() => fetchData(_c.signal), 30000); // fallback — real-time sync handles instant updates
+    return () => { _c.abort(); clearInterval(poll); };
+  }, [id, fetchData, router.isReady]);
+
+  // Supabase Realtime — instant sync when tournament data changes
+  useTournamentRealtime(id, fetchData);
+
+  // EventBus — refresh on cross-page mutations
+  useEffect(() => {
+    const unsub = eventBus.on(EventType.DATA_MUTATED, (e) => {
+      const relevant = ['tournament_updated', 'tournament_registration', 'tournament_created'];
+      if (relevant.includes(e?.payload?.entity)) fetchData();
+    });
+    return () => unsub();
+  }, [fetchData]);
+
+  // Local clock tick
+  useEffect(() => {
+    if (!clock?.is_running) return;
+    const tick = setInterval(() => {
+      setClock(prev => prev ? ({
+        ...prev,
+        time_remaining: Math.max(0, (prev.time_remaining || 0) - 1)
+      }) : null);
+    }, 1000);
+    return () => clearInterval(tick);
+  }, [clock?.is_running, clock?.current_level]);
+
+  // Local clock tick
   const handleShare = async () => {
     const url = typeof window !== 'undefined' ? window.location.href : '';
     const title = tournament ? `${tournament.name} — Tournament Results` : 'Tournament';

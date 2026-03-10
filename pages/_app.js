@@ -514,7 +514,7 @@ export default function App({ Component, pageProps }) {
     <SWRConfig value={{ ...SWR_DEFAULTS, provider: swrLocalStorageProvider, use: [swrCacheMiddleware] }}>
       <div className={`${orbitron.variable} ${inter.variable} ${plusJakartaSans.variable} ${spaceGrotesk.variable} ${rajdhani.variable} ${shouldCapitalize ? 'capitalize-world' : ''}`} style={{ minHeight: '100vh' }}>
         {shouldCapitalize && (
-          <style dangerouslySetInnerHTML={{
+          <Head>\n            <style dangerouslySetInnerHTML={{
             __html: `
               /* Target ONLY structural UI elements, buttons, headers, and discrete labels */
               .capitalize-world .settingLabel,
