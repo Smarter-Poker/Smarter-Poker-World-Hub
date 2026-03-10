@@ -16,6 +16,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { notifyUser } from '../../../src/lib/club-arena/notify';
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
 const { isUUID, rejectBadPayload } = require('../../../src/lib/club-arena/validate');
+const { safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
