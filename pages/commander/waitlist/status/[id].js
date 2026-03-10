@@ -20,7 +20,6 @@ import { Clock, CheckCircle2, AlertTriangle, Loader2, Bell, XCircle } from 'luci
 
 export default function WaitlistStatus() {
   const router = useRouter();
-  if (!router.isReady) return null;
   const { id } = router.query;
   const [entry, setEntry] = useState(null);
   const [position, setPosition] = useState(null);
@@ -28,6 +27,9 @@ export default function WaitlistStatus() {
   const [error, setError] = useState(null);
 
   const fetchStatus = useCallback(async (signal) => {
+
+  if (!router.isReady) return null;
+
     if (!id) return;
     try {
       const res = await fetch(`/api/commander/waitlist/${id}`);

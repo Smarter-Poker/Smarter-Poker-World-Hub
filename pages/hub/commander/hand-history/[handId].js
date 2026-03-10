@@ -126,7 +126,6 @@ function StreetSection({ street, actions, board }) {
 
 export default function HandDetailPage() {
   const router = useRouter();
-  if (!router.isReady) return null;
   const { handId } = router.query;
 
   const [loading, setLoading] = useState(true);
@@ -134,6 +133,9 @@ export default function HandDetailPage() {
   const [analyzing, setAnalyzing] = useState(false);
 
   useEffect(() => {
+
+  if (!router.isReady) return null;
+
     if (handId) {
       fetchHand();
     }

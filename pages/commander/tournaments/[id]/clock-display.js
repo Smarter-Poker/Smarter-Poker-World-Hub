@@ -65,7 +65,6 @@ const SCREENS = { CLOCK: 'clock', PAYOUTS: 'payouts', SCHEDULE: 'schedule', ICM:
 export default function ClockDisplay() {
   useEffect(() => { busEmit.sessionStart('commander-tournaments-id-clock-display'); }, []);
   const router = useRouter();
-  if (!router.isReady) return null;
   const { id } = router.query;
   const [data, setData] = useState(null);
   const [seconds, setSeconds] = useState(null);
@@ -94,6 +93,9 @@ export default function ClockDisplay() {
 
   // Auto-scroll logic for payouts
   useEffect(() => {
+
+  if (!router.isReady) return null;
+
     if (!payoutViewportRef.current || !payoutContentRef.current) return;
     const checkScroll = () => {
       if (payoutViewportRef.current && payoutContentRef.current) {

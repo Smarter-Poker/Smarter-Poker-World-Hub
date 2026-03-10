@@ -293,7 +293,6 @@ function TournamentCard({ tournament }) {
 
 export default function ClubPage() {
   const router = useRouter();
-  if (!router.isReady) return null;
   const { id } = router.query;
 
   const [venue, setVenue] = useState(null);
@@ -348,6 +347,9 @@ export default function ClubPage() {
 
   // Check follow status when user and page id are available
   useEffect(() => {
+
+  if (!router.isReady) return null;
+
     if (!id || !user?.id) return;
     async function checkFollowStatus() {
       try {

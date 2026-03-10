@@ -17,7 +17,6 @@ import { busEmit } from '../../../../src/engine/EventBus';
 export default function StructureDisplay() {
   useEffect(() => { busEmit.sessionStart('commander-tournaments-id-structure-display'); }, []);
   const router = useRouter();
-  if (!router.isReady) return null;
   const { id } = router.query;
   const [tournament, setTournament] = useState(null);
   const [clockData, setClockData] = useState(null);
@@ -26,6 +25,9 @@ export default function StructureDisplay() {
   const currentRef = useRef(null);
 
   const fetchData = useCallback(async () => {
+
+  if (!router.isReady) return null;
+
     if (!id) return;
     try {
       const [tRes, cRes] = await Promise.all([

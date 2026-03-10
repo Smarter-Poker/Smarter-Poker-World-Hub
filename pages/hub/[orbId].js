@@ -96,7 +96,6 @@ const ORB_METADATA = {
 
 export default function OrbPage() {
     const router = useRouter();
-    if (!router.isReady) return null;
     const { orbId } = router.query;
     const [mounted, setMounted] = useState(false);
 
@@ -119,6 +118,9 @@ export default function OrbPage() {
             router.replace(dedicatedPages[key]);
         }
     }, [mounted, orbId, router]);
+
+
+    if (!router.isReady) return null;
 
     if (!mounted || !orbId) {
         return (

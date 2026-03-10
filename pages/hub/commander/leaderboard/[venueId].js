@@ -54,7 +54,6 @@ function PromotionCard({ promo }) {
 
 export default function LeaderboardPage() {
   const router = useRouter();
-  if (!router.isReady) return null;
   const { venueId } = router.query;
 
   const { filters, setFilter } = usePersistedFilters('commander-leaderboard', { metric: 'hours', period: 'month' });
@@ -92,6 +91,9 @@ export default function LeaderboardPage() {
     { value: 'buyins', label: 'Buy-ins', icon: DollarSign },
     { value: 'points', label: 'Points', icon: Star }
   ];
+
+
+  if (!router.isReady) return null;
 
   return (
     <>

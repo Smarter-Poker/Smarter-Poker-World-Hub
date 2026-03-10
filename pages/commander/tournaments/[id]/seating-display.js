@@ -17,7 +17,6 @@ import { busEmit } from '../../../../src/engine/EventBus';
 export default function SeatingDisplay() {
   useEffect(() => { busEmit.sessionStart('commander-tournaments-id-seating-display'); }, []);
   const router = useRouter();
-  if (!router.isReady) return null;
   const { id } = router.query;
   const [tournament, setTournament] = useState(null);
   const [entries, setEntries] = useState([]);
@@ -25,6 +24,9 @@ export default function SeatingDisplay() {
   useWakeLock();
 
   const fetchData = useCallback(async () => {
+
+  if (!router.isReady) return null;
+
     if (!id) return;
     try {
       const [tRes, eRes] = await Promise.all([

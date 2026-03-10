@@ -208,7 +208,6 @@ function PostCard({ post }) {
 
 export default function HomeGamePage() {
   const router = useRouter();
-  if (!router.isReady) return null;
   const { code } = router.query;
 
   const [group, setGroup] = useState(null);
@@ -227,6 +226,9 @@ export default function HomeGamePage() {
   }, []);
 
   useEffect(() => {
+
+  if (!router.isReady) return null;
+
     if (!code) return;
 
     async function fetchGroupData(signal) {

@@ -47,7 +47,6 @@ function formatTime(seconds) {
 export default function TournamentDetailPage() {
   useEffect(() => { busEmit.sessionStart('commander-tournaments-id'); }, []);
   const router = useRouter();
-  if (!router.isReady) return null;
   const { id } = router.query;
 
   const [staff, setStaff] = useState(null);
@@ -69,6 +68,9 @@ export default function TournamentDetailPage() {
   // Check staff session
   useEffect(() => {
     const storedStaff = localStorage.getItem('commander_staff');
+
+  if (!router.isReady) return null;
+
     if (!storedStaff) {
       router.push('/commander/login').catch(() => { });
       return;

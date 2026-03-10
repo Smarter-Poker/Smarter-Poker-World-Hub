@@ -21,7 +21,6 @@ import { busEmit } from '../../../src/engine/EventBus';
 export default function MemberProfile() {
   useEffect(() => { busEmit.sessionStart('commander-members-id'); }, []);
   const router = useRouter();
-  if (!router.isReady) return null;
   const { id } = router.query;
   const [member, setMember] = useState(null);
   const [sessions, setSessions] = useState([]);
@@ -40,6 +39,9 @@ export default function MemberProfile() {
 
   useEffect(() => {
     const _c = new AbortController();
+
+
+  if (!router.isReady) return null;
 
     if (!id) return;
     fetchMember();

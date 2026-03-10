@@ -73,6 +73,23 @@ export default async function handler(req, res) {
             });
         }
 
+        // RED TEAM: Check if user already owns this item (prevents duplicate purchases)
+        const { data: existingPurchase } = await supabaseAdmin
+            .from('club_shop_purchases')
+            .select('id')
+            .eq('club_id', clubId)
+            .eq('buyer_id', user.id)
+            .eq('item_id', itemId)
+            .maybeSingle();
+
+        if (existingPurchase) {
+            return res.status(400).json({
+                success: false,
+                error: 'You already own this item',
+                alreadyOwned: true,
+            });
+        }
+
         // Deduct chips atomically
         const { error: deductErr } = await supabaseAdmin.rpc('fn_debit_chips', {
             p_club_id: clubId,

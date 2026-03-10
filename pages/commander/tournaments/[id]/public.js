@@ -53,7 +53,6 @@ const STATUS_CONFIG = {
 
 export default function TournamentPublic() {
   const router = useRouter();
-  if (!router.isReady) return null;
   const { id } = router.query;
   const [tournament, setTournament] = useState(null);
   const [clock, setClock] = useState(null);
@@ -68,6 +67,9 @@ export default function TournamentPublic() {
   const [posted, setPosted] = useState(false);
 
   useEffect(() => {
+
+  if (!router.isReady) return null;
+
     if (!id) return;
     const _c = new AbortController();
     fetchData(_c.signal);

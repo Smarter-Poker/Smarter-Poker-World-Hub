@@ -45,7 +45,6 @@ function getSeatPositions(count) {
 export default function DealerTablet() {
   useEffect(() => { busEmit.sessionStart('commander-dealer-tableNumber'); }, []);
   const router = useRouter();
-  if (!router.isReady) return null;
   const { tableNumber } = router.query;
   const [table, setTable] = useState(null);
   const [seatedPlayers, setSeatedPlayers] = useState([]);
@@ -90,6 +89,9 @@ export default function DealerTablet() {
     ? localStorage.getItem('commander_staff') || '' : '';
 
   const fetchTable = useCallback(async (signal) => {
+
+  if (!router.isReady) return null;
+
     if (!tableNumber) return;
     try {
       const token = getToken();

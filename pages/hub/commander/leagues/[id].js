@@ -77,7 +77,6 @@ function EventCard({ event }) {
 
 export default function LeagueDetailPage() {
   const router = useRouter();
-  if (!router.isReady) return null;
   const { id } = router.query;
 
   const [isJoined, setIsJoined] = useState(false);
@@ -88,6 +87,9 @@ export default function LeagueDetailPage() {
   const [currentUserId, setCurrentUserId] = React.useState(null);
   React.useEffect(() => {
     const authUser = getAuthUser();
+
+  if (!router.isReady) return null;
+
     if (authUser?.id) setCurrentUserId(authUser.id);
   }, []);
 

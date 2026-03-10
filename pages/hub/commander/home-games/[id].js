@@ -123,7 +123,6 @@ function MemberCard({ member, isHost }) {
 
 export default function HomeGameDetailPage() {
   const router = useRouter();
-  if (!router.isReady) return null;
   const { id } = router.query;
 
   const [group, setGroup] = useState(null);
@@ -149,6 +148,9 @@ export default function HomeGameDetailPage() {
   useEffect(() => {
     (async () => {
     const token = getAccessToken();
+
+  if (!router.isReady) return null;
+
     if (token) {
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));

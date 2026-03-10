@@ -38,7 +38,6 @@ function formatChips(n) {
 export default function TDPlayers() {
   useEffect(() => { busEmit.sessionStart('commander-td-tournamentId-players'); }, []);
   const router = useRouter();
-  if (!router.isReady) return null;
   const { tournamentId, move: moveEntryId } = router.query;
   const [floor, setFloor] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -57,6 +56,9 @@ export default function TDPlayers() {
     ? localStorage.getItem('commander_staff') || '' : '';
 
   const fetchFloor = useCallback(async (signal) => {
+
+  if (!router.isReady) return null;
+
     if (!tournamentId) return;
     try {
       const res = await fetch(`/api/commander/tournaments/${tournamentId}/floor-view`, {

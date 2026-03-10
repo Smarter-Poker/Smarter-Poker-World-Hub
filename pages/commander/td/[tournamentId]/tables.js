@@ -57,7 +57,6 @@ function getSeatPositions(maxSeats) {
 export default function TDTablesMap() {
   useEffect(() => { busEmit.sessionStart('commander-td-tournamentId-tables'); }, []);
   const router = useRouter();
-  if (!router.isReady) return null;
   const { tournamentId } = router.query;
   const [floor, setFloor] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -71,6 +70,9 @@ export default function TDTablesMap() {
     ? localStorage.getItem('commander_staff') || '' : '';
 
   const fetchFloor = useCallback(async (signal) => {
+
+  if (!router.isReady) return null;
+
     if (!tournamentId) return;
     try {
       const headers = { 'x-staff-session': getToken() };

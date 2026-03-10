@@ -225,7 +225,6 @@ function calculatePayouts(entries, buyinAmount, structure) {
 export default function TournamentSettings() {
   useEffect(() => { busEmit.sessionStart('commander-tournaments-id-settings'); }, []);
   const router = useRouter();
-  if (!router.isReady) return null;
   const { id } = router.query;
 
   const [tournament, setTournament] = useState(null);
@@ -263,6 +262,9 @@ export default function TournamentSettings() {
 
   // Fetch tournament
   useEffect(() => {
+
+  if (!router.isReady) return null;
+
     if (!id) return;
     const fetch_ = async () => {
         const controller = new AbortController();

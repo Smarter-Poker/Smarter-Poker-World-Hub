@@ -41,7 +41,6 @@ function formatMoney(n) {
 export default function TDReports() {
     useEffect(() => { busEmit.sessionStart('commander-td-tournamentId-reports'); }, []);
     const router = useRouter();
-    if (!router.isReady) return null;
     const { tournamentId } = router.query;
     const [tab, setTab] = useState('registration');
     const [loading, setLoading] = useState(true);
@@ -113,6 +112,9 @@ export default function TDReports() {
     const navigateTo = (path) => {
         router.push(`/commander/td/${tournamentId}${path}`);
     };
+
+
+    if (!router.isReady) return null;
 
     return (
         <CommanderLayout title="Reports">

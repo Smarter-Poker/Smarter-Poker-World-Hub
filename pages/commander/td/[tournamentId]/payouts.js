@@ -35,7 +35,6 @@ function formatMoney(n) {
 export default function TDPayouts() {
     useEffect(() => { busEmit.sessionStart('commander-td-tournamentId-payouts'); }, []);
     const router = useRouter();
-    if (!router.isReady) return null;
     const { tournamentId } = router.query;
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -118,6 +117,9 @@ export default function TDPayouts() {
     const totalCalc = calcData?.calculated_payouts?.reduce((sum, p) => sum + p.amount, 0) || 0;
     const prizePool = calcData?.prize_pool || 0;
     const diff = totalOverridden - prizePool;
+
+
+    if (!router.isReady) return null;
 
     if (loading) {
         return (

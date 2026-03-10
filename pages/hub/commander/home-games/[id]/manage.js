@@ -217,7 +217,6 @@ function MemberRow({ member, isHost, onApprove, onRemove }) {
 
 export default function ManageHomeGamePage() {
   const router = useRouter();
-  if (!router.isReady) return null;
   const { id } = router.query;
 
   const [group, setGroup] = useState(null);
@@ -235,6 +234,9 @@ export default function ManageHomeGamePage() {
   const [rsvpLoading, setRsvpLoading] = useState(false);
 
   const fetchData = useCallback(async (signal) => {
+
+  if (!router.isReady) return null;
+
     if (!id) return;
 
     try {

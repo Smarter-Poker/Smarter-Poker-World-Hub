@@ -56,7 +56,6 @@ function formatMoney(n) {
 export default function TDControlCenter() {
   useEffect(() => { busEmit.sessionStart('commander-td-tournamentId-index'); }, []);
   const router = useRouter();
-  if (!router.isReady) return null;
   const { tournamentId } = router.query;
   const [floor, setFloor] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -68,6 +67,9 @@ export default function TDControlCenter() {
   const pollRef = useRef(null);
 
   const getToken = useCallback(() => {
+
+  if (!router.isReady) return null;
+
     if (typeof window !== 'undefined') {
       return localStorage.getItem('commander_staff') || '';
     }

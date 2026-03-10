@@ -26,7 +26,6 @@ import { busEmit } from '../../../../src/engine/EventBus';
 export default function BreakManager() {
   useEffect(() => { busEmit.sessionStart('commander-tournaments-id-break-manager'); }, []);
   const router = useRouter();
-  if (!router.isReady) return null;
   const { id: tournamentId } = router.query;
   const [loading, setLoading] = useState(true);
   const [breakData, setBreakData] = useState(null);
@@ -42,6 +41,9 @@ export default function BreakManager() {
   const checkingRef = useRef(false);
 
   const checkBreak = useCallback(async (signal) => {
+
+  if (!router.isReady) return null;
+
     if (!tournamentId || checkingRef.current) return;
     checkingRef.current = true;
     try {

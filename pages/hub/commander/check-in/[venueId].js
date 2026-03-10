@@ -20,7 +20,6 @@ import {
 
 export default function PlayerCheckInPage() {
   const router = useRouter();
-  if (!router.isReady) return null;
   const { venueId } = router.query;
 
   const [venue, setVenue] = useState(null);
@@ -32,6 +31,9 @@ export default function PlayerCheckInPage() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+
+  if (!router.isReady) return null;
+
     if (venueId) {
       fetchVenueData();
     }

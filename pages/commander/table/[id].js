@@ -29,7 +29,6 @@ function formatCountdown(minutes) {
 export default function TableSeating() {
   useEffect(() => { busEmit.sessionStart('commander-table-id'); }, []);
   const router = useRouter();
-  if (!router.isReady) return null;
   const { id } = router.query;
   const [table, setTable] = useState(null);
   const [sessions, setSessions] = useState([]);
@@ -68,6 +67,9 @@ export default function TableSeating() {
   };
 
   useEffect(() => {
+
+  if (!router.isReady) return null;
+
     if (!id) return;
     const _c = new AbortController();
     fetchData(_c.signal);
