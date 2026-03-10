@@ -992,17 +992,21 @@ function PlayerSeat({
 
       {/* Hole cards (hero or showdown) */}
       {holeCards && holeCards.length > 0 && (
-        <div style={{
-          display: 'flex', gap: 3, marginTop: 2,
-          ...(isWinner ? {
-            filter: 'drop-shadow(0 0 8px #FFD700) drop-shadow(0 0 16px rgba(255,215,0,0.4))',
-            animation: 'winGlow 1.2s ease-in-out infinite alternate',
-          } : {}),
-        }}>
-          {holeCards.map((card, i) => (
-            <CardImg key={i} card={card} width={cardWidth} delay={i * 0.15} showdown={!isHero} />
-          ))}
-        </div>
+        <>
+          <div style={{
+            display: 'flex', gap: 3, marginTop: 2,
+            ...(isWinner ? {
+              filter: 'drop-shadow(0 0 8px #FFD700) drop-shadow(0 0 16px rgba(255,215,0,0.4))',
+              animation: 'winGlow 1.2s ease-in-out infinite alternate',
+            } : {}),
+          }}>
+            {holeCards.map((card, i) => (
+              <CardImg key={i} card={card} width={cardWidth} delay={i * 0.15} showdown={!isHero} />
+            ))}
+          </div>
+          {/* Hand Strength Meter — hero only */}
+          {isHero && <HandStrengthMeter holeCards={holeCards} board={null} visible={true} />}
+        </>
       )}
 
       {/* Face-down cards for non-hero active players */}
