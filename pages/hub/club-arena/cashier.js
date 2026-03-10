@@ -655,7 +655,10 @@ export default function Cashier() {
                                 </div>
                                 {[1, 2, 3].map(i => <div key={i} style={{ height: 56, background: 'linear-gradient(90deg, #242526 25%, #3A3B3C 50%, #242526 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.5s infinite', borderRadius: 10, marginBottom: 10 }} />)}
                             </div>
-                            <style>{`@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }`}</style>
+                            <style>{`@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+@keyframes badgePulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.4); opacity: 0.7; } }
+@keyframes fadeInSlide { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes rakebackGlow { 0%,100% { box-shadow: 0 0 0 0 rgba(75,181,67,0.3); } 50% { box-shadow: 0 0 12px 4px rgba(75,181,67,0.25); } }`}</style>
                         </div>
                     ) : loadError ? (
                         <div style={S.emptyState}>
