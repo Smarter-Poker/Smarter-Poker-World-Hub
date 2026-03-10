@@ -2,11 +2,12 @@
  * ORB-5 E2E TEST — Graceful Partial Clawback (Optimistic Lock Edition)
  * 
  * PHASE 3 REQUIREMENTS:
- *   1. Attempt to clawback 50,000 chips from orb5_player when they only hold 20,000.
+ *   1. Attempt to clawback 50,000 chips from a player when they only hold 20,000.
  *   2. Assert the system zeroes the player out.
  *   3. Assert the system credits the agent 20,000.
  *   4. Assert it fails gracefully on the remaining 30,000 without throwing a 500 error.
  * 
+ * Uses real user IDs from production DB to satisfy FK constraints.
  * Uses direct DB optimistic-locking (same as production clawback-chips.js)
  * to bypass PGRST202-locked fn_debit_chips / fn_credit_chips RPCs.
  */
@@ -18,27 +19,36 @@ const supabaseAdmin = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// Hardcoded test UUIDs (same approach as the existing E2E tests)
-const CLUB_ID = '99999999-9999-4999-8999-000000000002';
-const AGENT_ID = '88888888-8888-4888-8888-000000000002';
-const PLAYER_ID = '77777777-7777-4777-8777-000000000002';
+// Real user IDs from production DB (satisfies auth.users FK constraints)
+const AGENT_USER_ID = '47965354-0e56-43ef-931c-ddaab82af765'; // Club owner
+const PLAYER_USER_ID = '316bb405-cc94-4563-9e3b-5026ab1fccdb'; // DFWJess
 
 const CLAWBACK_REQ = 50000;
 const PLAYER_START = 20000;
 const AGENT_START = 0;
 
+let TEST_CLUB_ID = null;
+
 async function setupFixtures() {
-    // Use upsert to bypass FK constraints (service_role bypasses RLS)
-    await supabaseAdmin.from('clubs').upsert({ id: CLUB_ID, name: 'ORB-5 Clawback Test Club', owner_id: AGENT_ID });
-    await supabaseAdmin.from('club_members').upsert([
-        { club_id: CLUB_ID, user_id: AGENT_ID, role: 'owner', chip_balance: AGENT_START },
-        { club_id: CLUB_ID, user_id: PLAYER_ID, role: 'player', chip_balance: PLAYER_START },
+    // Create a dedicated test club owned by the agent
+    const { data: club, error: clubErr } = await supabaseAdmin.from('clubs')
+        .insert({ name: `ORB-5 E2E Clawback ${Date.now()}`, owner_id: AGENT_USER_ID })
+        .select('id').maybeSingle();
+    if (clubErr) throw new Error(`Club creation failed: ${clubErr.message}`);
+    TEST_CLUB_ID = club.id;
+
+    // Insert club members with controlled starting balances
+    const { error: memErr } = await supabaseAdmin.from('club_members').insert([
+        { club_id: TEST_CLUB_ID, user_id: AGENT_USER_ID, role: 'owner', chip_balance: AGENT_START },
+        { club_id: TEST_CLUB_ID, user_id: PLAYER_USER_ID, role: 'player', chip_balance: PLAYER_START },
     ]);
+    if (memErr) throw new Error(`Members insert failed: ${memErr.message}`);
 }
 
 async function teardown() {
-    await supabaseAdmin.from('club_members').delete().eq('club_id', CLUB_ID);
-    await supabaseAdmin.from('clubs').delete().eq('id', CLUB_ID);
+    if (!TEST_CLUB_ID) return;
+    await supabaseAdmin.from('club_members').delete().eq('club_id', TEST_CLUB_ID);
+    await supabaseAdmin.from('clubs').delete().eq('id', TEST_CLUB_ID);
 }
 
 async function runTest() {
@@ -49,6 +59,7 @@ async function runTest() {
     try {
         // ── 1. SETUP ──────────────────────────────────────────────────
         await setupFixtures();
+        console.log(`✅ Test club created: ${TEST_CLUB_ID.substring(0, 8)}...`);
         console.log(`✅ Player provisioned with ${PLAYER_START.toLocaleString()} chips.`);
         console.log(`✅ Agent provisioned with ${AGENT_START.toLocaleString()} chips.\n`);
 
@@ -58,7 +69,7 @@ async function runTest() {
         // Step A: Read player balance
         const { data: playerRec } = await supabaseAdmin
             .from('club_members').select('chip_balance')
-            .eq('club_id', CLUB_ID).eq('user_id', PLAYER_ID).maybeSingle();
+            .eq('club_id', TEST_CLUB_ID).eq('user_id', PLAYER_USER_ID).maybeSingle();
 
         const available = Math.floor(playerRec?.chip_balance || 0);
         let debitSuccess = false;
@@ -70,7 +81,7 @@ async function runTest() {
             const { data: fullDebit } = await supabaseAdmin
                 .from('club_members')
                 .update({ chip_balance: available - CLAWBACK_REQ })
-                .eq('club_id', CLUB_ID).eq('user_id', PLAYER_ID)
+                .eq('club_id', TEST_CLUB_ID).eq('user_id', PLAYER_USER_ID)
                 .eq('chip_balance', available)
                 .select('chip_balance').maybeSingle();
             if (fullDebit) { debitSuccess = true; recovered = CLAWBACK_REQ; }
@@ -83,11 +94,11 @@ async function runTest() {
             const partialAmount = Math.min(available, CLAWBACK_REQ);
 
             if (partialAmount > 0) {
-                // Zero-out player
+                // Zero-out player via optimistic lock
                 const { data: partDebit } = await supabaseAdmin
                     .from('club_members')
                     .update({ chip_balance: available - partialAmount })
-                    .eq('club_id', CLUB_ID).eq('user_id', PLAYER_ID)
+                    .eq('club_id', TEST_CLUB_ID).eq('user_id', PLAYER_USER_ID)
                     .eq('chip_balance', available)
                     .select('chip_balance').maybeSingle();
 
@@ -97,13 +108,13 @@ async function runTest() {
                     // Credit agent via optimistic lock
                     const { data: agentRec } = await supabaseAdmin
                         .from('club_members').select('chip_balance')
-                        .eq('club_id', CLUB_ID).eq('user_id', AGENT_ID).maybeSingle();
+                        .eq('club_id', TEST_CLUB_ID).eq('user_id', AGENT_USER_ID).maybeSingle();
 
                     const agentBal = agentRec?.chip_balance || 0;
                     await supabaseAdmin
                         .from('club_members')
                         .update({ chip_balance: agentBal + partialAmount })
-                        .eq('club_id', CLUB_ID).eq('user_id', AGENT_ID)
+                        .eq('club_id', TEST_CLUB_ID).eq('user_id', AGENT_USER_ID)
                         .eq('chip_balance', agentBal);
                 }
             }
@@ -112,11 +123,11 @@ async function runTest() {
         // ── 3. VERIFICATION ASSERTIONS ──────────────────────────────
         const { data: finalPlayer } = await supabaseAdmin
             .from('club_members').select('chip_balance')
-            .eq('club_id', CLUB_ID).eq('user_id', PLAYER_ID).maybeSingle();
+            .eq('club_id', TEST_CLUB_ID).eq('user_id', PLAYER_USER_ID).maybeSingle();
 
         const { data: finalAgent } = await supabaseAdmin
             .from('club_members').select('chip_balance')
-            .eq('club_id', CLUB_ID).eq('user_id', AGENT_ID).maybeSingle();
+            .eq('club_id', TEST_CLUB_ID).eq('user_id', AGENT_USER_ID).maybeSingle();
 
         console.log('\n📊 VERIFICATION ASSERTIONS:');
         let allPassed = true;

@@ -16,6 +16,7 @@ import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import dynamic from 'next/dynamic';
 import useWalletData from '../../../src/hooks/useWalletData';
 import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
+import { apiCall, getAuthToken } from '../../../src/lib/club-arena/apiClient';
 const DynamicWallet = dynamic(() => import('../../../src/components/club-arena/DynamicWallet'), { ssr: false });
 const ClubAnnouncementBanner = dynamic(() => import('../../../src/components/club-arena/ClubAnnouncementBanner'), { ssr: false });
 
@@ -36,46 +37,6 @@ const FB = {
 // Preset buy-in amounts
 const BUYIN_PRESETS = [100, 500, 1000, 5000];
 const CASHOUT_PRESETS = [100, 500, 1000, 'All'];
-
-// Helper: get auth token for API calls
-const getAuthToken = async () => {
-    // 1. Fast path: read from localStorage cache (instant, no network round-trip)
-    try {
-        try {
-            const cached = localStorage.getItem('smarter-poker-auth');
-            if (cached) {
-                const parsed = JSON.parse(cached);
-                if (parsed?.access_token) return parsed.access_token;
-            }
-        } catch (e) { /* corrupted auth cache */ }
-    } catch (_) { /* localStorage unavailable */ }
-
-    // 2. Slow path: ask Supabase (handles token refresh)
-    try {
-        const { data: { session } } = await supabase.auth.getSession();
-        return session?.access_token || null;
-    } catch (_) {
-        return null;
-    }
-};
-
-const apiCall = async (endpoint, body) => {
-    const token = await getAuthToken();
-    if (!token) throw new Error('Not authenticated');
-    const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-            'X-Idempotency-Key': crypto.randomUUID(),
-        },
-        body: JSON.stringify(body),
-    });
-    let data;
-    try { data = await res.json(); } catch (e) { throw new Error('Server returned invalid response'); }
-    if (!res.ok) throw new Error(data.error || 'API call failed');
-    return data;
-};
 
 export default function Cashier() {
     useTrainingBus('club-arena-cashier');
@@ -423,6 +384,12 @@ export default function Cashier() {
             setBuyInAmount('');
             busEmit.dataMutated('chips_minted');
             loadData();
+
+            // ENH-5: Quick Re-Buy — show pill for 60s
+            setLastBuyInAmount(amount);
+            setReBuyVisible(true);
+            if (reBuyTimerRef.current) clearTimeout(reBuyTimerRef.current);
+            reBuyTimerRef.current = setTimeout(() => setReBuyVisible(false), 60000);
 
             // Broadcast chip balance change to other tabs
             try {

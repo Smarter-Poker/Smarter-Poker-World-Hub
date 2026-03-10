@@ -17,22 +17,14 @@ const CLUB_ID = 'a0000000-0000-0000-0000-000000000001';
 let token = '';
 
 async function getToken() {
-    // Generate a session token for the union lead user via service role
-    const { data, error } = await sb.auth.admin.generateLink({
-        type: 'magiclink',
-        email: (await sb.auth.admin.getUserById(LEAD_USER_ID)).data.user.email,
-    });
-    if (error) throw new Error('Token gen failed: ' + error.message);
-
-    // Use the admin API to create a session directly
-    const email = (await sb.auth.admin.getUserById(LEAD_USER_ID)).data.user.email;
-    // Create temp password, sign in, restore
+    const { data: userData } = await sb.auth.admin.getUserById(LEAD_USER_ID);
+    const email = userData.user.email;
     const tempPw = 'orb4test_' + Date.now();
-    await sb.auth.admin.updateUser(LEAD_USER_ID, { password: tempPw });
+    await sb.auth.admin.updateUserById(LEAD_USER_ID, { password: tempPw });
     const { data: signData, error: signErr } = await sb.auth.signInWithPassword({ email, password: tempPw });
     if (signErr) throw new Error('Sign-in failed: ' + signErr.message);
     token = signData.session.access_token;
-    console.log('Got auth token for union lead user');
+    console.log('Got auth token for union lead user (' + email + ')');
 }
 
 async function api(endpoint, body) {

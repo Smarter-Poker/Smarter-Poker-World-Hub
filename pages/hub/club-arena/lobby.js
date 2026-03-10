@@ -22,6 +22,7 @@ import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
 import { buildStickerAssetMap } from '../../../src/lib/stickerOrchestrator';
 import useWalletData from '../../../src/hooks/useWalletData';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
+import { apiCall, apiGet, getAuthToken } from '../../../src/lib/club-arena/apiClient';
 
 // Dynamic imports — GameCard + DynamicWallet use browser APIs, must be client-only
 const GameCard = dynamic(
@@ -36,51 +37,6 @@ const ClubAnnouncementBanner = dynamic(
     () => import('../../../src/components/club-arena/ClubAnnouncementBanner'),
     { ssr: false, loading: () => null }
 );
-
-const getAuthToken = async () => {
-    // 1. Fast path: read from localStorage cache (instant, no network round-trip)
-    try {
-        try {
-            const cached = localStorage.getItem('smarter-poker-auth');
-            if (cached) {
-                const parsed = JSON.parse(cached);
-                if (parsed?.access_token) return parsed.access_token;
-            }
-        } catch (e) { /* corrupted auth cache */ }
-    } catch (_) { /* localStorage unavailable */ }
-
-    // 2. Slow path: ask Supabase (handles token refresh)
-    try {
-        const { data: { session } } = await supabase.auth.getSession();
-        return session?.access_token || null;
-    } catch (_) {
-        return null;
-    }
-};
-
-const apiCall = async (endpoint, body) => {
-    const token = await getAuthToken();
-    if (!token) throw new Error('Not authenticated');
-    const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify(body),
-    });
-    let data;
-    try { data = await res.json(); } catch (e) { throw new Error('Server returned invalid response'); }
-    if (!res.ok) throw new Error(data.error || 'API call failed');
-    return data;
-};
-
-const apiGet = async (url) => {
-    const token = await getAuthToken();
-    if (!token) throw new Error('Not authenticated');
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-    let data;
-    try { data = await res.json(); } catch (e) { throw new Error('Server returned invalid response'); }
-    if (!res.ok) throw new Error(data.error || 'API call failed');
-    return data;
-};
 
 export default function ClubLobby() {
     useTrainingBus('club-arena-lobby');
