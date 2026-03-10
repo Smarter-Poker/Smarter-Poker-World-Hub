@@ -78,6 +78,6 @@ export default async function handler(req, res) {
     return res.status(200).json(result);
   } catch (err) {
     console.error('[buyin]', err);
-    return res.status(500).json({ error: 'Buy-in failed', details: err.message });
+    return res.status(500).json(safeErrorResponse(err, 'Buy-in failed'));
   }
 }

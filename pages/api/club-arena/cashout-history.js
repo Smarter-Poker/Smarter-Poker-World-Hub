@@ -77,6 +77,6 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true, cashouts: enriched });
   } catch (err) {
     console.error('[cashout-history]', err);
-    return res.status(500).json({ success: false, error: 'Cashout history failed', details: err.message });
+    return res.status(500).json(safeErrorResponse(err, 'Cashout history failed'));
   }
 }
