@@ -56,9 +56,25 @@ async function runTest() {
         if (uErr) throw uErr;
         const godId = godUser.user.id;
 
-        // We need all player IDs (including god user) to exist in the `users` table for foreign keys
+        // We need all player IDs to exist in `auth.users`
         const playerIds = [godId];
-        for (let i = 0; i < CONCURRENT_USERS; i++) playerIds.push(crypto.randomUUID());
+        console.log(`  [+] Creating 100 mock auth users (takes a few seconds)...`);
+        const authUserPromises = [];
+        for (let i = 0; i < CONCURRENT_USERS; i++) {
+            authUserPromises.push(
+                supabaseAdmin.auth.admin.createUser({
+                    email: `tester_${crypto.randomUUID()}@test.com`,
+                    password: 'password123',
+                    email_confirm: true,
+                })
+            );
+        }
+
+        const authResults = await Promise.all(authUserPromises);
+        for (const res of authResults) {
+            if (res.error) throw res.error;
+            playerIds.push(res.data.user.id);
+        }
 
         const userInserts = playerIds.map(id => ({
             id,
@@ -68,6 +84,8 @@ async function runTest() {
         console.log(`  [+] Inserting ${userInserts.length} mock users into 'users' table to satisfy constraints...`);
         const { error: userErr } = await supabaseAdmin.from('users').insert(userInserts);
         if (userErr) throw userErr;
+
+        // (Profile is auto-created by Supabase trigger on auth.users insert)
 
         // 2. Setup Test Club
         const { data: club, error: cErr } = await supabaseAdmin
@@ -84,9 +102,23 @@ async function runTest() {
         const clubId = club.id;
 
         // 3. Setup Test Tournament
+        const tId = crypto.randomUUID();
+        const { error: tsErr } = await supabaseAdmin.from('tournaments').insert({
+            id: tId,
+            name: MTT_NAME,
+            game_type: 'texas_holdem',
+            buy_in_amount: BUY_IN,
+            buy_in_fee: 0,
+            max_players: 1000,
+            start_time: new Date().toISOString(),
+            status: 'REGISTERING'
+        });
+        if (tsErr) throw tsErr;
+
         const { data: mtt, error: tErr } = await supabaseAdmin
             .from('club_tournaments')
             .insert({
+                id: tId,
                 club_id: clubId,
                 name: MTT_NAME,
                 status: 'registering',
@@ -132,7 +164,7 @@ async function runTest() {
                 p_club_id: clubId,
                 p_tournament_id: tournamentId,
                 p_user_id: playerId,
-                p_amount: BUY_IN
+                p_buy_in: BUY_IN
             })
         );
 
@@ -148,6 +180,7 @@ async function runTest() {
                 successCount++;
             } else {
                 failCount++;
+                if (failCount === 1) console.error("First failure details:", r.value?.error || r.reason || r.value?.data);
             }
         });
 
@@ -176,10 +209,17 @@ async function runTest() {
         // 7. Teardown
         console.log(`\n  🧹 Teardown Initiated`);
         await supabaseAdmin.from('club_tournaments').delete().eq('id', tournamentId);
+        await supabaseAdmin.from('tournaments').delete().eq('id', tournamentId);
         await supabaseAdmin.from('clubs').delete().eq('id', clubId);
+        await supabaseAdmin.from('profiles').delete().in('id', [godId, ...playerIds]);
         const { error: delErr } = await supabaseAdmin.from('users').delete().in('id', [godId, ...playerIds]);
         if (delErr) console.error('  [!] Warning: Failed to clean up fake users:', delErr.message);
-        else console.log(`  [+] Cleaned up isolated test data`);
+
+        console.log(`  [+] Deleting mock auth users...`);
+        const delAuthPromises = playerIds.map(id => supabaseAdmin.auth.admin.deleteUser(id));
+        await Promise.all(delAuthPromises);
+
+        console.log(`  [+] Cleaned up isolated test data`);
 
     } catch (err) {
         console.error('\n🚨 FATAL TEST ERROR:', err);
