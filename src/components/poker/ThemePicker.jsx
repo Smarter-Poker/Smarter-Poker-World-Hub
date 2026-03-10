@@ -15,9 +15,9 @@ import {
   TABLE_THEMES, THEME_ORDER, CARD_BACKS, setStoredThemeId, setStoredCardBack,
 } from './TableThemes';
 
-export default function ThemePicker({ currentThemeId, onThemeChange, currentCardBack, onCardBackChange, soundEnabled, onToggleSound }) {
+export default function ThemePicker({ currentThemeId, onThemeChange, currentCardBack, onCardBackChange, soundEnabled, onToggleSound, fourColorDeck, onToggleFourColor, hapticEnabled, onToggleHaptic }) {
   const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState('theme'); // 'theme' | 'cardback' | 'sound'
+  const [tab, setTab] = useState('theme'); // 'theme' | 'cardback' | 'sound' | 'display'
 
   const handleTheme = useCallback((id) => {
     setStoredThemeId(id);
@@ -96,7 +96,7 @@ export default function ThemePicker({ currentThemeId, onThemeChange, currentCard
                 display: 'flex', gap: 0,
                 borderBottom: '1px solid rgba(255,255,255,0.06)',
               }}>
-                {[['theme', '🎨 Theme'], ['cardback', '🃏 Cards'], ['sound', '🔊 Sound']].map(([key, label]) => (
+                {[['theme', '🎨 Theme'], ['cardback', '🃏 Cards'], ['sound', '🔊 Sound'], ['display', '💻 Display']].map(([key, label]) => (
                   <button
                     key={key}
                     onClick={() => setTab(key)}
@@ -257,6 +257,65 @@ export default function ThemePicker({ currentThemeId, onThemeChange, currentCard
                     <div style={{ padding: '8px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>
                       <div style={{ color: '#65676B', fontSize: 11 }}>
                         💡 Tip: Mute sounds for multi-tabling or late-night sessions
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Display Settings */}
+                {tab === 'display' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {/* 4-Color Deck */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>
+                      <div>
+                        <div style={{ color: '#fff', fontSize: 13, fontWeight: 600 }}>4-Color Deck</div>
+                        <div style={{ color: '#65676B', fontSize: 11 }}>Green clubs, blue diamonds</div>
+                      </div>
+                      <button
+                        onClick={() => onToggleFourColor?.()}
+                        style={{
+                          width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer',
+                          background: fourColorDeck ? '#22c55e' : '#3A3B3C',
+                          position: 'relative', transition: 'background 0.2s',
+                        }}
+                      >
+                        <div style={{
+                          width: 18, height: 18, borderRadius: '50%', background: '#fff',
+                          position: 'absolute', top: 3,
+                          left: fourColorDeck ? 23 : 3,
+                          transition: 'left 0.2s',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                        }} />
+                      </button>
+                    </div>
+
+                    {/* Haptic Feedback */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>
+                      <div>
+                        <div style={{ color: '#fff', fontSize: 13, fontWeight: 600 }}>Haptic Feedback</div>
+                        <div style={{ color: '#65676B', fontSize: 11 }}>Vibration on your turn</div>
+                      </div>
+                      <button
+                        onClick={() => onToggleHaptic?.()}
+                        style={{
+                          width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer',
+                          background: hapticEnabled ? '#1877F2' : '#3A3B3C',
+                          position: 'relative', transition: 'background 0.2s',
+                        }}
+                      >
+                        <div style={{
+                          width: 18, height: 18, borderRadius: '50%', background: '#fff',
+                          position: 'absolute', top: 3,
+                          left: hapticEnabled ? 23 : 3,
+                          transition: 'left 0.2s',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                        }} />
+                      </button>
+                    </div>
+
+                    <div style={{ padding: '8px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>
+                      <div style={{ color: '#65676B', fontSize: 11 }}>
+                        💡 4-color deck uses green for ♣ and blue for ♦ to reduce misreads
                       </div>
                     </div>
                   </div>

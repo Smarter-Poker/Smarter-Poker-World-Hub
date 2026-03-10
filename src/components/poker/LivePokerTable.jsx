@@ -779,6 +779,8 @@ function PlayerSeat({
   numHoleCards = 2, isWinner = false, equity = null, gamePosition = null, board = [],
   formatStack: formatStackFn = null,
   cardSortMode = 'dealt',
+  showHUD = false,
+  fourColorDeck = false,
 }) {
   const { status, player, stack, holeCards: rawHoleCards, isFolded, invested } = seat;
   const isEmpty = status === 'empty' || status === 'reserved';
@@ -881,6 +883,17 @@ function PlayerSeat({
 
       {/* Avatar image + Timer ring */}
       <div style={{ position: 'relative' }}>
+        {/* Smart HUD ring — VPIP indicator ring around avatar */}
+        {showHUD && !isEmpty && seat.stats && (
+          <div style={{
+            position: 'absolute', top: -4, left: -4,
+            width: avatarSize + 8, height: avatarSize + 8,
+            borderRadius: '50%',
+            border: `2px solid ${(seat.stats.vpip || 0) > 40 ? '#ef4444' : (seat.stats.vpip || 0) > 25 ? '#f59e0b' : '#22c55e'}`,
+            zIndex: 2, pointerEvents: 'none',
+            boxShadow: `0 0 8px ${(seat.stats.vpip || 0) > 40 ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)'}`,
+          }} />
+        )}
         {showTimer && (
           <>
             {/* Premium Shot Clock Ring */}
@@ -937,6 +950,38 @@ function PlayerSeat({
               {isTimebank ? '⏳ ' : ''}{Math.ceil(timerState.remaining)}s
             </div>
           </>
+        )}
+
+        {/* Time Bank Pill — orange pulsing indicator when time bank is active */}
+        {showTimer && isTimebank && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            style={{
+              position: 'absolute', bottom: -8, left: '50%', transform: 'translateX(-50%)',
+              background: 'linear-gradient(135deg, #FF9800, #e65100)',
+              color: '#fff', fontSize: 8, fontWeight: 800,
+              padding: '1px 6px', borderRadius: 8,
+              zIndex: 15, whiteSpace: 'nowrap',
+              boxShadow: '0 2px 6px rgba(255,152,0,0.4)',
+              animation: timerState.remaining <= 5 ? 'shotClockPulse 0.5s ease-in-out infinite' : 'none',
+              letterSpacing: 0.5,
+            }}
+          >
+            TIME BANK
+          </motion.div>
+        )}
+
+        {/* HUD Stats Badge — VPIP/PFR tooltip below avatar */}
+        {showHUD && !isEmpty && seat.stats && (
+          <div style={{
+            position: 'absolute', bottom: -14, left: '50%', transform: 'translateX(-50%)',
+            background: 'rgba(0,0,0,0.9)', border: '1px solid rgba(255,255,255,0.12)',
+            borderRadius: 6, padding: '1px 6px', zIndex: 14, whiteSpace: 'nowrap',
+            fontSize: 8, fontWeight: 700, color: '#B0B3B8',
+          }}>
+            V:{seat.stats.vpip || 0} P:{seat.stats.pfr || 0}
+          </div>
         )}
 
         <div
@@ -3771,16 +3816,21 @@ function LivePokerTable({
 
   // ═══ PRE-ACTION VISUAL FEEDBACK STATE ═══
   const [preActionFired, setPreActionFired] = useState(null); // { action, ts }
+  const preActionCleanupRef = useRef(null);
 
   // ═══ RUN-IT-TWICE PROMPT STATE ═══
   const [ritPrompt, setRitPrompt] = useState(false);
   const ritTimerRef = useRef(null);
 
-  // Show RIT prompt when all-in detected and config enabled
+  // Show RIT prompt when all-in detected and config enabled — only for players who are all-in
   useEffect(() => {
     const allInDetected = tableState?.game?.phase === 'showdown' && tableState?.game?.allInRunout;
     const ritEnabled = tableState?.config?.runItTwice;
-    if (allInDetected && ritEnabled && isSitting && !ritPrompt) {
+    // Only show RIT to players who are actually all-in in this hand
+    const heroAllIn = isSitting && tableState?.game?.players?.some(
+      p => String(p.id) === String(userId) && p.isAllIn
+    );
+    if (allInDetected && ritEnabled && heroAllIn && !ritPrompt) {
       setRitPrompt(true);
       // Auto-decline after 10 seconds
       ritTimerRef.current = setTimeout(() => {
@@ -3789,7 +3839,7 @@ function LivePokerTable({
       }, 10000);
     }
     return () => { if (ritTimerRef.current) clearTimeout(ritTimerRef.current); };
-  }, [tableState?.game?.phase, tableState?.game?.allInRunout, tableState?.config?.runItTwice, isSitting]);
+  }, [tableState?.game?.phase, tableState?.game?.allInRunout, tableState?.config?.runItTwice, isSitting, userId]);
 
   const handleRITResponse = useCallback((accepted) => {
     if (ritTimerRef.current) clearTimeout(ritTimerRef.current);
@@ -3843,10 +3893,13 @@ function LivePokerTable({
         setPreAction(null);
         // Visual feedback — show what pre-action fired
         setPreActionFired({ action: autoAction.type, ts: Date.now() });
-        setTimeout(() => setPreActionFired(null), 2000);
+        // Clear feedback after 2s (safe — component-level cleanup via key-based AnimatePresence)
+        const clearTimer = setTimeout(() => setPreActionFired(null), 2000);
+        // Store so useEffect cleanup can cancel if component unmounts
+        preActionCleanupRef.current = clearTimer;
         try { eventBus.emit('DATA_MUTATED', `pre_action_fired_${autoAction.type}`); } catch (_e) {}
       }, 300);
-      return () => clearTimeout(timer);
+      return () => { clearTimeout(timer); if (preActionCleanupRef.current) clearTimeout(preActionCleanupRef.current); };
     } else {
       // Pre-action doesn't match — clear it, let player decide manually
       setPreAction(null);
