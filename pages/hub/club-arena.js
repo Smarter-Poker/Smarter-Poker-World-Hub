@@ -1128,23 +1128,28 @@ export default function ClubArenaPage() {
                             </div>
                             <div style={{ padding: '16px 24px 24px', textAlign: 'center' }}>
                                 {/* Checkbox to agree */}
-                                <label
+                                <div
+                                    onClick={() => setTosAgreed(prev => !prev)}
+                                    role="checkbox"
+                                    aria-checked={tosAgreed}
+                                    tabIndex={0}
+                                    onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); setTosAgreed(prev => !prev); } }}
                                     style={{
                                         display: 'flex', alignItems: 'center', gap: 10,
                                         cursor: 'pointer', marginBottom: 16, padding: '12px 14px',
                                         background: tosAgreed ? 'rgba(35,116,225,0.1)' : 'rgba(255,255,255,0.04)',
                                         border: tosAgreed ? '1px solid rgba(35,116,225,0.4)' : '1px solid rgba(255,255,255,0.1)',
                                         borderRadius: 10, transition: 'all 0.2s ease',
+                                        userSelect: 'none', WebkitUserSelect: 'none',
                                     }}
                                 >
                                     <div
-                                        onClick={(e) => { e.preventDefault(); setTosAgreed(prev => !prev); }}
                                         style={{
                                             width: 22, height: 22, borderRadius: 6, flexShrink: 0,
                                             border: tosAgreed ? '2px solid #2374E1' : '2px solid rgba(255,255,255,0.25)',
                                             background: tosAgreed ? '#2374E1' : 'transparent',
                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            transition: 'all 0.2s ease', cursor: 'pointer',
+                                            transition: 'all 0.2s ease',
                                         }}
                                     >
                                         {tosAgreed && (
@@ -1156,7 +1161,7 @@ export default function ClubArenaPage() {
                                     <span style={{ color: '#b0b0b0', fontSize: 13, textAlign: 'left', lineHeight: 1.4 }}>
                                         I have read and agree to the Club Arena Terms of Service
                                     </span>
-                                </label>
+                                </div>
                                 <button
                                     onClick={handleAcceptTOS}
                                     disabled={!tosAgreed || tosSubmitting}

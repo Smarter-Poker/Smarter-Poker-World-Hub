@@ -58,6 +58,9 @@ class LobbyManager {
     this._emptyTimers = new Map();
     this._lobbyChannel = null;
     this._lobbyBroadcastInterval = null;
+
+    /** @type {Map<string, boolean>} key: "tableId:seatIndex" → consent to show cards */
+    this._showCardsConsent = new Map();
   }
 
   /**
@@ -1023,11 +1026,11 @@ class LobbyManager {
    */
   _wireMiniStateBroadcast(table, tableId) {
     const triggerUpdate = () => {
-      // Debounce to prevent rapid sequential events
+      // 200ms debounce to batch rapid sequential events
       if (table._miniStateTimeout) clearTimeout(table._miniStateTimeout);
       table._miniStateTimeout = setTimeout(() => {
         this._broadcastMiniState(tableId);
-      }, 50);
+      }, 200);
     };
 
     table.on('player_seated', triggerUpdate);
@@ -1091,7 +1094,11 @@ class LobbyManager {
           phase: displayPhase,
           communityCards: state.game?.communityCards || [],
           boards: state.game?.boards || null,
-          shownCards: state.game?.shownCards || [],
+          shownCards: (state.game?.shownCards || []).filter(sc => {
+            // Only include cards for players who consented
+            const key = `${tableId}:${sc.seatIndex}`;
+            return this._showCardsConsent?.get(key) === true;
+          }),
           potTotal: state.game?.potTotal || 0,
           handNumber: state.game?.handNumber || 0,
           currentActorSeat: seats.findIndex(s => s.isActor),

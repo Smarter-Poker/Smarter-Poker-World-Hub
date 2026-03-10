@@ -18,7 +18,7 @@ const SUIT_COLORS = ['#B0B3B8','#E74C3C','#E74C3C','#B0B3B8'];
 
 function cardRank(c) { return RANKS[Math.floor(c / 4)] || '?'; }
 function cardSuitIdx(c) { return c % 4; }
-function cardSuitChar(card) { return SUIT_CHARS[cardSuitIdx(c)]; }
+function cardSuitChar(c) { return SUIT_CHARS[cardSuitIdx(c)]; }
 function cardColor(c) { return SUIT_COLORS[cardSuitIdx(c)]; }
 
 // ── Phase display labels ──
@@ -106,16 +106,35 @@ function ensureKeyframes() {
         80% { opacity: 1; transform: translateY(-8px); }
         100% { opacity: 0; transform: translateY(-10px); }
       }
+      @keyframes miniSeatPop {
+        0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+        60% { transform: translate(-50%, -50%) scale(1.3); opacity: 1; }
+        100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+      }
+      @keyframes miniSeatFade {
+        0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        100% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+      }
+      @keyframes miniCardFlip {
+        0% { transform: rotateY(180deg) scale(0.6); opacity: 0; }
+        50% { transform: rotateY(90deg) scale(0.9); opacity: 0.7; }
+        100% { transform: rotateY(0deg) scale(1); opacity: 1; }
+      }
     `;
     document.head.appendChild(s);
   }
 }
 
-// ── Timer Box Wrapper ──
+// ── Timer Box Wrapper with Sound ──
 function TimerRingBox({ endTime, totalTime, children }) {
   const [timeLeft, setTimeLeft] = React.useState(
     endTime ? Math.max(0, endTime - Date.now()) / 1000 : 0
   );
+  const soundPlayed = React.useRef(false);
+  const audioRef = React.useRef(null);
+
+  // Reset sound flag when endTime changes (new turn)
+  React.useEffect(() => { soundPlayed.current = false; }, [endTime]);
 
   React.useEffect(() => {
     if (!endTime) return;
@@ -123,13 +142,33 @@ function TimerRingBox({ endTime, totalTime, children }) {
     const tick = () => {
       const remaining = Math.max(0, endTime - Date.now()) / 1000;
       setTimeLeft(remaining);
+
+      // Play tick sound when under 25%
+      if (totalTime > 0 && remaining > 0 && remaining / totalTime < 0.25 && !soundPlayed.current) {
+        soundPlayed.current = true;
+        try {
+          if (!audioRef.current && typeof Audio !== 'undefined') {
+            // Short beep synthesized via Web Audio (no external file needed)
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.frequency.value = 880;
+            osc.type = 'sine';
+            gain.gain.value = 0.08;
+            osc.connect(gain).connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.12);
+          }
+        } catch { /* Audio not available */ }
+      }
+
       if (remaining > 0) {
         raf = requestAnimationFrame(tick);
       }
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [endTime]);
+  }, [endTime, totalTime]);
 
   const p = totalTime > 0 ? Math.max(0, Math.min(1, Math.max(0, timeLeft) / totalTime)) : 0;
   
@@ -140,7 +179,7 @@ function TimerRingBox({ endTime, totalTime, children }) {
   const offset = perimeter * (1 - p);
   
   const color = p > 0.4 ? '#39FF14' : (p > 0.15 ? '#FFBF00' : '#FF003F');
-  const glow = p > 0.15 ? color : '#FF003F'; // stronger red glow
+  const glow = p > 0.15 ? color : '#FF003F';
 
   return (
     <div style={{ position: 'relative', width, height, marginTop: 4 }}>
@@ -162,8 +201,6 @@ function TimerRingBox({ endTime, totalTime, children }) {
             style={{ 
               transition: 'stroke 0.3s ease',
               filter: `drop-shadow(0 0 2px ${glow})`,
-              transformOrigin: 'center',
-              transform: 'rotate(-90deg)' // Start from top if we wanted to, but mathematically we'd need a path. Rect starts from top-left.
             }}
           />
         </svg>
@@ -199,6 +236,27 @@ export default function TableMiniView({
   const phase = miniState.phase || 'idle';
   const isIdle = phase === 'idle';
   const isDealing = phase === 'dealing';
+  const isShowdown = phase === 'showdown';
+  
+  // Track previous seat occupancy for pop/fade animations
+  const prevSeatsRef = React.useRef(null);
+  const seatAnimations = React.useRef(new Map());
+  const currentSeats = miniState.seats || [];
+  
+  React.useEffect(() => {
+    if (prevSeatsRef.current) {
+      const prev = prevSeatsRef.current;
+      currentSeats.forEach((s, idx) => {
+        const wasFilled = prev[idx]?.occupied;
+        const isFilled = s?.occupied;
+        if (!wasFilled && isFilled) seatAnimations.current.set(idx, 'pop');
+        if (wasFilled && !isFilled) seatAnimations.current.set(idx, 'fade');
+      });
+      // Clear animations after 500ms
+      setTimeout(() => seatAnimations.current.clear(), 500);
+    }
+    prevSeatsRef.current = [...currentSeats];
+  }, [miniState.handNumber, currentSeats.length]);
   
   // Dual-board support
   let boards = [];
@@ -274,7 +332,7 @@ export default function TableMiniView({
                   {playerShownCards[0].cards.map((c, i) => (
                     <div key={i} style={{ ...S.microCard, animationDelay: `${i * 0.1}s` }}>
                       <span style={{ ...S.microRank, color: cardColor(c) }}>{cardRank(c)}</span>
-                      <span style={{ ...S.microSuit, color: cardColor(c) }}>{cardSuitChar(card)}</span>
+                      <span style={{ ...S.microSuit, color: cardColor(c) }}>{cardSuitChar(c)}</span>
                     </div>
                   ))}
                 </div>
@@ -321,7 +379,15 @@ export default function TableMiniView({
           ) : isDealing ? (
             <>
               <span style={S.phaseLabel}>DEALING</span>
-              <span style={S.dealingDots}>• • •</span>
+              {/* Card Back Animation — face-down dealing sprites */}
+              <div style={S.cardRow}>
+                {[0,1,2,3,4].map(i => (
+                  <div key={i} style={{
+                    ...S.cardBack,
+                    animationDelay: `${i * 0.08}s`,
+                  }} />
+                ))}
+              </div>
             </>
           ) : (
             <>
@@ -344,7 +410,18 @@ export default function TableMiniView({
                 ))}
               </div>
 
-              {potTotal > 0 && <span style={S.potText}>Pot: {fmtPot(potTotal)}</span>}
+              {potTotal > 0 && (
+                <div style={S.potRow}>
+                  {/* Chip Stack SVG Icon */}
+                  <svg width="10" height="10" viewBox="0 0 20 20" style={{ flexShrink: 0 }}>
+                    <ellipse cx="10" cy="16" rx="8" ry="3" fill="#C0392B" stroke="#E74C3C" strokeWidth="0.5" />
+                    <ellipse cx="10" cy="13" rx="8" ry="3" fill="#27AE60" stroke="#2ECC71" strokeWidth="0.5" />
+                    <ellipse cx="10" cy="10" rx="8" ry="3" fill="#2980B9" stroke="#3498DB" strokeWidth="0.5" />
+                    <ellipse cx="10" cy="7" rx="8" ry="3" fill="#F39C12" stroke="#F1C40F" strokeWidth="0.5" />
+                  </svg>
+                  <span style={S.potText}>{fmtPot(potTotal)}</span>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -551,6 +628,19 @@ const S = {
   cardRank: { fontSize: 8, fontWeight: 800, lineHeight: 1, fontFamily: '"Orbitron",monospace' },
   cardSuit: { fontSize: 6, lineHeight: 1, marginTop: -1 },
 
+  // ── Card Backs (Dealing Phase) ──
+  cardBack: {
+    width: 12, height: 18, borderRadius: 2,
+    background: 'linear-gradient(135deg, #8B0000 0%, #B22222 40%, #DC143C 60%, #8B0000 100%)',
+    border: '0.5px solid rgba(139,0,0,0.6)',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.5), inset 0 0 4px rgba(255,255,255,0.1)',
+    animation: 'miniCardFlip 0.4s ease-out both',
+  },
+
+  // ── Pot Row (Chip Icon + Text) ──
+  potRow: {
+    display: 'flex', gap: 3, alignItems: 'center', justifyContent: 'center',
+  },
   potText: {
     fontSize: 7, fontWeight: 700, color: 'rgba(255,255,255,0.7)', letterSpacing: 0.2,
     fontFamily: '"Orbitron",monospace', textShadow: '0 1px 3px rgba(0,0,0,0.7)',

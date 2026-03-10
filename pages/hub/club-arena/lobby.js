@@ -115,6 +115,12 @@ function navigateToTableMT(router, table, club, showToastFn) {
     return;
   }
 
+  // Full table — notify the user they can join the waitlist at the table
+  const isFull = (table.current_players || 0) >= (table.max_players || 9);
+  if (isFull) {
+    showToastFn?.('Table is full \u2014 you can join the waitlist from the table.', 'info');
+  }
+
   // Navigate — the table page handles opening via initialTable (which respects pendingSlotIndex)
   router.push(`/hub/club-arena/table/${tableId}`);
 }
@@ -952,6 +958,11 @@ export default function ClubLobby() {
                                                     assetMap={stickerAssetMap}
                                                     onPress={() => navigateToTableMT(router, table, club, showToast)}
                                                     onSpectate={(t) => router.push(`/commander/tables/${t.id}?spectator=true`)}
+                                                    onWaitlist={(t) => {
+                                                        // Navigate to the table — the table page itself handles joining the waitlist
+                                                        showToast('Navigating to join the waitlist...', 'info');
+                                                        navigateToTableMT(router, t, club, showToast);
+                                                    }}
                                                     miniState={miniStates.get(table.id)}
                                                 />
                                             </div>

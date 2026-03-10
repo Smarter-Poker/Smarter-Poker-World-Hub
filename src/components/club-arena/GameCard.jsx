@@ -236,7 +236,7 @@ function MiniSeatMap({ current, max, accentColor, tableId }) {
 // ─────────────────────────────────────────────────────────────────────
 // CASH GAME CARD — Vertical Poker Table
 // ─────────────────────────────────────────────────────────────────────
-function CashCard({ table: t, assetMap, onPress, onSpectate, avgVpip, miniState }) {
+function CashCard({ table: t, assetMap, onPress, onSpectate, onWaitlist, avgVpip, miniState }) {
   const vc = VC[t.game_variant] || DV;
   const sb = t.small_blind ?? 0;
   const bb = t.big_blind ?? 0;
@@ -346,6 +346,16 @@ function CashCard({ table: t, assetMap, onPress, onSpectate, avgVpip, miniState 
         <div style={S.stickerRow}>
           {stickers.map(k => <StickerBadge key={k} stickerKey={k} assetMap={assetMap} />)}
         </div>
+      )}
+
+      {/* Waitlist button — shown when table is full */}
+      {isFull && onWaitlist && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onWaitlist(t); }}
+          style={S.waitlistBtn}
+        >
+          📋 Join Waitlist
+        </button>
       )}
 
       {/* Footer — Club | Created ago */}
@@ -567,7 +577,7 @@ function TournamentCard({ tournament: t, assetMap, onPress, onSpectate, onQuickR
 // ─────────────────────────────────────────────────────────────────────
 // EXPORT
 // ─────────────────────────────────────────────────────────────────────
-export default function GameCard({ game, assetMap = {}, onPress, avgVpip, onQuickRegister, miniState }) {
+export default function GameCard({ game, assetMap = {}, onPress, avgVpip, onQuickRegister, onWaitlist, miniState }) {
   if (!game) return null;
   const isTournament =
     game.game_type === 'tournament' || game.game_type === 'sng' || game.game_type === 'mtt' ||
@@ -575,7 +585,7 @@ export default function GameCard({ game, assetMap = {}, onPress, avgVpip, onQuic
     game.registered_count != null;
   return isTournament
     ? <TournamentCard tournament={game} assetMap={assetMap} onPress={onPress} onQuickRegister={onQuickRegister} miniState={miniState} />
-    : <CashCard table={game} assetMap={assetMap} onPress={onPress} avgVpip={avgVpip} miniState={miniState} />;
+    : <CashCard table={game} assetMap={assetMap} onPress={onPress} onWaitlist={onWaitlist} avgVpip={avgVpip} miniState={miniState} />;
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -777,6 +787,16 @@ const S = {
     boxShadow: '0 2px 6px rgba(49,162,76,0.4)',
     transition: 'transform 0.1s, box-shadow 0.15s',
     whiteSpace: 'nowrap', zIndex: 2,
+  },
+
+  // Waitlist Button
+  waitlistBtn: {
+    width: '100%', padding: '5px 0', textAlign: 'center',
+    background: 'linear-gradient(135deg, #FF9800, #F57C00)',
+    border: 'none', borderRadius: 6, color: '#fff',
+    fontSize: 9, fontWeight: 800, cursor: 'pointer',
+    letterSpacing: 0.3, boxShadow: '0 2px 8px rgba(255,152,0,0.3)',
+    transition: 'transform 0.1s',
   },
   
   spectateBtn: {
