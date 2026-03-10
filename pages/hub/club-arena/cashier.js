@@ -96,7 +96,8 @@ export default function Cashier() {
     // ENH-1: Animated Balance Counter
     const [displayChips, setDisplayChips] = useState(0);
     const [displayDiamonds, setDisplayDiamonds] = useState(0);
-    const animFrameRef = useRef(null);
+    const animFrameRefChips = useRef(null);
+    const animFrameRefDiamonds = useRef(null);
 
     // ENH-2: Transaction Category Filters
     const [txFilter, setTxFilter] = useState('all');
@@ -138,11 +139,11 @@ export default function Cashier() {
             const progress = Math.min(elapsed / duration, 1);
             const eased = 1 - Math.pow(1 - progress, 3);
             setDisplayChips(Math.round(start + diff * eased));
-            if (progress < 1) animFrameRef.current = requestAnimationFrame(animate);
+            if (progress < 1) animFrameRefChips.current = requestAnimationFrame(animate);
         };
-        if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
-        animFrameRef.current = requestAnimationFrame(animate);
-        return () => { if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current); };
+        if (animFrameRefChips.current) cancelAnimationFrame(animFrameRefChips.current);
+        animFrameRefChips.current = requestAnimationFrame(animate);
+        return () => { if (animFrameRefChips.current) cancelAnimationFrame(animFrameRefChips.current); };
     }, [walletData.chipBalance, chipBalance]);
 
     useEffect(() => {
@@ -157,11 +158,11 @@ export default function Cashier() {
             const progress = Math.min(elapsed / duration, 1);
             const eased = 1 - Math.pow(1 - progress, 3);
             setDisplayDiamonds(Math.round(start + diff * eased));
-            if (progress < 1) animFrameRef.current = requestAnimationFrame(animate);
+            if (progress < 1) animFrameRefDiamonds.current = requestAnimationFrame(animate);
         };
-        if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
-        animFrameRef.current = requestAnimationFrame(animate);
-        return () => { if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current); };
+        if (animFrameRefDiamonds.current) cancelAnimationFrame(animFrameRefDiamonds.current);
+        animFrameRefDiamonds.current = requestAnimationFrame(animate);
+        return () => { if (animFrameRefDiamonds.current) cancelAnimationFrame(animFrameRefDiamonds.current); };
     }, [walletData.diamondBalance, diamondBalance]);
 
     // ENH-6: Cashout ETA — compute avg agent response time
@@ -539,6 +540,23 @@ export default function Cashier() {
         setClubMembers((data || []).filter(m => m.user_id !== user?.id));
     };
 
+    const getTransactionLabel = (type) => {
+        switch (type) {
+            case 'buyin': return 'Buy-In';
+            case 'cashout': return 'Cash Out';
+            case 'win': return 'Table Win';
+            case 'loss': return 'Table Loss';
+            case 'table_win': return 'Table Win';
+            case 'table_loss': return 'Table Loss';
+            case 'rake': return 'Rake';
+            case 'transfer_in': return 'Transfer In';
+            case 'transfer_out': return 'Transfer Out';
+            case 'admin_credit': return 'Admin Credit';
+            case 'purchase': return 'Shop Purchase';
+            default: return type ? type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'Transaction';
+        }
+    };
+
     // ═══════════════════════════════════════════════════════════════════════════
     // P2-ENH-7: Export Transaction History as CSV
     // ═══════════════════════════════════════════════════════════════════════════
@@ -573,7 +591,7 @@ export default function Cashier() {
         );
         observer.observe(loadMoreRef.current);
         return () => observer.disconnect();
-    });
+    }, [transactions.length, txFilter, txPage]);
 
     // P2-ENH-10: Swipe-to-Cancel state
     const [swipedCashoutId, setSwipedCashoutId] = useState(null);
@@ -645,23 +663,6 @@ export default function Cashier() {
 
         // Toast
         toast: { position: 'fixed', bottom: '100px', left: '50%', transform: 'translateX(-50%)', padding: '12px 24px', borderRadius: '8px', fontSize: '14px', fontWeight: 600, zIndex: 10000, boxShadow: '0 4px 12px rgba(0,0,0,0.3)' },
-    };
-
-    const getTransactionLabel = (type) => {
-        switch (type) {
-            case 'buyin': return 'Buy-In';
-            case 'cashout': return 'Cash Out';
-            case 'win': return 'Table Win';
-            case 'loss': return 'Table Loss';
-            case 'table_win': return 'Table Win';
-            case 'table_loss': return 'Table Loss';
-            case 'rake': return 'Rake';
-            case 'transfer_in': return 'Transfer In';
-            case 'transfer_out': return 'Transfer Out';
-            case 'admin_credit': return 'Admin Credit';
-            case 'purchase': return 'Shop Purchase';
-            default: return type ? type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'Transaction';
-        }
     };
 
     const getDiamondCost = (chips) => Math.ceil((parseInt(chips) || 0) / 100 * 38);
@@ -830,88 +831,103 @@ export default function Cashier() {
                                 <div style={{ marginBottom: '20px' }}>
                                     <h2 style={S.sectionTitle}>Pending Cashouts</h2>
                                     {pendingCashouts.map(co => (
-                                        <div key={co.id}
-                                            onTouchStart={(e) => { swipeStartX.current = e.touches[0].clientX; }}
-                                            onTouchMove={(e) => {
-                                                const delta = swipeStartX.current - e.touches[0].clientX;
-                                                if (delta > 80 && co.status === 'pending') setSwipedCashoutId(co.id);
-                                                else if (delta < -40) setSwipedCashoutId(null);
-                                            }}
-                                            style={{
-                                                ...S.listItem,
-                                                border: `1px solid ${co.status === 'approved' ? FB.success : '#F5A623'}`,
-                                                background: co.status === 'approved' ? 'rgba(49,162,76,0.08)' : 'rgba(245,166,35,0.08)',
-                                                transition: 'transform 0.2s ease',
-                                                transform: swipedCashoutId === co.id ? 'translateX(-60px)' : 'translateX(0)',
-                                                position: 'relative', overflow: 'hidden',
-                                            }} role="listitem" aria-label={`Cashout ${co.status}: ${co.amount} chips`}>
-                                            {/* ENH-2: Cashout 3-step progress tracker */}
-                                            <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 0 }}>
-                                                {['Requested', 'Approved', 'Completed'].map((step, idx) => {
-                                                    const activeIdx = co.status === 'completed' ? 2 : co.status === 'approved' ? 1 : 0;
-                                                    const isActive = idx <= activeIdx;
-                                                    return (
-                                                        <div key={step} style={{ display: 'flex', alignItems: 'center', flex: idx < 2 ? 1 : 'none' }}>
-                                                            <div style={{
-                                                                width: 20, height: 20, borderRadius: '50%', fontSize: 10, fontWeight: 800,
-                                                                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                                                                background: isActive ? (idx === 2 ? FB.success : FB.primary) : FB.hover,
-                                                                color: isActive ? '#fff' : FB.textSecondary,
-                                                                border: `2px solid ${isActive ? (idx === 2 ? FB.success : FB.primary) : FB.border}`,
-                                                            }}>{idx + 1}</div>
-                                                            <div style={{ fontSize: 9, color: isActive ? FB.textPrimary : FB.textSecondary, marginLeft: 4, fontWeight: isActive ? 700 : 400 }}>{step}</div>
-                                                            {idx < 2 && <div style={{ flex: 1, height: 2, background: isActive && idx < activeIdx ? FB.primary : FB.border, margin: '0 6px' }} />}
-                                                        </div>
-                                                    );
-                                                })}
+                                        <div key={co.id} style={{ position: 'relative', overflow: 'hidden', marginBottom: '8px', borderRadius: '8px' }}>
+                                            <div style={{
+                                                position: 'absolute', right: 0, top: 0, bottom: 0, width: '90px',
+                                                background: '#FA383E', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                color: '#fff', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer', zIndex: 0,
+                                                borderRadius: '0 8px 8px 0'
+                                            }} onClick={() => {
+                                                // Handle cancel logic here
+                                                setSwipedCashoutId(null);
+                                                showToast('Cancel functionality pending', 'error');
+                                            }}>
+                                                Cancel
                                             </div>
-                                            <div style={{ flex: 1 }}>
-                                                <div style={{ fontSize: '14px', fontWeight: 600, color: FB.textPrimary }}>
-                                                    {co.status === 'pending' ? '⏳ Awaiting Agent Approval' : '✅ Approved'}
+                                            <div
+                                                onTouchStart={(e) => { swipeStartX.current = e.touches[0].clientX; }}
+                                                onTouchMove={(e) => {
+                                                    const delta = swipeStartX.current - e.touches[0].clientX;
+                                                    if (delta > 80 && co.status === 'pending') setSwipedCashoutId(co.id);
+                                                    else if (delta < -40) setSwipedCashoutId(null);
+                                                }}
+                                                style={{
+                                                    ...S.listItem,
+                                                    marginBottom: 0,
+                                                    border: `1px solid ${co.status === 'approved' ? FB.success : '#F5A623'}`,
+                                                    background: co.status === 'approved' ? '#2a352a' : '#332f22',
+                                                    transition: 'transform 0.2s ease',
+                                                    transform: swipedCashoutId === co.id ? 'translateX(-90px)' : 'translateX(0)',
+                                                    position: 'relative', zIndex: 1
+                                                }} role="listitem" aria-label={`Cashout ${co.status}: ${co.amount} chips`}>
+                                                {/* ENH-2: Cashout 3-step progress tracker */}
+                                                <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 0 }}>
+                                                    {['Requested', 'Approved', 'Completed'].map((step, idx) => {
+                                                        const activeIdx = co.status === 'completed' ? 2 : co.status === 'approved' ? 1 : 0;
+                                                        const isActive = idx <= activeIdx;
+                                                        return (
+                                                            <div key={step} style={{ display: 'flex', alignItems: 'center', flex: idx < 2 ? 1 : 'none' }}>
+                                                                <div style={{
+                                                                    width: 20, height: 20, borderRadius: '50%', fontSize: 10, fontWeight: 800,
+                                                                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                                                                    background: isActive ? (idx === 2 ? FB.success : FB.primary) : FB.hover,
+                                                                    color: isActive ? '#fff' : FB.textSecondary,
+                                                                    border: `2px solid ${isActive ? (idx === 2 ? FB.success : FB.primary) : FB.border}`,
+                                                                }}>{idx + 1}</div>
+                                                                <div style={{ fontSize: 9, color: isActive ? FB.textPrimary : FB.textSecondary, marginLeft: 4, fontWeight: isActive ? 700 : 400 }}>{step}</div>
+                                                                {idx < 2 && <div style={{ flex: 1, height: 2, background: isActive && idx < activeIdx ? FB.primary : FB.border, margin: '0 6px' }} />}
+                                                            </div>
+                                                        );
+                                                    })}
                                                 </div>
-                                                <div style={S.txDate}>
-                                                    {co.created_at ? new Date(co.created_at).toLocaleString() : 'N/A'}
-                                                    {co.agent_note ? ` · ${co.agent_note}` : ''}
+                                                <div style={{ flex: 1 }}>
+                                                    <div style={{ fontSize: '14px', fontWeight: 600, color: FB.textPrimary }}>
+                                                        {co.status === 'pending' ? '⏳ Awaiting Agent Approval' : '✅ Approved'}
+                                                    </div>
+                                                    <div style={S.txDate}>
+                                                        {co.created_at ? new Date(co.created_at).toLocaleString() : 'N/A'}
+                                                        {co.agent_note ? ` · ${co.agent_note}` : ''}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                                <div style={{
-                                                    fontSize: '16px', fontWeight: 700,
-                                                    color: co.status === 'approved' ? FB.success : '#F5A623',
-                                                }}>
-                                                    {(co.amount || 0).toLocaleString()}
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                    <div style={{
+                                                        fontSize: '16px', fontWeight: 700,
+                                                        color: co.status === 'approved' ? FB.success : '#F5A623',
+                                                    }}>
+                                                        {(co.amount || 0).toLocaleString()}
+                                                    </div>
+                                                    {co.status === 'pending' && (
+                                                        <button
+                                                            onClick={async () => {
+                                                                if (isProcessingRef.current || processing) return;
+                                                                isProcessingRef.current = true;
+                                                                setProcessing(true);
+                                                                // OPT-4: Optimistic removal from pending list
+                                                                const prevPending = [...pendingCashouts];
+                                                                setPendingCashouts(prev => prev.filter(p => p.id !== co.id));
+                                                                try {
+                                                                    const result = await apiCall('/api/club-arena/cancel-my-cashout', { cashoutId: co.id });
+                                                                    showToast(result.message || 'Cashout cancelled — chips returned', 'success');
+                                                                    busEmit.dataMutated('cashout_cancelled');
+                                                                    loadData();
+                                                                } catch (e) {
+                                                                    // Rollback
+                                                                    setPendingCashouts(prevPending);
+                                                                    showToast(e.message || 'Cancel failed', 'error');
+                                                                } finally { setProcessing(false); isProcessingRef.current = false; }
+                                                            }}
+                                                            disabled={processing}
+                                                            style={{
+                                                                background: 'rgba(250,56,62,0.1)', border: '1px solid rgba(250,56,62,0.3)',
+                                                                color: '#FA383E', borderRadius: 6, padding: '4px 10px',
+                                                                fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                                                                opacity: processing ? 0.5 : 1,
+                                                            }}
+                                                        >
+                                                            Cancel
+                                                        </button>
+                                                    )}
                                                 </div>
-                                                {co.status === 'pending' && (
-                                                    <button
-                                                        onClick={async () => {
-                                                            if (isProcessingRef.current || processing) return;
-                                                            isProcessingRef.current = true;
-                                                            setProcessing(true);
-                                                            // OPT-4: Optimistic removal from pending list
-                                                            const prevPending = [...pendingCashouts];
-                                                            setPendingCashouts(prev => prev.filter(p => p.id !== co.id));
-                                                            try {
-                                                                const result = await apiCall('/api/club-arena/cancel-my-cashout', { cashoutId: co.id });
-                                                                showToast(result.message || 'Cashout cancelled — chips returned', 'success');
-                                                                busEmit.dataMutated('cashout_cancelled');
-                                                                loadData();
-                                                            } catch (e) {
-                                                                // Rollback
-                                                                setPendingCashouts(prevPending);
-                                                                showToast(e.message || 'Cancel failed', 'error');
-                                                            } finally { setProcessing(false); isProcessingRef.current = false; }
-                                                        }}
-                                                        disabled={processing}
-                                                        style={{
-                                                            background: 'rgba(250,56,62,0.1)', border: '1px solid rgba(250,56,62,0.3)',
-                                                            color: '#FA383E', borderRadius: 6, padding: '4px 10px',
-                                                            fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                                                            opacity: processing ? 0.5 : 1,
-                                                        }}
-                                                    >
-                                                        Cancel
-                                                    </button>
-                                                )}
                                             </div>
                                         </div>
                                     ))}

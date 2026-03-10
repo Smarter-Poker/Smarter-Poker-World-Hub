@@ -795,6 +795,15 @@ function CreateTournamentModal({ unionId, clubs, onClose, onCreated }) {
     }));
   };
 
+  const applyTemplate = (tName) => {
+    const templates = {
+      'quick_sng': { name: 'Quick SNG', type: 'sng', variant: 'nlh', buyIn: 500, startingChips: 5000, maxPlayers: 6, lateRegLevels: 0, rebuyEnabled: false, addonEnabled: false, guaranteedPrize: 0 },
+      'sunday_mtt': { name: 'Sunday MTT', type: 'xmtt', variant: 'nlh', buyIn: 1000, startingChips: 15000, maxPlayers: 100, lateRegLevels: 12, rebuyEnabled: true, addonEnabled: true, guaranteedPrize: 50000 },
+      'freeroll': { name: 'Daily Freeroll', type: 'xmtt', variant: 'nlh', buyIn: 0, startingChips: 3000, maxPlayers: 50, lateRegLevels: 4, rebuyEnabled: true, addonEnabled: true, guaranteedPrize: 1000 },
+    };
+    if (templates[tName]) setForm(p => ({ ...p, ...templates[tName] }));
+  };
+
   const F = (label, key, type = 'text', opts = {}) => (
     <div style={{ marginBottom: 10 }}>
       <label style={{ display: 'block', fontSize: 11, color: FB.dim, marginBottom: 3 }}>{label}</label>
@@ -820,6 +829,16 @@ function CreateTournamentModal({ unionId, clubs, onClose, onCreated }) {
         overflow: 'auto', border: `1px solid ${FB.border}`,
       }}>
         <h2 style={{ margin: '0 0 16px', fontSize: 18 }}>Create Union Tournament</h2>
+
+        {/* Quick Wizard Templates */}
+        <div style={{ marginBottom: 20 }}>
+          <label style={{ display: 'block', fontSize: 11, color: FB.dim, marginBottom: 6 }}>QUICK TEMPLATES (WIZARD)</label>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => applyTemplate('quick_sng')} style={{ flex: 1, padding: '8px 0', background: 'rgba(35,116,225,0.15)', color: FB.primary, border: `1px solid rgba(35,116,225,0.3)`, borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>⚡ Quick SNG</button>
+            <button onClick={() => applyTemplate('sunday_mtt')} style={{ flex: 1, padding: '8px 0', background: 'rgba(247,197,42,0.15)', color: FB.gold, border: `1px solid rgba(247,197,42,0.3)`, borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>🏆 Sunday MTT</button>
+            <button onClick={() => applyTemplate('freeroll')} style={{ flex: 1, padding: '8px 0', background: 'rgba(49,162,76,0.15)', color: FB.success, border: `1px solid rgba(49,162,76,0.3)`, borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>🎁 Freeroll</button>
+          </div>
+        </div>
 
         {F('Tournament Name', 'name')}
         {F('Type', 'type', 'select', {

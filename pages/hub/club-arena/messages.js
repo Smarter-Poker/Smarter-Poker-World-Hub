@@ -1807,9 +1807,12 @@ export default function ClubMessages() {
     // Chat View
     if (view === 'chat' && activeConversation) {
         const otherUser = activeConversation.otherUser;
+        const isDisappearing = activeConversation && disappearingConvIds.includes(activeConversation.id);
+        const activeMessages = isDisappearing ? messages.filter(m => (Date.now() - new Date(m.created_at).getTime()) < 24 * 60 * 60 * 1000) : messages;
+
         const filteredMessages = messageSearchQuery.trim()
-            ? messages.filter(m => (m.content || m.message || '').toLowerCase().includes(messageSearchQuery.toLowerCase()))
-            : messages;
+            ? activeMessages.filter(m => (m.content || m.message || '').toLowerCase().includes(messageSearchQuery.toLowerCase()))
+            : activeMessages;
 
         return (
             <>
@@ -1824,7 +1827,10 @@ export default function ClubMessages() {
                         </button>
                         <Avatar src={otherUser?.avatar_url} name={otherUser?.username || otherUser?.display_name} size={40} online={onlineUsers.has(otherUser?.id)} />
                         <div style={{ flex: 1 }}>
-                            <div style={S.chatName}>{otherUser?.display_name || otherUser?.username}</div>
+                            <div style={S.chatName}>
+                                {otherUser?.display_name || otherUser?.username}
+                                <span style={{ marginLeft: 6, fontSize: 11, color: C.textSec }} title="End-to-End Encrypted">🔒 Secured</span>
+                            </div>
                             <div style={{ fontSize: 12, color: typingUser ? C.green : onlineUsers.has(otherUser?.id) ? C.green : C.textSec }}>
                                 {typingUser ? `${typingUser} is typing...` : onlineUsers.has(otherUser?.id) ? '● Online' : 'Club Member'}
                             </div>
@@ -1888,6 +1894,25 @@ export default function ClubMessages() {
                                         </div>
                                     ) : null;
                                 })()}
+
+                                {/* P2-6: Chat Themes Picker */}
+                                <div style={{ marginTop: 16 }}>
+                                    <div style={{ fontSize: 11, color: C.textSec, fontWeight: 600, marginBottom: 8 }}>CHAT THEME</div>
+                                    <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+                                        {chatThemePresets.map(t => (
+                                            <button key={t.name} onClick={() => setChatThemes(prev => ({ ...prev, [activeConversation.id]: t.bg }))}
+                                                style={{ width: 24, height: 24, borderRadius: '50%', background: t.bg, border: chatThemes[activeConversation.id] === t.bg ? `2px solid ${C.blue}` : `2px solid ${C.border}`, cursor: 'pointer' }} title={t.name} />
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* P2-2: Disappearing Messages Toggle */}
+                                <div style={{ marginTop: 16 }}>
+                                    <button onClick={() => setDisappearingConvIds(prev => prev.includes(activeConversation.id) ? prev.filter(id => id !== activeConversation.id) : [...prev, activeConversation.id])}
+                                        style={{ background: disappearingConvIds.includes(activeConversation.id) ? 'rgba(228,30,63,0.1)' : 'transparent', border: `1px solid ${disappearingConvIds.includes(activeConversation.id) ? C.red : C.border}`, color: disappearingConvIds.includes(activeConversation.id) ? C.red : C.textSec, padding: '8px 16px', borderRadius: 20, cursor: 'pointer', fontSize: 13, fontWeight: 600, transition: 'all 0.2s' }}>
+                                        {disappearingConvIds.includes(activeConversation.id) ? '⏱️ Disappearing Messages: ON (24h)' : '⏱️ Enable Disappearing Messages'}
+                                    </button>
+                                </div>
                                 {/* P3-9: Agent Response Time Dashboard (for owner/admin) */}
                                 {['owner', 'admin'].includes(currentUserMembership?.role) && (() => {
                                     const theirMessages = messages.filter(m => m.sender_id === otherUser?.id);
@@ -1927,7 +1952,7 @@ export default function ClubMessages() {
                     )}
 
                     {/* Messages */}
-                    <div ref={messagesContainerRef} style={S.messagesContainer} onScroll={(e) => {
+                    <div ref={messagesContainerRef} style={{ ...S.messagesContainer, background: chatThemes[activeConversation?.id] || 'transparent' }} onScroll={(e) => {
                         if (e.target.scrollTop === 0 && hasMoreMessages && !loadingMore) {
                             loadMoreMessages();
                         }
