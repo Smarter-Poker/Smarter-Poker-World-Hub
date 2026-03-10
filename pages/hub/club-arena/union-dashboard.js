@@ -765,7 +765,32 @@ export default function UnionDashboard() {
                                 )}
                             </div>
                         )}
+                        {/* Live Activity Feed */}
+                        <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 10, padding: '12px 16px', marginBottom: 16, border: `1px solid ${FB.border}` }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: FB.textPrimary, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <span style={{ width: 8, height: 8, borderRadius: '50%', background: FB.success, display: 'inline-block', boxShadow: `0 0 8px ${FB.success}` }}></span>
+                                Live Activity Feed
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                {activityFeed.map(item => (
+                                    <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 }}>
+                                        <span style={{ color: item.color || FB.textSecondary }}>{item.text}</span>
+                                        <span style={{ color: FB.dim, fontSize: 11 }}>{item.time}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Top Quick Actions Bar (Enhancement #2) */}
+                        <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
+                            <button onClick={() => { setActiveTab('games'); setTimeout(() => document.getElementById('btn-create-table')?.click(), 100); }} style={{ flex: 1, minWidth: 120, background: 'rgba(35,116,225,0.15)', color: FB.primary, border: `1px solid rgba(35,116,225,0.3)`, padding: '10px 0', borderRadius: 8, fontWeight: 700, cursor: 'pointer' }}>🎲 Create Table</button>
+                            <button onClick={() => { setActiveTab('games'); setTimeout(() => document.getElementById('btn-create-tourn')?.click(), 100); }} style={{ flex: 1, minWidth: 120, background: 'rgba(247,197,42,0.15)', color: FB.gold, border: `1px solid rgba(247,197,42,0.3)`, padding: '10px 0', borderRadius: 8, fontWeight: 700, cursor: 'pointer' }}>🏆 Create Tourn</button>
+                            <button onClick={() => setActiveTab('mint')} style={{ flex: 1, minWidth: 120, background: 'rgba(49,162,76,0.15)', color: FB.success, border: `1px solid rgba(49,162,76,0.3)`, padding: '10px 0', borderRadius: 8, fontWeight: 700, cursor: 'pointer' }}>💵 Mint Chips</button>
+                            <button onClick={() => { setActiveTab('settlement'); setSettleAction('close'); }} style={{ flex: 1, minWidth: 120, background: 'rgba(168,85,247,0.15)', color: FB.purple, border: `1px solid rgba(168,85,247,0.3)`, padding: '10px 0', borderRadius: 8, fontWeight: 700, cursor: 'pointer' }}>📊 Settlement</button>
+                        </div>
+
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
+                            <StatCard label="Union Health" value={`${calculateHealthScore()}%`} color={calculateHealthScore() > 80 ? FB.success : calculateHealthScore() > 50 ? FB.orange : FB.danger} sub="Overall Status" />
                             <StatCard label="Clubs" value={stats?.totalClubs ?? 0} color={FB.primary} />
                             <StatCard label="Members" value={(stats?.totalMembers ?? 0).toLocaleString()} color={FB.textPrimary} />
                             <StatCard label="Active Agents" value={stats?.totalAgents ?? 0} color={FB.orange}

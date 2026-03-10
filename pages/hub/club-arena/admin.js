@@ -220,8 +220,31 @@ export default function Admin() {
     const [retentionData, setRetentionData] = useState(null);
     const [retentionLoading, setRetentionLoading] = useState(false);
     // Phase 2: Settlement History state
+    // Phase 2: Settlement History state
     const [settlementHistory, setSettlementHistory] = useState([]);
     const [settlementHistoryLoading, setSettlementHistoryLoading] = useState(false);
+
+    // Phase 3: Player Sessions Tracker
+    const [sessionsData, setSessionsData] = useState(null);
+    const [sessionsLoading, setSessionsLoading] = useState(false);
+
+    // Phase 3: Smart Table Recommendations
+    const [smartRecsData, setSmartRecsData] = useState(null);
+    const [smartRecsLoading, setSmartRecsLoading] = useState(false);
+
+    // Phase 3: Club Branding & Theming
+    const [brandingTheme, setBrandingTheme] = useState(null);
+    const [brandingLoading, setBrandingLoading] = useState(false);
+    const [brandingSaving, setBrandingSaving] = useState(false);
+
+    // Phase 3: Table Chat & Dealer Messages
+    const [dealerMsgTable, setDealerMsgTable] = useState('');
+    const [dealerMsgText, setDealerMsgText] = useState('');
+    const [dealerMsgSending, setDealerMsgSending] = useState(false);
+
+    // Phase 3: Drag-and-Drop Lobby Ordering
+    const [lobbyOrder, setLobbyOrder] = useState([]);
+    const [lobbyOrderSaving, setLobbyOrderSaving] = useState(false);
     const showToast = (message, type = 'success') => {
         setToast({ message, type });
         setTimeout(() => setToast(null), 3000);
@@ -776,6 +799,113 @@ export default function Admin() {
     };
 
     // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 3 LOADERS (Sessions, Recommendations, Branding, Lobby Order)
+    // ═══════════════════════════════════════════════════════════════════════════
+    const loadPlayerSessions = async () => {
+        if (!club?.id) return;
+        setSessionsLoading(true);
+        try {
+            const res = await apiGet(`/api/club-arena/player-sessions?clubId=${club.id}`);
+            if (res.success) setSessionsData(res);
+        } catch (e) {
+            showToast('Failed to load sessions', 'error');
+        } finally {
+            setSessionsLoading(false);
+        }
+    };
+
+    const loadSmartRecs = async () => {
+        if (!club?.id) return;
+        setSmartRecsLoading(true);
+        try {
+            const res = await apiGet(`/api/club-arena/smart-recommendations?clubId=${club.id}`);
+            if (res.success) setSmartRecsData(res);
+        } catch (e) {
+            showToast('Failed to load recommendations', 'error');
+        } finally {
+            setSmartRecsLoading(false);
+        }
+    };
+
+    const loadClubBranding = async () => {
+        if (!club?.id) return;
+        setBrandingLoading(true);
+        try {
+            const res = await apiCall('/api/club-arena/club-branding', { action: 'get', clubId: club.id });
+            if (res.success) setBrandingTheme(res.theme);
+        } catch (e) {
+            showToast('Failed to load branding', 'error');
+        } finally {
+            setBrandingLoading(false);
+        }
+    };
+
+    const saveClubBranding = async () => {
+        if (!club?.id || !brandingTheme) return;
+        setBrandingSaving(true);
+        try {
+            await apiCall('/api/club-arena/club-branding', { action: 'save', clubId: club.id, theme: brandingTheme });
+            showToast('Branding saved! Theme will apply next reload.');
+            setActiveModal(null);
+        } catch (e) {
+            showToast(e.message || 'Failed to save branding', 'error');
+        } finally {
+            setBrandingSaving(false);
+        }
+    };
+
+    const sendDealerMessage = async () => {
+        if (!club?.id || !dealerMsgTable || !dealerMsgText) return;
+        setDealerMsgSending(true);
+        try {
+            await apiCall('/api/club-arena/table-chat', { action: 'dealer_msg', clubId: club.id, tableId: dealerMsgTable, message: dealerMsgText });
+            showToast('Dealer message broadcasted!');
+            setDealerMsgText('');
+        } catch (e) {
+            showToast(e.message || 'Failed to send message', 'error');
+        } finally {
+            setDealerMsgSending(false);
+        }
+    };
+
+    const loadLobbyOrder = async () => {
+        if (!club?.id) return;
+        try {
+            const res = await apiCall('/api/club-arena/lobby-ordering', { action: 'get', clubId: club.id });
+            if (res.success && res.order && res.order.length > 0) {
+                setLobbyOrder(res.order);
+            } else if (tables && tables.length > 0) {
+                setLobbyOrder(tables.map(t => t.id));
+            }
+        } catch (e) {
+            showToast('Failed to load ordering', 'error');
+        }
+    };
+
+    const saveLobbyOrder = async () => {
+        if (!club?.id || !lobbyOrder.length) return;
+        setLobbyOrderSaving(true);
+        try {
+            await apiCall('/api/club-arena/lobby-ordering', { action: 'save', clubId: club.id, order: lobbyOrder });
+            showToast('Lobby order updated!');
+            setActiveModal(null);
+        } catch (e) {
+            showToast('Failed to save order', 'error');
+        } finally {
+            setLobbyOrderSaving(false);
+        }
+    };
+
+    // Auto-load Phase 3 data when their modals open
+    useEffect(() => {
+        if (activeModal === 'sessions') loadPlayerSessions();
+        if (activeModal === 'smart_recs') loadSmartRecs();
+        if (activeModal === 'branding') loadClubBranding();
+        if (activeModal === 'lobby_order') { loadTables(); loadLobbyOrder(); }
+    }, [activeModal]);
+
+
+    // ═══════════════════════════════════════════════════════════════════════════
     // ANALYTICS DASHBOARD
     // ═══════════════════════════════════════════════════════════════════════════
     const loadAnalytics = useCallback(async () => {
@@ -1008,7 +1138,12 @@ export default function Admin() {
         { id: 'health', title: '📊 Club Health', desc: 'Composite score, trend arrows, breakdown', color: '#10B981' },
         { id: 'audit', title: '📋 Audit Trail', desc: 'Live audit log with CSV export', color: '#6366F1' },
         { id: 'retention', title: '🎯 Player Retention', desc: 'At-risk players, welcome-back promos', color: '#EC4899' },
-        { id: 'settings', title: 'Club Settings', desc: 'Edit club name and description', color: FB.textSecondary },
+        { id: 'sessions', title: '📡 Player Sessions', desc: 'Live tracker of who is playing now', color: '#38BDF8' },
+        { id: 'smart_recs', title: '🧠 AI Table Recommender', desc: 'AI-driven optimizations to boost rake', color: '#8B5CF6' },
+        { id: 'lobby_order', title: '↕️ Lobby Ordering', desc: 'Drag-and-drop table positions', color: '#94A3B8' },
+        { id: 'telecom', title: '🎙️ Club Broadcasts', desc: 'Send dealer chat messages to tables', color: '#F43F5E' },
+        { id: 'branding', title: '🎨 Club Branding', desc: 'Custom theme colors, chips, and table felts', color: '#EAB308' },
+        { id: 'settings', title: '⚙️ Club Settings', desc: 'Edit club name, rules, and privacy', color: FB.textSecondary },
     ];
 
     // Only the club owner should see the Danger Zone

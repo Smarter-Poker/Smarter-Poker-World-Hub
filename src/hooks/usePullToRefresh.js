@@ -15,57 +15,152 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import React from 'react';
 
 const THRESHOLD = 80;  // px of pull before triggering refresh
 const MAX_PULL = 120; // px max overscroll
 
 export function usePullToRefresh({ onRefresh, containerRef, disabled = false }) {
-    const [pulling, setPulling] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
-    const [pullDistance, setPullDistance] = useState(0);
     const startY = useRef(0);
     const isPulling = useRef(false);
+    const isRefreshingRef = useRef(false);
+    const spinnerRef = useRef(null);
+    const ringRef = useRef(null);
+
+    // Initialize raw DOM element once per page
+    useEffect(() => {
+        if (typeof document === 'undefined') return;
+
+        let container = document.getElementById('ca-pull-spinner-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'ca-pull-spinner-container';
+            container.style.cssText = `
+                position: fixed;
+                top: 60px;
+                left: 0;
+                right: 0;
+                z-index: 99999;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                height: 0px;
+                overflow: hidden;
+                will-change: height, transform;
+                pointer-events: none;
+            `;
+
+            const ring = document.createElement('div');
+            ring.id = 'ca-pull-spinner-ring';
+            ring.style.cssText = `
+                width: 24px;
+                height: 24px;
+                border-radius: 50%;
+                border: 3px solid rgba(255,255,255,0.15);
+                border-top-color: rgba(255,255,255,0.4);
+                transition: border-top-color 0.2s;
+                will-change: transform;
+            `;
+            container.appendChild(ring);
+            document.body.appendChild(container);
+        }
+
+        spinnerRef.current = container;
+        ringRef.current = document.getElementById('ca-pull-spinner-ring');
+
+        return () => {
+            // We leave the singleton in the DOM to avoid thrashing,
+            // just reset it.
+            if (spinnerRef.current) {
+                spinnerRef.current.style.height = '0px';
+                spinnerRef.current.style.transition = 'none';
+            }
+            if (ringRef.current) {
+                ringRef.current.style.animation = 'none';
+                ringRef.current.style.transform = 'none';
+            }
+        };
+    }, []);
+
+    const updateDOM = useCallback((height, rotation, isRefreshingState) => {
+        if (!spinnerRef.current || !ringRef.current) return;
+        spinnerRef.current.style.height = `${height}px`;
+        spinnerRef.current.style.transition = isRefreshingState ? 'height 0.3s' : 'none';
+
+        if (isRefreshingState) {
+            ringRef.current.style.animation = 'caSpinRefresh 0.8s linear infinite';
+            ringRef.current.style.borderTopColor = '#2374E1';
+            ringRef.current.style.transform = 'none';
+        } else {
+            ringRef.current.style.animation = 'none';
+            ringRef.current.style.transform = `rotate(${rotation}deg)`;
+            ringRef.current.style.borderTopColor = height >= THRESHOLD ? '#2374E1' : 'rgba(255,255,255,0.4)';
+        }
+    }, []);
 
     const handleTouchStart = useCallback((e) => {
-        if (disabled || refreshing) return;
+        if (disabled || isRefreshingRef.current) return;
         const scrollTop = containerRef?.current?.scrollTop ?? window.scrollY;
-        if (scrollTop > 5) return; // Only activate at top
+        if (scrollTop > 5) return; // Only activate when at the very top
         startY.current = e.touches[0].clientY;
         isPulling.current = true;
-    }, [disabled, refreshing, containerRef]);
+    }, [disabled, containerRef]);
 
     const handleTouchMove = useCallback((e) => {
-        if (!isPulling.current || disabled || refreshing) return;
+        if (!isPulling.current || disabled || isRefreshingRef.current) return;
         const dy = e.touches[0].clientY - startY.current;
-        if (dy < 0) { isPulling.current = false; return; }
-        const capped = Math.min(dy * 0.5, MAX_PULL); // dampened
-        setPullDistance(capped);
-        setPulling(true);
-        if (capped > 20) e.preventDefault(); // prevent native scroll during pull
-    }, [disabled, refreshing]);
+        if (dy < 0) {
+            isPulling.current = false;
+            updateDOM(0, 0, false);
+            return;
+        }
+
+        const capped = Math.min(dy * 0.5, MAX_PULL); // Damped resistance
+        updateDOM(capped, capped * 3, false);
+
+        if (capped > 20) {
+            // Prevent native overscroll chaining on mobile Safari
+            if (e.cancelable) e.preventDefault();
+        }
+    }, [disabled, updateDOM]);
 
     const handleTouchEnd = useCallback(async () => {
         if (!isPulling.current) return;
         isPulling.current = false;
-        if (pullDistance >= THRESHOLD && onRefresh) {
+
+        const currentHeight = parseInt(spinnerRef.current?.style.height || '0', 10);
+
+        if (currentHeight >= THRESHOLD && onRefresh && !isRefreshingRef.current) {
+            isRefreshingRef.current = true;
             setRefreshing(true);
-            setPullDistance(THRESHOLD);
+            updateDOM(40, 0, true); // Lock to 40px spinning
+
             try {
                 await onRefresh();
             } catch (_) { }
-            setRefreshing(false);
-        }
-        setPullDistance(0);
-        setPulling(false);
-    }, [pullDistance, onRefresh]);
 
+            isRefreshingRef.current = false;
+            setRefreshing(false);
+            updateDOM(0, 0, false); // Hide
+        } else {
+            // Spring back if threshold not met
+            if (spinnerRef.current) {
+                spinnerRef.current.style.transition = 'height 0.3s ease-out';
+                spinnerRef.current.style.height = '0px';
+            }
+        }
+    }, [onRefresh, updateDOM]);
+
+    // Bind event listeners
     useEffect(() => {
         const target = containerRef?.current || window;
-        const opts = { passive: false };
-        target.addEventListener('touchstart', handleTouchStart, { passive: true });
-        target.addEventListener('touchmove', handleTouchMove, opts);
-        target.addEventListener('touchend', handleTouchEnd, { passive: true });
+        const optsMove = { passive: false }; // Need false to preventDefault()
+        const optsStart = { passive: true };
+
+        target.addEventListener('touchstart', handleTouchStart, optsStart);
+        target.addEventListener('touchmove', handleTouchMove, optsMove);
+        target.addEventListener('touchend', handleTouchEnd, optsStart);
+
         return () => {
             target.removeEventListener('touchstart', handleTouchStart);
             target.removeEventListener('touchmove', handleTouchMove);
@@ -73,33 +168,19 @@ export function usePullToRefresh({ onRefresh, containerRef, disabled = false }) 
         };
     }, [handleTouchStart, handleTouchMove, handleTouchEnd, containerRef]);
 
-    const pullIndicator = (pulling || refreshing) ? (
-        <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: refreshing ? 40 : pullDistance,
-            overflow: 'hidden',
-            transition: refreshing ? 'height 0.3s' : 'none',
-            willChange: 'transform',
-        }}>
-            <div style={{
-                width: 24,
-                height: 24,
-                borderRadius: '50%',
-                border: '3px solid rgba(255,255,255,0.15)',
-                borderTopColor: pullDistance >= THRESHOLD || refreshing ? '#2374E1' : 'rgba(255,255,255,0.4)',
-                animation: refreshing ? 'caSpinRefresh 0.8s linear infinite' : 'none',
-                transform: refreshing ? 'none' : `rotate(${pullDistance * 3}deg)`,
-                transition: 'border-top-color 0.2s',
-            }} />
-        </div>
-    ) : null;
+    // Cleanup singleton on unmount just to be safe
+    useEffect(() => {
+        return () => {
+            isRefreshingRef.current = false;
+            setRefreshing(false);
+        };
+    }, []);
 
-    return { pullIndicator, refreshing };
+    // Return refreshing state for components that might want to disable UI
+    return { refreshing, pullIndicator: null };
 }
 
-// Inject spin keyframe
+// Inject spin keyframe safely
 if (typeof document !== 'undefined') {
     const existing = document.getElementById('ca-pull-refresh-kf');
     if (!existing) {
