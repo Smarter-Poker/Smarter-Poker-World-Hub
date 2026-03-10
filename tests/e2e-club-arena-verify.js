@@ -98,6 +98,13 @@ c('players: realtime uses club.id', () => fs.readFileSync('pages/hub/club-arena/
 c('marketplace: realtime uses club.id', () => fs.readFileSync('pages/hub/club-arena/marketplace.js', 'utf8').includes("filter: `club_id=eq.${club.id}`"));
 c('tournaments: resolves numeric club codes', () => fs.readFileSync('pages/hub/club-arena/tournaments.js', 'utf8').includes('resolvedClubUUID'));
 
+// PHASE 27: Public Club Discovery
+c('Public clubs API exists', () => fs.existsSync('pages/api/club-arena/public-clubs.js'));
+c('Public clubs API has rate limit', () => fs.readFileSync('pages/api/club-arena/public-clubs.js', 'utf8').includes('applyRateLimit'));
+c('club-arena.js has Discover section', () => fs.readFileSync('pages/hub/club-arena.js', 'utf8').includes('Discover Public Clubs'));
+c('club-arena.js has loadPublicClubs', () => fs.readFileSync('pages/hub/club-arena.js', 'utf8').includes('async function loadPublicClubs'));
+c('club-arena.js filters already-joined', () => fs.readFileSync('pages/hub/club-arena.js', 'utf8').includes('filter(pc => !clubs.some'));
+
 console.log();
 console.log('═══════════════════════════════════');
 console.log(pass + '/' + total);

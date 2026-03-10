@@ -353,6 +353,7 @@ export default function ClubArenaPage() {
 
     // Live Supabase stats for Shark Club card
     const [sharkClubStats, setSharkClubStats] = useState({ totalMembers: 0, clubLevel: 1, activePlayers: 0 });
+    const [publicClubs, setPublicClubs] = useState([]);
     const [sharkJoinSent, setSharkJoinSent] = useState(false);
     const [sharkJoining, setSharkJoining] = useState(false);
 
@@ -429,6 +430,16 @@ export default function ClubArenaPage() {
         }
     }
 
+    async function loadPublicClubs() {
+        try {
+            const res = await fetch('/api/club-arena/public-clubs?limit=10');
+            if (res.ok) {
+                const d = await res.json();
+                if (d.clubs) setPublicClubs(d.clubs);
+            }
+        } catch (_) { /* optional — fail silently */ }
+    }
+
     async function loadUserData(signal) {
         try {
             // Fast auth via Supabase session (no localStorage digging)
@@ -449,10 +460,11 @@ export default function ClubArenaPage() {
                     loadClubs(authUser.id),
                     loadUnions(authUser.id),
                     fetchSharkClubStats(),
+                    loadPublicClubs(),
                 ]);
             } else {
-                // No auth — still load shark stats for visitors
-                await fetchSharkClubStats();
+                // No auth — still load shark stats + public clubs for visitors
+                await Promise.all([fetchSharkClubStats(), loadPublicClubs()]);
             }
         } catch (e) {
             console.error('[ClubArena] Load error:', e);
@@ -923,6 +935,70 @@ export default function ClubArenaPage() {
                             Join Club
                         </button>
                     </div>
+
+                    {/* ═══════════════════════════════════════════════════════════════════
+                        DISCOVER PUBLIC CLUBS
+                    ═══════════════════════════════════════════════════════════════════ */}
+                    {publicClubs.length > 0 && (
+                        <div style={{ marginBottom: 16 }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: '#B0B3B8', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10, paddingLeft: 4 }}>
+                                Discover Public Clubs
+                            </div>
+                            <div style={{
+                                display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8,
+                                scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch',
+                                scrollbarWidth: 'none', msOverflowStyle: 'none',
+                            }}>
+                                {publicClubs
+                                    .filter(pc => !clubs.some(c => c.id === pc.id))
+                                    .map(pc => (
+                                    <div
+                                        key={pc.id}
+                                        onClick={async () => {
+                                            if (!user) { showToast('Please sign in first'); return; }
+                                            try {
+                                                await apiCall('/api/club-arena/join-club', { clubCode: String(pc.clubId) });
+                                                busEmit.dataMutated('club_joined');
+                                                showToast(`Joined ${pc.name}!`);
+                                                loadUserData();
+                                            } catch (e) {
+                                                if (e.message?.includes('Already')) {
+                                                    router.push(`/hub/club-arena/lobby?club=${pc.clubId}`);
+                                                } else {
+                                                    showToast(e.message || 'Failed to join', 'error');
+                                                }
+                                            }
+                                        }}
+                                        style={{
+                                            flex: '0 0 180px', scrollSnapAlign: 'start',
+                                            background: 'linear-gradient(135deg, #1e1e2e 0%, #242436 100%)',
+                                            borderRadius: 14, padding: '16px 14px', cursor: 'pointer',
+                                            border: '1px solid #3E4042', position: 'relative',
+                                            transition: 'transform 0.15s',
+                                        }}
+                                    >
+                                        <div style={{ fontSize: 14, fontWeight: 700, color: '#E4E6EB', marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                            {pc.name}
+                                        </div>
+                                        <div style={{ fontSize: 11, color: '#8E8E93', marginBottom: 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                            {pc.description || 'Public poker club'}
+                                        </div>
+                                        <div style={{ display: 'flex', gap: 12, fontSize: 11, color: '#65676B' }}>
+                                            <span>{pc.memberCount} members</span>
+                                            {pc.activeTables > 0 && <span style={{ color: '#31A24C' }}>{pc.activeTables} live</span>}
+                                        </div>
+                                        <div style={{
+                                            position: 'absolute', bottom: 10, right: 12,
+                                            background: '#2374E1', color: '#fff', fontSize: 10, fontWeight: 700,
+                                            padding: '3px 10px', borderRadius: 10,
+                                        }}>
+                                            Join
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     {/* ═══════════════════════════════════════════════════════════════════
                         MY UNIONS — Union Owner/Admin Cards
