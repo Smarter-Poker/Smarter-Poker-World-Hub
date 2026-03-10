@@ -138,6 +138,8 @@ export default function Admin() {
     const [tableProcessing, setTableProcessing] = useState(false);
     const [tableProcessingIds, setTableProcessingIds] = useState(new Set());
     const [showCreateTable, setShowCreateTable] = useState(false);
+    const [tableSearch, setTableSearch] = useState(''); // #11: Table search in admin
+    const loadTablesTimerRef = React.useRef(null); // #8: Debounce ref
 
     // Settings form
     const [clubName, setClubName] = useState('');
@@ -271,21 +273,29 @@ export default function Admin() {
     }, [clubIdParam]);
 
     // Load all tables for this club (lazy — only when Tables modal opens)
+    // #2: Now fetches `settings` JSONB for game mode pills
     const loadTables = useCallback(async () => {
         if (!club?.id) return;
-        setTablesLoading(true);
-        try {
-            const { data } = await supabase
-                .from('tables')
-                .select('id, name, status, game_variant, small_blind, big_blind, max_players, current_players, min_buy_in, max_buy_in, ante, action_time_seconds, created_at')
-                .eq('club_id', club.id)
-                .order('created_at', { ascending: false })
-                .limit(100);
-            setTables(data || []);
-        } catch (_) {
-        } finally {
-            setTablesLoading(false);
-        }
+        // #8: Debounce — prevent double-fetch from realtime + explicit call
+        if (loadTablesTimerRef.current) clearTimeout(loadTablesTimerRef.current);
+        return new Promise((resolve) => {
+            loadTablesTimerRef.current = setTimeout(async () => {
+                setTablesLoading(true);
+                try {
+                    const { data } = await supabase
+                        .from('tables')
+                        .select('id, name, status, game_variant, game_type, small_blind, big_blind, max_players, current_players, min_buy_in, max_buy_in, ante, action_time_seconds, created_at, updated_at, settings')
+                        .eq('club_id', club.id)
+                        .order('created_at', { ascending: false })
+                        .limit(100);
+                    setTables(data || []);
+                } catch (_) {
+                } finally {
+                    setTablesLoading(false);
+                }
+                resolve();
+            }, 200); // 200ms debounce
+        });
     }, [club?.id]);
 
     // ── Initial data load — fire when clubIdParam becomes available ─────────
@@ -533,18 +543,24 @@ export default function Admin() {
     // ═══════════════════════════════════════════════════════════════════════════
     // TABLE MANAGEMENT
     // ═══════════════════════════════════════════════════════════════════════════
+    // #5: Optimistic UI for table actions
     const handleTableAction = async (tableId, action) => {
         setTableProcessing(true);
         setTableProcessingIds(prev => new Set(prev).add(tableId));
+        // Optimistic: immediately update status in local state
+        const previousTables = [...tables];
+        const statusMap = { close: 'closed', delete: 'deleted', pause: 'paused', resume: 'running' };
+        setTables(prev => prev.map(t => t.id === tableId ? { ...t, status: statusMap[action] || t.status } : t));
         try {
             await apiCall('/api/club-arena/manage-table', { tableId, clubId: club.id, action });
             showToast(`Table ${action}d`);
             busEmit.dataMutated('table_action');
-            loadTables();
+            loadTables(); // sync with server
             if (action === 'delete') {
                 setStats(prev => ({ ...prev, activeTables: Math.max(0, prev.activeTables - 1) }));
             }
         } catch (e) {
+            setTables(previousTables); // rollback on error
             showToast(e.message || `Failed to ${action} table`, 'error');
         } finally {
             setTableProcessing(false);
@@ -552,15 +568,73 @@ export default function Admin() {
         }
     };
 
+    // #7: Bulk table operations
+    const handleBulkAction = async (action) => {
+        const targets = tables.filter(t => {
+            if (action === 'close') return ['active', 'running', 'waiting', 'paused'].includes(t.status);
+            if (action === 'pause') return ['active', 'running'].includes(t.status);
+            return false;
+        });
+        if (targets.length === 0) { showToast(`No tables to ${action}`, 'error'); return; }
+        setTableProcessing(true);
+        let successCount = 0;
+        for (const t of targets) {
+            try {
+                await apiCall('/api/club-arena/manage-table', { tableId: t.id, clubId: club.id, action });
+                successCount++;
+            } catch (_) { /* continue */ }
+        }
+        showToast(`${action}d ${successCount}/${targets.length} tables`);
+        busEmit.dataMutated('table_action');
+        loadTables();
+        setTableProcessing(false);
+    };
+
+    // #3: Clone table — create a new table with the same settings
+    const handleCloneTable = async (sourceTable) => {
+        if (!sourceTable || !club?.id) return;
+        setTableProcessing(true);
+        try {
+            const result = await apiCall('/api/club-arena/create-table', {
+                clubId: club.id,
+                name: `${sourceTable.name || 'Table'} (Copy)`,
+                variant: sourceTable.game_variant || 'nlh',
+                gameType: sourceTable.game_type || 'cash',
+                smallBlind: sourceTable.small_blind,
+                bigBlind: sourceTable.big_blind,
+                maxPlayers: sourceTable.max_players,
+                minBuyIn: sourceTable.min_buy_in,
+                maxBuyIn: sourceTable.max_buy_in,
+                ante: sourceTable.ante || 0,
+                actionTime: sourceTable.action_time_seconds || 30,
+                settings: sourceTable.settings || {},
+            });
+            showToast(`Table cloned: "${result.table?.name || 'Copy'}"`);
+            busEmit.dataMutated('table_created');
+            loadTables();
+            loadData();
+        } catch (e) {
+            showToast(e.message || 'Failed to clone table', 'error');
+        } finally {
+            setTableProcessing(false);
+        }
+    };
+
     const saveTableSettings = async () => {
         if (!editTableModal) return;
-        // #9: Basic inline validation
+        // #9+#10: Enhanced inline validation
         const sb = parseFloat(editTableForm.small_blind);
         const bb = parseFloat(editTableForm.big_blind);
         if (sb && bb && sb >= bb) { showToast('Small blind must be less than big blind', 'error'); return; }
         const minBI = parseInt(editTableForm.min_buy_in);
         const maxBI = parseInt(editTableForm.max_buy_in);
         if (minBI && maxBI && minBI > maxBI) { showToast('Min buy-in cannot exceed max buy-in', 'error'); return; }
+        // #10: max_players >= current_players check
+        const mp = parseInt(editTableForm.max_players);
+        if (mp && editTableModal.current_players && mp < editTableModal.current_players) {
+            showToast(`Max players (${mp}) cannot be less than current players (${editTableModal.current_players})`, 'error');
+            return;
+        }
         setTableProcessing(true);
         try {
             await apiCall('/api/club-arena/update-table-settings', {
@@ -2188,81 +2262,164 @@ function PromoWalletModal({ clubId, userRole, apiCall, showToast, onClose, FB, S
             })()}
 
             {/* ═══════════════════════════════════════════════════════════════════════
- TABLE MANAGEMENT MODAL
+ TABLE MANAGEMENT MODAL — Enhanced with search, bulk ops, clone, mode pills, activity indicator
  ═══════════════════════════════════════════════════════════════════════ */}
-            {activeModal === 'tables' && (
-                <div style={S.modalOverlay} onClick={() => setActiveModal(null)}>
-                    <div style={{ ...S.modal, maxWidth: 640 }} onClick={e => e.stopPropagation()}>
-                        <div style={S.modalHeader}>
-                            <span style={S.modalTitle}>Table Management</span>
-                            <button style={S.modalClose} onClick={() => setActiveModal(null)}>&times;</button>
-                        </div>
-                        <div style={S.modalBody}>
-                            <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-                                <button onClick={() => setShowCreateTable(true)}
-                                    style={{ background: FB.success, color: '#fff', border: 'none', borderRadius: 6, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-                                    + Create Table
-                                </button>
-                                <button onClick={loadTables} disabled={tablesLoading}
-                                    style={{ background: FB.hover, color: FB.textSecondary, border: `1px solid ${FB.border}`, borderRadius: 6, padding: '6px 14px', fontSize: 12, cursor: 'pointer' }}>
-                                    {tablesLoading ? 'Loading...' : 'Refresh'}
-                                </button>
+            {activeModal === 'tables' && (() => {
+                // #11: Filter tables by search query
+                const q = tableSearch.toLowerCase().trim();
+                const filteredTables = q ? tables.filter(t => {
+                    const name = (t.name || '').toLowerCase();
+                    const variant = (t.game_variant || '').toLowerCase();
+                    const stakes = `${t.small_blind}/${t.big_blind}`;
+                    const status = (t.status || '').toLowerCase();
+                    return name.includes(q) || variant.includes(q) || stakes.includes(q) || status.includes(q);
+                }) : tables;
+                // Stats for display
+                const runningCount = tables.filter(t => ['active', 'running'].includes(t.status)).length;
+                const pausedCount = tables.filter(t => t.status === 'paused').length;
+                const waitingCount = tables.filter(t => t.status === 'waiting').length;
+                return (
+                    <div style={S.modalOverlay} onClick={() => setActiveModal(null)}>
+                        <div style={{ ...S.modal, maxWidth: 680 }} onClick={e => e.stopPropagation()}>
+                            <div style={S.modalHeader}>
+                                <span style={S.modalTitle}>Table Management ({tables.length})</span>
+                                <button style={S.modalClose} onClick={() => setActiveModal(null)}>&times;</button>
                             </div>
-                            {tablesLoading ? (
-                                <div style={{ textAlign: 'center', color: FB.textSecondary, padding: 24 }}>Loading tables...</div>
-                            ) : tables.length === 0 ? (
-                                <div style={{ textAlign: 'center', color: FB.textSecondary, padding: 24 }}>No tables found for this club.</div>
-                            ) : tables.map(t => {
-                                const statusColor = { active: FB.success, running: FB.success, waiting: FB.primary, paused: '#F7C52A', closed: FB.textSecondary, deleted: FB.danger }[t.status] || FB.textSecondary;
-                                const variant = (t.game_variant || 'NLH').toUpperCase().replace('NO_LIMIT_HOLDEM', 'NLH').replace('HOLDEM', 'NLH');
-                                return (
-                                    <div key={t.id} style={{ background: FB.cardBg, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '12px 14px', marginBottom: 10 }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-                                            <div>
-                                                <div style={{ fontWeight: 700, fontSize: 14, color: FB.textPrimary }}>{t.name || 'Unnamed Table'}</div>
-                                                <div style={{ fontSize: 12, color: FB.textSecondary, marginTop: 2 }}>
-                                                    {variant} {t.small_blind}/{t.big_blind} &bull; {t.current_players || 0}/{t.max_players || 9} players
-                                                    &bull; <span style={{ color: statusColor, fontWeight: 600 }}>{t.status}</span>
+                            <div style={S.modalBody}>
+                                {/* Status summary bar */}
+                                {tables.length > 0 && (
+                                    <div style={{ display: 'flex', gap: 12, marginBottom: 12, fontSize: 11, fontWeight: 600, color: FB.textSecondary }}>
+                                        {runningCount > 0 && <span style={{ color: '#00E676' }}>● {runningCount} Live</span>}
+                                        {pausedCount > 0 && <span style={{ color: '#F7C52A' }}>● {pausedCount} Paused</span>}
+                                        {waitingCount > 0 && <span style={{ color: FB.primary }}>● {waitingCount} Waiting</span>}
+                                    </div>
+                                )}
+                                {/* Action bar: Create + Search + Refresh + Bulk */}
+                                <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' }}>
+                                    <button onClick={() => setShowCreateTable(true)}
+                                        style={{ background: FB.success, color: '#fff', border: 'none', borderRadius: 6, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                                        + Create Table
+                                    </button>
+                                    {/* #11: Search input */}
+                                    <input
+                                        type="text" placeholder="Search tables..."
+                                        value={tableSearch} onChange={e => setTableSearch(e.target.value)}
+                                        style={{ flex: 1, minWidth: 120, padding: '7px 12px', background: FB.hover, border: `1px solid ${FB.border}`, borderRadius: 6, color: FB.textPrimary, fontSize: 12, outline: 'none' }}
+                                    />
+                                    <button onClick={loadTables} disabled={tablesLoading}
+                                        style={{ background: FB.hover, color: FB.textSecondary, border: `1px solid ${FB.border}`, borderRadius: 6, padding: '6px 14px', fontSize: 12, cursor: 'pointer' }}>
+                                        {tablesLoading ? '...' : '↻'}
+                                    </button>
+                                </div>
+                                {/* #7: Bulk operations */}
+                                {tables.length > 1 && (
+                                    <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+                                        <button onClick={() => askConfirm(`Pause all ${runningCount} running tables?`, () => { setConfirmModal(null); handleBulkAction('pause'); }, false)}
+                                            disabled={tableProcessing || runningCount === 0}
+                                            style={{ background: '#F7C52A', color: '#000', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 11, fontWeight: 700, cursor: 'pointer', opacity: runningCount === 0 ? 0.4 : 1 }}>
+                                            ⏸ Pause All ({runningCount})
+                                        </button>
+                                        <button onClick={() => askConfirm(`Close ALL ${tables.filter(t => !['closed', 'deleted'].includes(t.status)).length} tables?`, () => { setConfirmModal(null); handleBulkAction('close'); })}
+                                            disabled={tableProcessing}
+                                            style={{ background: FB.hover, color: FB.textSecondary, border: `1px solid ${FB.border}`, borderRadius: 6, padding: '5px 12px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                                            Close All
+                                        </button>
+                                    </div>
+                                )}
+                                {tablesLoading ? (
+                                    <div style={{ textAlign: 'center', color: FB.textSecondary, padding: 24 }}>Loading tables...</div>
+                                ) : filteredTables.length === 0 ? (
+                                    <div style={{ textAlign: 'center', color: FB.textSecondary, padding: 24 }}>
+                                        {q ? `No tables matching "${tableSearch}"` : 'No tables found for this club.'}
+                                    </div>
+                                ) : filteredTables.map(t => {
+                                    const statusColor = { active: '#00E676', running: '#00E676', waiting: FB.primary, paused: '#F7C52A', closed: FB.textSecondary, deleted: FB.danger }[t.status] || FB.textSecondary;
+                                    const variant = (t.game_variant || 'NLH').toUpperCase().replace('NO_LIMIT_HOLDEM', 'NLH').replace('HOLDEM', 'NLH');
+                                    // #2: Game mode pills from settings JSONB
+                                    const s = t.settings || {};
+                                    const modePills = [];
+                                    if (s.bomb_pot_enabled) modePills.push('💣 Bomb Pot');
+                                    if (s.straddle_enabled) modePills.push('📈 Straddle');
+                                    if (s.run_it_twice) modePills.push('🔄 RIT');
+                                    if (s.private_game) modePills.push('🔒 Private');
+                                    if (s.anonymous_table) modePills.push('🎭 Anonymous');
+                                    if (s.double_board) modePills.push('2️⃣ Double Board');
+                                    if (s.vip_only) modePills.push('👑 VIP');
+                                    if (s.insurance) modePills.push('🛡️ Insurance');
+                                    // #9: Activity indicator — time since last update
+                                    const lastUpdate = t.updated_at ? new Date(t.updated_at) : null;
+                                    const minutesAgo = lastUpdate ? Math.floor((Date.now() - lastUpdate.getTime()) / 60000) : null;
+                                    const isLive = ['active', 'running'].includes(t.status);
+                                    const activityText = isLive && minutesAgo !== null
+                                        ? (minutesAgo < 1 ? 'Active now' : minutesAgo < 60 ? `${minutesAgo}m ago` : `${Math.floor(minutesAgo / 60)}h ago`)
+                                        : null;
+                                    return (
+                                        <div key={t.id} style={{ background: FB.cardBg, border: `1px solid ${tableProcessingIds.has(t.id) ? FB.primary : FB.border}`, borderRadius: 8, padding: '12px 14px', marginBottom: 10, transition: 'border-color 0.2s, opacity 0.3s', opacity: t.status === 'deleted' ? 0.5 : 1 }}>
+                                            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+                                                <div style={{ flex: 1, minWidth: 200 }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                        {isLive && <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#00E676', display: 'inline-block', animation: 'pulse 2s infinite', flexShrink: 0 }} />}
+                                                        <span style={{ fontWeight: 700, fontSize: 14, color: FB.textPrimary }}>{t.name || 'Unnamed Table'}</span>
+                                                    </div>
+                                                    <div style={{ fontSize: 12, color: FB.textSecondary, marginTop: 2 }}>
+                                                        {variant} {t.small_blind}/{t.big_blind} &bull; {t.current_players || 0}/{t.max_players || 9} players
+                                                        &bull; <span style={{ color: statusColor, fontWeight: 600 }}>{t.status}</span>
+                                                        {activityText && <span style={{ color: '#00E676', marginLeft: 6, fontSize: 11 }}>{activityText}</span>}
+                                                    </div>
+                                                    {/* #2: Game mode pills */}
+                                                    {modePills.length > 0 && (
+                                                        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
+                                                            {modePills.map(pill => (
+                                                                <span key={pill} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '2px 8px', fontSize: 10, color: FB.textSecondary, whiteSpace: 'nowrap' }}>{pill}</span>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', alignItems: 'center' }}>
+                                                    {/* #3: Clone button */}
+                                                    <button onClick={() => askConfirm(`Clone table "${t.name || 'Table'}"?`, () => { setConfirmModal(null); handleCloneTable(t); }, false)}
+                                                        title="Clone table with same settings"
+                                                        style={{ background: FB.hover, color: FB.textSecondary, border: `1px solid ${FB.border}`, borderRadius: 6, padding: '5px 10px', fontSize: 12, cursor: 'pointer' }} disabled={tableProcessing}>
+                                                        📋
+                                                    </button>
+                                                    <button onClick={() => { setEditTableModal(t); setEditTableForm({ name: t.name || '', small_blind: String(t.small_blind || ''), big_blind: String(t.big_blind || ''), max_players: String(t.max_players || ''), min_buy_in: String(t.min_buy_in || ''), max_buy_in: String(t.max_buy_in || ''), action_time_seconds: String(t.action_time_seconds || ''), ante: String(t.ante || '') }); }}
+                                                        style={{ background: FB.primary, color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }} disabled={tableProcessing || tableProcessingIds.has(t.id)}>
+                                                        Edit
+                                                    </button>
+                                                    {['active', 'running'].includes(t.status) && (
+                                                        <button onClick={() => askConfirm('Pause this table? No new hands will be dealt.', () => { setConfirmModal(null); handleTableAction(t.id, 'pause'); }, false)}
+                                                            style={{ background: '#F7C52A', color: '#000', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }} disabled={tableProcessing || tableProcessingIds.has(t.id)}>
+                                                            Pause
+                                                        </button>
+                                                    )}
+                                                    {t.status === 'paused' && (
+                                                        <button onClick={() => handleTableAction(t.id, 'resume')}
+                                                            style={{ background: FB.success, color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }} disabled={tableProcessing || tableProcessingIds.has(t.id)}>
+                                                            Resume
+                                                        </button>
+                                                    )}
+                                                    {['active', 'paused', 'waiting', 'running'].includes(t.status) && (
+                                                        <button onClick={() => askConfirm('Close this table? Active players will be removed.', () => { setConfirmModal(null); handleTableAction(t.id, 'close'); })}
+                                                            style={{ background: FB.hover, color: FB.textSecondary, border: `1px solid ${FB.border}`, borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }} disabled={tableProcessing || tableProcessingIds.has(t.id)}>
+                                                            Close
+                                                        </button>
+                                                    )}
+                                                    {['closed', 'waiting', 'paused'].includes(t.status) && (
+                                                        <button onClick={() => askConfirm('Permanently delete this table? This cannot be undone.', () => { setConfirmModal(null); handleTableAction(t.id, 'delete'); })}
+                                                            style={{ background: FB.danger, color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }} disabled={tableProcessing || tableProcessingIds.has(t.id)}>
+                                                            Delete
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </div>
-                                            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                                                <button onClick={() => { setEditTableModal(t); setEditTableForm({ name: t.name || '', small_blind: String(t.small_blind || ''), big_blind: String(t.big_blind || ''), max_players: String(t.max_players || ''), min_buy_in: String(t.min_buy_in || ''), max_buy_in: String(t.max_buy_in || ''), action_time_seconds: String(t.action_time_seconds || ''), ante: String(t.ante || '') }); }}
-                                                    style={{ background: FB.primary, color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }} disabled={tableProcessing || tableProcessingIds.has(t.id)}>
-                                                    Edit
-                                                </button>
-                                                {['active', 'running'].includes(t.status) && (
-                                                    <button onClick={() => askConfirm('Pause this table? No new hands will be dealt.', () => { setConfirmModal(null); handleTableAction(t.id, 'pause'); }, false)}
-                                                        style={{ background: '#F7C52A', color: '#000', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }} disabled={tableProcessing}>
-                                                        Pause
-                                                    </button>
-                                                )}
-                                                {t.status === 'paused' && (
-                                                    <button onClick={() => handleTableAction(t.id, 'resume')}
-                                                        style={{ background: FB.success, color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }} disabled={tableProcessing}>
-                                                        Resume
-                                                    </button>
-                                                )}
-                                                {['active', 'paused', 'waiting', 'running'].includes(t.status) && (
-                                                    <button onClick={() => askConfirm('Close this table? Active players will be removed.', () => { setConfirmModal(null); handleTableAction(t.id, 'close'); })}
-                                                        style={{ background: FB.hover, color: FB.textSecondary, border: `1px solid ${FB.border}`, borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }} disabled={tableProcessing}>
-                                                        Close
-                                                    </button>
-                                                )}
-                                                {['closed', 'waiting', 'paused'].includes(t.status) && (
-                                                    <button onClick={() => askConfirm('Permanently delete this table? This cannot be undone.', () => { setConfirmModal(null); handleTableAction(t.id, 'delete'); })}
-                                                        style={{ background: FB.danger, color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }} disabled={tableProcessing}>
-                                                        Delete
-                                                    </button>
-                                                )}
-                                            </div>
                                         </div>
-                                    </div>
-                                );
-                            })}
+                                    );
+                                })}
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                );
+            })()}
 
             {/* Create Table Modal (from Tables section) */}
             {showCreateTable && (
