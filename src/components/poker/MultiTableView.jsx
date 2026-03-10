@@ -17,6 +17,7 @@ import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 import { useMultiTable } from '../../hooks/useMultiTable';
 import { eventBus, EventType, busEmit } from '../../engine/EventBus';
+import useTrainingBus from '../../hooks/useTrainingBus';
 
 // Lazy imports for heavy components
 const LivePokerTable = dynamic(
@@ -29,18 +30,8 @@ const TableChatHUD = dynamic(
   { ssr: false, loading: () => null }
 );
 
-// BBJ imports — optional (may not exist in all deployments)
-let BBJTicker, BBJModal, useBBJ;
-try {
-  const bbjModule = require('../club-arena/BBJDisplay');
-  BBJTicker = bbjModule.BBJTicker;
-  BBJModal = bbjModule.BBJModal;
-  useBBJ = bbjModule.useBBJ;
-} catch (_) {
-  BBJTicker = null;
-  BBJModal = null;
-  useBBJ = () => ({ bbjData: null });
-}
+// BBJ imports — safe import (these are always present in Club Arena deployments)
+import { BBJTicker, BBJModal, useBBJ } from '../club-arena/BBJDisplay';
 
 // ═══════════════════════════════════════════════════════════════════════
 // THEME TOKENS
@@ -66,7 +57,7 @@ const T = {
 const TAB_BAR_HEIGHT = 44;
 
 // ═══════════════════════════════════════════════════════════════════════
-// CSS KEYFRAMES + FIXED-ELEMENT OFFSET (GAP 1)
+// CSS KEYFRAMES (GAP 1 fixed-element offset handled via JS in TableSlot)
 // ═══════════════════════════════════════════════════════════════════════
 const KEYFRAMES = `
 @keyframes mtv_goldPulse {
@@ -85,17 +76,7 @@ const KEYFRAMES = `
   from { opacity: 0; transform: translateY(-8px) scale(0.95); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
-
-/* GAP 1 FIX: Shift LivePokerTable's position:fixed top:8px elements below the tab bar */
-/* These are scoped under .mtv-table-slot to avoid affecting other pages */
-.mtv-table-slot [style*="position: fixed"][style*="top: 8"] {
-  top: ${TAB_BAR_HEIGHT + 8}px !important;
-}
-.mtv-table-slot [style*="position: fixed"][style*="top: 0"] {
-  top: ${TAB_BAR_HEIGHT}px !important;
-}
 `;
-
 // ═══════════════════════════════════════════════════════════════════════
 // HAPTIC FEEDBACK (ADV-3)
 // ═══════════════════════════════════════════════════════════════════════
@@ -338,11 +319,49 @@ function CloseConfirmation({ tableName, onConfirm, onCancel }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// Single Table Slot Wrapper (with GAP 1 CSS class)
+// Single Table Slot Wrapper (with GAP 1 JS-based fixed-element offset)
 // ═══════════════════════════════════════════════════════════════════════
 function TableSlot({ supabase, tableId, userId, displayName, avatarUrl, isVisible, onActionNeeded, onActionCleared, onLeave }) {
+  const slotRef = useRef(null);
+
+  // GAP 1 FIX: React inline styles can't be targeted by CSS attribute selectors.
+  // Instead, use a JS-based approach: scan for fixed-positioned children with top:8px
+  // and shift them down by TAB_BAR_HEIGHT. Uses MutationObserver for dynamic content.
+  useEffect(() => {
+    const el = slotRef.current;
+    if (!el) return;
+
+    const shiftFixedElements = () => {
+      // Find all descendants and check computed positioning
+      const allChildren = el.querySelectorAll('*');
+      allChildren.forEach(child => {
+        if (child.style.position === 'fixed' && child.style.top === '8px') {
+          child.style.top = `${TAB_BAR_HEIGHT + 8}px`;
+        }
+        if (child.style.position === 'fixed' && child.style.top === '0px') {
+          child.style.top = `${TAB_BAR_HEIGHT}px`;
+        }
+      });
+    };
+
+    // Initial scan after mount (delay for React to render children)
+    const timer = setTimeout(shiftFixedElements, 500);
+
+    // Watch for DOM mutations (dynamic modals, panels, etc.)
+    const observer = new MutationObserver(() => {
+      requestAnimationFrame(shiftFixedElements);
+    });
+    observer.observe(el, { childList: true, subtree: true, attributes: true, attributeFilter: ['style'] });
+
+    return () => {
+      clearTimeout(timer);
+      observer.disconnect();
+    };
+  }, [isVisible]);
+
   return (
     <div
+      ref={slotRef}
       className="mtv-table-slot"
       style={{
         visibility: isVisible ? 'visible' : 'hidden',
@@ -427,6 +446,7 @@ function BBJOverlay({ bbjData, onDismiss }) {
 // ═══════════════════════════════════════════════════════════════════════
 export default function MultiTableView({ supabase, userId, initialTable, onExit }) {
   const router = useRouter();
+  useTrainingBus('multi-table-view');
 
   // Fetch user profile once for display name and avatar
   const [profile, setProfile] = useState({ displayName: 'Player', avatarUrl: null });
@@ -503,8 +523,7 @@ export default function MultiTableView({ supabase, userId, initialTable, onExit 
 
   // BBJ pool (realtime ticking)
   const clubId = initialTable?.clubId || tables[0]?.clubId || null;
-  const bbjHook = useBBJ ? useBBJ(clubId, supabase) : { bbjData: null };
-  const bbjData = bbjHook?.bbjData || null;
+  const { bbjData } = useBBJ(clubId, supabase);
 
   // Open initial table (from URL)
   useEffect(() => {

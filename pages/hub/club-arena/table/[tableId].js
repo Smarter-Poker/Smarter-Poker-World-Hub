@@ -228,6 +228,8 @@ export default function ClubArenaTable() {
   }, [tableId]);
 
   const handleExit = useCallback(() => {
+    // Clear multi-table session data so stale slots don't persist
+    try { sessionStorage.removeItem('club-arena-multi-tables'); } catch (_) {}
     const cid = initialTable?.clubId;
     router.push(cid ? `/hub/club-arena/lobby?club=${cid}` : '/hub/club-arena');
   }, [router, initialTable?.clubId]);
