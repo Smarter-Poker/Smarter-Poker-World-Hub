@@ -101,7 +101,7 @@ const MemoizedMemberRow = React.memo(({ member, agents, downlineCount, assignedA
 
 export default function Admin() {
     useTrainingBus('club-arena-admin');
-    usePullToRefresh({ onRefresh: () => loadClubData?.() });
+    usePullToRefresh({ onRefresh: () => loadData?.() });
 
     const router = useRouter();
     const clubIdParam = router.query?.club || null;
