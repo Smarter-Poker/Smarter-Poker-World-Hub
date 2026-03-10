@@ -225,25 +225,13 @@ export default function TableMiniView({
 }) {
   ensureKeyframes();
 
-  if (!miniState) {
-    return (
-      <div style={S.container}>
-        <div style={{ ...S.feltOval, ...S.skeleton }} />
-      </div>
-    );
-  }
-
-  const phase = miniState.phase || 'idle';
-  const isIdle = phase === 'idle';
-  const isDealing = phase === 'dealing';
-  const isShowdown = phase === 'showdown';
-  
   // Track previous seat occupancy for pop/fade animations
   const prevSeatsRef = React.useRef(null);
   const seatAnimations = React.useRef(new Map());
-  const currentSeats = miniState.seats || [];
+  const currentSeats = miniState?.seats || [];
   
   React.useEffect(() => {
+    if (!miniState) return;
     if (prevSeatsRef.current) {
       const prev = prevSeatsRef.current;
       currentSeats.forEach((s, idx) => {
@@ -256,7 +244,20 @@ export default function TableMiniView({
       setTimeout(() => seatAnimations.current.clear(), 500);
     }
     prevSeatsRef.current = [...currentSeats];
-  }, [miniState.handNumber, currentSeats.length]);
+  }, [miniState, currentSeats]);
+
+  if (!miniState) {
+    return (
+      <div style={S.container}>
+        <div style={{ ...S.feltOval, ...S.skeleton }} />
+      </div>
+    );
+  }
+
+  const phase = miniState.phase || 'idle';
+  const isIdle = phase === 'idle';
+  const isDealing = phase === 'dealing';
+  const isShowdown = phase === 'showdown';
   
   // Dual-board support
   let boards = [];

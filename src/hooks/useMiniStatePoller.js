@@ -68,13 +68,34 @@ export default function useMiniStatePoller() {
     }, 50);
   }, [fetchMiniStates]);
 
-  // ── 2. WebSocket Realtime Stream ──
+  // ── 2. WebSocket Realtime Stream with Graceful Degradation ──
   useEffect(() => {
     mountedRef.current = true;
     if (!supabase) return;
 
+    let fallbackInterval = null;
+    const channelHealthy = { current: false };
+
+    const startFallbackPolling = () => {
+      if (fallbackInterval) return; // already polling
+      console.warn('[useMiniStatePoller] ⚠️ WebSocket unhealthy — falling back to HTTP polling');
+      fallbackInterval = setInterval(() => {
+        if (!mountedRef.current) return;
+        const ids = Array.from(visibleIds.current);
+        if (ids.length > 0) fetchMiniStates(ids);
+      }, 4000);
+    };
+
+    const stopFallbackPolling = () => {
+      if (fallbackInterval) {
+        clearInterval(fallbackInterval);
+        fallbackInterval = null;
+        console.log('[useMiniStatePoller] 🔌 WebSocket restored — stopping HTTP fallback');
+      }
+    };
+
     const channel = supabase.channel('lobby', {
-      config: { presence: { key: '' } } // Ensures we don't conflict with other lobby subscriptions if configured differently
+      config: { presence: { key: '' } }
     });
 
     channel.on(
@@ -108,16 +129,22 @@ export default function useMiniStatePoller() {
 
     channel.subscribe((status) => {
       if (status === 'SUBSCRIBED') {
-         console.log('[useMiniStatePoller] 🔌 Connected to zero-latency WebSocket stream');
+        channelHealthy.current = true;
+        stopFallbackPolling();
+        console.log('[useMiniStatePoller] 🔌 Connected to zero-latency WebSocket stream');
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        channelHealthy.current = false;
+        startFallbackPolling();
       }
     });
 
     return () => {
       mountedRef.current = false;
       if (fetchTimeout.current) clearTimeout(fetchTimeout.current);
+      stopFallbackPolling();
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [fetchMiniStates]);
 
   // ── 3. Setup IntersectionObserver ──
   useEffect(() => {

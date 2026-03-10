@@ -53,6 +53,52 @@ function ensureLivePulse() {
   document.head.appendChild(s);
 }
 
+// ── Click-to-Expand Modal ──
+function MiniViewExpandModal({ miniState, maxSeats, blinds, variant, accentColor, onClose }) {
+  if (!miniState) return null;
+  return (
+    <div
+      onClick={(e) => { e.stopPropagation(); onClose(); }}
+      style={{
+        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+        background: 'rgba(0,0,0,0.85)', zIndex: 9999,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        backdropFilter: 'blur(4px)',
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: '90vw', maxWidth: 500,
+          transform: 'scale(1)',
+          borderRadius: 16,
+          overflow: 'hidden',
+          boxShadow: '0 8px 40px rgba(0,0,0,0.8), 0 0 20px rgba(180,150,60,0.2)',
+          border: '1px solid rgba(255,255,255,0.1)',
+        }}
+      >
+        <div style={{ transform: 'scale(2.5)', transformOrigin: 'top center', width: '40%', margin: '0 auto' }}>
+          <TableMiniView
+            miniState={miniState}
+            maxSeats={maxSeats}
+            blinds={blinds}
+            variant={variant}
+            accentColor={accentColor}
+          />
+        </div>
+      </div>
+      <div style={{
+        position: 'absolute', top: 20, right: 20,
+        fontSize: 24, color: '#fff', cursor: 'pointer',
+        background: 'rgba(0,0,0,0.5)', borderRadius: '50%',
+        width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }} onClick={onClose}>
+        ✕
+      </div>
+    </div>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────────
 // VARIANT CONFIG
 // ─────────────────────────────────────────────────────────────────────
@@ -237,6 +283,7 @@ function MiniSeatMap({ current, max, accentColor, tableId }) {
 // CASH GAME CARD — Vertical Poker Table
 // ─────────────────────────────────────────────────────────────────────
 function CashCard({ table: t, assetMap, onPress, onSpectate, onWaitlist, avgVpip, miniState }) {
+  const [expandModal, setExpandModal] = useState(false);
   const vc = VC[t.game_variant] || DV;
   const sb = t.small_blind ?? 0;
   const bb = t.big_blind ?? 0;
@@ -253,6 +300,7 @@ function CashCard({ table: t, assetMap, onPress, onSpectate, onWaitlist, avgVpip
   const ago = timeAgo(t.created_at);
 
   return (
+    <>
     <button onClick={() => onPress?.(t)} style={{
       ...S.card,
       ...(isLive ? { animation: 'activeTableGlow 3s ease-in-out infinite', borderColor: 'rgba(0,230,118,0.2)' } : {}),
@@ -283,13 +331,15 @@ function CashCard({ table: t, assetMap, onPress, onSpectate, onWaitlist, avgVpip
         {isLive && miniState && miniState.phase !== 'idle' ? (
           /* LIVE MINI-VIEW — PokerBros-style live table thumbnail */
           <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-            <TableMiniView
-              miniState={miniState}
-              maxSeats={max}
-              blinds={`${fmtBlind(sb)}/${fmtBlind(bb)}`}
-              variant={vc.label}
-              accentColor={vc.accent}
-            />
+            <div onClick={(e) => { e.stopPropagation(); setExpandModal(true); }} style={{ cursor: 'zoom-in' }}>
+              <TableMiniView
+                miniState={miniState}
+                maxSeats={max}
+                blinds={`${fmtBlind(sb)}/${fmtBlind(bb)}`}
+                variant={vc.label}
+                accentColor={vc.accent}
+              />
+            </div>
             <div 
               onClick={(e) => { e.stopPropagation(); onSpectate?.(t); }}
               style={S.spectateBtn}

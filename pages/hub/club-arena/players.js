@@ -96,6 +96,93 @@ export default function Players() {
     const [noteDraft, setNoteDraft] = useState('');
     const [noteSaving, setNoteSaving] = useState(false);
 
+    // ── Bulk Actions ──────────────────────────────────────────────────────
+    const [bulkMode, setBulkMode] = useState(false);
+    const [selectedIds, setSelectedIds] = useState(new Set());
+    const [bulkDistributeOpen, setBulkDistributeOpen] = useState(false);
+    const [bulkDistributeAmount, setBulkDistributeAmount] = useState('');
+    const [bulkDistributeNote, setBulkDistributeNote] = useState('');
+    const [bulkDistributing, setBulkDistributing] = useState(false);
+    const [bulkRoleOpen, setBulkRoleOpen] = useState(false);
+    const [bulkNewRole, setBulkNewRole] = useState('player');
+    const [bulkRoleChanging, setBulkRoleChanging] = useState(false);
+
+    const isAdmin = currentUserRole === 'owner' || currentUserRole === 'admin';
+
+    const toggleSelect = (userId) => {
+        setSelectedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(userId)) next.delete(userId); else next.add(userId);
+            return next;
+        });
+    };
+    const selectAll = () => {
+        const ids = filteredMembers.filter(m => m.user_id !== user?.id).map(m => m.user_id);
+        setSelectedIds(new Set(ids));
+    };
+    const deselectAll = () => setSelectedIds(new Set());
+    const exitBulkMode = () => { setBulkMode(false); setSelectedIds(new Set()); };
+
+    const getAccessToken = () => {
+        try { const t = localStorage.getItem('smarter-poker-auth'); return t ? JSON.parse(t)?.access_token : null; } catch { return null; }
+    };
+
+    // Bulk Distribute Chips handler
+    const handleBulkDistribute = async () => {
+        const amt = Math.floor(Number(bulkDistributeAmount));
+        if (!Number.isFinite(amt) || amt <= 0) { showToast('Enter a valid chip amount', 'error'); return; }
+        setBulkDistributing(true);
+        const token = getAccessToken();
+        let success = 0, fail = 0;
+        for (const uid of selectedIds) {
+            try {
+                const r = await fetch('/api/club-arena/distribute-chips', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ clubId: club?.id, toUserId: uid, amount: amt, notes: bulkDistributeNote || 'Bulk distribution' }),
+                });
+                const d = await r.json();
+                if (d.success) success++; else fail++;
+            } catch { fail++; }
+        }
+        setBulkDistributing(false);
+        setBulkDistributeOpen(false);
+        setBulkDistributeAmount(''); setBulkDistributeNote('');
+        showToast(`Distributed to ${success} player${success !== 1 ? 's' : ''}${fail ? `, ${fail} failed` : ''}`, fail ? 'error' : 'success');
+        busEmit.dataMutated('chips_distributed');
+        exitBulkMode();
+        loadData();
+    };
+
+    // Bulk Role Change handler
+    const handleBulkRoleChange = async () => {
+        setBulkRoleChanging(true);
+        let success = 0, fail = 0;
+        for (const uid of selectedIds) {
+            try {
+                const { error } = await supabase
+                    .from('club_members')
+                    .update({ role: bulkNewRole })
+                    .eq('club_id', club?.id)
+                    .eq('user_id', uid);
+                if (error) fail++; else success++;
+            } catch { fail++; }
+        }
+        setBulkRoleChanging(false);
+        setBulkRoleOpen(false);
+        showToast(`Changed ${success} player${success !== 1 ? 's' : ''} to ${bulkNewRole}${fail ? `, ${fail} failed` : ''}`, fail ? 'error' : 'success');
+        busEmit.dataMutated('member_role_changed');
+        exitBulkMode();
+        loadData();
+    };
+
+    // Bulk Message handler — open messages page with comma-separated ids
+    const handleBulkMessage = () => {
+        if (selectedIds.size === 0) return;
+        const ids = [...selectedIds].join(',');
+        router.push(`/hub/club-arena/messages?club=${clubIdParam}&to=${ids}`);
+    };
+
     // Toast
     const [toast, setToast] = useState(null);
     const showToast = (message, type = 'success') => {
@@ -436,6 +523,25 @@ export default function Players() {
                         </select>
                     </div>
 
+                    {/* ── Bulk Mode Toggle (Admin/Owner only) ────────────── */}
+                    {isAdmin && !isLoading && members.length > 0 && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                            <button
+                                onClick={() => bulkMode ? exitBulkMode() : setBulkMode(true)}
+                                style={{ padding: '8px 14px', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer', border: bulkMode ? `1px solid ${FB.danger}` : `1px solid ${FB.primary}`, background: bulkMode ? FB.danger + '18' : FB.primary + '18', color: bulkMode ? FB.danger : FB.primary }}
+                            >
+                                {bulkMode ? '✕ Cancel Bulk' : '☐ Bulk Select'}
+                            </button>
+                            {bulkMode && (
+                                <>
+                                    <button onClick={selectAll} style={{ padding: '6px 10px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${FB.border}`, background: FB.hover, color: FB.textPrimary }}>Select All</button>
+                                    <button onClick={deselectAll} style={{ padding: '6px 10px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${FB.border}`, background: FB.hover, color: FB.textSecondary }}>Deselect</button>
+                                    <span style={{ fontSize: 12, color: FB.textSecondary, marginLeft: 'auto' }}>{selectedIds.size} selected</span>
+                                </>
+                            )}
+                        </div>
+                    )}
+
                     {!clubIdParam ? (
                         <div style={S.emptyState}>
                             <p>Invalid Club. Please return to your Hub.</p>
@@ -452,14 +558,21 @@ export default function Players() {
                         filteredMembers.map(member => {
                             const online = isOnline(member.profiles?.last_seen);
                             const isMe = user && member.user_id === user.id;
+                            const isSelected = selectedIds.has(member.user_id);
                             return (
                                 <div
                                     key={member.user_id}
-                                    style={S.playerCard}
-                                    onClick={() => setSelectedPlayer(member)}
+                                    style={{ ...S.playerCard, borderColor: isSelected ? FB.primary : FB.border, background: isSelected ? FB.primary + '0D' : FB.cardBg }}
+                                    onClick={() => bulkMode && !isMe ? toggleSelect(member.user_id) : setSelectedPlayer(member)}
                                     onMouseEnter={e => e.currentTarget.style.borderColor = FB.primary}
-                                    onMouseLeave={e => e.currentTarget.style.borderColor = FB.border}
+                                    onMouseLeave={e => { if (!isSelected) e.currentTarget.style.borderColor = FB.border; }}
                                 >
+                                    {/* Bulk checkbox */}
+                                    {bulkMode && !isMe && (
+                                        <div style={{ width: 22, height: 22, borderRadius: 4, border: `2px solid ${isSelected ? FB.primary : FB.border}`, background: isSelected ? FB.primary : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginRight: 4, transition: 'all 0.15s' }}>
+                                            {isSelected && <span style={{ color: '#fff', fontSize: 14, lineHeight: 1 }}>✓</span>}
+                                        </div>
+                                    )}
                                     <div style={S.avatarWrapper}>
                                         <div style={{ ...S.avatar, background: ROLE_COLORS[member.role] || FB.primary }}>
                                             <img src={resolveAvatarDisplay(member.profiles?.avatar_url, member.user_id)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" onError={(e) => { e.target.src = '/avatars/table/free_shark.png'; }} />
@@ -497,6 +610,15 @@ export default function Players() {
                                 </div>
                             );
                         })
+                    )}
+
+                    {/* ═══ Floating Bulk Action Bar ═══ */}
+                    {bulkMode && selectedIds.size > 0 && (
+                        <div style={{ position: 'fixed', bottom: 80, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 8, background: FB.cardBg, border: `1px solid ${FB.border}`, borderRadius: 12, padding: '10px 16px', boxShadow: '0 8px 32px rgba(0,0,0,0.5)', zIndex: 200 }}>
+                            <button onClick={handleBulkMessage} style={{ padding: '8px 14px', borderRadius: 8, border: 'none', background: FB.primary, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>✉ Message ({selectedIds.size})</button>
+                            <button onClick={() => setBulkDistributeOpen(true)} style={{ padding: '8px 14px', borderRadius: 8, border: 'none', background: FB.success, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>💰 Distribute</button>
+                            <button onClick={() => setBulkRoleOpen(true)} style={{ padding: '8px 14px', borderRadius: 8, border: 'none', background: '#9B59B6', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>👑 Role</button>
+                        </div>
                     )}
                 </div>
 
@@ -661,6 +783,41 @@ export default function Players() {
                                     Delete
                                 </button>
                             )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ═══ Bulk Distribute Modal ═══ */}
+            {bulkDistributeOpen && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={() => setBulkDistributeOpen(false)}>
+                    <div style={{ background: FB.cardBg, borderRadius: 16, padding: 24, width: '100%', maxWidth: 400, border: `1px solid ${FB.border}` }} onClick={e => e.stopPropagation()}>
+                        <h3 style={{ color: FB.textPrimary, fontSize: 18, fontWeight: 700, margin: '0 0 16px' }}>💰 Bulk Distribute Chips</h3>
+                        <p style={{ color: FB.textSecondary, fontSize: 13, marginBottom: 16 }}>Distributing to <strong style={{ color: FB.primary }}>{selectedIds.size}</strong> player{selectedIds.size !== 1 ? 's' : ''}. Each will receive the amount below.</p>
+                        <input type="number" placeholder="Amount per player" value={bulkDistributeAmount} onChange={e => setBulkDistributeAmount(e.target.value)} min="1" style={{ width: '100%', padding: '12px 14px', background: FB.background, border: `1px solid ${FB.border}`, borderRadius: 8, color: FB.textPrimary, fontSize: 15, marginBottom: 10, outline: 'none', boxSizing: 'border-box' }} />
+                        <input type="text" placeholder="Note (optional)" value={bulkDistributeNote} onChange={e => setBulkDistributeNote(e.target.value)} maxLength={200} style={{ width: '100%', padding: '10px 14px', background: FB.background, border: `1px solid ${FB.border}`, borderRadius: 8, color: FB.textPrimary, fontSize: 13, marginBottom: 16, outline: 'none', boxSizing: 'border-box' }} />
+                        <div style={{ display: 'flex', gap: 10 }}>
+                            <button disabled={bulkDistributing} onClick={handleBulkDistribute} style={{ flex: 1, padding: '12px', border: 'none', borderRadius: 8, background: FB.success, color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer', opacity: bulkDistributing ? 0.6 : 1 }}>{bulkDistributing ? 'Distributing...' : 'Distribute'}</button>
+                            <button onClick={() => setBulkDistributeOpen(false)} style={{ flex: 1, padding: '12px', border: `1px solid ${FB.border}`, borderRadius: 8, background: FB.hover, color: FB.textPrimary, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ═══ Bulk Role Change Modal ═══ */}
+            {bulkRoleOpen && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={() => setBulkRoleOpen(false)}>
+                    <div style={{ background: FB.cardBg, borderRadius: 16, padding: 24, width: '100%', maxWidth: 400, border: `1px solid ${FB.border}` }} onClick={e => e.stopPropagation()}>
+                        <h3 style={{ color: FB.textPrimary, fontSize: 18, fontWeight: 700, margin: '0 0 16px' }}>👑 Bulk Change Role</h3>
+                        <p style={{ color: FB.textSecondary, fontSize: 13, marginBottom: 16 }}>Changing role for <strong style={{ color: FB.primary }}>{selectedIds.size}</strong> player{selectedIds.size !== 1 ? 's' : ''}.</p>
+                        <select value={bulkNewRole} onChange={e => setBulkNewRole(e.target.value)} style={{ width: '100%', padding: '12px 14px', background: FB.background, border: `1px solid ${FB.border}`, borderRadius: 8, color: FB.textPrimary, fontSize: 15, marginBottom: 16, outline: 'none' }}>
+                            <option value="player">Player</option>
+                            <option value="agent">Agent</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                        <div style={{ display: 'flex', gap: 10 }}>
+                            <button disabled={bulkRoleChanging} onClick={handleBulkRoleChange} style={{ flex: 1, padding: '12px', border: 'none', borderRadius: 8, background: '#9B59B6', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer', opacity: bulkRoleChanging ? 0.6 : 1 }}>{bulkRoleChanging ? 'Changing...' : 'Change Role'}</button>
+                            <button onClick={() => setBulkRoleOpen(false)} style={{ flex: 1, padding: '12px', border: `1px solid ${FB.border}`, borderRadius: 8, background: FB.hover, color: FB.textPrimary, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
                         </div>
                     </div>
                 </div>
