@@ -137,6 +137,7 @@ export default function SignInPage() {
                                 placeholder="you@example.com"
                                 style={styles.inputSingle}
                                 required
+                                autoComplete="off"
                             />
                         </div>
 
@@ -149,6 +150,7 @@ export default function SignInPage() {
                                 placeholder="••••••••"
                                 style={styles.inputSingle}
                                 required
+                                autoComplete="new-password"
                             />
                         </div>
 
