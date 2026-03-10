@@ -170,56 +170,56 @@ export default function Cashier() {
                         setMembership(memberData);
                         setChipBalance(memberData.chip_balance || 0);
                     }
-                }
 
-                // Get transaction history for this club (both sent AND received)
-                const { data: txns } = await supabase
-                    .from('chip_transactions')
-                    .select('*')
-                    .eq('club_id', clubData.id)
-                    .or(`from_user_id.eq.${authUser.id},to_user_id.eq.${authUser.id}`)
-                    .order('created_at', { ascending: false })
-                    .limit(20);
-                setTransactions(txns || []);
+                    // Get transaction history for this club (both sent AND received)
+                    const { data: txns } = await supabase
+                        .from('chip_transactions')
+                        .select('*')
+                        .eq('club_id', clubData.id)
+                        .or(`from_user_id.eq.${authUser.id},to_user_id.eq.${authUser.id}`)
+                        .order('created_at', { ascending: false })
+                        .limit(20);
+                    setTransactions(txns || []);
 
-                // Get pending cashout requests for this user
-                const { data: cashouts } = await supabase
-                    .from('cashout_requests')
-                    .select('*')
-                    .eq('club_id', clubData.id)
-                    .eq('player_id', authUser.id)
-                    .in('status', ['pending', 'approved'])
-                    .order('created_at', { ascending: false })
-                    .limit(10);
-                setPendingCashouts(cashouts || []);
+                    // Get pending cashout requests for this user
+                    const { data: cashouts } = await supabase
+                        .from('cashout_requests')
+                        .select('*')
+                        .eq('club_id', clubData.id)
+                        .eq('player_id', authUser.id)
+                        .in('status', ['pending', 'approved'])
+                        .order('created_at', { ascending: false })
+                        .limit(10);
+                    setPendingCashouts(cashouts || []);
 
-                // Load full cashout history (all statuses) via API
-                try {
-                    const token = await getAuthToken();
-                    if (token) {
-                        const histRes = await fetch(`/api/club-arena/cashout-history?clubId=${clubData.id}`, {
-                            headers: { Authorization: `Bearer ${token}` },
+                    // Load full cashout history (all statuses) via API
+                    try {
+                        const token = await getAuthToken();
+                        if (token) {
+                            const histRes = await fetch(`/api/club-arena/cashout-history?clubId=${clubData.id}`, {
+                                headers: { Authorization: `Bearer ${token}` },
+                                signal,
+                            });
+                            if (histRes.ok) {
+                                const histData = await histRes.json();
+                                setCashoutHistory(histData.cashouts || []);
+                            }
+                        }
+                    } catch (e) { /* cashout history is optional */ }
+
+                    // Load rakeback info
+                    try {
+                        const rbToken = await getAuthToken();
+                        const rbRes = await fetch(`/api/club-arena/rakeback?clubId=${clubData.id}&action=status`, {
+                            headers: { Authorization: `Bearer ${rbToken}` },
                             signal,
                         });
-                        if (histRes.ok) {
-                            const histData = await histRes.json();
-                            setCashoutHistory(histData.cashouts || []);
+                        if (rbRes.ok) {
+                            const rbData = await rbRes.json();
+                            setRakebackInfo(rbData);
                         }
-                    }
-                } catch (e) { /* cashout history is optional */ }
-
-                // Load rakeback info
-                try {
-                    const rbToken = await getAuthToken();
-                    const rbRes = await fetch(`/api/club-arena/rakeback?clubId=${clubData.id}&action=status`, {
-                        headers: { Authorization: `Bearer ${rbToken}` },
-                        signal,
-                    });
-                    if (rbRes.ok) {
-                        const rbData = await rbRes.json();
-                        setRakebackInfo(rbData);
-                    }
-                } catch (e) { /* rakeback is optional */ }
+                    } catch (e) { /* rakeback is optional */ }
+                }
             }
         } catch (e) {
 
@@ -377,11 +377,11 @@ export default function Cashier() {
     // LEAVE CLUB: Player voluntarily exits — chips returned to treasury
     // ═══════════════════════════════════════════════════════════════════════════
     const handleLeaveClub = async () => {
-        if (!clubIdParam || isProcessingRef.current) return;
+        if (!club?.id || isProcessingRef.current) return;
         isProcessingRef.current = true;
         setLeavePending(true);
         try {
-            const result = await apiCall('/api/club-arena/leave-club', { clubId: clubIdParam });
+            const result = await apiCall('/api/club-arena/leave-club', { clubId: club.id });
             showToast(result.message || 'You have left the club. Redirecting...', 'success');
             setTimeout(() => router.push('/hub/club-arena'), 2000);
         } catch (e) {
