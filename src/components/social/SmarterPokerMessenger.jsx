@@ -10,18 +10,65 @@ import Link from 'next/link';
 import { SPAvatar, SP_COLORS } from './SmarterPokerStyleCard';
 
 // ═══════════════════════════════════════════════════════════════════════════
+// 💾 PERSISTENCE HOOK (P2 features)
+// ═══════════════════════════════════════════════════════════════════════════
+
+const useMessengerPrefs = () => {
+    const [prefs, setPrefs] = useState({
+        bookmarks: [],
+        labels: {},
+        themes: {},
+        disappearing: {},
+        templates: [
+            "Your funds are ready",
+            "Tournament starts in 30 min",
+            "Please verify your account"
+        ]
+    });
+
+    useEffect(() => {
+        try {
+            const saved = localStorage.getItem('sp-messenger-prefs');
+            if (saved) setPrefs(JSON.parse(saved));
+        } catch (e) { }
+    }, []);
+
+    const updatePrefs = (updater) => {
+        setPrefs(prev => {
+            const next = typeof updater === 'function' ? updater(prev) : { ...prev, ...updater };
+            try {
+                localStorage.setItem('sp-messenger-prefs', JSON.stringify(next));
+            } catch (e) { }
+            return next;
+        });
+    };
+
+    return [prefs, updatePrefs];
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
 // 💬 MESSAGE BUBBLE
 // ═══════════════════════════════════════════════════════════════════════════
 
-const MessageBubble = ({ message, isOwn, showAvatar, user }) => (
-    <div className={`message-row ${isOwn ? 'own' : 'other'}`}>
+const MessageBubble = ({ message, isOwn, showAvatar, user, onAction }) => (
+    <div className={`message-row ${isOwn ? 'own' : 'other'} ${message.isDisappearing ? 'ephemeral' : ''}`}>
         {!isOwn && showAvatar && (
             <SPAvatar src={user?.avatar} size={28} />
         )}
         {!isOwn && !showAvatar && <div className="avatar-spacer" />}
 
-        <div className={`message-bubble ${isOwn ? 'own' : 'other'}`}>
+        <div className={`message-bubble ${isOwn ? 'own' : 'other'} ${message.isDisappearing ? 'ephemeral' : ''}`}>
             {message.text}
+
+            {/* Labels & Bookmarks Indicator */}
+            {(message.labels?.length > 0 || message.isBookmarked) && (
+                <div className="message-badges">
+                    {message.isBookmarked && <span title="Saved">📌</span>}
+                    {message.labels?.map((l, i) => (
+                        <span key={i} className={`label-badge ${l.replace(' ', '-').toLowerCase()}`}>{l}</span>
+                    ))}
+                </div>
+            )}
 
             {/* Reactions */}
             {message.reactions?.length > 0 && (
@@ -31,6 +78,11 @@ const MessageBubble = ({ message, isOwn, showAvatar, user }) => (
                     ))}
                 </div>
             )}
+            {/* Hover Actions */}
+            <div className="message-hover-actions">
+                <button onClick={() => onAction?.('bookmark', message)} title={message.isBookmarked ? "Remove Bookmark" : "Save Bookmark"}>📌</button>
+                <button onClick={() => onAction?.('label', message, 'Important')} title="Label: Important">🏷️</button>
+            </div>
         </div>
 
         {/* Timestamp (on hover) */}
@@ -85,6 +137,44 @@ const MessageBubble = ({ message, isOwn, showAvatar, user }) => (
                 font-size: 12px;
             }
 
+            .message-hover-actions {
+                position: absolute;
+                top: -12px;
+                right: 12px;
+                background: white;
+                border-radius: 6px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+                display: flex;
+                gap: 4px;
+                padding: 2px 4px;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.2s;
+            }
+
+            .message-row.own .message-hover-actions {
+                right: auto;
+                left: 12px;
+            }
+
+            .message-bubble:hover .message-hover-actions {
+                opacity: 1;
+                pointer-events: auto;
+            }
+
+            .message-hover-actions button {
+                background: none;
+                border: none;
+                padding: 2px;
+                cursor: pointer;
+                font-size: 14px;
+                border-radius: 4px;
+            }
+
+            .message-hover-actions button:hover {
+                background: #f0f0f0;
+            }
+
             .message-time {
                 font-size: 11px;
                 color: ${SP_COLORS.textSecondary};
@@ -113,16 +203,61 @@ export const ChatWindow = ({
     minimized = false
 }) => {
     const [inputText, setInputText] = useState('');
+    const [showThemePicker, setShowThemePicker] = useState(false);
+    const [showTemplates, setShowTemplates] = useState(false);
+    const [scheduledTime, setScheduledTime] = useState('');
+    const [bookmarksOpen, setBookmarksOpen] = useState(false);
     const messagesEndRef = useRef(null);
+    const [prefs, updatePrefs] = useMessengerPrefs();
+
+    const conversationId = conversation?.id;
+    const theme = prefs.themes[conversationId] || SP_COLORS.bgWhite;
+    const isDisappearing = prefs.disappearing[conversationId] || false;
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages]);
+    }, [messages, showTemplates, showThemePicker]);
 
     const handleSend = () => {
         if (inputText.trim()) {
-            onSend?.(inputText);
+            if (scheduledTime) {
+                // Scheduled message logic (P2-4)
+                const delayMs = new Date(scheduledTime).getTime() - Date.now();
+                if (delayMs > 0) {
+                    setTimeout(() => onSend?.(inputText), delayMs);
+                    console.log(`[Messenger] Message scheduled to send in ${delayMs}ms`);
+                } else {
+                    onSend?.(inputText);
+                }
+            } else {
+                onSend?.(inputText);
+            }
             setInputText('');
+            setScheduledTime('');
+            setShowTemplates(false);
+        }
+    };
+
+    const handleAction = (action, msg, payload) => {
+        if (action === 'bookmark') {
+            updatePrefs(p => {
+                const isSaved = p.bookmarks.find(b => b.id === msg.id);
+                return {
+                    ...p,
+                    bookmarks: isSaved 
+                        ? p.bookmarks.filter(b => b.id !== msg.id)
+                        : [...p.bookmarks, { ...msg, savedAt: Date.now() }]
+                };
+            });
+        }
+        if (action === 'label') {
+            updatePrefs(p => {
+                const existingLabels = p.labels[msg.id] || [];
+                const newLabels = existingLabels.includes(payload)
+                    ? existingLabels.filter(l => l !== payload)
+                    : [...existingLabels, payload];
+                return { ...p, labels: { ...p.labels, [msg.id]: newLabels } };
+            });
         }
     };
 
@@ -294,6 +429,79 @@ export const ChatWindow = ({
                     flex: 1;
                     overflow-y: auto;
                     padding: 8px 0;
+                    display: flex;
+                    flex-direction: column;
+                }
+
+                .theme-picker-bar {
+                    display: flex;
+                    gap: 8px;
+                    padding: 8px;
+                    background: white;
+                    border-bottom: 1px solid ${SP_COLORS.divider};
+                    justify-content: center;
+                }
+
+                .theme-circle {
+                    width: 24px;
+                    height: 24px;
+                    border-radius: 50%;
+                    cursor: pointer;
+                }
+
+                .templates-bar {
+                    display: flex;
+                    gap: 6px;
+                    padding: 6px 8px;
+                    overflow-x: auto;
+                    background: ${SP_COLORS.bgMain};
+                    border-top: 1px solid ${SP_COLORS.divider};
+                }
+
+                .template-chip {
+                    font-size: 11px;
+                    background: white;
+                    padding: 4px 8px;
+                    border-radius: 12px;
+                    border: 1px solid #ddd;
+                    white-space: nowrap;
+                    cursor: pointer;
+                }
+
+                .template-chip:hover {
+                    background: ${SP_COLORS.blue};
+                    color: white;
+                    border-color: ${SP_COLORS.blue};
+                }
+
+                .ephemeral {
+                    position: relative;
+                }
+
+                .ephemeral::after {
+                    content: '⏱️';
+                    position: absolute;
+                    font-size: 10px;
+                    right: 4px;
+                    bottom: -4px;
+                    opacity: 0.5;
+                }
+
+                .message-badges {
+                    position: absolute;
+                    top: -10px;
+                    left: 4px;
+                    display: flex;
+                    gap: 4px;
+                    font-size: 10px;
+                }
+
+                .label-badge {
+                    background: #ffd700;
+                    color: black;
+                    padding: 2px 4px;
+                    border-radius: 4px;
+                    font-weight: 600;
                 }
 
                 .chat-input {

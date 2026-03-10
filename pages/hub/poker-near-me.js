@@ -1411,6 +1411,7 @@ export default function PokerNearMePage() {
         deepLinkRef.current = setTimeout(() => {
             const params = new URLSearchParams();
             if (activeTab !== 'venues') params.set('tab', activeTab);
+            if (activeTab === 'events' && activeEventTab !== 'daily') params.set('sub', activeEventTab);
             if (searchQuery) params.set('q', searchQuery);
             if (filters.venueType !== 'all') params.set('filter', filters.venueType);
             const qs = params.toString();
@@ -1420,13 +1421,27 @@ export default function PokerNearMePage() {
             }
         }, 500);
         return () => { if (deepLinkRef.current) clearTimeout(deepLinkRef.current); };
-    }, [activeTab, searchQuery, filters.venueType]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [activeTab, activeEventTab, searchQuery, filters.venueType]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Read deep link params on mount
+    // Read deep link params on mount (backward-compatible with legacy tab URLs)
     useEffect(() => {
         if (router.query.q) setSearchQuery(String(router.query.q));
-        if (router.query.tab && TAB_ORDER.includes(router.query.tab)) {
-            setActiveTab(String(router.query.tab));
+        if (router.query.tab) {
+            const tab = String(router.query.tab);
+            // Legacy tab mapping: tours/series/daily/calendar → events + sub-tab
+            const LEGACY_EVENT_TABS = { tours: 'tours', series: 'series', daily: 'daily', calendar: 'calendar' };
+            if (LEGACY_EVENT_TABS[tab]) {
+                setActiveTab('events');
+                setActiveEventTab(LEGACY_EVENT_TABS[tab]);
+            } else if (tab === 'favorites') {
+                setActiveTab('saved');
+            } else if (TAB_ORDER.includes(tab)) {
+                setActiveTab(tab);
+            }
+        }
+        // Read events sub-tab from URL
+        if (router.query.sub && EVENTS_SUB_TABS.includes(router.query.sub)) {
+            setActiveEventTab(String(router.query.sub));
         }
         if (router.query.filter) {
             setFilters(prev => ({ ...prev, venueType: String(router.query.filter) }));

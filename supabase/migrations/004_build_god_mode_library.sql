@@ -17,7 +17,7 @@ DROP TABLE IF EXISTS preflop_charts CASCADE;
 -- TABLE 1: solved_spots_gold (The Postflop Engine)
 -- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-CREATE TABLE solved_spots_gold (
+CREATE TABLE IF NOT EXISTS solved_spots_gold (
     -- Primary Key
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     
@@ -89,17 +89,27 @@ CREATE TABLE solved_spots_gold (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='solved_spots_gold' AND column_name='topology') THEN
+        ALTER TABLE solved_spots_gold ADD COLUMN topology TEXT NOT NULL CHECK (topology IN ('HU', '3-Max', '6-Max', '9-Max'));
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='memory_charts_gold' AND column_name='topology') THEN
+        ALTER TABLE memory_charts_gold ADD COLUMN topology TEXT;
+    END IF;
+END $$;
+
 -- Indexes for Performance
-CREATE INDEX idx_solved_spots_street ON solved_spots_gold(street);
-CREATE INDEX idx_solved_spots_stack ON solved_spots_gold(stack_depth);
-CREATE INDEX idx_solved_spots_game_type ON solved_spots_gold(game_type);
-CREATE INDEX idx_solved_spots_topology ON solved_spots_gold(topology);
-CREATE INDEX idx_solved_spots_mode ON solved_spots_gold(mode);
-CREATE INDEX idx_solved_spots_board ON solved_spots_gold USING GIN(board_cards);
-CREATE INDEX idx_solved_spots_macro ON solved_spots_gold USING GIN(macro_metrics);
+CREATE INDEX IF NOT EXISTS idx_solved_spots_street ON solved_spots_gold(street);
+CREATE INDEX IF NOT EXISTS idx_solved_spots_stack ON solved_spots_gold(stack_depth);
+CREATE INDEX IF NOT EXISTS idx_solved_spots_game_type ON solved_spots_gold(game_type);
+CREATE INDEX IF NOT EXISTS idx_solved_spots_topology ON solved_spots_gold(topology);
+CREATE INDEX IF NOT EXISTS idx_solved_spots_mode ON solved_spots_gold(mode);
+CREATE INDEX IF NOT EXISTS idx_solved_spots_board ON solved_spots_gold USING GIN(board_cards);
+CREATE INDEX IF NOT EXISTS idx_solved_spots_macro ON solved_spots_gold USING GIN(macro_metrics);
 
 -- Composite Index for Common Queries
-CREATE INDEX idx_solved_spots_lookup ON solved_spots_gold(
+CREATE INDEX IF NOT EXISTS idx_solved_spots_lookup ON solved_spots_gold(
     street, stack_depth, game_type, topology, mode
 );
 
@@ -107,7 +117,7 @@ CREATE INDEX idx_solved_spots_lookup ON solved_spots_gold(
 -- TABLE 2: memory_charts_gold (The Preflop Engine)
 -- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-CREATE TABLE memory_charts_gold (
+CREATE TABLE IF NOT EXISTS memory_charts_gold (
     -- Primary Key
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     
@@ -140,9 +150,9 @@ CREATE TABLE memory_charts_gold (
 );
 
 -- Index for Chart Lookups
-CREATE INDEX idx_memory_charts_category ON memory_charts_gold(category);
-CREATE INDEX idx_memory_charts_name ON memory_charts_gold(chart_name);
-CREATE INDEX idx_memory_charts_grid ON memory_charts_gold USING GIN(chart_grid);
+CREATE INDEX IF NOT EXISTS idx_memory_charts_category ON memory_charts_gold(category);
+CREATE INDEX IF NOT EXISTS idx_memory_charts_name ON memory_charts_gold(chart_name);
+CREATE INDEX IF NOT EXISTS idx_memory_charts_grid ON memory_charts_gold USING GIN(chart_grid);
 
 -- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 -- FUNCTIONS: Auto-update timestamp
@@ -157,11 +167,13 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Triggers
+DROP TRIGGER IF EXISTS update_solved_spots_gold_updated_at ON solved_spots_gold;
 CREATE TRIGGER update_solved_spots_gold_updated_at
     BEFORE UPDATE ON solved_spots_gold
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_memory_charts_gold_updated_at ON memory_charts_gold;
 CREATE TRIGGER update_memory_charts_gold_updated_at
     BEFORE UPDATE ON memory_charts_gold
     FOR EACH ROW
@@ -198,3 +210,5 @@ GRANT SELECT ON memory_charts_gold TO anon;
 --
 -- Ready for God Mode ingestion via ingest_god_mode.py
 -- ═══════════════════════════════════════════════════════════════════════════
+
+

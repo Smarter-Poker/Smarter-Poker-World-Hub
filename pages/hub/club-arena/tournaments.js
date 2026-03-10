@@ -91,6 +91,7 @@ export default function TournamentsPage() {
   const [lobbySearch, setLobbySearch] = useState('');
   const [lobbyTypeFilter, setLobbyTypeFilter] = useState('all'); // all | mtt | sng | spin | xmtt
   const [lobbyVariantFilter, setLobbyVariantFilter] = useState('all'); // all | nlh | plo4 | plo5 | short_deck
+  const [myTournamentsOnly, setMyTournamentsOnly] = useState(false); // Enhancement #5: My Tournaments filter
   const [editTournament, setEditTournament] = useState(null); // Improvement #7: Edit Tournament
   const walletData = useWalletData({ supabase, userId: user?.id, clubId: clubId });
   const showToast = (msg, type = 'success') => {
@@ -390,6 +391,13 @@ export default function TournamentsPage() {
           <option value="plo5">PLO5</option>
           <option value="short_deck">Short Deck</option>
         </select>
+        <button onClick={() => { setMyTournamentsOnly(v => !v); haptic?.('light'); }} style={{
+          padding: '5px 10px', fontSize: 11, fontWeight: 700, borderRadius: 6, cursor: 'pointer',
+          background: myTournamentsOnly ? '#31A24C' : FB.hover,
+          color: myTournamentsOnly ? '#fff' : FB.dim,
+          border: myTournamentsOnly ? '1px solid #31A24C' : '1px solid ' + FB.border,
+          whiteSpace: 'nowrap',
+        }}>♠ Mine</button>
       </div>
 
       {/* Tournament List — Poker Table Cards (2-col grid) */}
@@ -402,6 +410,7 @@ export default function TournamentsPage() {
             if (lobbySearch && !t.name?.toLowerCase().includes(lobbySearch.toLowerCase())) return false;
             if (lobbyTypeFilter !== 'all' && (t.type || t.game_type) !== lobbyTypeFilter) return false;
             if (lobbyVariantFilter !== 'all' && (t.variant || t.game_variant) !== lobbyVariantFilter) return false;
+            if (myTournamentsOnly && !t.is_registered) return false;
             return true;
           });
 

@@ -71,6 +71,18 @@ const VC = {
 };
 const DV = { label: '?', color: '#888', accent: '#555' };
 
+// ── Calendar helper ──
+function generateCalendarUrl(tournament) {
+  const name = encodeURIComponent(tournament.name || 'Tournament');
+  const startDate = tournament.scheduled_start || tournament.settings?.start_time;
+  if (!startDate) return null;
+  const start = new Date(startDate);
+  const end = new Date(start.getTime() + 3 * 60 * 60 * 1000); // assume 3hr duration
+  const fmt = d => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+  const details = encodeURIComponent(`Buy-in: ${tournament.buy_in || 0} chips | Max: ${tournament.max_players || '?'} players`);
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${name}&dates=${fmt(start)}/${fmt(end)}&details=${details}`;
+}
+
 const STATUS_DOT = { active: '#00E676', running: '#00E676', waiting: '#FFA726', full: '#EF5350', paused: '#78909C', completed: '#546E7A' };
 
 // ─────────────────────────────────────────────────────────────────────
@@ -466,7 +478,21 @@ function TournamentCard({ tournament: t, assetMap, onPress, onQuickRegister }) {
             ⚡ Register
           </button>
         ) : t.is_registered ? (
-          <span style={{ fontSize: 8, color: '#00E676', fontWeight: 700 }}>✓ REGISTERED</span>
+          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+            <span style={{ fontSize: 8, color: '#00E676', fontWeight: 700 }}>✓ REG</span>
+            {!isLive && generateCalendarUrl(t) && (
+              <a
+                href={generateCalendarUrl(t)}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                style={{ fontSize: 8, color: '#2374E1', fontWeight: 600, textDecoration: 'none', background: '#2374E120', padding: '1px 4px', borderRadius: 4, border: '1px solid #2374E140' }}
+                title="Add to Google Calendar"
+              >
+                📅 Cal
+              </a>
+            )}
+          </div>
         ) : (
           <span style={S.dimText}>{maxP} Max</span>
         )}
