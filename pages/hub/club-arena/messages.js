@@ -1225,8 +1225,10 @@ export default function ClubMessages() {
         if (!user || !activeConversation) return;
 
         const tempId = `temp-${Date.now()}`;
-        const tempMsg = { id: tempId, content, sender_id: user.id, created_at: new Date().toISOString(), profiles: user, status: 'sending' };
+        const currentReply = replyTo;
+        const tempMsg = { id: tempId, content, sender_id: user.id, created_at: new Date().toISOString(), profiles: user, status: 'sending', reply_to: currentReply || undefined };
         setMessages(prev => [...prev, tempMsg]);
+        setReplyTo(null);
         playMessageSound();
 
         setConversations(prev => {
@@ -1770,6 +1772,7 @@ export default function ClubMessages() {
                                             onDelete={deleteMessage}
                                             onReact={reactToMessage}
                                             onEdit={editMessage}
+                                            onReply={(msg) => setReplyTo({ id: msg.id, senderName: msg.sender_id === user?.id ? 'You' : (activeConversation.otherUser?.display_name || activeConversation.otherUser?.username || 'User'), preview: msg.content?.slice(0, 80) })}
                                         />
                                     </div>
                                 );
@@ -1821,8 +1824,20 @@ export default function ClubMessages() {
                         </div>
                     )}
 
+                    {/* Reply Preview Bar */}
+                    {replyTo && (
+                        <div style={{ padding: '8px 16px', background: C.card, borderTop: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div style={{ width: 3, height: 32, background: C.blue, borderRadius: 2, flexShrink: 0 }} />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: 11, fontWeight: 600, color: C.blue }}>{replyTo.senderName}</div>
+                                <div style={{ fontSize: 12, color: C.textSec, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{replyTo.preview}</div>
+                            </div>
+                            <button onClick={() => setReplyTo(null)} style={{ background: 'transparent', border: 'none', color: C.textSec, cursor: 'pointer', fontSize: 16, padding: 4 }}>✕</button>
+                        </div>
+                    )}
+
                     {/* Enhanced Message Input */}
-                    <MessageInput onSend={sendMessage} onMediaUpload={handleMediaUpload} onTyping={broadcastTyping} onGifToggle={() => setShowGifPicker(!showGifPicker)} showGifActive={showGifPicker} />
+                    <MessageInput onSend={(text) => { sendMessage(text); }} onMediaUpload={handleMediaUpload} onTyping={broadcastTyping} onGifToggle={() => setShowGifPicker(!showGifPicker)} showGifActive={showGifPicker} />
                     <ClubArenaBottomNav clubId={clubIdParam} activePage="messages" userRole={currentUserMembership?.role} />
                 </div>
 
