@@ -282,7 +282,13 @@ function CashCard({ table: t, assetMap, onPress, avgVpip, miniState }) {
       <div style={S.tableContainer}>
         {isLive && miniState && miniState.phase !== 'idle' ? (
           /* LIVE MINI-VIEW — PokerBros-style live table thumbnail */
-          <TableMiniView miniState={miniState} maxSeats={max} />
+          <TableMiniView
+            miniState={miniState}
+            maxSeats={max}
+            blinds={`${fmtBlind(sb)}/${fmtBlind(bb)}`}
+            variant={vc.label}
+            accentColor={vc.accent}
+          />
         ) : (
           /* STATIC TABLE IMAGE (vertical) */
           <>
@@ -414,7 +420,12 @@ function TournamentCard({ tournament: t, assetMap, onPress, onQuickRegister, min
       <div style={S.tableContainer}>
         {isLive && miniState && miniState.phase !== 'idle' ? (
           /* LIVE MINI-VIEW */
-          <TableMiniView miniState={miniState} maxSeats={maxP} />
+          <TableMiniView
+            miniState={miniState}
+            maxSeats={maxP}
+            variant={typeLabel}
+            accentColor={vc.accent}
+          />
         ) : (
           /* STATIC TABLE IMAGE (vertical) */
           <>

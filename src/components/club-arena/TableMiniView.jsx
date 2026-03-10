@@ -1,18 +1,25 @@
 /**
- * TableMiniView — Live game thumbnail for Club Arena lobby cards (v2)
+ * TableMiniView — Live game thumbnail for Club Arena lobby cards (v3)
  *
- * Renders a tiny oval felt table with:
- *   • Seat dots around the perimeter (empty/occupied/actor/folded/dealer/all-in)
- *   • Community card pips (14×20px, colored suits)
- *   • Pot total centered below cards
- *   • Phase label (PREFLOP/FLOP/TURN/RIVER/SHOWDOWN/DEALING)
- *   • Gold-pulse animation on the current actor
- *   • Preflop display (pot + seats, no cards)
- *   • Loading skeleton before first data arrives
- *   • 2-10 seat support with dynamic position layouts
+ * v3 additions:
+ *   • Blinds banner across top of felt (restores lost info when mini-view replaces static image)
+ *   • Hand number badge (bottom-right of felt)
+ *   • Stale data dimming (when data > 15s old)
+ *   • Variant-colored felt border accent
+ *
+ * Existing features (v2):
+ *   • Seat dots (empty/occupied/actor/folded/dealer/all-in) with 2-10 seat layouts
+ *   • Community card pips (14×20px, colored suits) with deal animation
+ *   • Pot total, phase label, shimmer skeleton, dealing state
+ *
+ * Props:
+ *   miniState  — { phase, communityCards, potTotal, handNumber, seats, _fetchedAt? }
+ *   maxSeats   — number (2-10, default 9)
+ *   blinds     — string (e.g. "1/2") — passed from parent CashCard
+ *   variant    — string (e.g. "NLH") — passed from parent
+ *   accentColor — string (hex) — variant accent for border tint
  *
  * Width: 100% of parent. Height: ~100px.
- * Pure visual — no hooks, no side effects.
  */
 
 import React from 'react';
@@ -20,7 +27,7 @@ import React from 'react';
 // ── Card conversion helpers ──
 const RANKS = ['2','3','4','5','6','7','8','9','T','J','Q','K','A'];
 const SUIT_CHARS = ['♣','♦','♥','♠'];
-const SUIT_COLORS = ['#B0B3B8','#E74C3C','#E74C3C','#B0B3B8']; // clubs=gray, diamonds=red, hearts=red, spades=gray
+const SUIT_COLORS = ['#B0B3B8','#E74C3C','#E74C3C','#B0B3B8'];
 
 function cardRank(c) { return RANKS[Math.floor(c / 4)] || '?'; }
 function cardSuitIdx(c) { return c % 4; }
@@ -38,19 +45,10 @@ const PHASE_LABELS = {
 };
 
 // ── Seat positions around an ellipse — [x%, y%] ──
-// Full 10-seat layout (clockwise from bottom-center)
 const SEAT_POSITIONS = {
   10: [
-    [50, 95],  // 0: bottom center
-    [18, 85],  // 1: bottom-left
-    [5,  60],  // 2: left
-    [8,  30],  // 3: upper-left
-    [28, 8],   // 4: top-left
-    [50, 2],   // 5: top center
-    [72, 8],   // 6: top-right
-    [92, 30],  // 7: upper-right
-    [95, 60],  // 8: right
-    [82, 85],  // 9: bottom-right
+    [50, 95], [18, 85], [5, 60], [8, 30], [28, 8],
+    [50, 2], [72, 8], [92, 30], [95, 60], [82, 85],
   ],
   9: [
     [50, 95], [15, 82], [5, 55], [10, 25], [30, 8],
@@ -86,7 +84,7 @@ function getSeatPositions(maxSeats) {
   return SEAT_POSITIONS[clamped] || SEAT_POSITIONS[9];
 }
 
-// ── Format pot number with commas ──
+// ── Format pot number ──
 function fmtPot(n) {
   if (!n || n <= 0) return '';
   if (n >= 1000000) return (n / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
@@ -113,11 +111,24 @@ function ensureKeyframes() {
       from { opacity: 0; transform: scale(0.5); }
       to { opacity: 1; transform: scale(1); }
     }
+    @keyframes miniDealingPulse {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 0.8; }
+    }
   `;
   document.head.appendChild(s);
 }
 
-export default function TableMiniView({ miniState, maxSeats = 9 }) {
+// ── Stale detection: > 15 seconds since last fetch ──
+const STALE_THRESHOLD = 15000;
+
+export default function TableMiniView({
+  miniState,
+  maxSeats = 9,
+  blinds,         // "1/2" string from parent
+  variant,        // "NLH" label from parent
+  accentColor,    // "#4ECDC4" from parent
+}) {
   ensureKeyframes();
 
   // No data yet → shimmer skeleton
@@ -134,14 +145,32 @@ export default function TableMiniView({ miniState, maxSeats = 9 }) {
   const isDealing = phase === 'dealing';
   const communityCards = miniState.communityCards || [];
   const potTotal = miniState.potTotal || 0;
+  const handNumber = miniState.handNumber || 0;
   const seats = miniState.seats || [];
   const phaseLabel = PHASE_LABELS[phase] || null;
   const positions = getSeatPositions(maxSeats);
 
+  // Stale detection
+  const isStale = miniState._fetchedAt && (Date.now() - miniState._fetchedAt > STALE_THRESHOLD);
+
+  // Dynamic felt border — tint with variant accent color
+  const feltBorder = accentColor
+    ? `2px solid ${accentColor}66`
+    : '2px solid rgba(180, 150, 60, 0.5)';
+
   return (
-    <div style={S.container}>
+    <div style={{ ...S.container, ...(isStale ? { opacity: 0.55 } : {}) }}>
       {/* Oval felt table */}
-      <div style={S.feltOval}>
+      <div style={{ ...S.feltOval, border: feltBorder }}>
+
+        {/* ── v3: Blinds banner (top of felt) ── */}
+        {blinds && (
+          <div style={S.blindsBanner}>
+            {variant && <span style={S.blindsVariant}>{variant}</span>}
+            <span style={S.blindsText}>{blinds}</span>
+          </div>
+        )}
+
         {/* Seat dots */}
         {positions.map((pos, idx) => {
           const seatData = seats[idx];
@@ -197,7 +226,7 @@ export default function TableMiniView({ miniState, maxSeats = 9 }) {
                 <span style={S.phaseLabel}>{phaseLabel}</span>
               )}
 
-              {/* Community cards (card pips) */}
+              {/* Community cards */}
               {communityCards.length > 0 && (
                 <div style={S.cardRow}>
                   {communityCards.map((card, i) => (
@@ -225,6 +254,13 @@ export default function TableMiniView({ miniState, maxSeats = 9 }) {
             </>
           )}
         </div>
+
+        {/* ── v3: Hand number badge (bottom-right) ── */}
+        {handNumber > 0 && !isIdle && (
+          <div style={S.handBadge}>
+            #{handNumber}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -240,6 +276,7 @@ const S = {
     position: 'relative',
     overflow: 'hidden',
     borderRadius: 8,
+    transition: 'opacity 0.5s ease',
   },
 
   feltOval: {
@@ -254,11 +291,52 @@ const S = {
     boxShadow: 'inset 0 2px 12px rgba(0,0,0,0.5), 0 1px 4px rgba(0,0,0,0.4), 0 0 8px rgba(180, 150, 60, 0.1)',
   },
 
-  // Shimmer skeleton before data arrives
   skeleton: {
     background: 'linear-gradient(90deg, #0d1f0d 25%, #1a3a1a 50%, #0d1f0d 75%)',
     backgroundSize: '200% 100%',
     animation: 'miniShimmer 1.5s ease-in-out infinite',
+  },
+
+  // ── v3: Blinds banner ──
+  blindsBanner: {
+    position: 'absolute',
+    top: 2,
+    left: '50%',
+    transform: 'translateX(-50%)',
+    display: 'flex',
+    gap: 3,
+    alignItems: 'center',
+    zIndex: 3,
+    background: 'rgba(0,0,0,0.55)',
+    borderRadius: 6,
+    padding: '1px 5px',
+    backdropFilter: 'blur(2px)',
+  },
+  blindsVariant: {
+    fontSize: 5,
+    fontWeight: 800,
+    color: 'rgba(255,255,255,0.45)',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  blindsText: {
+    fontSize: 7,
+    fontWeight: 800,
+    color: 'rgba(255,255,255,0.8)',
+    fontFamily: '"Orbitron",monospace',
+    letterSpacing: 0.3,
+  },
+
+  // ── v3: Hand number badge ──
+  handBadge: {
+    position: 'absolute',
+    bottom: 2,
+    right: 8,
+    fontSize: 5,
+    fontWeight: 700,
+    color: 'rgba(255,255,255,0.25)',
+    fontFamily: 'monospace',
+    zIndex: 3,
   },
 
   // ── Seat dots ──
@@ -318,7 +396,7 @@ const S = {
     letterSpacing: 0.3,
   },
 
-  // ── Center content (cards, pot, phase) ──
+  // ── Center content ──
   centerContent: {
     position: 'absolute',
     top: '50%',
@@ -344,7 +422,7 @@ const S = {
     fontSize: 8,
     color: 'rgba(255,215,0,0.4)',
     letterSpacing: 2,
-    animation: 'livePulse 1.5s ease-in-out infinite',
+    animation: 'miniDealingPulse 1.5s ease-in-out infinite',
   },
 
   phaseLabel: {
