@@ -20,13 +20,12 @@ const FB = {
 };
 
 // ═══════════════════════════════════════════════════════════
-// ANIMATED COUNTER — Smooth ticking up
+// ANIMATED COUNTER (Direct DOM Mutation for 60FPS)
 // ═══════════════════════════════════════════════════════════
 function AnimatedAmount({ amount, hourlyRate = 0 }) {
-  const [display, setDisplay] = useState(amount);
+  const spanRef = useRef(null);
   const targetRef = useRef(amount);
   const displayRef = useRef(amount);
-  const frameRef = useRef(null);
 
   useEffect(() => {
     targetRef.current = amount;
@@ -34,26 +33,34 @@ function AnimatedAmount({ amount, hourlyRate = 0 }) {
 
   // Tick up smoothly based on hourly contribution rate
   useEffect(() => {
-    if (hourlyRate <= 0) { setDisplay(amount); return; }
+    if (hourlyRate <= 0) {
+      if (spanRef.current) {
+        spanRef.current.textContent = amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      }
+      return;
+    }
     const perSecond = hourlyRate / 3600;
+    let frameId;
 
     const tick = () => {
-      displayRef.current += perSecond / 30; // 30fps
+      displayRef.current += perSecond / 60; // 60fps standard
       // Don't overshoot actual pool amount
       if (displayRef.current > targetRef.current + hourlyRate) {
         displayRef.current = targetRef.current;
       }
-      setDisplay(displayRef.current);
-      frameRef.current = requestAnimationFrame(tick);
+      if (spanRef.current) {
+        spanRef.current.textContent = displayRef.current.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      }
+      frameId = requestAnimationFrame(tick);
     };
     displayRef.current = amount;
-    frameRef.current = requestAnimationFrame(tick);
-    return () => { if (frameRef.current) cancelAnimationFrame(frameRef.current); };
+    frameId = requestAnimationFrame(tick);
+    return () => { if (frameId) cancelAnimationFrame(frameId); };
   }, [amount, hourlyRate]);
 
   return (
-    <span style={{ fontVariantNumeric: 'tabular-nums' }}>
-      {display.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+    <span ref={spanRef} style={{ fontVariantNumeric: 'tabular-nums' }}>
+      {amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
     </span>
   );
 }

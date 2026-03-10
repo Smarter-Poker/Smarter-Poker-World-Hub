@@ -5,8 +5,14 @@ import { motion } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
-// Using Recharts for visualization (already in package.json from earlier phases)
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import dynamic from 'next/dynamic';
+
+const AreaChart = dynamic(() => import('recharts').then(m => m.AreaChart), { ssr: false });
+const Area = dynamic(() => import('recharts').then(m => m.Area), { ssr: false });
+const XAxis = dynamic(() => import('recharts').then(m => m.XAxis), { ssr: false });
+const YAxis = dynamic(() => import('recharts').then(m => m.YAxis), { ssr: false });
+const Tooltip = dynamic(() => import('recharts').then(m => m.Tooltip), { ssr: false });
+const ResponsiveContainer = dynamic(() => import('recharts').then(m => m.ResponsiveContainer), { ssr: false });
 
 export default function MixedStrategyLab() {
   const router = useRouter();

@@ -30,27 +30,39 @@ function ensureKeyframes() {
   _injected = true;
 }
 
-// ─── Animated counter ──────────────────────────────────────────────────
+// ─── Animated counter (Direct DOM Mutation for 60FPS) ──────────────────
 function AnimatedCounter({ value, duration = 800, prefix = '' }) {
-  const [display, setDisplay] = useState(value);
-  const animRef = useRef(null);
+  const spanRef = useRef(null);
   const prevRef = useRef(value);
+
   useEffect(() => {
-    const from = prevRef.current; const to = value;
+    const from = prevRef.current;
+    const to = value;
     if (from === to) return;
     prevRef.current = to;
+
     const start = performance.now();
+    let animId;
+
     const step = (now) => {
       const elapsed = now - start;
       const progress = Math.min(elapsed / duration, 1);
       const eased = 1 - Math.pow(1 - progress, 3);
-      setDisplay(Math.round(from + (to - from) * eased));
-      if (progress < 1) animRef.current = requestAnimationFrame(step);
+      const currentVal = Math.round(from + (to - from) * eased);
+
+      if (spanRef.current) {
+        spanRef.current.textContent = prefix + (currentVal || 0).toLocaleString();
+      }
+      if (progress < 1) {
+        animId = requestAnimationFrame(step);
+      }
     };
-    animRef.current = requestAnimationFrame(step);
-    return () => { if (animRef.current) cancelAnimationFrame(animRef.current); };
-  }, [value, duration]);
-  return <>{prefix}{(display || 0).toLocaleString()}</>;
+
+    animId = requestAnimationFrame(step);
+    return () => { if (animId) cancelAnimationFrame(animId); };
+  }, [value, duration, prefix]);
+
+  return <span ref={spanRef}>{prefix}{(value || 0).toLocaleString()}</span>;
 }
 
 // ─── "+" overlay button ────────────────────────────────────────────────
@@ -109,8 +121,8 @@ function BBJSlot({ top, left, width, height, value, animating, fontSize, onClick
 
 const BG = {
   player: { img: '/assets/club-arena/wallet_bg.png', ar: '572 / 600' },
-  owner:  { img: '/assets/club-arena/wallet_owner_bg_web.png', ar: '572 / 600' },
-  union:  { img: '/assets/club-arena/wallet_union_bg.png', ar: '600 / 630' },
+  owner: { img: '/assets/club-arena/wallet_owner_bg_web.png', ar: '572 / 600' },
+  union: { img: '/assets/club-arena/wallet_union_bg.png', ar: '600 / 630' },
 };
 
 export default function DynamicWallet({
@@ -135,7 +147,8 @@ export default function DynamicWallet({
 
   // ═══ UNION LAYOUT (6 slots) ═════════════════════════════════════════
   if (isUnion) return (
-    <div style={{ position: 'relative', width: containerW, aspectRatio: bg.ar,
+    <div style={{
+      position: 'relative', width: containerW, aspectRatio: bg.ar,
       backgroundImage: `url(${bg.img})`, backgroundSize: 'contain',
       backgroundRepeat: 'no-repeat', backgroundPosition: 'center',
       userSelect: 'none', flexShrink: 0,
@@ -145,7 +158,8 @@ export default function DynamicWallet({
         position: 'absolute', top: '8%', left: '18%', width: '50%', height: '5.5%',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
-        <span style={{ color: '#E0F7FF', fontSize: `${fs(15)}px`, fontWeight: 800,
+        <span style={{
+          color: '#E0F7FF', fontSize: `${fs(15)}px`, fontWeight: 800,
           fontFamily: "'Rajdhani', 'Orbitron', monospace",
           textShadow: '0 0 8px rgba(100,200,255,0.8)', letterSpacing: 1,
         }}><AnimatedCounter value={diamondBalance} prefix="💎 " /></span>
@@ -177,7 +191,8 @@ export default function DynamicWallet({
   // ═══ PLAYER / OWNER LAYOUT (5 slots) ════════════════════════════════
   const topRowVal = isOwner && clubBankBalance !== null ? clubBankBalance : chipBalance;
   return (
-    <div style={{ position: 'relative', width: containerW, aspectRatio: bg.ar,
+    <div style={{
+      position: 'relative', width: containerW, aspectRatio: bg.ar,
       backgroundImage: `url(${bg.img})`, backgroundSize: 'contain',
       backgroundRepeat: 'no-repeat', backgroundPosition: 'center',
       userSelect: 'none', flexShrink: 0,
@@ -187,7 +202,8 @@ export default function DynamicWallet({
         position: 'absolute', top: '9.5%', left: '25%', width: '48%', height: '6%',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
-        <span style={{ color: '#E0F7FF', fontSize: `${fs(16)}px`, fontWeight: 800,
+        <span style={{
+          color: '#E0F7FF', fontSize: `${fs(16)}px`, fontWeight: 800,
           fontFamily: "'Rajdhani', 'Orbitron', monospace",
           textShadow: '0 0 8px rgba(100,200,255,0.8), 0 0 20px rgba(100,200,255,0.3)',
           letterSpacing: 1,

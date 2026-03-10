@@ -69,7 +69,7 @@ BEGIN
     VALUES (p_idempotency_key, p_user_id, 'buyin', 'processing');
 
     -- 3. LOCK Profile row (Prevent multiple requests reading stale balances)
-    SELECT diamond_balance INTO v_profile_diamonds
+    SELECT diamonds INTO v_profile_diamonds
     FROM public.profiles
     WHERE id = p_user_id
     FOR UPDATE;
@@ -100,7 +100,7 @@ BEGIN
 
     -- 5. Execute Deductions and Additions
     UPDATE public.profiles
-    SET diamond_balance = diamond_balance - p_diamond_cost
+    SET diamonds = diamonds - p_diamond_cost
     WHERE id = p_user_id;
 
     UPDATE public.club_members

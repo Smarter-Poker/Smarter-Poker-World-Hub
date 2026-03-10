@@ -1166,6 +1166,63 @@ export default function ClubMessages() {
     };
 
     // ═══════════════════════════════════════════════════════════════════════
+    //  REAL-TIME MESSAGE SYNC
+    // ═══════════════════════════════════════════════════════════════════════
+
+    useEffect(() => {
+        if (!activeConversation?.id || !user?.id) return;
+
+        const messageChannel = supabase
+            .channel(`messages:${activeConversation.id}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'social_messages',
+                    filter: `conversation_id=eq.${activeConversation.id}`
+                },
+                (payload) => {
+                    if (payload.eventType === 'INSERT') {
+                        const newMsg = payload.new;
+                        if (newMsg.sender_id === user.id) return; // Ignore own
+
+                        const fullMsg = { ...newMsg, profiles: activeConversation.otherUser };
+                        setMessages(prev => {
+                            if (prev.some(m => m.id === newMsg.id)) return prev;
+                            return [...prev, fullMsg];
+                        });
+
+                        // Tell other components a new msg arrived
+                        if (typeof busEmit.messageReceived === 'function') {
+                            busEmit.messageReceived(activeConversation.id, newMsg.sender_id);
+                        }
+
+                        // Auto-mark read if tab is active
+                        if (document.visibilityState === 'visible') {
+                            supabase.rpc('fn_mark_conversation_read', {
+                                p_conversation_id: activeConversation.id,
+                                p_user_id: user.id
+                            }).then(() => {
+                                if (typeof busEmit.dataMutated === 'function') {
+                                    busEmit.dataMutated('message_read');
+                                }
+                            });
+                        }
+                    } else if (payload.eventType === 'UPDATE') {
+                        const updatedMsg = payload.new;
+                        setMessages(prev => prev.map(m => m.id === updatedMsg.id ? { ...m, ...updatedMsg } : m));
+                    }
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(messageChannel);
+        };
+    }, [activeConversation?.id, user?.id]);
+
+    // ═══════════════════════════════════════════════════════════════════════
     //  TYPING INDICATORS
     // ═══════════════════════════════════════════════════════════════════════
 

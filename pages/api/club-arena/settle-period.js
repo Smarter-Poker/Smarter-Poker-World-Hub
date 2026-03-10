@@ -231,49 +231,88 @@ export default async function handler(req, res) {
       const commissionHistory = [];
       let totalCommissions = 0;
 
+      const agentsMap = new Map();
+      const agentEarnings = new Map();
+
+      for (const agent of (agents || [])) {
+        agentsMap.set(agent.id, agent);
+        // Initialize earnings template for everyone
+        agentEarnings.set(agent.id, {
+          id: agent.id,
+          commission_rate: agent.commission_rate,
+          direct_rake: agent.weekly_rake_generated || 0,
+          direct_commission: 0,
+          upline_commission: 0,
+          total_subagent_deductions: 0 // Optional tracking for history
+        });
+      }
+
       for (const agent of (agents || [])) {
         const grossRake = agent.weekly_rake_generated || 0;
         if (grossRake <= 0) continue;
 
-        // Commission = agent's rate × gross rake from their players
-        const commission = Math.round(grossRake * agent.commission_rate * 100) / 100;
+        const earningsLog = agentEarnings.get(agent.id);
+        const directEarned = Math.round(grossRake * agent.commission_rate * 100) / 100;
+        earningsLog.direct_commission += directEarned;
 
-        // If agent has a parent agent, calculate sub-agent split
-        let subAgentDeduction = 0;
-        if (agent.parent_agent_id) {
-          const { data: parentAgent } = await supabaseAdmin
-            .from('agents')
-            .select('commission_rate')
-            .eq('id', agent.parent_agent_id)
-            .maybeSingle();
-          if (parentAgent) {
-            // Parent gets the difference between their rate and sub-agent's rate
-            subAgentDeduction = Math.round(grossRake * (parentAgent.commission_rate - agent.commission_rate) * 100) / 100;
-            if (subAgentDeduction < 0) subAgentDeduction = 0;
+        // ── MLM RECURSIVE UPLINE TRAVERSAL ──
+        // Pass the remaining delta up the tree to parents with higher rates
+        let currentAgent = agent;
+        let previousRate = agent.commission_rate;
+        const visitedTree = new Set([agent.id]); // Prevent infinite MLM loops
+
+        while (currentAgent.parent_agent_id) {
+          if (visitedTree.has(currentAgent.parent_agent_id)) {
+            console.error(`[CRITICAL] Infinite MLM loop detected at agent ${currentAgent.id}. Breaking upline propagation.`);
+            break;
           }
-        }
 
-        const netCommission = commission - subAgentDeduction;
+          const parentAgent = agentsMap.get(currentAgent.parent_agent_id);
+          if (!parentAgent) break; // Parent left club or deleted
+
+          visitedTree.add(parentAgent.id);
+
+          // Calculate Delta (Parent Rate - Previous Child Rate)
+          if (parentAgent.commission_rate > previousRate) {
+            const rateDiff = parentAgent.commission_rate - previousRate;
+            const passUpAmount = Math.round(grossRake * rateDiff * 100) / 100;
+
+            const parentEarnings = agentEarnings.get(parentAgent.id);
+            if (parentEarnings) {
+              parentEarnings.upline_commission += passUpAmount;
+            }
+            previousRate = parentAgent.commission_rate;
+          }
+
+          currentAgent = parentAgent;
+        }
+      }
+
+      // Format final inserts for non-zero earners
+      totalCommissions = 0;
+      for (const [agentId, earnings] of agentEarnings.entries()) {
+        const netCommission = earnings.direct_commission + earnings.upline_commission;
+        if (netCommission <= 0) continue;
 
         commissionRecords.push({
           period_id: pid,
-          agent_id: agent.id,
-          gross_rake: grossRake,
-          commission_rate: agent.commission_rate,
+          agent_id: agentId,
+          gross_rake: earnings.direct_rake, // Track their physical direct generation
+          commission_rate: earnings.commission_rate,
           commission_amount: netCommission,
           status: 'pending',
         });
 
         commissionHistory.push({
           club_id: clubId,
-          agent_id: agent.id,
+          agent_id: agentId,
           period_id: pid,
           period_start: period.start_at,
           period_end: new Date().toISOString(), // MANDATE 2: toISOString() is always UTC
-          player_rake_generated: grossRake,
-          commission_rate: agent.commission_rate,
-          commission_earned: commission,
-          sub_agent_commission: subAgentDeduction,
+          player_rake_generated: earnings.direct_rake,
+          commission_rate: earnings.commission_rate,
+          commission_earned: netCommission, // Re-mapped: Direct + Upline combined
+          sub_agent_commission: 0, // Archival field - delta approach removes need for gross deductions
           net_commission: netCommission,
           status: 'pending',
         });
