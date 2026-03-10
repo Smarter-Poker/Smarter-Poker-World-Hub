@@ -164,6 +164,13 @@ const MessageBubble = ({ message, isOwn, showAvatar, user, onAction }) => (
             {/* P4-1: Pin indicator */}
             {message.isPinned && <span className="pin-indicator" title="Pinned">📍</span>}
 
+            {/* P6-2: Priority flag */}
+            {message.priorityFlag && message.priorityFlag !== 'normal' && (
+                <span className={`priority-flag ${message.priorityFlag}`}>
+                    {PRIORITY_FLAGS.find(f => f.value === message.priorityFlag)?.emoji} {message.priorityFlag}
+                </span>
+            )}
+
             {/* P4-7: Thread reply indicator */}
             {message.threadParentText && (
                 <div className="thread-reply-indicator" onClick={() => onAction?.('viewThread', message)}>
@@ -262,6 +269,7 @@ const MessageBubble = ({ message, isOwn, showAvatar, user, onAction }) => (
                 <button onClick={() => onAction?.('thread', message)} title="Reply in Thread">💬</button>
                 <button onClick={() => onAction?.('react', message)} title="React">😀</button>
                 <button onClick={() => onAction?.('edit', message)} title="Edit">✏️</button>
+                <button onClick={() => onAction?.('priority', message)} title="Set Priority">🚨</button>
                 {LABEL_CATEGORIES.map(cat => (
                     <button key={cat} onClick={() => onAction?.('label', message, cat)} title={`Label: ${cat}`} style={{ fontSize: 10, padding: '2px 4px' }}>
                         {cat === 'Important' ? '🔴' : cat === 'Action Required' ? '🟠' : cat === 'Tournament Info' ? '🟢' : '💰'}
@@ -913,7 +921,9 @@ export const ChatWindow = ({
                         reactionList: prefs.reactions[msg.id] || [],
                         isEdited: (prefs.editHistory[msg.id] || []).length > 0,
                         isOwn: msg.senderId === currentUser?.id,
-                        readStatus: msg.readStatus || (msg.senderId === currentUser?.id ? 'sent' : null)
+                        readStatus: msg.readStatus || (msg.senderId === currentUser?.id ? 'sent' : null),
+                        priorityFlag: prefs.priorityFlags?.[msg.id] || null,
+                        deliveryStatus: msg.deliveryStatus || 'delivered'
                     };
 
                     const isOwn = enrichedMsg.senderId === currentUser?.id;
