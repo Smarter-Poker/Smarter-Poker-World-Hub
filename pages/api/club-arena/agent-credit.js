@@ -14,6 +14,7 @@ const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 const { sanitizeNote, safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
 const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
+import { notifyUser } from '../../../src/lib/club-arena/notify';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -158,6 +159,14 @@ export default async function handler(req, res) {
         notes: notes || `Credit line issued: +${amount.toLocaleString()} (limit now ${newLimit.toLocaleString()})`,
       });
 
+      notifyUser(supabaseAdmin, {
+        userId: agentUserId,
+        type: 'agent_credit_issued',
+        title: 'Credit Line Updated',
+        message: `Your credit line has been updated to ${newLimit.toLocaleString()} chips.`,
+        data: { clubId, newLimit }
+      });
+
       const resultData = { action: 'credit_issued', previousLimit: agentMember.credit_limit || 0, newLimit };
       cacheResponse(req, 200, { success: true, ...resultData });
       result = resultData;
@@ -229,6 +238,14 @@ export default async function handler(req, res) {
         notes: notes || `Prepaid chips issued: ${amount.toLocaleString()}`,
       });
 
+      notifyUser(supabaseAdmin, {
+        userId: agentUserId,
+        type: 'agent_prepaid_added',
+        title: 'Prepaid Chips Added',
+        message: `${amount.toLocaleString()} prepaid chips have been added to your agent balance.`,
+        data: { clubId, amount }
+      });
+
       // Read fresh balances for accurate response
       const { data: freshClub } = await supabaseAdmin.from('clubs').select('chip_treasury').eq('id', clubId).maybeSingle();
       const { data: freshMember } = await supabaseAdmin.from('club_members').select('chip_balance').eq('club_id', clubId).eq('user_id', agentUserId).maybeSingle();
@@ -274,6 +291,14 @@ export default async function handler(req, res) {
         .from('agents')
         .update({ credit_limit: finalLimit })
         .eq('id', agentRecord.id);
+
+      notifyUser(supabaseAdmin, {
+        userId: agentUserId,
+        type: 'agent_credit_revoked',
+        title: 'Credit Line Revoked',
+        message: `Your credit line has been reduced by ${amount.toLocaleString()} chips.`,
+        data: { clubId, amount }
+      });
 
       result = { action: 'credit_revoked', previousLimit: currentLimit, newLimit: finalLimit, reduced: currentLimit - finalLimit };
     }

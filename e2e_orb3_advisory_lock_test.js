@@ -92,7 +92,7 @@ async function runConcurrencyTest() {
     }
 
     // Ensure the tournament is fully written before we blast it
-    const { data: verifyTourn } = await supabase.from('club_tournaments').select('id').eq('id', testTournamentId).single();
+    const { data: verifyTourn } = await supabase.from('club_tournaments').select('id').eq('id', testTournamentId).maybeSingle();
     if (!verifyTourn) {
         console.error('❌ Failed to provision test tournament');
         process.exit(1);

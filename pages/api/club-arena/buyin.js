@@ -13,10 +13,9 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
-const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
-const { isUUID, validateAmount, rejectBadPayload } = require('../../../src/lib/club-arena/validate');
 const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
 const { safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
+import { BuyInRequestSchema, Orb1HeadersSchema } from '../../../src/contracts/orb1_escrow';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -26,27 +25,24 @@ const supabaseAdmin = createClient(
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
-  // RED TEAM: Payload size + field allowlist (shared utility)
-  if (rejectBadPayload(req, res, ['clubId', 'chipAmount'])) return;
+  // 1. Zod Contract Validation (Headers)
+  const headerParse = Orb1HeadersSchema.safeParse(req.headers);
+  if (!headerParse.success) {
+    return res.status(400).json({ success: false, error: 'Missing or invalid Idempotency Key / Auth header' });
+  }
+  const idempotencyKey = headerParse.data['x-idempotency-key'];
+  const token = headerParse.data.authorization.replace('Bearer ', '');
 
-  // Idempotency guard — prevent double-charges on laggy mobile networks
-  if (checkIdempotency(req, res)) return;
-
-  const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) return res.status(401).json({ error: 'No auth token' });
-
+  // 2. Auth Verification
   const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
   if (authError || !user) return res.status(401).json({ error: 'Invalid token' });
 
-  const { clubId, chipAmount: rawChipAmount } = req.body;
-
-  // RED TEAM: Strict UUID validation (blocks SQL injection via clubId)
-  if (!isUUID(clubId)) return res.status(400).json({ error: 'Invalid clubId format' });
-
-  // RED TEAM: Strict amount validation (min 100, max 100M, no fractionals)
-  const amtResult = validateAmount(rawChipAmount, 100, 100_000_000);
-  if (!amtResult.valid) return res.status(400).json({ error: amtResult.error });
-  const amount = amtResult.value;
+  // 3. Zod Contract Validation (Payload)
+  const bodyParse = BuyInRequestSchema.safeParse(req.body);
+  if (!bodyParse.success) {
+    return res.status(400).json({ success: false, error: 'Invalid payload schema', details: bodyParse.error.errors });
+  }
+  const { clubId, chipAmount: amount } = bodyParse.data;
 
   // Rate limit
   if (!applyRateLimit(req, res, 'club-arena/buyin')) return;
@@ -59,12 +55,14 @@ export default async function handler(req, res) {
   const diamondCost = Math.ceil((amount / 100) * 38);
 
   try {
-    // Atomic buy-in via RPC — prevents TOCTOU race on diamonds/chips
-    const { data: result, error: rpcErr } = await supabaseAdmin.rpc('fn_atomic_buyin', {
+    // Phase 2: Domain Logic Row Locking
+    // Atomic buy-in via RPC — handles idempotency cache layer and TOCTOU races
+    const { data: result, error: rpcErr } = await supabaseAdmin.rpc('orb1_buyin_transaction', {
       p_user_id: user.id,
       p_club_id: clubId,
       p_chip_amount: amount,
       p_diamond_cost: diamondCost,
+      p_idempotency_key: idempotencyKey
     });
 
     if (rpcErr) throw rpcErr;
@@ -72,12 +70,15 @@ export default async function handler(req, res) {
     if (!result?.success) {
       const status = result?.error === 'Insufficient diamonds' ? 400
         : result?.error === 'Not a club member' ? 404
-          : result?.error === 'Profile not found' ? 404 : 400;
+          : result?.error === 'Profile not found' ? 404 : 409;
       return res.status(status).json(result);
     }
 
-    logAudit(supabaseAdmin, { actionType: 'buyin', userId: user.id, clubId, amount, ip: extractIP(req), details: { diamondCost, chipAmount: amount, ...result } });
-    cacheResponse(req, 200, result);
+    // Only log if not cached hit
+    if (!result.cached) {
+      logAudit(supabaseAdmin, { actionType: 'buyin', userId: user.id, clubId, amount, ip: extractIP(req), details: { diamondCost, chipAmount: amount, ...result } });
+    }
+
     return res.status(200).json(result);
   } catch (err) {
     console.error('[buyin]', err);
