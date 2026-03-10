@@ -44,6 +44,7 @@ import {
 } from './TableThemes';
 import ThemePicker from './ThemePicker';
 import PlayerNoteModal, { COLOR_LABELS } from './PlayerNoteModal';
+import PlayerQuickView from './PlayerQuickView';
 import { eventBus, EventType } from '../../engine/EventBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1042,6 +1043,11 @@ function PlayerSeat({
           textShadow: '0 1px 4px rgba(0,0,0,0.8)',
           lineHeight: 1.2,
         }}>
+          {noteType && noteType !== 'unknown' && (
+            <span style={{ marginRight: 2, fontSize: isHero ? 11 : 9 }}>
+              {({ fish: '🐟', reg: '🎯', shark: '🦈', whale: '🐋', nit: '🐢', lag: '🔥', tag: '🎯' })[noteType] || ''}
+            </span>
+          )}
           {player?.displayName || 'Player'}
           {isSittingOut && ' 💤'}
           {isDisconnected && ' 📡'}
@@ -3417,7 +3423,7 @@ function LivePokerTable({
   const {
     tableState, myCards, legalActions, timerState,
     chatMessages, result, lastHandResult, error, connected, send,
-    sessionStats, tableAlert, seatOffer,
+    sessionStats, tableAlert, seatOffer, spinReveal,
   } = useTableConnection({ supabase, tableId, userId });
 
   // Notify parent (MultiTableView) when action state changes
@@ -3450,20 +3456,23 @@ function LivePokerTable({
   // Sound manager
   const soundRef = useRef(null);
   const [soundEnabled, setSoundEnabled] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('poker-sound-enabled');
-      return stored !== 'false'; // default true
-    }
-    return true;
+    try { return localStorage.getItem('poker-sound-enabled') !== 'false'; } catch { return true; }
   });
+  const [soundVolume, setSoundVolume] = useState(() => {
+    try { return parseFloat(localStorage.getItem('poker-sound-volume') || '0.4'); } catch { return 0.4; }
+  });
+  const [showSoundPanel, setShowSoundPanel] = useState(false);
   if (!soundRef.current && typeof window !== 'undefined') {
     soundRef.current = new PokerSoundManager();
   }
-  // Sync mute state
+  // Sync mute + volume state
   useEffect(() => {
-    if (soundRef.current) soundRef.current.muted = !soundEnabled;
-    if (typeof window !== 'undefined') localStorage.setItem('poker-sound-enabled', String(soundEnabled));
-  }, [soundEnabled]);
+    if (soundRef.current) { soundRef.current.muted = !soundEnabled; soundRef.current.setVolume(soundVolume); }
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('poker-sound-enabled', String(soundEnabled));
+      localStorage.setItem('poker-sound-volume', String(soundVolume));
+    }
+  }, [soundEnabled, soundVolume]);
 
   // Sound triggers based on game events
   const prevPhaseRef = useRef(null);
@@ -3543,6 +3552,7 @@ function LivePokerTable({
   }, [seatOffer, isSitting, buyInSeat]);
 
   const [noteTarget, setNoteTarget] = useState(null); // { id, displayName } for notes modal
+  const [quickViewTarget, setQuickViewTarget] = useState(null); // { id, displayName, avatarUrl, stack, stats }
   const [playerNotes, setPlayerNotes] = useState({}); // { targetUserId: { color_label, player_type, ... } }
 
   // Load player notes for all seated opponents
@@ -4012,7 +4022,7 @@ function LivePokerTable({
               isCurrentActor={seat.isCurrentActor}
               timerState={seat.isCurrentActor ? timerState : null}
               onClick={() => setBuyInSeat(i)}
-              onNote={pid && String(pid) !== String(userId) ? () => setNoteTarget({ id: pid, displayName: seat.player?.displayName }) : undefined}
+              onNote={pid && String(pid) !== String(userId) ? () => setQuickViewTarget({ id: pid, displayName: seat.player?.displayName, avatarUrl: seat.player?.avatarUrl, stack: seat.stack, stats: seat.player?.stats || {} }) : undefined}
               noteColor={noteColorVal}
               noteType={noteData?.player_type}
               isWinner={result?.winners?.some(w => String(w.playerId) === String(seat.player?.id))}
@@ -4421,33 +4431,59 @@ function LivePokerTable({
               boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
             }}
           >
-            <div style={{ textAlign: 'center', marginBottom: 8 }}>
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              style={{ textAlign: 'center', marginBottom: 8 }}
+            >
               <span style={{ fontSize: 14, color: '#FFD700', fontWeight: 700 }}>
                 🃏 Run It {result.runItMultiple.numBoards === 2 ? 'Twice' : 'Three Times'}
               </span>
-            </div>
+            </motion.div>
+            {/* Board split divider animation */}
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: '100%' }}
+              transition={{ delay: 0.3, duration: 0.5 }}
+              style={{ height: 2, background: 'linear-gradient(90deg, transparent, #FFD700, transparent)', marginBottom: 8, borderRadius: 1 }}
+            />
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
               {(result.runItMultiple.boards || []).map((b, i) => (
-                <div key={i} style={{
-                  background: 'rgba(0,0,0,0.4)', borderRadius: 10, padding: '8px 12px',
-                  border: '1px solid rgba(255,255,255,0.1)', textAlign: 'center', minWidth: 80,
-                }}>
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: i === 0 ? -30 : 30 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.5 + i * 0.2, type: 'spring', stiffness: 200 }}
+                  style={{
+                    background: 'rgba(0,0,0,0.4)', borderRadius: 10, padding: '8px 12px',
+                    border: `1px solid ${b.isWinner ? '#FFD700' : 'rgba(255,255,255,0.1)'}`,
+                    textAlign: 'center', minWidth: 80,
+                    boxShadow: b.isWinner ? '0 0 12px rgba(255,215,0,0.3)' : 'none',
+                  }}
+                >
                   <div style={{ color: '#B0B3B8', fontSize: 10, marginBottom: 4 }}>Board {b.boardIndex}</div>
                   <div style={{ display: 'flex', gap: 3, justifyContent: 'center', marginBottom: 4 }}>
                     {(b.cards || []).slice(-5).map((card, ci) => (
-                      <span key={ci} style={{
-                        display: 'inline-block', background: '#fff', color: card?.includes('h') || card?.includes('d') ? '#e53935' : '#000',
-                        borderRadius: 3, padding: '1px 3px', fontSize: 10, fontWeight: 700,
-                        border: '1px solid #ddd',
-                      }}>
+                      <motion.span
+                        key={ci}
+                        initial={{ opacity: 0, rotateY: 180 }}
+                        animate={{ opacity: 1, rotateY: 0 }}
+                        transition={{ delay: 0.7 + i * 0.2 + ci * 0.1 }}
+                        style={{
+                          display: 'inline-block', background: '#fff', color: (typeof card === 'string' && (card.includes('h') || card.includes('d'))) ? '#e53935' : '#000',
+                          borderRadius: 3, padding: '1px 3px', fontSize: 10, fontWeight: 700,
+                          border: '1px solid #ddd',
+                        }}
+                      >
                         {typeof card === 'string' ? card : card?.display || '?'}
-                      </span>
+                      </motion.span>
                     ))}
                   </div>
                   <div style={{ color: '#4ade80', fontSize: 13, fontWeight: 700 }}>
                     {(b.payout || 0).toLocaleString()}
                   </div>
-                </div>
+                </motion.div>
               ))}
             </div>
           </motion.div>
@@ -4698,19 +4734,91 @@ function LivePokerTable({
         )}
       </AnimatePresence>
 
-      {/* ═══════════ QUICK SOUND TOGGLE ═══════════ */}
-      <button
-        onClick={() => setSoundEnabled(prev => !prev)}
-        style={{
-          position: 'fixed', top: 8, right: 8, zIndex: 250,
-          background: 'rgba(0,0,0,0.6)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)',
-          borderRadius: 8, padding: '6px 10px', fontSize: 14, cursor: 'pointer',
-          backdropFilter: 'blur(8px)',
-        }}
-        title={soundEnabled ? 'Mute' : 'Unmute'}
-      >
-        {soundEnabled ? '🔊' : '🔇'}
-      </button>
+      {/* ═══════════ SPIN MULTIPLIER REVEAL ═══════════ */}
+      <AnimatePresence>
+        {spinReveal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 200,
+              background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.9) 100%)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column',
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0, rotate: -180 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ type: 'spring', damping: 10, stiffness: 100, delay: 0.3 }}
+              style={{
+                width: 160, height: 160, borderRadius: '50%',
+                background: 'radial-gradient(circle, #FFD700 0%, #FF8C00 50%, #B8860B 100%)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 0 60px rgba(255,215,0,0.6), 0 0 120px rgba(255,215,0,0.3)',
+                border: '4px solid rgba(255,255,255,0.3)',
+              }}
+            >
+              <motion.span
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.8, type: 'spring', stiffness: 200 }}
+                style={{ fontSize: 48, fontWeight: 900, color: '#fff', textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}
+              >
+                {spinReveal.multiplier}x
+              </motion.span>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.2 }}
+              style={{ marginTop: 20, fontSize: 18, fontWeight: 700, color: '#FFD700', textShadow: '0 2px 8px rgba(0,0,0,0.8)' }}
+            >
+              🎰 SPIN & GO
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ═══════════ SOUND CONTROLS ═══════════ */}
+      <div style={{ position: 'fixed', top: 8, right: 8, zIndex: 250 }}>
+        <button
+          onClick={() => setSoundEnabled(prev => !prev)}
+          onContextMenu={(e) => { e.preventDefault(); setShowSoundPanel(p => !p); }}
+          onDoubleClick={() => setShowSoundPanel(p => !p)}
+          style={{
+            background: 'rgba(0,0,0,0.6)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: 8, padding: '6px 10px', fontSize: 14, cursor: 'pointer',
+            backdropFilter: 'blur(8px)',
+          }}
+          title="Tap: mute/unmute • Double-tap: volume"
+        >
+          {soundEnabled ? '🔊' : '🔇'}
+        </button>
+        {showSoundPanel && (
+          <div style={{
+            position: 'absolute', top: '100%', right: 0, marginTop: 4,
+            background: 'rgba(15,15,20,0.95)', border: '1px solid rgba(255,255,255,0.12)',
+            borderRadius: 10, padding: '12px 14px', width: 180,
+            backdropFilter: 'blur(20px)', boxShadow: '0 8px 30px rgba(0,0,0,0.5)',
+          }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#B0B3B8', marginBottom: 8, textTransform: 'uppercase' }}>Volume</div>
+            <input
+              type="range" min="0" max="100" step="5"
+              value={Math.round(soundVolume * 100)}
+              onChange={(e) => setSoundVolume(parseInt(e.target.value) / 100)}
+              style={{ width: '100%', accentColor: '#2374E1', marginBottom: 6 }}
+            />
+            <div style={{ fontSize: 11, color: '#E4E6EB', textAlign: 'center' }}>{Math.round(soundVolume * 100)}%</div>
+            <button
+              onClick={() => setShowSoundPanel(false)}
+              style={{ width: '100%', marginTop: 8, background: '#3E4042', color: '#E4E6EB', border: 'none', borderRadius: 6, padding: '6px 0', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+            >
+              Done
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* ═══════════ ADMIN TABLE PANEL ═══════════ */}
       {isAdmin && (
@@ -4739,6 +4847,19 @@ function LivePokerTable({
           />
         )}
       </AnimatePresence>
+
+      {/* ═══════════ PLAYER QUICK-VIEW STAT CARD ═══════════ */}
+      <PlayerQuickView
+        player={quickViewTarget}
+        isOpen={!!quickViewTarget}
+        onClose={() => setQuickViewTarget(null)}
+        onOpenNotes={() => {
+          const target = quickViewTarget;
+          setQuickViewTarget(null);
+          setNoteTarget({ id: target.id, displayName: target.displayName });
+        }}
+        note={quickViewTarget ? playerNotes[quickViewTarget.id] : null}
+      />
 
       {/* ═══════════ PLAYER NOTES MODAL ═══════════ */}
       <PlayerNoteModal

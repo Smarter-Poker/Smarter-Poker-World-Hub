@@ -61,6 +61,7 @@ export function useTableConnection({ supabase, tableId, userId }) {
   const [chatMessages, setChatMessages] = useState([]);
   const [result, setResult] = useState(null);
   const [lastHandResult, setLastHandResult] = useState(null); // Persists after result clears
+  const [spinReveal, setSpinReveal] = useState(null); // { multiplier, payouts }
   const [error, setError] = useState(null);
   const [tableAlert, setTableAlert] = useState(null);
   const [seatOffer, setSeatOffer] = useState(null); // { seatIndex, timeout, offeredAt }
@@ -330,6 +331,16 @@ export function useTableConnection({ supabase, tableId, userId }) {
           setResult(prev => ({ ...prev, allInEquity: data.equity }));
         }
         requestState();
+        break;
+      case 'spin_multiplier':
+        // Spin & Go: multiplier reveal before first hand
+        setChatMessages(prev => [...prev.slice(-100), {
+          type: 'dealer',
+          text: `🎰 Spin multiplier: ${data.multiplier}x!`,
+          ts: Date.now(),
+        }]);
+        setSpinReveal(data);
+        setTimeout(() => setSpinReveal(null), 5000);
         break;
       case 'seven_deuce_bonus':
         // 7-2 bonus game — winner collected bonus from other players
@@ -602,7 +613,7 @@ export function useTableConnection({ supabase, tableId, userId }) {
 
   return {
     tableState, myCards, legalActions, timerState, chatMessages,
-    result, lastHandResult, error, connected, tableAlert, seatOffer,
+    result, lastHandResult, error, connected, tableAlert, seatOffer, spinReveal,
     sessionStats: sessionStatsRef.current,
     send, requestState,
     sendAction, sitDown, standUp, sitOut, sitIn, addChips, sendChat,

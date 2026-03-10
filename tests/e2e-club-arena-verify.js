@@ -159,6 +159,21 @@ c('Chat history loaded on connect', () => fs.readFileSync('src/hooks/useTableCon
 c('Admin: template schedule UI', () => fs.readFileSync('pages/hub/club-arena/admin.js', 'utf8').includes('Saved Templates'));
 c('Admin: schedule toggle button', () => fs.readFileSync('pages/hub/club-arena/admin.js', 'utf8').includes("Schedule"));
 
+// PHASE 4: Remaining competitive features
+c('PlayerQuickView component exists', () => fs.existsSync('src/components/poker/PlayerQuickView.jsx'));
+c('PlayerQuickView imported in table', () => fs.readFileSync('src/components/poker/LivePokerTable.jsx', 'utf8').includes("import PlayerQuickView"));
+c('PlayerQuickView wired (quickViewTarget)', () => fs.readFileSync('src/components/poker/LivePokerTable.jsx', 'utf8').includes('quickViewTarget'));
+c('Avatar tap opens quick-view not notes', () => fs.readFileSync('src/components/poker/LivePokerTable.jsx', 'utf8').includes('setQuickViewTarget'));
+c('Sound volume state', () => fs.readFileSync('src/components/poker/LivePokerTable.jsx', 'utf8').includes('soundVolume'));
+c('Sound volume slider', () => fs.readFileSync('src/components/poker/LivePokerTable.jsx', 'utf8').includes('type="range"') && fs.readFileSync('src/components/poker/LivePokerTable.jsx', 'utf8').includes('setSoundVolume'));
+c('Sound volume persists to localStorage', () => fs.readFileSync('src/components/poker/LivePokerTable.jsx', 'utf8').includes('poker-sound-volume'));
+c('Player type badge on seat', () => fs.readFileSync('src/components/poker/LivePokerTable.jsx', 'utf8').includes("noteType && noteType !== 'unknown'"));
+c('Spin reveal state in hook', () => fs.readFileSync('src/hooks/useTableConnection.js', 'utf8').includes('spinReveal'));
+c('Spin reveal event handler', () => fs.readFileSync('src/hooks/useTableConnection.js', 'utf8').includes("case 'spin_multiplier'"));
+c('Spin reveal animation overlay', () => fs.readFileSync('src/components/poker/LivePokerTable.jsx', 'utf8').includes('SPIN & GO'));
+c('RIT board-split animation', () => fs.readFileSync('src/components/poker/LivePokerTable.jsx', 'utf8').includes("x: i === 0 ? -30 : 30"));
+c('RIT cards flip animation', () => fs.readFileSync('src/components/poker/LivePokerTable.jsx', 'utf8').includes('rotateY: 180'));
+
 console.log();
 console.log('═══════════════════════════════════');
 console.log(pass + '/' + total);
