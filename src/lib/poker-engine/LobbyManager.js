@@ -20,6 +20,20 @@ const { GAME_VARIANT } = require('./GameStateMachine');
 const { BETTING_STRUCTURES } = require('./ActionValidator');
 const HorsePokerBrain = require('./HorsePokerBrain');
 
+// ── Phase mapping: engine phases → display phases ──
+const DISPLAY_PHASE = {
+  idle: 'idle',
+  post_blinds: 'dealing',
+  deal: 'dealing',
+  preflop: 'preflop',
+  flop: 'flop',
+  discard: 'flop',       // Pineapple discard happens during flop
+  turn: 'turn',
+  river: 'river',
+  showdown: 'showdown',
+  payout: 'showdown',
+};
+
 // ============ CONSTANTS ============
 
 const EMPTY_TABLE_TIMEOUT_MS = 300000; // 5 min before closing empty table
@@ -190,6 +204,9 @@ class LobbyManager {
     // Note: sync is created AFTER this call, so we pass a getter
     const getSyncForTable = () => this.tables.get(config.tableId)?.sync;
     this._wireHandHistory(table, history, config, getSyncForTable);
+
+    // Wire live mini-state broadcasting for Lobby observers
+    this._wireMiniStateBroadcast(table, config.tableId);
 
     // Wire state serializer for crash recovery
     const serializer = new StateSerializer(config.tableId, this.supabase);
@@ -996,6 +1013,95 @@ class LobbyManager {
       }).catch(err => {
         console.error('[LobbyManager] Auto-create table failed:', err.message);
       });
+    }
+  }
+
+  /**
+   * Wire mini-state real-time broadcast to table events.
+   * Pushes zero-latency updates to the 'lobby' channel.
+   * @private
+   */
+  _wireMiniStateBroadcast(table, tableId) {
+    const triggerUpdate = () => {
+      // Debounce to prevent rapid sequential events
+      if (table._miniStateTimeout) clearTimeout(table._miniStateTimeout);
+      table._miniStateTimeout = setTimeout(() => {
+        this._broadcastMiniState(tableId);
+      }, 50);
+    };
+
+    table.on('player_seated', triggerUpdate);
+    table.on('player_left', triggerUpdate);
+    table.on('hand_start', triggerUpdate);
+    table.on('action_processed', triggerUpdate);
+    table.on('street_start', triggerUpdate);
+    table.on('cards_dealt', triggerUpdate);
+    table.on('showdown', triggerUpdate);
+    table.on('payout', triggerUpdate);
+  }
+
+  /**
+   * Calculate and broadcast a single table's mini state payload.
+   * @private
+   */
+  _broadcastMiniState(tableId) {
+    if (!this._lobbyChannel) return;
+    const entry = this.tables.get(tableId);
+    if (!entry || !entry.table) return;
+
+    try {
+      const state = entry.table.getState(null);
+      const enginePhase = state.game?.phase || 'idle';
+      const displayPhase = DISPLAY_PHASE[enginePhase] || enginePhase;
+      const gameActionProps = state.game?.actionSequence || {}; // if any exists
+
+      const seats = (state.seats || []).map(s => {
+        if (!s.player) return { seatIndex: s.seatIndex, occupied: false };
+        
+        let lastAction = null;
+        if (state.game && state.game.bettingRound) {
+           const log = state.game.bettingRound.actionLog;
+           if (log && log.length > 0) {
+              const pActions = log.filter(a => a.playerId === s.player.id);
+              if (pActions.length > 0) {
+                 lastAction = pActions[pActions.length - 1];
+              }
+           }
+        }
+
+        return {
+          seatIndex: s.seatIndex,
+          occupied: true,
+          stack: s.stack || 0,
+          isFolded: s.isFolded || false,
+          isActor: s.isCurrentActor || false,
+          isDealer: s.seatIndex === (state.game?.buttonSeat ?? -1),
+          isAllIn: s.isInHand && s.stack === 0,
+          displayName: s.player.displayName ? String(s.player.displayName).substring(0, 10) : 'Player',
+          lastAction: lastAction ? (lastAction.type === 'call' && lastAction.amount === 0 ? 'CHECK' : lastAction.type.toUpperCase()) : null,
+          lastActionAmount: lastAction?.amount,
+        };
+      });
+
+      this._lobbyChannel.send({
+        type: 'broadcast',
+        event: 'mini_state_update',
+        payload: {
+          tableId,
+          phase: displayPhase,
+          communityCards: state.game?.communityCards || [],
+          boards: state.game?.boards || null,
+          shownCards: state.game?.shownCards || [],
+          potTotal: state.game?.potTotal || 0,
+          handNumber: state.game?.handNumber || 0,
+          currentActorSeat: seats.findIndex(s => s.isActor),
+          turnEndTime: entry.timer?.turnEndTime || null,
+          turnTotalTime: entry.timer?.turnTime || 15,
+          seats,
+        }
+      });
+    } catch (e) {
+      console.error('[LobbyManager] Error broadcasting mini state:', e.message);
     }
   }
 
