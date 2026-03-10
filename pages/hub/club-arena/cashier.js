@@ -128,6 +128,26 @@ export default function Cashier() {
     const [transferNote, setTransferNote] = useState('');
     const [clubMembers, setClubMembers] = useState([]);
 
+    // ── P1-ENH: New state for 12 enhancements ──────────────────────────
+    // ENH-1: Animated Balance Counter
+    const [displayChips, setDisplayChips] = useState(0);
+    const [displayDiamonds, setDisplayDiamonds] = useState(0);
+    const animFrameRef = useRef(null);
+
+    // ENH-2: Transaction Category Filters
+    const [txFilter, setTxFilter] = useState('all');
+
+    // ENH-3: Monthly P&L Summary (collapsed by default)
+    const [showPnL, setShowPnL] = useState(false);
+
+    // ENH-5: Quick Re-Buy
+    const [lastBuyInAmount, setLastBuyInAmount] = useState(null);
+    const [reBuyVisible, setReBuyVisible] = useState(false);
+    const reBuyTimerRef = useRef(null);
+
+    // ENH-6: Cashout ETA
+    const [cashoutEta, setCashoutEta] = useState(null);
+
     // Real-time wallet data
     const walletData = useWalletData({ supabase, userId: user?.id, clubId: club?.id });
 
@@ -140,6 +160,55 @@ export default function Cashier() {
     const haptic = (style = 'light') => {
         try { if (navigator.vibrate) navigator.vibrate(style === 'success' ? [15, 50, 15] : style === 'error' ? [30, 30, 30] : 10); } catch (_) { }
     };
+
+    // ENH-1: Animated balance counter effect
+    useEffect(() => {
+        const target = walletData.chipBalance ?? chipBalance;
+        if (displayChips === target) return;
+        const start = displayChips;
+        const diff = target - start;
+        const duration = 400;
+        const startTime = performance.now();
+        const animate = (now) => {
+            const elapsed = now - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const eased = 1 - Math.pow(1 - progress, 3);
+            setDisplayChips(Math.round(start + diff * eased));
+            if (progress < 1) animFrameRef.current = requestAnimationFrame(animate);
+        };
+        if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+        animFrameRef.current = requestAnimationFrame(animate);
+        return () => { if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current); };
+    }, [walletData.chipBalance, chipBalance]);
+
+    useEffect(() => {
+        const target = walletData.diamondBalance ?? diamondBalance;
+        if (displayDiamonds === target) return;
+        const start = displayDiamonds;
+        const diff = target - start;
+        const duration = 400;
+        const startTime = performance.now();
+        const animate = (now) => {
+            const elapsed = now - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const eased = 1 - Math.pow(1 - progress, 3);
+            setDisplayDiamonds(Math.round(start + diff * eased));
+            if (progress < 1) animFrameRef.current = requestAnimationFrame(animate);
+        };
+        if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+        animFrameRef.current = requestAnimationFrame(animate);
+        return () => { if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current); };
+    }, [walletData.diamondBalance, diamondBalance]);
+
+    // ENH-6: Cashout ETA — compute avg agent response time
+    useEffect(() => {
+        if (!cashoutHistory || cashoutHistory.length < 2) { setCashoutEta(null); return; }
+        const approved = cashoutHistory.filter(c => c.status === 'approved' && c.created_at && c.updated_at);
+        if (approved.length === 0) { setCashoutEta(null); return; }
+        const avgMs = approved.reduce((sum, c) => sum + (new Date(c.updated_at) - new Date(c.created_at)), 0) / approved.length;
+        const avgMinutes = Math.round(avgMs / 60000);
+        setCashoutEta(avgMinutes < 1 ? 'under 1 minute' : avgMinutes < 60 ? `~${avgMinutes} minutes` : `~${Math.round(avgMinutes / 60)} hour${Math.round(avgMinutes / 60) > 1 ? 's' : ''}`);
+    }, [cashoutHistory]);
 
     // Load data — ENH-5: Parallel fetch with Promise.allSettled
     const loadData = useCallback(async (signal) => {
