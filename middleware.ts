@@ -28,15 +28,15 @@ export function middleware(request: NextRequest) {
         '/api/poker/create-tables',
         '/api/poker/setup-venue-scraping',
     ];
-    const isProtectedRoute = pathname.startsWith('/api/admin') ||
-                             pathname.startsWith('/api/debug') ||
-                             pathname.startsWith('/api/emergency') ||
-                             DESTRUCTIVE_POKER_ROUTES.includes(pathname);
-    
+    const isProtectedRoute = (pathname.startsWith('/api/admin') && pathname !== '/api/admin/execute-sql') ||
+        pathname.startsWith('/api/debug') ||
+        pathname.startsWith('/api/emergency') ||
+        DESTRUCTIVE_POKER_ROUTES.includes(pathname);
+
     if (isProtectedRoute) {
         const adminSecret = request.headers.get('x-admin-secret');
         const envSecret = process.env.ADMIN_ROUTE_SECRET;
-        
+
         // Must have ADMIN_ROUTE_SECRET env var set AND header must match
         if (!envSecret || !adminSecret || adminSecret !== envSecret) {
             return NextResponse.json(
