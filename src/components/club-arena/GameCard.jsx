@@ -318,7 +318,7 @@ function CashCard({ table: t, assetMap, onPress, avgVpip }) {
 // ─────────────────────────────────────────────────────────────────────
 // TOURNAMENT / SNG / SPIN CARD — Vertical Poker Table
 // ─────────────────────────────────────────────────────────────────────
-function TournamentCard({ tournament: t, assetMap, onPress }) {
+function TournamentCard({ tournament: t, assetMap, onPress, onQuickRegister }) {
   const variant = t.game_variant || t.variant || 'nlh';
   const isSpin = t.type === 'spin' || variant === 'spin';
   const isMTT = t.type === 'mtt' || t.type === 'xmtt'; // BUG-8 FIX: XMTT is an MTT variant
@@ -331,6 +331,7 @@ function TournamentCard({ tournament: t, assetMap, onPress }) {
   const isFull = reg >= maxP;
   const status = t.status || 'waiting';
   const isLive = status === 'active' || status === 'running';
+  const canQuickReg = !isFull && ['scheduled', 'registering'].includes(status) && !t.is_registered;
 
   const name = t.name || '';
   const clubName = t.club_name || t.club?.name || '';
@@ -340,6 +341,11 @@ function TournamentCard({ tournament: t, assetMap, onPress }) {
   const gtdAmount = t.prize_pool > (t.guaranteed_prize || 0)
     ? t.prize_pool
     : (t.guaranteed_prize || t.settings?.gtd_amount || 0);
+
+  // Prize Pool Fill % (for thermometer bar)
+  const gtdTarget = t.guaranteed_prize || t.settings?.gtd_amount || 0;
+  const currentPool = t.prize_pool || (reg * buyIn);
+  const fillPct = gtdTarget > 0 ? Math.min(100, Math.round(currentPool / gtdTarget * 100)) : 0;
 
   // Type badge
   const typeLabel = isSpin ? 'SPIN' : t.type === 'xmtt' ? 'XMTT' : isMTT ? 'MTT' : 'SNG';
@@ -359,13 +365,16 @@ function TournamentCard({ tournament: t, assetMap, onPress }) {
         </div>
       )}
 
-      {/* Top row — Type badge | Player count */}
+      {/* Top row — Type badge | Player count (with pulse animation) */}
       <div style={S.topRow}>
         <span style={{ ...S.varBadge, color: vc.color, background: vc.accent + '25', borderColor: vc.accent + '60', fontSize: 8 }}>
           {typeLabel}
         </span>
         <div style={S.seatsBox}>
-          <span style={{ color: isFull ? '#EF5350' : '#00E676', fontWeight: 700, fontSize: 11 }}>{reg}</span>
+          <span key={`reg-${reg}`} style={{
+            color: isFull ? '#EF5350' : '#00E676', fontWeight: 700, fontSize: 11,
+            animation: 'regPulse 0.4s ease-out',
+          }}>{reg}</span>
           <span style={{ color: '#555', fontSize: 10 }}>/{maxP}</span>
           <div style={{ ...S.statusDot, background: STATUS_DOT[status] || '#555' }} />
         </div>
@@ -413,6 +422,20 @@ function TournamentCard({ tournament: t, assetMap, onPress }) {
         </div>
       </div>
 
+      {/* ── Prize Pool Thermometer (shows GTD fill progress) ── */}
+      {gtdTarget > 0 && (
+        <div style={S.prizeBarContainer}>
+          <div style={{
+            ...S.prizeBarFill,
+            width: `${fillPct}%`,
+            background: fillPct >= 100 ? 'linear-gradient(90deg, #31A24C, #00E676)' : 'linear-gradient(90deg, #FFD700, #FFA000)',
+          }} />
+          <span style={S.prizeBarLabel}>
+            {fmtChips(currentPool)}{fillPct < 100 ? ` / ${fmtChips(gtdTarget)} GTD` : ' GTD MET ✓'}
+          </span>
+        </div>
+      )}
+
       {/* Sticker icons */}
       {stickers.length > 0 && (
         <div style={S.stickerRow}>
@@ -422,13 +445,26 @@ function TournamentCard({ tournament: t, assetMap, onPress }) {
         </div>
       )}
 
-      {/* Footer — Club | Registered */}
+      {/* Footer — Club | Quick Register or Max label */}
       <div style={S.footerRow}>
         <span style={S.clubText}>{clubName.length > 13 ? clubName.slice(0, 13) + '…' : clubName}</span>
-        <span style={S.dimText}>{maxP} Max</span>
+        {canQuickReg && onQuickRegister ? (
+          <button
+            onClick={(e) => { e.stopPropagation(); onQuickRegister(t.id); }}
+            style={S.quickRegBtn}
+            title={`Register for ${fmtChips(buyIn)} chips`}
+          >
+            ⚡ Register
+          </button>
+        ) : t.is_registered ? (
+          <span style={{ fontSize: 8, color: '#00E676', fontWeight: 700 }}>✓ REGISTERED</span>
+        ) : (
+          <span style={S.dimText}>{maxP} Max</span>
+        )}
       </div>
 
       {isLive && ensureLivePulse()}
+      {ensureRegPulse()}
     </button>
   );
 }
@@ -436,14 +472,14 @@ function TournamentCard({ tournament: t, assetMap, onPress }) {
 // ─────────────────────────────────────────────────────────────────────
 // EXPORT
 // ─────────────────────────────────────────────────────────────────────
-export default function GameCard({ game, assetMap = {}, onPress, avgVpip }) {
+export default function GameCard({ game, assetMap = {}, onPress, avgVpip, onQuickRegister }) {
   if (!game) return null;
   const isTournament =
     game.game_type === 'tournament' || game.game_type === 'sng' || game.game_type === 'mtt' ||
     game.type === 'sng' || game.type === 'mtt' || game.type === 'spin' || game.type === 'xmtt' || // BUG-8 FIX
     game.registered_count != null;
   return isTournament
-    ? <TournamentCard tournament={game} assetMap={assetMap} onPress={onPress} />
+    ? <TournamentCard tournament={game} assetMap={assetMap} onPress={onPress} onQuickRegister={onQuickRegister} />
     : <CashCard table={game} assetMap={assetMap} onPress={onPress} avgVpip={avgVpip} />;
 }
 
@@ -614,7 +650,52 @@ const S = {
   clubText: {
     fontSize: 8, color: 'rgba(255,255,255,0.35)', fontWeight: 500,
     textTransform: 'uppercase', letterSpacing: 0.3,
-    overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', maxWidth: '65%',
+    overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', maxWidth: '55%',
   },
   dimText: { fontSize: 8, color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap' },
+
+  // Prize Pool Thermometer Bar
+  prizeBarContainer: {
+    position: 'relative', width: '100%', height: 14, borderRadius: 7,
+    background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)',
+    overflow: 'hidden', marginTop: 2,
+  },
+  prizeBarFill: {
+    position: 'absolute', top: 0, left: 0, height: '100%', borderRadius: 7,
+    transition: 'width 0.6s cubic-bezier(0.22, 1, 0.36, 1)',
+    minWidth: 2,
+  },
+  prizeBarLabel: {
+    position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+    fontSize: 7, fontWeight: 800, color: '#fff', letterSpacing: 0.3,
+    textShadow: '0 1px 3px rgba(0,0,0,0.9)',
+    fontFamily: '"Orbitron",monospace',
+  },
+
+  // Quick Register Button
+  quickRegBtn: {
+    fontSize: 8, fontWeight: 800, color: '#fff',
+    background: 'linear-gradient(135deg, #31A24C, #00C853)',
+    border: 'none', borderRadius: 6, padding: '3px 8px',
+    cursor: 'pointer', letterSpacing: 0.3,
+    boxShadow: '0 2px 6px rgba(49,162,76,0.4)',
+    transition: 'transform 0.1s, box-shadow 0.15s',
+    whiteSpace: 'nowrap', zIndex: 2,
+  },
 };
+
+// ── CSS Keyframes injected for player count pulse animation ──
+let _regPulseInjected = false;
+function ensureRegPulse() {
+  if (_regPulseInjected || typeof document === 'undefined') return null;
+  _regPulseInjected = true;
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes regPulse {
+      0% { transform: scale(1.4); color: #FFD700; }
+      100% { transform: scale(1); }
+    }
+  `;
+  document.head.appendChild(style);
+  return null;
+}

@@ -82,6 +82,10 @@ export default function TournamentsPage() {
   const [confirmModal, setConfirmModal] = useState(null); // { msg, onConfirm }
   const [mutatingId, setMutatingId] = useState(null); // CONCURRENCY: prevents double-tap on register/unregister
   const [showWallet, setShowWallet] = useState(false);
+  // ── Improvement #5: Lobby Filters & Search ──
+  const [lobbySearch, setLobbySearch] = useState('');
+  const [lobbyTypeFilter, setLobbyTypeFilter] = useState('all'); // all | mtt | sng | spin | xmtt
+  const [lobbyVariantFilter, setLobbyVariantFilter] = useState('all'); // all | nlh | plo4 | plo5 | short_deck
   const walletData = useWalletData({ supabase, userId: user?.id, clubId: clubId });
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -338,31 +342,72 @@ export default function TournamentsPage() {
         ))}
       </div>
 
+      {/* ── Improvement #5: Lobby Filters & Search Bar ── */}
+      <div style={{ padding: '8px 16px 0', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        <input
+          type="text"
+          placeholder="🔍 Search tournaments..."
+          value={lobbySearch}
+          onChange={e => setLobbySearch(e.target.value)}
+          style={{
+            flex: 1, minWidth: 140, padding: '7px 12px', background: FB.hover, color: FB.text,
+            border: `1px solid ${FB.border}`, borderRadius: 8, fontSize: 13, outline: 'none',
+          }}
+        />
+        {[['all', 'All'], ['mtt', 'MTT'], ['sng', 'SNG'], ['spin', 'Spin'], ['xmtt', 'XMTT']].map(([v, label]) => (
+          <button key={v} onClick={() => setLobbyTypeFilter(v)} style={{
+            padding: '5px 10px', fontSize: 11, fontWeight: 700, borderRadius: 6, cursor: 'pointer',
+            background: lobbyTypeFilter === v ? FB.primary : FB.hover,
+            color: lobbyTypeFilter === v ? '#fff' : FB.dim,
+            border: lobbyTypeFilter === v ? '1px solid ' + FB.primary : '1px solid ' + FB.border,
+          }}>{label}</button>
+        ))}
+        <select value={lobbyVariantFilter} onChange={e => setLobbyVariantFilter(e.target.value)} style={{
+          padding: '5px 8px', fontSize: 11, background: FB.hover, color: FB.dim,
+          border: `1px solid ${FB.border}`, borderRadius: 6, cursor: 'pointer',
+        }}>
+          <option value="all">All Variants</option>
+          <option value="nlh">NLH</option>
+          <option value="plo4">PLO4</option>
+          <option value="plo5">PLO5</option>
+          <option value="short_deck">Short Deck</option>
+        </select>
+      </div>
+
       {/* Tournament List — Poker Table Cards (2-col grid) */}
       <div style={{ padding: 16, maxWidth: 800, margin: '0 auto' }}>
         {loading && <div style={{ paddingTop: 20 }}><SkeletonDark variant="tournament" /></div>}
 
-        {!loading && tournaments.length === 0 && (
-          <div style={{ color: FB.dim, textAlign: 'center', padding: 40 }}>
-            No {tab} tournaments
-          </div>
-        )}
+        {(() => {
+          // Apply client-side filters
+          const filtered = tournaments.filter(t => {
+            if (lobbySearch && !t.name?.toLowerCase().includes(lobbySearch.toLowerCase())) return false;
+            if (lobbyTypeFilter !== 'all' && (t.type || t.game_type) !== lobbyTypeFilter) return false;
+            if (lobbyVariantFilter !== 'all' && (t.variant || t.game_variant) !== lobbyVariantFilter) return false;
+            return true;
+          });
 
-        {!loading && tournaments.length > 0 && (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: 10,
-          }}>
-            {tournaments.map(t => (
-              <GameCard
-                key={t.id}
-                game={{ ...t, game_type: t.type || t.game_type || 'mtt', game_variant: t.variant || t.game_variant || 'nlh' }}
-                onPress={() => setSelectedTournament(t)}
-              />
-            ))}
-          </div>
-        )}
+          if (!loading && filtered.length === 0) return (
+            <div style={{ color: FB.dim, textAlign: 'center', padding: 40 }}>
+              {tournaments.length === 0 ? `No ${tab} tournaments` : 'No tournaments match your filters'}
+            </div>
+          );
+
+          if (!loading && filtered.length > 0) return (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              {filtered.map(t => (
+                <GameCard
+                  key={t.id}
+                  game={{ ...t, game_type: t.type || t.game_type || 'mtt', game_variant: t.variant || t.game_variant || 'nlh', is_registered: t.is_registered || false }}
+                  onPress={() => setSelectedTournament(t)}
+                  onQuickRegister={handleRegister}
+                />
+              ))}
+            </div>
+          );
+
+          return null;
+        })()}
       </div>
 
       {/* Create Tournament Modal */}

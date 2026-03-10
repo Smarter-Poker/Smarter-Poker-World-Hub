@@ -1392,6 +1392,42 @@ export default function ClubMessages() {
     };
 
     // ═══════════════════════════════════════════════════════════════════════
+    //  MESSAGE EDITING (5-min window, server-side validated)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    const editMessage = async (messageId, newContent) => {
+        if (!messageId || !newContent?.trim() || messageId.toString().startsWith('temp-')) return;
+
+        const oldContent = messages.find(m => m.id === messageId)?.content;
+
+        // Optimistic update
+        setMessages(prev => prev.map(m => m.id === messageId ? { ...m, content: newContent.trim(), updated_at: new Date().toISOString() } : m));
+
+        try {
+            const editToken = getAccessToken();
+            const resp = await fetch('/api/messenger/edit-message', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(editToken ? { Authorization: `Bearer ${editToken}` } : {}),
+                },
+                body: JSON.stringify({ messageId, content: newContent.trim() })
+            });
+            const result = await resp.json();
+            if (!result.success) {
+                throw new Error(result.error || result.message || 'Edit failed');
+            }
+            setMessages(prev => prev.map(m => m.id === messageId ? { ...m, content: result.content } : m));
+            setToast({ type: 'info', message: 'Message edited' });
+        } catch (e) {
+            console.error('[ClubMessages] Edit failed:', e);
+            // Revert
+            setMessages(prev => prev.map(m => m.id === messageId ? { ...m, content: oldContent, updated_at: null } : m));
+            setToast({ type: 'error', message: e.message || 'Failed to edit message' });
+        }
+    };
+
+    // ═══════════════════════════════════════════════════════════════════════
     //  MESSAGE REACTIONS (optimistic — stored locally)
     // ═══════════════════════════════════════════════════════════════════════
 
@@ -1696,6 +1732,7 @@ export default function ClubMessages() {
                                             onRetry={retryMessage}
                                             onDelete={deleteMessage}
                                             onReact={reactToMessage}
+                                            onEdit={editMessage}
                                         />
                                     </div>
                                 );
