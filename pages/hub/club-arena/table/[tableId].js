@@ -267,7 +267,7 @@ export default function ClubArenaTable() {
       display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center', gap: 16,
     }}>
-      <SEOHead title="Connecting to Table…" />
+      <SEOHead title="Connecting to Table…" noindex />
       <div style={{
         width: 48, height: 48, border: `3px solid ${FB.border}`,
         borderTop: `3px solid ${FB.primary}`,
@@ -285,7 +285,7 @@ export default function ClubArenaTable() {
       display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24,
     }}>
-      <SEOHead title="Table Error" />
+      <SEOHead title="Table Error" noindex />
       <div style={{
         background: FB.cardBg, border: `1px solid ${FB.border}`,
         borderRadius: 16, padding: '32px 28px', maxWidth: 420, width: '100%',
@@ -328,7 +328,7 @@ export default function ClubArenaTable() {
   // ── Live table ──
   if (initialTable) return (
     <>
-      <SEOHead title={`${initialTable.name} | ${initialTable.variant} ${initialTable.stakes}`} />
+      <SEOHead title={`${initialTable.name} | ${initialTable.variant} ${initialTable.stakes}${initialTable.clubName ? ` — ${initialTable.clubName}` : ''}`} noindex />
       <MultiTableView
         supabase={supabase}
         userId={user.id}

@@ -84,6 +84,14 @@ c('Main page NOT noindex', () => !fs.readFileSync('pages/hub/club-arena.js', 'ut
 c('Lobby bus: table events trigger table refresh', () => { const x = fs.readFileSync('pages/hub/club-arena/lobby.js', 'utf8'); return x.includes("tableEntities.includes(entity)") && x.includes("setTables(data)"); });
 c('Lobby bus: tournament events trigger tournament refresh', () => fs.readFileSync('pages/hub/club-arena/lobby.js', 'utf8').includes("tournamentEntities.includes(entity)"));
 
+// BUILD: Table page SEOHead improvements
+c('Table page: club name in SEOHead', () => fs.readFileSync('pages/hub/club-arena/table/[tableId].js', 'utf8').includes('initialTable.clubName'));
+c('Table page: noindex on all states', () => { const x = fs.readFileSync('pages/hub/club-arena/table/[tableId].js', 'utf8'); return !x.includes('<SEOHead title="Connecting') || x.includes('noindex'); });
+
+// BUILD: Hand-histories copy hand ID
+c('Hand-histories: copiedHandId state', () => fs.readFileSync('pages/hub/club-arena/hand-histories.js', 'utf8').includes('copiedHandId'));
+c('Hand-histories: copy button', () => fs.readFileSync('pages/hub/club-arena/hand-histories.js', 'utf8').includes('Copy ID'));
+
 console.log();
 console.log('═══════════════════════════════════');
 console.log(pass + '/' + total);

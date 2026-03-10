@@ -187,6 +187,7 @@ export default function HandHistories() {
 
     // Detail modal
     const [selectedHand, setSelectedHand] = useState(null);
+    const [copiedHandId, setCopiedHandId] = useState(null);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // LOAD DATA
@@ -653,6 +654,24 @@ export default function HandHistories() {
                             <button style={S.modalClose} onClick={() => setSelectedHand(null)}>&times;</button>
                         </div>
                         <div style={S.modalBody}>
+                            {/* Hand ID + Copy */}
+                            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                                <span style={{ fontSize: 11, color: FB.textSecondary, fontFamily: 'monospace' }}>
+                                    Hand #{selectedHand.hand_number || selectedHand.id?.slice(0, 8) || '—'}
+                                </span>
+                                <button
+                                    onClick={() => {
+                                        const hid = selectedHand.hand_number || selectedHand.id || '';
+                                        navigator.clipboard?.writeText(String(hid)).then(() => {
+                                            setCopiedHandId(hid);
+                                            setTimeout(() => setCopiedHandId(null), 2000);
+                                        }).catch(() => {});
+                                    }}
+                                    style={{ background: 'none', border: `1px solid ${FB.border}`, borderRadius: 4, color: copiedHandId ? FB.success : FB.textSecondary, fontSize: 10, padding: '2px 8px', cursor: 'pointer' }}
+                                >
+                                    {copiedHandId ? '✓ Copied' : 'Copy ID'}
+                                </button>
+                            </div>
                             {/* Result */}
                             <div style={{ textAlign: 'center', marginBottom: '20px' }}>
                                 <div style={{
