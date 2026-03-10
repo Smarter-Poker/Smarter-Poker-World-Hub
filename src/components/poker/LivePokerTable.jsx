@@ -3549,6 +3549,7 @@ function LivePokerTable({
   userId,
   displayName = 'Player',
   avatarUrl = null,
+  isActive = true,
   onActionRequired = null,
   onActionCleared = null,
   onLeave = null,
@@ -4004,6 +4005,7 @@ function LivePokerTable({
   // F=Fold, C=Check/Call, R=Raise/Bet, A=All-In, Space=Check/Call, Esc=Cancel
   useEffect(() => {
     const onKeyDown = (e) => {
+      if (!isActive) return; // Prevent controlling background tables
       // Don't trigger if typing in an input/textarea
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
       if (!isMyTurn || !legalActions?.length) return;
@@ -4034,7 +4036,7 @@ function LivePokerTable({
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [isMyTurn, legalActions, handleAction]);
+  }, [isActive, isMyTurn, legalActions, handleAction]);
 
   const handleSitDown = useCallback((amount) => {
     send('sit_down', { seatIndex: buyInSeat, buyIn: amount, displayName, avatarUrl });
