@@ -11,6 +11,8 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
+import { haptic } from '../../../src/lib/club-arena/haptic';
+import { usePullToRefresh } from '../../../src/hooks/usePullToRefresh';
 // getAccessToken now handled by centralized apiClient
 import useTrainingBus from '../../../src/hooks/useTrainingBus'; import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import SkeletonDark from '../../../src/components/ui/SkeletonDark';
@@ -2752,6 +2754,99 @@ function PromoWalletModal({ clubId, userRole, apiCall, showToast, onClose, FB, S
                             >
                                 {tableProcessing ? 'Saving...' : 'Save Settings'}
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ═══════════════════════════════════════════════════════════════════════
+                RAKE REPORT MODAL
+            ═══════════════════════════════════════════════════════════════════════ */}
+            {showRakeReport && (
+                <div style={S.modalOverlay} onClick={() => setShowRakeReport(false)}>
+                    <div style={{ ...S.modal, maxWidth: 540 }} onClick={e => e.stopPropagation()}>
+                        <div style={S.modalHeader}>
+                            <span style={S.modalTitle}>📊 Rake Report</span>
+                            <button style={S.modalClose} onClick={() => setShowRakeReport(false)}>&times;</button>
+                        </div>
+                        <div style={S.modalBody}>
+                            {/* Period Selector */}
+                            <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
+                                {['7d', '14d', '30d', '90d'].map(p => (
+                                    <button
+                                        key={p}
+                                        onClick={() => { setRakeReportPeriod(p); loadRakeReport(p); }}
+                                        style={{
+                                            padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                                            border: rakeReportPeriod === p ? `2px solid ${FB.primary}` : `1px solid ${FB.border}`,
+                                            background: rakeReportPeriod === p ? 'rgba(35,116,225,0.15)' : FB.background,
+                                            color: rakeReportPeriod === p ? FB.primary : FB.textSecondary,
+                                        }}
+                                    >{p.replace('d', ' Days')}</button>
+                                ))}
+                            </div>
+
+                            {rakeReportLoading ? (
+                                <div style={{ textAlign: 'center', padding: 30, color: FB.textSecondary }}>Loading...</div>
+                            ) : rakeReport?.days ? (
+                                <>
+                                    {/* Summary Stats */}
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 16 }}>
+                                        <div style={{ background: FB.background, borderRadius: 8, padding: 12, textAlign: 'center' }}>
+                                            <div style={{ fontSize: 18, fontWeight: 700, color: FB.success }}>{(rakeReport.summary?.totalRake || 0).toLocaleString()}</div>
+                                            <div style={{ fontSize: 10, color: FB.textSecondary, textTransform: 'uppercase' }}>Total Rake</div>
+                                        </div>
+                                        <div style={{ background: FB.background, borderRadius: 8, padding: 12, textAlign: 'center' }}>
+                                            <div style={{ fontSize: 18, fontWeight: 700, color: FB.primary }}>{(rakeReport.summary?.avgDaily || 0).toLocaleString()}</div>
+                                            <div style={{ fontSize: 10, color: FB.textSecondary, textTransform: 'uppercase' }}>Avg / Day</div>
+                                        </div>
+                                        <div style={{ background: FB.background, borderRadius: 8, padding: 12, textAlign: 'center' }}>
+                                            <div style={{ fontSize: 18, fontWeight: 700, color: '#F7C52A' }}>{(rakeReport.summary?.peakAmount || 0).toLocaleString()}</div>
+                                            <div style={{ fontSize: 10, color: FB.textSecondary, textTransform: 'uppercase' }}>Peak Day</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Daily Bar Chart */}
+                                    <div style={{ background: FB.background, borderRadius: 8, padding: '12px 14px', marginBottom: 12 }}>
+                                        <div style={{ fontSize: 10, color: FB.textSecondary, marginBottom: 8, fontWeight: 700, textTransform: 'uppercase' }}>Daily Breakdown</div>
+                                        <svg viewBox={`0 0 ${(rakeReport.days || []).length * 12} 60`} style={{ width: '100%', height: 80 }}>
+                                            {(() => {
+                                                const days = rakeReport.days || [];
+                                                const max = Math.max(...days.map(d => d.rake), 1);
+                                                return days.map((d, i) => {
+                                                    const h = (d.rake / max) * 50;
+                                                    return (
+                                                        <g key={i}>
+                                                            <rect x={i * 12 + 1} y={55 - h} width={10} height={h} rx={2} fill={d.rake > 0 ? '#31A24C' : '#3E4042'} opacity={0.85} />
+                                                            {days.length <= 14 && (
+                                                                <text x={i * 12 + 6} y={60} textAnchor="middle" fill="#B0B3B8" fontSize="3">{d.date.slice(5)}</text>
+                                                            )}
+                                                        </g>
+                                                    );
+                                                });
+                                            })()}
+                                        </svg>
+                                    </div>
+
+                                    {/* Daily Detail List (scrollable) */}
+                                    <div style={{ maxHeight: 200, overflowY: 'auto', borderRadius: 8, border: `1px solid ${FB.border}` }}>
+                                        {(rakeReport.days || []).slice().reverse().map((d, i) => (
+                                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', borderBottom: `1px solid ${FB.border}`, fontSize: 13 }}>
+                                                <span style={{ color: FB.textSecondary }}>{d.date}</span>
+                                                <span style={{ color: d.rake > 0 ? FB.success : FB.textSecondary, fontWeight: 600, fontFamily: 'monospace' }}>{(d.rake || 0).toLocaleString()}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </>
+                            ) : (
+                                <div style={{ textAlign: 'center', padding: 20, color: FB.textSecondary }}>No rake data available</div>
+                            )}
+                        </div>
+                        <div style={S.modalFooter}>
+                            <button
+                                onClick={downloadRakeCSV}
+                                style={{ width: '100%', padding: 14, background: FB.primary, color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
+                            >📥 Download CSV Export</button>
                         </div>
                     </div>
                 </div>

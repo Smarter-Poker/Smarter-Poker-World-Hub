@@ -14,6 +14,8 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
+import { haptic } from '../../../src/lib/club-arena/haptic';
+import { usePullToRefresh } from '../../../src/hooks/usePullToRefresh';
 import { createMultiDeviceAuthListener, persistSession } from '../../../src/utils/authGuard';
 import { createRingTone } from '../../../src/utils/ringTone';
 import useDebounce from '../../../src/hooks/useDebounce';
@@ -409,6 +411,8 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
     const [showReactions, setShowReactions] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editText, setEditText] = useState('');
+    const [translatedText, setTranslatedText] = useState(null);
+    const [translating, setTranslating] = useState(false);
     const content = message.content || message.message || '';
     const isFailed = message.status === 'failed';
     const isSending = message.status === 'sending';
@@ -451,6 +455,19 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                     <img src={imageMatch[1]} alt="Shared Image" style={{ maxWidth: '100%', borderRadius: 12, cursor: 'pointer' }} onClick={() => window.open(imageMatch[1], '_blank')} />
                 ) : videoMatch ? (
                     <video src={videoMatch[1]} controls style={{ maxWidth: '100%', borderRadius: 12 }} />
+                ) : audioMatch ? (
+                    <div style={{ padding: '8px 12px', borderRadius: 16, background: isOwn ? C.ownBubble : C.otherBubble, display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontSize: 20 }}>🎙️</span>
+                        <audio src={audioMatch[1] || audioMatch[2]} controls style={{ height: 32, maxWidth: 200 }} />
+                    </div>
+                ) : fileMatch ? (
+                    <a href={fileMatch[2]} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 12, background: isOwn ? C.ownBubble : C.otherBubble, textDecoration: 'none', color: 'white' }}>
+                        <span style={{ fontSize: 24 }}>{fileMatch[1]?.toUpperCase() === 'PDF' ? '📄' : fileMatch[1]?.toUpperCase() === 'DOC' ? '📝' : fileMatch[1]?.toUpperCase() === 'XLS' ? '📊' : '📎'}</span>
+                        <div>
+                            <div style={{ fontSize: 14, fontWeight: 500 }}>{fileMatch[1]} Document</div>
+                            <div style={{ fontSize: 11, opacity: 0.7 }}>Tap to download</div>
+                        </div>
+                    </a>
                 ) : (
                     <div style={{
                         padding: '8px 12px',
@@ -471,7 +488,7 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                                 </div>
                             </div>
                         ) : (
-                            <>{renderTextWithLinks(content)}{isEdited && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginLeft: 6 }}>(edited)</span>}</>
+                            <>{renderTextWithLinks(content)}{isEdited && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginLeft: 6 }}>(edited)</span>}{translatedText && <div style={{ marginTop: 4, fontSize: 13, color: C.blue, fontStyle: 'italic', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 4 }}>🌐 {translatedText}</div>}</>
                         )}
 
                         {/* Quick react button (on hover) */}
@@ -535,6 +552,21 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                     {!isFailed && !isSending && !isDeleted && onForward && (
                         <button onClick={() => onForward(message)} style={{ fontSize: 11, color: C.textSec, background: 'transparent', border: 'none', cursor: 'pointer', padding: '0 4px', opacity: 0.5 }} title="Forward">
                             ➤
+                        </button>
+                    )}
+                    {/* P3-12: Auto-Translation */}
+                    {!isOwn && !isDeleted && !isSending && (
+                        <button onClick={async () => {
+                            if (translatedText) { setTranslatedText(null); return; }
+                            setTranslating(true);
+                            try {
+                                const resp = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(content.slice(0, 500))}&langpair=autodetect|en`);
+                                const data = await resp.json();
+                                if (data.responseData?.translatedText) setTranslatedText(data.responseData.translatedText);
+                            } catch (e) { console.error('Translation failed:', e); }
+                            setTranslating(false);
+                        }} style={{ fontSize: 11, color: translatedText ? C.blue : C.textSec, background: 'transparent', border: 'none', cursor: 'pointer', padding: '0 4px', opacity: translatedText ? 1 : 0.5 }} title={translatedText ? 'Show original' : 'Translate'}>
+                            {translating ? '⏳' : '🌐'}
                         </button>
                     )}
                 </div>
@@ -1812,6 +1844,40 @@ export default function ClubMessages() {
                                             )}
                                         </div>
                                     ) : null;
+                                })()}
+                                {/* P3-9: Agent Response Time Dashboard (for owner/admin) */}
+                                {['owner', 'admin'].includes(currentUserMembership?.role) && (() => {
+                                    const theirMessages = messages.filter(m => m.sender_id === otherUser?.id);
+                                    const myMessages = messages.filter(m => m.sender_id === user?.id);
+                                    let avgResponseMs = 0;
+                                    let responseTimes = [];
+                                    myMessages.forEach(myMsg => {
+                                        const nextReply = theirMessages.find(tm => new Date(tm.created_at) > new Date(myMsg.created_at));
+                                        if (nextReply) {
+                                            responseTimes.push(new Date(nextReply.created_at).getTime() - new Date(myMsg.created_at).getTime());
+                                        }
+                                    });
+                                    if (responseTimes.length > 0) avgResponseMs = responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length;
+                                    const avgStr = avgResponseMs > 0 ? (avgResponseMs < 60000 ? `${Math.round(avgResponseMs / 1000)}s` : avgResponseMs < 3600000 ? `${Math.round(avgResponseMs / 60000)}m` : `${Math.round(avgResponseMs / 3600000)}h`) : 'N/A';
+                                    return (
+                                        <div style={{ marginTop: 12, padding: '8px 16px', background: C.hoverBg, borderRadius: 12 }}>
+                                            <div style={{ fontSize: 11, color: C.textSec, fontWeight: 600, marginBottom: 4 }}>📊 RESPONSE ANALYTICS</div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-around', gap: 8 }}>
+                                                <div style={{ textAlign: 'center' }}>
+                                                    <div style={{ fontSize: 18, fontWeight: 700, color: C.text }}>{avgStr}</div>
+                                                    <div style={{ fontSize: 10, color: C.textSec }}>Avg Response</div>
+                                                </div>
+                                                <div style={{ textAlign: 'center' }}>
+                                                    <div style={{ fontSize: 18, fontWeight: 700, color: C.text }}>{theirMessages.length}</div>
+                                                    <div style={{ fontSize: 10, color: C.textSec }}>Messages Sent</div>
+                                                </div>
+                                                <div style={{ textAlign: 'center' }}>
+                                                    <div style={{ fontSize: 18, fontWeight: 700, color: C.text }}>{responseTimes.length}</div>
+                                                    <div style={{ fontSize: 10, color: C.textSec }}>Replies</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
                                 })()}
                             </div>
                         </div>

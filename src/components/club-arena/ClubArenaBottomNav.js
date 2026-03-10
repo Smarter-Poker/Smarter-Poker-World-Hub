@@ -2,8 +2,10 @@
  * HARDENED: Single source of truth for bottom nav across all Club Arena pages
  * Uses clubIdParam (from URL) to render immediately without waiting for async data
  */
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Z_INDEX } from '../../lib/zIndexAuthority';
+import { eventBus, EventType } from '../../engine/EventBus';
 
 const FB = {
     primary: '#2374E1',
@@ -92,11 +94,11 @@ const AdminIcon = () => (
  * @param {string} activePage - Current page name: 'messages' | 'players' | 'cashier' | 'data' | 'admin'
  */
 export default function ClubArenaBottomNav({ clubId, activePage, userRole }) {
-    // HARDENED: Don't render if no clubId - prevents broken links
-    if (!clubId) return null;
-
     const [unreadCount, setUnreadCount] = useState(0);
     const bus = useTrainingBus();
+
+    // HARDENED: Don't render if no clubId - prevents broken links
+    // (Moved below hooks to comply with React rules-of-hooks)
 
     // Fetch initial unread count and listen for real-time updates
     useEffect(() => {
@@ -137,6 +139,9 @@ export default function ClubArenaBottomNav({ clubId, activePage, userRole }) {
             offRead();
         };
     }, [clubId, bus]);
+
+    // HARDENED: Don't render if no clubId - prevents broken links
+    if (!clubId) return null;
 
     const navItems = [
         { key: 'lobby', label: 'Lobby', href: `/hub/club-arena/lobby?club=${clubId}`, Icon: LobbyIcon },

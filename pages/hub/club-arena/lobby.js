@@ -25,6 +25,7 @@ import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBott
 import { apiCall, apiGet, getAuthToken } from '../../../src/lib/club-arena/apiClient';
 import LobbyStatsBar from '../../../src/components/club-arena/LobbyStatsBar';
 import { haptic } from '../../../src/lib/club-arena/haptic';
+import { usePullToRefresh } from '../../../src/hooks/usePullToRefresh';
 
 // Dynamic imports — GameCard + DynamicWallet use browser APIs, must be client-only
 const GameCard = dynamic(

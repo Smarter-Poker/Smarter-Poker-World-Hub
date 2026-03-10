@@ -14,6 +14,8 @@ import dynamic from 'next/dynamic';
 import usePersistedFilters from '../../../src/hooks/usePersistedFilters';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
+import { haptic } from '../../../src/lib/club-arena/haptic';
+import { usePullToRefresh } from '../../../src/hooks/usePullToRefresh';
 import { resolveAvatarDisplay } from '../../../src/lib/resolveAvatarDisplay';
 const SkeletonDark = dynamic(() => import('../../../src/components/ui/SkeletonDark'), { ssr: false });
 
