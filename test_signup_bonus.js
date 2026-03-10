@@ -39,7 +39,7 @@ async function testSignupBonus() {
             .from('profiles')
             .select('diamonds, is_vip, vip_tier, vip_expires_at')
             .eq('id', user.id)
-            .single();
+            .maybeSingle();
 
         if (profileError) {
             console.error('❌ Failed to fetch profile:', profileError.message);
