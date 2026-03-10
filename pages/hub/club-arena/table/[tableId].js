@@ -133,8 +133,14 @@ export default function ClubArenaTable() {
         .eq('id', tableId)
         .maybeSingle();
 
-      if (fe || !td) {
-        setError('Table not found');
+      if (fe) {
+        console.error('[Table Boot] Supabase fetch error:', fe);
+        setError(`DB Error: ${fe.message || JSON.stringify(fe)}`);
+        setLoading(false);
+        return;
+      }
+      if (!td) {
+        setError('Table not found in database');
         setLoading(false);
         return;
       }
