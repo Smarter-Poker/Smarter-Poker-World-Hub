@@ -2,7 +2,7 @@
  CLUB ARENA — Marketplace | FULLY WIRED
  SmarterPoker Dark Theme | Club Shop with Real Items & Purchases
  ═══════════════════════════════════════════════════════════════════════════════ */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
@@ -27,6 +27,7 @@ import { haptic } from '../../../src/lib/club-arena/haptic';
 import { usePullToRefresh } from '../../../src/hooks/usePullToRefresh';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
+import NotificationBell from '../../../src/components/club-arena/NotificationBell';
 
 
 // SmarterPoker Dark Color Scheme
@@ -67,6 +68,9 @@ export default function Marketplace() {
 
     const router = useRouter();
     const clubIdParam = router.query?.club || null;
+
+    // ── Ghost-listener defense: mounted ref ──
+    const mountedRef = useRef(true);
 
     // State
     const [user, setUser] = useState(null);
@@ -174,11 +178,15 @@ export default function Marketplace() {
             // Still set default items on error
             setItems(DEFAULT_ITEMS);
         } finally {
-            setIsLoading(false);
+            if (mountedRef.current) setIsLoading(false);
         }
     }, [clubIdParam]);
 
-    useEffect(() => { const _c = new AbortController(); loadData(_c.signal); return () => _c.abort(); }, [loadData]);
+    useEffect(() => {
+        mountedRef.current = true;
+        loadData();
+        return () => { mountedRef.current = false; };
+    }, [loadData]);
 
     // ── Realtime: live shop item/purchase updates ─────────────────────────
     useEffect(() => {
@@ -349,9 +357,12 @@ export default function Marketplace() {
                     </button>
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: showWallet ? '8px' : '8px' }}>
-                        <div>
-                            <h1 style={{ ...S.pageTitle, marginBottom: '4px' }}>Marketplace</h1>
-                            <p style={{ ...S.pageSubtitle, marginBottom: 0 }}>Spend Your Chips On Exclusive Items</p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div>
+                                <h1 style={{ ...S.pageTitle, marginBottom: '4px' }}>Marketplace</h1>
+                                <p style={{ ...S.pageSubtitle, marginBottom: 0 }}>Spend Your Chips On Exclusive Items</p>
+                            </div>
+                            <NotificationBell userId={user?.id} />
                         </div>
                         <button onClick={() => setShowWallet(prev => !prev)} style={{ background: showWallet ? '#2374E1' : '#242526', border: `1px solid ${showWallet ? '#2374E1' : '#3E4042'}`, color: showWallet ? '#fff' : '#B0B3B8', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>
                             💰 {showWallet ? 'Hide' : 'Wallet'}
@@ -383,7 +394,18 @@ export default function Marketplace() {
                             <button onClick={() => router.push('/hub')} style={{ ...S.backBtn, marginTop: 16 }}>Go to Hub</button>
                         </div>
                     ) : isLoading ? (
-                        <div style={S.loading}>Loading Shop...</div>
+                        <div>
+                            <div className="ca-skeleton" style={{ height: 48, borderRadius: 8, marginBottom: 16 }} />
+                            <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                                <div className="ca-skeleton" style={{ flex: 1, height: 40, borderRadius: 6 }} />
+                                <div className="ca-skeleton" style={{ flex: 1, height: 40, borderRadius: 6 }} />
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+                                {Array.from({ length: 6 }).map((_, i) => (
+                                    <div key={i} className="ca-skeleton" style={{ height: 140, borderRadius: 8 }} />
+                                ))}
+                            </div>
+                        </div>
                     ) : !user ? (
                         <div style={S.emptyState}><p>Sign In To Shop</p></div>
                     ) : (

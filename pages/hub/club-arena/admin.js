@@ -20,6 +20,7 @@ import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
 import { resolveAvatarDisplay } from '../../../src/lib/resolveAvatarDisplay';
 import { apiCall, apiGet, getAuthToken } from '../../../src/lib/club-arena/apiClient';
 import useAdminShortcuts from '../../../src/hooks/useAdminShortcuts';
+import NotificationBell from '../../../src/components/club-arena/NotificationBell';
 import dynamic from 'next/dynamic';
 import useWalletData from '../../../src/hooks/useWalletData';
 const DynamicWallet = dynamic(() => import('../../../src/components/club-arena/DynamicWallet'), { ssr: false });
@@ -1194,10 +1195,13 @@ export default function Admin() {
                         &#8592; Back to Lobby
                     </button>
 
-                    <h1 style={S.pageTitle}>
-                        Club Admin
-                        <span style={{ fontSize: 11, color: FB.textSecondary, fontWeight: 400, marginLeft: 8 }}>⌘K shortcuts</span>
-                    </h1>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+                        <h1 style={{ ...S.pageTitle, marginBottom: 0 }}>
+                            Club Admin
+                            <span style={{ fontSize: 11, color: FB.textSecondary, fontWeight: 400, marginLeft: 8 }}>⌘K shortcuts</span>
+                        </h1>
+                        <NotificationBell userId={user?.id} />
+                    </div>
 
                     {isLoading ? (
                         <div style={{ marginTop: 20 }}><SkeletonDark variant="stat-cards" count={3} /><div style={{ marginTop: 20 }}><SkeletonDark variant="table-rows" rows={4} /></div></div>
