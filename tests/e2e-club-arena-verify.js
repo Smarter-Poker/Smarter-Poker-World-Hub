@@ -80,6 +80,10 @@ c('SQL: club_arena_tos', () => fs.existsSync('supabase/migrations/20260309000003
 c('13 auth pages noindex', () => ['admin', 'cashier', 'hand-histories', 'player-stats', 'players', 'marketplace', 'leaderboard', 'lobby', 'messages', 'agent-dashboard', 'union-dashboard', 'union-games', 'tournaments'].every(pg => fs.readFileSync('pages/hub/club-arena/' + pg + '.js', 'utf8').includes('noindex')));
 c('Main page NOT noindex', () => !fs.readFileSync('pages/hub/club-arena.js', 'utf8').includes('noindex'));
 
+// NEW: Lobby bus handler routes table vs tournament events
+c('Lobby bus: table events trigger table refresh', () => { const x = fs.readFileSync('pages/hub/club-arena/lobby.js', 'utf8'); return x.includes("tableEntities.includes(entity)") && x.includes("setTables(data)"); });
+c('Lobby bus: tournament events trigger tournament refresh', () => fs.readFileSync('pages/hub/club-arena/lobby.js', 'utf8').includes("tournamentEntities.includes(entity)"));
+
 console.log();
 console.log('═══════════════════════════════════');
 console.log(pass + '/' + total);
