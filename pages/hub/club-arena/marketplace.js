@@ -56,11 +56,18 @@ const DEFAULT_ITEMS = [
 
 const CATEGORIES = [
     { id: 'all', label: 'All Items' },
-    { id: 'cosmetic', label: 'Cosmetics' },
-    { id: 'theme', label: 'Themes' },
-    { id: 'perk', label: 'Perks' },
-    { id: 'badge', label: 'Badges' },
+    { id: 'cosmetic', label: '🎨 Cosmetics' },
+    { id: 'theme', label: '🎭 Themes' },
+    { id: 'perk', label: '⚡ Perks' },
+    { id: 'badge', label: '🏅 Badges' },
 ];
+
+const CATEGORY_ICONS = {
+    cosmetic: '🎨',
+    theme: '🎭',
+    perk: '⚡',
+    badge: '🏅',
+};
 
 export default function Marketplace() {
     useTrainingBus('club-arena-marketplace');
@@ -92,6 +99,9 @@ export default function Marketplace() {
     const setCategory = (val) => setFilter('category', val);
     const tab = filters.tab;
     const setTab = (val) => setFilter('tab', val);
+
+    // Search
+    const [searchQuery, setSearchQuery] = useState('');
 
     // Modal
     const [selectedItem, setSelectedItem] = useState(null);
@@ -292,8 +302,12 @@ export default function Marketplace() {
     // ═══════════════════════════════════════════════════════════════════════════
     const filteredItems = items.filter(item => {
         if (tab === 'owned') return ownedItems.includes(item.id);
-        if (category === 'all') return true;
-        return item.category === category;
+        if (category !== 'all' && item.category !== category) return false;
+        if (searchQuery.trim()) {
+            const q = searchQuery.toLowerCase();
+            if (!(item.name || '').toLowerCase().includes(q) && !(item.description || '').toLowerCase().includes(q)) return false;
+        }
+        return true;
     });
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -459,6 +473,18 @@ export default function Marketplace() {
                                 </button>
                             </div>
 
+                            {/* Search */}
+                            <div style={{ position: 'relative', marginBottom: 12 }}>
+                                <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: FB.textSecondary, fontSize: 16 }}>🔍</span>
+                                <input
+                                    type="text"
+                                    placeholder="Search items..."
+                                    value={searchQuery}
+                                    onChange={e => setSearchQuery(e.target.value)}
+                                    style={{ width: '100%', padding: '10px 14px 10px 40px', background: FB.cardBg, border: `1px solid ${FB.border}`, borderRadius: 8, color: FB.textPrimary, fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
+                                />
+                            </div>
+
                             {/* Category Filter (Shop only) */}
                             {tab === 'shop' && (
                                 <div style={S.categoryRow}>
@@ -495,7 +521,7 @@ export default function Marketplace() {
                                                 onMouseLeave={e => e.currentTarget.style.borderColor = FB.border}
                                             >
                                                 {isOwned && <span style={S.ownedBadge}>OWNED</span>}
-                                                <span style={S.itemIcon}></span>
+                                                <span style={S.itemIcon}>{item.icon || CATEGORY_ICONS[item.category] || '🎁'}</span>
                                                 <div style={S.itemName}>{item.name}</div>
                                                 <div style={S.itemDesc}>{item.description}</div>
                                                 <div style={S.itemPrice}>{item.price.toLocaleString()} chips</div>

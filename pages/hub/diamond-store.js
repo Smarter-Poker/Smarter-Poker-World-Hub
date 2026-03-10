@@ -1203,7 +1203,8 @@ export default function DiamondStorePage() {
 
                                 {/* View in Marketplace Link */}
                                 <div style={{ textAlign: 'center', marginTop: 24, marginBottom: 32 }}>
-                                    <a
+                                    {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+                                <a
                                         href="/hub/diamond-store?tab=merch"
                                         onClick={(e) => { e.preventDefault(); setActiveTab('merch'); }}
                                         style={{
@@ -1654,6 +1655,7 @@ export default function DiamondStorePage() {
                         {/* Legal Note */}
                         <p style={styles.legalNote}>
                             Diamonds are virtual currency and have no real-world cash value.
+                            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
                             All purchases are final. See our <a href="/terms" style={styles.link}>Terms of Service</a> for details.
                         </p>
                     </div>

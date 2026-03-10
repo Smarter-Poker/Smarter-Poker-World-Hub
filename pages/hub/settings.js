@@ -956,6 +956,7 @@ export default function SettingsPage() {
                                         }}>
                                             <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13 }}>
                                                 Diamonds Free Users Get 1 Custom Avatar.
+                                                {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
                                                 <a
                                                     href="/hub/diamond-store"
                                                     style={{

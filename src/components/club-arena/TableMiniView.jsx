@@ -120,6 +120,24 @@ function ensureKeyframes() {
         50% { transform: rotateY(90deg) scale(0.9); opacity: 0.7; }
         100% { transform: rotateY(0deg) scale(1); opacity: 1; }
       }
+      @keyframes miniWinnerFlash {
+        0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+        15% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+        85% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+      }
+      @keyframes miniChatBubble {
+        0% { opacity: 0; transform: translateY(4px) scale(0.8); }
+        10% { opacity: 1; transform: translateY(0) scale(1); }
+        80% { opacity: 1; }
+        100% { opacity: 0; transform: translateY(-4px); }
+      }
+      @keyframes miniEmojiFly {
+        0% { opacity: 0; transform: translateY(0) scale(0.3); }
+        20% { opacity: 1; transform: translateY(-6px) scale(1); }
+        80% { opacity: 0.7; transform: translateY(-18px) scale(1.1); }
+        100% { opacity: 0; transform: translateY(-26px) scale(0.6); }
+      }
     `;
     document.head.appendChild(s);
   }
@@ -273,6 +291,10 @@ export default function TableMiniView({
   const turnEndTime = miniState.turnEndTime;
   const turnTotalTime = miniState.turnTotalTime || 15;
   const shownCards = miniState.shownCards || [];
+  const lastHandResult = miniState.lastHandResult || null;
+  const lastChatMessage = miniState.lastChatMessage || null;
+  const emojiReactions = miniState.emojiReactions || [];
+  const tournamentOverlay = miniState.tournamentOverlay || null;
 
   const phaseLabel = PHASE_LABELS[phase] || null;
   const positions = getSeatPositions(maxSeats);
@@ -339,9 +361,17 @@ export default function TableMiniView({
                 </div>
               )}
 
-              {/* The physical dot */}
+              {/* The physical dot — with avatar */}
               <div style={dotStyle}>
                 {isDealer && occupied && <span style={S.dealerBadge}>D</span>}
+                {occupied && seatData.avatarUrl && (
+                  <img
+                    src={seatData.avatarUrl}
+                    alt=""
+                    style={S.seatAvatar}
+                    onError={(e) => { e.target.style.display = 'none'; }}
+                  />
+                )}
               </div>
 
               {/* Name & Stack Element + Timer Ring container */}
@@ -429,6 +459,48 @@ export default function TableMiniView({
 
         {handNumber > 0 && !isIdle && (
           <div style={S.handBadge}>#{handNumber}</div>
+        )}
+
+        {/* ── Hand Result Flash ── */}
+        {lastHandResult && (Date.now() - lastHandResult.timestamp < 5000) && (
+          <div key={lastHandResult.timestamp} style={S.winnerFlash}>
+            <span style={S.winnerIcon}>🏆</span>
+            <span style={S.winnerName}>{lastHandResult.winnerName}</span>
+            <span style={S.winnerAmount}>+{fmtPot(lastHandResult.amount)}</span>
+          </div>
+        )}
+
+        {/* ── Chat Bubble ── */}
+        {lastChatMessage && (Date.now() - lastChatMessage.timestamp < 6000) && (
+          <div key={lastChatMessage.timestamp} style={S.chatBubble}>
+            <span style={S.chatName}>{lastChatMessage.playerName}:</span>
+            <span style={S.chatText}>{lastChatMessage.message}</span>
+          </div>
+        )}
+
+        {/* ── Emoji Reactions ── */}
+        {emojiReactions.length > 0 && (
+          <div style={S.emojiContainer}>
+            {emojiReactions.map((r, i) => (
+              <span key={r.timestamp + i} style={{ ...S.emojiFloat, animationDelay: `${i * 0.15}s` }}>
+                {r.emoji}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* ── Tournament Overlay ── */}
+        {tournamentOverlay && (
+          <div style={S.tourneyOverlay}>
+            {tournamentOverlay.blindLevel && (
+              <span style={S.tourneyLevel}>Lvl {tournamentOverlay.blindLevel}</span>
+            )}
+            {tournamentOverlay.playersRemaining && (
+              <span style={S.tourneyPlayers}>
+                {tournamentOverlay.playersRemaining}/{tournamentOverlay.totalPlayers || '?'}
+              </span>
+            )}
+          </div>
         )}
       </div>
     </div>
@@ -645,5 +717,74 @@ const S = {
   potText: {
     fontSize: 7, fontWeight: 700, color: 'rgba(255,255,255,0.7)', letterSpacing: 0.2,
     fontFamily: '"Orbitron",monospace', textShadow: '0 1px 3px rgba(0,0,0,0.7)',
+  },
+
+  // ── Player Avatar ──
+  seatAvatar: {
+    position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+    borderRadius: '50%', objectFit: 'cover', zIndex: 1,
+  },
+
+  // ── Hand Result Flash ──
+  winnerFlash: {
+    position: 'absolute', top: '50%', left: '50%',
+    transform: 'translate(-50%, -50%)',
+    display: 'flex', alignItems: 'center', gap: 3,
+    background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(255,215,0,0.5)',
+    borderRadius: 8, padding: '3px 8px',
+    zIndex: 20, pointerEvents: 'none',
+    animation: 'miniWinnerFlash 4s ease-out forwards',
+    backdropFilter: 'blur(4px)',
+  },
+  winnerIcon: { fontSize: 10 },
+  winnerName: {
+    fontSize: 7, fontWeight: 800, color: '#FFD700',
+    fontFamily: '"Orbitron",monospace', textTransform: 'uppercase',
+  },
+  winnerAmount: {
+    fontSize: 8, fontWeight: 900, color: '#39FF14',
+    fontFamily: '"Orbitron",monospace',
+  },
+
+  // ── Chat Bubble ──
+  chatBubble: {
+    position: 'absolute', bottom: 4, left: '50%', transform: 'translateX(-50%)',
+    background: 'rgba(0,0,0,0.75)', border: '1px solid rgba(255,255,255,0.15)',
+    borderRadius: 6, padding: '2px 6px', maxWidth: '80%',
+    zIndex: 15, pointerEvents: 'none',
+    animation: 'miniChatBubble 5s ease-out forwards',
+    display: 'flex', gap: 3, alignItems: 'center',
+  },
+  chatName: {
+    fontSize: 5, fontWeight: 700, color: '#0ea5e9', whiteSpace: 'nowrap',
+  },
+  chatText: {
+    fontSize: 5, color: 'rgba(255,255,255,0.8)', whiteSpace: 'nowrap',
+    overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 80,
+  },
+
+  // ── Emoji Reactions ──
+  emojiContainer: {
+    position: 'absolute', bottom: 10, right: 8, display: 'flex', gap: 1, zIndex: 18,
+    pointerEvents: 'none',
+  },
+  emojiFloat: {
+    fontSize: 12, animation: 'miniEmojiFly 3.5s ease-out forwards',
+    pointerEvents: 'none',
+  },
+
+  // ── Tournament Overlay ──
+  tourneyOverlay: {
+    position: 'absolute', top: 2, right: 6, display: 'flex', gap: 4, alignItems: 'center',
+    zIndex: 4,
+  },
+  tourneyLevel: {
+    fontSize: 5, fontWeight: 800, color: '#FFD700',
+    background: 'rgba(0,0,0,0.6)', borderRadius: 3, padding: '0 3px',
+    fontFamily: '"Orbitron",monospace',
+  },
+  tourneyPlayers: {
+    fontSize: 5, fontWeight: 700, color: 'rgba(255,255,255,0.6)',
+    background: 'rgba(0,0,0,0.5)', borderRadius: 3, padding: '0 3px',
   },
 };

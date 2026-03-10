@@ -49,6 +49,8 @@ function ensureLivePulse() {
       0%, 100% { box-shadow: 0 4px 16px rgba(0,0,0,0.7), 0 0 0 rgba(0,230,118,0); }
       50% { box-shadow: 0 4px 20px rgba(0,0,0,0.7), 0 0 18px rgba(0,230,118,0.15), inset 0 0 8px rgba(0,230,118,0.05); }
     }
+    @keyframes miniExpandFadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes miniExpandScaleUp { from { transform: scale(0.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
   `;
   document.head.appendChild(s);
 }
@@ -64,6 +66,7 @@ function MiniViewExpandModal({ miniState, maxSeats, blinds, variant, accentColor
         background: 'rgba(0,0,0,0.85)', zIndex: 9999,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         backdropFilter: 'blur(4px)',
+        animation: 'miniExpandFadeIn 0.25s ease-out',
       }}
     >
       <div
@@ -75,6 +78,7 @@ function MiniViewExpandModal({ miniState, maxSeats, blinds, variant, accentColor
           overflow: 'hidden',
           boxShadow: '0 8px 40px rgba(0,0,0,0.8), 0 0 20px rgba(180,150,60,0.2)',
           border: '1px solid rgba(255,255,255,0.1)',
+          animation: 'miniExpandScaleUp 0.3s ease-out',
         }}
       >
         <div style={{ transform: 'scale(2.5)', transformOrigin: 'top center', width: '40%', margin: '0 auto' }}>

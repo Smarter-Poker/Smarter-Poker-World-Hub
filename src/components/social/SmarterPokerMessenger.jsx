@@ -39,6 +39,39 @@ const THEME_PRESETS = [
     { label: 'Forest', value: 'linear-gradient(180deg, #E8F5E9 0%, #C8E6C9 100%)', type: 'gradient' }
 ];
 
+// P4-6: Smart reply suggestions (context-aware)
+const SMART_REPLIES = [
+    { trigger: ['thanks', 'thank you', 'thx'], replies: ['You\'re welcome!', 'No problem!', 'Anytime! 👍'] },
+    { trigger: ['hello', 'hi', 'hey'], replies: ['Hey! 👋', 'What\'s up?', 'How can I help?'] },
+    { trigger: ['tournament', 'tourney'], replies: ['Good luck! 🍀', 'What buy-in?', 'I\'m in!'] },
+    { trigger: ['gg', 'good game'], replies: ['GG! 🤝', 'Well played!', 'Rematch? 😎'] },
+    { trigger: ['when', 'time', 'schedule'], replies: ['Let me check...', 'I\'ll get back to you', 'What time works?'] }
+];
+
+// P4-3: Simple markdown parser for rich text
+const parseMarkdown = (text) => {
+    if (!text || typeof text !== 'string') return text;
+    return text
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/`(.+?)`/g, '<code style="background:#f0f0f0;padding:1px 4px;border-radius:3px;font-size:12px">$1</code>')
+        .replace(/^- (.+)/gm, '• $1');
+};
+
+// P4-8: File type icon resolver
+const getFileIcon = (filename) => {
+    if (!filename) return '📎';
+    const ext = filename.split('.').pop()?.toLowerCase();
+    if (['jpg','jpeg','png','gif','webp','svg'].includes(ext)) return '🖼️';
+    if (['pdf'].includes(ext)) return '📄';
+    if (['doc','docx','txt','rtf'].includes(ext)) return '📝';
+    if (['xls','xlsx','csv'].includes(ext)) return '📊';
+    if (['mp4','mov','avi','webm'].includes(ext)) return '🎬';
+    if (['mp3','wav','ogg'].includes(ext)) return '🎵';
+    if (['zip','rar','7z'].includes(ext)) return '📦';
+    return '📎';
+};
+
 const useMessengerPrefs = () => {
     const [prefs, setPrefs] = useState({
         bookmarks: [],
@@ -46,6 +79,9 @@ const useMessengerPrefs = () => {
         themes: {},
         disappearing: {},
         scheduledQueue: [],
+        pinnedMessages: {},
+        archivedConversations: [],
+        threadReplies: {},
         templates: [
             "Your funds are ready",
             "Tournament starts in 30 min",
@@ -84,8 +120,41 @@ const MessageBubble = ({ message, isOwn, showAvatar, user, onAction }) => (
         )}
         {!isOwn && !showAvatar && <div className="avatar-spacer" />}
 
-        <div className={`message-bubble ${isOwn ? 'own' : 'other'} ${message.isDisappearing ? 'ephemeral' : ''}`}>
-            {message.text}
+        <div className={`message-bubble ${isOwn ? 'own' : 'other'} ${message.isDisappearing ? 'ephemeral' : ''} ${message.isPinned ? 'pinned-msg' : ''}`}>
+            {/* P4-1: Pin indicator */}
+            {message.isPinned && <span className="pin-indicator" title="Pinned">📍</span>}
+
+            {/* P4-7: Thread reply indicator */}
+            {message.threadParentText && (
+                <div className="thread-reply-indicator" onClick={() => onAction?.('viewThread', message)}>
+                    ↩️ <em>{message.threadParentText.slice(0, 30)}...</em>
+                </div>
+            )}
+
+            {/* P4-8: File attachment */}
+            {message.file && (
+                <div className="file-attachment">
+                    <span className="file-icon">{getFileIcon(message.file.name)}</span>
+                    <span className="file-name">{message.file.name}</span>
+                    <span className="file-size">{message.file.size}</span>
+                </div>
+            )}
+
+            {/* P4-4: Contact card */}
+            {message.contactCard && (
+                <div className="contact-card">
+                    <SPAvatar src={message.contactCard.avatar} size={32} />
+                    <div>
+                        <strong>{message.contactCard.name}</strong>
+                        <span style={{ fontSize: 11, color: '#666', display: 'block' }}>{message.contactCard.role || 'Player'}</span>
+                    </div>
+                </div>
+            )}
+
+            {/* P4-3: Rich text via markdown */}
+            {!message.file && !message.contactCard && (
+                <span dangerouslySetInnerHTML={{ __html: parseMarkdown(message.text) }} />
+            )}
 
             {/* Labels & Bookmarks Indicator */}
             {(message.labels?.length > 0 || message.isBookmarked) && (
@@ -105,9 +174,20 @@ const MessageBubble = ({ message, isOwn, showAvatar, user, onAction }) => (
                     ))}
                 </div>
             )}
-            {/* Hover Actions — E8: Expanded Label Categories */}
+
+            {/* P4-7: Thread reply count */}
+            {message.threadCount > 0 && (
+                <button className="thread-count-btn" onClick={() => onAction?.('viewThread', message)}>
+                    💬 {message.threadCount} {message.threadCount === 1 ? 'reply' : 'replies'}
+                </button>
+            )}
+
+            {/* Hover Actions */}
             <div className="message-hover-actions">
                 <button onClick={() => onAction?.('bookmark', message)} title={message.isBookmarked ? "Remove Bookmark" : "Save Bookmark"}>📌</button>
+                <button onClick={() => onAction?.('pin', message)} title={message.isPinned ? "Unpin" : "Pin"}>📍</button>
+                <button onClick={() => onAction?.('forward', message)} title="Forward">↗️</button>
+                <button onClick={() => onAction?.('thread', message)} title="Reply in Thread">💬</button>
                 {LABEL_CATEGORIES.map(cat => (
                     <button key={cat} onClick={() => onAction?.('label', message, cat)} title={`Label: ${cat}`} style={{ fontSize: 10, padding: '2px 4px' }}>
                         {cat === 'Important' ? '🔴' : cat === 'Action Required' ? '🟠' : cat === 'Tournament Info' ? '🟢' : '💰'}
@@ -226,12 +306,14 @@ const MessageBubble = ({ message, isOwn, showAvatar, user, onAction }) => (
 
 export const ChatWindow = ({
     conversation,
+    conversations = [],
     messages = [],
     currentUser,
     onSend,
     onClose,
     onMinimize,
     onBroadcast,
+    onForwardMessage,
     isAdmin = false,
     minimized = false
 }) => {
@@ -246,13 +328,20 @@ export const ChatWindow = ({
     const [labelFilter, setLabelFilter] = useState('');
     const [showDisappearMenu, setShowDisappearMenu] = useState(false);
     const [showScheduledQueue, setShowScheduledQueue] = useState(false);
+    // P4 state
+    const [forwardMsg, setForwardMsg] = useState(null);
+    const [threadParent, setThreadParent] = useState(null);
+    const [showSmartReplies, setShowSmartReplies] = useState([]);
     const messagesEndRef = useRef(null);
+    const fileInputRef = useRef(null);
     const [prefs, updatePrefs] = useMessengerPrefs();
 
     const conversationId = conversation?.id;
     const theme = prefs.themes[conversationId] || SP_COLORS.bgWhite;
     const disappearMs = prefs.disappearing[conversationId] || 0;
     const isDisappearing = disappearMs > 0;
+    const pinnedIds = prefs.pinnedMessages[conversationId] || [];
+    const isArchived = (prefs.archivedConversations || []).includes(conversationId);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -313,6 +402,50 @@ export const ChatWindow = ({
                     : [...existingLabels, payload];
                 return { ...p, labels: { ...p.labels, [msg.id]: newLabels } };
             });
+        }
+        // P4-1: Pin/unpin
+        if (action === 'pin') {
+            updatePrefs(p => {
+                const current = p.pinnedMessages[conversationId] || [];
+                const isPinned = current.includes(msg.id);
+                return { ...p, pinnedMessages: { ...p.pinnedMessages, [conversationId]: isPinned ? current.filter(id => id !== msg.id) : [...current, msg.id] } };
+            });
+        }
+        // P4-2: Forward (open modal)
+        if (action === 'forward') {
+            setForwardMsg(msg);
+        }
+        // P4-7: Thread reply
+        if (action === 'thread') {
+            setThreadParent(msg);
+        }
+        if (action === 'viewThread') {
+            setThreadParent(msg);
+        }
+    };
+
+    // P4-6: Generate smart replies based on last message
+    useEffect(() => {
+        if (messages.length > 0) {
+            const lastMsg = messages[messages.length - 1];
+            if (lastMsg?.senderId !== currentUser?.id && lastMsg?.text) {
+                const lower = lastMsg.text.toLowerCase();
+                for (const rule of SMART_REPLIES) {
+                    if (rule.trigger.some(t => lower.includes(t))) {
+                        setShowSmartReplies(rule.replies);
+                        return;
+                    }
+                }
+            }
+        }
+        setShowSmartReplies([]);
+    }, [messages]);
+
+    // P4-8: File upload handler
+    const handleFileUpload = (e) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            onSend?.(`📎 [File: ${file.name}]`, { file: { name: file.name, size: (file.size / 1024).toFixed(1) + ' KB', type: file.type } });
         }
     };
 
@@ -399,6 +532,8 @@ export const ChatWindow = ({
                             </span>
                         )}
                     </button>
+                    {/* P4-5: Archive toggle */}
+                    <button className="header-btn" onClick={() => updatePrefs(p => ({ ...p, archivedConversations: isArchived ? (p.archivedConversations || []).filter(id => id !== conversationId) : [...(p.archivedConversations || []), conversationId] }))} title={isArchived ? 'Unarchive' : 'Archive'} style={{ color: isArchived ? '#0088ff' : undefined }}>📦</button>
                     <button className="header-btn" onClick={onMinimize}>−</button>
                     <button className="header-btn" onClick={onClose}>✕</button>
                 </div>
@@ -449,6 +584,66 @@ export const ChatWindow = ({
                 </div>
             )}
 
+            {/* P4-1: Pinned Messages Bar */}
+            {pinnedIds.length > 0 && (
+                <div className="pinned-bar">
+                    <span>📍 <strong>{pinnedIds.length} pinned</strong></span>
+                    <div style={{ fontSize: 11, color: '#666' }}>
+                        {messages.filter(m => pinnedIds.includes(m.id)).slice(0, 2).map((m, i) => (
+                            <span key={i} style={{ marginRight: 8 }}>{m.text?.slice(0, 25)}...</span>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* P4-2: Forward Modal */}
+            {forwardMsg && (
+                <div className="forward-modal">
+                    <div className="forward-content">
+                        <strong>↗️ Forward Message</strong>
+                        <p style={{ fontSize: 11, color: '#666', margin: '4px 0' }}>"{forwardMsg.text?.slice(0, 50)}..."</p>
+                        <div style={{ maxHeight: 100, overflowY: 'auto' }}>
+                            {conversations.filter(c => c.id !== conversationId).map((c, i) => {
+                                const target = c.participants?.find(p => p.id !== currentUser?.id);
+                                return (
+                                    <button key={i} className="forward-target" onClick={() => { onForwardMessage?.(c.id, forwardMsg); setForwardMsg(null); }}>
+                                        <SPAvatar src={target?.avatar} size={24} /> {target?.name}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        <button style={{ marginTop: 8, background: '#ddd', border: 'none', borderRadius: 6, padding: '4px 12px', cursor: 'pointer', fontSize: 11 }} onClick={() => setForwardMsg(null)}>Cancel</button>
+                    </div>
+                </div>
+            )}
+
+            {/* P4-7: Thread Panel */}
+            {threadParent && (
+                <div className="thread-panel">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                        <strong>💬 Thread</strong>
+                        <button style={{ background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setThreadParent(null)}>✕</button>
+                    </div>
+                    <div className="thread-parent-msg">
+                        <span style={{ fontWeight: 600 }}>{threadParent.senderName || 'User'}</span>: {threadParent.text?.slice(0, 80)}
+                    </div>
+                    <div style={{ marginTop: 4, maxHeight: 60, overflowY: 'auto' }}>
+                        {(prefs.threadReplies[threadParent.id] || []).map((r, i) => (
+                            <div key={i} style={{ fontSize: 11, padding: '2px 0', borderTop: '1px solid #eee' }}>{r.text}</div>
+                        ))}
+                    </div>
+                    <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
+                        <input type="text" placeholder="Reply in thread..." id="thread-reply-input" style={{ flex: 1, border: '1px solid #ddd', borderRadius: 6, padding: '4px 8px', fontSize: 11 }} onKeyPress={e => {
+                            if (e.key === 'Enter' && e.target.value.trim()) {
+                                const reply = { text: e.target.value, timestamp: Date.now() };
+                                updatePrefs(p => ({ ...p, threadReplies: { ...p.threadReplies, [threadParent.id]: [...(p.threadReplies[threadParent.id] || []), reply] } }));
+                                e.target.value = '';
+                            }
+                        }} />
+                    </div>
+                </div>
+            )}
+
             {/* Messages */}
             <div className="chat-messages">
                 {messages.map((msg, i) => {
@@ -467,7 +662,9 @@ export const ChatWindow = ({
                         ...msg,
                         isBookmarked: prefs.bookmarks.some(b => b.id === msg.id),
                         labels: msgLabels,
-                        isDisappearing: isDisappearing
+                        isDisappearing: isDisappearing,
+                        isPinned: pinnedIds.includes(msg.id),
+                        threadCount: (prefs.threadReplies[msg.id] || []).length
                     };
 
                     const isOwn = enrichedMsg.senderId === currentUser?.id;
@@ -487,6 +684,15 @@ export const ChatWindow = ({
                 })}
                 <div ref={messagesEndRef} />
             </div>
+
+            {/* P4-6: Smart Reply Suggestions */}
+            {showSmartReplies.length > 0 && (
+                <div className="smart-replies-bar">
+                    {showSmartReplies.map((reply, i) => (
+                        <button key={i} className="smart-reply-chip" onClick={() => { onSend?.(reply); setShowSmartReplies([]); }}>{reply}</button>
+                    ))}
+                </div>
+            )}
 
             {/* E2: Templates Bar + Editor */}
             {showTemplates && (
@@ -512,7 +718,8 @@ export const ChatWindow = ({
             <div className="chat-input" style={{ flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 4 }}>
                     <button className="input-btn" onClick={() => setShowTemplates(!showTemplates)} title="Templates">📋</button>
-                    <button className="input-btn">📷</button>
+                    <button className="input-btn" onClick={() => fileInputRef.current?.click()} title="Attach File">📎</button>
+                    <input type="file" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileUpload} />
                     <button className="input-btn">🎁</button>
 
                     <div className="input-wrapper">
@@ -725,6 +932,137 @@ export const ChatWindow = ({
 
                 .disappear-opt:hover { background: #f0f0f0; }
                 .disappear-opt.active { background: #e3f2fd; font-weight: 600; color: #0088ff; }
+
+                /* P4 Styles */
+                .pin-indicator { position: absolute; top: -8px; right: 4px; font-size: 10px; }
+                .pinned-msg { border-left: 2px solid #0088ff; }
+
+                .pinned-bar {
+                    padding: 6px 8px;
+                    background: #f0f8ff;
+                    border-bottom: 1px solid #ddd;
+                    font-size: 12px;
+                }
+
+                .forward-modal {
+                    position: absolute;
+                    top: 0; left: 0; right: 0; bottom: 0;
+                    background: rgba(0,0,0,0.4);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 20;
+                }
+
+                .forward-content {
+                    background: white;
+                    border-radius: 12px;
+                    padding: 16px;
+                    width: 80%;
+                    max-height: 200px;
+                    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+                }
+
+                .forward-target {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    width: 100%;
+                    padding: 6px 8px;
+                    background: none;
+                    border: none;
+                    border-bottom: 1px solid #eee;
+                    cursor: pointer;
+                    font-size: 12px;
+                    text-align: left;
+                }
+
+                .forward-target:hover { background: #f5f5f5; }
+
+                .thread-panel {
+                    padding: 8px;
+                    background: #fafafa;
+                    border-bottom: 1px solid #ddd;
+                    font-size: 12px;
+                }
+
+                .thread-parent-msg {
+                    background: #f0f0f0;
+                    border-radius: 6px;
+                    padding: 4px 8px;
+                    font-size: 11px;
+                    color: #333;
+                    border-left: 3px solid #0088ff;
+                }
+
+                .thread-reply-indicator {
+                    font-size: 10px;
+                    color: #888;
+                    cursor: pointer;
+                    margin-bottom: 4px;
+                }
+
+                .thread-count-btn {
+                    background: none;
+                    border: none;
+                    color: #0088ff;
+                    font-size: 11px;
+                    cursor: pointer;
+                    margin-top: 4px;
+                    padding: 0;
+                }
+
+                .thread-count-btn:hover { text-decoration: underline; }
+
+                .smart-replies-bar {
+                    display: flex;
+                    gap: 6px;
+                    padding: 6px 8px;
+                    overflow-x: auto;
+                    background: #f9f9ff;
+                    border-top: 1px solid #eee;
+                }
+
+                .smart-reply-chip {
+                    font-size: 11px;
+                    background: white;
+                    padding: 4px 10px;
+                    border-radius: 14px;
+                    border: 1px solid #0088ff;
+                    color: #0088ff;
+                    white-space: nowrap;
+                    cursor: pointer;
+                    transition: all 0.15s;
+                }
+
+                .smart-reply-chip:hover {
+                    background: #0088ff;
+                    color: white;
+                }
+
+                .file-attachment {
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    background: rgba(0,0,0,0.05);
+                    border-radius: 8px;
+                    padding: 6px 10px;
+                    margin-bottom: 4px;
+                }
+
+                .file-icon { font-size: 20px; }
+                .file-name { font-size: 12px; font-weight: 500; }
+                .file-size { font-size: 10px; color: #888; }
+
+                .contact-card {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    background: rgba(0,0,0,0.04);
+                    border-radius: 10px;
+                    padding: 8px 12px;
+                    border: 1px solid #e0e0e0;
+                }
 
                 .chat-input {
                     display: flex;

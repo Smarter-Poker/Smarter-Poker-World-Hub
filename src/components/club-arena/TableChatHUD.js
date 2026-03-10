@@ -200,6 +200,44 @@ export default function TableChatHUD({ tableId, userId, isMuted = false }) {
                 <div style={styles.mutedBar}>You are muted from table chat.</div>
             ) : (
                 <form onSubmit={handleSendMessage} style={styles.inputArea}>
+                    {/* Quick Chat Phrases */}
+                    <div style={{ display: 'flex', gap: 3, marginBottom: 4, flexWrap: 'wrap' }}>
+                        {['nh', 'ty', 'gg', 'lol', 'wp', 'gl'].map(phrase => (
+                            <button
+                                key={phrase}
+                                type="button"
+                                onClick={() => {
+                                    setNewMessage(phrase);
+                                    // Auto-send quick phrase
+                                    const fakeEvent = { preventDefault: () => {} };
+                                    setNewMessage('');
+                                    // Send via API directly
+                                    const token = (typeof localStorage !== 'undefined' && (() => {
+                                        try { const a = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}'); return a?.access_token; } catch { return null; }
+                                    })()) || null;
+                                    fetch('/api/club-arena/table-chat', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                                        body: JSON.stringify({ action: 'send', tableId, message: phrase }),
+                                    }).catch(() => {});
+                                    // Optimistic insert
+                                    setMessages(prev => [...prev.slice(-49), {
+                                        id: `temp-${Date.now()}`, table_id: tableId, sender_id: userId,
+                                        sender_name: 'You', message: phrase, message_type: 'player',
+                                        created_at: new Date().toISOString()
+                                    }]);
+                                    haptic('tap');
+                                }}
+                                style={{
+                                    background: 'rgba(255,255,255,0.08)', color: '#B0B3B8', border: '1px solid rgba(255,255,255,0.1)',
+                                    borderRadius: 10, padding: '2px 8px', fontSize: 10, fontWeight: 600, cursor: 'pointer',
+                                }}
+                            >
+                                {phrase}
+                            </button>
+                        ))}
+                    </div>
+                    <div style={{ display: 'flex', gap: 6 }}>
                     <input
                         type="text"
                         value={newMessage}
@@ -215,6 +253,7 @@ export default function TableChatHUD({ tableId, userId, isMuted = false }) {
                     >
                         ➤
                     </button>
+                    </div>
                 </form>
             )}
         </div>

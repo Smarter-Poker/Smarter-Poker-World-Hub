@@ -105,6 +105,9 @@ export default function Cashier() {
     // ENH-2: Transaction Category Filters
     const [txFilter, setTxFilter] = useState('all');
 
+    // ENH-DATE: Transaction Date Filter
+    const [txDateFilter, setTxDateFilter] = useState('all');
+
     // ENH-3: Monthly P&L Summary (collapsed by default)
     const [showPnL, setShowPnL] = useState(false);
 
@@ -1160,6 +1163,26 @@ export default function Cashier() {
                                 ))}
                             </div>
 
+                            {/* Date Filter Row */}
+                            <div style={{ display: 'flex', gap: 6, marginBottom: 14, overflowX: 'auto', paddingBottom: 4 }}>
+                                {[{ key: 'all', label: 'All Time' }, { key: 'today', label: 'Today' }, { key: 'week', label: 'This Week' }, { key: 'month', label: 'This Month' }].map(f => (
+                                    <button
+                                        key={f.key}
+                                        onClick={() => { setTxDateFilter(f.key); setTxPage(1); }}
+                                        style={{
+                                            padding: '6px 14px', borderRadius: 20, fontSize: 12, fontWeight: 700,
+                                            border: txDateFilter === f.key ? `2px solid ${FB.primary}` : `1px solid ${FB.border}`,
+                                            background: txDateFilter === f.key ? 'rgba(35,116,225,0.15)' : FB.cardBg,
+                                            color: txDateFilter === f.key ? FB.primary : FB.textSecondary,
+                                            cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+                                            transition: 'all 0.15s ease',
+                                        }}
+                                    >
+                                        {f.label}
+                                    </button>
+                                ))}
+                            </div>
+
                             {(() => {
                                 const filterMap = {
                                     all: () => true,
@@ -1168,7 +1191,18 @@ export default function Cashier() {
                                     transfer: tx => ['transfer_in', 'transfer_out', 'send', 'receive'].includes(tx.transaction_type),
                                     rake: tx => ['rake', 'rakeback'].includes(tx.transaction_type),
                                 };
-                                const filtered = transactions.filter(filterMap[txFilter] || (() => true));
+                                // Date filter thresholds
+                                let dateThreshold = null;
+                                if (txDateFilter === 'today') {
+                                    const t = new Date(); t.setHours(0, 0, 0, 0); dateThreshold = t;
+                                } else if (txDateFilter === 'week') {
+                                    const t = new Date(); t.setDate(t.getDate() - 7); dateThreshold = t;
+                                } else if (txDateFilter === 'month') {
+                                    const t = new Date(); t.setMonth(t.getMonth() - 1); dateThreshold = t;
+                                }
+                                const filtered = transactions
+                                    .filter(filterMap[txFilter] || (() => true))
+                                    .filter(tx => !dateThreshold || (tx.created_at && new Date(tx.created_at) >= dateThreshold));
                                 return filtered.length > 0 ? (
                                     <>
                                         {filtered.slice(0, txPage * TX_PAGE_SIZE).map((tx, i) => {

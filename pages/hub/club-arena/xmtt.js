@@ -67,6 +67,22 @@ export default function XMTTHub() {
         return () => { unsub(); unsubStart(); unsubDone(); };
     }, [user, tab]);
 
+    // ── Supabase Realtime: live XMTT tournament updates ──────────────
+    useEffect(() => {
+        if (!user) return;
+        const ch = supabase
+            .channel('xmtt-realtime')
+            .on('postgres_changes', {
+                event: '*', schema: 'public', table: 'club_tournaments',
+                filter: 'type=eq.xmtt'
+            }, () => loadData(user, tab))
+            .on('postgres_changes', {
+                event: '*', schema: 'public', table: 'tournament_registrations',
+            }, () => loadData(user, tab))
+            .subscribe();
+        return () => { supabase.removeChannel(ch); };
+    }, [user, tab]);
+
     const loadData = async (u, selectedTab) => {
         if (!mountedRef.current) return;
         setLoading(true);

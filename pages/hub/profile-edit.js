@@ -974,6 +974,7 @@ export default function ProfilePage() {
                         }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                                 <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: C.text }}>Friends</h3>
+                                {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
                                 <a
                                     href="/hub/friends"
                                     style={{ color: C.blue, fontSize: 14, fontWeight: 600, textDecoration: 'none' }}
@@ -986,6 +987,7 @@ export default function ProfilePage() {
                                 gridTemplateColumns: 'repeat(4, 1fr)',
                                 gap: 12
                             }}>
+                                {/* eslint-disable @next/next/no-html-link-for-pages */}
                                 {friends.slice(0, 8).map(friend => (
                                     <a
                                         key={friend.id}
@@ -1020,6 +1022,7 @@ export default function ProfilePage() {
                                         )}
                                     </a>
                                 ))}
+                                {/* eslint-enable @next/next/no-html-link-for-pages */}
                             </div>
                         </div>
                     )}

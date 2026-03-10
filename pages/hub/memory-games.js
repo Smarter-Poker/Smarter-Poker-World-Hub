@@ -1452,6 +1452,7 @@ function OutOfDiamondsModal({ isOpen, onClose, gameCost = 5, isVIP = false }) {
                     >
                         Maybe Later
                     </button>
+                    {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
                     <a
                         href="/hub/diamond-store?tab=vip"
                         style={{

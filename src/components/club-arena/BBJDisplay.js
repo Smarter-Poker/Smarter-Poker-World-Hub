@@ -428,7 +428,7 @@ export function useBBJ(clubId, supabase) {
 
   // Realtime subscription for pool updates
   useEffect(() => {
-    if (!supabase || !clubId) return;
+    if (!supabase || !clubId || typeof supabase.channel !== 'function') return;
 
     const channel = supabase
       .channel(`bbj:${clubId}`)

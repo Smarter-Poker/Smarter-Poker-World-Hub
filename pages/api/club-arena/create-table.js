@@ -169,6 +169,7 @@ export default async function handler(req, res) {
                     run_it_mode: cleanSettings.run_it_mode || 'none',
                     insurance: cleanSettings.insurance || false,
                     bomb_pot_enabled: cleanSettings.bomb_pot || cleanSettings.bomb_pot_enabled || false,
+                    bomb_pot_frequency: parseInt(cleanSettings.bomb_pot_frequency) || 0,
                     auto_muck: cleanSettings.auto_muck !== false,
                     // ── Game Modes ──
                     private_game: cleanSettings.private_game || false,

@@ -378,6 +378,43 @@ export default function HandHistories() {
     }, [loadData]);
 
     // ═══════════════════════════════════════════════════════════════════════════
+    // CSV EXPORT
+    // ═══════════════════════════════════════════════════════════════════════════
+    const exportCSV = () => {
+        if (!hands || hands.length === 0) return;
+        const rows = [['Hand #', 'Date', 'Result', 'Profit', 'Pot Size', 'Hole Cards', 'Board', 'Table', 'Game Type']];
+        hands.forEach(h => {
+            const cardsStr = (arr) => {
+                if (!arr) return '';
+                const a = Array.isArray(arr) ? arr : String(arr).split(/[\s,]+/);
+                return a.map(c => {
+                    const p = parseCard(c);
+                    return p ? `${p.rank}${p.suit}` : String(c);
+                }).join(' ');
+            };
+            rows.push([
+                h.hand_number || h.id || '',
+                h.created_at ? new Date(h.created_at).toLocaleString() : '',
+                h.result || '',
+                h.profit || 0,
+                h.pot_size || 0,
+                cardsStr(h.hole_cards),
+                cardsStr(h.board),
+                h.table_name || '',
+                h.game_type || '',
+            ]);
+        });
+        const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `hand-history-${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
+    // ═══════════════════════════════════════════════════════════════════════════
     // CARD RENDERING
     // ═══════════════════════════════════════════════════════════════════════════
     const RANKS_INT = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
@@ -597,6 +634,19 @@ export default function HandHistories() {
                             </button>
                         ))}
                     </div>
+
+                    {/* Export CSV + Stats Row */}
+                    {!isLoading && hands.length > 0 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                            <span style={{ fontSize: 13, color: FB.textSecondary }}>{hands.length} hand{hands.length !== 1 ? 's' : ''}</span>
+                            <button
+                                onClick={exportCSV}
+                                style={{ padding: '6px 14px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${FB.border}`, background: FB.cardBg, color: FB.textPrimary }}
+                            >
+                                📥 Export CSV
+                            </button>
+                        </div>
+                    )}
 
                     {!clubIdParam ? (
                         <div style={S.emptyState}>

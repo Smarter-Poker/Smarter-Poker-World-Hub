@@ -136,6 +136,8 @@ class GameController {
       peakPlayers: 0,
       totalActions: 0,
     };
+    // Bomb Pot frequency counters — per-table hand count for random bomb pot triggering
+    this._bombPotCounters = new Map();
     // Guard against double-triggering horse AI for the same player turn
     this._horseActionPending = new Set();
   }
@@ -592,6 +594,7 @@ class GameController {
         maintainPercent: Number(row.settings?.maintain_percent) || 0,
         maintainHands: Number(row.settings?.maintain_hands) || 10,
         bombPot: row.settings?.bomb_pot_enabled || row.settings?.bomb_pot || false,
+        bombPotFrequency: parseInt(row.settings?.bomb_pot_frequency) || 0, // N = every Nth hand is bomb pot
         // Muck, cap, privacy settings
         autoMuck: row.settings?.auto_muck !== false, // default true
         capAmount: Number(row.settings?.cap_amount) || 0,
@@ -1140,6 +1143,21 @@ class GameController {
       HorsePokerBrain.evaluateSessions(this, entry.table).catch(err => {
         console.error(`[HorseAI] evaluateSessions failed:`, err.message);
       });
+
+      // ═══ BOMB POT FREQUENCY TRIGGER ═══
+      const freq = entry.config?.bombPotFrequency || 0;
+      if (freq > 0) {
+        const count = (this._bombPotCounters.get(tableId) || 0) + 1;
+        this._bombPotCounters.set(tableId, count);
+        if (count >= freq) {
+          this._bombPotCounters.set(tableId, 0);
+          // Flag the next hand as a bomb pot
+          entry.config.bombPotTriggered = true;
+          console.log(`[GameController] 💣 Bomb Pot triggered on ${tableId} (every ${freq} hands)`);
+        } else {
+          entry.config.bombPotTriggered = false;
+        }
+      }
     });
 
     // Auto-fill table with horses after wiring (non-blocking)
@@ -1916,6 +1934,7 @@ class GameController {
             maintainPercent: Number(row.settings?.maintain_percent) || 0,
             maintainHands: Number(row.settings?.maintain_hands) || 10,
             bombPot: row.settings?.bomb_pot_enabled || row.settings?.bomb_pot || false,
+            bombPotFrequency: parseInt(row.settings?.bomb_pot_frequency) || 0,
             autoMuck: row.settings?.auto_muck !== false,
             capAmount: Number(row.settings?.cap_amount) || 0,
             doubleBoard: row.settings?.double_board || false,

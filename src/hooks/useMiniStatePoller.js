@@ -23,6 +23,7 @@ try {
 
 export default function useMiniStatePoller() {
   const [miniStates, setMiniStates] = useState(new Map());
+  const [wsLatency, setWsLatency] = useState(null);
   const visibleIds = useRef(new Set());
   const elementsMap = useRef(new Map());
   const observerInstance = useRef(null);
@@ -193,5 +194,5 @@ export default function useMiniStatePoller() {
     }
   }, []);
 
-  return { miniStates, observerRef };
+  return { miniStates, observerRef, wsLatency };
 }

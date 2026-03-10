@@ -1040,7 +1040,58 @@ class LobbyManager {
     table.on('street_start', triggerUpdate);
     table.on('cards_dealt', triggerUpdate);
     table.on('showdown', triggerUpdate);
-    table.on('payout', triggerUpdate);
+
+    // Store hand result for flash animation
+    table.on('payout', (data) => {
+      const entry = this.tables.get(tableId);
+      if (entry && data) {
+        entry._lastHandResult = {
+          winnerName: data.winnerName || data.winner?.displayName || 'Winner',
+          amount: data.amount || data.potWon || 0,
+          timestamp: Date.now(),
+        };
+        // Clear after 5s so it doesn't persist forever
+        setTimeout(() => { if (entry._lastHandResult) entry._lastHandResult = null; }, 5000);
+      }
+      triggerUpdate();
+    });
+
+    // Chat message listener
+    table.on('chat_message', (data) => {
+      const entry = this.tables.get(tableId);
+      if (entry && data) {
+        entry._lastChatMessage = {
+          playerName: data.playerName || 'Player',
+          message: String(data.message || '').substring(0, 40),
+          timestamp: Date.now(),
+        };
+        // Clear after 6s
+        setTimeout(() => { if (entry._lastChatMessage) entry._lastChatMessage = null; }, 6000);
+        triggerUpdate();
+      }
+    });
+
+    // Emoji reaction listener
+    table.on('emoji_reaction', (data) => {
+      const entry = this.tables.get(tableId);
+      if (entry && data) {
+        if (!entry._emojiReactions) entry._emojiReactions = [];
+        entry._emojiReactions.push({
+          emoji: data.emoji || '🔥',
+          seatIndex: data.seatIndex,
+          timestamp: Date.now(),
+        });
+        // Keep last 5 only
+        if (entry._emojiReactions.length > 5) entry._emojiReactions = entry._emojiReactions.slice(-5);
+        // Clear old after 4s
+        setTimeout(() => {
+          if (entry._emojiReactions) {
+            entry._emojiReactions = entry._emojiReactions.filter(e => Date.now() - e.timestamp < 4000);
+          }
+        }, 4000);
+        triggerUpdate();
+      }
+    });
   }
 
   /**
@@ -1081,10 +1132,29 @@ class LobbyManager {
           isDealer: s.seatIndex === (state.game?.buttonSeat ?? -1),
           isAllIn: s.isInHand && s.stack === 0,
           displayName: s.player.displayName ? String(s.player.displayName).substring(0, 10) : 'Player',
+          avatarUrl: s.player.avatarUrl || s.player.avatar_url || null,
           lastAction: lastAction ? (lastAction.type === 'call' && lastAction.amount === 0 ? 'CHECK' : lastAction.type.toUpperCase()) : null,
           lastActionAmount: lastAction?.amount,
         };
       });
+
+      // Hand result for flash animation
+      const lastResult = entry._lastHandResult || null;
+
+      // Chat message for bubble
+      const lastChat = entry._lastChatMessage || null;
+
+      // Emoji reactions queue
+      const emojiReactions = entry._emojiReactions || [];
+
+      // Tournament-specific overlay data
+      const tourneyData = entry.config?.tournamentId ? {
+        blindLevel: entry.config.blindLevel || null,
+        nextLevelTime: entry.config.nextLevelTime || null,
+        avgStack: entry.config.avgStack || null,
+        playersRemaining: entry.config.playersRemaining || null,
+        totalPlayers: entry.config.totalPlayers || null,
+      } : null;
 
       this._lobbyChannel.send({
         type: 'broadcast',
@@ -1095,7 +1165,6 @@ class LobbyManager {
           communityCards: state.game?.communityCards || [],
           boards: state.game?.boards || null,
           shownCards: (state.game?.shownCards || []).filter(sc => {
-            // Only include cards for players who consented
             const key = `${tableId}:${sc.seatIndex}`;
             return this._showCardsConsent?.get(key) === true;
           }),
@@ -1105,6 +1174,10 @@ class LobbyManager {
           turnEndTime: entry.timer?.turnEndTime || null,
           turnTotalTime: entry.timer?.turnTime || 15,
           seats,
+          lastHandResult: lastResult,
+          lastChatMessage: lastChat,
+          emojiReactions,
+          tournamentOverlay: tourneyData,
         }
       });
     } catch (e) {

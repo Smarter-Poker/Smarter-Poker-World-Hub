@@ -5,8 +5,10 @@
  * Triggered by broadcast event or manual invocation.
  *
  * Props:
- *   reveal: { playerName, amount, tierLabel, isJackpot } | null
+ *   reveal: { playerName, amount, tierLabel, isJackpot, avgBounty } | null
  *   onDismiss: () => void
+ *
+ * ORB-8 Phase 2: Keyframe hygiene — all animations injected centrally via <head>
  */
 import { useState, useEffect, useRef } from 'react';
 import { eventBus, EventType } from '../../engine/EventBus';
@@ -27,6 +29,61 @@ const TIER_COLORS = {
     jackpot: '#FFD700',
 };
 
+// ═══════════════════════════════════════════════════════════════
+// SOUND STUBS — Sound IDs emitted via EventBus SOUND_PLAY
+// These are safe no-ops if no sound handler is registered.
+// When a SoundEngine is wired, add corresponding audio assets:
+//   mystery_drumroll    — suspenseful 1.2s drum roll
+//   mystery_reveal      — swoosh/whoosh reveal (~0.5s)
+//   jackpot_coins       — massive coin shower (~2s)
+// ═══════════════════════════════════════════════════════════════
+const SOUND = {
+    DRUMROLL: 'mystery_drumroll',
+    REVEAL: 'mystery_reveal',
+    JACKPOT: 'jackpot_coins',
+};
+
+// ═══════════════════════════════════════════════════════════════
+// CSS KEYFRAME HYGIENE — Single injection into <head>, never in render
+// ═══════════════════════════════════════════════════════════════
+let _mysteryKeyframesInjected = false;
+function ensureMysteryKeyframes() {
+    if (_mysteryKeyframesInjected || typeof document === 'undefined') return;
+    _mysteryKeyframesInjected = true;
+    const s = document.createElement('style');
+    s.id = 'mystery-bounty-keyframes';
+    s.textContent = `
+    @keyframes mystRevealBgIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes mystEnvelopeShake {
+      0%, 100% { transform: rotate(0deg) scale(1); }
+      15% { transform: rotate(-5deg) scale(1.03); }
+      30% { transform: rotate(5deg) scale(1.03); }
+      45% { transform: rotate(-3deg) scale(1.01); }
+      60% { transform: rotate(3deg) scale(1.01); }
+      75% { transform: rotate(-1deg); }
+    }
+    @keyframes mystEnvelopeFlip {
+      0% { transform: rotateY(0deg) scale(1); }
+      50% { transform: rotateY(90deg) scale(1.1); }
+      100% { transform: rotateY(360deg) scale(1); }
+    }
+    @keyframes mystRevealPop {
+      0% { transform: scale(0.3); opacity: 0; }
+      60% { transform: scale(1.1); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    @keyframes mystGoldShimmer {
+      0% { background-position: -200% center; }
+      100% { background-position: 200% center; }
+    }
+    @keyframes mystJackpotPulse {
+      0%, 100% { box-shadow: 0 0 30px rgba(255,215,0,0.4); }
+      50% { box-shadow: 0 0 60px rgba(255,215,0,0.8), 0 0 100px rgba(255,215,0,0.3); }
+    }
+  `;
+    document.head.appendChild(s);
+}
+
 function getTierFromAmount(amount, avgBounty) {
     if (!avgBounty || avgBounty <= 0) return { label: 'Prize', color: '#60a5fa' };
     const ratio = amount / avgBounty;
@@ -40,6 +97,30 @@ function getTierFromAmount(amount, avgBounty) {
     return { label: 'Min Prize', color: TIER_COLORS.min };
 }
 
+// ═══════════════════════════════════════════════════════════════
+// CONFETTI — Tier-differentiated explosions
+// ═══════════════════════════════════════════════════════════════
+function fireConfetti(isJackpot) {
+    import('canvas-confetti').then(mod => {
+        const confetti = mod.default;
+        if (isJackpot) {
+            // JACKPOT MEGA-BURST — gold-themed, 5-wave staggered explosion
+            const gold = ['#FFD700', '#FFC107', '#FFB300', '#FF8F00', '#FFECB3'];
+            confetti({ particleCount: 300, spread: 180, origin: { y: 0.4 }, colors: gold, scalar: 1.3 });
+            setTimeout(() => confetti({ particleCount: 150, spread: 120, origin: { y: 0.2, x: 0.2 }, colors: gold, scalar: 1.1 }), 200);
+            setTimeout(() => confetti({ particleCount: 150, spread: 120, origin: { y: 0.2, x: 0.8 }, colors: gold, scalar: 1.1 }), 400);
+            setTimeout(() => confetti({ particleCount: 200, spread: 160, origin: { y: 0.5 }, colors: gold, scalar: 1.5 }), 800);
+            setTimeout(() => confetti({ particleCount: 100, spread: 200, origin: { y: 0.6 }, colors: gold, gravity: 0.5, ticks: 300 }), 1200);
+        } else {
+            // REGULAR — colorful 3-burst for bounty > 10K
+            const colors = ['#FFD700', '#FFA500', '#FF6347', '#9333ea', '#00E676'];
+            confetti({ particleCount: 200, spread: 120, origin: { y: 0.5 }, colors });
+            setTimeout(() => confetti({ particleCount: 100, spread: 160, origin: { y: 0.3, x: 0.3 }, colors }), 300);
+            setTimeout(() => confetti({ particleCount: 100, spread: 160, origin: { y: 0.3, x: 0.7 }, colors }), 600);
+        }
+    }).catch(() => { /* canvas-confetti not available */ });
+}
+
 export default function MysteryBountyReveal({ reveal, onDismiss }) {
     const [phase, setPhase] = useState('idle'); // idle | envelope | reveal | done
     const timerRef = useRef(null);
@@ -50,11 +131,12 @@ export default function MysteryBountyReveal({ reveal, onDismiss }) {
         : getTierFromAmount(reveal?.amount, reveal?.avgBounty || reveal?.amount);
     const isJackpot = reveal?.isJackpot || tier.label === 'JACKPOT';
 
+    // Ensure keyframes are injected on first render
+    useEffect(() => { ensureMysteryKeyframes(); }, []);
 
     useEffect(() => {
         if (!reveal) {
             setPhase('idle');
-            // Clear any existing timers when reveal is null
             if (timerRef.current) {
                 timerRef.current.forEach(clearTimeout);
                 timerRef.current = null;
@@ -62,51 +144,43 @@ export default function MysteryBountyReveal({ reveal, onDismiss }) {
             return;
         }
 
-        // Phase 1: Envelope (initial state when reveal is present)
-        if (phase === 'idle') { // Only set to envelope if currently idle
+        // Phase 1: Envelope
+        if (phase === 'idle') {
             setPhase('envelope');
         }
 
         if (phase === 'envelope') {
-            eventBus.emit(EventType.SOUND_PLAY, { id: 'mystery_drumroll' });
-            // After 1.2s: flip to reveal (original timing)
+            eventBus.emit(EventType.SOUND_PLAY, { id: SOUND.DRUMROLL });
             const t1 = setTimeout(() => setPhase('reveal'), 1200);
-            timerRef.current = [t1]; // Store only t1 for now
+            timerRef.current = [t1];
             return () => { t1 && clearTimeout(t1); };
         }
 
         // Phase 2: Reveal
         if (phase === 'reveal') {
-            eventBus.emit(EventType.SOUND_PLAY, { id: 'mystery_reveal_whoosh' });
+            eventBus.emit(EventType.SOUND_PLAY, { id: SOUND.REVEAL });
             if (isJackpot) {
-                setTimeout(() => eventBus.emit(EventType.SOUND_PLAY, { id: 'jackpot_coins_massive' }), 400); // Slight delay for pop sync
+                setTimeout(() => eventBus.emit(EventType.SOUND_PLAY, { id: SOUND.JACKPOT }), 400);
             }
-            // ORB-8 Directive #3: Confetti explosion if bounty > 10,000
+            // Confetti: differentiated by tier
             if (reveal?.amount > 10000) {
-                import('canvas-confetti').then(mod => {
-                    const confetti = mod.default;
-                    confetti({ particleCount: 200, spread: 120, origin: { y: 0.5 }, colors: ['#FFD700', '#FFA500', '#FF6347', '#9333ea', '#00E676'] });
-                    setTimeout(() => confetti({ particleCount: 100, spread: 160, origin: { y: 0.3, x: 0.3 } }), 300);
-                    setTimeout(() => confetti({ particleCount: 100, spread: 160, origin: { y: 0.3, x: 0.7 } }), 600);
-                }).catch(() => { /* canvas-confetti not available */ });
+                fireConfetti(isJackpot);
             }
-            // After 5s: auto-dismiss (original timing)
             const t2 = setTimeout(() => {
                 setPhase('done');
                 onDismiss?.();
             }, 5000);
-            timerRef.current = [...(timerRef.current || []), t2]; // Add t2 to existing timers
+            timerRef.current = [...(timerRef.current || []), t2];
             return () => { t2 && clearTimeout(t2); };
         }
 
-        // Cleanup for when component unmounts or reveal changes
         return () => {
             if (timerRef.current) {
                 timerRef.current.forEach(clearTimeout);
                 timerRef.current = null;
             }
         };
-    }, [reveal, phase, isJackpot, onDismiss]); // Added phase, isJackpot, onDismiss to dependencies
+    }, [reveal, phase, isJackpot, onDismiss]);
 
     if (!reveal || phase === 'idle' || phase === 'done') return null;
 
@@ -123,35 +197,7 @@ export default function MysteryBountyReveal({ reveal, onDismiss }) {
                 cursor: 'pointer',
             }}
         >
-            <style>{`
-        @keyframes mystRevealBgIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes mystEnvelopeShake {
-          0%, 100% { transform: rotate(0deg) scale(1); }
-          15% { transform: rotate(-5deg) scale(1.03); }
-          30% { transform: rotate(5deg) scale(1.03); }
-          45% { transform: rotate(-3deg) scale(1.01); }
-          60% { transform: rotate(3deg) scale(1.01); }
-          75% { transform: rotate(-1deg); }
-        }
-        @keyframes mystEnvelopeFlip {
-          0% { transform: rotateY(0deg) scale(1); }
-          50% { transform: rotateY(90deg) scale(1.1); }
-          100% { transform: rotateY(360deg) scale(1); }
-        }
-        @keyframes mystRevealPop {
-          0% { transform: scale(0.3); opacity: 0; }
-          60% { transform: scale(1.1); opacity: 1; }
-          100% { transform: scale(1); opacity: 1; }
-        }
-        @keyframes mystGoldShimmer {
-          0% { background-position: -200% center; }
-          100% { background-position: 200% center; }
-        }
-        @keyframes mystJackpotPulse {
-          0%, 100% { box-shadow: 0 0 30px rgba(255,215,0,0.4); }
-          50% { box-shadow: 0 0 60px rgba(255,215,0,0.8), 0 0 100px rgba(255,215,0,0.3); }
-        }
-      `}</style>
+            {/* ORB-8: keyframes now injected centrally via ensureMysteryKeyframes() — no inline <style> */}
 
             <div style={{
                 width: 280, textAlign: 'center',

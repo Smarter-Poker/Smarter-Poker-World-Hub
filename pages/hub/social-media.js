@@ -2741,6 +2741,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                 <div style={cardSt}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                         <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>Live Game Board</h3>
+                        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
                         <a href="/hub/commander" style={{ fontSize: 13, fontWeight: 600, color: C.blue, textDecoration: 'none' }}>Manage In Club Commander &rarr;</a>
                     </div>
 
@@ -2761,6 +2762,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                             </div>
                             <div style={{ fontSize: 18, marginBottom: 6, fontWeight: 700, color: C.text }}>No Active Games</div>
                             <p style={{ margin: '0 0 12px', fontSize: 14 }}>Open Club Commander To Create And Manage Live Games</p>
+                            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
                             <a href="/hub/commander" style={{ display: 'inline-block', padding: '10px 24px', borderRadius: 8, background: C.blue, color: '#fff', fontSize: 14, fontWeight: 600, textDecoration: 'none' }}>Open Club Commander</a>
                         </div>
                     ) : (

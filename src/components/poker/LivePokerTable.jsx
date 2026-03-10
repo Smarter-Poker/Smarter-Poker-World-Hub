@@ -777,9 +777,28 @@ function CardImg({ card, width = 48, faceDown = false, style = {}, delay = 0, ca
 function PlayerSeat({
   seat, position, isHero, isCurrentActor, timerState, onClick, onNote, noteColor, noteType,
   numHoleCards = 2, isWinner = false, equity = null, gamePosition = null, board = [],
+  formatStack: formatStackFn = null,
+  cardSortMode = 'dealt',
 }) {
-  const { status, player, stack, holeCards, isFolded, invested } = seat;
+  const { status, player, stack, holeCards: rawHoleCards, isFolded, invested } = seat;
   const isEmpty = status === 'empty' || status === 'reserved';
+
+  // Card sort logic — only for hero
+  const RANK_ORDER = { '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, 'T': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14 };
+  const SUIT_ORDER = { 's': 0, 'h': 1, 'd': 2, 'c': 3 };
+  const holeCards = useMemo(() => {
+    if (!rawHoleCards || !isHero || cardSortMode === 'dealt') return rawHoleCards;
+    const sorted = [...rawHoleCards];
+    if (cardSortMode === 'rank') {
+      sorted.sort((a, b) => (RANK_ORDER[b?.[0]] || 0) - (RANK_ORDER[a?.[0]] || 0));
+    } else if (cardSortMode === 'suit') {
+      sorted.sort((a, b) => {
+        const suitDiff = (SUIT_ORDER[a?.[1]] ?? 9) - (SUIT_ORDER[b?.[1]] ?? 9);
+        return suitDiff !== 0 ? suitDiff : (RANK_ORDER[b?.[0]] || 0) - (RANK_ORDER[a?.[0]] || 0);
+      });
+    }
+    return sorted;
+  }, [rawHoleCards, isHero, cardSortMode]);
 
   // Position badge config
   const POSITION_BADGES = {
@@ -1090,7 +1109,7 @@ function PlayerSeat({
             fontVariantNumeric: 'tabular-nums',
             lineHeight: 1.1,
           }}>
-            {typeof stack === 'number' ? stack.toLocaleString() : '0'}
+            {formatStackFn ? formatStackFn(stack) : (typeof stack === 'number' ? stack.toLocaleString() : '0')}
           </div>
         </div>
       )}
@@ -1444,6 +1463,11 @@ function ActionPanel({ actions, onAction, stack, currentBet, bigBlind, potTotal 
     { label: '2×', amount: Math.max(minBet, (potTotal || bigBlind * 2) * 2) },
   ].filter(p => p.amount <= maxBet) : [];
 
+  // Mobile responsive sizing
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 390;
+  const btnMinWidth = isMobile ? 60 : 72;
+  const btnFontSize = isMobile ? 12 : 14;
+
   const callAmount = canCall?.amount || 0;
 
   return (
@@ -1616,13 +1640,13 @@ function ActionButton({ label, sublabel, color, onClick }) {
         fontSize: 14,
         fontWeight: 800,
         cursor: 'pointer',
-        minWidth: 72,
+        minWidth: btnMinWidth,
         boxShadow: `0 3px 12px ${color}66`,
         textShadow: '0 1px 2px rgba(0,0,0,0.3)',
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0,
       }}
     >
-      <span>{label}</span>
+      <span style={{ fontSize: btnFontSize }}>{label}</span>
       {sublabel && <span style={{ fontSize: 9, fontWeight: 600, opacity: 0.75, marginTop: -1 }}>{sublabel}</span>}
     </motion.button>
   );
@@ -2795,7 +2819,7 @@ function SessionStatsOverlay({ sessionStats, myStack, onClose }) {
 // TABLE INFO BAR
 // ═══════════════════════════════════════════════════════════════════════════
 
-function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, isSitting, isSittingOut, straddleEnabled, straddleOn, onToggleStraddle, autoTopUpOn, onToggleAutoTopUp, autoMuckOn, onToggleAutoMuck, lastHandResult, onShowLastHand, sessionStats, myStack, sitOutNextBB, onToggleSitOutNextBB }) {
+function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, isSitting, isSittingOut, straddleEnabled, straddleOn, onToggleStraddle, autoTopUpOn, onToggleAutoTopUp, autoMuckOn, onToggleAutoMuck, lastHandResult, onShowLastHand, sessionStats, myStack, sitOutNextBB, onToggleSitOutNextBB, showStackInBB, onToggleBBDisplay, cardSortMode, onCycleCardSort, hapticEnabled, onToggleHaptic }) {
   const [showStats, setShowStats] = useState(false);
   const [autoRebuyOn, setAutoRebuyOn] = useState(false);
   if (!tableState) return null;
@@ -2922,6 +2946,21 @@ function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, is
             />
           )}
           <SmallButton label="Leave" onClick={onStandUp} color={T.foldRed} />
+          <SmallButton
+            label={showStackInBB ? '✓ BB' : 'BB'}
+            onClick={onToggleBBDisplay}
+            color={showStackInBB ? '#60a5fa' : undefined}
+          />
+          <SmallButton
+            label={`Sort:${({ dealt: 'Off', rank: 'Rank', suit: 'Suit' })[cardSortMode] || 'Off'}`}
+            onClick={onCycleCardSort}
+            color={cardSortMode !== 'dealt' ? '#c084fc' : undefined}
+          />
+          <SmallButton
+            label={hapticEnabled ? '✓ Haptic' : 'Haptic'}
+            onClick={onToggleHaptic}
+            color={hapticEnabled ? '#f472b6' : undefined}
+          />
         </div>
       )}
 
@@ -3494,10 +3533,10 @@ function LivePokerTable({
     const phase = tableState.game.phase;
     const prev = prevPhaseRef.current;
     if (prev !== phase) {
-      if (phase === 'preflop' && prev === 'idle') { sm.play('deal'); haptic('medium'); }
-      if (phase === 'flop' && prev === 'preflop') { sm.play('deal'); haptic('light'); }
-      if (phase === 'turn' && prev === 'flop') { sm.play('deal'); haptic('light'); }
-      if (phase === 'river' && prev === 'turn') { sm.play('deal'); haptic('light'); }
+      if (phase === 'preflop' && prev === 'idle') { sm.play('deal'); if (hapticEnabled) haptic('medium'); }
+      if (phase === 'flop' && prev === 'preflop') { sm.play('deal'); if (hapticEnabled) haptic('light'); }
+      if (phase === 'turn' && prev === 'flop') { sm.play('deal'); if (hapticEnabled) haptic('light'); }
+      if (phase === 'river' && prev === 'turn') { sm.play('deal'); if (hapticEnabled) haptic('light'); }
       if (phase === 'showdown') sm.play('showdown');
       prevPhaseRef.current = phase;
     }
@@ -3518,7 +3557,7 @@ function LivePokerTable({
     const sm = soundRef.current;
     if (!sm || !legalActions || legalActions.length === 0) return;
     sm.play('yourTurn');
-    haptic('double');
+    if (hapticEnabled) haptic('double');
   }, [legalActions]);
 
   // Sound for timer warning
@@ -3627,6 +3666,94 @@ function LivePokerTable({
   const [preAction, setPreAction] = useState(null); // 'fold' | 'check_fold' | 'check' | 'call_any' | null
   const [showLastHand, setShowLastHand] = useState(false);
 
+  // ═══ WAITLIST STATE ═══
+  const [waitlistState, setWaitlistState] = useState({ onWaitlist: false, position: null, loading: false });
+  const tableFull = !isSitting && tableState?.seats?.every(s => s.player?.id != null && s.status !== 'empty');
+
+  // Check waitlist position on mount and when seat state changes
+  useEffect(() => {
+    if (!tableState?.tableId || !userId || isSitting) return;
+    const checkPosition = async () => {
+      try {
+        const token = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}')?.access_token;
+        if (!token) return;
+        const res = await fetch('/api/club-arena/waitlist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ action: 'position', tableId: tableState.tableId }),
+        });
+        if (res.ok) {
+          const d = await res.json();
+          setWaitlistState(prev => ({ ...prev, onWaitlist: d.onWaitlist, position: d.position }));
+        }
+      } catch (_) {}
+    };
+    checkPosition();
+  }, [tableState?.tableId, userId, isSitting, tableState?.seats?.map(s => s.player?.id).join(',')]);
+
+  const handleJoinWaitlist = useCallback(async () => {
+    if (!tableState?.tableId || waitlistState.loading) return;
+    setWaitlistState(prev => ({ ...prev, loading: true }));
+    try {
+      const token = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}')?.access_token;
+      const res = await fetch('/api/club-arena/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: 'join', tableId: tableState.tableId }),
+      });
+      if (res.ok) {
+        const d = await res.json();
+        setWaitlistState({ onWaitlist: true, position: d.position, loading: false });
+      } else {
+        const d = await res.json().catch(() => ({}));
+        if (d.error === 'Already on waitlist') setWaitlistState(prev => ({ ...prev, onWaitlist: true, loading: false }));
+        else setWaitlistState(prev => ({ ...prev, loading: false }));
+      }
+    } catch (_) { setWaitlistState(prev => ({ ...prev, loading: false })); }
+  }, [tableState?.tableId, waitlistState.loading]);
+
+  const handleLeaveWaitlist = useCallback(async () => {
+    if (!tableState?.tableId) return;
+    setWaitlistState(prev => ({ ...prev, loading: true }));
+    try {
+      const token = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}')?.access_token;
+      await fetch('/api/club-arena/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: 'leave', tableId: tableState.tableId }),
+      });
+      setWaitlistState({ onWaitlist: false, position: null, loading: false });
+    } catch (_) { setWaitlistState(prev => ({ ...prev, loading: false })); }
+  }, [tableState?.tableId]);
+
+  // ═══ PRE-ACTION VISUAL FEEDBACK STATE ═══
+  const [preActionFired, setPreActionFired] = useState(null); // { action, ts }
+
+  // ═══ RUN-IT-TWICE PROMPT STATE ═══
+  const [ritPrompt, setRitPrompt] = useState(false);
+  const ritTimerRef = useRef(null);
+
+  // Show RIT prompt when all-in detected and config enabled
+  useEffect(() => {
+    const allInDetected = tableState?.game?.phase === 'showdown' && tableState?.game?.allInRunout;
+    const ritEnabled = tableState?.config?.runItTwice;
+    if (allInDetected && ritEnabled && isSitting && !ritPrompt) {
+      setRitPrompt(true);
+      // Auto-decline after 10 seconds
+      ritTimerRef.current = setTimeout(() => {
+        send('respond_run_it', { choice: 'decline' });
+        setRitPrompt(false);
+      }, 10000);
+    }
+    return () => { if (ritTimerRef.current) clearTimeout(ritTimerRef.current); };
+  }, [tableState?.game?.phase, tableState?.game?.allInRunout, tableState?.config?.runItTwice, isSitting]);
+
+  const handleRITResponse = useCallback((accepted) => {
+    if (ritTimerRef.current) clearTimeout(ritTimerRef.current);
+    send('respond_run_it', { choice: accepted ? 'twice' : 'decline' });
+    setRitPrompt(false);
+  }, [send]);
+
   // ═══ HERO SEAT ROTATION — Always place hero at bottom center (position 0) ═══
   const heroSeatIndex = mySeat?.seatIndex ?? -1;
   const rotatedPositionMap = useMemo(() => {
@@ -3670,6 +3797,9 @@ function LivePokerTable({
       const timer = setTimeout(() => {
         send('player_action', { action: autoAction });
         setPreAction(null);
+        // Visual feedback — show what pre-action fired
+        setPreActionFired({ action: autoAction.type, ts: Date.now() });
+        setTimeout(() => setPreActionFired(null), 2000);
       }, 300);
       return () => clearTimeout(timer);
     } else {
@@ -3743,9 +3873,11 @@ function LivePokerTable({
       if (soundMap[action.type]) sm.play(soundMap[action.type]);
     }
     // Haptic feedback on mobile
-    if (action?.type === 'all_in') haptic('allIn');
-    else if (action?.type === 'fold') haptic('light');
-    else haptic('medium');
+    if (hapticEnabled) {
+      if (action?.type === 'all_in') haptic('allIn');
+      else if (action?.type === 'fold') haptic('light');
+      else haptic('medium');
+    }
     send('player_action', { action });
   }, [send]);
 
@@ -3842,6 +3974,59 @@ function LivePokerTable({
     setAutoTopUpOn(newVal);
     send('set_auto_topup', { enabled: newVal });
   }, [send, autoTopUpOn]);
+
+  // ═══ WAVE A: BB DISPLAY TOGGLE ═══
+  const [showStackInBB, setShowStackInBB] = useState(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('poker-stack-bb') === 'true';
+    return false;
+  });
+  const handleToggleBBDisplay = useCallback(() => {
+    setShowStackInBB(prev => {
+      const next = !prev;
+      if (typeof window !== 'undefined') localStorage.setItem('poker-stack-bb', String(next));
+      return next;
+    });
+  }, []);
+  const bigBlindVal = tableState?.config?.bigBlind || 2;
+  const formatStack = useCallback((chips) => {
+    if (!showStackInBB || !bigBlindVal) return typeof chips === 'number' ? chips.toLocaleString() : '0';
+    return (chips / bigBlindVal).toFixed(1).replace(/\.0$/, '') + ' BB';
+  }, [showStackInBB, bigBlindVal]);
+
+  // ═══ WAVE A: CARD SORT PREFERENCE ═══
+  const [cardSortMode, setCardSortMode] = useState(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('poker-card-sort') || 'dealt';
+    return 'dealt';
+  });
+  const cycleCardSort = useCallback(() => {
+    setCardSortMode(prev => {
+      const modes = ['dealt', 'rank', 'suit'];
+      const next = modes[(modes.indexOf(prev) + 1) % modes.length];
+      if (typeof window !== 'undefined') localStorage.setItem('poker-card-sort', next);
+      return next;
+    });
+  }, []);
+
+  // ═══ WAVE A: HAPTIC TOGGLE ═══
+  const [hapticEnabled, setHapticEnabled] = useState(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('poker-haptic') !== 'false';
+    return true;
+  });
+  const handleToggleHaptic = useCallback(() => {
+    setHapticEnabled(prev => {
+      const next = !prev;
+      if (typeof window !== 'undefined') localStorage.setItem('poker-haptic', String(next));
+      return next;
+    });
+  }, []);
+
+  // ═══ WAVE A: CONFIGURABLE BET PRESETS ═══
+  const [betPresets, setBetPresets] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try { return JSON.parse(localStorage.getItem('poker-bet-presets')) || null; } catch { return null; }
+    }
+    return null;
+  });
   const handleChat = useCallback((message) => {
     soundRef.current?.play('chat');
     send('send_chat', { message });
@@ -4062,6 +4247,8 @@ function LivePokerTable({
                 ] || 2
               }
               board={tableState?.game?.communityCards || []}
+              formatStack={formatStack}
+              cardSortMode={cardSortMode}
             />
           );
         })}
@@ -4149,6 +4336,12 @@ function LivePokerTable({
         myStack={mySeat?.stack || 0}
         sitOutNextBB={sitOutNextBB}
         onToggleSitOutNextBB={() => setSitOutNextBB(p => !p)}
+        showStackInBB={showStackInBB}
+        onToggleBBDisplay={handleToggleBBDisplay}
+        cardSortMode={cardSortMode}
+        onCycleCardSort={cycleCardSort}
+        hapticEnabled={hapticEnabled}
+        onToggleHaptic={handleToggleHaptic}
       />
 
       {/* Hand strength indicator (hero only, during active hand) */}
@@ -4584,7 +4777,7 @@ function LivePokerTable({
         )}
       </AnimatePresence>
 
-      {/* ═══════════ BOMB POT OVERLAY ═══════════ */}
+      {/* ═══════════ BOMB POT OVERLAY + CHIP ANIMATION ═══════════ */}
       <AnimatePresence>
         {tableState?.bombPot && (
           <motion.div
@@ -4603,6 +4796,157 @@ function LivePokerTable({
               letterSpacing: 3,
             }}>
               BOMB POT
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ═══ BOMB POT CHIP FLY ANIMATION ═══ */}
+      <AnimatePresence>
+        {tableState?.bombPot && seats && seats.map((seat, i) => {
+          if (!seat.player?.id || seat.status === 'empty') return null;
+          const visualIndex = rotatedPositionMap ? rotatedPositionMap[i] : i;
+          const pos = positions[visualIndex];
+          if (!pos) return null;
+          return (
+            <motion.div
+              key={`bp-chip-${i}`}
+              initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
+              animate={{
+                x: (50 - pos.x) * 3,
+                y: (38 - pos.y) * 3,
+                opacity: 0,
+                scale: 0.3,
+              }}
+              transition={{ duration: 0.8, delay: i * 0.08, ease: 'easeIn' }}
+              style={{
+                position: 'absolute',
+                left: `${pos.x}%`, top: `${pos.y}%`,
+                width: 20, height: 20, borderRadius: '50%',
+                background: 'radial-gradient(circle, #FFD700 40%, #FF6B35 100%)',
+                border: '2px solid #fff',
+                boxShadow: '0 0 8px rgba(255,215,0,0.6)',
+                zIndex: 84, pointerEvents: 'none',
+              }}
+            />
+          );
+        })}
+      </AnimatePresence>
+
+      {/* ═══ PRE-ACTION FIRED TOAST ═══ */}
+      <AnimatePresence>
+        {preActionFired && (
+          <motion.div
+            key={`pa-${preActionFired.ts}`}
+            initial={{ opacity: 0, y: 20, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.3 }}
+            style={{
+              position: 'absolute', bottom: '18%', left: '50%', transform: 'translateX(-50%)',
+              background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(78,205,196,0.4)',
+              borderRadius: 10, padding: '8px 20px', zIndex: 88,
+              color: '#4ECDC4', fontSize: 13, fontWeight: 800,
+              letterSpacing: 0.5, whiteSpace: 'nowrap',
+              boxShadow: '0 4px 16px rgba(78,205,196,0.2)',
+            }}
+          >
+            ✓ Auto-{preActionFired.action === 'fold' ? 'Folded' : preActionFired.action === 'check' ? 'Checked' : preActionFired.action === 'call' ? 'Called' : preActionFired.action.charAt(0).toUpperCase() + preActionFired.action.slice(1) + 'ed'}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ═══ WAITLIST OVERLAY (table full, not seated) ═══ */}
+      {tableFull && !isSitting && userId && (
+        <div style={{
+          position: 'absolute', bottom: '8%', left: '50%', transform: 'translateX(-50%)',
+          zIndex: 90, textAlign: 'center',
+        }}>
+          {waitlistState.onWaitlist ? (
+            <div style={{
+              background: 'rgba(0,0,0,0.9)', border: '1px solid rgba(255,152,0,0.5)',
+              borderRadius: 12, padding: '10px 24px',
+              boxShadow: '0 4px 20px rgba(255,152,0,0.2)',
+            }}>
+              <div style={{ color: '#FF9800', fontSize: 14, fontWeight: 800, marginBottom: 4 }}>
+                📋 Waitlist Position #{waitlistState.position || '?'}
+              </div>
+              <div style={{ color: '#B0B3B8', fontSize: 11, marginBottom: 8 }}>
+                You will be notified when a seat opens
+              </div>
+              <button
+                onClick={handleLeaveWaitlist}
+                disabled={waitlistState.loading}
+                style={{
+                  background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
+                  borderRadius: 8, color: '#E4E6EB', fontSize: 11, fontWeight: 600,
+                  padding: '5px 16px', cursor: 'pointer',
+                }}
+              >
+                {waitlistState.loading ? '...' : 'Leave Waitlist'}
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={handleJoinWaitlist}
+              disabled={waitlistState.loading}
+              style={{
+                background: 'linear-gradient(135deg, #FF9800, #F57C00)',
+                border: 'none', borderRadius: 12, color: '#fff',
+                fontSize: 14, fontWeight: 800, padding: '12px 28px',
+                cursor: 'pointer', boxShadow: '0 4px 16px rgba(255,152,0,0.4)',
+                letterSpacing: 0.5,
+              }}
+            >
+              {waitlistState.loading ? 'Joining...' : '📋 Join Waitlist'}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* ═══ RUN-IT-TWICE PROMPT ═══ */}
+      <AnimatePresence>
+        {ritPrompt && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            style={{
+              position: 'absolute', top: '25%', left: '50%', transform: 'translateX(-50%)',
+              background: 'linear-gradient(135deg, rgba(36,37,38,0.97), rgba(25,25,35,0.97))',
+              border: '2px solid #a855f7', borderRadius: 16, padding: '20px 32px',
+              zIndex: 92, textAlign: 'center',
+              boxShadow: '0 0 40px rgba(168,85,247,0.3)',
+            }}
+          >
+            <div style={{ fontSize: 28, marginBottom: 6 }}>🎰🎰</div>
+            <div style={{ color: '#a855f7', fontSize: 18, fontWeight: 800, marginBottom: 4, letterSpacing: 1 }}>
+              RUN IT TWICE?
+            </div>
+            <div style={{ color: '#B0B3B8', fontSize: 12, marginBottom: 14 }}>
+              Deal two separate boards for the remaining cards
+            </div>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+              <button
+                onClick={() => handleRITResponse(true)}
+                style={{
+                  background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+                  border: 'none', borderRadius: 10, color: '#fff',
+                  fontSize: 14, fontWeight: 800, padding: '10px 28px', cursor: 'pointer',
+                }}
+              >
+                Yes
+              </button>
+              <button
+                onClick={() => handleRITResponse(false)}
+                style={{
+                  background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
+                  borderRadius: 10, color: '#E4E6EB',
+                  fontSize: 14, fontWeight: 700, padding: '10px 28px', cursor: 'pointer',
+                }}
+              >
+                No
+              </button>
             </div>
           </motion.div>
         )}
