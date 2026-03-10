@@ -40,6 +40,10 @@ const ClubAnnouncementBanner = dynamic(
     () => import('../../../src/components/club-arena/ClubAnnouncementBanner'),
     { ssr: false, loading: () => null }
 );
+const LiveActionTicker = dynamic(
+    () => import('../../../src/components/club-arena/LiveActionTicker'),
+    { ssr: false, loading: () => null }
+);
 
 export default function ClubLobby() {
     useTrainingBus('club-arena-lobby');
@@ -554,6 +558,13 @@ export default function ClubLobby() {
                             <HubErrorBoundary name="AnnouncementsBanner">
                                 <ClubAnnouncementBanner clubId={club?.club_id || club?.id} userRole={membership?.role} />
                             </HubErrorBoundary>
+
+                            {/* ═══ LIVE ACTION TICKER (Social Proof) ═══ */}
+                            {club?.id && (
+                                <HubErrorBoundary name="LiveActionTicker">
+                                    <LiveActionTicker clubId={club.id} primaryColor={primaryColor} />
+                                </HubErrorBoundary>
+                            )}
 
                             {/* Club Description */}
                             <div
