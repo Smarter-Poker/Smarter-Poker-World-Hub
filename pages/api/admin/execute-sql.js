@@ -132,6 +132,22 @@ export default async function handler(req, res) {
 
             const ms = Date.now() - start;
 
+            let finalCommand = '';
+            let finalRowCount = 0;
+            let finalRows = [];
+
+            if (success && result) {
+                if (Array.isArray(result)) {
+                    finalCommand = result.map(r => r.command).filter(Boolean).join(', ');
+                    finalRowCount = result.reduce((acc, r) => acc + (r.rowCount || 0), 0);
+                    finalRows = result[result.length - 1]?.rows || [];
+                } else {
+                    finalCommand = result.command || 'UNKNOWN';
+                    finalRowCount = result.rowCount || 0;
+                    finalRows = result.rows || [];
+                }
+            }
+
             // Audit
             try {
                 const principal = token === process.env.SUPABASE_SERVICE_ROLE_KEY ? 'SERVICE_ROLE_AGENT' : 'ADMIN_UI_USER';
@@ -150,9 +166,9 @@ export default async function handler(req, res) {
 
             return res.status(200).json({
                 success: true,
-                command: result.command,
-                rowCount: result.rowCount,
-                rows: result.rows || [],
+                command: finalCommand,
+                rowCount: finalRowCount,
+                rows: finalRows,
                 ms
             });
         } catch (e) {

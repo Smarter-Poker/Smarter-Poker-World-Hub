@@ -92,14 +92,30 @@ async function run() {
             }
             const ms = Date.now() - start;
 
+            let finalCommand = '';
+            let finalRowCount = 0;
+            let finalRows = [];
+
+            if (res) {
+                if (Array.isArray(res)) {
+                    finalCommand = res.map(r => r.command).filter(Boolean).join(', ');
+                    finalRowCount = res.reduce((acc, r) => acc + (r.rowCount || 0), 0);
+                    finalRows = res[res.length - 1]?.rows || [];
+                } else {
+                    finalCommand = res.command || 'UNKNOWN';
+                    finalRowCount = res.rowCount || 0;
+                    finalRows = res.rows || [];
+                }
+            }
+
             // Audit Log
             const logEntry = {
                 timestamp: new Date().toISOString(),
                 action: 'orb-cli-deploy',
                 success: true,
                 ms,
-                command: res.command,
-                rowCount: res.rowCount,
+                command: finalCommand,
+                rowCount: finalRowCount,
                 query: query.substring(0, 1000)
             };
 
@@ -114,9 +130,9 @@ async function run() {
 
             console.log(JSON.stringify({
                 success: true,
-                command: res.command,
-                rowCount: res.rowCount,
-                rows: res.rows || [],
+                command: finalCommand,
+                rowCount: finalRowCount,
+                rows: finalRows,
                 ms
             }, null, 2));
 
