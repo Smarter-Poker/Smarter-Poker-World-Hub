@@ -52,7 +52,7 @@ export default async function handler(req, res) {
                 .limit(100),
 
             // Active tables with player counts
-            supabaseAdmin.from('poker_tables')
+            supabaseAdmin.from('tables')
                 .select('id, name, current_players, max_players, status')
                 .eq('club_id', clubId)
                 .in('status', ['active', 'playing', 'waiting', 'between_hands']),

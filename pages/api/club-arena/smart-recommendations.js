@@ -43,7 +43,7 @@ export default async function handler(req, res) {
 
     try {
         const [tablesRes, membersRes, txRes] = await Promise.allSettled([
-            supabaseAdmin.from('poker_tables')
+            supabaseAdmin.from('tables')
                 .select('id, name, status, current_players, max_players, game_variant, small_blind, big_blind, min_buy_in, max_buy_in, game_type')
                 .eq('club_id', clubId),
             supabaseAdmin.from('club_members')

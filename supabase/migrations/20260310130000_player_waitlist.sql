@@ -4,7 +4,7 @@
 
 CREATE TABLE IF NOT EXISTS public.table_waitlist (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  table_id UUID NOT NULL REFERENCES poker_tables(id) ON DELETE CASCADE,
+  table_id UUID NOT NULL REFERENCES tables(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES auth.users(id),
   position INTEGER NOT NULL DEFAULT 1,
   status TEXT NOT NULL DEFAULT 'waiting' CHECK (status IN ('waiting', 'notified', 'seated', 'left', 'cleared', 'expired')),
@@ -38,7 +38,7 @@ DO $$ BEGIN
       FOR SELECT TO authenticated
       USING (
         EXISTS (
-          SELECT 1 FROM poker_tables pt
+          SELECT 1 FROM tables pt
           JOIN club_members cm ON cm.club_id = pt.club_id AND cm.user_id = auth.uid()
           WHERE pt.id = table_waitlist.table_id
           AND cm.role IN ('owner', 'admin', 'super_agent')

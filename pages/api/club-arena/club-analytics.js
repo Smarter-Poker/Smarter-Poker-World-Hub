@@ -121,7 +121,7 @@ export default async function handler(req, res) {
             activePlayersRes,
         ] = await Promise.allSettled([
             // Active tables
-            supabaseAdmin.from('poker_tables').select('id, status, current_players')
+            supabaseAdmin.from('tables').select('id, status, current_players')
                 .eq('club_id', clubId).in('status', ['active', 'playing', 'waiting', 'between_hands']),
             // Total members
             supabaseAdmin.from('club_members').select('id', { count: 'exact', head: true })
@@ -145,7 +145,7 @@ export default async function handler(req, res) {
                 .eq('club_id', clubId).in('transaction_type', ['table_win', 'table_loss', 'rake'])
                 .gte('created_at', new Date(now - 86400000).toISOString()).limit(500),
             // Currently seated players
-            supabaseAdmin.from('poker_tables').select('current_players')
+            supabaseAdmin.from('tables').select('current_players')
                 .eq('club_id', clubId).in('status', ['active', 'playing']),
         ]);
 

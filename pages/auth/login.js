@@ -46,10 +46,14 @@ export default function LoginPage() {
         setIsLoading(true);
         setError(null);
 
+        // [HARDENED] Military-Grade sanitization to prevent accidental trailing spaces
+        const safeEmail = email.trim().toLowerCase();
+        const safePassword = password.trim();
+
         try {
             const { data, error: authError } = await supabase.auth.signInWithPassword({
-                email,
-                password,
+                email: safeEmail,
+                password: safePassword,
             });
 
             if (authError) throw authError;
@@ -58,7 +62,7 @@ export default function LoginPage() {
 
             // Remember device if checkbox is checked
             if (rememberMe) {
-                localStorage.setItem('smarter-poker-remembered-email', email);
+                localStorage.setItem('smarter-poker-remembered-email', safeEmail);
                 localStorage.setItem('smarter-poker-remember-me', 'true');
             } else {
                 localStorage.removeItem('smarter-poker-remembered-email');
@@ -70,7 +74,13 @@ export default function LoginPage() {
             router.push('/hub');
         } catch (err) {
             console.error('Login error:', err);
-            setError(err.message || 'Login failed');
+
+            // Contextual Error Recovery
+            if (err.message && err.message.toLowerCase().includes('invalid login credentials')) {
+                setError('Invalid password. If you forgot it, use the Magic Link below to sign in instantly without a password!');
+            } else {
+                setError(err.message || 'Login failed');
+            }
         } finally {
             setIsLoading(false);
         }

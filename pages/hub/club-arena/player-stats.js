@@ -2,7 +2,7 @@
  CLUB ARENA — Player Stats | FULLY WIRED | ORB-7 AUDITED
  SmarterPoker Dark Theme | Real Stats from Hand History & Gameplay
  ═══════════════════════════════════════════════════════════════════════════════ */
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
