@@ -43,8 +43,7 @@ export default function AgentPromoPanel({ clubId, userId, role, onDistribute }) 
         setLoading(true);
         try {
             // Fetch agent's promo balance from agents table
-            const { createClient } = await import('../../lib/supabase');
-            const supabase = createClient();
+            const { supabase } = await import('../../lib/supabase');
             const { data: agent } = await supabase
                 .from('agents')
                 .select('promo_balance')
@@ -85,8 +84,8 @@ export default function AgentPromoPanel({ clubId, userId, role, onDistribute }) 
 
     const handleDistribute = async () => {
         if (!selectedPlayer || !amount) return;
-        const amt = parseInt(amount);
-        if (!amt || amt <= 0) { showToast('Enter a positive amount', 'error'); return; }
+        const amt = Math.floor(Number(amount));
+        if (!amt || !Number.isFinite(amt) || amt <= 0) { showToast('Enter a positive amount', 'error'); return; }
         if (amt > promoBalance) { showToast('Insufficient promo balance', 'error'); return; }
 
         setDistributing(true);
@@ -243,7 +242,7 @@ export default function AgentPromoPanel({ clubId, userId, role, onDistribute }) 
                             {/* Send button */}
                             <button
                                 onClick={handleDistribute}
-                                disabled={distributing || !amount || parseInt(amount) <= 0}
+                                disabled={distributing || !amount || Math.floor(Number(amount)) <= 0}
                                 style={{
                                     width: '100%', padding: '12px 0',
                                     background: distributing ? FB.dim : `linear-gradient(135deg, ${FB.promo}, #7c3aed)`,
@@ -253,7 +252,7 @@ export default function AgentPromoPanel({ clubId, userId, role, onDistribute }) 
                                     boxShadow: `0 4px 16px ${FB.promo}40`,
                                 }}
                             >
-                                {distributing ? 'Sending...' : `🎁 Send ${amount ? parseInt(amount).toLocaleString() : '0'} Promo Chips`}
+                                {distributing ? 'Sending...' : `🎁 Send ${amount && Math.floor(Number(amount)) > 0 ? Math.floor(Number(amount)).toLocaleString() : '0'} Promo Chips`}
                             </button>
                         </>
                     )}

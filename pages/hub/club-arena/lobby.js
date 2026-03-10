@@ -137,7 +137,6 @@ export default function ClubLobby() {
     const {
       playChipStack,
       playCardFlip,
-      playFoldWhoosh,
       playWinnerChime,
     } = useMiniViewSounds();
 

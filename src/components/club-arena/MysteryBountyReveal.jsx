@@ -181,7 +181,8 @@ export default function MysteryBountyReveal({ reveal: propReveal, onDismiss }) {
         if (phase === 'reveal') {
             eventBus.emit(EventType.SOUND_PLAY, { id: SOUND.REVEAL });
             if (isJackpot) {
-                setTimeout(() => eventBus.emit(EventType.SOUND_PLAY, { id: SOUND.JACKPOT }), 400);
+                const tSound = setTimeout(() => eventBus.emit(EventType.SOUND_PLAY, { id: SOUND.JACKPOT }), 400);
+                timerRef.current = [...(timerRef.current || []), tSound];
             }
             // Confetti: differentiated by tier
             if (reveal?.amount > 10000) {
