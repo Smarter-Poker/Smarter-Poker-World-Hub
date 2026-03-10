@@ -818,11 +818,21 @@ export default function Cashier() {
                                 <div style={{ marginBottom: '20px' }}>
                                     <h2 style={S.sectionTitle}>Pending Cashouts</h2>
                                     {pendingCashouts.map(co => (
-                                        <div key={co.id} style={{
-                                            ...S.listItem,
-                                            border: `1px solid ${co.status === 'approved' ? FB.success : '#F5A623'}`,
-                                            background: co.status === 'approved' ? 'rgba(49,162,76,0.08)' : 'rgba(245,166,35,0.08)',
-                                        }} role="listitem" aria-label={`Cashout ${co.status}: ${co.amount} chips`}>
+                                        <div key={co.id}
+                                            onTouchStart={(e) => { swipeStartX.current = e.touches[0].clientX; }}
+                                            onTouchMove={(e) => {
+                                                const delta = swipeStartX.current - e.touches[0].clientX;
+                                                if (delta > 80 && co.status === 'pending') setSwipedCashoutId(co.id);
+                                                else if (delta < -40) setSwipedCashoutId(null);
+                                            }}
+                                            style={{
+                                                ...S.listItem,
+                                                border: `1px solid ${co.status === 'approved' ? FB.success : '#F5A623'}`,
+                                                background: co.status === 'approved' ? 'rgba(49,162,76,0.08)' : 'rgba(245,166,35,0.08)',
+                                                transition: 'transform 0.2s ease',
+                                                transform: swipedCashoutId === co.id ? 'translateX(-60px)' : 'translateX(0)',
+                                                position: 'relative', overflow: 'hidden',
+                                            }} role="listitem" aria-label={`Cashout ${co.status}: ${co.amount} chips`}>
                                             {/* ENH-2: Cashout 3-step progress tracker */}
                                             <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 0 }}>
                                                 {['Requested', 'Approved', 'Completed'].map((step, idx) => {
@@ -1171,9 +1181,10 @@ export default function Cashier() {
                                                 </div>
                                             );
                                         })}
-                                        {/* OPT-5: Load More pagination */}
+                                        {/* OPT-5: Load More pagination with IntersectionObserver */}
                                         {filtered.length > txPage * TX_PAGE_SIZE && (
                                             <button
+                                                ref={loadMoreRef}
                                                 onClick={() => setTxPage(p => p + 1)}
                                                 style={{
                                                     width: '100%', padding: '12px', marginTop: 8,
@@ -1183,6 +1194,20 @@ export default function Cashier() {
                                                 }}
                                             >
                                                 Load More ({filtered.length - txPage * TX_PAGE_SIZE} remaining)
+                                            </button>
+                                        )}
+                                        {/* P2-ENH-7: Export CSV */}
+                                        {filtered.length > 0 && (
+                                            <button
+                                                onClick={exportTransactionsCSV}
+                                                style={{
+                                                    width: '100%', padding: '10px', marginTop: 10,
+                                                    background: 'none', border: `1px solid ${FB.border}`,
+                                                    borderRadius: 8, color: FB.textSecondary, fontWeight: 600,
+                                                    fontSize: 12, cursor: 'pointer',
+                                                }}
+                                            >
+                                                💾 Export Transactions (CSV)
                                             </button>
                                         )}
                                     </>

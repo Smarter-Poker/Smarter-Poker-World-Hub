@@ -630,6 +630,53 @@ export default function Admin() {
         }
     };
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // TABLE TEMPLATES
+    // ═══════════════════════════════════════════════════════════════════════════
+    const loadTemplates = async () => {
+        if (!club?.id) return;
+        setTemplatesLoading(true);
+        try {
+            const data = await apiCall('/api/club-arena/table-templates', { action: 'list', clubId: club.id });
+            setTemplates(data.templates || []);
+        } catch (e) {
+            console.error('Failed to load templates:', e);
+        } finally {
+            setTemplatesLoading(false);
+        }
+    };
+
+    const saveTemplate = async (name, tableConfig) => {
+        if (!club?.id || !name?.trim()) return;
+        try {
+            await apiCall('/api/club-arena/table-templates', {
+                action: 'save',
+                clubId: club.id,
+                name: name.trim(),
+                config: tableConfig,
+            });
+            showToast(`Template "${name}" saved!`);
+            setSaveTemplateName('');
+            setShowSaveTemplate(false);
+            loadTemplates();
+            busEmit.dataMutated('table_settings_updated');
+        } catch (e) {
+            showToast(e.message || 'Failed to save template', 'error');
+        }
+    };
+
+    const deleteTemplate = async (templateId, templateName) => {
+        askConfirm(`Delete template "${templateName}"?`, async () => {
+            try {
+                await apiCall('/api/club-arena/table-templates', { action: 'delete', clubId: club.id, templateId });
+                showToast('Template deleted');
+                loadTemplates();
+            } catch (e) {
+                showToast(e.message || 'Delete failed', 'error');
+            }
+        });
+    };
+
     const saveTableSettings = async () => {
         if (!editTableModal) return;
         // #9+#10: Enhanced inline validation
@@ -897,7 +944,7 @@ export default function Admin() {
                                 <div
                                     key={opt.id}
                                     style={S.actionCard}
-                                    onClick={() => { setActiveModal(opt.id); if (opt.id === 'tables') loadTables(); }}
+                                    onClick={() => { setActiveModal(opt.id); if (opt.id === 'tables') { loadTables(); loadTemplates(); } }}
                                     onMouseEnter={e => e.currentTarget.style.background = FB.hover}
                                     onMouseLeave={e => e.currentTarget.style.background = FB.cardBg}
                                 >

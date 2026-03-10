@@ -12,6 +12,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
+import { haptic } from '../../../src/lib/club-arena/haptic';
 import usePersistedFilters from '../../../src/hooks/usePersistedFilters';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';

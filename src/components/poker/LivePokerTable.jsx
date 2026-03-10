@@ -975,18 +975,44 @@ function PlayerSeat({
         </div>
       )}
 
-      {/* Chip Count — displayed below name */}
+      {/* Chip Count + Chip Stack Visualization */}
       {!isEmpty && (
-        <div style={{
-          fontSize: 13,
-          fontWeight: 800,
-          color: isCurrentActor ? T.accent : '#FFD700',
-          textAlign: 'center',
-          textShadow: '0 1px 4px rgba(0,0,0,0.8)',
-          fontVariantNumeric: 'tabular-nums',
-          lineHeight: 1.1,
-        }}>
-          {typeof stack === 'number' ? stack.toLocaleString() : '0'}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          {/* Mini chip stack tower — height proportional to BBs */}
+          {(() => {
+            const bb = (typeof stack === 'number' && seat.bigBlind) ? Math.floor(stack / (seat.bigBlind || 1)) : 0;
+            const chipCount = bb >= 100 ? 5 : bb >= 50 ? 4 : bb >= 20 ? 3 : bb >= 5 ? 2 : 1;
+            const CHIP_COLORS = ['#e8e8e8', '#ef4444', '#22c55e', '#1e1e1e', '#a855f7'];
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column-reverse', alignItems: 'center', gap: 0, marginRight: 1 }}>
+                {Array.from({ length: chipCount }).map((_, ci) => (
+                  <motion.div
+                    key={ci}
+                    initial={{ scale: 0, y: 8 }}
+                    animate={{ scale: 1, y: 0 }}
+                    transition={{ delay: ci * 0.05, duration: 0.2, ease: 'easeOut' }}
+                    style={{
+                      width: 14, height: 4, borderRadius: 2,
+                      background: `linear-gradient(to bottom, ${CHIP_COLORS[ci % CHIP_COLORS.length]}cc, ${CHIP_COLORS[ci % CHIP_COLORS.length]})`,
+                      border: '0.5px solid rgba(255,255,255,0.35)',
+                      boxShadow: '0 1px 1px rgba(0,0,0,0.4), inset 0 0.5px 0.5px rgba(255,255,255,0.2)',
+                      marginBottom: ci > 0 ? -1 : 0,
+                    }}
+                  />
+                ))}
+              </div>
+            );
+          })()}
+          <div style={{
+            fontSize: 13, fontWeight: 800,
+            color: isCurrentActor ? T.accent : '#FFD700',
+            textAlign: 'center',
+            textShadow: '0 1px 4px rgba(0,0,0,0.8)',
+            fontVariantNumeric: 'tabular-nums',
+            lineHeight: 1.1,
+          }}>
+            {typeof stack === 'number' ? stack.toLocaleString() : '0'}
+          </div>
         </div>
       )}
 
@@ -1038,26 +1064,60 @@ function CommunityCards({ cards = [], boards, prevCardCount }) {
     // Spotlight the last card dealt when going from 3→4 (turn) or 4→5 (river)
     return (cards.length === 4 && idx === 3) || (cards.length === 5 && idx === 4);
   }, [cards.length]);
-  // Multi-board mode (double/triple board)
+  // Multi-board mode (double/triple board) — Run-It-Twice/Thrice
   if (boards && boards.length > 1 && boards.some(b => b.length > 0)) {
+    const BOARD_COLORS = ['#FFD700', '#4fc3f7', '#ce93d8'];
+    const BOARD_LABELS = ['Board 1', 'Board 2', 'Board 3'];
+    const BOARD_GLOWS = ['rgba(255,215,0,0.15)', 'rgba(79,195,247,0.15)', 'rgba(206,147,216,0.15)'];
     return (
       <div style={{
         position: 'absolute', top: '35%', left: '50%',
         transform: 'translate(-50%, -50%)',
-        display: 'flex', flexDirection: 'column', gap: 8, zIndex: 15,
+        display: 'flex', flexDirection: 'column', gap: 4, zIndex: 15,
         alignItems: 'center',
       }}>
         {boards.map((board, bi) => (
           board.length > 0 && (
-            <div key={`board-${bi}`} style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
-              <span style={{
-                fontSize: 10, color: bi === 0 ? '#FFD700' : bi === 1 ? '#4fc3f7' : '#ce93d8',
-                fontWeight: 700, marginRight: 4, minWidth: 12, textAlign: 'center',
-              }}>{bi + 1}</span>
-              {board.map((card, ci) => (
-                <CardImg key={`b${bi}-c${ci}`} card={card} width={42} delay={ci * 0.1} />
-              ))}
-            </div>
+            <React.Fragment key={`board-${bi}`}>
+              {/* Lightning bolt divider between boards */}
+              {bi > 0 && (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 6, width: '100%',
+                  justifyContent: 'center', padding: '1px 0',
+                }}>
+                  <div style={{ flex: 1, height: 1, background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.15), transparent)' }} />
+                  <span style={{ fontSize: 12, filter: 'drop-shadow(0 0 4px rgba(255,215,0,0.5))' }}>⚡</span>
+                  <div style={{ flex: 1, height: 1, background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.15), transparent)' }} />
+                </div>
+              )}
+              <motion.div
+                initial={{ opacity: 0, y: bi * 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: bi * 0.2, duration: 0.4 }}
+                style={{
+                  display: 'flex', gap: 5, alignItems: 'center',
+                  background: BOARD_GLOWS[bi] || BOARD_GLOWS[0],
+                  borderRadius: 10, padding: '4px 8px',
+                  border: `1px solid ${BOARD_COLORS[bi] || BOARD_COLORS[0]}30`,
+                }}
+              >
+                <span style={{
+                  fontSize: 9, color: BOARD_COLORS[bi] || BOARD_COLORS[0],
+                  fontWeight: 800, marginRight: 2, textTransform: 'uppercase',
+                  letterSpacing: 0.5,
+                }}>{BOARD_LABELS[bi] || `Board ${bi + 1}`}</span>
+                {board.map((card, ci) => (
+                  <motion.div
+                    key={`b${bi}-c${ci}`}
+                    initial={{ rotateY: 180, opacity: 0 }}
+                    animate={{ rotateY: 0, opacity: 1 }}
+                    transition={{ delay: bi * 0.3 + ci * 0.1, duration: 0.4 }}
+                  >
+                    <CardImg card={card} width={42} delay={bi * 0.3 + ci * 0.1} />
+                  </motion.div>
+                ))}
+              </motion.div>
+            </React.Fragment>
           )
         ))}
       </div>

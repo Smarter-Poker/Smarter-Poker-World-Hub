@@ -17,6 +17,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
+import { haptic } from '../../../src/lib/club-arena/haptic';
 import useWalletData from '../../../src/hooks/useWalletData';
 import dynamic from 'next/dynamic';
 const DynamicWallet = dynamic(() => import('../../../src/components/club-arena/DynamicWallet'), { ssr: false });
