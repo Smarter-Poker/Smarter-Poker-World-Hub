@@ -513,8 +513,11 @@ export default function App({ Component, pageProps }) {
   return (
     <SWRConfig value={{ ...SWR_DEFAULTS, provider: swrLocalStorageProvider, use: [swrCacheMiddleware] }}>
       <div className={`${orbitron.variable} ${inter.variable} ${plusJakartaSans.variable} ${spaceGrotesk.variable} ${rajdhani.variable} ${shouldCapitalize ? 'capitalize-world' : ''}`} style={{ minHeight: '100vh' }}>
-        {shouldCapitalize && (
-          <Head>\n            <style dangerouslySetInnerHTML={{
+                <>
+          {/* PWA Manifest — route-based: Commander gets its own manifest/icon/title */}
+          <Head>
+  {shouldCapitalize && (
+          <style dangerouslySetInnerHTML={{
             __html: `
               /* Target ONLY structural UI elements, buttons, headers, and discrete labels */
               .capitalize-world .settingLabel,
@@ -545,9 +548,7 @@ export default function App({ Component, pageProps }) {
             `
           }} />
         )}
-        <>
-          {/* PWA Manifest — route-based: Commander gets its own manifest/icon/title */}
-          <Head>
+
             {isCommander ? (
               <>
                 <link rel="manifest" href="/commander-manifest.json" />
