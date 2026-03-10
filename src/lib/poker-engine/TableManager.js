@@ -364,6 +364,10 @@ class TableManager {
     // Reset VPIP tracker — fresh session for this player at this table
     this._vpipTracker.delete(String(playerId));
     seat.stack = buyIn;
+    // Track session buy-in for +/- display and streak
+    seat.buyIn = buyIn;
+    seat.currentStreak = 0;
+    
     seat.sittingOutHands = 0;
     seat.reservedFor = null;
     seat.reservedAt = null;
@@ -596,6 +600,7 @@ class TableManager {
     }
 
     seat.stack += amount;
+    seat.buyIn = (seat.buyIn || 0) + amount; // Track total session buyIn
 
     this.emit('chips_added', { playerId, amount, newStack: seat.stack, seatIndex: seat.seatIndex });
     return { success: true, newStack: seat.stack };
@@ -958,6 +963,24 @@ class TableManager {
   _onHandComplete(data) {
     // Sync final stacks
     this._syncStacks();
+
+    // ── Update Winning Streaks ──
+    if (data.result && data.result.winners) {
+      const winnerIds = data.result.winners.map(w => String(w.playerId));
+      for (const seat of this.seats) {
+        if (seat.status !== SEAT_STATUS.OCCUPIED || !seat.player) continue;
+        
+        // Only players who were dealt into the hand count towards streak reset
+        const wasInHand = this.game.currentHand?.players?.some(p => String(p.id) === String(seat.player.id));
+        if (!wasInHand) continue;
+
+        if (winnerIds.includes(String(seat.player.id))) {
+          seat.currentStreak = (seat.currentStreak || 0) + 1;
+        } else {
+          seat.currentStreak = 0; // Reset streak if they played and lost
+        }
+      }
+    }
 
     // ── Apply queued chip adds (requested during the hand) ──
     if (this._pendingChipAdds && this._pendingChipAdds.size > 0) {
