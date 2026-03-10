@@ -55,6 +55,33 @@ export default async function handler(req, res) {
 
                 if (muteCheck) return res.status(403).json({ error: 'You are muted at this table' });
 
+                // Check if user is seated at the table
+                const { data: tableData } = await supabaseAdmin
+                    .from('active_tables')
+                    .select('table_state')
+                    .eq('id', tableId)
+                    .maybeSingle();
+
+                if (!tableData || !tableData.table_state) {
+                    return res.status(404).json({ error: 'Table not found' });
+                }
+
+                // Parse seats from the active_tables state payload
+                const seats = tableData.table_state.seats || [];
+                const isSeated = seats.some(s => s?.player?.id && String(s.player.id) === String(user.id));
+                
+                if (!isSeated) {
+                    // Admins allowed to chat as dealers, but not regular players
+                    const { data: membership } = await supabaseAdmin
+                        .from('club_members')
+                        .select('role')
+                        .eq('user_id', user.id)
+                        .maybeSingle();
+                    if (!membership || !['owner', 'admin'].includes(membership.role)) {
+                        return res.status(403).json({ error: 'Spectators cannot chat at live tables' });
+                    }
+                }
+
                 // Get user profile for display
                 const { data: profile } = await supabaseAdmin
                     .from('profiles')

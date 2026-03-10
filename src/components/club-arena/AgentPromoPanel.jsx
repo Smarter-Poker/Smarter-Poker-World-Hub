@@ -31,6 +31,7 @@ export default function AgentPromoPanel({ clubId, userId, role, onDistribute }) 
     const [distributing, setDistributing] = useState(false);
     const [toast, setToast] = useState(null);
     const isMounted = useRef(true);
+    const toastTimer = useRef(null);
 
     useEffect(() => {
         isMounted.current = true;
@@ -42,7 +43,8 @@ export default function AgentPromoPanel({ clubId, userId, role, onDistribute }) 
     const showToast = (msg, type = 'success') => {
         if (!isMounted.current) return;
         setToast({ msg, type });
-        setTimeout(() => { if (isMounted.current) setToast(null); }, 3000);
+        if (toastTimer.current) clearTimeout(toastTimer.current);
+        toastTimer.current = setTimeout(() => { if (isMounted.current) setToast(null); }, 3000);
     };
 
     const loadData = useCallback(async () => {
@@ -68,7 +70,7 @@ export default function AgentPromoPanel({ clubId, userId, role, onDistribute }) 
                 .eq('agent_id', userId)
                 .eq('role', 'player')
                 .order('chip_balance', { ascending: false })
-                .limit(50);
+                .limit(1000);
 
             setDownline(players || []);
         } catch (e) {

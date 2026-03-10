@@ -403,6 +403,13 @@ class LobbyManager {
       if (tables.size === 0) this.playerTables.delete(playerId);
     }
 
+    // 🐛 Fix: Memory leak cleanup — purge all show-cards consent entries for this table
+    for (const key of this._showCardsConsent.keys()) {
+      if (key.startsWith(`${tableId}:`)) {
+        this._showCardsConsent.delete(key);
+      }
+    }
+
     this.tables.delete(tableId);
     this._broadcastLobbyState();
 

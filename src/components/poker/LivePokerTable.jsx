@@ -3571,10 +3571,24 @@ function LivePokerTable({
   }, [legalActions, tableId, onActionRequired, onActionCleared]);
 
   // Phase 7: Listen for Global Sit Out All from MultiTableView
+  // Wave A/B: Synchronize localized configuration settings across multiple table components
   useEffect(() => {
     const handleGlobalMutate = (payload) => {
       if (payload === 'global_sit_out_all') {
         send('sit_out'); // Trigger the backend action for this specific table
+      }
+      if (typeof window !== 'undefined') {
+        if (payload === 'bb_display_toggled') {
+          setShowStackInBB(localStorage.getItem('poker-stack-bb') === 'true');
+        } else if (payload === 'card_sort_changed') {
+          setCardSortMode(localStorage.getItem('poker-card-sort') || 'dealt');
+        } else if (payload === 'haptic_toggled') {
+          setHapticEnabled(localStorage.getItem('poker-haptic') !== 'false');
+        } else if (payload === 'hud_toggled') {
+          setShowHUD(localStorage.getItem('poker-show-hud') === 'true');
+        } else if (payload === 'four_color_deck_toggled') {
+          setFourColorDeck(localStorage.getItem('poker-4color-deck') === 'true');
+        }
       }
     };
     eventBus.on(EventType.DATA_MUTATED, handleGlobalMutate);
