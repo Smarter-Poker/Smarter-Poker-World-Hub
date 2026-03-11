@@ -4474,13 +4474,7 @@ function LivePokerTable({
     });
   }, []);
 
-  // ═══ WAVE A: CONFIGURABLE BET PRESETS ═══
-  const [betPresets, setBetPresets] = useState(() => {
-    if (typeof window !== 'undefined') {
-      try { return JSON.parse(localStorage.getItem('poker-bet-presets')) || null; } catch { return null; }
-    }
-    return null;
-  });
+
 
   // ═══ WAVE B: SMART HUD TOGGLE ═══
   const [showHUD, setShowHUD] = useState(() => {

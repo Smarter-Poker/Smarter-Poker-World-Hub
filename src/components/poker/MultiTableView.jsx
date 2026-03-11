@@ -703,12 +703,15 @@ export default function MultiTableView({ supabase, userId, initialTable, onExit 
         markUnreadChat(data.tableId);
       }
     };
-    eventBus.on(EventType.SYSTEM_ERROR /* repurposing a known event if needed, or chat stream */, onChat); // Note: Assuming a chat event exists. Given limitations, we'll intercept at the source if possible, but EventBus is safer.
-    // Real implementation requires hooking into the chat channel. Let's use the standard busEmit.
-    eventBus.on('chat_message_received', onChat);
+    const unsub1 = eventBus.on(EventType.SYSTEM_ERROR, onChat);
+    const unsub2 = eventBus.on('chat_message_received', onChat);
+    
     return () => {
-      eventBus.off('chat_message_received', onChat);
-      eventBus.off(EventType.SYSTEM_ERROR, onChat);
+      if (typeof unsub2 === 'function') unsub2();
+      else eventBus.off('chat_message_received', onChat);
+      
+      if (typeof unsub1 === 'function') unsub1();
+      else eventBus.off(EventType.SYSTEM_ERROR, onChat);
     };
   }, [activeTable?.tableId, markUnreadChat]);
 
