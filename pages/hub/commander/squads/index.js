@@ -12,6 +12,7 @@ import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { supabase } from '../../../../src/lib/supabase';
 import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
+import { busEmit } from '../../../../src/engine/EventBus';
 
 function SquadCard({ squad, onView }) {
   const statusColors = {
@@ -121,6 +122,7 @@ export default function SquadsPage() {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       });
+      busEmit.dataMutated('squads');
       refreshSquads();
     } catch (err) {
       console.error('Invitation action failed:', err);

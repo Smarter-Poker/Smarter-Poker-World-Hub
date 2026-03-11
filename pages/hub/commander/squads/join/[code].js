@@ -8,6 +8,7 @@ import SEOHead from '../../../../../src/components/seo/SEOHead';
 import { Users, Loader2, CheckCircle, XCircle, ArrowLeft } from 'lucide-react';
 import { useRequireAuth, getAccessToken } from '../../../../../src/lib/authUtils';
 import useTrainingBus from '../../../../../src/hooks/useTrainingBus';
+import { busEmit } from '../../../../../src/engine/EventBus';
 
 export default function SquadJoinPage() {
   const router = useRouter();
@@ -57,6 +58,7 @@ export default function SquadJoinPage() {
       });
       const data = await res.json();
       if (data.success) {
+        busEmit.dataMutated('squads');
         setStatus('joined');
         setTimeout(() => {
           router.push(`/hub/commander/squads/${squad?.id || ''}`);

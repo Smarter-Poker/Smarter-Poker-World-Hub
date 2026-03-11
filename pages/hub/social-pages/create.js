@@ -8,6 +8,7 @@ import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { useRequireAuth, getAccessToken } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { busEmit } from '../../../src/engine/EventBus';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -74,6 +75,7 @@ export default function CreateSocialPage() {
             const json = await res.json();
 
             if (json.success) {
+                busEmit.dataMutated('social-pages');
                 router.push(`/hub/social-pages/${json.data.slug || json.data.id}`);
             } else {
                 setError(json.error || 'Failed to create page');

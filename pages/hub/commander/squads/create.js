@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
+import { busEmit } from '../../../../src/engine/EventBus';
 
 const GAME_TYPES = [
   { value: 'nlhe', label: 'No Limit Hold\'em' },
@@ -123,6 +124,7 @@ export default function CreateSquadPage() {
 
       const data = await res.json();
       if (data.success) {
+        busEmit.dataMutated('squads');
         router.push(`/hub/commander/squads/${data.data?.squad?.id || ''}`);
       } else {
         setErrorMessage(data.error?.message || 'Failed to create squad');
