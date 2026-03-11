@@ -240,20 +240,35 @@ class TournamentBridge {
       this._broadcastTournament('mystery_bounty_awarded', data);
       await this._persistBountyAward(data);
 
-      // Phase 7: Broadcast mystery bounty to all tournament tables' chat
+      // Phase 7: Broadcast mystery bounty to all tournament tables' chat AND trigger God-Mode Table-Wide Confetti
       if (this.supabase && data.reveal) {
         const chatMsg = `🎰 ${data.playerName} pulled a ${data.reveal.tierLabel} Mystery Bounty (${data.amount.toLocaleString()} chips) for knocking out ${data.eliminatedName}!`;
         for (const [tableId] of this.tournament.tables) {
           try {
+            // Send to chat
             const tableChannel = this.supabase.channel(`table:${tableId}`);
-            await tableChannel.send({
+            tableChannel.send({
               type: 'broadcast',
               event: 'chat_message',
               payload: { type: 'system', message: chatMsg }
-            });
-            this.supabase.removeChannel(tableChannel);
+            }).catch(()=>{});
+
+            // PHASE 3 EXPANSION: Trigger Table-Wide Confetti for everyone seated at any tournament table
+            // The frontend table/[tableId].js listens to this channel and renders MysteryBountyReveal overlay
+            const bountyChannel = this.supabase.channel(`bounty-reveal:${tableId}`);
+            bountyChannel.send({
+              type: 'broadcast',
+              event: 'mystery_bounty_awarded',
+              payload: data
+            }).catch(()=>{});
+            
+            // Clean up ephemeral channels
+            setTimeout(() => {
+              this.supabase.removeChannel(tableChannel);
+              this.supabase.removeChannel(bountyChannel);
+            }, 1000);
           } catch (e) {
-            console.error('[TournamentBridge] Chat broadcast failed for table', tableId, e.message);
+            console.error('[TournamentBridge] Chat/Bounty broadcast failed for table', tableId, e.message);
           }
         }
       }

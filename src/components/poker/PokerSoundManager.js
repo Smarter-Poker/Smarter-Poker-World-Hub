@@ -74,6 +74,10 @@ export class PokerSoundManager {
         case 'chat':       return this._playChat(ctx);
         case 'bbj':        return this._playBBJ(ctx);
         case 'showdown':   return this._playShowdown(ctx);
+        // GOD-MODE SOUNDS
+        case 'mystery_drumroll': return this._playMysteryDrumroll(ctx);
+        case 'mystery_reveal': return this._playMysteryReveal(ctx);
+        case 'jackpot_coins': return this._playJackpotCoins(ctx);
         default: break;
       }
     } catch (e) {
@@ -291,6 +295,76 @@ export class PokerSoundManager {
       osc.start(t + i * 0.1);
       osc.stop(t + i * 0.1 + 0.6);
     });
+  }
+
+  // ── GOD MODE: Mystery Bounty Sounds ──────────────────
+
+  _playMysteryDrumroll(ctx) {
+    // Suspenseful low rumble escalating over 1.2s
+    const t = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.frequency.setValueAtTime(60, t);
+    osc.frequency.exponentialRampToValueAtTime(150, t + 1.2);
+    osc.type = 'sawtooth';
+    g.gain.setValueAtTime(0.001, t);
+    g.gain.linearRampToValueAtTime(this._volume * 0.3, t + 0.8);
+    g.gain.linearRampToValueAtTime(this._volume * 0.4, t + 1.2);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 1.5);
+    osc.connect(g).connect(ctx.destination);
+    osc.start(t);
+    osc.stop(t + 1.5);
+
+    // Add noise texture
+    const noise = this._noiseBuffer(ctx, 1.5);
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(200, t);
+    filter.frequency.linearRampToValueAtTime(800, t + 1.2);
+    const nGain = ctx.createGain();
+    nGain.gain.setValueAtTime(0.001, t);
+    nGain.gain.linearRampToValueAtTime(this._volume * 0.2, t + 1.2);
+    nGain.gain.exponentialRampToValueAtTime(0.001, t + 1.5);
+    noise.connect(filter).connect(nGain).connect(ctx.destination);
+    noise.start(t); noise.stop(t + 1.5);
+  }
+
+  _playMysteryReveal(ctx) {
+    // Powerful swoosh / bright chord
+    const t = ctx.currentTime;
+    // Ascending major chord
+    const notes = [440, 554.37, 659.25, 880]; // A4, C#5, E5, A5
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.frequency.value = freq;
+      osc.type = 'triangle';
+      g.gain.setValueAtTime(0.001, t + (i * 0.05));
+      g.gain.linearRampToValueAtTime(this._volume * 0.25, t + (i * 0.05) + 0.05);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 1.0);
+      osc.connect(g).connect(ctx.destination);
+      osc.start(t + (i * 0.05));
+      osc.stop(t + 1.0);
+    });
+  }
+
+  _playJackpotCoins(ctx) {
+    // Massive coin shower — multiple high-pitched cascading chimes
+    const t = ctx.currentTime;
+    for (let i = 0; i < 25; i++) {
+        const delay = Math.random() * 1.5; // Shower over 1.5 seconds
+        const freq = 2000 + Math.random() * 4000; // High metallic frequencies
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, t + delay);
+        osc.frequency.exponentialRampToValueAtTime(freq * 0.8, t + delay + 0.2); // slight bend
+        g.gain.setValueAtTime(this._volume * (0.05 + Math.random() * 0.05), t + delay);
+        g.gain.exponentialRampToValueAtTime(0.001, t + delay + (0.1 + Math.random() * 0.2));
+        osc.connect(g).connect(ctx.destination);
+        osc.start(t + delay);
+        osc.stop(t + delay + 0.3);
+    }
   }
 
   // ── Utility ──────────────────────────────────────────

@@ -3732,6 +3732,19 @@ function LivePokerTable({
   // Mystery Bounty Reveal State
   const [bountyReveal, setBountyReveal] = useState(null);
 
+  // EventBus Listener for Global Sounds (God-Mode Audio Asset Injection)
+  useEffect(() => {
+    if (!eventBus) return;
+    const handleSoundPlay = (e) => {
+      const payload = e?.payload || e;
+      if (payload?.id && soundRef.current) {
+        soundRef.current.play(payload.id);
+      }
+    };
+    const unsub = eventBus.on('SOUND_PLAY', handleSoundPlay);
+    return () => unsub();
+  }, []);
+
   // EventBus Listener for Mystery Bounty Knockouts
   useEffect(() => {
     if (!eventBus) return;
