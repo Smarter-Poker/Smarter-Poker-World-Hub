@@ -5326,6 +5326,77 @@ function LivePokerTable({
         <ChatOverlay messages={chatMessages} onSend={handleChat} />
       )}
 
+      {/* Keyboard Shortcuts Help Overlay */}
+      <AnimatePresence>
+        {showKbHelp && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowKbHelp(false)}
+            style={{
+              position: 'absolute', inset: 0, zIndex: 100,
+              background: 'rgba(0,0,0,0.7)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: 'rgba(15,20,30,0.95)', backdropFilter: 'blur(12px)',
+                border: '1px solid rgba(255,255,255,0.12)', borderRadius: 16,
+                padding: '20px 28px', maxWidth: 340, width: '90%',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.8)',
+              }}
+            >
+              <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', marginBottom: 12, textAlign: 'center' }}>
+                ⌨️ Keyboard Shortcuts
+              </div>
+              {[
+                { section: 'Game Actions', keys: [
+                  ['F', 'Fold'], ['C / Space', 'Check / Call'], ['A', 'All-In'],
+                  ['T', 'Use Time Bank'], ['1–9', 'Bet Size (Min → Max)'],
+                ]},
+                { section: 'Utilities', keys: [
+                  ['S', 'Sit Out / Sit In'], ['M', 'Toggle Auto-Muck'],
+                  ['H', 'Toggle HUD'], ['L', 'Last Hand Replayer'],
+                  ['? or /', 'This Help'], ['Esc', 'Close Overlay'],
+                ]},
+              ].map(group => (
+                <div key={group.section} style={{ marginBottom: 10 }}>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: T.accent, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
+                    {group.section}
+                  </div>
+                  {group.keys.map(([key, desc]) => (
+                    <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
+                      <span style={{
+                        background: 'rgba(255,255,255,0.1)', color: '#fff', fontSize: 10,
+                        fontWeight: 700, padding: '2px 8px', borderRadius: 4,
+                        fontFamily: 'monospace', border: '1px solid rgba(255,255,255,0.15)',
+                        minWidth: 36, textAlign: 'center',
+                      }}>{key}</span>
+                      <span style={{ fontSize: 11, color: T.textSecondary, flex: 1, marginLeft: 10 }}>{desc}</span>
+                    </div>
+                  ))}
+                </div>
+              ))}
+              <button
+                onClick={() => setShowKbHelp(false)}
+                style={{
+                  width: '100%', marginTop: 8, background: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8,
+                  color: T.textSecondary, padding: '6px 0', fontSize: 11,
+                  fontWeight: 600, cursor: 'pointer',
+                }}
+              >Close</button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ═══ WAVE B: TABLE LEADERBOARD OVERLAY ═══ */}
       <AnimatePresence>
         {showLeaderboard && (
