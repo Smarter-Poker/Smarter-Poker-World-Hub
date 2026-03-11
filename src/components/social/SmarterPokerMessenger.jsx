@@ -670,6 +670,19 @@ export const ChatWindow = ({
     const [reactionDetailData, setReactionDetailData] = useState([]);
     const [multiSelectMode, setMultiSelectMode] = useState(false);
     const [selectedMessageIds, setSelectedMessageIds] = useState([]);
+
+    // P20: Reset panel states on conversation switch
+    useEffect(() => {
+        setShowContactInsights(false);
+        setShowBookmarksDrawer(false);
+        setShowExportPicker(false);
+        setShowEditHistory(null);
+        setEditHistoryData([]);
+        setShowReactionDetail(null);
+        setReactionDetailData([]);
+        setMultiSelectMode(false);
+        setSelectedMessageIds([]);
+    }, [conversationId]);
     
     // P7-6: Lightbox State
     const [lightboxImage, setLightboxImage] = useState(null);
@@ -2311,10 +2324,10 @@ export const ChatWindow = ({
                         <span style={{ fontWeight: 'bold', fontSize: 12, color: '#e4e6eb' }}>🔖 Saved Messages</span>
                         <button onClick={() => setShowBookmarksDrawer(false)} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer' }}>✕</button>
                     </div>
-                    {(messages || []).filter(m => m.isBookmarked).length === 0 && <div style={{ textAlign: 'center', color: '#666', fontSize: 11, padding: 10 }}>No saved messages</div>}
-                    {(messages || []).filter(m => m.isBookmarked).map((bm, i) => (
+                    {(prefs.bookmarks || []).length === 0 && <div style={{ textAlign: 'center', color: '#666', fontSize: 11, padding: 10 }}>No saved messages</div>}
+                    {(prefs.bookmarks || []).map((bm, i) => (
                         <div key={i} style={{ padding: '6px 8px', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: 11, color: '#ccc' }}>
-                            <div style={{ fontSize: 9, color: '#666', marginBottom: 2 }}>{new Date(bm.created_at).toLocaleString()}</div>
+                            <div style={{ fontSize: 9, color: '#666', marginBottom: 2 }}>{new Date(bm.created_at || bm.savedAt).toLocaleString()}</div>
                             <div>{bm.text?.slice(0, 80) || `[${bm.message_type}]`}</div>
                         </div>
                     ))}
