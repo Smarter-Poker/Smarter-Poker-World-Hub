@@ -1128,7 +1128,6 @@ function RunItTwicePrompt({ visible, onAccept, onDecline }) {
       setCountdown(prev => {
         if (prev <= 1) {
           clearInterval(intervalRef.current);
-          onDecline?.();
           return 0;
         }
         return prev - 1;
@@ -1136,6 +1135,11 @@ function RunItTwicePrompt({ visible, onAccept, onDecline }) {
     }, 1000);
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [visible]);
+
+  // BUG FIX: Handle auto-decline in a separate effect to avoid side-effects in state updater
+  useEffect(() => {
+    if (visible && countdown === 0) onDecline?.();
+  }, [countdown, visible]);
 
   if (!visible) return null;
 
@@ -5665,7 +5669,7 @@ function LivePokerTable({
   useEffect(() => {
     const la = tableState?.game?.lastAction;
     if (!la || !la.type) return;
-    const key = `${la.type}-${la.playerId || ''}-${la.amount || 0}-${la.timestamp || Date.now()}`;
+    const key = `${la.type}-${la.playerId || ''}-${la.amount || 0}-${la.timestamp || la.handId || 'na'}`;
     if (prevActionLogRef.current === key) return;
     prevActionLogRef.current = key;
 
