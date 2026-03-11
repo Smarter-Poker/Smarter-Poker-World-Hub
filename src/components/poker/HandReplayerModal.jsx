@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { captureReplayerScreenshot } from './TableExperienceComponents';
 
 // ═══════════════════════════════════════════════════════════
 //  CARD UTILITIES
@@ -274,7 +275,7 @@ function HandHistorySidebar({ supabase, tableId, clubId, currentHandId, onSelect
 //  #3 — SHARE DROPDOWN
 // ═══════════════════════════════════════════════════════════
 
-function ShareDropdown({ handData, handId, onClose }) {
+function ShareDropdown({ handData, handId, onClose, containerRef }) {
   const [copied, setCopied] = useState(null);
   const copyTimerRef = useRef(null);
 
@@ -299,6 +300,21 @@ function ShareDropdown({ handData, handId, onClose }) {
     });
   }, [handId]);
 
+  const copyScreenshot = useCallback(async () => {
+    const dataUrl = await captureReplayerScreenshot(containerRef);
+    if (!dataUrl) { setCopied('failed'); setTimeout(() => setCopied(null), 2000); return; }
+    
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = `smarter-poker-hand-${handId}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    setCopied('screenshot');
+    copyTimerRef.current = setTimeout(() => setCopied(null), 2000);
+  }, [handId, containerRef]);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: -10 }}
@@ -317,6 +333,9 @@ function ShareDropdown({ handData, handId, onClose }) {
       </button>
       <button onClick={copyLink} style={shareBtn}>
         🔗 {copied === 'link' ? '✓ Copied!' : 'Copy Link'}
+      </button>
+      <button onClick={copyScreenshot} style={shareBtn}>
+        📸 {copied === 'screenshot' ? '✓ Saved!' : copied === 'failed' ? 'Failed' : 'Save Screenshot'}
       </button>
     </motion.div>
   );
@@ -349,6 +368,7 @@ export default function HandReplayerModal({ handId: initialHandId, supabase, cur
   const [step, setStep] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const timerRef = useRef(null);
+  const exportRef = useRef(null); // Reference for html2canvas to screenshot the board
 
   // ── Feature State ──
   const [showSidebar, setShowSidebar] = useState(false);        // #2
@@ -640,6 +660,7 @@ export default function HandReplayerModal({ handId: initialHandId, supabase, cur
         onClick={onClose}
       >
         <motion.div
+          ref={exportRef}
           initial={{ y: 50, scale: 0.9 }} animate={{ y: 0, scale: 1 }}
           onClick={e => e.stopPropagation()}
           style={{
@@ -694,7 +715,7 @@ export default function HandReplayerModal({ handId: initialHandId, supabase, cur
                 </button>
                 <AnimatePresence>
                   {showShareMenu && (
-                    <ShareDropdown handData={handData} handId={activeHandId} onClose={() => setShowShareMenu(false)} />
+                    <ShareDropdown handData={handData} handId={activeHandId} onClose={() => setShowShareMenu(false)} containerRef={exportRef} />
                   )}
                 </AnimatePresence>
               </div>

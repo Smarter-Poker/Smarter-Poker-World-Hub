@@ -754,7 +754,7 @@ export function checkAutoRebuy(tableId, currentStack, send) {
   if (!settings.autoRebuy || !settings.rebuyThreshold || !send) return false;
   if (currentStack < settings.rebuyThreshold) {
     const rebuyAmount = settings.rebuyAmount || settings.rebuyThreshold * 2;
-    send({ type: 'rebuy', amount: rebuyAmount });
+    send('add_chips', { amount: rebuyAmount });
     return true;
   }
   return false;
@@ -774,7 +774,7 @@ export function usePingMeasurement(send, connected) {
 
     const measurePing = () => {
       pingStartRef.current = Date.now();
-      try { send({ type: 'ping', ts: pingStartRef.current }); } catch { /* ignore */ }
+      try { send('ping', { ts: pingStartRef.current }); } catch { /* ignore */ }
     };
 
     // Measure every 10 seconds

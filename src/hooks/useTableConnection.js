@@ -466,6 +466,13 @@ export function useTableConnection({ supabase, tableId, userId }) {
           }]);
         } catch (_) {}
         break;
+      case 'emoji_thrown':
+        // PHASE 24: Emit incoming emojis to the rest of the table's components
+        try { eventBus.emit('INCOMING_EMOJI', data, 'TableSync'); } catch (_) {}
+        break;
+      case 'pong':
+        try { eventBus.emit('INCOMING_PONG', data, 'TableSync'); } catch (_) {}
+        break;
       default:
         requestState();
         break;

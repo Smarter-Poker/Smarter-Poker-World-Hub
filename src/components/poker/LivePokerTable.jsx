@@ -105,7 +105,7 @@ function BetChipAnimation({ tableState }) {
 import HandReplayerModal from './HandReplayerModal';
 import {
   TableEmojiBar, FloatingReaction, AnalyticsSidebar,
-  PlayerNotesPopup, getPlayerNoteColor,
+  PlayerNotesPopup, getPlayerNoteColor, getPlayerNoteText,
   SessionSummaryModal, SpectatorBadge,
   ReconnectionOverlay, ReportHandButton,
   ConnectionQualityHUD,
@@ -4837,31 +4837,15 @@ function LivePokerTable({
 
   const [noteTarget, setNoteTarget] = useState(null); // { id, displayName } for notes modal
   const [quickViewTarget, setQuickViewTarget] = useState(null); // { id, displayName, avatarUrl, stack, stats }
-  const [playerNotes, setPlayerNotes] = useState({}); // { targetUserId: { color_label, player_type, ... } }
+  const [noteSyncHash, setNoteSyncHash] = useState(0);
 
-  // Load player notes for all seated opponents
+  // Phase 24 Audit Fix: Listen to cross-table player note mutations
   useEffect(() => {
-    if (!userId || !seats?.length) return;
-    const opponentIds = seats
-      .filter(s => s.player?.id && String(s.player.id) !== String(userId))
-      .map(s => s.player.id);
-    if (opponentIds.length === 0) return;
-
-    // BUG #147 FIX: Include auth token — server requires Bearer auth
-    Promise.resolve({ access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token }).then((noteSession) => {
-      fetch('/api/club-arena/player-notes', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(noteSession?.access_token ? { Authorization: `Bearer ${noteSession.access_token}` } : {}),
-        },
-        body: JSON.stringify({ action: 'get_bulk', targetUserIds: opponentIds }),
-      })
-        .then(r => r.json())
-        .then(r => { if (r.notes) setPlayerNotes(r.notes); })
-        .catch(() => { });
-    }).catch(() => { });
-  }, [userId, supabase, seats?.map(s => s.player?.id).join(',')]);
+    const unsub = eventBus.on('DATA_MUTATED', (topic) => {
+      if (topic === 'player_notes_updated') setNoteSyncHash(h => h + 1);
+    });
+    return () => { if (unsub) unsub(); };
+  }, []);
 
   // Phase 4 Audit Fix: Fetch club chip balance continuously for accurate Auto Top-Up and Rebuy limits
   useEffect(() => {
@@ -5419,7 +5403,14 @@ function LivePokerTable({
   const [floatingReactions, setFloatingReactions] = useState([]);
   const [showSessionSummary, setShowSessionSummary] = useState(false);
   const [disconnectedAt, setDisconnectedAt] = useState(null);
-  const [wsLatency, setWsLatency] = useState(null);
+  
+  // #8: Connection Quality Ping Measurement (Phase 24)
+  const { latency: wsLatency, handlePong } = usePingMeasurement(send, connected);
+  
+  useEffect(() => {
+    const unsub = eventBus.on('INCOMING_PONG', () => handlePong());
+    return () => { if (unsub) unsub(); };
+  }, [handlePong]);
 
   // #7: Track connection state for reconnection overlay
   useEffect(() => {
@@ -5432,12 +5423,29 @@ function LivePokerTable({
 
   // #4: Handle emoji send → broadcast + float animation
   const handleEmojiSend = useCallback((emoji) => {
+    // Phase 24 check: Enforce server-side 3s rate limit to prevent spam
+    if (!checkEmojiRateLimit(userId || mySeat?.id)) return;
+
     // Add floating reaction at center of table
     const id = Date.now();
     setFloatingReactions(prev => [...prev, { id, emoji }]);
     // Broadcast to other players via the table channel
-    send?.({ type: 'emoji_reaction', emojiId: emoji.id, emojiLabel: emoji.label });
-  }, [send]);
+    send?.('throw_emoji', { emoji });
+  }, [send, userId, mySeat?.id]);
+
+  // #2: Phase 24 Incoming Emoji Listener
+  useEffect(() => {
+    const unsub = eventBus.on('INCOMING_EMOJI', (data) => {
+      // Ignore our own echoes if any
+      if (String(data.fromId) === String(userId || mySeat?.id)) return;
+      
+      const emoji = data.emoji;
+      if (!emoji) return;
+      const id = Date.now() + Math.random();
+      setFloatingReactions(prev => [...prev, { id, emoji }]);
+    });
+    return () => { if (unsub) unsub(); };
+  }, [userId, mySeat?.id]);
 
   // #3: Handle session summary on leave
   const handleLeaveWithSummary = useCallback(() => {
@@ -5634,9 +5642,11 @@ function LivePokerTable({
         {/* Seats — rotated so hero is always at bottom center */}
         {seats.map((seat, i) => {
           const pid = seat.player?.id;
-          const noteData = pid && String(pid) !== String(userId) ? playerNotes[pid] : null;
-          const noteColorVal = noteData?.color_label
-            || (noteData?.player_type && noteData.player_type !== 'unknown' ? NOTE_TYPE_COLORS_MAP[noteData.player_type] || '#FFD700' : null);
+          const _sync = noteSyncHash; // implicitly forces re-render
+          const noteColorVal = pid && String(pid) !== String(userId) 
+            ? (getPlayerNoteColor(pid) || (seat.player?.stats?.player_type && seat.player.stats.player_type !== 'unknown' ? NOTE_TYPE_COLORS_MAP[seat.player.stats.player_type] || '#FFD700' : null))
+            : null;
+          const noteTypeVal = pid && getPlayerNoteText(pid) ? 'custom_note' : seat.player?.stats?.player_type;
           // Poker position from game state (btn, sb, bb, utg, mp)
           const gamePlayer = tableState?.game?.players?.find(p => String(p.id) === String(pid));
           const gamePosition = gamePlayer?.position || null;
@@ -5655,7 +5665,7 @@ function LivePokerTable({
               onClick={() => setBuyInSeat(i)}
               onNote={pid && String(pid) !== String(userId) ? () => setQuickViewTarget({ id: pid, displayName: seat.player?.displayName, avatarUrl: seat.player?.avatarUrl, stack: seat.stack, stats: seat.player?.stats || {} }) : undefined}
               noteColor={noteColorVal}
-              noteType={noteData?.player_type}
+              noteType={noteTypeVal}
               isWinner={result?.winners?.some(w => String(w.playerId) === String(seat.player?.id))}
               equity={result?.allInEquity?.players?.find(p => String(p.id) === String(seat.player?.id))?.equity ?? null}
               gamePosition={gamePosition || (isButton ? 'btn' : null)}
@@ -7004,7 +7014,7 @@ function LivePokerTable({
           setQuickViewTarget(null);
           setNoteTarget({ id: target.id, displayName: target.displayName });
         }}
-        note={quickViewTarget ? playerNotes[quickViewTarget.id] : null}
+        note={quickViewTarget ? { text: getPlayerNoteText(quickViewTarget.id), color_label: getPlayerNoteColor(quickViewTarget.id) } : null}
       />
 
       {/* ═══════════ PLAYER NOTES MODAL ═══════════ */}
