@@ -14,7 +14,7 @@ import SEOHead from '../../../../../src/components/seo/SEOHead';
 import TournamentStoryCard from '../../../../../src/components/social/TournamentStoryCard';
 import { Trophy, Users, Loader2, CheckCircle2, ChevronLeft, Coins, TrendingUp, Hash, Bell, Share2, Camera } from 'lucide-react';
 import useTournamentRealtime from '../../../../../src/hooks/useTournamentRealtime';
-import { useRequireAuth, getAccessToken, getAuthUser } from '../../../../../src/lib/authUtils';
+import { useRequireAuth, getAccessToken } from '../../../../../src/lib/authUtils';
 
 export default function MyTournamentStatus() {
     const router = useRouter();

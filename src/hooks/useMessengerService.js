@@ -123,6 +123,8 @@ export function useMessengerService({ conversationId, currentUser, messengerType
     const peerConnectionRef = useRef(null);
     const localStreamRef = useRef(null);
     const remoteStreamRef = useRef(null);
+    // P17-1: Ref for blocked users (avoids stale closure in Realtime + loadMessages)
+    const blockedUsersRef = useRef([]);
 
     // ═══════════════════════════════════════════════════════════
     // P12-2: Load Messages from Supabase
@@ -139,8 +141,10 @@ export function useMessengerService({ conversationId, currentUser, messengerType
                 .range((page - 1) * perPage, page * perPage - 1);
 
             if (error) { console.error('[Messenger] Load messages error:', error); return []; }
-            setMessages(prev => page === 1 ? (data || []) : [...(data || []), ...prev]);
-            return data || [];
+            // P17-1: Filter out messages from blocked users
+            const filtered = (data || []).filter(m => !blockedUsersRef.current.includes(m.sender_id));
+            setMessages(prev => page === 1 ? filtered : [...filtered, ...prev]);
+            return filtered;
         } catch (e) { console.error('[Messenger] Load error:', e); return []; }
     }, [conversationId]);
 
@@ -239,11 +243,16 @@ export function useMessengerService({ conversationId, currentUser, messengerType
                 const newMsg = payload.new;
                 // Don't duplicate own messages (already added optimistically)
                 if (newMsg.sender_id === currentUser?.id) return;
+                // P17-1: Filter blocked user messages from Realtime
+                if (blockedUsersRef.current.includes(newMsg.sender_id)) return;
                 setMessages(prev => {
                     if (prev.some(m => m.id === newMsg.id)) return prev;
                     return [...prev, newMsg];
                 });
                 setUnreadCount(prev => prev + 1);
+                
+                // P17-7: Play notification sound on incoming message
+                playNotificationSound(conversationId);
                 
                 // P13-2: Emit event for HUD listeners (like LivePokerTable)
                 eventBus.emit(EventType.MESSAGE_RECEIVED, {
@@ -1003,16 +1012,25 @@ export function useMessengerService({ conversationId, currentUser, messengerType
             URL.revokeObjectURL(url);
             return true;
         }
-        // PDF generation: simple text-based
+        // PDF generation: rich HTML-based
         if (format === 'pdf') {
-            const content = messages.map(m =>
-                `[${new Date(m.created_at).toLocaleString()}] ${m.sender_id?.slice(0, 8)}: ${m.text || `[${m.message_type}]`}`
-            ).join('\n');
-            const blob = new Blob([content], { type: 'text/plain' });
+            const htmlContent = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Chat Export</title>
+<style>body{font-family:Arial,sans-serif;max-width:700px;margin:20px auto;background:#1a1a2e;color:#e0e0e0;padding:20px}
+h1{color:#2D88FF;border-bottom:2px solid #2D88FF;padding-bottom:10px}
+.msg{padding:8px 14px;margin:6px 0;border-radius:12px;background:#242526;border-left:3px solid #2D88FF}
+.time{color:#888;font-size:11px}.sender{color:#2D88FF;font-weight:700;font-size:12px}
+.meta{color:#999;font-size:11px;margin-top:12px;text-align:center}</style></head><body>
+<h1>💬 Chat Export</h1>
+<p class="meta">Exported ${new Date().toLocaleString()} • ${messages.length} messages</p>
+${messages.map(m =>
+    `<div class="msg"><span class="sender">${m.sender_id?.slice(0, 8)}</span> <span class="time">${new Date(m.created_at).toLocaleString()}</span><br>${m.text || `[${m.message_type}]`}</div>`
+).join('')}
+</body></html>`;
+            const blob = new Blob([htmlContent], { type: 'text/html' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `chat_export_${conversationId?.slice(0, 8)}_${Date.now()}.txt`;
+            a.download = `chat_export_${conversationId?.slice(0, 8)}_${Date.now()}.html`;
             a.click();
             URL.revokeObjectURL(url);
             return true;
@@ -1219,6 +1237,8 @@ export function useMessengerService({ conversationId, currentUser, messengerType
     }, [currentUser]);
 
     useEffect(() => { loadBlockedUsers(); }, [loadBlockedUsers]);
+    // P17-1: Keep ref in sync for stale-closure-safe access
+    useEffect(() => { blockedUsersRef.current = blockedUsers; }, [blockedUsers]);
 
     const blockUser = useCallback(async (userId) => {
         const supabase = getSupabase();
@@ -1422,6 +1442,8 @@ export function useMessengerService({ conversationId, currentUser, messengerType
                 .eq('sender_id', currentUser.id);
             // Update local state
             setMessages(prev => prev.map(m => m.id === messageId ? { ...m, text: newText, media_metadata: { ...m.media_metadata, edit_history: editHistory, edited: true } } : m));
+            // P17-10: EventBus emission for edit
+            eventBus.emit(EventType.MESSAGE_RECEIVED, { type: 'edit', messageId, conversationId });
             return true;
         } catch (_) { return false; }
     }, [currentUser]);
@@ -1488,20 +1510,41 @@ export function useMessengerService({ conversationId, currentUser, messengerType
     const sendSticker = useCallback(async (sticker) => {
         const supabase = getSupabase();
         if (!supabase || !conversationId || !currentUser?.id) return false;
+        // P17-3: Optimistic UI — add sticker to local state immediately
+        const optimisticId = `optimistic_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+        const optimisticMsg = {
+            id: optimisticId,
+            conversation_id: conversationId,
+            sender_id: currentUser.id,
+            text: sticker,
+            message_type: 'sticker',
+            media_metadata: { sticker: true, size: 48 },
+            created_at: new Date().toISOString(),
+            status: 'sending'
+        };
+        setMessages(prev => [...prev, optimisticMsg]);
         try {
-            await supabase.from('messenger_messages').insert({
+            const { data } = await supabase.from('messenger_messages').insert({
                 conversation_id: conversationId,
                 sender_id: currentUser.id,
                 text: sticker,
                 message_type: 'sticker',
                 media_metadata: { sticker: true, size: 48 }
-            });
-            // BUG-FIX: Update conversation last_message to reflect sticker
+            }).select().maybeSingle();
+            // Replace optimistic with real
+            if (data) setMessages(prev => prev.map(m => m.id === optimisticId ? data : m));
+            // Update conversation last_message
             await supabase.from('messenger_conversations')
                 .update({ last_message_text: `Sticker: ${sticker}`, last_message_at: new Date().toISOString() })
                 .eq('id', conversationId);
+            // P17-10: EventBus emission
+            eventBus.emit(EventType.MESSAGE_RECEIVED, { type: 'sticker', sticker, conversationId });
             return true;
-        } catch (_) { return false; }
+        } catch (_) {
+            // Roll back optimistic message on failure
+            setMessages(prev => prev.filter(m => m.id !== optimisticId));
+            return false;
+        }
     }, [conversationId, currentUser]);
 
     // ── P16-5: Advanced Search ──
@@ -1553,12 +1596,30 @@ export function useMessengerService({ conversationId, currentUser, messengerType
                 await supabase.from('messenger_favorites').insert({ user_id: currentUser.id, favorite_user_id: userId });
                 setFavoriteContacts(prev => [...prev, userId]);
             }
+            // P17-10: EventBus emission for favorites change
+            eventBus.emit(EventType.MESSAGE_RECEIVED, { type: 'favorite_toggled', userId, isFavorite: !isFav });
             return true;
         } catch (_) { return false; }
     }, [currentUser, favoriteContacts]);
 
     // ── P16-7: Conversation Wallpaper ──
     const [conversationWallpaper, setConversationWallpaper] = useState(null);
+
+    // P17-9: Wallpaper Reset to Default
+    const resetWallpaper = useCallback(async () => {
+        const supabase = getSupabase();
+        if (!supabase || !conversationId || !currentUser?.id) return false;
+        try {
+            const existingSettings = await getConversationSettings();
+            const { wallpaper, ...rest } = existingSettings || {};
+            await supabase.from('messenger_participants')
+                .update({ settings: rest })
+                .eq('conversation_id', conversationId)
+                .eq('user_id', currentUser.id);
+            setConversationWallpaper(null);
+            return true;
+        } catch (_) { return false; }
+    }, [conversationId, currentUser, getConversationSettings]);
 
     const uploadWallpaper = useCallback(async (file) => {
         const supabase = getSupabase();
@@ -1781,6 +1842,10 @@ export function useMessengerService({ conversationId, currentUser, messengerType
         // P16-7: Wallpaper
         conversationWallpaper,
         uploadWallpaper,
+        resetWallpaper, // P17-9
+
+        // P15-8: Media Sanitization (now exported for frontend use)
+        validateMediaUpload,
 
         // P16-8: Translation
         TRANSLATION_LANGUAGES,

@@ -6,7 +6,7 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
-import { useRequireAuth, getAuthUser, getAccessToken } from '../../../../src/lib/authUtils';
+import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
 import SkeletonLight from '../../../../src/components/ui/SkeletonLight';
 import { supabase } from '../../../../src/lib/supabase';
 
