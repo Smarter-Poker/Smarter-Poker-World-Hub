@@ -667,6 +667,17 @@ export const ChatWindow = ({
     const [scheduleDate, setScheduleDate] = useState('');
     const [autoCompleteSuggestions, setAutoCompleteSuggestions] = useState([]);
     const [spamWarning, setSpamWarning] = useState(null);
+
+    // P20: Premium Finish & Social Polish State
+    const [showContactInsights, setShowContactInsights] = useState(false);
+    const [showBookmarksDrawer, setShowBookmarksDrawer] = useState(false);
+    const [showExportPicker, setShowExportPicker] = useState(false);
+    const [showEditHistory, setShowEditHistory] = useState(null);
+    const [editHistoryData, setEditHistoryData] = useState([]);
+    const [showReactionDetail, setShowReactionDetail] = useState(null);
+    const [reactionDetailData, setReactionDetailData] = useState([]);
+    const [multiSelectMode, setMultiSelectMode] = useState(false);
+    const [selectedMessageIds, setSelectedMessageIds] = useState([]);
     
     // P7-6: Lightbox State
     const [lightboxImage, setLightboxImage] = useState(null);
@@ -1497,6 +1508,14 @@ export const ChatWindow = ({
                     <button className="header-btn" onClick={() => setShowSearchOverlay(!showSearchOverlay)} title="Search Messages" style={{ color: showSearchOverlay ? '#2D88FF' : undefined }}>🔎</button>
                     {/* P19-5: Scheduled messages toggle */}
                     <button className="header-btn" onClick={() => setShowSchedulePanel(!showSchedulePanel)} title="Scheduled Messages" style={{ color: showSchedulePanel ? '#2D88FF' : undefined }}>⏰</button>
+                    {/* P20-2: Contact Insights */}
+                    <button className="header-btn" onClick={() => setShowContactInsights(!showContactInsights)} title="Contact Insights" style={{ color: showContactInsights ? '#2D88FF' : undefined }}>📊</button>
+                    {/* P20-8: Bookmarks Drawer */}
+                    <button className="header-btn" onClick={() => setShowBookmarksDrawer(!showBookmarksDrawer)} title="Bookmarks" style={{ color: showBookmarksDrawer ? '#2D88FF' : undefined }}>🔖</button>
+                    {/* P20-10: Export Formats */}
+                    <button className="header-btn" onClick={() => setShowExportPicker(!showExportPicker)} title="Export Chat" style={{ color: showExportPicker ? '#2D88FF' : undefined }}>💾</button>
+                    {/* P20-6: Multi-Select Forward */}
+                    <button className="header-btn" onClick={() => { setMultiSelectMode(!multiSelectMode); if (multiSelectMode) setSelectedMessageIds([]); }} title={multiSelectMode ? 'Cancel Select' : 'Select Messages'} style={{ color: multiSelectMode ? '#ffd700' : undefined }}>☑️</button>
                     {/* P15-5: Block User toggle */}
                     <button className="header-btn" onClick={() => { if (svc.blockedUsers?.includes(otherUser?.id)) { svc.unblockUser(otherUser?.id); } else { svc.blockUser(otherUser?.id); } }} title={svc.blockedUsers?.includes(otherUser?.id) ? 'Unblock User' : 'Block User'} style={{ color: svc.blockedUsers?.includes(otherUser?.id) ? '#ff4444' : undefined }}>🚫</button>
                     <button className="header-btn" onClick={() => setShowGroupWizard(!showGroupWizard)} title="Create Group" style={{ color: showGroupWizard ? '#2D88FF' : undefined }}>👥</button>
@@ -2231,7 +2250,96 @@ export const ChatWindow = ({
                 </div>
             )}
 
-            {/* P18-10: Backup/Restore Panel */}
+            {/* P20-2: Contact Insights Card */}
+            {showContactInsights && (() => {
+                const insights = svc.getContactInsights(otherUser?.id);
+                return insights ? (
+                    <div style={{ background: 'rgba(24,25,26,0.96)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, margin: '0 8px 6px', padding: 10 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                            <span style={{ fontWeight: 'bold', fontSize: 12, color: '#e4e6eb' }}>📊 Contact Insights</span>
+                            <button onClick={() => setShowContactInsights(false)} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer' }}>✕</button>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, fontSize: 11 }}>
+                            <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 6, padding: '6px 8px' }}><div style={{ color: '#666', fontSize: 9 }}>Total Messages</div><div style={{ color: '#e4e6eb', fontWeight: 'bold' }}>{insights.totalMessages}</div></div>
+                            <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 6, padding: '6px 8px' }}><div style={{ color: '#666', fontSize: 9 }}>Shared Media</div><div style={{ color: '#e4e6eb', fontWeight: 'bold' }}>{insights.sharedMedia}</div></div>
+                            <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 6, padding: '6px 8px' }}><div style={{ color: '#666', fontSize: 9 }}>Conversation Age</div><div style={{ color: '#e4e6eb', fontWeight: 'bold' }}>{insights.conversationAge}d</div></div>
+                            <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 6, padding: '6px 8px' }}><div style={{ color: '#666', fontSize: 9 }}>Avg Response</div><div style={{ color: '#e4e6eb', fontWeight: 'bold' }}>{insights.avgResponseTime ? `${insights.avgResponseTime}m` : 'N/A'}</div></div>
+                        </div>
+                        <div style={{ fontSize: 10, color: '#666', marginTop: 6, textAlign: 'center' }}>You: {insights.myMessages} • Them: {insights.theirMessages} • Emoji msgs: {insights.topEmojis}</div>
+                    </div>
+                ) : null;
+            })()}
+
+            {/* P20-8: Bookmarks Drawer */}
+            {showBookmarksDrawer && (
+                <div style={{ background: 'rgba(24,25,26,0.96)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, margin: '0 8px 6px', padding: 10, maxHeight: 220, overflowY: 'auto' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <span style={{ fontWeight: 'bold', fontSize: 12, color: '#e4e6eb' }}>🔖 Saved Messages</span>
+                        <button onClick={() => setShowBookmarksDrawer(false)} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer' }}>✕</button>
+                    </div>
+                    {(messages || []).filter(m => m.isBookmarked).length === 0 && <div style={{ textAlign: 'center', color: '#666', fontSize: 11, padding: 10 }}>No saved messages</div>}
+                    {(messages || []).filter(m => m.isBookmarked).map((bm, i) => (
+                        <div key={i} style={{ padding: '6px 8px', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: 11, color: '#ccc' }}>
+                            <div style={{ fontSize: 9, color: '#666', marginBottom: 2 }}>{new Date(bm.created_at).toLocaleString()}</div>
+                            <div>{bm.text?.slice(0, 80) || `[${bm.message_type}]`}</div>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* P20-10: Export Format Picker */}
+            {showExportPicker && (
+                <div style={{ background: 'rgba(24,25,26,0.96)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, margin: '0 8px 6px', padding: 10, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <span style={{ fontSize: 11, color: '#e4e6eb', fontWeight: 'bold' }}>💾 Export As:</span>
+                    <button onClick={() => { svc.exportConversationFormatted('txt'); setShowExportPicker(false); }} style={{ background: 'rgba(45,136,255,0.15)', border: '1px solid rgba(45,136,255,0.3)', borderRadius: 6, padding: '3px 10px', fontSize: 10, color: '#8ab4f8', cursor: 'pointer' }}>📄 Plain Text</button>
+                    <button onClick={() => { svc.exportConversationFormatted('html'); setShowExportPicker(false); }} style={{ background: 'rgba(0,230,118,0.15)', border: '1px solid rgba(0,230,118,0.3)', borderRadius: 6, padding: '3px 10px', fontSize: 10, color: '#00e676', cursor: 'pointer' }}>🌐 HTML</button>
+                    <button onClick={() => { svc.exportConversationFormatted('csv'); setShowExportPicker(false); }} style={{ background: 'rgba(255,215,0,0.15)', border: '1px solid rgba(255,215,0,0.3)', borderRadius: 6, padding: '3px 10px', fontSize: 10, color: '#ffd700', cursor: 'pointer' }}>📊 CSV</button>
+                    <button onClick={() => setShowExportPicker(false)} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: 12, marginLeft: 'auto' }}>✕</button>
+                </div>
+            )}
+
+            {/* P20-3: Edit History Modal */}
+            {showEditHistory && (
+                <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: 'rgba(36,37,38,0.98)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 12, padding: 16, maxWidth: 320, maxHeight: 300, overflowY: 'auto', zIndex: 60 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <span style={{ fontWeight: 'bold', fontSize: 12, color: '#e4e6eb' }}>📝 Edit History</span>
+                        <button onClick={() => { setShowEditHistory(null); setEditHistoryData([]); }} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer' }}>✕</button>
+                    </div>
+                    {editHistoryData.length === 0 && <div style={{ color: '#666', fontSize: 11, textAlign: 'center', padding: 10 }}>No edit history</div>}
+                    {editHistoryData.map((edit, i) => (
+                        <div key={i} style={{ padding: '6px 8px', borderLeft: '2px solid rgba(45,136,255,0.4)', marginBottom: 6, marginLeft: 4 }}>
+                            <div style={{ fontSize: 9, color: '#666' }}>{new Date(edit.edited_at).toLocaleString()}</div>
+                            <div style={{ fontSize: 11, color: '#B0B3B8' }}>{edit.text}</div>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* P20-1: Reactions Detail Floating Panel */}
+            {showReactionDetail && (
+                <div style={{ position: 'absolute', bottom: 60, right: 12, background: 'rgba(36,37,38,0.98)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 10, padding: 10, maxWidth: 200, zIndex: 60 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                        <span style={{ fontWeight: 'bold', fontSize: 11, color: '#e4e6eb' }}>Reactions</span>
+                        <button onClick={() => { setShowReactionDetail(null); setReactionDetailData([]); }} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: 10 }}>✕</button>
+                    </div>
+                    {reactionDetailData.map((r, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                            <span style={{ fontSize: 16 }}>{r.emoji}</span>
+                            <span style={{ fontSize: 10, color: '#B0B3B8', flex: 1 }}>{r.userLabel}</span>
+                            <span style={{ fontSize: 9, color: '#666' }}>{new Date(r.reactedAt).toLocaleTimeString()}</span>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* P20-6: Multi-Select Forward Action Bar */}
+            {multiSelectMode && selectedMessageIds.length > 0 && (
+                <div style={{ padding: '6px 12px', background: 'rgba(45,136,255,0.12)', borderRadius: 8, margin: '0 8px 6px', display: 'flex', alignItems: 'center', gap: 8, fontSize: 11 }}>
+                    <span style={{ color: '#8ab4f8', fontWeight: 'bold' }}>{selectedMessageIds.length} selected</span>
+                    <button onClick={async () => { const targetId = prompt('Enter target conversation ID:'); if (targetId) { await svc.forwardMultipleMessages(selectedMessageIds, targetId); setMultiSelectMode(false); setSelectedMessageIds([]); } }} style={{ background: '#2D88FF', border: 'none', borderRadius: 6, padding: '3px 10px', color: '#fff', fontSize: 10, cursor: 'pointer' }}>↪ Forward Selected</button>
+                    <button onClick={() => { setMultiSelectMode(false); setSelectedMessageIds([]); }} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: 10, marginLeft: 'auto' }}>Cancel</button>
+                </div>
+            )}
             {showBackupRestore && (
                 <div style={{ padding: '8px 12px', background: 'rgba(36,37,38,0.97)', borderRadius: 8, margin: '0 8px 4px', border: '1px solid rgba(255,255,255,0.1)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
