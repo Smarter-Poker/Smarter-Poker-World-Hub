@@ -909,17 +909,20 @@ export const ChatWindow = ({
                 return { ...p, labels: { ...p.labels, [msg.id]: newLabels } };
             });
         }
-        // P4-1: Pin/unpin
+        // P4-1 + P14-10: Pin/unpin (local + Supabase)
         if (action === 'pin') {
+            const current = prefs.pinnedMessages?.[conversationId] || [];
+            const isPinned = current.includes(msg.id);
+            if (isPinned) { svc.unpinMessage?.(msg.id); } else { svc.pinMessage?.(msg.id); }
             updatePrefs(p => {
-                const current = p.pinnedMessages[conversationId] || [];
-                const isPinned = current.includes(msg.id);
+                const curr = p.pinnedMessages[conversationId] || [];
                 busEmit.messagePinned(conversationId, msg.id);
-                return { ...p, pinnedMessages: { ...p.pinnedMessages, [conversationId]: isPinned ? current.filter(id => id !== msg.id) : [...current, msg.id] } };
+                return { ...p, pinnedMessages: { ...p.pinnedMessages, [conversationId]: isPinned ? curr.filter(id => id !== msg.id) : [...curr, msg.id] } };
             });
         }
-        // P4-2: Forward (open modal)
+        // P4-2 + P14-7: Forward (open Supabase-backed picker modal)
         if (action === 'forward') {
+            setShowForwardPicker(msg.id);
             setForwardMsg(msg);
             busEmit.messageForwarded(conversationId, null);
         }
@@ -1342,11 +1345,23 @@ export const ChatWindow = ({
         <div className="chat-window" style={{ background: theme.startsWith('linear') ? undefined : theme, backgroundImage: theme.startsWith('linear') ? theme : undefined }}>
             {/* Header */}
             <div className="chat-header">
-                <SPAvatar src={otherUser?.avatar} size={32} online={otherUser?.online} />
+                <div style={{ position: 'relative', display: 'inline-block' }}>
+                    <SPAvatar src={otherUser?.avatar} size={32} online={otherUser?.online} />
+                    {/* P14-2: Supabase Presence dot */}
+                    {svc.onlineUsers?.[otherUser?.id] && (
+                        <span style={{ position: 'absolute', bottom: 0, right: 0, width: 10, height: 10, borderRadius: '50%', background: '#44b700', border: '2px solid #242526', zIndex: 2 }} />
+                    )}
+                </div>
                 <div className="chat-user-info">
                     <span className="chat-user-name">{otherUser?.name}</span>
                     <span className="chat-user-status">
-                        {userStatus === 'away' ? '🟡 Away' : otherUser?.online ? 'Active now' : 'Active 2h ago'}
+                        {/* P14-2: Live typing + presence */}
+                        {Object.keys(svc.typingUsers || {}).some(uid => svc.typingUsers[uid] && uid !== currentUser?.id)
+                            ? <span style={{ color: '#2D88FF', fontWeight: 600 }}>typing...</span>
+                            : svc.onlineUsers?.[otherUser?.id]
+                                ? <span style={{ color: '#44b700' }}>Active now</span>
+                                : userStatus === 'away' ? '🟡 Away' : 'Active 2h ago'
+                        }
                         {isDND && <span style={{ marginLeft: 4, color: '#E41E3F' }} title="Do Not Disturb">🔕</span>}
                         {isMuted && <span style={{ marginLeft: 4, color: '#999' }} title="Muted">🔇</span>}
                         {isDisappearing && <span style={{ marginLeft: 4 }} title="Disappearing Messages On">⏱️ {DISAPPEAR_OPTIONS.find(o => o.value === disappearMs)?.label || '24h'}</span>}
@@ -1395,6 +1410,12 @@ export const ChatWindow = ({
                     <button className="header-btn" onClick={() => setMsgSearch(msgSearch ? '' : ' ')} title="Search Messages">🔍</button>
                     {/* P5-8: Stats toggle */}
                     <button className="header-btn" onClick={() => setShowStats(!showStats)} title="Chat Stats">📊</button>
+                    {/* P14-10: Pinned Messages Panel toggle */}
+                    <button className="header-btn" onClick={() => setShowPinnedPanel(!showPinnedPanel)} title="Pinned Messages" style={{ color: showPinnedPanel ? '#2D88FF' : undefined }}>📍</button>
+                    {/* P14-9: Sound Picker toggle */}
+                    <button className="header-btn" onClick={() => setShowSoundPicker(!showSoundPicker)} title="Notification Sound" style={{ color: showSoundPicker ? '#2D88FF' : undefined }}>🔔</button>
+                    {/* P14-8: Archive/Export toggle */}
+                    <button className="header-btn" onClick={() => setShowArchiveExport(!showArchiveExport)} title="Archive/Export" style={{ color: showArchiveExport ? '#2D88FF' : undefined }}>💾</button>
                     {/* P6-1: DND toggle */}
                     <button className="header-btn" onClick={() => updatePrefs(p => ({ ...p, dndConversations: { ...p.dndConversations, [conversationId]: !isDND } }))} title={isDND ? 'Disable DND' : 'Do Not Disturb'} style={{ color: isDND ? '#E41E3F' : undefined }}>🔕</button>
                     {/* P6-6: Mute timer */}
@@ -1739,8 +1760,8 @@ export const ChatWindow = ({
                 })}
                 <div ref={messagesEndRef} />
 
-                {/* P5-5: Typing indicator */}
-                {isTyping && (
+                {/* P5-5 + P14-2: Typing indicator (Supabase Presence enhanced) */}
+                {(isTyping || Object.values(svc.typingUsers || {}).some(Boolean)) && (
                     <div className="typing-indicator">
                         <span className="typing-dot" />
                         <span className="typing-dot" />
@@ -1748,6 +1769,75 @@ export const ChatWindow = ({
                     </div>
                 )}
             </div>
+
+            {/* ═══ P14-10: Pinned Messages Panel ═══ */}
+            {showPinnedPanel && (
+                <div style={{ position: 'absolute', top: 52, right: 0, width: 280, maxHeight: 350, background: 'rgba(36,37,38,0.97)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)', zIndex: 50, overflow: 'auto', padding: 12 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <strong style={{ color: '#fff', fontSize: 13 }}>📍 Pinned Messages</strong>
+                        <button onClick={() => setShowPinnedPanel(false)} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: 16 }}>✕</button>
+                    </div>
+                    {(svc.pinnedMessages || []).length === 0 ? (
+                        <div style={{ color: '#888', fontSize: 12, textAlign: 'center', padding: 20 }}>No pinned messages</div>
+                    ) : (svc.pinnedMessages || []).map(pm => (
+                        <div key={pm.id} style={{ padding: '8px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.05)', marginBottom: 6, fontSize: 12, color: '#ddd' }}>
+                            <div style={{ marginBottom: 4, opacity: 0.6, fontSize: 10 }}>{new Date(pm.created_at).toLocaleString()}</div>
+                            <div>{pm.text || `[${pm.message_type}]`}</div>
+                            <button onClick={() => svc.unpinMessage(pm.id)} style={{ marginTop: 4, fontSize: 10, color: '#ff6b6b', background: 'none', border: 'none', cursor: 'pointer' }}>Unpin</button>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* ═══ P14-9: Sound Picker Dropdown ═══ */}
+            {showSoundPicker && (
+                <div style={{ position: 'absolute', top: 52, right: 40, width: 200, background: 'rgba(36,37,38,0.97)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)', zIndex: 50, padding: 10 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <strong style={{ color: '#fff', fontSize: 12 }}>🔔 Notification Sound</strong>
+                        <button onClick={() => setShowSoundPicker(false)} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: 16 }}>✕</button>
+                    </div>
+                    {(svc.NOTIFICATION_SOUNDS || []).map(s => (
+                        <button key={s.id} onClick={() => { svc.setConversationSoundPref(s.id); if (s.url) { try { new Audio(s.url).play().catch(() => {}); } catch(_){} } }} style={{ display: 'block', width: '100%', padding: '6px 10px', marginBottom: 4, borderRadius: 6, border: 'none', background: svc.getConversationSoundPref?.() === s.id ? 'rgba(45,136,255,0.2)' : 'rgba(255,255,255,0.05)', color: svc.getConversationSoundPref?.() === s.id ? '#2D88FF' : '#ccc', cursor: 'pointer', textAlign: 'left', fontSize: 12 }}>
+                            {s.id === 'silent' ? '🔇' : '🔊'} {s.label}
+                        </button>
+                    ))}
+                </div>
+            )}
+
+            {/* ═══ P14-8: Archive/Export Modal ═══ */}
+            {showArchiveExport && (
+                <div style={{ position: 'absolute', top: 52, right: 80, width: 220, background: 'rgba(36,37,38,0.97)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)', zIndex: 50, padding: 12 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                        <strong style={{ color: '#fff', fontSize: 12 }}>💾 Archive / Export</strong>
+                        <button onClick={() => setShowArchiveExport(false)} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: 16 }}>✕</button>
+                    </div>
+                    <button onClick={() => { svc.archiveConversation(); setShowArchiveExport(false); }} style={{ display: 'block', width: '100%', padding: '8px 12px', marginBottom: 6, borderRadius: 8, border: 'none', background: 'rgba(255,255,255,0.08)', color: '#fff', cursor: 'pointer', fontSize: 12, textAlign: 'left' }}>📦 Archive Conversation</button>
+                    <button onClick={() => { svc.exportConversation('json'); setShowArchiveExport(false); }} style={{ display: 'block', width: '100%', padding: '8px 12px', marginBottom: 6, borderRadius: 8, border: 'none', background: 'rgba(255,255,255,0.08)', color: '#fff', cursor: 'pointer', fontSize: 12, textAlign: 'left' }}>📄 Export as JSON</button>
+                    <button onClick={() => { svc.exportConversation('pdf'); setShowArchiveExport(false); }} style={{ display: 'block', width: '100%', padding: '8px 12px', borderRadius: 8, border: 'none', background: 'rgba(255,255,255,0.08)', color: '#fff', cursor: 'pointer', fontSize: 12, textAlign: 'left' }}>📝 Export as Text</button>
+                </div>
+            )}
+
+            {/* ═══ P14-7: Forward Picker Modal ═══ */}
+            {showForwardPicker && (
+                <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ background: '#242526', borderRadius: 16, padding: 20, width: 300, maxHeight: 400, overflow: 'auto', border: '1px solid rgba(255,255,255,0.1)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                            <strong style={{ color: '#fff', fontSize: 14 }}>↪ Forward Message</strong>
+                            <button onClick={() => setShowForwardPicker(null)} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: 18 }}>✕</button>
+                        </div>
+                        <div style={{ color: '#888', fontSize: 12, marginBottom: 10 }}>Select a conversation to forward to:</div>
+                        {(svc.conversations || []).map(conv => (
+                            <button key={conv.id} onClick={async () => { await svc.forwardMessage(showForwardPicker, conv.id); setShowForwardPicker(null); }} style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '8px 12px', marginBottom: 4, borderRadius: 10, border: 'none', background: 'rgba(255,255,255,0.06)', color: '#fff', cursor: 'pointer', fontSize: 13, textAlign: 'left' }}>
+                                <span style={{ fontSize: 20 }}>💬</span>
+                                <span>{conv.name || conv.id?.slice(0, 12) || 'Conversation'}</span>
+                            </button>
+                        ))}
+                        {(svc.conversations || []).length === 0 && (
+                            <div style={{ color: '#888', fontSize: 12, textAlign: 'center', padding: 20 }}>No conversations to forward to</div>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* P4-6: Smart Reply Suggestions */}
             {showSmartReplies.length > 0 && (

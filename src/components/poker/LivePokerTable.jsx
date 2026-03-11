@@ -241,6 +241,252 @@ const NOTE_TYPE_COLORS_MAP = {
   nit: '#9ca3af', lag: '#f97316', tag: '#a855f7', reg: '#14b8a6',
 };
 
+// ═══════════════════════════════════════════════════════════════════════════
+// WAVE F: RABBIT HUNT OVERLAY — reveal community cards after fold
+// ═══════════════════════════════════════════════════════════════════════════
+
+function RabbitHuntOverlay({ cards, onClose }) {
+  useEffect(() => {
+    const t = setTimeout(onClose, 5000);
+    return () => clearTimeout(t);
+  }, [onClose]);
+  if (!cards?.length) return null;
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      style={{
+        position: 'absolute', top: '35%', left: '50%', transform: 'translateX(-50%)',
+        zIndex: 70, background: 'rgba(20,21,23,0.95)', borderRadius: 16,
+        padding: '10px 20px', border: '1px solid rgba(255,255,255,0.15)',
+        boxShadow: '0 10px 40px rgba(0,0,0,0.8)', backdropFilter: 'blur(12px)',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <span style={{ fontSize: 16 }}>🐰</span>
+        <span style={{ color: '#fbbf24', fontSize: 12, fontWeight: 800, letterSpacing: 1 }}>RABBIT HUNT</span>
+      </div>
+      <div style={{ display: 'flex', gap: 4 }}>
+        {cards.map((c, i) => (
+          <motion.div
+            key={i}
+            initial={{ rotateY: 180, opacity: 0 }}
+            animate={{ rotateY: 0, opacity: 1 }}
+            transition={{ delay: i * 0.3, duration: 0.5 }}
+            style={{
+              width: 44, height: 62, borderRadius: 6,
+              background: 'linear-gradient(135deg, #1a1a2e, #2a2a4e)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 14, fontWeight: 700, color: '#fff', fontFamily: 'monospace',
+            }}
+          >{c || '?'}</motion.div>
+        ))}
+      </div>
+      <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#666', fontSize: 10, cursor: 'pointer' }}>Dismiss</button>
+    </motion.div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// WAVE F: AUTO TOP-UP BADGE — prominent stack-area toggle
+// ═══════════════════════════════════════════════════════════════════════════
+
+function AutoTopUpBadge({ isOn, onToggle, stack, maxBuyIn }) {
+  if (!maxBuyIn || stack >= maxBuyIn) return null;
+  return (
+    <motion.button
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      onClick={onToggle}
+      style={{
+        position: 'absolute', bottom: 2, right: -2, zIndex: 25,
+        background: isOn
+          ? 'linear-gradient(135deg, rgba(52,199,89,0.3), rgba(52,199,89,0.15))'
+          : 'rgba(255,255,255,0.05)',
+        border: `1px solid ${isOn ? 'rgba(52,199,89,0.5)' : 'rgba(255,255,255,0.1)'}`,
+        borderRadius: 8, padding: '2px 6px',
+        color: isOn ? '#34C759' : '#888', fontSize: 9, fontWeight: 700,
+        cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3,
+        boxShadow: isOn ? '0 0 8px rgba(52,199,89,0.3)' : 'none',
+        transition: 'all 0.2s ease',
+      }}
+    >
+      {isOn ? '💰 Auto' : '💰'}
+      {isOn && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#34C759', animation: 'pulse 1.5s infinite' }} />}
+    </motion.button>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// WAVE F: POT ODDS TOOLTIP — show odds vs call amount
+// ═══════════════════════════════════════════════════════════════════════════
+
+function PotOddsTooltip({ potTotal, callAmount, isVisible }) {
+  if (!isVisible || !callAmount || callAmount <= 0) return null;
+  const potOdds = (callAmount / (potTotal + callAmount) * 100).toFixed(1);
+  const ratio = (potTotal / callAmount).toFixed(1);
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 6 }}
+      style={{
+        position: 'absolute', top: '38%', left: '50%', transform: 'translateX(-50%)',
+        zIndex: 45, background: 'rgba(20,21,23,0.92)', borderRadius: 10,
+        padding: '5px 14px', border: '1px solid rgba(79,172,254,0.3)',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)',
+        display: 'flex', gap: 12, alignItems: 'center',
+      }}
+    >
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ color: '#4facfe', fontSize: 14, fontWeight: 800 }}>{potOdds}%</div>
+        <div style={{ color: '#888', fontSize: 9, fontWeight: 600 }}>POT ODDS</div>
+      </div>
+      <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.1)' }} />
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ color: '#4ade80', fontSize: 14, fontWeight: 800 }}>{ratio}:1</div>
+        <div style={{ color: '#888', fontSize: 9, fontWeight: 600 }}>RATIO</div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// WAVE F: QUICK EMOJI BAR — one-tap floating emoji reactions
+// ═══════════════════════════════════════════════════════════════════════════
+
+function QuickEmojiBar({ onSend, disabled }) {
+  const quickEmojis = ['👍', '🔥', '😂', '💪', '😱', '🎯'];
+  return (
+    <div style={{
+      position: 'absolute', bottom: 85, right: 8, zIndex: 35,
+      display: 'flex', flexDirection: 'column', gap: 4,
+    }}>
+      {quickEmojis.map(emoji => (
+        <motion.button
+          key={emoji}
+          whileHover={{ scale: 1.3 }}
+          whileTap={{ scale: 0.8 }}
+          onClick={() => !disabled && onSend?.(emoji)}
+          style={{
+            width: 32, height: 32, borderRadius: '50%',
+            background: 'rgba(30,31,34,0.85)', border: '1px solid rgba(255,255,255,0.1)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 16, cursor: disabled ? 'not-allowed' : 'pointer',
+            opacity: disabled ? 0.4 : 1, backdropFilter: 'blur(6px)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+          }}
+        >{emoji}</motion.button>
+      ))}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// WAVE F: SESSION SPARKLINE — mini SVG P&L chart
+// ═══════════════════════════════════════════════════════════════════════════
+
+function SessionSparkline({ history, width = 120, height = 32 }) {
+  if (!history || history.length < 2) return null;
+  const min = Math.min(...history);
+  const max = Math.max(...history);
+  const range = max - min || 1;
+  const points = history.map((v, i) => {
+    const x = (i / (history.length - 1)) * width;
+    const y = height - ((v - min) / range) * (height - 4) - 2;
+    return `${x},${y}`;
+  }).join(' ');
+  const lastVal = history[history.length - 1];
+  const firstVal = history[0];
+  const color = lastVal >= firstVal ? '#4ade80' : '#ef5350';
+  return (
+    <svg width={width} height={height} style={{ display: 'block' }}>
+      <polyline
+        points={points}
+        fill="none"
+        stroke={color}
+        strokeWidth={1.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <line x1={0} y1={height - ((firstVal - min) / range) * (height - 4) - 2}
+            x2={width} y2={height - ((firstVal - min) / range) * (height - 4) - 2}
+            stroke="rgba(255,255,255,0.1)" strokeWidth={0.5} strokeDasharray="3,3" />
+    </svg>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// WAVE F: TABLE LAYOUT MANAGER — save/load multi-table arrangements
+// ═══════════════════════════════════════════════════════════════════════════
+
+function TableLayoutManager({ onClose }) {
+  const [layouts, setLayouts] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('poker-table-layouts') || '[]'); } catch { return []; }
+  });
+
+  const saveLayout = () => {
+    const name = prompt('Layout name:');
+    if (!name?.trim()) return;
+    const layout = {
+      name: name.trim(),
+      arrangement: 'saved',
+      createdAt: Date.now(),
+    };
+    const updated = [...layouts, layout];
+    setLayouts(updated);
+    try {
+      localStorage.setItem('poker-table-layouts', JSON.stringify(updated));
+      eventBus.emit('TABLE_LAYOUT_SAVED', layout);
+    } catch (_) {}
+  };
+
+  const loadLayout = (lay) => {
+    eventBus.emit('TABLE_LAYOUT_CHANGED', lay);
+    onClose?.();
+  };
+
+  const deleteLayout = (idx) => {
+    const updated = layouts.filter((_, i) => i !== idx);
+    setLayouts(updated);
+    try { localStorage.setItem('poker-table-layouts', JSON.stringify(updated)); } catch (_) {}
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 20 }}
+      style={{
+        position: 'fixed', bottom: 60, right: 12, zIndex: 200,
+        background: 'rgba(24,25,26,0.97)', borderRadius: 12,
+        padding: 16, width: 220, border: '1px solid #3E4042',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.6)', backdropFilter: 'blur(12px)',
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+        <span style={{ color: '#E4E6EB', fontSize: 13, fontWeight: 700 }}>📐 Layouts</span>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#B0B3B8', fontSize: 16, cursor: 'pointer' }}>✕</button>
+      </div>
+      <button onClick={saveLayout} style={{
+        width: '100%', padding: '6px 0', borderRadius: 6, fontSize: 11, fontWeight: 700,
+        background: 'rgba(79,172,254,0.15)', border: '1px solid rgba(79,172,254,0.3)',
+        color: '#4facfe', cursor: 'pointer', marginBottom: 8,
+      }}>+ Save Current Layout</button>
+      {layouts.length === 0 && <div style={{ color: '#666', fontSize: 11, textAlign: 'center', padding: 8 }}>No saved layouts</div>}
+      {layouts.map((lay, i) => (
+        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+          <button onClick={() => loadLayout(lay)} style={{ background: 'none', border: 'none', color: '#E4E6EB', fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>{lay.name}</button>
+          <button onClick={() => deleteLayout(i)} style={{ background: 'none', border: 'none', color: '#ef5350', fontSize: 10, cursor: 'pointer' }}>✕</button>
+        </div>
+      ))}
+    </motion.div>
+  );
+}
+
 function FloatingActionLabel({ action, amount, position }) {
   if (!action || !position) return null;
   const color = ACTION_LABEL_COLORS[action] || '#fff';
@@ -537,6 +783,7 @@ function HandStrengthMeter({ holeCards, board, visible, fourColorDeck }) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function HandHistoryDrawer({ isOpen, onClose, hands = [], formatStack }) {
+  const [expandedId, setExpandedId] = useState(null);
   if (!isOpen) return null;
   return (
     <AnimatePresence>
@@ -577,17 +824,20 @@ function HandHistoryDrawer({ isOpen, onClose, hands = [], formatStack }) {
             const heroWon = h.winners?.some(w => w.isHero);
             const timeAgo = Math.round((Date.now() - h.ts) / 60000);
             const pnlColor = heroWon ? '#22c55e' : '#ef4444';
+            const isExpanded = expandedId === (h.handId || idx);
             return (
               <motion.div
                 key={h.handId || idx}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.03 }}
+                onClick={() => setExpandedId(isExpanded ? null : (h.handId || idx))}
                 style={{
                   background: 'rgba(255,255,255,0.03)',
                   border: `1px solid rgba(255,255,255,0.06)`,
                   borderRadius: 10, padding: '10px 14px', marginBottom: 8,
                   borderLeft: `3px solid ${pnlColor}40`,
+                  cursor: 'pointer',
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
@@ -621,6 +871,74 @@ function HandHistoryDrawer({ isOpen, onClose, hands = [], formatStack }) {
                 <div style={{ fontSize: 10, color: '#8E8E93', marginTop: 4 }}>
                   Winner: {winnerNames} {h.bombPot ? '💣' : ''}
                 </div>
+                {/* E6: Expandable replay section */}
+                {isExpanded && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    transition={{ duration: 0.2 }}
+                    style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.06)' }}
+                  >
+                    {/* Hero cards */}
+                    {h.heroCards?.length > 0 && (
+                      <div style={{ marginBottom: 6 }}>
+                        <div style={{ fontSize: 9, color: '#6B7280', marginBottom: 3 }}>YOUR HAND</div>
+                        <div style={{ display: 'flex', gap: 4 }}>
+                          {h.heroCards.map((card, ci) => (
+                            <div key={ci} style={{
+                              width: 28, height: 38, borderRadius: 4,
+                              background: 'linear-gradient(135deg, #1a1a3e, #2a2a4e)',
+                              border: '1px solid rgba(255,255,255,0.15)',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              fontSize: 11, fontWeight: 800,
+                              color: typeof card === 'string' && (card.includes('h') || card.includes('d')) ? '#e53935' : '#fff',
+                              boxShadow: heroWon ? '0 0 8px rgba(34,197,94,0.3)' : 'none',
+                            }}>
+                              {typeof card === 'string' ? card : '?'}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {/* Board replay with street labels */}
+                    {h.board?.length > 0 && (
+                      <div>
+                        <div style={{ fontSize: 9, color: '#6B7280', marginBottom: 3 }}>BOARD RUNOUT</div>
+                        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                          {h.board.map((card, ci) => (
+                            <React.Fragment key={ci}>
+                              {ci === 3 && <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.1)', margin: '0 2px' }} />}
+                              {ci === 4 && <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.1)', margin: '0 2px' }} />}
+                              <motion.div
+                                initial={{ rotateY: 90, opacity: 0 }}
+                                animate={{ rotateY: 0, opacity: 1 }}
+                                transition={{ delay: ci * 0.15, duration: 0.3 }}
+                                style={{
+                                  width: 28, height: 38, borderRadius: 4,
+                                  background: 'linear-gradient(135deg, #0a0a1e, #1a1a3e)',
+                                  border: '1px solid rgba(255,255,255,0.15)',
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                  fontSize: 11, fontWeight: 800,
+                                  color: typeof card === 'string' && (card.includes('h') || card.includes('d')) ? '#e53935' : '#fff',
+                                }}
+                              >
+                                {typeof card === 'string' ? card : '?'}
+                              </motion.div>
+                            </React.Fragment>
+                          ))}
+                        </div>
+                        <div style={{ display: 'flex', gap: 2, marginTop: 2, fontSize: 7, color: '#4B5563' }}>
+                          <span style={{ width: 90, textAlign: 'center' }}>Flop</span>
+                          {h.board.length >= 4 && <span style={{ width: 32, textAlign: 'center' }}>Turn</span>}
+                          {h.board.length >= 5 && <span style={{ width: 32, textAlign: 'center' }}>River</span>}
+                        </div>
+                      </div>
+                    )}
+                    {h.phase && (
+                      <div style={{ fontSize: 9, color: '#6B7280', marginTop: 4 }}>Ended at: {h.phase}</div>
+                    )}
+                  </motion.div>
+                )}
               </motion.div>
             );
           })}
@@ -1899,7 +2217,7 @@ function PotDisplay({ potTotal, pots = [], formatFn }) {
                     />
                   ))}
                 </div>
-                <div>
+                <div style={{ flex: 1 }}>
                   <div style={{ color: potColor, fontSize: 10, fontWeight: 800, lineHeight: 1.2 }}>
                     {i === 0 ? 'Main' : `Side ${i}`}
                   </div>
@@ -1907,9 +2225,35 @@ function PotDisplay({ potTotal, pots = [], formatFn }) {
                     {(pot.amount || 0).toLocaleString()}
                   </div>
                   {pot.eligible && (
-                    <div style={{ color: '#8E8E93', fontSize: 8 }}>{pot.eligible} players</div>
+                    <div style={{ color: '#8E8E93', fontSize: 8 }}>{pot.eligible} eligible</div>
                   )}
                 </div>
+                {/* E3: Player avatar thumbnails */}
+                {pot.playerIds?.length > 0 && (
+                  <div style={{ display: 'flex', gap: -4, marginLeft: 4 }}>
+                    {pot.playerIds.slice(0, 3).map((pid, pi) => {
+                      const pSeat = seats?.find(s => s.player && String(s.player.id) === String(pid));
+                      return (
+                        <div
+                          key={pi}
+                          title={pSeat?.player?.displayName || `Player ${pi + 1}`}
+                          style={{
+                            width: 16, height: 16, borderRadius: '50%',
+                            background: pSeat?.player?.avatarUrl ? `url(${pSeat.player.avatarUrl}) center/cover` : `hsl(${pi * 120}, 60%, 45%)`,
+                            border: `1px solid ${potColor}80`,
+                            marginLeft: pi > 0 ? -4 : 0,
+                            fontSize: 7, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          }}
+                        >
+                          {!pSeat?.player?.avatarUrl && (pSeat?.player?.displayName?.[0]?.toUpperCase() || '?')}
+                        </div>
+                      );
+                    })}
+                    {pot.playerIds.length > 3 && (
+                      <div style={{ width: 16, height: 16, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', marginLeft: -4, fontSize: 7, color: '#8E8E93', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+{pot.playerIds.length - 3}</div>
+                    )}
+                  </div>
+                )}
               </motion.div>
             );
           })}
@@ -3810,7 +4154,7 @@ function SessionStatsOverlay({ sessionStats, myStack, onClose }) {
 // TABLE INFO BAR
 // ═══════════════════════════════════════════════════════════════════════════
 
-function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, isSitting, isSittingOut, straddleEnabled, straddleOn, onToggleStraddle, autoTopUpOn, onToggleAutoTopUp, autoMuckOn, onToggleAutoMuck, lastHandResult, onShowLastHand, onShowHistory, sessionStats, myStack, sitOutNextBB, onToggleSitOutNextBB, showStackInBB, onToggleBBDisplay, cardSortMode, onCycleCardSort, hapticEnabled, onToggleHaptic, showHUD, onToggleHUD, fourColorDeck, onToggleFourColor, onShowLeaderboard }) {
+function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, isSitting, isSittingOut, straddleEnabled, straddleOn, onToggleStraddle, autoTopUpOn, onToggleAutoTopUp, autoMuckOn, onToggleAutoMuck, lastHandResult, onShowLastHand, onShowHistory, sessionStats, myStack, sitOutNextBB, onToggleSitOutNextBB, showStackInBB, onToggleBBDisplay, cardSortMode, onCycleCardSort, hapticEnabled, onToggleHaptic, showHUD, onToggleHUD, fourColorDeck, onToggleFourColor, onShowLeaderboard, rabbitHuntEnabled, onToggleRabbitHunt, onShowKeyboard, onShowLayouts, stackHistory }) {
   const [showStats, setShowStats] = useState(false);
   if (!tableState) return null;
 
@@ -3961,6 +4305,18 @@ function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, is
             label='🏆 Board'
             onClick={onShowLeaderboard}
           />
+          <SmallButton
+            label={rabbitHuntEnabled ? '✓ 🐰' : '🐰'}
+            onClick={onToggleRabbitHunt}
+            color={rabbitHuntEnabled ? '#fbbf24' : undefined}
+          />
+          <SmallButton label='⌨️' onClick={onShowKeyboard} />
+          <SmallButton label='📐 Layout' onClick={onShowLayouts} />
+          {stackHistory?.length > 1 && (
+            <div style={{ display: 'flex', alignItems: 'center', marginLeft: 4 }}>
+              <SessionSparkline history={stackHistory} width={60} height={20} />
+            </div>
+          )}
         </div>
       )}
 
@@ -4111,9 +4467,13 @@ function GTOCheckBadge({ result, heroAction, visible }) {
 function ChipFlyAnimation({ winners, seatPositions, seats }) {
   const [chips, setChips] = useState([]);
   const [splashes, setSplashes] = useState([]);
+  const [amountLabels, setAmountLabels] = useState([]);
 
   useEffect(() => {
     if (!winners?.length || !seatPositions || !seats) return;
+
+    // E8: Fire chip-clinking sound
+    try { eventBus.emit('SOUND_PLAY', { id: 'chip_stack' }); } catch (_) {}
 
     const newChips = [];
     const chipPalettes = [
@@ -4145,6 +4505,17 @@ function ChipFlyAnimation({ winners, seatPositions, seats }) {
     });
 
     setChips(newChips);
+
+    // E4: Show floating amount labels after chips arrive
+    const labelTimer = setTimeout(() => {
+      const labels = winners.map((w, wi) => {
+        const seat = seats.find(s => s.player && String(s.player.id) === String(w.playerId));
+        const pos = seat ? seatPositions[seat.seatIndex] : null;
+        return pos ? { id: `label-${wi}`, x: pos.x, y: pos.y, amount: w.amount || 0 } : null;
+      }).filter(Boolean);
+      setAmountLabels(labels);
+    }, 800);
+
     // Show splash after chips arrive
     const splashTimer = setTimeout(() => {
       const newSplashes = winners.map((w, wi) => {
@@ -4154,11 +4525,11 @@ function ChipFlyAnimation({ winners, seatPositions, seats }) {
       }).filter(Boolean);
       setSplashes(newSplashes);
     }, 900);
-    const clearTimer = setTimeout(() => { setChips([]); setSplashes([]); }, 2500);
-    return () => { clearTimeout(splashTimer); clearTimeout(clearTimer); };
+    const clearTimer = setTimeout(() => { setChips([]); setSplashes([]); setAmountLabels([]); }, 3000);
+    return () => { clearTimeout(labelTimer); clearTimeout(splashTimer); clearTimeout(clearTimer); };
   }, [winners, seatPositions, seats]);
 
-  if (!chips.length && !splashes.length) return null;
+  if (!chips.length && !splashes.length && !amountLabels.length) return null;
 
   return (
     <>
@@ -4203,6 +4574,29 @@ function ChipFlyAnimation({ winners, seatPositions, seats }) {
           ))}
         </motion.div>
       ))}
+      {/* E4: Floating amount labels */}
+      <AnimatePresence>
+        {amountLabels.map(lbl => (
+          <motion.div
+            key={lbl.id}
+            initial={{ opacity: 0, y: 0 }}
+            animate={{ opacity: 1, y: -28 }}
+            exit={{ opacity: 0, y: -40 }}
+            transition={{ duration: 1.2, ease: 'easeOut' }}
+            style={{
+              position: 'absolute',
+              left: `${lbl.x}%`, top: `${lbl.y}%`,
+              transform: 'translateX(-50%)',
+              fontSize: 14, fontWeight: 900, zIndex: 82, pointerEvents: 'none',
+              color: '#FFD700',
+              textShadow: '0 0 8px rgba(255,215,0,0.6), 0 2px 4px rgba(0,0,0,0.8)',
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
+            +{lbl.amount.toLocaleString()}
+          </motion.div>
+        ))}
+      </AnimatePresence>
       {/* Splash glow burst at winner seats */}
       <AnimatePresence>
         {splashes.map(s => (
@@ -4802,15 +5196,30 @@ function LivePokerTable({
     return () => unsub();
   }, [tableId, userId]);
 
-  // Auto-open buy-in when waitlist seat is offered + flash notification
+  // Auto-open buy-in when waitlist seat is offered + flash notification + E5 countdown
   const [seatOpenFlash, setSeatOpenFlash] = useState(false);
+  const [seatCountdown, setSeatCountdown] = useState(0);
+  const seatCountdownRef = useRef(null);
   useEffect(() => {
     if (seatOffer && !isSitting && buyInSeat === null) {
       setBuyInSeat(seatOffer.seatIndex);
       setSeatOpenFlash(true);
+      setSeatCountdown(15);
       try { soundRef.current?.play('notify'); } catch (_) {}
-      setTimeout(() => setSeatOpenFlash(false), 3000);
+      // Start countdown
+      seatCountdownRef.current = setInterval(() => {
+        setSeatCountdown(prev => {
+          if (prev <= 1) {
+            clearInterval(seatCountdownRef.current);
+            setSeatOpenFlash(false);
+            setBuyInSeat(null);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
     }
+    return () => { if (seatCountdownRef.current) clearInterval(seatCountdownRef.current); };
   }, [seatOffer, isSitting, buyInSeat]);
 
   // ═══ HAND HISTORY ACCUMULATOR ═══
@@ -4833,6 +5242,20 @@ function LivePokerTable({
       bombPot: result.bombPot || false,
     };
     setHandHistory(prev => [entry, ...prev].slice(0, 50)); // Keep last 50
+
+    // E1: Persist to server (fire-and-forget)
+    try {
+      supabase?.auth?.getSession?.().then(({ data }) => {
+        const token = data?.session?.access_token;
+        if (token) {
+          fetch('/api/poker/engine/hand-history', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ tableId, hand: entry }),
+          }).catch(() => {});
+        }
+      }).catch(() => {});
+    } catch (_) {}
   }, [result, myCards]);
 
   const [noteTarget, setNoteTarget] = useState(null); // { id, displayName } for notes modal
@@ -4908,6 +5331,60 @@ function LivePokerTable({
   const positions = useMemo(() => getSeatPositions(maxSeats), [maxSeats]);
   const [preAction, setPreAction] = useState(null); // 'fold' | 'check_fold' | 'check' | 'call_any' | null
   const [showLastHand, setShowLastHand] = useState(false);
+
+  // ═══ WAVE F: STATE HOOKS ═══
+  const [stackHistory, setStackHistory] = useState([]);
+  const [rabbitHuntCards, setRabbitHuntCards] = useState(null);
+  const [rabbitHuntEnabled, setRabbitHuntEnabled] = useState(() => {
+    try { return localStorage.getItem('poker-rabbit-hunt') !== 'false'; } catch { return true; }
+  });
+  const [showLayoutManager, setShowLayoutManager] = useState(false);
+  const [seatPreference] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('poker-seat-prefs') || '{}'); } catch { return {}; }
+  });
+
+  // ═══ WAVE F: PRE-ACTION AUTO-EXECUTE ═══
+  useEffect(() => {
+    if (!isMyTurn || !legalActions?.length || !preAction) return;
+    const canFold = legalActions.some(a => a.type === 'fold');
+    const canCheck = legalActions.some(a => a.type === 'check');
+    const canCall = legalActions.find(a => a.type === 'call');
+    
+    if (preAction === 'fold_any' && canFold) {
+      handleAction({ type: 'fold' });
+      setPreAction(null);
+    } else if (preAction === 'check_fold') {
+      if (canCheck) { handleAction({ type: 'check' }); setPreAction(null); }
+      else if (canFold) { handleAction({ type: 'fold' }); setPreAction(null); }
+      else setPreAction(null); // Clear if neither available
+    } else if (preAction === 'check' && canCheck) {
+      handleAction({ type: 'check' });
+      setPreAction(null);
+    } else if (preAction === 'call_any' && canCall) {
+      handleAction({ type: 'call' });
+      setPreAction(null);
+    } else {
+      // Pre-action not applicable for current situation — keep it but don't auto-fire
+    }
+  }, [isMyTurn, legalActions, preAction, handleAction]);
+
+  // ═══ WAVE F: SEAT PREFERENCE MEMORY ═══
+  useEffect(() => {
+    if (!mySeat || !maxSeats) return;
+    const seatIdx = tableState?.seats?.indexOf(mySeat);
+    if (seatIdx == null || seatIdx < 0) return;
+    try {
+      const prefs = JSON.parse(localStorage.getItem('poker-seat-prefs') || '{}');
+      prefs[maxSeats] = seatIdx;
+      localStorage.setItem('poker-seat-prefs', JSON.stringify(prefs));
+    } catch (_) {}
+  }, [mySeat, maxSeats, tableState?.seats]);
+
+  // ═══ WAVE F: STACK HISTORY TRACKING ═══
+  useEffect(() => {
+    if (!result || !mySeat?.stack) return;
+    setStackHistory(prev => [...prev.slice(-49), mySeat.stack]);
+  }, [result, mySeat?.stack]);
 
   // ═══ ENHANCED SESSION STATS ═══
   const [biggestPot, setBiggestPot] = useState(0);
@@ -5623,6 +6100,17 @@ function LivePokerTable({
             <EquityBar players={result.allInEquity.players} tableState={tableState} />
           )}
 
+          {/* Pot Odds Tooltip — visible when hero has a call action */}
+          <AnimatePresence>
+            {isMyTurn && legalActions?.find(a => a.type === 'call') && (
+              <PotOddsTooltip
+                potTotal={tableState?.game?.potTotal || 0}
+                callAmount={legalActions.find(a => a.type === 'call')?.amount || 0}
+                isVisible={true}
+              />
+            )}
+          </AnimatePresence>
+
           {/* Bet-to-Pot Animation */}
           <BetChipAnimation tableState={tableState} />
 
@@ -5778,6 +6266,15 @@ function LivePokerTable({
         fourColorDeck={fourColorDeck}
         onToggleFourColor={handleToggleFourColor}
         onShowLeaderboard={() => setShowLeaderboard(true)}
+        rabbitHuntEnabled={rabbitHuntEnabled}
+        onToggleRabbitHunt={() => {
+          const next = !rabbitHuntEnabled;
+          setRabbitHuntEnabled(next);
+          try { localStorage.setItem('poker-rabbit-hunt', String(next)); } catch (_) {}
+        }}
+        onShowKeyboard={() => setShowKbHelp(true)}
+        onShowLayouts={() => setShowLayoutManager(true)}
+        stackHistory={stackHistory}
       />
 
       {/* Hand strength indicator (hero only, during active hand) */}
@@ -5877,6 +6374,24 @@ function LivePokerTable({
       {!tableState?.config?.banChat && (
         <ChatOverlay messages={chatMessages} onSend={handleChat} />
       )}
+
+      {/* Quick Emoji Bar — always-visible emoji buttons */}
+      {isSitting && connected && (
+        <QuickEmojiBar
+          onSend={handleEmojiSend}
+          disabled={!connected}
+        />
+      )}
+
+      {/* Rabbit Hunt Overlay */}
+      <AnimatePresence>
+        {rabbitHuntCards && (
+          <RabbitHuntOverlay
+            cards={rabbitHuntCards}
+            onClose={() => setRabbitHuntCards(null)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Keyboard Shortcuts Help Overlay */}
       <AnimatePresence>
@@ -6248,6 +6763,13 @@ function LivePokerTable({
           onClose={() => setShowHistoryBrowser(false)}
         />
       )}
+
+      {/* Table Layout Manager */}
+      <AnimatePresence>
+        {showLayoutManager && (
+          <TableLayoutManager onClose={() => setShowLayoutManager(false)} />
+        )}
+      </AnimatePresence>
 
       {/* ═══════════ INSURANCE OFFER OVERLAY ═══════════ */}
       <AnimatePresence>
@@ -6885,7 +7407,7 @@ function LivePokerTable({
               display: 'flex', alignItems: 'center', gap: 8,
             }}
           >
-            🎉 A seat opened up! Buy in now.
+            🎉 A seat opened up! Buy in now. {seatCountdown > 0 && <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 600, opacity: 0.8 }}>({seatCountdown}s)</span>}
           </motion.div>
         )}
       </AnimatePresence>

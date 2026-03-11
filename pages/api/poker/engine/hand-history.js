@@ -6,7 +6,7 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
-  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== 'GET' && req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const token = (req.headers.authorization || '').replace('Bearer ', '');
   if (!token) return res.status(401).json({ error: 'Unauthorized' });
@@ -14,6 +14,28 @@ export default async function handler(req, res) {
   const supabase = supabaseAdmin;
   const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
   if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+
+  // ═══ POST: Persist a hand ═══
+  if (req.method === 'POST') {
+    const { tableId, hand } = req.body || {};
+    if (!tableId || !hand) return res.status(400).json({ error: 'tableId and hand required' });
+    try {
+      await supabase.from('hand_histories').upsert({
+        hand_id: hand.handId || `${tableId}-${Date.now()}`,
+        table_id: tableId,
+        user_id: user.id,
+        hand_data: hand,
+        pot_total: hand.potTotal || 0,
+        created_at: new Date().toISOString(),
+      }, { onConflict: 'hand_id,user_id' });
+      return res.status(200).json({ ok: true });
+    } catch (err) {
+      console.error('[hand-history] POST error:', err);
+      return res.status(500).json({ error: 'Failed to save hand' });
+    }
+  }
+
+  // ═══ GET: Fetch hands ═══
 
   const { tableId, page = '0', limit = '20' } = req.query;
   if (!tableId) return res.status(400).json({ error: 'tableId required' });
