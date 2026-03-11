@@ -1744,7 +1744,14 @@ class GameStateMachine {
         rake: rakeAmount,
       };
 
-      this.emit('hand_complete', this.currentHand.result);
+      this.emit('payout', {
+        type: 'multi_board_showdown',
+        winners: winnerDetails,
+        boards: boardWinners,
+        rake: rakeAmount,
+      });
+
+      this._finishHand();
       return;
     }
 

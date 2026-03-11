@@ -46,7 +46,7 @@ class HandHistoryRecorder {
    */
   beginHand(data) {
     this._currentHand = {
-      id: `${this.tableId}_${data.handNumber}_${Date.now()}`,
+      id: data.handId || `${this.tableId}_${data.handNumber}_${Date.now()}`,
       tableId: this.tableId,
       clubId: this.clubId,
       handNumber: data.handNumber,
