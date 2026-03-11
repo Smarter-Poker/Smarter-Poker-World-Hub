@@ -5980,10 +5980,14 @@ function LivePokerTable({
   const prevHandIdRef = useRef(null);
 
   // G2: Incoming chat reaction listener from other players
+  const prevReactionsLenRef = useRef(0);
   useEffect(() => {
     const reactions = tableState?.chatReactions;
     if (!reactions || !Array.isArray(reactions)) return;
-    reactions.forEach(r => {
+    // Only process NEW reactions (skip already-processed ones)
+    const newReactions = reactions.slice(prevReactionsLenRef.current);
+    prevReactionsLenRef.current = reactions.length;
+    newReactions.forEach(r => {
       if (r.msgIdx != null && r.emoji && String(r.fromId) !== String(userId)) {
         setChatReactions(prev => {
           const msgR = { ...(prev[r.msgIdx] || {}) };
@@ -6090,6 +6094,7 @@ function LivePokerTable({
   });
   const [sessionStatsSnap, setSessionStatsSnap] = useState(() => {
     // G4: Restore session stats from localStorage on reconnect
+    if (typeof window === 'undefined') return sessionStatsRef.current;
     try {
       const saved = localStorage.getItem(`poker-session-${tableId}`);
       if (saved) {
@@ -6387,10 +6392,15 @@ function LivePokerTable({
   }, [supabase, userId, tableId]);
 
   // ═══ WAVE I3: SEAT PREFS SUPABASE UPSERT ═══
+  const lastSavedSeatRef = useRef(null);
   useEffect(() => {
     if (!mySeat || !maxSeats || !supabase || !userId) return;
     const seatIdx = tableState?.seats?.indexOf(mySeat);
     if (seatIdx == null || seatIdx < 0) return;
+    // Only UPSERT if seat actually changed (avoid excessive writes on opponent state changes)
+    const key = `${maxSeats}-${seatIdx}`;
+    if (lastSavedSeatRef.current === key) return;
+    lastSavedSeatRef.current = key;
     // Save to Supabase (non-blocking)
     supabase.from('poker_seat_preferences').upsert({
       user_id: userId,
@@ -6443,19 +6453,8 @@ function LivePokerTable({
     }
   }, [chatMessages, displayName, soundEnabled]);
 
-  // ═══ WAVE I10: ESCAPE KEY DISMISS FOR ALL MODALS ═══
-  useEffect(() => {
-    const handleEscape = (e) => {
-      if (e.key === 'Escape') {
-        setShowFeltPicker(false);
-        setShowStackGraph(false);
-        setShowLayoutManager(false);
-        setShowKbHelp?.(false);
-      }
-    };
-    window.addEventListener('keydown', handleEscape);
-    return () => window.removeEventListener('keydown', handleEscape);
-  }, []);
+  // I10: Escape key handled in main keyboard shortcuts handler at L6819 below
+  // (merged setShowFeltPicker + setShowLayoutManager into that handler)
 
   // ═══ WAVE I15: POT SCOOP STATE + TRIGGER ═══
   const [potScoopActive, setPotScoopActive] = useState(false);
@@ -6816,7 +6815,7 @@ function LivePokerTable({
       if (key === 'h') { e.preventDefault(); setShowHUD(p => { const v = !p; try { localStorage.setItem('poker-show-hud', v); eventBus.emit('DATA_MUTATED', 'hud_toggled'); } catch(_){} return v; }); return; }
       if (key === 'l' && lastHandResult) { e.preventDefault(); setShowLastHand(true); return; }
       if (key === '?' || key === '/') { e.preventDefault(); setShowKbHelp(p => !p); return; }
-      if (key === 'escape') { setShowKbHelp(false); setShowActionLog(false); setShowStackGraph(false); setShowTableStats(false); return; }
+      if (key === 'escape') { setShowKbHelp(false); setShowActionLog(false); setShowStackGraph(false); setShowTableStats(false); setShowFeltPicker(false); setShowLayoutManager(false); return; }
       // G10: Wave F panel shortcuts (Shift modifiers to avoid game action conflicts)
       if (e.shiftKey && key === 'l') { e.preventDefault(); setShowActionLog(p => !p); return; }
       if (e.shiftKey && key === 'g') { e.preventDefault(); setShowStackGraph(p => !p); return; }
