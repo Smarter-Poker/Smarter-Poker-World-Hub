@@ -5644,6 +5644,16 @@ function LivePokerTable({
     soundRef.current = new PokerSoundManager();
   }
   // Sync mute + volume state
+  // Phase 27 audit: Listen for sound-pack-changed from ThemePicker
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handlePackChange = (e) => {
+      if (soundRef.current && e.detail) soundRef.current.setSoundPack(e.detail);
+    };
+    window.addEventListener('poker-sound-pack-changed', handlePackChange);
+    return () => window.removeEventListener('poker-sound-pack-changed', handlePackChange);
+  }, []);
+
   useEffect(() => {
     if (soundRef.current) { soundRef.current.muted = !soundEnabled; soundRef.current.setVolume(soundVolume); }
     if (typeof window !== 'undefined') {
@@ -6336,8 +6346,8 @@ function LivePokerTable({
 
   // ═══ AUTO-MUCK TOGGLE ═══
   const [autoMuck, setAutoMuck] = useState(() => {
-    if (typeof window !== 'undefined') return localStorage.getItem('poker-auto-muck') !== 'false';
-    return true;
+    if (typeof window !== 'undefined') return localStorage.getItem('poker-auto-muck') === 'true';
+    return false;
   });
   const handleToggleAutoMuck = useCallback(() => {
     setAutoMuck(prev => {
@@ -6345,6 +6355,14 @@ function LivePokerTable({
       if (typeof window !== 'undefined') localStorage.setItem('poker-auto-muck', String(next));
       return next;
     });
+  }, []);
+
+  // Phase 27 audit: Listen for auto-muck-changed from ThemePicker
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleMuckChange = (e) => setAutoMuck(!!e.detail);
+    window.addEventListener('poker-auto-muck-changed', handleMuckChange);
+    return () => window.removeEventListener('poker-auto-muck-changed', handleMuckChange);
   }, []);
 
   // ═══════════════════════════════════════════════════════════════════
@@ -7069,7 +7087,10 @@ function LivePokerTable({
       })()}
 
       {/* ═══ PHASE 27: ACTION TIMELINE — horizontal pill bar of current hand actions ═══ */}
-      {tableState?.game?.actionLog && tableState.game.actionLog.length > 0 && isSitting && (
+      {(() => {
+        const timelineLog = tableState?.game?.actionLog || actionLog || [];
+        if (!timelineLog.length || !isSitting) return null;
+        return (
         <div style={{
           position: 'fixed', top: 50, left: '50%', transform: 'translateX(-50%)',
           zIndex: 90, display: 'flex', gap: 3, maxWidth: '80vw',
@@ -7078,7 +7099,7 @@ function LivePokerTable({
           background: 'rgba(0,0,0,0.6)', borderRadius: 10,
           border: '1px solid rgba(255,255,255,0.06)',
         }}>
-          {tableState.game.actionLog.slice(-8).map((action, i) => {
+          {timelineLog.slice(-8).map((action, i) => {
             const colors = {
               bet: '#3b82f6', call: '#22c55e', raise: '#eab308',
               fold: '#6b7280', check: '#8b5cf6', allIn: '#ef4444',
@@ -7106,7 +7127,8 @@ function LivePokerTable({
             );
           })}
         </div>
-      )}
+        );
+      })()}
 
       {/* ═══ YOUR TURN INDICATOR — Pulsing banner when action is on hero ═══ */}
       <AnimatePresence>

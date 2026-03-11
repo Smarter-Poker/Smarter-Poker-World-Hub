@@ -18,6 +18,13 @@ import {
 export default function ThemePicker({ currentThemeId, onThemeChange, currentCardBack, onCardBackChange, soundEnabled, onToggleSound, fourColorDeck, onToggleFourColor, hapticEnabled, onToggleHaptic }) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState('theme'); // 'theme' | 'cardback' | 'sound' | 'display'
+  // Phase 27 audit: React state for Sound Pack + Auto-Muck so UI updates on click
+  const [soundPack, setSoundPack] = useState(() => {
+    try { return (typeof localStorage !== 'undefined' && localStorage.getItem('poker-sound-pack')) || 'casino'; } catch (_) { return 'casino'; }
+  });
+  const [autoMuck, setAutoMuck] = useState(() => {
+    try { return typeof localStorage !== 'undefined' && localStorage.getItem('poker-auto-muck') === 'true'; } catch (_) { return false; }
+  });
 
   const handleTheme = useCallback((id) => {
     setStoredThemeId(id);
@@ -287,14 +294,13 @@ export default function ThemePicker({ currentThemeId, onThemeChange, currentCard
                           { id: 'minimal', label: '⚡ Minimal', desc: 'Clicks only' },
                           { id: 'retro', label: '👾 Retro', desc: '8-bit chiptune' },
                         ].map(pack => {
-                          const currentPack = typeof localStorage !== 'undefined' ? (localStorage.getItem('poker-sound-pack') || 'casino') : 'casino';
-                          const isActive = currentPack === pack.id;
+                          const isActive = soundPack === pack.id;
                           return (
                             <button
                               key={pack.id}
                               onClick={() => {
+                                setSoundPack(pack.id);
                                 try { localStorage.setItem('poker-sound-pack', pack.id); } catch (_) {}
-                                // Dispatch event so LPT's soundRef picks it up
                                 try { window.dispatchEvent(new CustomEvent('poker-sound-pack-changed', { detail: pack.id })); } catch (_) {}
                               }}
                               style={{
@@ -374,20 +380,21 @@ export default function ThemePicker({ currentThemeId, onThemeChange, currentCard
                       </div>
                       <button
                         onClick={() => {
-                          const current = typeof localStorage !== 'undefined' ? localStorage.getItem('poker-auto-muck') === 'true' : false;
-                          try { localStorage.setItem('poker-auto-muck', String(!current)); } catch (_) {}
-                          try { window.dispatchEvent(new CustomEvent('poker-auto-muck-changed', { detail: !current })); } catch (_) {}
+                          const next = !autoMuck;
+                          setAutoMuck(next);
+                          try { localStorage.setItem('poker-auto-muck', String(next)); } catch (_) {}
+                          try { window.dispatchEvent(new CustomEvent('poker-auto-muck-changed', { detail: next })); } catch (_) {}
                         }}
                         style={{
                           width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer',
-                          background: (typeof localStorage !== 'undefined' && localStorage.getItem('poker-auto-muck') === 'true') ? '#22c55e' : '#3A3B3C',
+                          background: autoMuck ? '#22c55e' : '#3A3B3C',
                           position: 'relative', transition: 'background 0.2s',
                         }}
                       >
                         <div style={{
                           width: 18, height: 18, borderRadius: '50%', background: '#fff',
                           position: 'absolute', top: 3,
-                          left: (typeof localStorage !== 'undefined' && localStorage.getItem('poker-auto-muck') === 'true') ? 23 : 3,
+                          left: autoMuck ? 23 : 3,
                           transition: 'left 0.2s',
                           boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
                         }} />
