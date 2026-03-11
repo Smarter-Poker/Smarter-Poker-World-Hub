@@ -10,7 +10,7 @@ import { useState, useEffect } from 'react';
 import { wishlistService } from '../../../src/services/preferences-service';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
-import { getAuthUser, useRequireAuth } from '../../../src/lib/authUtils';
+import { useRequireAuth } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 export default function Wishlist() {

@@ -671,8 +671,14 @@ export const ChatWindow = ({
     const [multiSelectMode, setMultiSelectMode] = useState(false);
     const [selectedMessageIds, setSelectedMessageIds] = useState([]);
 
-    // P20: Reset panel states on conversation switch
+    // P19+P20: Reset panel states on conversation switch
     useEffect(() => {
+        // P19 resets
+        setShowSearchOverlay(false);
+        setShowSchedulePanel(false);
+        setAutoCompleteSuggestions([]);
+        setSpamWarning(null);
+        // P20 resets
         setShowContactInsights(false);
         setShowBookmarksDrawer(false);
         setShowExportPicker(false);

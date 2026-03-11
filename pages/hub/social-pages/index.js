@@ -190,28 +190,21 @@ export default function SocialPagesHub() {
 
 
 
-    useEffect(() => {    const _c = new AbortController();
-
+    useEffect(() => {
         const t = setTimeout(() => setSearch(searchInput), 300);
-        return () => clearTimeout(t);}, [searchInput]);
+        return () => clearTimeout(t);
+    }, [searchInput]);
 
     const handleFollow = async (pageId) => {
         if (!user) { router.push('/auth/login'); return; }
         const isFollowing = followingIds.has(pageId);
 
-        // Optimistic update
+        // Optimistic update (followingIds only — pages are SWR-managed)
         setFollowingIds(prev => {
             const next = new Set(prev);
             if (isFollowing) next.delete(pageId); else next.add(pageId);
             return next;
         });
-        setPages(prev => prev.map(p =>
-            p.id === pageId ? {
-                ...p,
-                is_following: !isFollowing,
-                follower_count: isFollowing ? Math.max(0, (p.follower_count || 1) - 1) : (p.follower_count || 0) + 1
-            } : p
-        ));
 
         try {
             const token = getAccessToken();

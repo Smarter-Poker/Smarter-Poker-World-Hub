@@ -52,7 +52,7 @@ export default function ShoppingCart() {
                     const { data: prefData } = await supabase
                         .from('user_preferences')
                         .select('preferences')
-                        .eq('user_id', authUser.id)
+                        .eq('user_id', user.id)
                         .maybeSingle();
                     const savedCart = prefData?.preferences?.diamond_cart;
                     if (savedCart && Array.isArray(savedCart)) {
@@ -184,12 +184,12 @@ export default function ShoppingCart() {
 
         setCheckingOut(true);
         try {
-            const authUser = await getAuthUser();
+            const token = getAccessToken();
             const res = await fetch('/api/store/purchase-with-diamonds', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: `Bearer ${authUser.token}`
+                    Authorization: `Bearer ${token}`
                 },
                 body: JSON.stringify({ items: cart })
             });
