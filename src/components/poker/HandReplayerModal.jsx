@@ -276,12 +276,18 @@ function HandHistorySidebar({ supabase, tableId, clubId, currentHandId, onSelect
 
 function ShareDropdown({ handData, handId, onClose }) {
   const [copied, setCopied] = useState(null);
+  const copyTimerRef = useRef(null);
+
+  // BUG-4 FIX: Clear clipboard feedback timer on unmount
+  useEffect(() => {
+    return () => { if (copyTimerRef.current) clearTimeout(copyTimerRef.current); };
+  }, []);
   
   const copyText = useCallback(() => {
     const text = generateHandHistoryText(handData);
     navigator.clipboard?.writeText(text).then(() => {
       setCopied('text');
-      setTimeout(() => setCopied(null), 2000);
+      copyTimerRef.current = setTimeout(() => setCopied(null), 2000);
     });
   }, [handData]);
 
@@ -289,7 +295,7 @@ function ShareDropdown({ handData, handId, onClose }) {
     const url = `${typeof window !== 'undefined' ? window.location.origin : ''}/hand/${handId}`;
     navigator.clipboard?.writeText(url).then(() => {
       setCopied('link');
-      setTimeout(() => setCopied(null), 2000);
+      copyTimerRef.current = setTimeout(() => setCopied(null), 2000);
     });
   }, [handId]);
 
@@ -367,6 +373,7 @@ export default function HandReplayerModal({ handId: initialHandId, supabase, cur
     
     let isMounted = true;
     let attempts = 0;
+    let retryTimer = null; // BUG-5 FIX: track retry timer
 
     // #10: Check cache first
     const cached = getCachedHand(activeHandId);
@@ -399,7 +406,7 @@ export default function HandReplayerModal({ handId: initialHandId, supabase, cur
         } else if (!cached?.data) {
           attempts++;
           if (attempts < 5 && isMounted) {
-            setTimeout(fetchHistory, 500);
+            retryTimer = setTimeout(fetchHistory, 500);
           } else if (isMounted) {
             setError('Hand history could not be located in the database.');
             setLoading(false);
@@ -414,7 +421,7 @@ export default function HandReplayerModal({ handId: initialHandId, supabase, cur
     };
 
     fetchHistory();
-    return () => { isMounted = false; };
+    return () => { isMounted = false; if (retryTimer) clearTimeout(retryTimer); };
   }, [activeHandId, supabase]);
 
   // ── 2. Flatten Timeline Events ──
