@@ -5683,6 +5683,7 @@ function LivePokerTable({
             handId={lastHandResult.handId}
             supabase={supabase}
             currentUserId={userId}
+            cardBackPath={cardBackPath}
             onClose={() => setShowLastHand(false)}
           />
         )}

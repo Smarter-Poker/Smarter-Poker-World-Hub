@@ -11,9 +11,9 @@ function cardIntToPath(card) {
   return `/cards/${SUITS[suit]}_${RANKS[rank]}.png`;
 }
 
-function CardImg({ card, width = 48, faceDown = false, delay = 0, showdown = false, label = "" }) {
+function CardImg({ card, width = 48, faceDown = false, delay = 0, showdown = false, label = "", cardBackPath }) {
   const height = Math.round(width * 1.4);
-  const backPath = '/cards/back-default.png';
+  const backPath = cardBackPath || '/cards/back-default.png';
   const src = faceDown ? backPath : cardIntToPath(card);
 
   return (
@@ -43,7 +43,7 @@ function CardImg({ card, width = 48, faceDown = false, delay = 0, showdown = fal
   );
 }
 
-export default function HandReplayerModal({ handId, supabase, currentUserId, onClose }) {
+export default function HandReplayerModal({ handId, supabase, currentUserId, cardBackPath, onClose }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [handData, setHandData] = useState(null);
@@ -247,6 +247,18 @@ export default function HandReplayerModal({ handId, supabase, currentUserId, onC
          }
          state.potTotal += streetChips;
          state.completed = true;
+         
+         // Award pot to winners
+         if (handData.winners && handData.winners.length > 0) {
+           for (const w of handData.winners) {
+             const p = state.players[w.playerId];
+             if (p && w.amount) {
+               p.stack += w.amount;
+               p.lastAction = `WON ${w.amount.toLocaleString()}`;
+             }
+           }
+           state.potTotal = 0; // Empty the central pot as it has been distributed
+         }
        }
     }
     
@@ -297,7 +309,7 @@ export default function HandReplayerModal({ handId, supabase, currentUserId, onC
                 {/* Board Cards */}
                 <div style={{ display: 'flex', gap: 8 }}>
                   {stateAtStep.board.map((c, i) => (
-                    <CardImg key={i} card={c} width={50} />
+                    <CardImg key={i} card={c} width={50} cardBackPath={cardBackPath} />
                   ))}
                   {/* Empty slots */}
                   {[...Array(5 - stateAtStep.board.length)].map((_, i) => (
@@ -345,13 +357,13 @@ export default function HandReplayerModal({ handId, supabase, currentUserId, onC
                         <div style={{ display: 'flex', gap: 2, marginBottom: -10, zIndex: 10 }}>
                            {p.holeCards ? (
                              <>
-                               <CardImg card={p.holeCards[0]} width={36} faceDown={!showFaces} />
-                               <CardImg card={p.holeCards[1]} width={36} faceDown={!showFaces} />
+                               <CardImg card={p.holeCards[0]} width={36} faceDown={!showFaces} cardBackPath={cardBackPath} />
+                               <CardImg card={p.holeCards[1]} width={36} faceDown={!showFaces} cardBackPath={cardBackPath} />
                              </>
                            ) : (
                              <>
-                               <CardImg faceDown width={36} />
-                               <CardImg faceDown width={36} />
+                               <CardImg faceDown width={36} cardBackPath={cardBackPath} />
+                               <CardImg faceDown width={36} cardBackPath={cardBackPath} />
                              </>
                            )}
                         </div>
