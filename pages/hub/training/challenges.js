@@ -14,7 +14,7 @@ import { motion } from 'framer-motion';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
-import { getAuthUser } from '../../../src/lib/authUtils';
+import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
@@ -37,11 +37,12 @@ export default function ChallengesPage() {
     data: swrData,
     isLoading: loading,
     mutate: refreshChallenges,
-  } = useSWR(swrKey, (url) =>
-    fetch(url)
+  } = useSWR(swrKey, (url) => {
+    const token = getAccessToken();
+    return fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
       .then((r) => r.json())
-      .then((d) => d.challenges || [])
-  );
+      .then((d) => d.challenges || []);
+  });
   const challenges = swrData || [];
 
   const claimReward = async (challenge) => {
@@ -49,9 +50,10 @@ export default function ChallengesPage() {
     setClaiming(challenge.id);
 
     try {
+      const token = getAccessToken();
       const res = await fetch('/api/training/challenges', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({
           userId: user.id,
           challengeId: challenge.id,

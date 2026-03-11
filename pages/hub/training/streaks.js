@@ -14,7 +14,7 @@ import { motion } from 'framer-motion';
 import { supabase } from '../../../src/lib/supabase';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
-import { getAuthUser } from '../../../src/lib/authUtils';
+import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
@@ -69,8 +69,9 @@ export default function StreaksPage() {
     isLoading: loading,
     mutate: refreshStreak,
   } = useSWR(swrKey, async (url) => {
+    const token = getAccessToken();
     const [streakRes, { data: sessions }] = await Promise.all([
-      fetch(url).then((r) => r.json()),
+      fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} }).then((r) => r.json()),
       supabase
         .from('jarvis_training_sessions')
         .select('created_at')
@@ -118,9 +119,10 @@ export default function StreaksPage() {
     setClaiming(milestoneDays);
 
     try {
+      const token = getAccessToken();
       const res = await fetch('/api/training/streak', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({
           userId: user.id,
           milestoneDays,
@@ -227,9 +229,10 @@ export default function StreaksPage() {
               <button
                 onClick={async () => {
                   try {
+                    const shareToken = getAccessToken();
                     const res = await fetch('/api/training/share', {
                       method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
+                      headers: { 'Content-Type': 'application/json', ...(shareToken ? { Authorization: `Bearer ${shareToken}` } : {}) },
                       body: JSON.stringify({
                         userId: user.id,
                         shareType: 'streak',

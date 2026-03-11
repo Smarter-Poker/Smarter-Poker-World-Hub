@@ -12,7 +12,7 @@ import useSWR from 'swr';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
-import { getAuthUser } from '../../../src/lib/authUtils';
+import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import { getGameById } from '../../../src/data/TRAINING_LIBRARY';
 import { supabase } from '../../../src/lib/supabase';
 import { busEmit } from '../../../src/engine/EventBus';
@@ -62,11 +62,12 @@ export default function TournamentsPage() {
     data: swrData,
     isLoading: loading,
     mutate: refreshTournaments,
-  } = useSWR(swrKey, (url) =>
-    fetch(url)
+  } = useSWR(swrKey, (url) => {
+    const token = getAccessToken();
+    return fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
       .then((r) => r.json())
-      .then((d) => (d.success ? d.tournaments || [] : []))
-  );
+      .then((d) => (d.success ? d.tournaments || [] : []));
+  });
   const tournaments = swrData || [];
 
   const registerForTournament = async (tournamentId) => {
@@ -77,9 +78,10 @@ export default function TournamentsPage() {
 
     setRegistering(tournamentId);
     try {
+      const token = getAccessToken();
       const res = await fetch('/api/training/tournaments', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({
           userId: user.id,
           tournamentId,
