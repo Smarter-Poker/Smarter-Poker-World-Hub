@@ -3244,7 +3244,6 @@ function SessionStatsOverlay({ sessionStats, myStack, onClose }) {
 
 function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, isSitting, isSittingOut, straddleEnabled, straddleOn, onToggleStraddle, autoTopUpOn, onToggleAutoTopUp, autoMuckOn, onToggleAutoMuck, lastHandResult, onShowLastHand, sessionStats, myStack, sitOutNextBB, onToggleSitOutNextBB, showStackInBB, onToggleBBDisplay, cardSortMode, onCycleCardSort, hapticEnabled, onToggleHaptic, showHUD, onToggleHUD, fourColorDeck, onToggleFourColor, onShowLeaderboard }) {
   const [showStats, setShowStats] = useState(false);
-  const [autoRebuyOn, setAutoRebuyOn] = useState(false);
   if (!tableState) return null;
 
   const { game } = tableState;
@@ -4280,25 +4279,41 @@ function LivePokerTable({
   const tableFull = !isSitting && tableState?.seats?.length > 0 && tableState.seats.every(s => s.player?.id != null && s.status !== 'empty');
 
   // Check waitlist position on mount and when seat state changes
-  useEffect(() => {
+  const checkWaitlistPosition = useCallback(async () => {
     if (!tableState?.tableId || !userId || isSitting) return;
-    const checkPosition = async () => {
-      try {
-        const token = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}')?.access_token;
-        if (!token) return;
-        const res = await fetch('/api/club-arena/waitlist', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ action: 'position', tableId: tableState.tableId }),
-        });
-        if (res.ok) {
-          const d = await res.json();
-          setWaitlistState(prev => ({ ...prev, onWaitlist: d.onWaitlist, position: d.position }));
-        }
-      } catch (_) {}
+    try {
+      const token = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}')?.access_token;
+      if (!token) return;
+      const res = await fetch('/api/club-arena/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: 'position', tableId: tableState.tableId }),
+      });
+      if (res.ok) {
+        const d = await res.json();
+        setWaitlistState(prev => ({ ...prev, onWaitlist: d.onWaitlist, position: d.position }));
+      }
+    } catch (_) {}
+  }, [tableState?.tableId, userId, isSitting]);
+
+  // Initial position check + re-check when seats change
+  useEffect(() => {
+    checkWaitlistPosition();
+  }, [checkWaitlistPosition, tableState?.seats?.map(s => s.player?.id).join(',')]);
+
+  // Realtime waitlist position updates via EventBus
+  useEffect(() => {
+    if (!tableState?.tableId || isSitting) return;
+    const onWaitlistChange = () => checkWaitlistPosition();
+    const unsub1 = eventBus.on('WAITLIST_PLAYER_ADDED', onWaitlistChange);
+    const unsub2 = eventBus.on('DATA_MUTATED', (detail) => {
+      if (typeof detail === 'string' && detail.includes('waitlist')) onWaitlistChange();
+    });
+    return () => {
+      if (typeof unsub1 === 'function') unsub1(); else eventBus.off('WAITLIST_PLAYER_ADDED', onWaitlistChange);
+      if (typeof unsub2 === 'function') unsub2();
     };
-    checkPosition();
-  }, [tableState?.tableId, userId, isSitting, tableState?.seats?.map(s => s.player?.id).join(',')]);
+  }, [tableState?.tableId, isSitting, checkWaitlistPosition]);
 
   const handleJoinWaitlist = useCallback(async () => {
     if (!tableState?.tableId || waitlistState.loading) return;
@@ -4352,6 +4367,33 @@ function LivePokerTable({
     send('respond_run_it', { choice });
     try { eventBus.emit('DATA_MUTATED', `rit_response_${choice}`); } catch (_e) {}
   }, [send]);
+
+  // ═══ RIT COUNTDOWN TIMER ═══
+  const [ritCountdown, setRitCountdown] = useState(0);
+  const ritCountdownRef = useRef(null);
+
+  useEffect(() => {
+    if (isRitOfferActive && offer?.deadline) {
+      setRitCountdown(offer.deadline);
+      if (ritCountdownRef.current) clearInterval(ritCountdownRef.current);
+      ritCountdownRef.current = setInterval(() => {
+        setRitCountdown(prev => {
+          if (prev <= 1) {
+            clearInterval(ritCountdownRef.current);
+            ritCountdownRef.current = null;
+            // Auto-decline on timeout
+            handleRITResponse(isRitProposer ? 'once' : 'decline');
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => { if (ritCountdownRef.current) clearInterval(ritCountdownRef.current); };
+    } else {
+      if (ritCountdownRef.current) { clearInterval(ritCountdownRef.current); ritCountdownRef.current = null; }
+      setRitCountdown(0);
+    }
+  }, [isRitOfferActive, offer?.deadline, isRitProposer, handleRITResponse]);
 
   // ═══ HERO SEAT ROTATION — Always place hero at bottom center (position 0) ═══
   const heroSeatIndex = mySeat?.seatIndex ?? -1;
@@ -4657,7 +4699,18 @@ function LivePokerTable({
   const handleChat = useCallback((message) => {
     soundRef.current?.play('chat');
     send('send_chat', { message });
-  }, [send]);
+    // Fire-and-forget persistence to Supabase
+    if (tableState?.clubId) {
+      try {
+        const token = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}')?.access_token;
+        fetch('/api/club-arena/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+          body: JSON.stringify({ message, displayName: tableState?.playerName || 'Player', clubId: tableState.clubId }),
+        }).catch(() => {});
+      } catch (_) {}
+    }
+  }, [send, tableState?.clubId, tableState?.playerName]);
   const handleAddChips = useCallback(() => {
     setRebuyError(null);
     setRebuyBalance(clubChipBalance || 0);
@@ -4767,7 +4820,7 @@ function LivePokerTable({
           {/* Community cards */}
           <CommunityCards
             cards={tableState?.game?.communityCards || []}
-            boards={tableState?.game?.boards}
+            boards={result?.runItMultiple?.boards?.map(b => b.cards || []) || tableState?.game?.boards}
             fourColorDeck={fourColorDeck}
           />
 
@@ -5503,7 +5556,7 @@ function LivePokerTable({
         )}
       </AnimatePresence>
 
-      {/* ═══ BOMB POT CHIP FLY ANIMATION ═══ */}
+      {/* ═══ BOMB POT CHIP FLY ANIMATION (Enhanced — stacked triple tokens with glow trail) ═══ */}
       <AnimatePresence>
         {tableState?.bombPot && seats && seats.map((seat, i) => {
           if (!seat.player?.id || seat.status === 'empty') return null;
@@ -5518,19 +5571,33 @@ function LivePokerTable({
                 x: (50 - pos.x) * 3,
                 y: (38 - pos.y) * 3,
                 opacity: 0,
-                scale: 0.3,
+                scale: 0.5,
               }}
-              transition={{ duration: 0.8, delay: i * 0.08, ease: 'easeIn' }}
+              transition={{ duration: 1, delay: i * 0.1, ease: 'easeInOut' }}
               style={{
                 position: 'absolute',
                 left: `${pos.x}%`, top: `${pos.y}%`,
-                width: 20, height: 20, borderRadius: '50%',
-                background: 'radial-gradient(circle, #FFD700 40%, #FF6B35 100%)',
-                border: '2px solid #fff',
-                boxShadow: '0 0 8px rgba(255,215,0,0.6)',
+                width: 26, height: 26,
                 zIndex: 84, pointerEvents: 'none',
               }}
-            />
+            >
+              {/* Stacked 3-chip token */}
+              {[0, 1, 2].map(ci => (
+                <div
+                  key={ci}
+                  style={{
+                    position: 'absolute',
+                    top: ci * -3, left: ci * 1,
+                    width: 22, height: 22, borderRadius: '50%',
+                    background: ci === 0 ? 'radial-gradient(circle, #FFD700 30%, #FF6B35 100%)'
+                      : ci === 1 ? 'radial-gradient(circle, #FF9800 30%, #E65100 100%)'
+                      : 'radial-gradient(circle, #FFC107 30%, #FF8F00 100%)',
+                    border: '2px solid rgba(255,255,255,0.8)',
+                    boxShadow: `0 0 ${8 + ci * 4}px rgba(255,215,0,${0.4 + ci * 0.2})`,
+                  }}
+                />
+              ))}
+            </motion.div>
           );
         })}
       </AnimatePresence>
@@ -5625,9 +5692,31 @@ function LivePokerTable({
             <div style={{ color: '#a855f7', fontSize: 18, fontWeight: 800, marginBottom: 4, letterSpacing: 1 }}>
               {isRitProposer ? 'YOU HAVE THE BEST HAND' : 'RUN IT MULTIPLE TIMES?'}
             </div>
-            <div style={{ color: '#B0B3B8', fontSize: 12, marginBottom: 14 }}>
+            <div style={{ color: '#B0B3B8', fontSize: 12, marginBottom: 6 }}>
               {isRitProposer ? 'Choose how many boards to run:' : 'The leader proposes multiple boards. Accept or decline.'}
             </div>
+
+            {/* Countdown timer bar */}
+            {ritCountdown > 0 && (
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 4 }}>
+                  <span style={{ color: ritCountdown <= 5 ? '#ef4444' : '#a855f7', fontSize: 22, fontWeight: 900, fontVariantNumeric: 'tabular-nums' }}>{ritCountdown}s</span>
+                </div>
+                <div style={{ height: 4, background: 'rgba(255,255,255,0.1)', borderRadius: 4, overflow: 'hidden' }}>
+                  <motion.div
+                    initial={{ width: '100%' }}
+                    animate={{ width: `${(ritCountdown / (offer?.deadline || 15)) * 100}%` }}
+                    transition={{ duration: 0.5, ease: 'easeOut' }}
+                    style={{
+                      height: '100%', borderRadius: 4,
+                      background: ritCountdown <= 5
+                        ? 'linear-gradient(90deg, #ef4444, #dc2626)'
+                        : 'linear-gradient(90deg, #a855f7, #7c3aed)',
+                    }}
+                  />
+                </div>
+              </div>
+            )}
             
             {isRitProposer ? (
               <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
