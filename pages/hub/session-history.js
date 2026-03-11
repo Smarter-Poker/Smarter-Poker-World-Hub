@@ -12,6 +12,8 @@ export default function SessionHistoryPage() {
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
   const [dateRange, setDateRange] = useState('all'); // J7: 'week', 'month', 'all'
+  const [compareMode, setCompareMode] = useState(false); // L4: comparison toggle
+  const [compareIds, setCompareIds] = useState([]); // L4: selected session IDs (max 2)
   const userIdRef = useRef(null);
 
   // Fetch sessions
@@ -115,6 +117,40 @@ export default function SessionHistoryPage() {
     }
     return { count, isWinning, label: isWinning ? `🔥 ${count}W streak` : `❄️ ${count}L streak` };
   }, [sessions]);
+
+  // L6: Win rate grouped by table/stakes
+  const stakeBreakdown = useMemo(() => {
+    if (sessions.length < 2) return null;
+    const groups = {};
+    sessions.forEach(s => {
+      const key = s.table_id?.slice(0, 8) || 'Unknown';
+      if (!groups[key]) groups[key] = { sessions: 0, hands: 0, pl: 0 };
+      groups[key].sessions++;
+      groups[key].hands += s.hands_played || 0;
+      groups[key].pl += (s.ending_stack || 0) - (s.starting_stack || 0);
+    });
+    return Object.entries(groups)
+      .filter(([, v]) => v.sessions >= 2)
+      .sort((a, b) => b[1].pl - a[1].pl)
+      .slice(0, 5);
+  }, [sessions]);
+
+  // L4: Comparison data
+  const compareData = useMemo(() => {
+    if (compareIds.length !== 2) return null;
+    const [a, b] = compareIds.map(id => sessions.find(s => s.id === id)).filter(Boolean);
+    if (!a || !b) return null;
+    const netA = (a.ending_stack || 0) - (a.starting_stack || 0);
+    const netB = (b.ending_stack || 0) - (b.starting_stack || 0);
+    return [
+      { label: 'Date', a: formatDate(a.session_start), b: formatDate(b.session_start) },
+      { label: 'Net P&L', a: netA, b: netB, format: v => `${v >= 0 ? '+' : ''}${v.toLocaleString()}`, colorize: true },
+      { label: 'Hands', a: a.hands_played || 0, b: b.hands_played || 0, format: v => v.toLocaleString() },
+      { label: 'Win Rate', a: a.hands_played ? ((a.hands_won / a.hands_played) * 100).toFixed(0) : 0, b: b.hands_played ? ((b.hands_won / b.hands_played) * 100).toFixed(0) : 0, format: v => `${v}%` },
+      { label: 'VPIP%', a: a.vpip_pct || 0, b: b.vpip_pct || 0, format: v => `${v}%` },
+      { label: 'PFR%', a: a.pfr_pct || 0, b: b.pfr_pct || 0, format: v => `${v}%` },
+    ];
+  }, [compareIds, sessions]);
 
   // J8: CSV export
   const handleExportCSV = useCallback(() => {
@@ -341,7 +377,37 @@ export default function SessionHistoryPage() {
                       {s.hands_played || 0} hands • {duration > 0 ? `${duration}m` : 'Live'}
                     </div>
                   </div>
+
+                  {/* L10: Inline mini sparkline (visible without expanding) */}
+                  {plHistory.length > 2 && (
+                    <svg width={60} height={20} viewBox={`0 0 60 20`} style={{ flexShrink: 0, marginRight: 8 }}>
+                      {(() => {
+                        const min = Math.min(...plHistory);
+                        const max = Math.max(...plHistory);
+                        const range = max - min || 1;
+                        const pts = plHistory.map((v, i) => `${(i / (plHistory.length - 1)) * 60},${20 - ((v - min) / range) * 18 + 1}`);
+                        const color = net >= 0 ? T.green : T.red;
+                        return <polyline points={pts.join(' ')} fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" />;
+                      })()}
+                    </svg>
+                  )}
+
                   <div style={{ textAlign: 'right' }}>
+                    {/* L4: Compare checkbox */}
+                    {compareMode && (
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCompareIds(prev => prev.includes(s.id) ? prev.filter(id => id !== s.id) : prev.length < 2 ? [...prev, s.id] : prev);
+                        }}
+                        style={{
+                          width: 16, height: 16, borderRadius: 4, display: 'inline-block', marginRight: 8,
+                          border: `2px solid ${compareIds.includes(s.id) ? T.accent : T.border}`,
+                          background: compareIds.includes(s.id) ? T.accent : 'transparent',
+                          cursor: 'pointer', verticalAlign: 'middle',
+                        }}
+                      />
+                    )}
                     <div style={{
                       fontSize: 16, fontWeight: 900,
                       color: net >= 0 ? T.green : T.red,
@@ -419,6 +485,75 @@ export default function SessionHistoryPage() {
               </motion.div>
             );
           })}
+        </AnimatePresence>
+
+        {/* L6: Stake/Table Breakdown */}
+        {stakeBreakdown && stakeBreakdown.length > 0 && (
+          <div style={{ marginTop: 16, background: T.card, borderRadius: 12, padding: 14, border: `1px solid ${T.border}` }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: T.text, marginBottom: 8 }}>📊 Performance by Table</div>
+            {stakeBreakdown.map(([tableId, data]) => (
+              <div key={tableId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderBottom: `1px solid ${T.border}22` }}>
+                <span style={{ color: T.textSec, fontSize: 10, fontFamily: 'monospace' }}>{tableId}</span>
+                <span style={{ fontSize: 10, color: T.textDim }}>{data.sessions}s / {data.hands}h</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: data.pl >= 0 ? T.green : T.red }}>{data.pl >= 0 ? '+' : ''}{data.pl.toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* L4: Compare button */}
+        {sessions.length >= 2 && (
+          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={() => { setCompareMode(p => !p); setCompareIds([]); }}
+              style={{
+                flex: 1, padding: '10px 0', borderRadius: 10, fontSize: 11, fontWeight: 700,
+                background: compareMode ? 'rgba(79,172,254,0.15)' : 'rgba(255,255,255,0.04)',
+                border: compareMode ? '1px solid rgba(79,172,254,0.4)' : `1px solid ${T.border}`,
+                color: compareMode ? T.accent : T.textSec, cursor: 'pointer',
+              }}
+            >
+              {compareMode ? '✕ Cancel Compare' : '⚖️ Compare Sessions'}
+            </motion.button>
+          </div>
+        )}
+
+        {/* L4: Comparison overlay */}
+        <AnimatePresence>
+          {compareData && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
+              style={{
+                marginTop: 12, background: T.card, borderRadius: 12, padding: 16,
+                border: `1px solid ${T.accent}44`, boxShadow: '0 4px 24px rgba(79,172,254,0.08)',
+              }}
+            >
+              <div style={{ fontSize: 12, fontWeight: 800, color: T.accent, marginBottom: 10, textAlign: 'center' }}>⚖️ Session Comparison</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: 4 }}>
+                {compareData.map((row, i) => {
+                  const fmtA = row.format ? row.format(row.a) : row.a;
+                  const fmtB = row.format ? row.format(row.b) : row.b;
+                  const colorA = row.colorize ? (row.a >= 0 ? T.green : T.red) : T.text;
+                  const colorB = row.colorize ? (row.b >= 0 ? T.green : T.red) : T.text;
+                  return [
+                    <div key={`a-${i}`} style={{ textAlign: 'right', color: colorA, fontSize: 12, fontWeight: 700 }}>{fmtA}</div>,
+                    <div key={`l-${i}`} style={{ textAlign: 'center', color: T.textDim, fontSize: 9, padding: '0 8px', lineHeight: '18px' }}>{row.label}</div>,
+                    <div key={`b-${i}`} style={{ color: colorB, fontSize: 12, fontWeight: 700 }}>{fmtB}</div>,
+                  ];
+                })}
+              </div>
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={() => { setCompareMode(false); setCompareIds([]); }}
+                style={{
+                  width: '100%', marginTop: 10, padding: '8px 0', borderRadius: 8, fontSize: 11,
+                  fontWeight: 600, background: 'rgba(255,255,255,0.06)', border: `1px solid ${T.border}`,
+                  color: T.textSec, cursor: 'pointer',
+                }}
+              >Done</motion.button>
+            </motion.div>
+          )}
         </AnimatePresence>
       </div>
     </div>
