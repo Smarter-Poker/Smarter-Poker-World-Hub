@@ -20,7 +20,6 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { useProfileStore } from '../../src/stores/profileStore';
 import { getAccessToken, getAuthUser } from '../../src/lib/authUtils';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
-import { busEmit } from '../../src/engine/EventBus';
 
 // Light Theme Colors
 const C = {

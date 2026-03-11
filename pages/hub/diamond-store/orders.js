@@ -11,7 +11,7 @@ import Link from 'next/link';
 import { supabase } from '../../../src/lib/supabase';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
-import { getAuthUser, useRequireAuth, getAccessToken } from '../../../src/lib/authUtils';
+import { useRequireAuth } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 export default function OrderHistory() {
