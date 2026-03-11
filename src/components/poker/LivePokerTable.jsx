@@ -8732,6 +8732,66 @@ function LivePokerTable({
         />
       </AnimatePresence>
 
+      {/* G9: RIT Dual-Board Visual Result */}
+      <AnimatePresence>
+        {tableState?.game?.ritResult && (() => {
+          const rit = tableState.game.ritResult;
+          const board1 = rit.board1 || [];
+          const board2 = rit.board2 || [];
+          const heroWon1 = rit.winner1 && String(rit.winner1) === String(userId);
+          const heroWon2 = rit.winner2 && String(rit.winner2) === String(userId);
+          return (
+            <motion.div
+              key="rit-result"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              style={{
+                position: 'absolute', top: '30%', left: '50%', transform: 'translate(-50%, -50%)',
+                background: 'rgba(15,15,25,0.96)', backdropFilter: 'blur(16px)',
+                borderRadius: 16, border: '1px solid rgba(79,195,247,0.2)',
+                padding: '16px 24px', zIndex: 95, textAlign: 'center',
+                boxShadow: '0 12px 40px rgba(0,0,0,0.7)',
+              }}
+            >
+              <div style={{ fontSize: 14, fontWeight: 800, color: '#E4E6EB', marginBottom: 12 }}>🃏 Run It Twice — Results</div>
+              <div style={{ display: 'flex', gap: 16 }}>
+                {[{ board: board1, won: heroWon1, label: 'Board 1' }, { board: board2, won: heroWon2, label: 'Board 2' }].map((b, bi) => (
+                  <div key={bi} style={{
+                    padding: '8px 12px', borderRadius: 10,
+                    border: `2px solid ${b.won ? 'rgba(34,197,94,0.5)' : 'rgba(239,68,68,0.3)'}`,
+                    background: b.won ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.05)',
+                  }}>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: b.won ? '#4ade80' : '#ef5350', marginBottom: 6 }}>
+                      {b.label} {b.won ? '✅ WIN' : '❌'}
+                    </div>
+                    <div style={{ display: 'flex', gap: 3 }}>
+                      {b.board.map((card, ci) => (
+                        <motion.div key={ci}
+                          initial={{ rotateY: 90, opacity: 0 }}
+                          animate={{ rotateY: 0, opacity: 1 }}
+                          transition={{ delay: bi * 0.3 + ci * 0.1, duration: 0.3 }}
+                          style={{
+                            width: 24, height: 34, borderRadius: 4,
+                            background: 'linear-gradient(135deg, #1a1a3e, #2a2a4e)',
+                            border: '1px solid rgba(255,255,255,0.15)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 10, fontWeight: 800,
+                            color: typeof card === 'string' && (card.includes('h') || card.includes('d')) ? '#e53935' : '#fff',
+                          }}
+                        >
+                          {typeof card === 'string' ? card : '?'}
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          );
+        })()}
+      </AnimatePresence>
+
       {/* Seat Open Flash */}
       <AnimatePresence>
         {seatOpenFlash && (
