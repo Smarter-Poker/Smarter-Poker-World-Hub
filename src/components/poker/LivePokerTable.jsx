@@ -6810,16 +6810,17 @@ function LivePokerTable({
       const key = e.key.toLowerCase();
 
       // Utility shortcuts — work anytime (no turn guard)
-      if (key === 's' && isSitting) { e.preventDefault(); isSittingOut ? send('sit_in') : send('sit_out'); return; }
-      if (key === 'm' && isSitting) { e.preventDefault(); handleToggleAutoMuck(); return; }
-      if (key === 'h') { e.preventDefault(); setShowHUD(p => { const v = !p; try { localStorage.setItem('poker-show-hud', v); eventBus.emit('DATA_MUTATED', 'hud_toggled'); } catch(_){} return v; }); return; }
-      if (key === 'l' && lastHandResult) { e.preventDefault(); setShowLastHand(true); return; }
-      if (key === '?' || key === '/') { e.preventDefault(); setShowKbHelp(p => !p); return; }
-      if (key === 'escape') { setShowKbHelp(false); setShowActionLog(false); setShowStackGraph(false); setShowTableStats(false); setShowFeltPicker(false); setShowLayoutManager(false); return; }
-      // G10: Wave F panel shortcuts (Shift modifiers to avoid game action conflicts)
+      // G10: Wave F panel shortcuts (Shift modifiers — checked FIRST to avoid shadowing)
       if (e.shiftKey && key === 'l') { e.preventDefault(); setShowActionLog(p => !p); return; }
       if (e.shiftKey && key === 'g') { e.preventDefault(); setShowStackGraph(p => !p); return; }
       if (e.shiftKey && key === 't') { e.preventDefault(); setShowTableStats(p => !p); return; }
+      // Plain letter shortcuts (no shift)
+      if (key === 's' && !e.shiftKey && isSitting) { e.preventDefault(); isSittingOut ? send('sit_in') : send('sit_out'); return; }
+      if (key === 'm' && !e.shiftKey && isSitting) { e.preventDefault(); handleToggleAutoMuck(); return; }
+      if (key === 'h' && !e.shiftKey) { e.preventDefault(); setShowHUD(p => { const v = !p; try { localStorage.setItem('poker-show-hud', v); eventBus.emit('DATA_MUTATED', 'hud_toggled'); } catch(_){} return v; }); return; }
+      if (key === 'l' && !e.shiftKey && lastHandResult) { e.preventDefault(); setShowLastHand(true); return; }
+      if (key === '?' || key === '/') { e.preventDefault(); setShowKbHelp(p => !p); return; }
+      if (key === 'escape') { setShowKbHelp(false); setShowActionLog(false); setShowStackGraph(false); setShowTableStats(false); setShowFeltPicker(false); setShowLayoutManager(false); return; }
 
       // Game action shortcuts — only when it's our turn
       if (!isMyTurn || !legalActions?.length) return;

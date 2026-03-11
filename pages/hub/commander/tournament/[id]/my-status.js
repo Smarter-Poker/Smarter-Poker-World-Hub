@@ -15,11 +15,13 @@ import TournamentStoryCard from '../../../../../src/components/social/Tournament
 import { Trophy, Users, Loader2, CheckCircle2, ChevronLeft, Coins, TrendingUp, Hash, Bell, Share2, Camera } from 'lucide-react';
 import useTournamentRealtime from '../../../../../src/hooks/useTournamentRealtime';
 import { useRequireAuth, getAccessToken } from '../../../../../src/lib/authUtils';
+import useTrainingBus from '../../../../../src/hooks/useTrainingBus';
 
 export default function MyTournamentStatus() {
     const router = useRouter();
     const { id } = router.query;
     const { user: authUser, checking: authChecking } = useRequireAuth(`/hub/commander/tournament/${id}/my-status`);
+    useTrainingBus('tournament-my-status');
     const [tournament, setTournament] = useState(null);
     const [myEntry, setMyEntry] = useState(null);
     const [clock, setClock] = useState(null);

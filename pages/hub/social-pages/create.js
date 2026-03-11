@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { useRequireAuth, getAccessToken } from '../../../src/lib/authUtils';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -47,6 +48,7 @@ export default function CreateSocialPage() {
     });
 
     const { user, checking: authChecking } = useRequireAuth('/hub/social-pages/create');
+    useTrainingBus('social-pages-create');
 
     function update(field, value) {
         setForm(prev => ({ ...prev, [field]: value }));

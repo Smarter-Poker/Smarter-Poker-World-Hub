@@ -13,6 +13,7 @@ import CompBalanceCard from '../../../../src/components/commander/comps/CompBala
 import CompTransactionList from '../../../../src/components/commander/comps/CompTransactionList';
 import { supabase } from '../../../../src/lib/supabase';
 import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
+import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 
 const REWARD_CATEGORIES = [
   { id: 'food', label: 'Food & Beverage', icon: Utensils, color: '#F59E0B' },
@@ -80,6 +81,7 @@ export default function PlayerRewardsPage() {
   const [redeemingId, setRedeemingId] = useState(null);
 
   const { user, checking: authChecking } = useRequireAuth('/hub/commander/rewards');
+  useTrainingBus('rewards');
   // Realtime listener — live updates for rewards/index.js
   useEffect(() => {
     if (!user?.id) return;

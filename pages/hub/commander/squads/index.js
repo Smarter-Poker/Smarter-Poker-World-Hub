@@ -11,6 +11,7 @@ import { Users, Plus, Clock, UserPlus, Check, X } from 'lucide-react';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { supabase } from '../../../../src/lib/supabase';
 import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
+import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 
 function SquadCard({ squad, onView }) {
   const statusColors = {
@@ -91,6 +92,7 @@ export default function SquadsPage() {
   const router = useRouter();
 
   const { user, checking: authChecking } = useRequireAuth('/hub/commander/squads');
+  useTrainingBus('squads');
   // Realtime listener — live updates for squads/index.js
   useEffect(() => {
     if (!user?.id) return;

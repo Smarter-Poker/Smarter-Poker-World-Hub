@@ -11,6 +11,7 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { supabase } from '../../../../src/lib/supabase';
 import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
+import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 import {
   Coffee,
   Coins,
@@ -290,6 +291,7 @@ export default function ServicesPage() {
   const [selectedType, setSelectedType] = useState(null);
 
   const { user, checking: authChecking } = useRequireAuth('/hub/commander/services');
+  useTrainingBus('services');
   // Realtime listener — live updates for services/index.js
   useEffect(() => {
     if (!user?.id) return;

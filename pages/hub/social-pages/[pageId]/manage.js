@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
+import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 import SkeletonLight from '../../../../src/components/ui/SkeletonLight';
 import { supabase } from '../../../../src/lib/supabase';
 
@@ -36,6 +37,7 @@ export default function ManageSocialPage() {
     });
 
     const { user, checking: authChecking } = useRequireAuth(`/hub/social-pages/${pageId}/manage`);
+    useTrainingBus('social-pages-manage');
 
     const fetchPage = useCallback(async (signal) => {
         if (!pageId || !user) return;

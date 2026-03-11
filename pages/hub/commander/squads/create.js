@@ -17,6 +17,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
+import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 
 const GAME_TYPES = [
   { value: 'nlhe', label: 'No Limit Hold\'em' },
@@ -30,6 +31,7 @@ export default function CreateSquadPage() {
   const { venue_id } = router.query;
 
   const { checking: authChecking } = useRequireAuth('/hub/commander/squads/create');
+  useTrainingBus('squad-create');
 
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);

@@ -11,6 +11,7 @@ import { Bell, MapPin, Clock, Users, Gift, Trophy, AlertCircle, Check, Trash2 } 
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { supabase } from '../../../../src/lib/supabase';
 import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
+import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 
 const NOTIFICATION_ICONS = {
   seat_available: Users,
@@ -105,6 +106,7 @@ export default function PlayerNotificationsPage() {
   const [notifications, setNotifications] = useState([]);
 
   const { user, checking: authChecking } = useRequireAuth('/hub/commander/notifications');
+  useTrainingBus('notifications');
 
   const getToken = () => getAccessToken();
   // Realtime listener — live updates for notifications/index.js

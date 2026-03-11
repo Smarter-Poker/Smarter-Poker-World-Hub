@@ -11,6 +11,7 @@ import { ArrowLeft, Users, Calendar, Plus, Settings, UserMinus, Clock, DollarSig
 import RSVPManager from '../../../../../src/components/commander/home-games/RSVPManager';
 import { supabase } from '../../../../../src/lib/supabase';
 import { useRequireAuth, getAccessToken } from '../../../../../src/lib/authUtils';
+import useTrainingBus from '../../../../../src/hooks/useTrainingBus';
 
 function ScheduleEventModal({ isOpen, onClose, onSubmit, group }) {
   const [eventData, setEventData] = useState({
@@ -219,6 +220,7 @@ export default function ManageHomeGamePage() {
   const router = useRouter();
   const { id } = router.query;
   const { checking: authChecking } = useRequireAuth(`/hub/commander/home-games/${id}/manage`);
+  useTrainingBus('home-games-manage');
 
   const [group, setGroup] = useState(null);
   const [members, setMembers] = useState([]);

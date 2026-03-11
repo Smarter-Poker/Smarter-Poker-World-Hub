@@ -7,11 +7,13 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../../src/components/seo/SEOHead';
 import { Users, Loader2, CheckCircle, XCircle, ArrowLeft } from 'lucide-react';
 import { useRequireAuth, getAccessToken } from '../../../../../src/lib/authUtils';
+import useTrainingBus from '../../../../../src/hooks/useTrainingBus';
 
 export default function SquadJoinPage() {
   const router = useRouter();
   const { code } = router.query;
   const { checking: authChecking } = useRequireAuth(`/hub/commander/squads/join/${code}`);
+  useTrainingBus('squad-join');
   const [status, setStatus] = useState('loading');
   const [squad, setSquad] = useState(null);
   const [error, setError] = useState(null);
