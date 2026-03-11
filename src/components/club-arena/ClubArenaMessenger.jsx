@@ -350,9 +350,9 @@ const MessageBubble = ({ message, isOwn, showAvatar, user, onAction }) => (
             {/* P5-6: Edit indicator */}
             {message.isEdited && <span className="edit-indicator" title="Edited">(edited)</span>}
 
-            {/* P5-4 + P10-2 + P14-3: Delivery status ticks */}
+            {/* P5-4 + P10-2 + P14-3 + P20-7: Delivery status ticks with read time tooltip */}
             {message.isOwn && (
-                <span className="read-receipt" style={{ color: message.readStatus === 'read' ? '#2D88FF' : '#999', fontSize: 10, marginLeft: 4 }}>
+                <span className="read-receipt" title={message.readStatus === 'read' ? `Read at ${message.read_at ? new Date(message.read_at).toLocaleTimeString() : 'unknown'}` : message.readStatus === 'delivered' ? 'Delivered' : 'Sent'} style={{ color: message.readStatus === 'read' ? '#2D88FF' : '#999', fontSize: 10, marginLeft: 4, cursor: 'default' }}>
                     {message.readStatus === 'read' ? '✓✓' : message.readStatus === 'delivered' ? '✓✓' : '✓'}
                 </span>
             )}
@@ -454,7 +454,7 @@ const MessageBubble = ({ message, isOwn, showAvatar, user, onAction }) => (
             }
 
             .message-bubble.own {
-                background: ${SP_COLORS.blue};
+                background: var(--messenger-accent, ${SP_COLORS.blue});
                 color: white;
                 border-bottom-right-radius: 4px;
             }
@@ -1568,6 +1568,8 @@ export const ChatWindow = ({
                     <button className="header-btn" onClick={() => setShowSearchOverlay(!showSearchOverlay)} title="Search Messages" style={{ color: showSearchOverlay ? '#2D88FF' : undefined }}>🔎</button>
                     {/* P19-5: Scheduled messages toggle */}
                     <button className="header-btn" onClick={() => setShowSchedulePanel(!showSchedulePanel)} title="Scheduled Messages" style={{ color: showSchedulePanel ? '#2D88FF' : undefined }}>⏰</button>
+                    {/* P20-5: Theme Picker */}
+                    <button className="header-btn" onClick={() => setShowThemePicker(!showThemePicker)} title="Chat Theme" style={{ color: showThemePicker ? '#2D88FF' : undefined }}>🎨</button>
                     {/* P20-2: Contact Insights */}
                     <button className="header-btn" onClick={() => setShowContactInsights(!showContactInsights)} title="Contact Insights" style={{ color: showContactInsights ? '#2D88FF' : undefined }}>📊</button>
                     {/* P20-8: Bookmarks Drawer */}
@@ -1686,18 +1688,38 @@ export const ChatWindow = ({
                 </div>
             )}
 
-            {/* E6: Theme Picker with Gradients */}
+            {/* E6 + P20-5: Unified Theme Picker (Background Presets + Accent Color + Font Size) */}
             {showThemePicker && (
-                <div className="theme-picker-bar">
-                    {THEME_PRESETS.map(preset => (
-                        <div
-                            key={preset.label}
-                            style={{ background: preset.value, border: theme === preset.value ? '2px solid #0088ff' : '1px solid #ddd' }}
-                            className="theme-circle"
-                            title={preset.label}
-                            onClick={() => { updatePrefs(p => ({ ...p, themes: { ...p.themes, [conversationId]: preset.value }})); setShowThemePicker(false); }}
-                        />
-                    ))}
+                <div style={{ background: 'rgba(24,25,26,0.96)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, margin: '0 8px 6px', padding: 10 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <span style={{ fontWeight: 'bold', fontSize: 12, color: '#e4e6eb' }}>🎨 Chat Theme</span>
+                        <button onClick={() => setShowThemePicker(false)} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer' }}>✕</button>
+                    </div>
+                    {/* Background presets */}
+                    <div style={{ fontSize: 10, color: '#888', marginBottom: 4 }}>Background</div>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+                        {THEME_PRESETS.map(preset => (
+                            <div
+                                key={preset.label}
+                                style={{ width: 28, height: 28, borderRadius: '50%', background: preset.value, border: theme === preset.value ? '2px solid #2D88FF' : '2px solid rgba(255,255,255,0.2)', cursor: 'pointer', flexShrink: 0 }}
+                                title={preset.label}
+                                onClick={() => updatePrefs(p => ({ ...p, themes: { ...p.themes, [conversationId]: preset.value }}))}
+                            />
+                        ))}
+                    </div>
+                    {/* Accent color */}
+                    <div style={{ fontSize: 10, color: '#888', marginBottom: 4 }}>Accent Color</div>
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                        {['#2D88FF', '#00e676', '#ff6b6b', '#ffd700', '#aa66cc', '#ff8a65'].map(c => (
+                            <button key={c} onClick={() => svc.setConversationTheme({ ...svc.conversationTheme, accentColor: c })} style={{ width: 28, height: 28, borderRadius: '50%', background: c, border: svc.conversationTheme?.accentColor === c ? '3px solid #fff' : '2px solid rgba(255,255,255,0.2)', cursor: 'pointer' }} />
+                        ))}
+                    </div>
+                    {/* Font size slider */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontSize: 10, color: '#999' }}>Font Size</span>
+                        <input type="range" min="10" max="18" value={svc.conversationTheme?.fontSize || 13} onChange={(e) => svc.setConversationTheme({ ...svc.conversationTheme, fontSize: parseInt(e.target.value) })} style={{ flex: 1 }} />
+                        <span style={{ fontSize: 10, color: '#999' }}>{svc.conversationTheme?.fontSize || 13}px</span>
+                    </div>
                 </div>
             )}
 
@@ -1955,7 +1977,18 @@ export const ChatWindow = ({
                     const prevMsg = messages[i - 1];
                     const showAvatar = !isOwn && (!prevMsg || prevMsg.senderId !== enrichedMsg.senderId);
 
+                    // P20-4: Unread Separator Line
+                    const unreadIdx = svc.getUnreadSeparatorIndex?.(messages);
+                    const showUnreadSep = unreadIdx != null && i === unreadIdx;
+
                     return (
+                        <>{showUnreadSep && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '8px 12px', opacity: 0.8 }}>
+                                <div style={{ flex: 1, height: 1, background: '#2D88FF' }} />
+                                <span style={{ fontSize: 10, color: '#2D88FF', fontWeight: 600, whiteSpace: 'nowrap' }}>✦ New Messages</span>
+                                <div style={{ flex: 1, height: 1, background: '#2D88FF' }} />
+                            </div>
+                        )}
                         <div key={enrichedMsg.id || i} style={{ display: 'flex', alignItems: 'flex-start', gap: multiSelectMode ? 6 : 0 }}>
                             {multiSelectMode && (
                                 <div onClick={() => setSelectedMessageIds(prev => prev.includes(enrichedMsg.id) ? prev.filter(id => id !== enrichedMsg.id) : [...prev, enrichedMsg.id])} style={{ minWidth: 22, height: 22, marginTop: 8, borderRadius: 4, border: selectedMessageIds.includes(enrichedMsg.id) ? '2px solid #2D88FF' : '2px solid rgba(255,255,255,0.3)', background: selectedMessageIds.includes(enrichedMsg.id) ? '#2D88FF' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 12, color: '#fff', flexShrink: 0 }}>
@@ -1972,6 +2005,7 @@ export const ChatWindow = ({
                                 />
                             </div>
                         </div>
+                    </>
                     );
                 })}
                 <div ref={messagesEndRef} />
