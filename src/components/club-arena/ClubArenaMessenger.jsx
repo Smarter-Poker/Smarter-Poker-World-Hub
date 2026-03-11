@@ -7,7 +7,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { SPAvatar, SP_COLORS } from './SmarterPokerStyleCard';
+import { SPAvatar, SP_COLORS } from '../social/SmarterPokerStyleCard';
 import { busEmit, eventBus, EventType } from '../../engine/EventBus';
 import { enqueueMutation } from '../../engine/OfflineSyncQueue';
 
@@ -986,6 +986,7 @@ export const ChatWindow = ({
                 if (!error) {
                     const { data: { publicUrl } } = sb.storage.from('messenger_media').getPublicUrl(fileName);
                     onSend?.(`🎤 Voice message`, { audioUrl: publicUrl });
+                    busEmit.voiceMessageSent(conversationId, recordingTime.toString());
                 }
             };
 
@@ -1073,8 +1074,8 @@ export const ChatWindow = ({
                 </div>
                 <div className="chat-header-actions">
                     {/* P7-1 & P7-2: Live Audio / Video Calls */}
-                    <button className="header-btn call-btn" onClick={() => setActiveCall({ type: 'audio', status: 'connecting' })} title="Start Voice Call" style={{ color: activeCall?.type === 'audio' ? '#0088ff' : undefined }}>📞</button>
-                    <button className="header-btn call-btn" onClick={() => setActiveCall({ type: 'video', status: 'connecting' })} title="Start Video Call" style={{ color: activeCall?.type === 'video' ? '#0088ff' : undefined }}>🎥</button>
+                    <button className="header-btn call-btn" onClick={() => { setActiveCall({ type: 'audio', status: 'connecting' }); busEmit.callStarted('audio', conversationId, otherUser?.id); }} title="Start Voice Call" style={{ color: activeCall?.type === 'audio' ? '#0088ff' : undefined }}>📞</button>
+                    <button className="header-btn call-btn" onClick={() => { setActiveCall({ type: 'video', status: 'connecting' }); busEmit.callStarted('video', conversationId, otherUser?.id); }} title="Start Video Call" style={{ color: activeCall?.type === 'video' ? '#0088ff' : undefined }}>🎥</button>
                     
                     {/* P8-5: Secret Chat / E2E Encryption */}
                     <button className="header-btn e2e-btn" onClick={() => setIsE2E(!isE2E)} title="Toggle E2E Encryption" style={{ color: isE2E ? '#00e676' : undefined }}>🔒</button>
@@ -1148,9 +1149,9 @@ export const ChatWindow = ({
                     )}
                     <div className="call-controls">
                         {activeCall.status === 'connecting' && (
-                            <button className="call-btn-action accept" onClick={() => setActiveCall({ ...activeCall, status: 'connected' })}>Accept</button>
+                            <button className="call-btn-action accept" onClick={() => { setActiveCall({ ...activeCall, status: 'connected' }); busEmit.callStarted(activeCall.type, conversationId, otherUser?.id); }}>Accept</button>
                         )}
-                        <button className="call-btn-action hangup" onClick={() => setActiveCall(null)}>End</button>
+                        <button className="call-btn-action hangup" onClick={() => { busEmit.callEnded(activeCall?.type, conversationId); setActiveCall(null); }}>End</button>
                     </div>
                 </div>
             )}

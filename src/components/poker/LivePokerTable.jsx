@@ -3387,88 +3387,7 @@ function SmallButton({ label, onClick, color }) {
 // ═══════════════════════════════════════════════════════
 // RUN IT OFFER OVERLAY — Consent dialog for run-it-twice/thrice
 // ═══════════════════════════════════════════════════════
-function RunItOfferOverlay({ offer, userId, onRespond }) {
-  const [responded, setResponded] = useState(false);
-  const [countdown, setCountdown] = useState(offer?.deadline || 15);
-
-  useEffect(() => {
-    if (countdown <= 0) return;
-    const t = setTimeout(() => setCountdown(c => c - 1), 1000);
-    return () => clearTimeout(t);
-  }, [countdown]);
-
-  if (!offer || !offer.playerIds?.includes(userId)) return null;
-
-  const handleChoice = (choice) => {
-    if (responded) return;
-    setResponded(true);
-    onRespond(choice);
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      style={{
-        position: 'absolute',
-        top: '50%', left: '50%',
-        transform: 'translate(-50%, -50%)',
-        zIndex: 900,
-        background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
-        border: '2px solid #4ECDC4',
-        borderRadius: 16,
-        padding: '20px 28px',
-        textAlign: 'center',
-        minWidth: 280,
-        boxShadow: '0 0 40px rgba(78,205,196,0.3)',
-      }}
-    >
-      <div style={{ fontSize: 24, marginBottom: 6 }}>🃏</div>
-      <h3 style={{ color: '#E4E6EB', fontSize: 16, margin: '0 0 4px', fontWeight: 700 }}>
-        Run It Multiple Times?
-      </h3>
-      <p style={{ color: '#B0B3B8', fontSize: 12, margin: '0 0 12px' }}>
-        Both players must agree • {countdown}s
-      </p>
-
-      {!responded ? (
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-          <button
-            onClick={() => handleChoice('twice')}
-            style={{
-              padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
-              background: '#4ECDC4', color: '#000', fontWeight: 700, fontSize: 13,
-            }}
-          >
-            Run Twice
-          </button>
-          <button
-            onClick={() => handleChoice('thrice')}
-            style={{
-              padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
-              background: '#FFD700', color: '#000', fontWeight: 700, fontSize: 13,
-            }}
-          >
-            Run 3x
-          </button>
-          <button
-            onClick={() => handleChoice('decline')}
-            style={{
-              padding: '8px 16px', borderRadius: 8, border: '1px solid #555', cursor: 'pointer',
-              background: 'transparent', color: '#B0B3B8', fontWeight: 600, fontSize: 13,
-            }}
-          >
-            No
-          </button>
-        </div>
-      ) : (
-        <p style={{ color: '#4ECDC4', fontSize: 13, fontWeight: 600 }}>
-          ✓ Waiting for opponent...
-        </p>
-      )}
-    </motion.div>
-  );
-}
+// RunItOfferOverlay — removed; replaced by inline isRitOfferActive block below
 
 // ═══════════════════════════════════════════════════════════════════════════
 // GTO SPOT-CHECK BADGE — Post-showdown play quality indicator
@@ -3651,9 +3570,11 @@ function ChipFlyAnimation({ winners, seatPositions, seats }) {
 function ResultOverlay({ result, send, userId }) {
   const [showRabbit, setShowRabbit] = useState(false);
   const [cardsShown, setCardsShown] = useState(false);
+  const [onDemandRabbit, setOnDemandRabbit] = useState(null); // { cards, board }
+  const [rabbitLoading, setRabbitLoading] = useState(false);
 
   // Reset rabbit state when result changes
-  useEffect(() => { setShowRabbit(false); setCardsShown(false); }, [result]);
+  useEffect(() => { setShowRabbit(false); setCardsShown(false); setOnDemandRabbit(null); setRabbitLoading(false); }, [result]);
 
   if (!result) return null;
 
@@ -3785,12 +3706,28 @@ function ResultOverlay({ result, send, userId }) {
       )}
 
       {/* Rabbit Hunt — ON-DEMAND REQUEST when engine didn't send cards */}
-      {isFoldWin && (!rabbitCards || rabbitCards.length === 0) && send && (
+      {isFoldWin && (!rabbitCards || rabbitCards.length === 0) && send && !onDemandRabbit && (
         <div style={{ marginTop: 10 }}>
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={(e) => { e.stopPropagation(); send('request_rabbit', {}); }}
+            disabled={rabbitLoading}
+            onClick={async (e) => {
+              e.stopPropagation();
+              setRabbitLoading(true);
+              try {
+                const resp = await send('request_rabbit', {});
+                if (resp?.success && resp.rabbitCards?.length > 0) {
+                  setOnDemandRabbit({ cards: resp.rabbitCards, board: resp.boardAtEnd || boardAtEnd });
+                } else {
+                  // No rabbit cards available
+                  setOnDemandRabbit({ cards: [], board: boardAtEnd });
+                }
+              } catch (_) {
+                setOnDemandRabbit({ cards: [], board: boardAtEnd });
+              }
+              setRabbitLoading(false);
+            }}
             style={{
               background: 'linear-gradient(135deg, rgba(139,92,246,0.2), rgba(139,92,246,0.08))',
               border: '1px solid rgba(139,92,246,0.3)',
@@ -3799,16 +3736,56 @@ function ResultOverlay({ result, send, userId }) {
               color: '#c084fc',
               fontSize: 12,
               fontWeight: 700,
-              cursor: 'pointer',
+              cursor: rabbitLoading ? 'wait' : 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
               gap: 6,
+              opacity: rabbitLoading ? 0.6 : 1,
             }}
           >
             <span style={{ fontSize: 16 }}>🐰</span>
-            Request Rabbit Hunt
+            {rabbitLoading ? 'Loading...' : 'Request Rabbit Hunt'}
           </motion.button>
         </div>
+      )}
+
+      {/* On-demand Rabbit Hunt results */}
+      {onDemandRabbit && onDemandRabbit.cards?.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          transition={{ duration: 0.3 }}
+          style={{ marginTop: 10 }}
+        >
+          <div style={{
+            fontSize: 10, color: '#65676B', marginBottom: 6,
+            textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700,
+          }}>
+            🐇 Would have been dealt
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 4, flexWrap: 'wrap' }}>
+            {(onDemandRabbit.board || []).map((card, i) => (
+              <div key={`board-od-${i}`} style={{ opacity: 0.45 }}>
+                <CardImg card={card} width={38} delay={0} fourColorDeck={fourColorDeck} />
+              </div>
+            ))}
+            {onDemandRabbit.cards.map((card, i) => (
+              <motion.div
+                key={`rabbit-od-${i}`}
+                initial={{ rotateY: 180, opacity: 0 }}
+                animate={{ rotateY: 0, opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.15 + i * 0.2 }}
+                style={{
+                  filter: 'drop-shadow(0 0 6px rgba(255,215,0,0.4))',
+                  border: '1px solid rgba(255,215,0,0.3)',
+                  borderRadius: 4,
+                }}
+              >
+                <CardImg card={card} width={38} delay={0.15 + i * 0.2} fourColorDeck={fourColorDeck} />
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
       )}
 
       {/* Show Cards — voluntary reveal after fold win */}
@@ -4671,16 +4648,7 @@ function LivePokerTable({
             pots={tableState?.game?.pots || []}
           />
 
-          {/* Run It Twice/Thrice offer overlay */}
-          <AnimatePresence>
-            {result?.runItOffer && (
-              <RunItOfferOverlay
-                offer={result.runItOffer}
-                userId={userId}
-                onRespond={(choice) => send('respond_run_it', { choice })}
-              />
-            )}
-          </AnimatePresence>
+          {/* Run It Twice/Thrice — handled by inline isRitOfferActive block below */}
 
           {/* Result overlay */}
           <AnimatePresence>

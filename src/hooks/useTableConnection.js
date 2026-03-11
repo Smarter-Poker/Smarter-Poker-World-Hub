@@ -626,6 +626,7 @@ export function useTableConnection({ supabase, tableId, userId }) {
       case 'invite_player': return _post('seat', { tableId, playerId: userId, action: 'invite_player', targetPlayerId: payload.targetPlayerId });
       case 'approve_buyin': return _post('seat', { tableId, playerId: userId, action: 'approve_buyin', targetPlayerId: payload.targetPlayerId });
       case 'reject_buyin': return _post('seat', { tableId, playerId: userId, action: 'reject_buyin', targetPlayerId: payload.targetPlayerId });
+      case 'request_rabbit': return _post('seat', { tableId, playerId: userId, action: 'request_rabbit' });
       default: console.warn('[useTableConnection] Unknown event:', event);
     }
   }, [sendAction, sitDown, standUp, sitOut, sitIn, addChips, sendChat, requestState, joinWaitlist, leaveWaitlist]);

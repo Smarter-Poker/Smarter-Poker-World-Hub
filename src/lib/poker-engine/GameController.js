@@ -1541,6 +1541,46 @@ class GameController {
     return result;
   }
 
+  /**
+   * Request rabbit hunt cards — peek at remaining board cards from the last hand.
+   * Only available after a fold win (hand ended before showdown).
+   * @param {string} tableId
+   * @param {string} playerId - Must be seated at the table
+   * @returns {{ success: boolean, rabbitCards?: Array, boardAtEnd?: Array }}
+   */
+  requestRabbit(tableId, playerId) {
+    const entry = this.lobby.tables.get(tableId);
+    if (!entry) return { success: false, error: 'Table not found' };
+
+    // Verify the player is seated
+    const seat = entry.table.seats.find(s =>
+      s.player && String(s.player.id) === String(playerId) && s.status !== 'empty'
+    );
+    if (!seat) return { success: false, error: 'Not seated at this table' };
+
+    // Get the last hand result from the game engine
+    const lastHand = entry.table.game?.currentHand;
+    const lastResult = lastHand?.result;
+
+    if (!lastResult) {
+      return { success: false, error: 'No recent hand result available' };
+    }
+
+    if (lastResult.type !== 'fold') {
+      return { success: false, error: 'Rabbit hunt only available after fold wins' };
+    }
+
+    const rabbitCards = lastResult.rabbitCards || [];
+    const boardAtEnd = lastResult.boardAtEnd || [];
+
+    if (rabbitCards.length === 0) {
+      // If rabbitCards wasn't stored (hand ended on river), nothing to show
+      return { success: true, rabbitCards: [], boardAtEnd };
+    }
+
+    return { success: true, rabbitCards, boardAtEnd };
+  }
+
   async sendChat(tableId, playerId, message) {
     await this._ensureInit();
     const entry = this.lobby.tables.get(tableId);

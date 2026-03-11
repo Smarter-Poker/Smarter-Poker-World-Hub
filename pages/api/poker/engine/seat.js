@@ -42,6 +42,7 @@ const VALID_SEAT_ACTIONS = new Set([
   'set_auto_rebuy', 'set_auto_topup',
   'invite_player', 'approve_buyin', 'reject_buyin',
   'show_cards', 'show_one_card', 'kick_player',
+  'request_rabbit',
 ]);
 
 export default async function handler(req, res) {
@@ -436,6 +437,14 @@ export default async function handler(req, res) {
         if (result.success && clubId) {
           await ChipBridge.unlockChips(clubId, targetId, tableId, result.cashout || 0);
         }
+        break;
+      }
+
+      // ═══════════════════════════════════════════════════════════
+      // RABBIT HUNT — Peek at remaining board cards after fold win
+      // ═══════════════════════════════════════════════════════════
+      case 'request_rabbit': {
+        result = controller.requestRabbit(tableId, playerId);
         break;
       }
 
