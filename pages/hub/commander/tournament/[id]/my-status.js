@@ -16,6 +16,7 @@ import { Trophy, Users, Loader2, CheckCircle2, ChevronLeft, Coins, TrendingUp, H
 import useTournamentRealtime from '../../../../../src/hooks/useTournamentRealtime';
 import { useRequireAuth, getAccessToken } from '../../../../../src/lib/authUtils';
 import useTrainingBus from '../../../../../src/hooks/useTrainingBus';
+import { busEmit } from '../../../../../src/engine/EventBus';
 
 export default function MyTournamentStatus() {
     const router = useRouter();
@@ -167,6 +168,7 @@ export default function MyTournamentStatus() {
             });
             const json = await res.json();
             if (json.success) {
+                busEmit.dataMutated('tournaments');
                 setStoryShared(true);
                 setShowStoryPreview(false);
                 setTimeout(() => setStoryShared(false), 3000);
@@ -193,6 +195,7 @@ export default function MyTournamentStatus() {
             });
             const json = await res.json();
             if (json.success) {
+                busEmit.dataMutated('tournaments');
                 setSaved(true);
                 setMyEntry(prev => ({ ...prev, current_chips: json.data.current_chips }));
                 setTimeout(() => setSaved(false), 3000);

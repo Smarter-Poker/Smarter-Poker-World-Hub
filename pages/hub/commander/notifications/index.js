@@ -12,6 +12,7 @@ import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { supabase } from '../../../../src/lib/supabase';
 import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
+import { busEmit } from '../../../../src/engine/EventBus';
 
 const NOTIFICATION_ICONS = {
   seat_available: Users,
@@ -149,6 +150,7 @@ export default function PlayerNotificationsPage() {
         },
         body: JSON.stringify({ read_at: new Date().toISOString() })
       });
+      busEmit.dataMutated('notifications');
     } catch (err) {
       console.error('Mark read failed:', err);
       // Revert on error
@@ -171,6 +173,7 @@ export default function PlayerNotificationsPage() {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
+      busEmit.dataMutated('notifications');
     } catch (err) {
       console.error('Delete failed:', err);
       // Revert on error
@@ -193,6 +196,7 @@ export default function PlayerNotificationsPage() {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       });
+      busEmit.dataMutated('notifications');
     } catch (err) {
       console.error('Mark all read failed:', err);
       // Revert on error

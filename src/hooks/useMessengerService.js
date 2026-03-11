@@ -2251,15 +2251,18 @@ ${messages.map(m =>
     const [conversationTheme, setConversationThemeState] = useState({ accentColor: '#2D88FF', fontSize: 13 });
 
     useEffect(() => {
-        if (conversationId && svcSettings?.theme) {
-            setConversationThemeState(svcSettings.theme);
+        if (conversationId) {
+            getConversationSettings().then(settings => {
+                if (settings?.theme) setConversationThemeState(settings.theme);
+            });
         }
-    }, [conversationId]);
+    }, [conversationId, getConversationSettings]);
 
     const setConversationTheme = useCallback(async (theme) => {
         setConversationThemeState(theme);
-        await saveConversationSettings?.({ ...svcSettings, theme });
-    }, [saveConversationSettings, svcSettings]);
+        const existingSettings = await getConversationSettings();
+        await saveConversationSettings({ ...existingSettings, theme });
+    }, [getConversationSettings, saveConversationSettings]);
 
     // ── P20-6: Batch Forward Messages ──
     const forwardMultipleMessages = useCallback(async (messageIds, targetConversationId) => {
@@ -2302,7 +2305,7 @@ ${messages.map(m =>
     }, []);
 
     // ── P20-10: Conversation Export Formats ──
-    const exportConversation = useCallback((format = 'txt') => {
+    const exportConversationFormatted = useCallback((format = 'txt') => {
         if (!messages.length) return null;
         const convName = `Conversation_${conversationId?.slice(0, 8) || 'export'}`;
         const timestamp = new Date().toISOString().slice(0, 10);
@@ -2562,6 +2565,28 @@ ${messages.map(m =>
 
         // P19-3: Search Highlighting
         highlightSearchMatches,
+
+        // P20-1: Message Reactions Panel
+        getMessageReactions,
+
+        // P20-2: Contact Insights
+        getContactInsights,
+
+        // P20-4: Unread Separator
+        getUnreadSeparatorIndex,
+
+        // P20-5: Conversation Theme
+        conversationTheme,
+        setConversationTheme,
+
+        // P20-6: Batch Forward
+        forwardMultipleMessages,
+
+        // P20-9: Voice Transcription
+        transcribeVoice,
+
+        // P20-10: Export Formats
+        exportConversationFormatted,
     };
 }
 

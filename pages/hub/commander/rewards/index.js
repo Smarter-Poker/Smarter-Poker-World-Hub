@@ -14,6 +14,7 @@ import CompTransactionList from '../../../../src/components/commander/comps/Comp
 import { supabase } from '../../../../src/lib/supabase';
 import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
+import { busEmit } from '../../../../src/engine/EventBus';
 
 const REWARD_CATEGORIES = [
   { id: 'food', label: 'Food & Beverage', icon: Utensils, color: '#F59E0B' },
@@ -163,6 +164,7 @@ export default function PlayerRewardsPage() {
 
       const data = await res.json();
       if (data.success) {
+        busEmit.dataMutated('rewards');
         setBalance(prev => prev - finalAmount);
         setComingSoonMessage(`Successfully redeemed $${finalAmount} for ${category.label}!`);
         refreshRewards(); // Refresh data
