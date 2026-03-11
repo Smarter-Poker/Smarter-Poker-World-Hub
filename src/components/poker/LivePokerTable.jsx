@@ -600,13 +600,13 @@ function PotScoopAnimation({ isActive, winnerPosition }) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function WinFlyUp({ amount, isVisible }) {
-  if (!isVisible || !amount || amount <= 0) return null;
-  const formatted = amount >= 1000 ? `${(amount / 1000).toFixed(1)}K` : amount.toLocaleString();
-  // Pre-compute random offsets so they don't change on re-render
+  // Pre-compute sparkle offsets — must be before early return (hooks rules)
   const offsets = useMemo(() => [0, 1, 2, 3, 4].map(i => ({
     x: (i - 2) * 25 + (Math.sin(i * 1.7) * 10),
     y: -(20 + (Math.cos(i * 2.3) * 15 + 15)),
   })), []);
+  if (!isVisible || !amount || amount <= 0) return null;
+  const formatted = amount >= 1000 ? `${(amount / 1000).toFixed(1)}K` : amount.toLocaleString();
   return (
     <AnimatePresence>
       {isVisible && (
