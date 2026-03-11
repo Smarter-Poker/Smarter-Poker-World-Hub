@@ -289,7 +289,7 @@ export default function ServicesPage() {
 
   const [selectedType, setSelectedType] = useState(null);
 
-  const { checking: authChecking } = useRequireAuth('/hub/commander/services');
+  const { user, checking: authChecking } = useRequireAuth('/hub/commander/services');
   // Realtime listener — live updates for services/index.js
   useEffect(() => {
     if (!user?.id) return;

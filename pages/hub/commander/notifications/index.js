@@ -104,7 +104,7 @@ export default function PlayerNotificationsPage() {
   const [filter, setFilter] = useState('all'); // 'all', 'unread'
   const [notifications, setNotifications] = useState([]);
 
-  const { checking: authChecking } = useRequireAuth('/hub/commander/notifications');
+  const { user, checking: authChecking } = useRequireAuth('/hub/commander/notifications');
 
   const getToken = () => getAccessToken();
   // Realtime listener — live updates for notifications/index.js

@@ -79,7 +79,7 @@ export default function PlayerRewardsPage() {
   const [showRedeemInput, setShowRedeemInput] = useState(false);
   const [redeemingId, setRedeemingId] = useState(null);
 
-  const { checking: authChecking } = useRequireAuth('/hub/commander/rewards');
+  const { user, checking: authChecking } = useRequireAuth('/hub/commander/rewards');
   // Realtime listener — live updates for rewards/index.js
   useEffect(() => {
     if (!user?.id) return;

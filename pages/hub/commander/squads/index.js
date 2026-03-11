@@ -90,7 +90,7 @@ function EmptyState({ onCreateSquad }) {
 export default function SquadsPage() {
   const router = useRouter();
 
-  const { checking: authChecking } = useRequireAuth('/hub/commander/squads');
+  const { user, checking: authChecking } = useRequireAuth('/hub/commander/squads');
   // Realtime listener — live updates for squads/index.js
   useEffect(() => {
     if (!user?.id) return;

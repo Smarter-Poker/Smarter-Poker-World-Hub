@@ -8284,16 +8284,6 @@ function LivePokerTable({
         />
       </AnimatePresence>
 
-      {/* F3: Stack Graph Modal */}
-      <AnimatePresence>
-        {showStackGraph && (
-          <StackGraphModal
-            history={stackHistory}
-            onClose={() => setShowStackGraph(false)}
-            initialBuyIn={sessionStats?.initialBuyIn || 0}
-          />
-        )}
-      </AnimatePresence>
 
       {/* F4: Table Stats Banner */}
       <AnimatePresence>
