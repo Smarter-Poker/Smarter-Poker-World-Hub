@@ -1405,14 +1405,15 @@ export const ChatWindow = ({
                     </div>
                     {activeCall.type === 'video' && activeCall.status === 'connected' && (
                         <div className="video-pip-window">
-                            <div className="simulated-remote-video" />
+                            <video className="simulated-remote-video" autoPlay playsInline ref={node => { if (node && svc.remoteStreamRef.current) node.srcObject = svc.remoteStreamRef.current; }} />
+                            <video className="simulated-local-video" autoPlay playsInline muted srcObject={svc.localStreamRef.current} ref={node => { if (node && svc.localStreamRef.current) node.srcObject = svc.localStreamRef.current; }} style={{ position: 'absolute', bottom: 4, right: 4, width: 48, height: 48, borderRadius: 4, objectFit: 'cover' }} />
                         </div>
                     )}
                     <div className="call-controls">
                         {activeCall.status === 'connecting' && (
-                            <button className="call-btn-action accept" onClick={() => { setActiveCall({ ...activeCall, status: 'connected' }); busEmit.callStarted(activeCall.type, conversationId, otherUser?.id); }}>Accept</button>
+                            <button className="call-btn-action accept" onClick={() => { setActiveCall({ ...activeCall, status: 'connected' }); busEmit.callStarted(activeCall.type, conversationId, otherUser?.id); svc.answerCall(null, otherUser?.id, activeCall.type); }}>Accept</button>
                         )}
-                        <button className="call-btn-action hangup" onClick={() => { busEmit.callEnded(activeCall?.type, conversationId); setActiveCall(null); }}>End</button>
+                        <button className="call-btn-action hangup" onClick={() => { busEmit.callEnded(activeCall?.type, conversationId); setActiveCall(null); svc.endCall(); }}>End</button>
                     </div>
                 </div>
             )}
@@ -1671,7 +1672,7 @@ export const ChatWindow = ({
 
             {/* Messages */}
             <div className="chat-messages">
-                {messages.filter(msg => {
+                {(svc.messages?.length ? svc.messages : messages).filter(msg => {
                     // P5-1: Apply search filter
                     if (msgSearch.trim() && !msg.text?.toLowerCase().includes(msgSearch.toLowerCase().trim())) return false;
                     return true;
