@@ -639,6 +639,16 @@ export const ChatWindow = ({
     const [stickerPackIdx, setStickerPackIdx] = useState(0);
     const [showShortcuts, setShowShortcuts] = useState(false);
     const [editingMessageId, setEditingMessageId] = useState(null);
+
+    // P18: Intelligence & Premium UX State
+    const [showAnalytics, setShowAnalytics] = useState(false);
+    const [showLabelPicker, setShowLabelPicker] = useState(false);
+    const [newLabelText, setNewLabelText] = useState('');
+    const [newLabelColor, setNewLabelColor] = useState('#2D88FF');
+    const [showAutoAwaySettings, setShowAutoAwaySettings] = useState(false);
+    const [autoAwayMsg, setAutoAwayMsg] = useState('I\'m away right now. I\'ll get back to you soon!');
+    const [showBackupRestore, setShowBackupRestore] = useState(false);
+    const backupFileInputRef = useRef(null);
     
     // P7-6: Lightbox State
     const [lightboxImage, setLightboxImage] = useState(null);
@@ -1460,6 +1470,12 @@ export const ChatWindow = ({
                     <button className="header-btn" onClick={() => setShowSoundPicker(!showSoundPicker)} title="Notification Sound" style={{ color: showSoundPicker ? '#2D88FF' : undefined }}>🔔</button>
                     {/* P14-8: Archive/Export toggle */}
                     <button className="header-btn" onClick={() => setShowArchiveExport(!showArchiveExport)} title="Archive/Export" style={{ color: showArchiveExport ? '#2D88FF' : undefined }}>💾</button>
+                    {/* P18-6: Auto-Away toggle */}
+                    <button className="header-btn" onClick={() => setShowAutoAwaySettings(!showAutoAwaySettings)} title="Auto-Away" style={{ color: svc.autoAwayConfig?.enabled ? '#ffd700' : (showAutoAwaySettings ? '#2D88FF' : undefined) }}>🌙</button>
+                    {/* P18-4: Label picker toggle */}
+                    <button className="header-btn" onClick={() => setShowLabelPicker(!showLabelPicker)} title="Labels" style={{ color: showLabelPicker ? '#2D88FF' : undefined }}>🏷️</button>
+                    {/* P18-10: Backup/Restore toggle */}
+                    <button className="header-btn" onClick={() => setShowBackupRestore(!showBackupRestore)} title="Backup/Restore" style={{ color: showBackupRestore ? '#2D88FF' : undefined }}>📦</button>
                     {/* P15-5: Block User toggle */}
                     <button className="header-btn" onClick={() => { if (svc.blockedUsers?.includes(otherUser?.id)) { svc.unblockUser(otherUser?.id); } else { svc.blockUser(otherUser?.id); } }} title={svc.blockedUsers?.includes(otherUser?.id) ? 'Unblock User' : 'Block User'} style={{ color: svc.blockedUsers?.includes(otherUser?.id) ? '#ff4444' : undefined }}>🚫</button>
                     {/* P15-1: Create Group */}
@@ -1519,16 +1535,54 @@ export const ChatWindow = ({
                 </div>
             )}
 
-            {/* P5-8: Stats Dashboard */}
+            {/* P5-8 + P18-8: Stats Dashboard (Enhanced) */}
             {showStats && (
                 <div className="stats-dashboard">
-                    <strong>📊 Chat Stats</strong>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <strong>📊 Chat Stats</strong>
+                        <button onClick={() => setShowAnalytics(!showAnalytics)} style={{ background: 'none', border: 'none', color: '#2D88FF', cursor: 'pointer', fontSize: 11 }}>{showAnalytics ? 'Simple View' : 'Full Analytics'}</button>
+                    </div>
                     <div className="stats-grid">
                         <div className="stat-card"><span className="stat-val">{stats.total}</span><span className="stat-label">Total</span></div>
                         <div className="stat-card"><span className="stat-val">{stats.mine}</span><span className="stat-label">Sent</span></div>
                         <div className="stat-card"><span className="stat-val">{stats.theirs}</span><span className="stat-label">Received</span></div>
                         <div className="stat-card"><span className="stat-val">{stats.avgLength}</span><span className="stat-label">Avg Chars</span></div>
                     </div>
+                    {/* P18-8: Full Analytics Panel */}
+                    {showAnalytics && (() => {
+                        const analytics = svc.getConversationAnalytics();
+                        if (!analytics) return <div style={{ color: '#888', fontSize: 11, textAlign: 'center', padding: 10 }}>No data yet</div>;
+                        return (
+                            <div style={{ marginTop: 8, borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 8 }}>
+                                <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                                    <div className="stat-card"><span className="stat-val">{analytics.avgResponseTime}s</span><span className="stat-label">Avg Response</span></div>
+                                    <div className="stat-card"><span className="stat-val">{analytics.mediaCount}</span><span className="stat-label">Media</span></div>
+                                    <div className="stat-card"><span className="stat-val">{analytics.stickerCount}</span><span className="stat-label">Stickers</span></div>
+                                </div>
+                                {/* Active Hours Heatmap */}
+                                <div style={{ marginTop: 8 }}>
+                                    <div style={{ fontSize: 10, color: '#aaa', marginBottom: 4 }}>Active Hours</div>
+                                    <div style={{ display: 'flex', gap: 1.5, height: 28 }}>
+                                        {analytics.activeHours.map((count, h) => {
+                                            const max = Math.max(...analytics.activeHours, 1);
+                                            const intensity = count / max;
+                                            return <div key={h} style={{ flex: 1, borderRadius: 2, background: `rgba(45,136,255,${0.1 + intensity * 0.8})`, height: '100%' }} title={`${h}:00 — ${count} msgs`} />;
+                                        })}
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 8, color: '#666', marginTop: 2 }}><span>12am</span><span>6am</span><span>12pm</span><span>6pm</span></div>
+                                </div>
+                                {/* Message Types */}
+                                <div style={{ marginTop: 8 }}>
+                                    <div style={{ fontSize: 10, color: '#aaa', marginBottom: 4 }}>Message Types</div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                                        {Object.entries(analytics.messageTypes).map(([type, count]) => (
+                                            <span key={type} style={{ padding: '2px 6px', borderRadius: 4, background: 'rgba(255,255,255,0.08)', fontSize: 10, color: '#ccc' }}>{type}: {count}</span>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })()}
                 </div>
             )}
 
@@ -1991,32 +2045,132 @@ export const ChatWindow = ({
                 </div>
             )}
 
-            {/* P4-6: Smart Reply Suggestions */}
-            {showSmartReplies.length > 0 && (
-                <div className="smart-replies-bar">
-                    {showSmartReplies.map((reply, i) => (
-                        <button key={i} className="smart-reply-chip" onClick={() => { onSend?.(reply); setShowSmartReplies([]); }}>{reply}</button>
+            {/* P4-6 + P18-1: Smart Reply Suggestions (now using AI backend) */}
+            {(() => {
+                const lastOtherMsg = messages?.slice().reverse().find(m => m.sender_id !== currentUser?.id);
+                const smartReplies = lastOtherMsg ? svc.getSmartReplies(lastOtherMsg.text) : [];
+                if (smartReplies.length === 0 && showSmartReplies.length === 0) return null;
+                const replies = smartReplies.length > 0 ? smartReplies : showSmartReplies;
+                return (
+                    <div className="smart-replies-bar">
+                        {replies.map((reply, i) => (
+                            <button key={i} className="smart-reply-chip" onClick={() => {
+                                svc.sendMessage(reply);
+                                onSend?.(reply);
+                                setShowSmartReplies([]);
+                                busEmit.messageSent(conversationId, otherUser?.id);
+                            }}>{reply}</button>
+                        ))}
+                    </div>
+                );
+            })()}
+
+            {/* P18-2: Conversation Summary Banner */}
+            {(() => {
+                const summary = svc.getConversationSummary();
+                if (!summary) return null;
+                return (
+                    <div style={{ padding: '6px 12px', background: 'linear-gradient(90deg, rgba(45,136,255,0.15), rgba(45,136,255,0.05))', borderRadius: 8, margin: '0 8px 6px', display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: '#ddd' }}>
+                        <span style={{ fontSize: 14 }}>📋</span>
+                        <span style={{ flex: 1 }}>{summary.summary}</span>
+                        <button onClick={() => svc.markAsRead()} style={{ background: 'none', border: 'none', color: '#2D88FF', cursor: 'pointer', fontSize: 10, whiteSpace: 'nowrap' }}>Mark Read</button>
+                    </div>
+                );
+            })()}
+
+            {/* P18-4: Conversation Label Badges */}
+            {conversationId && (svc.conversationLabels?.[conversationId] || []).length > 0 && (
+                <div style={{ display: 'flex', gap: 4, padding: '2px 8px', flexWrap: 'wrap' }}>
+                    {(svc.conversationLabels[conversationId] || []).map(l => (
+                        <span key={l.id} style={{ padding: '1px 6px', borderRadius: 4, background: l.color + '30', color: l.color, fontSize: 9, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 2 }}>
+                            {l.label}
+                            <button onClick={() => svc.removeConversationLabel(l.id)} style={{ background: 'none', border: 'none', color: l.color, cursor: 'pointer', fontSize: 8, padding: 0 }}>✕</button>
+                        </span>
                     ))}
+                    <button onClick={() => setShowLabelPicker(true)} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: 10 }}>+ Label</button>
                 </div>
             )}
 
-            {/* E2: Templates Bar + Editor */}
+            {/* P18-4: Label Picker Modal */}
+            {showLabelPicker && (
+                <div style={{ padding: '8px 12px', background: 'rgba(36,37,38,0.97)', borderRadius: 8, margin: '0 8px 4px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                        <input type="text" placeholder="Label name..." value={newLabelText} onChange={e => setNewLabelText(e.target.value)} style={{ flex: 1, border: '1px solid rgba(255,255,255,0.15)', borderRadius: 4, padding: '3px 6px', fontSize: 11, background: 'rgba(0,0,0,0.2)', color: '#fff' }} />
+                        <input type="color" value={newLabelColor} onChange={e => setNewLabelColor(e.target.value)} style={{ width: 24, height: 24, border: 'none', cursor: 'pointer', borderRadius: 4 }} />
+                        <button onClick={async () => { if (newLabelText.trim()) { await svc.addConversationLabel(conversationId, newLabelText.trim(), newLabelColor); setNewLabelText(''); setShowLabelPicker(false); } }} style={{ background: '#2D88FF', color: '#fff', border: 'none', borderRadius: 4, padding: '3px 8px', fontSize: 10, cursor: 'pointer' }}>Add</button>
+                        <button onClick={() => setShowLabelPicker(false)} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: 14 }}>✕</button>
+                    </div>
+                </div>
+            )}
+
+            {/* P18-6: Auto-Away Toggle */}
+            {showAutoAwaySettings && (
+                <div style={{ padding: '8px 12px', background: 'rgba(36,37,38,0.97)', borderRadius: 8, margin: '0 8px 4px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                        <strong style={{ color: '#fff', fontSize: 12 }}>🌙 Auto-Away</strong>
+                        <button onClick={() => setShowAutoAwaySettings(false)} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: 16 }}>✕</button>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <input type="text" placeholder="Away message..." value={autoAwayMsg} onChange={e => setAutoAwayMsg(e.target.value)} style={{ border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6, padding: '4px 8px', fontSize: 11, background: 'rgba(0,0,0,0.2)', color: '#fff' }} />
+                        <div style={{ display: 'flex', gap: 6 }}>
+                            <button onClick={() => { svc.setAutoAway(autoAwayMsg, 15); setShowAutoAwaySettings(false); }} style={{ background: svc.autoAwayConfig?.enabled ? '#ff6b6b' : '#2D88FF', color: '#fff', border: 'none', borderRadius: 6, padding: '4px 12px', fontSize: 11, cursor: 'pointer', flex: 1 }}>
+                                {svc.autoAwayConfig?.enabled ? 'Disable Auto-Away' : 'Enable Auto-Away'}
+                            </button>
+                            {svc.autoAwayConfig?.enabled && <button onClick={() => { svc.clearAutoAway(); setShowAutoAwaySettings(false); }} style={{ background: '#ff4444', color: '#fff', border: 'none', borderRadius: 6, padding: '4px 12px', fontSize: 11, cursor: 'pointer' }}>Clear</button>}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* P18-10: Backup/Restore Panel */}
+            {showBackupRestore && (
+                <div style={{ padding: '8px 12px', background: 'rgba(36,37,38,0.97)', borderRadius: 8, margin: '0 8px 4px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <strong style={{ color: '#fff', fontSize: 12 }}>💾 Backup & Restore</strong>
+                        <button onClick={() => setShowBackupRestore(false)} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: 16 }}>✕</button>
+                    </div>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                        <button onClick={() => svc.backupConversation()} style={{ flex: 1, background: '#2D88FF', color: '#fff', border: 'none', borderRadius: 6, padding: '6px 12px', fontSize: 11, cursor: 'pointer' }}>📥 Backup (.spbk)</button>
+                        <button onClick={() => backupFileInputRef.current?.click()} style={{ flex: 1, background: 'rgba(255,255,255,0.1)', color: '#ccc', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6, padding: '6px 12px', fontSize: 11, cursor: 'pointer' }}>📤 Restore</button>
+                        <input type="file" ref={backupFileInputRef} accept=".spbk" style={{ display: 'none' }} onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            const reader = new FileReader();
+                            reader.onload = async (ev) => {
+                                const result = await svc.restoreConversation(ev.target.result);
+                                if (typeof window !== 'undefined') window.alert(result.success ? result.message : `Restore failed: ${result.error}`);
+                            };
+                            reader.readAsText(file);
+                        }} />
+                    </div>
+                </div>
+            )}
+
+            {/* E2 + P18-5: Templates Bar + Editor (Dual Layer: local prefs + Supabase) */}
             {showTemplates && (
                 <div className="templates-bar" style={{ flexWrap: 'wrap' }}>
+                    {/* Local templates */}
                     {prefs.templates.map((tpl, i) => (
-                        <span key={i} className="template-chip" onClick={() => { setInputText(tpl); setShowTemplates(false); }}>
+                        <span key={`local-${i}`} className="template-chip" onClick={() => { setInputText(tpl); setShowTemplates(false); }}>
                             {tpl}
                             <button style={{ marginLeft: 4, background: 'none', border: 'none', color: '#E41E3F', cursor: 'pointer', fontSize: 10 }} onClick={(e) => { e.stopPropagation(); updatePrefs(p => ({ ...p, templates: p.templates.filter((_, idx) => idx !== i) })); }}>✕</button>
+                        </span>
+                    ))}
+                    {/* P18-5: Supabase templates */}
+                    {(svc.messageTemplates || []).map(tpl => (
+                        <span key={`supa-${tpl.id}`} className="template-chip" style={{ borderLeft: '2px solid #2D88FF' }} onClick={async () => { const text = await svc.useTemplate(tpl.id); if (text) { setInputText(text); setShowTemplates(false); } }}>
+                            {tpl.title}
+                            <button style={{ marginLeft: 4, background: 'none', border: 'none', color: '#E41E3F', cursor: 'pointer', fontSize: 10 }} onClick={(e) => { e.stopPropagation(); svc.deleteTemplate(tpl.id); }}>✕</button>
                         </span>
                     ))}
                     <button className="template-chip" style={{ fontWeight: 700 }} onClick={() => setShowTemplateEditor(!showTemplateEditor)}>+ Add</button>
                 </div>
             )}
-            {/* E2: Template Editor */}
+            {/* E2 + P18-5: Template Editor (saves to Supabase) */}
             {showTemplateEditor && (
-                <div style={{ display: 'flex', gap: 4, padding: '4px 8px', background: '#f9f9f9', borderTop: '1px solid #ddd' }}>
-                    <input type="text" placeholder="New template text..." value={newTemplate} onChange={e => setNewTemplate(e.target.value)} style={{ flex: 1, border: '1px solid #ddd', borderRadius: 6, padding: '4px 8px', fontSize: 11 }} />
-                    <button style={{ background: '#0088ff', color: 'white', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 11, cursor: 'pointer' }} onClick={() => { if (newTemplate.trim()) { updatePrefs(p => ({ ...p, templates: [...p.templates, newTemplate.trim()] })); setNewTemplate(''); setShowTemplateEditor(false); } }}>Save</button>
+                <div style={{ display: 'flex', gap: 4, padding: '4px 8px', background: 'rgba(36,37,38,0.95)', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                    <input type="text" placeholder="Template title..." value={newTemplate} onChange={e => setNewTemplate(e.target.value)} style={{ flex: 1, border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6, padding: '4px 8px', fontSize: 11, background: 'rgba(0,0,0,0.2)', color: '#fff' }} />
+                    <button style={{ background: '#2D88FF', color: 'white', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 11, cursor: 'pointer' }} onClick={async () => { if (newTemplate.trim()) { const saved = await svc.saveTemplate(newTemplate.trim(), newTemplate.trim()); if (!saved) { updatePrefs(p => ({ ...p, templates: [...p.templates, newTemplate.trim()] })); } setNewTemplate(''); setShowTemplateEditor(false); } }}>Save</button>
                 </div>
             )}
 

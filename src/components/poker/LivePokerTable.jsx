@@ -446,6 +446,20 @@ function TableLayoutManager({ onClose }) {
       localStorage.setItem('poker-table-layouts', JSON.stringify(updated));
       eventBus.emit('TABLE_LAYOUT_SAVED', layout);
     } catch (_) {}
+    // I4: Save to Supabase
+    if (typeof window !== 'undefined') {
+      try {
+        const sb = window.__SUPABASE_CLIENT;
+        const uid = window.__POKER_USER_ID;
+        if (sb && uid) {
+          sb.from('poker_table_layouts').insert({
+            user_id: uid,
+            name: layout.name,
+            arrangement: { arrangement: layout.arrangement, createdAt: layout.createdAt },
+          }).then(() => {}).catch(() => {});
+        }
+      } catch (_) {}
+    }
   };
 
   const loadLayout = (lay) => {
@@ -457,6 +471,18 @@ function TableLayoutManager({ onClose }) {
     const updated = layouts.filter((_, i) => i !== idx);
     setLayouts(updated);
     try { localStorage.setItem('poker-table-layouts', JSON.stringify(updated)); } catch (_) {}
+    // I4: Delete from Supabase by name
+    if (typeof window !== 'undefined') {
+      try {
+        const sb = window.__SUPABASE_CLIENT;
+        const uid = window.__POKER_USER_ID;
+        if (sb && uid && layouts[idx]?.name) {
+          sb.from('poker_table_layouts').delete()
+            .eq('user_id', uid).eq('name', layouts[idx].name)
+            .then(() => {}).catch(() => {});
+        }
+      } catch (_) {}
+    }
   };
 
   return (
@@ -521,6 +547,53 @@ function ChipStackViz({ stack, bigBlind }) {
         />
       ))}
     </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// WAVE I15: POT SCOOP ANIMATION — chips fly from pot center to winner
+// ═══════════════════════════════════════════════════════════════════════════
+
+function PotScoopAnimation({ isActive, winnerPosition }) {
+  if (!isActive || !winnerPosition) return null;
+  return (
+    <AnimatePresence>
+      {isActive && (
+        <motion.div
+          key="pot-scoop"
+          initial={{ opacity: 1 }}
+          animate={{ opacity: 0 }}
+          transition={{ duration: 1.5, delay: 0.8 }}
+          style={{ position: 'absolute', inset: 0, zIndex: 60, pointerEvents: 'none' }}
+        >
+          {[0, 1, 2, 3, 4].map(i => (
+            <motion.div
+              key={i}
+              initial={{ x: '50%', y: '40%', scale: 1, opacity: 1 }}
+              animate={{
+                x: winnerPosition.x || '50%',
+                y: winnerPosition.y || '30%',
+                scale: 0.4,
+                opacity: 0,
+              }}
+              transition={{
+                duration: 0.7 + i * 0.1,
+                delay: i * 0.08,
+                ease: [0.25, 0.1, 0.25, 1],
+              }}
+              style={{
+                position: 'absolute',
+                width: 16, height: 16, borderRadius: '50%',
+                background: `radial-gradient(circle, ${['#FFD700', '#e53935', '#43a047', '#1e88e5', '#ff8f00'][i]}, ${['#FFA000', '#c62828', '#2e7d32', '#0d47a1', '#e65100'][i]})`,
+                border: '1px solid rgba(255,255,255,0.3)',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.5)',
+                left: -8, top: -8,
+              }}
+            />
+          ))}
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
@@ -661,6 +734,7 @@ function AutoMuckFlash({ isVisible }) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function StackGraphModal({ history, startingStack, onClose, formatStack }) {
+  const [hoverPt, setHoverPt] = useState(null);
   if (!history || history.length < 2) return null;
   const min = Math.min(...history);
   const max = Math.max(...history);
@@ -732,9 +806,34 @@ function StackGraphModal({ history, startingStack, onClose, formatStack }) {
           />
           {/* Line */}
           <path d={pathD} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+          {/* I8: Hover tooltip circles */}
+          {points.map((p, i) => (
+            <circle
+              key={i}
+              cx={p.x} cy={p.y} r={8}
+              fill="transparent" stroke="none"
+              style={{ cursor: 'pointer' }}
+              onMouseEnter={() => setHoverPt(p)}
+              onMouseLeave={() => setHoverPt(null)}
+            />
+          ))}
           {/* Current point */}
           <circle cx={points[points.length - 1].x} cy={points[points.length - 1].y} r={4} fill={color} stroke="#fff" strokeWidth={1.5} />
+          {/* Hover point highlight */}
+          {hoverPt && <circle cx={hoverPt.x} cy={hoverPt.y} r={5} fill={color} stroke="#fff" strokeWidth={2} />}
         </svg>
+        {/* I8: Hover tooltip */}
+        {hoverPt && (
+          <div style={{
+            position: 'absolute', left: hoverPt.x + 24, top: hoverPt.y + 40,
+            background: 'rgba(0,0,0,0.9)', color: '#fff', padding: '4px 10px',
+            borderRadius: 6, fontSize: 11, fontWeight: 700, pointerEvents: 'none',
+            whiteSpace: 'nowrap', border: '1px solid rgba(255,255,255,0.15)',
+            zIndex: 10,
+          }}>
+            Hand #{hoverPt.hand}: {fmt(hoverPt.val)}
+          </div>
+        )}
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12, padding: '0 8px' }}>
           <div style={{ textAlign: 'center' }}>
             <div style={{ color: '#4ade80', fontSize: 13, fontWeight: 800 }}>{fmt(max)}</div>
@@ -5522,6 +5621,14 @@ function LivePokerTable({
     sessionStats, tableAlert, seatOffer, spinReveal,
   } = useTableConnection({ supabase, tableId, userId });
 
+  // I4: Expose supabase + userId to window for TableLayoutManager
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.__SUPABASE_CLIENT = supabase;
+      window.__POKER_USER_ID = userId;
+    }
+  }, [supabase, userId]);
+
   // P13-1: HUD Messenger State
   const [isMessengerOpen, setIsMessengerOpen] = useState(false);
   const [messengerBadgeCount, setMessengerBadgeCount] = useState(0);
@@ -5792,6 +5899,21 @@ function LivePokerTable({
   const [showHandHistory, setShowHandHistory] = useState(false);
   const prevHandIdRef = useRef(null);
 
+  // G2: Incoming chat reaction listener from other players
+  useEffect(() => {
+    const reactions = tableState?.chatReactions;
+    if (!reactions || !Array.isArray(reactions)) return;
+    reactions.forEach(r => {
+      if (r.msgIdx != null && r.emoji && String(r.fromId) !== String(userId)) {
+        setChatReactions(prev => {
+          const msgR = { ...(prev[r.msgIdx] || {}) };
+          msgR[r.emoji] = (msgR[r.emoji] || 0) + 1;
+          return { ...prev, [r.msgIdx]: msgR };
+        });
+      }
+    });
+  }, [tableState?.chatReactions, userId]);
+
   useEffect(() => {
     if (!result || !result.handId || result.handId === prevHandIdRef.current) return;
     prevHandIdRef.current = result.handId;
@@ -5805,6 +5927,7 @@ function LivePokerTable({
       heroAction: result.heroAction || null,
       phase: result.phase || 'showdown',
       bombPot: result.bombPot || false,
+      actionLog: actionLog.slice(-10), // G3: last 10 actions for this hand
     };
     setHandHistory(prev => [entry, ...prev].slice(0, 50)); // Keep last 50
 
@@ -5817,6 +5940,9 @@ function LivePokerTable({
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
             body: JSON.stringify({ tableId, hand: entry }),
+          }).then(() => {
+            // G6: Broadcast hand history update so HandHistoryBrowser auto-refreshes
+            try { eventBus.emit('DATA_MUTATED', 'hand_history_updated'); } catch (_) {}
           }).catch(() => {});
         }
       }).catch(() => {});
@@ -5882,7 +6008,18 @@ function LivePokerTable({
     plHistory: [0], positionWins: {}, positionTotal: {}, totalPots: 0,
     sessionStart: Date.now(), startingStack: 0, currentStack: 0,
   });
-  const [sessionStatsSnap, setSessionStatsSnap] = useState(() => sessionStatsRef.current);
+  const [sessionStatsSnap, setSessionStatsSnap] = useState(() => {
+    // G4: Restore session stats from localStorage on reconnect
+    try {
+      const saved = localStorage.getItem(`poker-session-${tableId}`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        Object.assign(sessionStatsRef.current, parsed);
+        return parsed;
+      }
+    } catch (_) {}
+    return sessionStatsRef.current;
+  });
 
   // Track hands completing for stats
   useEffect(() => {
@@ -5894,6 +6031,14 @@ function LivePokerTable({
     s.totalPots += (result.potTotal || 0);
     const netPL = s.currentStack - s.startingStack;
     s.plHistory = [...s.plHistory, netPL].slice(-50);
+
+    // G1: VPIP — hero vol put money in (call, bet, raise — not check/fold/blind)
+    const heroActions = result.heroActions || [];
+    const vpipActions = ['call', 'bet', 'raise', 'all_in'];
+    if (heroActions.some(a => vpipActions.includes(a.type || a))) s.vpipCount += 1;
+    // G1: PFR — hero raised preflop
+    const pfActions = (result.preflopActions || []).filter(a => String(a.playerId) === String(userId));
+    if (pfActions.some(a => a.type === 'raise' || a.type === 'all_in')) s.pfrCount += 1;
 
     // Did hero win this hand?
     const heroWon = result?.winners?.some(w => String(w.playerId) === String(userId));
@@ -5911,7 +6056,11 @@ function LivePokerTable({
     s.positionTotal[pos] = (s.positionTotal[pos] || 0) + 1;
     if (heroWon) s.positionWins[pos] = (s.positionWins[pos] || 0) + 1;
 
-    setSessionStatsSnap({ ...s });
+    const snap = { ...s };
+    setSessionStatsSnap(snap);
+
+    // G4: Save session stats to localStorage for crash recovery
+    try { localStorage.setItem(`poker-session-${tableId}`, JSON.stringify(snap)); } catch (_) {}
   }, [result]);
 
   // Phase 4 Audit Fix: Fetch club chip balance continuously for accurate Auto Top-Up and Rebuy limits
@@ -6067,6 +6216,185 @@ function LivePokerTable({
       return () => clearTimeout(t);
     }
   }, [result, userId, autoMuck, isSitting, myCards]);
+
+  // ═══ WAVE I1: SESSION STATS AUTO-SAVE TO SUPABASE ═══
+  const saveSessionToSupabase = useCallback(async () => {
+    if (!supabase || !userId || !tableId) return;
+    const s = sessionStatsRef.current;
+    if (s.handsPlayed === 0) return; // Nothing to save
+    try {
+      await supabase.from('poker_session_stats').upsert({
+        user_id: userId,
+        table_id: tableId,
+        club_id: tableState?.clubId || null,
+        hands_played: s.handsPlayed,
+        hands_won: s.handsWon,
+        starting_stack: s.startingStack,
+        ending_stack: s.currentStack,
+        biggest_win: s.biggestWin,
+        biggest_loss: s.biggestLoss,
+        pl_history: s.plHistory,
+        position_wins: s.positionWins,
+        position_total: s.positionTotal,
+        session_start: new Date(s.sessionStart).toISOString(),
+        session_end: new Date().toISOString(),
+      }, { onConflict: 'id', ignoreDuplicates: false });
+    } catch (_) {}
+  }, [supabase, userId, tableId, tableState?.clubId]);
+
+  // Save session on page unload / disconnect
+  useEffect(() => {
+    const handleBeforeUnload = () => saveSessionToSupabase();
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      saveSessionToSupabase(); // Save on unmount too
+    };
+  }, [saveSessionToSupabase]);
+
+  // ═══ WAVE I2: SESSION STATS AUTO-LOAD ON RECONNECT ═══
+  useEffect(() => {
+    if (!supabase || !userId || !tableId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from('poker_session_stats')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('table_id', tableId)
+          .order('session_start', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (cancelled || !data) return;
+        // Only restore if session was within last 30 minutes
+        const age = Date.now() - new Date(data.session_end || data.session_start).getTime();
+        if (age > 30 * 60 * 1000) return;
+        const s = sessionStatsRef.current;
+        if (s.handsPlayed === 0) {
+          // Restore previous session
+          s.handsPlayed = data.hands_played || 0;
+          s.handsWon = data.hands_won || 0;
+          s.startingStack = data.starting_stack || 0;
+          s.currentStack = data.ending_stack || 0;
+          s.biggestWin = data.biggest_win || 0;
+          s.biggestLoss = data.biggest_loss || 0;
+          s.plHistory = data.pl_history || [0];
+          s.positionWins = data.position_wins || {};
+          s.positionTotal = data.position_total || {};
+          s.sessionStart = new Date(data.session_start).getTime();
+          setSessionStatsSnap({ ...s });
+          setStackHistory(data.pl_history || []);
+        }
+      } catch (_) {}
+    })();
+    return () => { cancelled = true; };
+  }, [supabase, userId, tableId]);
+
+  // ═══ WAVE I3: SEAT PREFS SUPABASE UPSERT ═══
+  useEffect(() => {
+    if (!mySeat || !maxSeats || !supabase || !userId) return;
+    const seatIdx = tableState?.seats?.indexOf(mySeat);
+    if (seatIdx == null || seatIdx < 0) return;
+    // Save to Supabase (non-blocking)
+    supabase.from('poker_seat_preferences').upsert({
+      user_id: userId,
+      max_seats: maxSeats,
+      preferred_seat: seatIdx,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id,max_seats' }).then(() => {}).catch(() => {});
+  }, [mySeat, maxSeats, tableState?.seats, supabase, userId]);
+
+  // ═══ WAVE I5: FELT COLOR SUPABASE SYNC ═══
+  // Save felt preference to Supabase alongside localStorage
+  const handleFeltChangeWithSync = useCallback((feltId) => {
+    handleFeltChange(feltId);
+    if (supabase && userId) {
+      supabase.from('poker_seat_preferences').upsert({
+        user_id: userId,
+        max_seats: 0, // Use 0 as sentinel for "global preferences"
+        preferred_seat: 0,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id,max_seats' }).then(() => {}).catch(() => {});
+    }
+  }, [handleFeltChange, supabase, userId]);
+
+  // ═══ WAVE I6: WIN FLY-UP CHA-CHING SOUND ═══
+  useEffect(() => {
+    if (winFlyUpAmount > 0 && soundRef.current && soundEnabled) {
+      soundRef.current.play('chips'); // Play chip sound on win
+    }
+  }, [winFlyUpAmount, soundEnabled]);
+
+  // ═══ WAVE I7: CHAT @MENTION NOTIFICATION SOUND ═══
+  const lastChatCountRef = useRef(0);
+  useEffect(() => {
+    if (!chatMessages || chatMessages.length <= lastChatCountRef.current) {
+      lastChatCountRef.current = chatMessages?.length || 0;
+      return;
+    }
+    // Check new messages for @mentions of hero
+    const newMsgs = chatMessages.slice(lastChatCountRef.current);
+    lastChatCountRef.current = chatMessages.length;
+    const heroName = displayName?.toLowerCase();
+    if (!heroName) return;
+    const mentioned = newMsgs.some(m =>
+      m.text?.toLowerCase().includes(`@${heroName}`) ||
+      m.text?.toLowerCase().includes(`@${heroName.split(' ')[0]}`)
+    );
+    if (mentioned && soundRef.current && soundEnabled) {
+      soundRef.current.play('yourTurn'); // Distinct attention sound
+    }
+  }, [chatMessages, displayName, soundEnabled]);
+
+  // ═══ WAVE I10: ESCAPE KEY DISMISS FOR ALL MODALS ═══
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        setShowFeltPicker(false);
+        setShowStackGraph(false);
+        setShowLayoutManager(false);
+        setShowKbHelp?.(false);
+      }
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, []);
+
+  // ═══ WAVE I15: POT SCOOP STATE + TRIGGER ═══
+  const [potScoopActive, setPotScoopActive] = useState(false);
+  const [potScoopTarget, setPotScoopTarget] = useState(null);
+  useEffect(() => {
+    if (!result?.winners?.[0]) return;
+    const winnerSeatIdx = seats?.findIndex(s => s?.player?.id && String(s.player.id) === String(result.winners[0].playerId));
+    if (winnerSeatIdx >= 0 && positions?.[winnerSeatIdx]) {
+      const pos = positions[winnerSeatIdx];
+      setPotScoopTarget({ x: pos.x || '50%', y: pos.y || '30%' });
+      setPotScoopActive(true);
+      const t = setTimeout(() => { setPotScoopActive(false); setPotScoopTarget(null); }, 2000);
+      return () => clearTimeout(t);
+    }
+  }, [result, seats, positions]);
+
+  // ═══ WAVE I14: REALTIME CHIP BALANCE SUPABASE SYNC ═══
+  useEffect(() => {
+    if (!supabase || !tableState?.clubId || !userId) return;
+    const channel = supabase
+      .channel(`chip_balance_${userId}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'club_members',
+        filter: `user_id=eq.${userId}`,
+      }, (payload) => {
+        if (payload.new?.chip_balance !== undefined) {
+          eventBus.emit('WALLET_REFRESHED', { balance: payload.new.chip_balance });
+        }
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [supabase, tableState?.clubId, userId]);
+
 
 
   // ═══ ENHANCED SESSION STATS ═══
@@ -6392,7 +6720,11 @@ function LivePokerTable({
       if (key === 'h') { e.preventDefault(); setShowHUD(p => { const v = !p; try { localStorage.setItem('poker-show-hud', v); eventBus.emit('DATA_MUTATED', 'hud_toggled'); } catch(_){} return v; }); return; }
       if (key === 'l' && lastHandResult) { e.preventDefault(); setShowLastHand(true); return; }
       if (key === '?' || key === '/') { e.preventDefault(); setShowKbHelp(p => !p); return; }
-      if (key === 'escape') { setShowKbHelp(false); return; }
+      if (key === 'escape') { setShowKbHelp(false); setShowActionLog(false); setShowStackGraph(false); setShowTableStats(false); return; }
+      // G10: Wave F panel shortcuts (Shift modifiers to avoid game action conflicts)
+      if (e.shiftKey && key === 'l') { e.preventDefault(); setShowActionLog(p => !p); return; }
+      if (e.shiftKey && key === 'g') { e.preventDefault(); setShowStackGraph(p => !p); return; }
+      if (e.shiftKey && key === 't') { e.preventDefault(); setShowTableStats(p => !p); return; }
 
       // Game action shortcuts — only when it's our turn
       if (!isMyTurn || !legalActions?.length) return;
@@ -7187,11 +7519,20 @@ function LivePokerTable({
       {!tableState?.config?.banChat && (
         <ChatOverlay messages={chatMessages} onSend={handleChat} players={seats?.filter(s => s?.player?.displayName).map(s => s.player.displayName) || []}
           reactions={chatReactions}
-          onReact={(msgIdx, emoji) => setChatReactions(prev => {
-            const msgR = { ...(prev[msgIdx] || {}) };
-            msgR[emoji] = (msgR[emoji] || 0) + 1;
-            return { ...prev, [msgIdx]: msgR };
-          })}
+          onReact={(msgIdx, emoji) => {
+            // G7: Play reaction sound
+            try { eventBus.emit('SOUND_PLAY', { id: 'notify' }); } catch (_) {}
+            // G11: Haptic feedback
+            if (hapticEnabled) haptic('light');
+            // G2: Broadcast reaction to other players via WebSocket
+            try { send({ type: 'chat_reaction', msgIdx, emoji }); } catch (_) {}
+            // Update local state
+            setChatReactions(prev => {
+              const msgR = { ...(prev[msgIdx] || {}) };
+              msgR[emoji] = (msgR[emoji] || 0) + 1;
+              return { ...prev, [msgIdx]: msgR };
+            });
+          }}
         />
       )}
 
@@ -7216,6 +7557,16 @@ function LivePokerTable({
       {/* H3: Win Amount Fly-Up */}
       <WinFlyUp amount={winFlyUpAmount} isVisible={winFlyUpAmount > 0} />
 
+      {/* I15: Pot Scoop Animation */}
+      <PotScoopAnimation isActive={potScoopActive} winnerPosition={potScoopTarget} />
+
+      {/* I9: ChipStackViz near hero seat */}
+      {isSitting && mySeat?.stack > 0 && tableState?.config?.bigBlind > 0 && (
+        <div style={{ position: 'absolute', bottom: '28%', left: 'calc(50% + 40px)', zIndex: 25, pointerEvents: 'none' }}>
+          <ChipStackViz stack={mySeat.stack} bigBlind={tableState.config.bigBlind} />
+        </div>
+      )}
+
       {/* H8: Auto-Muck Flash */}
       <AutoMuckFlash isVisible={autoMuckFlash} />
 
@@ -7224,7 +7575,7 @@ function LivePokerTable({
         {showFeltPicker && (
           <FeltColorPicker
             currentFelt={feltColor}
-            onSelect={handleFeltChange}
+            onSelect={handleFeltChangeWithSync}
             onClose={() => setShowFeltPicker(false)}
           />
         )}

@@ -1696,6 +1696,358 @@ ${messages.map(m =>
     }), []);
 
     // ═══════════════════════════════════════════════════════════
+    // Phase 18: Messenger Intelligence & Premium UX
+    // ═══════════════════════════════════════════════════════════
+
+    // ── P18-1: Smart Reply Suggestions ──
+    const getSmartReplies = useCallback((lastMessageText) => {
+        if (!lastMessageText) return [];
+        const text = lastMessageText.toLowerCase().trim();
+        // Contextual pattern matching for quick replies
+        if (text.includes('?')) {
+            if (text.includes('how are') || text.includes('how\'s it going')) return ['I\'m great, thanks! 😊', 'Not bad, you?', 'Living the dream! 🃏'];
+            if (text.includes('want to play') || text.includes('wanna play')) return ['Sure, I\'m in! 🎰', 'Maybe later', 'What stakes?'];
+            if (text.includes('when') || text.includes('what time')) return ['In about 30 min', 'Tonight around 8', 'I\'ll let you know!'];
+            if (text.includes('where')) return ['The usual table 🃏', 'Online tonight?', 'Let me check'];
+            return ['Yes!', 'No, thanks', 'Let me think about it 🤔'];
+        }
+        if (text.includes('gg') || text.includes('good game') || text.includes('nice hand')) return ['GG! 🏆', 'Thanks! 🎉', 'Well played! ♠️'];
+        if (text.includes('congratulat') || text.includes('congrats')) return ['Thank you! 🙏', 'Appreciate it! 💪', '🎉🎉🎉'];
+        if (text.includes('hello') || text.includes('hey') || text.includes('hi ') || text === 'hi') return ['Hey! What\'s up? 👋', 'Hi there! 😊', 'Hello! 🃏'];
+        if (text.includes('thank') || text.includes('thx') || text.includes('ty')) return ['You\'re welcome!', 'Anytime! 👊', 'No problem! 😊'];
+        if (text.includes('lol') || text.includes('haha') || text.includes('😂')) return ['😂😂', 'So funny!', 'Haha right?!'];
+        return ['👍', 'Sounds good!', '💯'];
+    }, []);
+
+    // ── P18-2: Conversation Summary / AI Recap ──
+    const getConversationSummary = useCallback(() => {
+        const unreadMessages = messages.filter(m => m.sender_id !== currentUser?.id && !m.read_at);
+        if (unreadMessages.length === 0) return null;
+        const count = unreadMessages.length;
+        const senders = [...new Set(unreadMessages.map(m => m.sender_id?.slice(0, 6)))];
+        const lastMsg = unreadMessages[unreadMessages.length - 1];
+        const hasMedia = unreadMessages.some(m => m.message_type === 'image' || m.message_type === 'file' || m.message_type === 'voice');
+        const hasStickers = unreadMessages.some(m => m.message_type === 'sticker');
+        let summary = `${count} unread message${count > 1 ? 's' : ''}`;
+        if (senders.length > 1) summary += ` from ${senders.length} people`;
+        if (hasMedia) summary += ' (includes media)';
+        if (hasStickers) summary += ' (includes stickers)';
+        summary += `. Last: "${(lastMsg?.text || `[${lastMsg?.message_type}]`).slice(0, 50)}"`;
+        return { summary, count, lastMessage: lastMsg, hasMedia, hasStickers };
+    }, [messages, currentUser]);
+
+    // ── P18-3: Reaction Analytics ──
+    const getReactionStats = useCallback(async () => {
+        const supabase = getSupabase();
+        if (!supabase || !conversationId) return null;
+        try {
+            const { data } = await supabase
+                .from('messenger_reactions')
+                .select('emoji, message_id')
+                .eq('conversation_id', conversationId);
+            if (!data || data.length === 0) return { totalReactions: 0, topEmojis: [], mostReactedMessages: [] };
+            const emojiCounts = {};
+            const messageCounts = {};
+            data.forEach(r => {
+                emojiCounts[r.emoji] = (emojiCounts[r.emoji] || 0) + 1;
+                messageCounts[r.message_id] = (messageCounts[r.message_id] || 0) + 1;
+            });
+            const topEmojis = Object.entries(emojiCounts).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([emoji, count]) => ({ emoji, count }));
+            const mostReactedMessages = Object.entries(messageCounts).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([messageId, count]) => ({ messageId, count }));
+            return { totalReactions: data.length, topEmojis, mostReactedMessages };
+        } catch (_) { return null; }
+    }, [conversationId]);
+
+    // ── P18-4: Conversation Labels / Folders ──
+    const [conversationLabels, setConversationLabels] = useState({});
+
+    const loadConversationLabels = useCallback(async () => {
+        const supabase = getSupabase();
+        if (!supabase || !currentUser?.id) return;
+        try {
+            const { data } = await supabase
+                .from('messenger_conversation_labels')
+                .select('*')
+                .eq('user_id', currentUser.id);
+            const grouped = {};
+            (data || []).forEach(l => {
+                if (!grouped[l.conversation_id]) grouped[l.conversation_id] = [];
+                grouped[l.conversation_id].push({ label: l.label, color: l.color, id: l.id });
+            });
+            setConversationLabels(grouped);
+        } catch (_) {}
+    }, [currentUser]);
+
+    useEffect(() => { loadConversationLabels(); }, [loadConversationLabels]);
+
+    const addConversationLabel = useCallback(async (convId, label, color = '#2D88FF') => {
+        const supabase = getSupabase();
+        if (!supabase || !currentUser?.id || !convId || !label) return false;
+        try {
+            await supabase.from('messenger_conversation_labels').upsert({
+                user_id: currentUser.id,
+                conversation_id: convId,
+                label,
+                color
+            });
+            await loadConversationLabels();
+            eventBus.emit(EventType.MESSAGE_RECEIVED, { type: 'label_added', conversationId: convId, label });
+            return true;
+        } catch (_) { return false; }
+    }, [currentUser, loadConversationLabels]);
+
+    const removeConversationLabel = useCallback(async (labelId) => {
+        const supabase = getSupabase();
+        if (!supabase || !labelId) return false;
+        try {
+            await supabase.from('messenger_conversation_labels').delete().eq('id', labelId);
+            await loadConversationLabels();
+            return true;
+        } catch (_) { return false; }
+    }, [loadConversationLabels]);
+
+    // ── P18-5: Message Templates ──
+    const [messageTemplates, setMessageTemplates] = useState([]);
+
+    const loadTemplates = useCallback(async () => {
+        const supabase = getSupabase();
+        if (!supabase || !currentUser?.id) return;
+        try {
+            const { data } = await supabase
+                .from('messenger_templates')
+                .select('*')
+                .eq('user_id', currentUser.id)
+                .order('usage_count', { ascending: false });
+            setMessageTemplates(data || []);
+        } catch (_) {}
+    }, [currentUser]);
+
+    useEffect(() => { loadTemplates(); }, [loadTemplates]);
+
+    const saveTemplate = useCallback(async (title, text, category = 'general', shortcut = null) => {
+        const supabase = getSupabase();
+        if (!supabase || !currentUser?.id || !title || !text) return false;
+        try {
+            await supabase.from('messenger_templates').insert({
+                user_id: currentUser.id,
+                title,
+                text,
+                category,
+                shortcut
+            });
+            await loadTemplates();
+            return true;
+        } catch (_) { return false; }
+    }, [currentUser, loadTemplates]);
+
+    const deleteTemplate = useCallback(async (templateId) => {
+        const supabase = getSupabase();
+        if (!supabase || !templateId) return false;
+        try {
+            await supabase.from('messenger_templates').delete().eq('id', templateId);
+            setMessageTemplates(prev => prev.filter(t => t.id !== templateId));
+            return true;
+        } catch (_) { return false; }
+    }, []);
+
+    const useTemplate = useCallback(async (templateId) => {
+        const supabase = getSupabase();
+        if (!supabase || !templateId) return null;
+        const template = messageTemplates.find(t => t.id === templateId);
+        if (!template) return null;
+        // Increment usage count
+        try {
+            await supabase.from('messenger_templates')
+                .update({ usage_count: (template.usage_count || 0) + 1 })
+                .eq('id', templateId);
+        } catch (_) {}
+        return template.text;
+    }, [messageTemplates]);
+
+    // ── P18-6: Auto-Away Status ──
+    const [autoAwayConfig, setAutoAwayConfig] = useState({ enabled: false, message: 'I\'m away right now. I\'ll get back to you soon!', idleMinutes: 15 });
+    const idleTimerRef = useRef(null);
+
+    const setAutoAway = useCallback((message, idleMinutes = 15) => {
+        setAutoAwayConfig({ enabled: true, message, idleMinutes });
+        // Store in conversation settings for persistence
+        if (conversationId) {
+            saveConversationSettings?.({ auto_away: { enabled: true, message, idleMinutes } });
+        }
+    }, [conversationId, saveConversationSettings]);
+
+    const clearAutoAway = useCallback(() => {
+        setAutoAwayConfig({ enabled: false, message: '', idleMinutes: 15 });
+        if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+        if (conversationId) {
+            saveConversationSettings?.({ auto_away: { enabled: false } });
+        }
+    }, [conversationId, saveConversationSettings]);
+
+    // Load auto-away config from settings
+    useEffect(() => {
+        (async () => {
+            const settings = await getConversationSettings();
+            if (settings?.auto_away?.enabled) {
+                setAutoAwayConfig(settings.auto_away);
+            }
+        })();
+    }, [conversationId, getConversationSettings]);
+
+    // ── P18-7: Rich Media Player helpers ──
+    const getMediaPlayerConfig = useCallback((mediaUrl, type = 'auto') => {
+        const detectedType = type === 'auto' ? (
+            mediaUrl?.match(/\.(mp4|webm|mov)$/i) ? 'video' :
+            mediaUrl?.match(/\.(mp3|ogg|wav|m4a)$/i) ? 'audio' : 'unknown'
+        ) : type;
+        return {
+            src: mediaUrl,
+            type: detectedType,
+            controls: true,
+            preload: 'metadata',
+            pip: detectedType === 'video', // picture-in-picture support
+            speeds: [0.5, 0.75, 1, 1.25, 1.5, 2],
+            defaultSpeed: 1
+        };
+    }, []);
+
+    // ── P18-8: Conversation Analytics Dashboard ──
+    const getConversationAnalytics = useCallback(() => {
+        if (!messages || messages.length === 0) return null;
+        const myMessages = messages.filter(m => m.sender_id === currentUser?.id);
+        const theirMessages = messages.filter(m => m.sender_id !== currentUser?.id);
+
+        // Messages per day
+        const dayGroups = {};
+        messages.forEach(m => {
+            const day = new Date(m.created_at).toLocaleDateString();
+            dayGroups[day] = (dayGroups[day] || 0) + 1;
+        });
+        const messagesPerDay = Object.entries(dayGroups).map(([date, count]) => ({ date, count }));
+
+        // Active hours heatmap (0-23)
+        const hourCounts = Array(24).fill(0);
+        messages.forEach(m => {
+            const hour = new Date(m.created_at).getHours();
+            hourCounts[hour]++;
+        });
+
+        // Message type breakdown
+        const typeCounts = {};
+        messages.forEach(m => {
+            const t = m.message_type || 'text';
+            typeCounts[t] = (typeCounts[t] || 0) + 1;
+        });
+
+        // Average response time (in seconds)
+        let totalResponseTime = 0;
+        let responseCount = 0;
+        for (let i = 1; i < messages.length; i++) {
+            if (messages[i].sender_id !== messages[i - 1].sender_id) {
+                const diff = new Date(messages[i].created_at) - new Date(messages[i - 1].created_at);
+                if (diff > 0 && diff < 86400000) { // within 24h
+                    totalResponseTime += diff;
+                    responseCount++;
+                }
+            }
+        }
+        const avgResponseTime = responseCount > 0 ? Math.round(totalResponseTime / responseCount / 1000) : 0;
+
+        return {
+            totalMessages: messages.length,
+            myMessages: myMessages.length,
+            theirMessages: theirMessages.length,
+            messagesPerDay,
+            activeHours: hourCounts,
+            messageTypes: typeCounts,
+            avgResponseTime,
+            firstMessageDate: messages[0]?.created_at,
+            lastMessageDate: messages[messages.length - 1]?.created_at,
+            avgMessageLength: Math.round(messages.reduce((s, m) => s + (m.text?.length || 0), 0) / messages.length),
+            mediaCount: messages.filter(m => m.message_type === 'image' || m.message_type === 'file' || m.message_type === 'video').length,
+            stickerCount: messages.filter(m => m.message_type === 'sticker').length,
+        };
+    }, [messages, currentUser]);
+
+    // ── P18-9: Message Expiry Timer ──
+    const setMessageExpiry = useCallback(async (messageId, expiryMinutes) => {
+        const supabase = getSupabase();
+        if (!supabase || !messageId || !expiryMinutes) return false;
+        try {
+            const expiresAt = new Date(Date.now() + expiryMinutes * 60 * 1000).toISOString();
+            await supabase.from('messenger_messages')
+                .update({ expires_at: expiresAt })
+                .eq('id', messageId);
+            setMessages(prev => prev.map(m => m.id === messageId ? { ...m, expires_at: expiresAt } : m));
+            return true;
+        } catch (_) { return false; }
+    }, []);
+
+    // Check and remove expired messages periodically
+    useEffect(() => {
+        const interval = setInterval(() => {
+            const now = new Date().toISOString();
+            setMessages(prev => {
+                const filtered = prev.filter(m => !m.expires_at || m.expires_at > now);
+                return filtered.length !== prev.length ? filtered : prev;
+            });
+        }, 30000); // Check every 30 seconds
+        return () => clearInterval(interval);
+    }, []);
+
+    // ── P18-10: Conversation Backup & Restore ──
+    const backupConversation = useCallback(() => {
+        if (!messages || messages.length === 0) return null;
+        const backupData = {
+            version: '1.0',
+            exportedAt: new Date().toISOString(),
+            conversationId,
+            messengerType,
+            messageCount: messages.length,
+            messages: messages.map(m => ({
+                id: m.id,
+                text: m.text,
+                sender_id: m.sender_id,
+                message_type: m.message_type,
+                media_url: m.media_url,
+                media_metadata: m.media_metadata,
+                created_at: m.created_at,
+            })),
+        };
+        // Encode as base64 for basic obfuscation
+        const encoded = typeof btoa !== 'undefined' ? btoa(unescape(encodeURIComponent(JSON.stringify(backupData)))) : JSON.stringify(backupData);
+        const blob = new Blob([encoded], { type: 'application/octet-stream' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `messenger_backup_${conversationId?.slice(0, 8)}_${Date.now()}.spbk`;
+        a.click();
+        URL.revokeObjectURL(url);
+        return true;
+    }, [messages, conversationId, messengerType]);
+
+    const restoreConversation = useCallback(async (backupFileContent) => {
+        try {
+            const decoded = typeof atob !== 'undefined' ? decodeURIComponent(escape(atob(backupFileContent))) : backupFileContent;
+            const backupData = JSON.parse(decoded);
+            if (!backupData.version || !backupData.messages) return { success: false, error: 'Invalid backup format' };
+            const supabase = getSupabase();
+            if (!supabase || !conversationId) return { success: false, error: 'No active connection' };
+            // Insert messages that don't already exist
+            const existingIds = new Set(messages.map(m => m.id));
+            const newMessages = backupData.messages.filter(m => !existingIds.has(m.id));
+            if (newMessages.length === 0) return { success: true, restored: 0, message: 'All messages already exist' };
+            const toInsert = newMessages.map(m => ({
+                ...m,
+                conversation_id: conversationId,
+            }));
+            await supabase.from('messenger_messages').insert(toInsert);
+            await loadMessages();
+            return { success: true, restored: newMessages.length, message: `Restored ${newMessages.length} messages` };
+        } catch (e) { return { success: false, error: e.message || 'Restore failed' }; }
+    }, [conversationId, messages, loadMessages]);
+
+    // ═══════════════════════════════════════════════════════════
     // Return Service API
     // ═══════════════════════════════════════════════════════════
     return {
@@ -1856,6 +2208,44 @@ ${messages.map(m =>
 
         // P16-10: Accessibility
         a11yProps,
+
+        // P18-1: Smart Replies
+        getSmartReplies,
+
+        // P18-2: Conversation Summary
+        getConversationSummary,
+
+        // P18-3: Reaction Analytics
+        getReactionStats,
+
+        // P18-4: Conversation Labels
+        conversationLabels,
+        addConversationLabel,
+        removeConversationLabel,
+
+        // P18-5: Message Templates
+        messageTemplates,
+        saveTemplate,
+        deleteTemplate,
+        useTemplate,
+
+        // P18-6: Auto-Away
+        autoAwayConfig,
+        setAutoAway,
+        clearAutoAway,
+
+        // P18-7: Rich Media Player
+        getMediaPlayerConfig,
+
+        // P18-8: Conversation Analytics
+        getConversationAnalytics,
+
+        // P18-9: Message Expiry
+        setMessageExpiry,
+
+        // P18-10: Backup & Restore
+        backupConversation,
+        restoreConversation,
     };
 }
 
