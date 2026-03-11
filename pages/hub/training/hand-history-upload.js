@@ -12,7 +12,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
-import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
+import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import Card from '../../../src/components/training/Card';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1070,7 +1070,7 @@ export default function HandHistoryUploadPage() {
     try {
       const token = await getAccessToken();
       if (token) {
-        await fetch('/api/training/save-session', {
+        await authedFetch('/api/training/save-session', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({

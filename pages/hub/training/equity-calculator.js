@@ -14,7 +14,7 @@ import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../src/engine/EventBus';
-import { getAccessToken } from '../../../src/lib/authUtils';
+import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -702,7 +702,7 @@ export default function EquityCalculatorPage() {
     setError(null);
     try {
       const handStrings = hands.slice(0, numPlayers).map((h) => h.join(''));
-      const res = await fetch('/api/training/equity', {
+      const res = await authedFetch('/api/training/equity', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

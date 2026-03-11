@@ -13,7 +13,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
+import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 const MOOD_OPTIONS = [
@@ -93,10 +93,8 @@ export default function SessionNotesPage() {
     const user = getAuthUser();
     if (!user?.id) return;
     try {
-      const token = getAccessToken();
       const res = await fetch('/api/training/get-sessions?limit=1', {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+        });
       const data = await res.json();
       if (data.success && data.sessions?.[0]) {
         const s = data.sessions[0];

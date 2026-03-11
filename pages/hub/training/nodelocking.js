@@ -13,7 +13,7 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { DiamondEngine } from '../../../src/services/DiamondEngine';
-import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
+import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // VILLAIN PROFILES
@@ -390,7 +390,7 @@ export default function NodelockingPage() {
     try {
       const token = getAccessToken();
       if (token) {
-        const res = await fetch('/api/training/save-session', {
+        const res = await authedFetch('/api/training/save-session', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({

@@ -14,7 +14,7 @@ import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
-import { getAccessToken } from '../../../src/lib/authUtils';
+import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 
 function saveSession(payload) {
   const token = getAccessToken();
@@ -437,7 +437,7 @@ export default function ICMCalculatorPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/training/icm-calc', {
+      const res = await authedFetch('/api/training/icm-calc', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

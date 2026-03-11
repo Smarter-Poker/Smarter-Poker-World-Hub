@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
-import { getAccessToken } from '../../../src/lib/authUtils';
+import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 
 export default function StudyGroupRoom() {
   const router = useRouter();
@@ -87,7 +87,6 @@ export default function StudyGroupRoom() {
     if (!isCreating) {
       fetch('/api/training/save-session', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {}) },
         body: JSON.stringify({
           gameId: 'study-group',
           stats: {

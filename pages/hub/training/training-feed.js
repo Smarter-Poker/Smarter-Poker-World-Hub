@@ -13,7 +13,7 @@ import { motion } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
+import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -312,10 +312,8 @@ export default function TrainingFeedPage() {
     const user = getAuthUser();
     try {
       if (user?.id) {
-        const token = getAccessToken();
         const res = await fetch(`/api/training/get-sessions?limit=50`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
+          });
         const data = await res.json();
         if (data.success) {
           const items = generateFeedItems(data.sessions || []);

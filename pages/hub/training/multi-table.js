@@ -13,7 +13,7 @@ import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
-import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
+import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 
 // Dynamic import to avoid SSR issues with the Arena
 const GodModeArena = dynamic(() => import('../../../src/components/training/GodModeArena'), {
@@ -102,7 +102,7 @@ export default function MultiTablePage() {
               ? Math.round((combinedStats.totalCorrect / combinedStats.totalHands) * 100)
               : 0;
 
-          await fetch('/api/training/save-session', {
+          await authedFetch('/api/training/save-session', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

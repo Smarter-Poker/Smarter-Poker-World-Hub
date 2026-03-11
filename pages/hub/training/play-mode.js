@@ -18,7 +18,7 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import HandReplayViewer from '../../../src/components/training/HandReplayViewer';
 import PositionStatsPanel from '../../../src/components/training/PositionStatsPanel';
 import EVGraph from '../../../src/components/training/EVGraph';
-import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
+import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import DeckCard from '../../../src/components/training/Card';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -264,7 +264,7 @@ function usePlayMode() {
         } else {
           try {
             const token = await getAccessToken();
-            const res = await fetch('/api/training/solver-api', {
+            const res = await authedFetch('/api/training/solver-api', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -628,7 +628,7 @@ function usePlayMode() {
         };
 
         const sessionToken = await getAccessToken();
-        const res = await fetch('/api/training/save-session', {
+        const res = await authedFetch('/api/training/save-session', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

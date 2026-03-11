@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
-import { getAccessToken } from '../../../src/lib/authUtils';
+import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 
 export default function FinalTableSimulator() {
   const router = useRouter();
@@ -56,9 +56,8 @@ export default function FinalTableSimulator() {
 
   const handleSaveSession = async () => {
     try {
-      await fetch('/api/training/save-session', {
+      await authedFetch('/api/training/save-session', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {}) },
         body: JSON.stringify({
           gameId: 'final-table-sim',
           stats: {

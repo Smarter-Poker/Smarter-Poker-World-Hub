@@ -15,7 +15,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import Card from '../../../src/components/training/Card';
-import { getAccessToken, getAuthUser } from '../../../src/lib/authUtils';
+import { getAccessToken, authedFetch, getAuthUser } from '../../../src/lib/authUtils';
 
 function getAuthHeaders() {
   const token = getAccessToken();

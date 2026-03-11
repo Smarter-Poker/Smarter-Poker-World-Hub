@@ -14,7 +14,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
+import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 const GodModeArena = dynamic(() => import('../../../src/components/training/GodModeArena'), {
@@ -200,10 +200,8 @@ export default function AutopilotPage() {
       return;
     }
     try {
-      const token = getAccessToken();
       const res = await fetch(`/api/training/get-sessions?limit=200`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+        });
       const data = await res.json();
       if (data.success && data.sessions) {
         const spots = analyzeWeakSpots(data.sessions);

@@ -13,7 +13,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
+import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -258,10 +258,8 @@ export default function ReplayTheaterPage() {
       return;
     }
     try {
-      const token = getAccessToken();
       const res = await fetch(`/api/training/get-sessions?limit=200`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+        });
       const data = await res.json();
       if (data.success && data.sessions) {
         setMistakes(reconstructMistakes(data.sessions));

@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
-import { getAccessToken } from '../../../src/lib/authUtils';
+import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 
 export default function TournamentPrepPlanner() {
   const router = useRouter();
@@ -42,9 +42,8 @@ export default function TournamentPrepPlanner() {
   // Save session payload function standard
   const saveToSession = async () => {
     try {
-      await fetch('/api/training/save-session', {
+      await authedFetch('/api/training/save-session', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {}) },
         body: JSON.stringify({
           gameId: 'tournament-prep',
           stats: {

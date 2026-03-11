@@ -14,7 +14,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
-import { getAccessToken } from '../../../src/lib/authUtils';
+import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import { idbSet, idbDelete, idbGet } from '../../../src/lib/idbCacheStore';
 
 const TREES = [
@@ -142,7 +142,7 @@ export default function GtoPreloaderPage() {
     try {
       const token = getAccessToken();
       if (token) {
-        await fetch('/api/training/save-session', {
+        await authedFetch('/api/training/save-session', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({

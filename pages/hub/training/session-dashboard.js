@@ -16,7 +16,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus } from '../../../src/engine/EventBus';
 import MistakeCluster from '../../../src/components/training/MistakeCluster';
 import GhostReplayEngine from '../../../src/components/training/GhostReplayEngine';
-import { getAccessToken } from '../../../src/lib/authUtils';
+import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 
 function getAuthHeaders() {
   const token = getAccessToken();

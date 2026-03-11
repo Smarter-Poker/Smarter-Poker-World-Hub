@@ -14,7 +14,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
-import { getAccessToken } from '../../../src/lib/authUtils';
+import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import Card from '../../../src/components/training/Card';
 
 const SUITS = ['♠', '♥', '♦', '♣'];
@@ -192,7 +192,7 @@ export default function ShortDeckTrainerPage() {
           const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
           if (!token) return;
           const accuracy = Math.round((quizScore.correct / quizScore.total) * 100);
-          await fetch('/api/training/save-session', {
+          await authedFetch('/api/training/save-session', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
             body: JSON.stringify({

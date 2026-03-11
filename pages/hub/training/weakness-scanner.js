@@ -12,7 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
+import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 function analyzeData(sessions) {
@@ -116,10 +116,8 @@ export default function WeaknessScannerPage() {
       return;
     }
     try {
-      const token = getAccessToken();
       const res = await fetch(`/api/training/get-sessions?limit=50`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+        });
       const d = await res.json();
       if (d.success && d.sessions) setData(analyzeData(d.sessions));
     } catch (e) {
