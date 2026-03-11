@@ -356,9 +356,6 @@ export default function HorsesAdmin() {
   };
 
   const loadData = async (signal) => {
-    // Prevent unnecessary loads if data is already fresh (optimization)
-    if (!user) return;
-
     try {
       const { data: personaData } = await supabase
         .from('content_authors')

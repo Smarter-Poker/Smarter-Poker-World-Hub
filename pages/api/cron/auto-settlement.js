@@ -51,7 +51,7 @@ export default async function handler(req, res) {
         .select('role')
         .eq('id', user.id)
         .maybeSingle();
-      const isAdmin = adminCheck?.role === 'admin' || adminCheck?.role === 'superadmin';
+      const isAdmin = adminCheck?.role === 'admin' || adminCheck?.role === 'superadmin' || adminCheck?.role === 'god';
       if (!isAdmin) {
         // Check if they own at least one club (owners may manually trigger for testing)
         const { data: ownedClubs } = await supabaseAdmin

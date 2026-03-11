@@ -43,7 +43,7 @@ export default async function handler(req, res) {
       // BUG #123 FIX: Require platform admin or club owner
       const { data: adminCheck } = await supabaseAdmin
         .from('profiles').select('role').eq('id', user.id).maybeSingle();
-      const isAdmin = adminCheck?.role === 'admin' || adminCheck?.role === 'superadmin';
+      const isAdmin = adminCheck?.role === 'admin' || adminCheck?.role === 'superadmin' || adminCheck?.role === 'god';
       if (!isAdmin) {
         const { data: ownedClubs } = await supabaseAdmin
           .from('clubs').select('id').eq('owner_id', user.id).limit(1);
