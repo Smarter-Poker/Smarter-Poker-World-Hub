@@ -162,6 +162,32 @@ if [ -z "$RAW_IMPORT_HITS" ]; then
 fi
 echo ""
 
+# ─── CHECK 6: No /auth/signin route references (canonical is /auth/login) ──
+echo "CHECK 6: Auth route canonicalization..."
+
+SIGNIN_HITS=""
+for file in $JS_FILES; do
+    [ -f "$file" ] || continue
+    # Skip the redirect file itself — it's SUPPOSED to reference signin
+    echo "$file" | grep -qE 'pages/auth/signin\.js$' && continue
+
+    HITS=$(grep -n '/auth/signin' "$file" 2>/dev/null | grep -v '// ')
+    if [ -n "$HITS" ]; then
+        echo -e "${YELLOW}  ⚠ WARNING: ${file}${NC}"
+        echo "$HITS" | while IFS= read -r line; do
+            echo "    $line"
+        done
+        echo "    Fix: Use '/auth/login' (canonical sign-in route)"
+        echo ""
+        WARNINGS=$((WARNINGS + 1))
+        SIGNIN_HITS="found"
+    fi
+done
+
+if [ -z "$SIGNIN_HITS" ]; then
+    echo -e "${GREEN}  ✓ All auth routes use canonical /auth/login path.${NC}"
+fi
+echo ""
 # ─── CHECK 5: Basic syntax validation ────────────────────────────────────
 echo "CHECK 5: Syntax validation..."
 

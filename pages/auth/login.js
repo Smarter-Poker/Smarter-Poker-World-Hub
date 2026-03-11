@@ -1,5 +1,10 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   ACCESS NODE — Authentication Entry Point
+   ACCESS NODE — CANONICAL SIGN-IN PAGE
+   URL: /auth/login  (this is the ONLY sign-in page)
+   
+   ⚠ AGENTS: The Sign In button URL is /auth/login — NOT /auth/signin
+   A redirect exists at pages/auth/signin.js as a safety net, but the 
+   canonical route is THIS FILE. Do NOT change the Sign In URL to /auth/signin.
    Vanguard Silver | Next.js Unified
    ═══════════════════════════════════════════════════════════════════════════ */
 
