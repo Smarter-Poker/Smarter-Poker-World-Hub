@@ -210,6 +210,7 @@ class LobbyManager {
 
     // Wire live mini-state broadcasting for Lobby observers
     this._wireMiniStateBroadcast(table, config.tableId);
+    this._wireAuditLogging(table, config.tableId, config.clubId);
 
     // Wire state serializer for crash recovery
     const serializer = new StateSerializer(config.tableId, this.supabase);
@@ -1104,6 +1105,88 @@ class LobbyManager {
         }, 4000);
         triggerUpdate();
       }
+    });
+  }
+
+  /**
+   * Wire macro/micro event logging for the Absolute Accounting Record.
+   * @private
+   */
+  _wireAuditLogging(table, tableId, clubId) {
+    if (!clubId) return;
+
+    // 1. Chat Message Logging
+    table.on('chat_message', (data) => {
+      if (!data || !data.message) return;
+      try {
+        const sb = ChipBridge.getSupabase();
+        sb.rpc('record_arena_message', {
+          p_club_id: clubId,
+          p_table_id: tableId,
+          p_user_id: data.playerId || null,
+          p_player_name: data.playerName || 'Player',
+          p_message: String(data.message)
+        }).catch(err => console.error('[Audit] Chat log error:', err.message));
+      } catch (e) {}
+    });
+
+    // 2. MACRO ACTIONS (Seating & Cashouts)
+    table.on('player_seated', (data) => {
+      try {
+        const sb = ChipBridge.getSupabase();
+        sb.rpc('record_arena_audit_log', {
+          p_club_id: clubId,
+          p_table_id: tableId,
+          p_user_id: data.player?.id || null,
+          p_action_type: 'sit_down',
+          p_amount: data.buyIn || 0,
+          p_details: { seatIndex: data.seatIndex }
+        }).catch(() => {});
+      } catch (e) {}
+    });
+
+    table.on('player_left', (data) => {
+      try {
+        const sb = ChipBridge.getSupabase();
+        sb.rpc('record_arena_audit_log', {
+          p_club_id: clubId,
+          p_table_id: tableId,
+          p_user_id: data.playerId || null,
+          p_action_type: 'stand_up',
+          p_amount: data.stack || 0,
+          p_details: { reason: data.reason }
+        }).catch(() => {});
+      } catch (e) {}
+    });
+
+    table.on('add_chips', (data) => {
+       try {
+        const sb = ChipBridge.getSupabase();
+        sb.rpc('record_arena_audit_log', {
+          p_club_id: clubId,
+          p_table_id: tableId,
+          p_user_id: data.playerId || null,
+          p_action_type: 'add_chips',
+          p_amount: data.amount || 0,
+          p_details: { reason: 'rebuy' }
+        }).catch(() => {});
+       } catch (e) {}
+    });
+
+    // 3. MICRO ACTIONS (Hand progress)
+    table.on('action_processed', (data) => {
+      if (!data.action) return;
+      try {
+        const sb = ChipBridge.getSupabase();
+        sb.rpc('record_arena_audit_log', {
+          p_club_id: clubId,
+          p_table_id: tableId,
+          p_user_id: data.playerId || null,
+          p_action_type: `action_${data.action.type}`, // e.g. action_fold, action_bet
+          p_amount: data.action.amount || 0,
+          p_details: { street: data.street, handNumber: table.handCount || 0 }
+        }).catch(() => {});
+      } catch (e) {}
     });
   }
 

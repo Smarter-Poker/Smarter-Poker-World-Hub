@@ -198,12 +198,18 @@ class TournamentBridge {
       this._broadcastTournament('player_rebuy', data);
       await this._persistState(this.tournament.status, data); // Updates prize_pool dynamically
       await this._persistRebuy(data);
+      if (data.playerId && data.amount) {
+        this._recordAuditLog('rebuy', data.playerId, data.amount, { tournamentId: this.tournament.id });
+      }
     });
 
     t.on('player_addon', async (data) => {
       this._broadcastTournament('player_addon', data);
       await this._persistState(this.tournament.status, data); // Updates prize_pool dynamically
       await this._persistAddon(data);
+      if (data.playerId && data.amount) {
+        this._recordAuditLog('addon', data.playerId, data.amount, { tournamentId: this.tournament.id });
+      }
     });
 
     // ── BLIND / LEVEL EVENTS ─────────────────────────────────
@@ -224,6 +230,9 @@ class TournamentBridge {
     t.on('payout_awarded', async (data) => {
       this._broadcastTournament('payout_awarded', data);
       await this._persistPayout(data);
+      if (data.playerId && data.amount) {
+        this._recordAuditLog('payout_awarded', data.playerId, data.amount, { tournamentId: this.tournament.id, placement: data.placement });
+      }
     });
 
     t.on('victory', async (data) => {
