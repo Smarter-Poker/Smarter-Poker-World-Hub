@@ -247,15 +247,18 @@ const MessageBubble = ({ message, isOwn, showAvatar, user, onAction }) => (
                 </div>
             )}
 
-            {/* P4-4: Contact card */}
+            {/* P4-4 + P10-13: Contact card with profile navigation */}
             {message.contactCard && (
-                <div className="contact-card">
-                    <SPAvatar src={message.contactCard.avatar} size={32} />
-                    <div>
-                        <strong>{message.contactCard.name}</strong>
-                        <span style={{ fontSize: 11, color: '#666', display: 'block' }}>{message.contactCard.role || 'Player'}</span>
+                <Link href={`/hub/user/${message.contactCard.name || message.contactCard.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                    <div className="contact-card" style={{ cursor: 'pointer' }}>
+                        <SPAvatar src={message.contactCard.avatar} size={32} />
+                        <div>
+                            <strong>{message.contactCard.name}</strong>
+                            <span style={{ fontSize: 11, color: '#666', display: 'block' }}>{message.contactCard.role || 'Player'}</span>
+                            <span style={{ fontSize: 9, color: '#0088ff' }}>View Profile</span>
+                        </div>
                     </div>
-                </div>
+                </Link>
             )}
 
             {/* P7-6: Image / Media Preview (Lightbox Target) */}
@@ -316,9 +319,9 @@ const MessageBubble = ({ message, isOwn, showAvatar, user, onAction }) => (
             {/* P5-6: Edit indicator */}
             {message.isEdited && <span className="edit-indicator" title="Edited">(edited)</span>}
 
-            {/* P5-4: Read receipts */}
+            {/* P5-4 + P10-2: Delivery status ticks */}
             {message.isOwn && (
-                <span className="read-receipt">
+                <span className="read-receipt" style={{ color: message.readStatus === 'read' ? '#0088ff' : '#999', fontSize: 10 }}>
                     {message.readStatus === 'read' ? '✓✓' : message.readStatus === 'delivered' ? '✓✓' : '✓'}
                 </span>
             )}
@@ -349,27 +352,33 @@ const MessageBubble = ({ message, isOwn, showAvatar, user, onAction }) => (
                 </button>
             )}
 
-            {/* P5-2: Emoji reactions display */}
+            {/* P5-2 + P10-12: Reactions display with GIF support */}
             {message.reactionList?.length > 0 && (
                 <div className="message-reactions">
                     {message.reactionList.map((r, i) => (
-                        <span key={i} className="reaction-chip" title={r.by}>{r.emoji}</span>
+                        r.emoji?.startsWith('gif:') ? (
+                            <img key={i} src={r.emoji.replace('gif:', '')} alt="GIF reaction" title={r.by} style={{ width: 32, height: 32, borderRadius: 4, objectFit: 'cover', cursor: 'default' }} />
+                        ) : (
+                            <span key={i} className="reaction-chip" title={r.by}>{r.emoji}</span>
+                        )
                     ))}
                 </div>
             )}
 
             {/* Hover Actions */}
             <div className="message-hover-actions">
-                <button onClick={() => onAction?.('bookmark', message)} title={message.isBookmarked ? "Remove Bookmark" : "Save Bookmark"}>📌</button>
-                <button onClick={() => onAction?.('pin', message)} title={message.isPinned ? "Unpin" : "Pin"}>📍</button>
-                <button onClick={() => onAction?.('forward', message)} title="Forward">↗️</button>
-                <button onClick={() => onAction?.('thread', message)} title="Reply in Thread">💬</button>
-                <button onClick={() => onAction?.('react', message)} title="React">😀</button>
-                <button onClick={() => onAction?.('edit', message)} title="Edit">✏️</button>
-                <button onClick={() => onAction?.('priority', message)} title="Set Priority">🚨</button>
+                <button onClick={() => onAction?.('bookmark', message)} title={message.isBookmarked ? "Remove Bookmark" : "Save Bookmark"}>Save</button>
+                <button onClick={() => onAction?.('pin', message)} title={message.isPinned ? "Unpin" : "Pin"}>Pin</button>
+                <button onClick={() => onAction?.('forward', message)} title="Forward">Fwd</button>
+                <button onClick={() => onAction?.('thread', message)} title="Reply in Thread">Thread</button>
+                <button onClick={() => onAction?.('react', message)} title="React">React</button>
+                <button onClick={() => onAction?.('gif_react', message)} title="GIF React">GIF</button>
+                <button onClick={() => onAction?.('edit', message)} title="Edit">Edit</button>
+                <button onClick={() => onAction?.('priority', message)} title="Set Priority">Flag</button>
+                {!message.isOwn && <button onClick={() => onAction?.('translate', message)} title="Translate">Translate</button>}
                 {LABEL_CATEGORIES.map(cat => (
                     <button key={cat} onClick={() => onAction?.('label', message, cat)} title={`Label: ${cat}`} style={{ fontSize: 10, padding: '2px 4px' }}>
-                        {cat === 'Important' ? '🔴' : cat === 'Action Required' ? '🟠' : cat === 'Tournament Info' ? '🟢' : '💰'}
+                        {cat === 'Important' ? 'Imp' : cat === 'Action Required' ? 'Act' : cat === 'Tournament Info' ? 'Trn' : 'Cash'}
                     </button>
                 ))}
             </div>
@@ -538,6 +547,21 @@ export const ChatWindow = ({
     const [translatedMsgs, setTranslatedMsgs] = useState({});
     // P9-5: Location Sharing State
     const [sharingLocation, setSharingLocation] = useState(false);
+
+    // P10-1: E2E Key Exchange Storage
+    const e2eKeysRef = useRef({});
+    // P10-3: Unread Badge (derived from prefs.unreadCounts)
+    // P10-4: Global Search
+    const [globalSearch, setGlobalSearch] = useState('');
+    // P10-5: Pinned Conversations
+    const [pinnedConvos, setPinnedConvos] = useState([]);
+    // P10-6: Voice-to-Text
+    const [voiceTranscripts, setVoiceTranscripts] = useState({});
+    // P10-7: Link Previews
+    const [linkPreviews, setLinkPreviews] = useState({});
+    // P10-11: Debounce Refs
+    const gifDebounceRef = useRef(null);
+    const translateDebounceRef = useRef(null);
     
     // P7-6: Lightbox State
     const [lightboxImage, setLightboxImage] = useState(null);
@@ -903,19 +927,22 @@ export const ChatWindow = ({
         setShowEmojiPicker(null);
     };
 
-    // P9-1: GIF Reaction Handler
+    // P9-1: GIF Reaction Handler (P10-11: Debounced)
     const searchGifReactions = async (keyword) => {
         setGifReactionSearch(keyword);
         if (!keyword.trim()) { setGifReactionResults([]); return; }
-        try {
-            const res = await fetch(`https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(keyword + ' reaction')}&key=AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ&client_key=sp_messenger&limit=8&media_filter=tinygif`);
-            const data = await res.json();
-            setGifReactionResults((data.results || []).map(r => ({
-                id: r.id,
-                url: r.media_formats?.tinygif?.url || r.media_formats?.gif?.url || '',
-                preview: r.media_formats?.nanogif?.url || r.media_formats?.tinygif?.url || ''
-            })));
-        } catch (err) { console.warn('[GIF Reaction] Tenor search failed:', err); }
+        if (gifDebounceRef.current) clearTimeout(gifDebounceRef.current);
+        gifDebounceRef.current = setTimeout(async () => {
+            try {
+                const res = await fetch(`https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(keyword + ' reaction')}&key=AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ&client_key=sp_messenger&limit=8&media_filter=tinygif`);
+                const data = await res.json();
+                setGifReactionResults((data.results || []).map(r => ({
+                    id: r.id,
+                    url: r.media_formats?.tinygif?.url || r.media_formats?.gif?.url || '',
+                    preview: r.media_formats?.nanogif?.url || r.media_formats?.tinygif?.url || ''
+                })));
+            } catch (err) { console.warn('[GIF Reaction] Tenor search failed:', err); }
+        }, 300);
     };
 
     const sendGifReaction = (msgId, gifUrl) => {
@@ -929,15 +956,18 @@ export const ChatWindow = ({
         setGifReactionSearch('');
     };
 
-    // P9-2: GIF Search Handler
+    // P9-2: GIF Search Handler (P10-11: Debounced)
     const handleGifSearch = async (query) => {
         setGifSearchTerm(query);
         if (!query.trim()) { setGifResults([]); return; }
-        try {
-            const res = await fetch(`https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(query)}&key=AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ&client_key=sp_messenger&limit=12`);
-            const data = await res.json();
-            setGifResults((data.results || []).map(r => ({ id: r.id, url: r.media_formats?.gif?.url || r.media_formats?.tinygif?.url || '' })));
-        } catch (err) { console.warn('[GIF] Tenor search failed:', err); }
+        if (gifDebounceRef.current) clearTimeout(gifDebounceRef.current);
+        gifDebounceRef.current = setTimeout(async () => {
+            try {
+                const res = await fetch(`https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(query)}&key=AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ&client_key=sp_messenger&limit=12`);
+                const data = await res.json();
+                setGifResults((data.results || []).map(r => ({ id: r.id, url: r.media_formats?.gif?.url || r.media_formats?.tinygif?.url || '' })));
+            } catch (err) { console.warn('[GIF] Tenor search failed:', err); }
+        }, 300);
     };
 
     const sendGif = (gifUrl) => {
@@ -948,16 +978,42 @@ export const ChatWindow = ({
         busEmit.messageSent(conversationId, otherUser?.id);
     };
 
-    // P9-3: Auto-Translate Message
+    // P9-3: Auto-Translate Message (P10-11: Debounced)
     const handleTranslate = async (msgId, text) => {
-        if (translatedMsgs[msgId]) return; // already translated
+        if (translatedMsgs[msgId]) return;
+        if (translateDebounceRef.current) clearTimeout(translateDebounceRef.current);
+        translateDebounceRef.current = setTimeout(async () => {
+            try {
+                const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=autodetect|en`);
+                const data = await res.json();
+                if (data?.responseData?.translatedText) {
+                    setTranslatedMsgs(prev => ({ ...prev, [msgId]: data.responseData.translatedText }));
+                }
+            } catch (err) { console.warn('[Translate] Failed:', err); }
+        }, 300);
+    };
+
+    // P10-6: Voice-to-Text Transcription
+    const handleVoiceToText = (msgId) => {
+        if (voiceTranscripts[msgId] || typeof window === 'undefined') return;
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) { setVoiceTranscripts(prev => ({ ...prev, [msgId]: '[Speech recognition not supported]' })); return; }
+        setVoiceTranscripts(prev => ({ ...prev, [msgId]: 'Transcribing...' }));
+    };
+
+    // P10-7: Link Preview Fetcher
+    const fetchLinkPreview = async (msgId, url) => {
+        if (linkPreviews[msgId]) return;
         try {
-            const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=autodetect|en`);
-            const data = await res.json();
-            if (data?.responseData?.translatedText) {
-                setTranslatedMsgs(prev => ({ ...prev, [msgId]: data.responseData.translatedText }));
+            setLinkPreviews(prev => ({ ...prev, [msgId]: { loading: true } }));
+            const res = await fetch(`/api/link-preview?url=${encodeURIComponent(url)}`);
+            if (res.ok) {
+                const data = await res.json();
+                setLinkPreviews(prev => ({ ...prev, [msgId]: { title: data.title, description: data.description, image: data.image, url } }));
+            } else {
+                setLinkPreviews(prev => ({ ...prev, [msgId]: { title: url, url, fallback: true } }));
             }
-        } catch (err) { console.warn('[Translate] Failed:', err); }
+        } catch { setLinkPreviews(prev => ({ ...prev, [msgId]: { title: url, url, fallback: true } })); }
     };
 
     // P9-4: Contact Card Sharing

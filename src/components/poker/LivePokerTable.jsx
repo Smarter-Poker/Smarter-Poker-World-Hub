@@ -3347,7 +3347,7 @@ function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, is
           <SmallButton label="Add Chips" onClick={onAddChips} />
           {lastHandResult && <SmallButton label="📋 Last Hand" onClick={onShowLastHand} />}
           <SmallButton
-            label={autoTopUpOn ? '✓ Top Up' : 'Top Up'}
+            label={autoTopUpOn ? '💰 Auto Top-Up ✓' : '💰 Auto-Chip'}
             onClick={onToggleAutoTopUp}
             color={autoTopUpOn ? '#34C759' : undefined}
           />
@@ -3355,11 +3355,6 @@ function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, is
             label={autoMuckOn ? '✓ Muck' : 'Muck'}
             onClick={onToggleAutoMuck}
             color={autoMuckOn ? '#8b5cf6' : undefined}
-          />
-          <SmallButton
-            label={autoRebuyOn ? '✓ Rebuy' : 'Rebuy'}
-            onClick={() => setAutoRebuyOn(!autoRebuyOn)}
-            color={autoRebuyOn ? '#f59e0b' : undefined}
           />
           {sessionStats?.initialBuyIn > 0 && (
             <SmallButton
@@ -3625,22 +3620,67 @@ function ChipFlyAnimation({ winners, seatPositions, seats }) {
 function ResultOverlay({ result, send, userId }) {
   const [showRabbit, setShowRabbit] = useState(false);
   const [cardsShown, setCardsShown] = useState(false);
-  const [onDemandRabbit, setOnDemandRabbit] = useState(null); // { cards, board }
+  const [onDemandRabbit, setOnDemandRabbit] = useState(null);
   const [rabbitLoading, setRabbitLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
 
-  // Reset rabbit state when result changes
-  useEffect(() => { setShowRabbit(false); setCardsShown(false); setOnDemandRabbit(null); setRabbitLoading(false); }, [result]);
+  useEffect(() => { setShowRabbit(false); setCardsShown(false); setOnDemandRabbit(null); setRabbitLoading(false); setCopied(false); }, [result]);
 
   if (!result) return null;
 
   const isFoldWin = result.type === 'fold' || result.result?.type === 'fold';
   const rabbitCards = result.rabbitCards || result.result?.rabbitCards;
   const boardAtEnd = result.boardAtEnd || result.result?.boardAtEnd || [];
+  const isWinner = isFoldWin && result.winners?.some(w => String(w.playerId) === String(userId));
 
-  // Check if current user is the winner (for show cards option)
-  const isWinner = isFoldWin && result.winners?.some(w =>
-    String(w.playerId) === String(userId)
-  );
+  // Format hand for sharing
+  const formatHandForShare = () => {
+    const lines = ['♠️ Smarter.Poker Hand Result'];
+    const winners = result.winners || result.result?.winners || [];
+    const board = result.board || result.result?.board || result.communityCards || boardAtEnd || [];
+    const type = result.type || result.result?.type || 'showdown';
+
+    if (type === 'fold') {
+      lines.push('Result: Fold Win');
+    } else {
+      lines.push('Result: Showdown');
+    }
+
+    if (board.length > 0) {
+      lines.push(`Board: ${board.join(' ')}`);
+    }
+
+    winners.forEach(w => {
+      const name = w.displayName || w.playerName || `Player`;
+      const amt = w.amount ? ` (+${w.amount})` : '';
+      const hand = w.handDescription || '';
+      lines.push(`🏆 ${name}${amt}${hand ? ` — ${hand}` : ''}`);
+    });
+
+    if (result.rake) lines.push(`Rake: ${result.rake}`);
+    lines.push('');
+    lines.push('Play at smarter.poker');
+    return lines.join('\n');
+  };
+
+  const handleShare = async () => {
+    const text = formatHandForShare();
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'Poker Hand', text });
+      } else {
+        await navigator.clipboard.writeText(text);
+      }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (_) {
+      try {
+        await navigator.clipboard.writeText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch (_e) { /* silent */ }
+    }
+  };
 
   return (
     <motion.div
@@ -3880,6 +3920,31 @@ function ResultOverlay({ result, send, userId }) {
           Cards revealed ✓
         </div>
       )}
+
+      {/* Share Hand button */}
+      <div style={{ marginTop: 8, display: 'flex', justifyContent: 'center' }}>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={handleShare}
+          style={{
+            background: copied ? 'rgba(76,175,80,0.2)' : 'rgba(255,255,255,0.06)',
+            border: `1px solid ${copied ? '#4caf50' : 'rgba(255,255,255,0.15)'}`,
+            borderRadius: 8,
+            padding: '5px 14px',
+            color: copied ? '#4caf50' : '#B0B3B8',
+            fontSize: 11,
+            fontWeight: 600,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 5,
+            transition: 'all 0.2s ease',
+          }}
+        >
+          {copied ? '✓ Copied!' : '📤 Share Hand'}
+        </motion.button>
+      </div>
     </motion.div>
   );
 }
@@ -4018,7 +4083,7 @@ function LivePokerTable({
     const prev = prevPhaseRef.current;
     if (prev !== phase) {
       if (isActive) {
-        if (phase === 'preflop' && prev === 'idle') { sm.play('deal'); if (hapticEnabled) haptic('medium'); }
+        if (phase === 'preflop' && prev === 'idle') { sm.play('newHand'); if (hapticEnabled) haptic('medium'); }
         if (phase === 'flop' && prev === 'preflop') { sm.play('deal'); if (hapticEnabled) haptic('light'); }
         if (phase === 'turn' && prev === 'flop') { sm.play('deal'); if (hapticEnabled) haptic('light'); }
         if (phase === 'river' && prev === 'turn') { sm.play('deal'); if (hapticEnabled) haptic('light'); }
@@ -4036,7 +4101,7 @@ function LivePokerTable({
     if (isActive) {
       if (result.bbj) { sm.play('bbj'); return; }
       const isWinner = result.winners?.some(w => String(w.playerId) === String(userId));
-      sm.play(isWinner ? 'win' : 'lose');
+      sm.play(isWinner ? 'potWon' : 'lose');
     }
   }, [result, userId, isActive]);
 
