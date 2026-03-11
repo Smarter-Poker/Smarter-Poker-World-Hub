@@ -2396,7 +2396,7 @@ function CommunityCards({ cards = [], boards, prevCardCount, fourColorDeck }) {
 // POT DISPLAY
 // ═══════════════════════════════════════════════════════════════════════════
 
-function PotDisplay({ potTotal, pots = [], formatFn }) {
+function PotDisplay({ potTotal, pots = [], formatFn, seats = [] }) {
   if (!potTotal || potTotal <= 0) return null;
 
   // Generate chip stack visualization based on pot size
@@ -6503,6 +6503,7 @@ function LivePokerTable({
             potTotal={tableState?.game?.potTotal || 0}
             pots={tableState?.game?.pots || []}
             formatFn={formatStack}
+            seats={tableState?.seats || []}
           />
 
           {/* Run It Twice/Thrice — handled by inline isRitOfferActive block below */}
