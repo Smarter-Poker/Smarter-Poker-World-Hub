@@ -14,11 +14,12 @@ import SEOHead from '../../../../../src/components/seo/SEOHead';
 import TournamentStoryCard from '../../../../../src/components/social/TournamentStoryCard';
 import { Trophy, Users, Loader2, CheckCircle2, ChevronLeft, Coins, TrendingUp, Hash, Bell, Share2, Camera } from 'lucide-react';
 import useTournamentRealtime from '../../../../../src/hooks/useTournamentRealtime';
-import { getAccessToken, getAuthUser } from '../../../../../src/lib/authUtils';
+import { useRequireAuth, getAccessToken, getAuthUser } from '../../../../../src/lib/authUtils';
 
 export default function MyTournamentStatus() {
     const router = useRouter();
     const { id } = router.query;
+    const { user: authUser, checking: authChecking } = useRequireAuth(`/hub/commander/tournament/${id}/my-status`);
     const [tournament, setTournament] = useState(null);
     const [myEntry, setMyEntry] = useState(null);
     const [clock, setClock] = useState(null);
@@ -34,14 +35,8 @@ export default function MyTournamentStatus() {
     const [showStoryPreview, setShowStoryPreview] = useState(false);
 
     const fetchData = useCallback(async () => {
-        if (!id) return;
+        if (!id || !authUser) return;
         try {
-            const token = getAccessToken();
-            const authUser = getAuthUser();
-            if (!token || !authUser) {
-                router.push(`/auth/login?redirect=/hub/commander/tournament/${id}/my-status`);
-                return;
-            }
 
             // Fetch all data directly from Supabase (tournament APIs require staff auth)
             // RLS on commander_tournaments and commander_tournament_entries allows SELECT for all users
@@ -102,9 +97,9 @@ export default function MyTournamentStatus() {
             }
         } catch (err) { console.error(err); setError('Failed to load tournament data'); }
         finally { setLoading(false); }
-    }, [id, router]);
+    }, [id, authUser]);
 
-    useEffect(() => { let active = true; fetchData(); return () => { active = false; }; }, [fetchData]);
+    useEffect(() => { if (authChecking) return; let active = true; fetchData(); return () => { active = false; }; }, [fetchData, authChecking]);
   // Realtime listener — live updates for tournament/[id]/my-status.js
   useEffect(() => {
 

@@ -10,7 +10,7 @@ import SEOHead from '../../../../../src/components/seo/SEOHead';
 import { ArrowLeft, Users, Calendar, Plus, Settings, UserMinus, Clock, DollarSign, Trash2, Loader2, X, Check, Wallet, ArrowUpRight, ArrowDownLeft, RefreshCw, AlertCircle } from 'lucide-react';
 import RSVPManager from '../../../../../src/components/commander/home-games/RSVPManager';
 import { supabase } from '../../../../../src/lib/supabase';
-import { getAccessToken } from '../../../../../src/lib/authUtils';
+import { useRequireAuth, getAccessToken } from '../../../../../src/lib/authUtils';
 
 function ScheduleEventModal({ isOpen, onClose, onSubmit, group }) {
   const [eventData, setEventData] = useState({
@@ -218,6 +218,7 @@ function MemberRow({ member, isHost, onApprove, onRemove }) {
 export default function ManageHomeGamePage() {
   const router = useRouter();
   const { id } = router.query;
+  const { checking: authChecking } = useRequireAuth(`/hub/commander/home-games/${id}/manage`);
 
   const [group, setGroup] = useState(null);
   const [members, setMembers] = useState([]);
@@ -280,16 +281,11 @@ export default function ManageHomeGamePage() {
   }, [id]);
 
   useEffect(() => {
-    const init = async () => {
-      const token = getAccessToken();
-      if (!token) {
-        router.push('/auth/login');
-        return;
-      }
-      fetchData(new AbortController().signal);
-    };
-    init();
-  }, [fetchData, router]);
+    if (authChecking) return;
+    const _c = new AbortController();
+    fetchData(_c.signal);
+    return () => _c.abort();
+  }, [fetchData, authChecking]);
   // Realtime listener — live updates for home-games/[id]/manage.js
   useEffect(() => {
     if (!id) return;
