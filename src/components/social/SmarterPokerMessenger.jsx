@@ -694,7 +694,9 @@ export const ChatWindow = ({
     // Phase 6: EventBus real-time listener (Comprehensive Layer)
     useEffect(() => {
         const handleReceived = (event) => {
-            const { conversationId: evtConvId, senderId } = event.payload;
+            const { conversationId: evtConvId, senderId, type } = event.payload || {};
+            // P17: Skip internal event types (edit, sticker, favorite_toggled) — they are handled by their own subscriptions
+            if (type === 'edit' || type === 'sticker' || type === 'favorite_toggled') return;
             if (evtConvId === conversationId && senderId !== currentUser?.id) {
                 if (minimized || document.hidden) {
                     updatePrefs(p => ({ ...p, unreadCounts: { ...p.unreadCounts, [evtConvId]: (p.unreadCounts?.[evtConvId] || 0) + 1 } }));
@@ -714,7 +716,10 @@ export const ChatWindow = ({
         };
 
         const handleEdited = (event) => {
-            // Placeholder: in a real remote sync, the updated message text would be retrieved
+            // P17: When a remote edit is received, reload messages to get the updated text
+            if (event.payload?.conversationId === conversationId && event.payload?.messageId) {
+                svc.loadMessages?.();
+            }
         };
 
         const unsubReceived = eventBus.on(EventType.MESSAGE_RECEIVED, handleReceived);
