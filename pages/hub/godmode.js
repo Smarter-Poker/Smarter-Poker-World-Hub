@@ -23,12 +23,10 @@ export default function GodModePage() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-
-  if (!router.isReady) return null;
-
+    if (!router.isReady) return;
     if (!handId) return;
     loadHandData();
-  }, [handId]);
+  }, [handId, router.isReady]);
 
   async function loadHandData(signal) {
     setLoading(true);

@@ -569,6 +569,7 @@ export const ChatWindow = ({
     const [broadcastStats, setBroadcastStats] = useState({});
     // P10-11: Debounce Refs
     const gifDebounceRef = useRef(null);
+    const gifSearchDebounceRef = useRef(null); // BUG-FIX: separate from gifDebounceRef
     const translateDebounceRef = useRef(null);
     
     // P7-6: Lightbox State
@@ -968,8 +969,8 @@ export const ChatWindow = ({
     const handleGifSearch = async (query) => {
         setGifSearchTerm(query);
         if (!query.trim()) { setGifResults([]); return; }
-        if (gifDebounceRef.current) clearTimeout(gifDebounceRef.current);
-        gifDebounceRef.current = setTimeout(async () => {
+        if (gifSearchDebounceRef.current) clearTimeout(gifSearchDebounceRef.current);
+        gifSearchDebounceRef.current = setTimeout(async () => {
             try {
                 const res = await fetch(`https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(query)}&key=AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ&client_key=ca_messenger&limit=12`);
                 const data = await res.json();
@@ -979,7 +980,7 @@ export const ChatWindow = ({
     };
 
     const sendGif = (gifUrl) => {
-        onSend?.('', { image: gifUrl, file: { name: 'GIF', type: 'image/gif' } });
+        onSend?.('GIF', { image: gifUrl, file: { name: 'GIF', type: 'image/gif' } });
         setShowGifPanel(false);
         setGifSearchTerm('');
         setGifResults([]);
@@ -1027,24 +1028,24 @@ export const ChatWindow = ({
     // P9-4: Contact Card Sharing
     const sendContactCard = () => {
         if (!currentUser) return;
-        const cardPayload = JSON.stringify({ type: 'contact_card', name: currentUser.name, avatar: currentUser.avatar, id: currentUser.id });
-        onSend?.(`📇 Contact Card: ${currentUser.name}`, { contactCard: cardPayload });
+        const cardData = { type: 'contact_card', name: currentUser.name, avatar: currentUser.avatar, id: currentUser.id };
+        onSend?.(`Contact Card: ${currentUser.name}`, { contactCard: cardData });
         busEmit.messageSent(conversationId, otherUser?.id);
     };
 
     // P9-5: Location Sharing
     const handleShareLocation = () => {
-        if (!navigator.geolocation) { alert('Geolocation not supported'); return; }
+        if (typeof window === 'undefined' || !navigator.geolocation) { if (typeof window !== 'undefined') alert('Geolocation not supported'); return; }
         setSharingLocation(true);
         navigator.geolocation.getCurrentPosition(
             (pos) => {
                 const { latitude, longitude } = pos.coords;
                 const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${latitude},${longitude}&zoom=15&size=300x200&markers=color:red|${latitude},${longitude}&key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8`;
-                onSend?.(`📍 Location: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`, { image: mapUrl, location: { lat: latitude, lng: longitude } });
+                onSend?.(`Location: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`, { image: mapUrl, location: { lat: latitude, lng: longitude } });
                 setSharingLocation(false);
                 busEmit.messageSent(conversationId, otherUser?.id);
             },
-            (err) => { console.error('[Location] Failed:', err); alert('Location access denied.'); setSharingLocation(false); },
+            (err) => { console.error('[Location] Failed:', err); if (typeof window !== 'undefined') alert('Location access denied.'); setSharingLocation(false); },
             { enableHighAccuracy: true, timeout: 10000 }
         );
     };

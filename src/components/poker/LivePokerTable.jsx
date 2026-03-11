@@ -1287,6 +1287,35 @@ function PlayerSeat({
           )}
         </div>
 
+        {/* Sitting-out overlay label */}
+        {isSittingOut && (
+          <div style={{
+            position: 'absolute', inset: 0, borderRadius: '50%',
+            background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center',
+            justifyContent: 'center', zIndex: 4, pointerEvents: 'none',
+          }}>
+            <span style={{
+              color: 'rgba(255,255,255,0.8)', fontSize: 8, fontWeight: 800,
+              textTransform: 'uppercase', letterSpacing: 0.5,
+              animation: 'pulse 2s ease-in-out infinite',
+            }}>Sitting Out</span>
+          </div>
+        )}
+
+        {/* Disconnected overlay label */}
+        {isDisconnected && !isSittingOut && (
+          <div style={{
+            position: 'absolute', inset: 0, borderRadius: '50%',
+            background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center',
+            justifyContent: 'center', zIndex: 4, pointerEvents: 'none',
+          }}>
+            <span style={{
+              color: '#ef4444', fontSize: 8, fontWeight: 800,
+              textTransform: 'uppercase', letterSpacing: 0.5,
+            }}>⚡ DC</span>
+          </div>
+        )}
+
         {/* Note color dot indicator */}
         {noteColor && (
           <div style={{
