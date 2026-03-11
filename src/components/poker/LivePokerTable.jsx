@@ -6301,27 +6301,41 @@ function LivePokerTable({
   }, [result, userId, autoMuck, isSitting, myCards]);
 
   // ═══ WAVE I1: SESSION STATS AUTO-SAVE TO SUPABASE ═══
+  const sessionRowIdRef = useRef(null);
   const saveSessionToSupabase = useCallback(async () => {
     if (!supabase || !userId || !tableId) return;
     const s = sessionStatsRef.current;
     if (s.handsPlayed === 0) return; // Nothing to save
+    const payload = {
+      user_id: userId,
+      table_id: tableId,
+      club_id: tableState?.clubId || null,
+      hands_played: s.handsPlayed,
+      hands_won: s.handsWon,
+      starting_stack: s.startingStack,
+      ending_stack: s.currentStack,
+      biggest_win: s.biggestWin,
+      biggest_loss: s.biggestLoss,
+      pl_history: s.plHistory,
+      position_wins: s.positionWins,
+      position_total: s.positionTotal,
+      session_start: new Date(s.sessionStart).toISOString(),
+      session_end: new Date().toISOString(),
+    };
     try {
-      await supabase.from('poker_session_stats').upsert({
-        user_id: userId,
-        table_id: tableId,
-        club_id: tableState?.clubId || null,
-        hands_played: s.handsPlayed,
-        hands_won: s.handsWon,
-        starting_stack: s.startingStack,
-        ending_stack: s.currentStack,
-        biggest_win: s.biggestWin,
-        biggest_loss: s.biggestLoss,
-        pl_history: s.plHistory,
-        position_wins: s.positionWins,
-        position_total: s.positionTotal,
-        session_start: new Date(s.sessionStart).toISOString(),
-        session_end: new Date().toISOString(),
-      }, { onConflict: 'id', ignoreDuplicates: false });
+      if (sessionRowIdRef.current) {
+        // UPDATE existing row
+        await supabase.from('poker_session_stats')
+          .update(payload)
+          .eq('id', sessionRowIdRef.current);
+      } else {
+        // INSERT new row and capture the ID
+        const { data } = await supabase.from('poker_session_stats')
+          .insert(payload)
+          .select('id')
+          .maybeSingle();
+        if (data?.id) sessionRowIdRef.current = data.id;
+      }
     } catch (_) {}
   }, [supabase, userId, tableId, tableState?.clubId]);
 
@@ -6368,6 +6382,7 @@ function LivePokerTable({
           s.sessionStart = new Date(data.session_start).getTime();
           setSessionStatsSnap({ ...s });
           setStackHistory(data.pl_history || []);
+          sessionRowIdRef.current = data.id; // Track row for future UPDATEs
         }
       } catch (_) {}
     })();
