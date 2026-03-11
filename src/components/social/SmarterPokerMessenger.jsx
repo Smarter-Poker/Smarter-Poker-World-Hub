@@ -586,6 +586,16 @@ export const ChatWindow = ({
     const gifDebounceRef = useRef(null);
     const gifSearchDebounceRef = useRef(null); // BUG-FIX: separate from gifDebounceRef
     const translateDebounceRef = useRef(null);
+
+    // P11-9: Typing Indicator State
+    const [remoteTyping, setRemoteTyping] = useState(false);
+    const remoteTypingTimeoutRef = useRef(null);
+    // P11-12: Pagination
+    const [messagePage, setMessagePage] = useState(1);
+    const MESSAGES_PER_PAGE = 50;
+    // P11-13: Drag-and-Drop
+    const [isDragging, setIsDragging] = useState(false);
+    const dropZoneRef = useRef(null);
     
     // P7-6: Lightbox State
     const [lightboxImage, setLightboxImage] = useState(null);
@@ -938,6 +948,17 @@ export const ChatWindow = ({
         if (action === 'translate' && msg.text) {
             handleTranslate(msg.id, msg.text);
         }
+        // P11-10: Soft Delete
+        if (action === 'delete') {
+            if (typeof window !== 'undefined' && window.confirm('Delete this message?')) {
+                updatePrefs(p => {
+                    const deletedSet = new Set(p.deletedMessages || []);
+                    deletedSet.add(msg.id);
+                    return { ...p, deletedMessages: [...deletedSet] };
+                });
+                busEmit.messageDeleted?.(conversationId, msg.id);
+            }
+        }
     };
 
     // P5-2: Handle emoji reaction
@@ -1063,6 +1084,52 @@ export const ChatWindow = ({
             (err) => { console.error('[Location] Failed:', err); if (typeof window !== 'undefined') alert('Location access denied.'); setSharingLocation(false); },
             { enableHighAccuracy: true, timeout: 10000 }
         );
+    };
+
+    // P11-13: Drag-and-Drop Handler
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+    };
+
+    const handleDrop = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+        const files = e.dataTransfer?.files;
+        if (files?.length > 0) {
+            const file = files[0];
+            const isImage = file.type.startsWith('image/');
+            const isVideo = file.type.startsWith('video/');
+            if (isImage || isVideo) {
+                const url = URL.createObjectURL(file);
+                onSend?.(file.name, { image: url, file: { name: file.name, type: file.type, size: file.size } });
+                busEmit.messageSent(conversationId, otherUser?.id);
+            } else {
+                onSend?.(file.name, { file: { name: file.name, type: file.type, size: file.size } });
+                busEmit.messageSent(conversationId, otherUser?.id);
+            }
+        }
+    };
+
+    // P11-11: Conversation Sort Helper
+    const sortConversations = (convos) => {
+        if (!convos?.length) return convos;
+        return [...convos].sort((a, b) => {
+            // Pinned first
+            const aPinned = pinnedConvos.includes(a.id) ? 1 : 0;
+            const bPinned = pinnedConvos.includes(b.id) ? 1 : 0;
+            if (aPinned !== bPinned) return bPinned - aPinned;
+            // Then by last message time
+            return (b.lastMessageAt || 0) - (a.lastMessageAt || 0);
+        });
     };
 
     // P5-6: Save edit
