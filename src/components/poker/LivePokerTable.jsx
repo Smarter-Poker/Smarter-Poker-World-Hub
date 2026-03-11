@@ -1195,6 +1195,40 @@ function PlayerSeat({
         )}
       </div>
 
+      {/* All-in equity SVG ring around avatar */}
+      {equity != null && !isEmpty && !isFolded && (() => {
+        const eqColor = equity >= 60 ? '#22c55e' : equity >= 40 ? '#eab308' : '#ef4444';
+        const ringR = (avatarSize + 18) / 2;
+        const ringCircum = 2 * Math.PI * ringR;
+        const eqPct = Math.min(Math.max(equity, 0), 100) / 100;
+        return (
+          <svg
+            width={avatarSize + 22}
+            height={avatarSize + 22}
+            style={{
+              position: 'absolute', top: -11, left: -11,
+              transform: 'rotate(-90deg)', zIndex: 25, pointerEvents: 'none',
+              filter: `drop-shadow(0 0 6px ${eqColor}80)`,
+            }}
+          >
+            {/* Background track */}
+            <circle
+              cx={(avatarSize + 22) / 2} cy={(avatarSize + 22) / 2} r={ringR}
+              fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={4}
+            />
+            {/* Equity fill arc */}
+            <circle
+              cx={(avatarSize + 22) / 2} cy={(avatarSize + 22) / 2} r={ringR}
+              fill="none" stroke={eqColor} strokeWidth={4}
+              strokeDasharray={ringCircum}
+              strokeDashoffset={ringCircum * (1 - eqPct)}
+              strokeLinecap="round"
+              style={{ transition: 'stroke-dashoffset 0.8s ease, stroke 0.3s ease' }}
+            />
+          </svg>
+        );
+      })()}
+
       {/* All-in equity percentage badge */}
       {equity != null && !isEmpty && !isFolded && (
         <motion.div
@@ -1220,6 +1254,7 @@ function PlayerSeat({
                 ? '0 0 12px rgba(234,179,8,0.5)'
                 : '0 0 12px rgba(239,68,68,0.5)',
             textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+            animation: equity >= 65 ? 'equityPulse 2s ease-in-out infinite' : 'none',
           }}
         >
           {equity.toFixed(1)}%
@@ -5856,6 +5891,7 @@ function LivePokerTable({
         @keyframes yourTurnPulse { 0% { box-shadow: 0 4px 20px rgba(35,116,225,0.6); transform: translateX(-50%) scale(1); } 100% { box-shadow: 0 4px 30px rgba(99,102,241,0.9); transform: translateX(-50%) scale(1.05); } }
         @keyframes seatPulse { 0%, 100% { box-shadow: 0 0 12px rgba(35,116,225,0.3); } 50% { box-shadow: 0 0 28px rgba(35,116,225,0.7), 0 0 48px rgba(35,116,225,0.3); } }
         @keyframes cardSpotlight { 0% { filter: brightness(1); } 50% { filter: brightness(1.3) drop-shadow(0 0 12px rgba(255,215,0,0.6)); } 100% { filter: brightness(1); } }
+        @keyframes equityPulse { 0%, 100% { transform: scale(1); box-shadow: 0 0 8px rgba(34,197,94,0.3); } 50% { transform: scale(1.06); box-shadow: 0 0 16px rgba(34,197,94,0.6); } }
       `}</style>
     </div>
   );

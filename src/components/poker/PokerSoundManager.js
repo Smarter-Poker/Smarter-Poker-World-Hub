@@ -74,6 +74,8 @@ export class PokerSoundManager {
         case 'chat':       return this._playChat(ctx);
         case 'bbj':        return this._playBBJ(ctx);
         case 'showdown':   return this._playShowdown(ctx);
+        case 'newHand':    return this._playNewHand(ctx);
+        case 'potWon':     return this._playPotWon(ctx);
         // GOD-MODE SOUNDS
         case 'mystery_drumroll': return this._playMysteryDrumroll(ctx);
         case 'mystery_reveal': return this._playMysteryReveal(ctx);
@@ -295,6 +297,55 @@ export class PokerSoundManager {
       osc.start(t + i * 0.1);
       osc.stop(t + i * 0.1 + 0.6);
     });
+  }
+
+  _playNewHand(ctx) {
+    // Rising sweep — a distinct "hand starting" sound
+    const t = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.frequency.setValueAtTime(300, t);
+    osc.frequency.exponentialRampToValueAtTime(800, t + 0.15);
+    osc.type = 'sine';
+    g.gain.setValueAtTime(this._volume * 0.2, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+    osc.connect(g).connect(ctx.destination);
+    osc.start(t); osc.stop(t + 0.2);
+    // Subtle click after sweep
+    const click = this._noiseBuffer(ctx, 0.03);
+    const cg = ctx.createGain();
+    cg.gain.setValueAtTime(this._volume * 0.15, t + 0.12);
+    cg.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+    const cf = ctx.createBiquadFilter();
+    cf.type = 'highpass'; cf.frequency.value = 3000;
+    click.connect(cf).connect(cg).connect(ctx.destination);
+    click.start(t + 0.12); click.stop(t + 0.15);
+  }
+
+  _playPotWon(ctx) {
+    // Cash register jingle — ascending metallic chimes
+    const t = ctx.currentTime;
+    const notes = [880, 1109, 1319, 1760]; // A5, C#6, E6, A6
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.frequency.value = freq;
+      osc.type = 'triangle';
+      g.gain.setValueAtTime(this._volume * 0.18, t + i * 0.08);
+      g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.08 + 0.35);
+      osc.connect(g).connect(ctx.destination);
+      osc.start(t + i * 0.08);
+      osc.stop(t + i * 0.08 + 0.35);
+    });
+    // Coin noise texture
+    const noise = this._noiseBuffer(ctx, 0.4);
+    const ng = ctx.createGain();
+    ng.gain.setValueAtTime(this._volume * 0.05, t + 0.1);
+    ng.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+    const nf = ctx.createBiquadFilter();
+    nf.type = 'bandpass'; nf.frequency.value = 6000; nf.Q.value = 3;
+    noise.connect(nf).connect(ng).connect(ctx.destination);
+    noise.start(t + 0.1); noise.stop(t + 0.5);
   }
 
   // ── GOD MODE: Mystery Bounty Sounds ──────────────────
