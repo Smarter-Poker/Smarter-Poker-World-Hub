@@ -1663,6 +1663,19 @@ function ActionPanel({ actions, onAction, stack, currentBet, bigBlind, potTotal 
 
   const callAmount = canCall?.amount || 0;
 
+  const handleTick = (dir) => {
+    setBetAmount(prev => {
+      const step = bigBlind || 2;
+      let next = dir > 0 ? prev + step : prev - step;
+      if (next < minBet) next = minBet;
+      if (next > maxBet) next = maxBet;
+      if (next !== prev) {
+        try { if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(10); } catch(_){}
+      }
+      return next;
+    });
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
@@ -1678,6 +1691,7 @@ function ActionPanel({ actions, onAction, stack, currentBet, bigBlind, potTotal 
         alignItems: 'center',
         gap: 8,
         zIndex: 30,
+        width: isMobile ? '95%' : 'auto',
       }}
     >
       {/* Pot Odds HUD — appears when facing a bet/call */}
@@ -1688,39 +1702,60 @@ function ActionPanel({ actions, onAction, stack, currentBet, bigBlind, potTotal 
       <AnimatePresence>
         {showSlider && betOrRaise && (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
+            initial={{ opacity: 0, height: 0, scale: 0.95 }}
+            animate={{ opacity: 1, height: 'auto', scale: 1 }}
+            exit={{ opacity: 0, height: 0, scale: 0.95 }}
             style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 6,
-              background: 'rgba(0,0,0,0.85)',
-              borderRadius: 12,
-              padding: '10px 16px',
-              border: '1px solid rgba(255,255,255,0.1)',
-              backdropFilter: 'blur(10px)',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
+              background: 'linear-gradient(180deg, rgba(30,30,40,0.95) 0%, rgba(15,15,20,0.98) 100%)',
+              borderRadius: 16, padding: '16px 20px',
+              border: '1px solid rgba(255,215,0,0.15)',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.05)',
+              backdropFilter: 'blur(20px)',
+              width: isMobile ? '100%' : 360,
             }}
           >
-            {/* Amount display */}
-            <div style={{ fontSize: 22, fontWeight: 800, color: T.accent, fontVariantNumeric: 'tabular-nums' }}>
-              {betAmount.toLocaleString()}
+            {/* Amount Screen */}
+            <div style={{
+              background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 8, padding: '8px 24px', letterSpacing: '0.5px',
+              boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.5), 0 0 10px rgba(255,215,0,0.05)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: '100%'
+            }}>
+              <span style={{ fontSize: 13, color: '#aaa', marginRight: 8, fontWeight: 600 }}>AMOUNT</span>
+              <span style={{ fontSize: 26, fontWeight: 900, color: '#FFD700', fontVariantNumeric: 'tabular-nums', textShadow: '0 0 12px rgba(255,215,0,0.4)' }}>
+                {betAmount.toLocaleString()}
+              </span>
             </div>
 
-            {/* Slider */}
-            <input
-              type="range"
-              min={minBet}
-              max={maxBet}
-              value={betAmount}
-              onChange={(e) => setBetAmount(parseInt(e.target.value))}
-              style={{
-                width: 220,
-                accentColor: T.accent,
-                cursor: 'pointer',
-              }}
-            />
+            {/* Premium Increment Track */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%' }}>
+              <button 
+                onClick={() => handleTick(-1)}
+                style={{ width: 44, height: 44, borderRadius: 22, background: 'rgba(255,255,255,0.05)', color: '#fff', fontSize: 24, paddingBottom: 2, border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >−</button>
+              
+              <input
+                type="range"
+                min={minBet}
+                max={maxBet}
+                step={1}
+                value={betAmount}
+                onChange={(e) => {
+                   setBetAmount(parseInt(e.target.value));
+                   try { if (typeof navigator !== 'undefined' && navigator.vibrate && parseInt(e.target.value) % (bigBlind || 2) === 0) navigator.vibrate(2); } catch(_){}
+                }}
+                style={{
+                  flex: 1, height: 6, borderRadius: 3, accentColor: '#FFD700', cursor: 'grab'
+                }}
+              />
+
+              <button 
+                onClick={() => handleTick(1)}
+                style={{ width: 44, height: 44, borderRadius: 22, background: 'rgba(255,255,255,0.05)', color: '#fff', fontSize: 22, paddingBottom: 2, border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >+</button>
+            </div>
 
           {/* Presets Row */}
             {isEditingPresets ? (
