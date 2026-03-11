@@ -81,7 +81,8 @@ const parseMarkdown = (text) => {
         .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
         .replace(/\*(.+?)\*/g, '<em>$1</em>')
         .replace(/`(.+?)`/g, '<code style="background:#f0f0f0;padding:1px 4px;border-radius:3px;font-size:12px">$1</code>')
-        .replace(/^- (.+)/gm, '• $1');
+        .replace(/^- (.+)/gm, '• $1')
+        .replace(/@([a-zA-Z0-9_]+)/g, '<span class="mention-badge" data-user="$1">@$1</span>');
     return autoLinkify(result);
 };
 
@@ -249,6 +250,43 @@ const MessageBubble = ({ message, isOwn, showAvatar, user, onAction }) => (
                 </div>
             )}
 
+            {/* P7-6: Image / Media Preview (Lightbox Target) */}
+            {message.image && (
+                <div className="message-image-bubble" onClick={() => onAction?.('openLightbox', message.image)}>
+                    <img src={message.image.url} alt="Attachment" className="chat-inline-image" />
+                    {message.image.caption && <div className="image-caption">{message.image.caption}</div>}
+                </div>
+            )}
+
+            {/* P7-7: In-Chat Polls */}
+            {message.poll && (
+                <div className="message-poll">
+                    <div className="poll-question">📊 {message.poll.question}</div>
+                    <div className="poll-options">
+                        {message.poll.options.map((opt, i) => {
+                            const totalVotes = message.poll.options.reduce((sum, o) => sum + (o.votes || 0), 0);
+                            const percent = totalVotes > 0 ? Math.round(((opt.votes || 0) / totalVotes) * 100) : 0;
+                            const hasVoted = message.poll.userVotedIndex === i;
+                            
+                            return (
+                                <button 
+                                    key={i} 
+                                    className={`poll-option-btn ${hasVoted ? 'voted' : ''}`}
+                                    onClick={() => onAction?.('votePoll', { messageId: message.id, optionIndex: i })}
+                                >
+                                    <div className="poll-progress-bg" style={{ width: `${percent}%` }} />
+                                    <span className="poll-opt-text">{opt.text}</span>
+                                    <span className="poll-opt-percent">{percent}%</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                    <div className="poll-footer">
+                        {message.poll.options.reduce((sum, o) => sum + (o.votes || 0), 0)} votes
+                    </div>
+                </div>
+            )}
+
             {/* P5-3: Voice message */}
             {message.isVoice && (
                 <div className="voice-message">
@@ -262,8 +300,8 @@ const MessageBubble = ({ message, isOwn, showAvatar, user, onAction }) => (
                 </div>
             )}
 
-            {/* P4-3 + P5-7: Rich text via markdown + auto-links */}
-            {!message.file && !message.contactCard && !message.isVoice && (
+            {/* P4-3 + P5-7 + P7-5: Rich text via markdown + auto-links + Mentions */}
+            {!message.file && !message.contactCard && !message.isVoice && !message.image && !message.poll && (
                 <span dangerouslySetInnerHTML={{ __html: parseMarkdown(message.text) }} />
             )}
 
@@ -478,6 +516,10 @@ export const ChatWindow = ({
     const [showPriorityPicker, setShowPriorityPicker] = useState(null);
     const [showGroupCreate, setShowGroupCreate] = useState(false);
     const [groupParticipants, setGroupParticipants] = useState([]);
+    
+    // P7-6: Lightbox State
+    const [lightboxImage, setLightboxImage] = useState(null);
+
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
     const typingTimeoutRef = useRef(null);
@@ -1132,6 +1174,15 @@ export const ChatWindow = ({
                     </div>
                 )}
             </div>
+
+            {/* P7-6: Fullscreen Image Lightbox Modal */}
+            {lightboxImage && (
+                <div className="lightbox-overlay" onClick={() => setLightboxImage(null)}>
+                    <button className="lightbox-close">✕</button>
+                    <img src={lightboxImage.url} alt="Fullscreen Attachment" className="lightbox-image" />
+                    {lightboxImage.caption && <div className="lightbox-caption">{lightboxImage.caption}</div>}
+                </div>
+            )}
 
             <style>{`
                 .chat-window {
