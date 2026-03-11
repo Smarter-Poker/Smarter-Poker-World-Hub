@@ -9,6 +9,7 @@ import { SP_COLORS, SPAvatar } from './SmarterPokerStyleCard';
 import { NotificationBell, NotificationsDropdown } from './SmarterPokerNotifications';
 import { ChatDock } from './SmarterPokerMessenger';
 import { supabase } from '../../lib/supabase';
+import { useUnreadCount, UnreadBadge } from '../../hooks/useUnreadCount';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MAIN NAVIGATION BAR
@@ -23,6 +24,9 @@ const SPNavBar = ({
 }) => {
     const [showNotifs, setShowNotifs] = useState(false);
     const [showMessenger, setShowMessenger] = useState(false);
+    
+    // Wire into the global unread count state
+    const { unreadCount } = useUnreadCount();
 
     return (
         <nav className="sp-navbar">
@@ -89,13 +93,16 @@ const SPNavBar = ({
             <div className="sp-nav-right">
                 <button className="sp-nav-icon" title="Menu">&#x229E;</button>
 
-                <button
-                    className={`sp-nav-icon ${showMessenger ? 'active' : ''}`}
-                    title="Messenger"
-                    onClick={() => setShowMessenger(!showMessenger)}
-                >
-                    &#x1F4AC;
-                </button>
+                <div style={{ position: 'relative' }}>
+                    <button
+                        className={`sp-nav-icon ${showMessenger ? 'active' : ''}`}
+                        title="Messenger"
+                        onClick={() => setShowMessenger(!showMessenger)}
+                    >
+                        &#x1F4AC;
+                    </button>
+                    <UnreadBadge count={unreadCount} style={{ top: -2, right: -2 }} />
+                </div>
 
                 <div className="notif-wrapper">
                     <NotificationBell

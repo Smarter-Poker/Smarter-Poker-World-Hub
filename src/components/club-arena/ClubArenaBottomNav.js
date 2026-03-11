@@ -126,7 +126,7 @@ export default function ClubArenaBottomNav({ clubId, activePage, userRole }) {
         };
         fetchUnread();
 
-        const offMsg = eventBus.on('MESSAGE_RECEIVED', () => setUnreadCount(prev => prev + 1));
+        const offMsg = eventBus.on(EventType.MESSAGE_RECEIVED, () => setUnreadCount(prev => prev + 1));
         const offRead = eventBus.on(EventType.DATA_MUTATED, (event) => {
             const source = event?.payload?.entity;
             if (source === 'message_read' || source === 'message_sent') fetchUnread();

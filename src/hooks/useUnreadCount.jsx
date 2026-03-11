@@ -6,6 +6,7 @@
 import { useState, useEffect, createContext, useContext } from 'react';
 import { supabase } from '../lib/supabase';
 import { getAuthUser } from '../lib/authUtils';
+import { eventBus, EventType } from '../engine/EventBus';
 
 const UnreadContext = createContext({
     unreadCount: 0,
@@ -111,6 +112,15 @@ export function UnreadProvider({ children }) {
                 })
                 .subscribe();
 
+            // ⚡ FAST-PATH FALLBACK: Listen to the global EventBus 
+            // This ensures if a page instantly gets a message via WS and emits, the badge updates BEFORE Supabase Realtime catches up
+            let offMsgReceived;
+            if (typeof window !== 'undefined' && eventBus) {
+                offMsgReceived = eventBus.on(EventType.MESSAGE_RECEIVED, () => {
+                    setUnreadCount(prev => prev + 1);
+                });
+            }
+
             // BroadcastChannel for cross-tab sync (instantly updates other tabs when read)
             const bc = new BroadcastChannel('smarter_poker_unread_sync');
             bc.onmessage = (event) => {
@@ -126,6 +136,7 @@ export function UnreadProvider({ children }) {
                 supabase.removeChannel(channel);
                 clearInterval(interval);
                 bc.close();
+                if (offMsgReceived) offMsgReceived();
             };
         }
     }, [userId]);
