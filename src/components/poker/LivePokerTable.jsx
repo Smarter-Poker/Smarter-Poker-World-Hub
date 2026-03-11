@@ -848,11 +848,50 @@ function StackGraphModal({ history, startingStack, onClose, formatStack }) {
             <div style={{ color: '#888', fontSize: 9 }}>Current</div>
           </div>
         </div>
-        <button onClick={onClose} style={{
-          display: 'block', margin: '16px auto 0', padding: '6px 24px', borderRadius: 8,
-          background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
-          color: '#B0B3B8', fontSize: 11, fontWeight: 700, cursor: 'pointer',
-        }}>Close</button>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 16 }}>
+          {/* G5: Export as PNG */}
+          <button onClick={(e) => {
+            e.stopPropagation();
+            const svgEl = e.target.closest('div')?.parentElement?.querySelector('svg');
+            if (!svgEl) return;
+            const svgData = new XMLSerializer().serializeToString(svgEl);
+            const canvas = document.createElement('canvas');
+            canvas.width = W * 2; canvas.height = H * 2;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#18191a'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            const img = new Image();
+            img.onload = () => {
+              ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+              const a = document.createElement('a');
+              a.download = `stack-graph-${Date.now()}.png`;
+              a.href = canvas.toDataURL('image/png');
+              a.click();
+            };
+            img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+          }} style={{
+            padding: '6px 18px', borderRadius: 8,
+            background: 'linear-gradient(135deg, rgba(79,195,247,0.2), rgba(79,195,247,0.1))',
+            border: '1px solid rgba(79,195,247,0.3)', color: '#4fc3f7',
+            fontSize: 11, fontWeight: 700, cursor: 'pointer',
+          }}>📸 Export PNG</button>
+          {/* G5: Share text summary */}
+          <button onClick={(e) => {
+            e.stopPropagation();
+            const text = `📈 Session Stack Graph\n📊 ${history.length} hands\n💰 Net: ${net >= 0 ? '+' : ''}${fmt(net)}\n🔝 Peak: ${fmt(max)} | Valley: ${fmt(min)}\n🎰 smarter.poker`;
+            navigator.clipboard?.writeText(text)?.then(() => {
+              try { eventBus.emit('SOUND_PLAY', { id: 'notify' }); } catch (_) {}
+            });
+          }} style={{
+            padding: '6px 18px', borderRadius: 8,
+            background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
+            color: '#B0B3B8', fontSize: 11, fontWeight: 700, cursor: 'pointer',
+          }}>📋 Copy Summary</button>
+          <button onClick={onClose} style={{
+            padding: '6px 24px', borderRadius: 8,
+            background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
+            color: '#B0B3B8', fontSize: 11, fontWeight: 700, cursor: 'pointer',
+          }}>Close</button>
+        </div>
       </div>
     </motion.div>
   );
@@ -1324,19 +1363,23 @@ function HandHistoryDrawer({ isOpen, onClose, hands = [], formatStack }) {
 
 function ActionLogFeed({ entries = [], isOpen, onClose }) {
   const listRef = useRef(null);
+  const [filter, setFilter] = useState('all'); // G12: filter state
   useEffect(() => {
     if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
   }, [entries]);
   if (!isOpen) return null;
   const ICON_MAP = { fold: '🏳️', check: '✓', call: '📞', bet: '💰', raise: '🔺', all_in: '🔥', deal: '🎴', board: '🃏' };
+  // G12: Filter entries
+  const FILTERS = { all: null, bets: ['bet', 'raise', 'all_in'], calls: ['call'], folds: ['fold'] };
+  const filtered = filter === 'all' ? entries : entries.filter(e => (FILTERS[filter] || []).includes(e.type));
   return (
     <motion.div
       initial={{ opacity: 0, x: -200 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -200 }}
       style={{
-        position: 'absolute', top: 60, left: 10, width: 200, maxHeight: 180,
-        background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)',
+        position: 'absolute', top: 60, left: 10, width: 210, maxHeight: 220,
+        background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(12px)',
         borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)',
         zIndex: 30, display: 'flex', flexDirection: 'column', overflow: 'hidden',
       }}
@@ -1345,9 +1388,20 @@ function ActionLogFeed({ entries = [], isOpen, onClose }) {
         <span style={{ fontSize: 10, fontWeight: 700, color: '#E4E6EB' }}>📝 Action Log</span>
         <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#65676B', fontSize: 14, cursor: 'pointer' }}>✕</button>
       </div>
-      <div ref={listRef} style={{ flex: 1, overflowY: 'auto', padding: '4px 8px', maxHeight: 140 }}>
-        {entries.length === 0 && <div style={{ color: '#4B5563', fontSize: 9, textAlign: 'center', padding: 12 }}>Waiting for action…</div>}
-        {entries.map((e, i) => (
+      {/* G12: Filter buttons */}
+      <div style={{ display: 'flex', gap: 3, padding: '4px 8px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+        {['all', 'bets', 'calls', 'folds'].map(f => (
+          <button key={f} onClick={() => setFilter(f)} style={{
+            padding: '2px 8px', borderRadius: 6, fontSize: 8, fontWeight: 700, cursor: 'pointer',
+            border: 'none', textTransform: 'uppercase', letterSpacing: 0.3,
+            background: filter === f ? 'rgba(79,195,247,0.2)' : 'rgba(255,255,255,0.04)',
+            color: filter === f ? '#4fc3f7' : '#65676B',
+          }}>{f}</button>
+        ))}
+      </div>
+      <div ref={listRef} style={{ flex: 1, overflowY: 'auto', padding: '4px 8px', maxHeight: 155 }}>
+        {filtered.length === 0 && <div style={{ color: '#4B5563', fontSize: 9, textAlign: 'center', padding: 12 }}>Waiting for action…</div>}
+        {filtered.map((e, i) => (
           <motion.div key={i} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.02 * Math.min(i, 5) }} style={{ fontSize: 9, color: '#B0B0B0', padding: '2px 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
             <span style={{ marginRight: 4 }}>{ICON_MAP[e.type] || '•'}</span>
             <span style={{ color: '#E4E6EB', fontWeight: 600 }}>{e.playerName || 'Dealer'}</span>{' '}
@@ -1376,9 +1430,19 @@ function TableStatsBanner({ sessionStats, tableState, isOpen, onClose }) {
   const handsPerHour = hrs > 0 ? Math.round((sessionStats.handsPlayed || 0) / hrs) : 0;
   const avgPot = sessionStats.handsPlayed > 0 ? Math.round((sessionStats.totalPots || 0) / sessionStats.handsPlayed) : 0;
   const bb = tableState?.config?.bigBlind || tableState?.bigBlind || 2;
+  // G8: Expanded metrics
+  const vpipPct = sessionStats.handsPlayed > 0 ? Math.round((sessionStats.vpipCount || 0) / sessionStats.handsPlayed * 100) : 0;
+  const pfrPct = sessionStats.handsPlayed > 0 ? Math.round((sessionStats.pfrCount || 0) / sessionStats.handsPlayed * 100) : 0;
+  const af = (sessionStats.aggressionCalls || 0) > 0 ? ((sessionStats.aggressionBets || 0) / sessionStats.aggressionCalls).toFixed(1) : '—';
+  const winRate = sessionStats.handsPlayed > 0 ? Math.round((sessionStats.handsWon || 0) / sessionStats.handsPlayed * 100) : 0;
+  // Position win rates
+  const posStats = Object.entries(sessionStats.positionTotal || {}).map(([pos, total]) => ({
+    pos, total, wins: (sessionStats.positionWins || {})[pos] || 0,
+    pct: total > 0 ? Math.round(((sessionStats.positionWins || {})[pos] || 0) / total * 100) : 0,
+  }));
 
   const Stat = ({ icon, label, value, color = '#E4E6EB' }) => (
-    <div style={{ textAlign: 'center', minWidth: 50 }}>
+    <div style={{ textAlign: 'center', minWidth: 48 }}>
       <div style={{ fontSize: 11, marginBottom: 2 }}>{icon}</div>
       <div style={{ fontSize: 14, fontWeight: 800, color, fontVariantNumeric: 'tabular-nums' }}>{value}</div>
       <div style={{ fontSize: 7, fontWeight: 600, color: '#65676B', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
@@ -1392,9 +1456,9 @@ function TableStatsBanner({ sessionStats, tableState, isOpen, onClose }) {
       exit={{ opacity: 0, y: -15 }}
       style={{
         position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)',
-        background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(12px)',
+        background: 'rgba(0,0,0,0.90)', backdropFilter: 'blur(14px)',
         borderRadius: 14, border: '1px solid rgba(255,255,255,0.08)',
-        padding: '10px 20px', zIndex: 35,
+        padding: '10px 20px', zIndex: 35, maxWidth: '90vw',
         boxShadow: '0 6px 24px rgba(0,0,0,0.5)',
       }}
     >
@@ -1402,13 +1466,32 @@ function TableStatsBanner({ sessionStats, tableState, isOpen, onClose }) {
         <span style={{ fontSize: 11, fontWeight: 700, color: '#E4E6EB' }}>📊 Table Stats</span>
         <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#65676B', fontSize: 14, cursor: 'pointer' }}>✕</button>
       </div>
-      <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
+      {/* Row 1: Core metrics */}
+      <div style={{ display: 'flex', gap: 14, justifyContent: 'center', marginBottom: 8 }}>
         <Stat icon="🃏" label="Hands/Hr" value={handsPerHour} color="#4fc3f7" />
         <Stat icon="💰" label="Avg Pot" value={avgPot > 0 ? avgPot.toLocaleString() : '—'} color="#FFD700" />
         <Stat icon="🪙" label="Avg Stack" value={`${Math.round(avgStack / bb)}BB`} color="#4ade80" />
         <Stat icon="👥" label="Players" value={activePlayers.length} />
-        <Stat icon="📋" label="Total Hands" value={sessionStats.handsPlayed || 0} />
+        <Stat icon="📋" label="Total" value={sessionStats.handsPlayed || 0} />
       </div>
+      {/* G8: Row 2 — Player performance metrics */}
+      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 8, display: 'flex', gap: 14, justifyContent: 'center', marginBottom: posStats.length > 0 ? 8 : 0 }}>
+        <Stat icon="🎯" label="VPIP%" value={`${vpipPct}%`} color={vpipPct > 30 ? '#ef5350' : vpipPct > 18 ? '#FFD700' : '#4ade80'} />
+        <Stat icon="⚡" label="PFR%" value={`${pfrPct}%`} color={pfrPct > 20 ? '#ef5350' : pfrPct > 10 ? '#FFD700' : '#4ade80'} />
+        <Stat icon="🔥" label="AF" value={af} color="#ff9800" />
+        <Stat icon="🏆" label="Win Rate" value={`${winRate}%`} color={winRate > 50 ? '#4ade80' : winRate > 30 ? '#FFD700' : '#ef5350'} />
+      </div>
+      {/* G8: Row 3 — Position breakdown */}
+      {posStats.length > 0 && (
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 6, display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+          {posStats.map(p => (
+            <div key={p.pos} style={{ textAlign: 'center', minWidth: 36 }}>
+              <div style={{ fontSize: 9, fontWeight: 800, color: p.pct > 50 ? '#4ade80' : '#B0B3B8' }}>{p.pct}%</div>
+              <div style={{ fontSize: 7, color: '#65676B', fontWeight: 600 }}>{p.pos}</div>
+            </div>
+          ))}
+        </div>
+      )}
     </motion.div>
   );
 }
