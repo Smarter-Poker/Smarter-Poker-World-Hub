@@ -69,9 +69,8 @@ export default function StreaksPage() {
     isLoading: loading,
     mutate: refreshStreak,
   } = useSWR(swrKey, async (url) => {
-    const token = getAccessToken();
     const [streakRes, { data: sessions }] = await Promise.all([
-      fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} }).then((r) => r.json()),
+      authedFetch(url).then((r) => r.json()),
       supabase
         .from('jarvis_training_sessions')
         .select('created_at')

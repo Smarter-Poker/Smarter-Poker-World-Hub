@@ -62,12 +62,11 @@ export default function TournamentsPage() {
     data: swrData,
     isLoading: loading,
     mutate: refreshTournaments,
-  } = useSWR(swrKey, (url) => {
-    const token = getAccessToken();
-    return fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+  } = useSWR(swrKey, (url) =>
+    authedFetch(url)
       .then((r) => r.json())
-      .then((d) => (d.success ? d.tournaments || [] : []));
-  });
+      .then((d) => (d.success ? d.tournaments || [] : []))
+  );
   const tournaments = swrData || [];
 
   const registerForTournament = async (tournamentId) => {
