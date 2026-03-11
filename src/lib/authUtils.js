@@ -105,6 +105,81 @@ export async function getSafeUser(supabaseClient) {
 }
 
 /**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * RESILIENT AUTH GATE — Wait for auth before deciding to redirect
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 
+ * USE THIS for page-level auth guards. Unlike getAccessToken() which is a
+ * one-shot localStorage read (races with Supabase SDK token refresh),
+ * this function waits for the session to stabilize first.
+ * 
+ * Usage:
+ *   const user = await ensureAuthReady(supabase);
+ *   if (!user) router.push('/auth/login');
+ */
+export async function ensureAuthReady(supabaseClient) {
+    // 1. Immediate localStorage check (instant, no network)
+    const immediate = getAuthUser();
+    if (immediate?.id) return immediate;
+
+    // 2. Wait for Supabase SDK session resolution (handles refresh cycles)
+    try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (session?.user) return session.user;
+    } catch (_) { /* fall through */ }
+
+    // 3. Brief wait then retry localStorage (SDK may write async after getSession resolves)
+    await new Promise(r => setTimeout(r, 300));
+    const retried = getAuthUser();
+    if (retried?.id) return retried;
+
+    // 4. Last resort — full getSafeUser chain (includes getUser network call)
+    return getSafeUser(supabaseClient);
+}
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * useRequireAuth() — Drop-in hook for protected pages
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 
+ * Replaces the fragile pattern:
+ *   const token = getAccessToken();
+ *   if (!token) router.push('/auth/login');
+ * 
+ * With:
+ *   const { user, checking } = useRequireAuth('/hub/commander/services');
+ *   if (checking) return <SkeletonLoader />;
+ * 
+ * This waits for the Supabase session to stabilize before deciding to redirect,
+ * eliminating false "please log in" redirects on hard refresh / browser wake.
+ */
+export function useRequireAuth(redirectPath) {
+    const [user, setUser] = useState(null);
+    const [checking, setChecking] = useState(true);
+    const router = useRouter();
+
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            // Dynamic import to avoid circular deps with supabase.ts
+            const { supabase: sb } = await import('./supabase');
+            const u = await ensureAuthReady(sb);
+            if (cancelled) return;
+            if (!u) {
+                const target = redirectPath || router.asPath;
+                router.push('/auth/login?redirect=' + encodeURIComponent(target));
+            } else {
+                setUser(u);
+            }
+            setChecking(false);
+        })();
+        return () => { cancelled = true; };
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    return { user, checking };
+}
+
+/**
  * Get the current session token for authenticated requests
  * Uses explicit 'smarter-poker-auth' key (primary) with fallback to legacy sb-* keys
  */
