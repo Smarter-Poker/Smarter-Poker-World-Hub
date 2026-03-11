@@ -974,17 +974,37 @@ function PlayerSeat({
 
       {/* Avatar image + Timer ring */}
       <div style={{ position: 'relative' }}>
-        {/* Smart HUD ring — VPIP indicator ring around avatar */}
-        {showHUD && !isEmpty && seat.stats && (
-          <div style={{
-            position: 'absolute', top: -4, left: -4,
-            width: avatarSize + 8, height: avatarSize + 8,
-            borderRadius: '50%',
-            border: `2px solid ${(seat.stats.vpip || 0) > 40 ? '#ef4444' : (seat.stats.vpip || 0) > 25 ? '#f59e0b' : '#22c55e'}`,
-            zIndex: 2, pointerEvents: 'none',
-            boxShadow: `0 0 8px ${(seat.stats.vpip || 0) > 40 ? 'rgba(239,68,68,0.3)' : (seat.stats.vpip || 0) > 25 ? 'rgba(245,158,11,0.3)' : 'rgba(34,197,94,0.3)'}`,
-          }} />
-        )}
+        {/* Phase 20 Smart HUD Ring — VPIP SVG Silhouette */}
+        {showHUD && !isEmpty && seat.stats && (() => {
+          const vpip = seat.stats.vpip || 0;
+          const vpipColor = vpip > 40 ? '#ef4444' : vpip > 25 ? '#f59e0b' : '#22c55e';
+          const r = (avatarSize + 4) / 2;
+          const circum = 2 * Math.PI * r;
+          const pct = Math.min(vpip, 100) / 100;
+          return (
+            <svg
+              width={avatarSize + 12}
+              height={avatarSize + 12}
+              style={{
+                position: 'absolute', top: -6, left: -6,
+                transform: 'rotate(-90deg)', zIndex: 3, pointerEvents: 'none',
+                filter: `drop-shadow(0 0 4px ${vpipColor}66)`,
+              }}
+            >
+              <circle
+                cx={(avatarSize + 12) / 2} cy={(avatarSize + 12) / 2} r={r}
+                fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth={3}
+              />
+              <circle
+                cx={(avatarSize + 12) / 2} cy={(avatarSize + 12) / 2} r={r}
+                fill="none" stroke={vpipColor} strokeWidth={3}
+                strokeDasharray={circum}
+                strokeDashoffset={circum * (1 - pct)}
+                strokeLinecap="round"
+              />
+            </svg>
+          );
+        })()}
         {showTimer && (
           <>
             {/* Premium Shot Clock Ring */}
@@ -1063,17 +1083,38 @@ function PlayerSeat({
           </motion.div>
         )}
 
-        {/* HUD Stats Badge — VPIP/PFR tooltip below avatar */}
-        {showHUD && !isEmpty && seat.stats && (
-          <div style={{
-            position: 'absolute', bottom: -14, left: '50%', transform: 'translateX(-50%)',
-            background: 'rgba(0,0,0,0.9)', border: '1px solid rgba(255,255,255,0.12)',
-            borderRadius: 6, padding: '1px 6px', zIndex: 14, whiteSpace: 'nowrap',
-            fontSize: 8, fontWeight: 700, color: '#B0B3B8',
-          }}>
-            V:{seat.stats.vpip || 0} P:{seat.stats.pfr || 0}
-          </div>
-        )}
+        {/* Phase 20 Glassmorphic HUD Badge — VPIP/PFR/AF */}
+        {showHUD && !isEmpty && seat.stats && (() => {
+          const vpip = seat.stats.vpip || 0;
+          const pfr = seat.stats.pfr || 0;
+          const af = seat.stats.af ? parseFloat(seat.stats.af).toFixed(1) : '1.0';
+          const vpipColor = vpip > 40 ? '#ef4444' : vpip > 25 ? '#f59e0b' : '#22c55e';
+          return (
+            <div style={{
+              position: 'absolute', bottom: -22, left: '50%', transform: 'translateX(-50%)',
+              background: 'rgba(15,20,30,0.85)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+              border: `1px solid rgba(255,255,255,0.1)`, borderBottom: `1px solid ${vpipColor}80`,
+              boxShadow: `0 6px 16px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.15)`,
+              borderRadius: 6, padding: '3px 8px', zIndex: 16, whiteSpace: 'nowrap',
+              display: 'flex', gap: 6, alignItems: 'center', opacity: isFolded ? 0.7 : 1,
+            }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1 }}>
+                <span style={{ fontSize: 7, color: 'rgba(255,255,255,0.45)', fontWeight: 700, letterSpacing: 0.5 }}>VPIP</span>
+                <span style={{ fontSize: 10, color: vpipColor, fontWeight: 900, fontFamily: 'monospace' }}>{vpip}</span>
+              </div>
+              <div style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.15)' }} />
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1 }}>
+                <span style={{ fontSize: 7, color: 'rgba(255,255,255,0.45)', fontWeight: 700, letterSpacing: 0.5 }}>PFR</span>
+                <span style={{ fontSize: 10, color: '#facc15', fontWeight: 900, fontFamily: 'monospace' }}>{pfr}</span>
+              </div>
+              <div style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.15)' }} />
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1 }}>
+                <span style={{ fontSize: 7, color: 'rgba(255,255,255,0.45)', fontWeight: 700, letterSpacing: 0.5 }}>AF</span>
+                <span style={{ fontSize: 10, color: '#bae6fd', fontWeight: 900, fontFamily: 'monospace' }}>{af}</span>
+              </div>
+            </div>
+          );
+        })()}
 
         <div
           style={{
