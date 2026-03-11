@@ -120,7 +120,7 @@ export default function PlayerNotificationsPage() {
   }, [user?.id, refreshNotifications]);
 
   const { isLoading: loading, mutate: refreshNotifications } = useSWR(
-    '/api/commander/notifications/my',
+    authChecking ? null : '/api/commander/notifications/my',
     async (url) => {
       const token = getToken();
       if (!token) return null;

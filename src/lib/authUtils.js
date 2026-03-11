@@ -134,7 +134,22 @@ export async function ensureAuthReady(supabaseClient) {
     if (retried?.id) return retried;
 
     // 4. Last resort — full getSafeUser chain (includes getUser network call)
-    return getSafeUser(supabaseClient);
+    const safeUser = await getSafeUser(supabaseClient);
+    if (safeUser?.id) return safeUser;
+
+    // 5. Session backup recovery — restores from backup if primary was corrupted
+    try {
+        const restored = restoreSessionBackup();
+        if (restored) {
+            const backupUser = getAuthUser();
+            if (backupUser?.id) {
+                console.log('[authUtils] Session recovered from backup');
+                return backupUser;
+            }
+        }
+    } catch (_) { /* silently fail */ }
+
+    return null; // Truly not logged in
 }
 
 /**
@@ -161,7 +176,21 @@ export function useRequireAuth(redirectPath) {
     useEffect(() => {
         let cancelled = false;
         (async () => {
-            // Dynamic import to avoid circular deps with supabase.ts
+            // Fast-path: If auth was already confirmed this session, skip full check
+            if (typeof window !== 'undefined' && sessionStorage.getItem('sp_auth_confirmed')) {
+                const cached = getAuthUser();
+                if (cached?.id) {
+                    if (!cancelled) {
+                        setUser(cached);
+                        setChecking(false);
+                    }
+                    return;
+                }
+                // Cached flag exists but user is gone — clear and do full check
+                sessionStorage.removeItem('sp_auth_confirmed');
+            }
+
+            // Full check: Dynamic import to avoid circular deps with supabase.ts
             const { supabase: sb } = await import('./supabase');
             const u = await ensureAuthReady(sb);
             if (cancelled) return;
@@ -170,6 +199,10 @@ export function useRequireAuth(redirectPath) {
                 router.push('/auth/login?redirect=' + encodeURIComponent(target));
             } else {
                 setUser(u);
+                // Set fast-path flag for subsequent page loads in this session
+                if (typeof window !== 'undefined') {
+                    sessionStorage.setItem('sp_auth_confirmed', '1');
+                }
             }
             setChecking(false);
         })();
@@ -442,6 +475,8 @@ export function clearAuth(force = false) {
         }
 
         localStorage.removeItem(AUTH_STORAGE_KEY);
+        // Clear fast-path flag so useRequireAuth does full check after logout
+        try { sessionStorage.removeItem('sp_auth_confirmed'); } catch (_) {}
         const sbKeys = Object.keys(localStorage).filter(
             k => k.startsWith('sb-') && k.endsWith('-auth-token')
         );

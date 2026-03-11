@@ -1740,11 +1740,14 @@ ${messages.map(m =>
     const getReactionStats = useCallback(async () => {
         const supabase = getSupabase();
         if (!supabase || !conversationId) return null;
+        // messenger_reactions has no conversation_id column — filter via message_id
+        const messageIds = messages.map(m => m.id).filter(Boolean);
+        if (messageIds.length === 0) return { totalReactions: 0, topEmojis: [], mostReactedMessages: [] };
         try {
             const { data } = await supabase
                 .from('messenger_reactions')
                 .select('emoji, message_id')
-                .eq('conversation_id', conversationId);
+                .in('message_id', messageIds);
             if (!data || data.length === 0) return { totalReactions: 0, topEmojis: [], mostReactedMessages: [] };
             const emojiCounts = {};
             const messageCounts = {};
@@ -1756,7 +1759,7 @@ ${messages.map(m =>
             const mostReactedMessages = Object.entries(messageCounts).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([messageId, count]) => ({ messageId, count }));
             return { totalReactions: data.length, topEmojis, mostReactedMessages };
         } catch (_) { return null; }
-    }, [conversationId]);
+    }, [conversationId, messages]);
 
     // ── P18-4: Conversation Labels / Folders ──
     const [conversationLabels, setConversationLabels] = useState({});

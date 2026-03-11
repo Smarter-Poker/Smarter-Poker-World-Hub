@@ -103,7 +103,7 @@ export default function SquadsPage() {
     return () => { supabase.removeChannel(ch); };
   }, [user?.id, refreshSquads]);
 
-  const { data: swrData, isLoading: loading, mutate: refreshSquads } = useSWR('/api/commander/squads/my', async (url) => {
+  const { data: swrData, isLoading: loading, mutate: refreshSquads } = useSWR(authChecking ? null : '/api/commander/squads/my', async (url) => {
     const token = getAccessToken();
     if (!token) return null;
     return fetch(url, { headers: { Authorization: `Bearer ${token}` } })

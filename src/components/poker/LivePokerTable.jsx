@@ -6407,8 +6407,9 @@ function LivePokerTable({
     if (supabase && userId) {
       supabase.from('poker_seat_preferences').upsert({
         user_id: userId,
-        max_seats: 0, // Use 0 as sentinel for "global preferences"
+        max_seats: 0, // sentinel for "global preferences"
         preferred_seat: 0,
+        felt_color: feltId, // Actually persist the felt color!
         updated_at: new Date().toISOString(),
       }, { onConflict: 'user_id,max_seats' }).then(() => {}).catch(() => {});
     }
@@ -6464,7 +6465,7 @@ function LivePokerTable({
     const winnerSeatIdx = seats?.findIndex(s => s?.player?.id && String(s.player.id) === String(result.winners[0].playerId));
     if (winnerSeatIdx >= 0 && positions?.[winnerSeatIdx]) {
       const pos = positions[winnerSeatIdx];
-      setPotScoopTarget({ x: pos.x || '50%', y: pos.y || '30%' });
+      setPotScoopTarget({ x: pos.x ?? 50, y: pos.y ?? 30 });
       setPotScoopActive(true);
       const t = setTimeout(() => { setPotScoopActive(false); setPotScoopTarget(null); }, 2000);
       return () => clearTimeout(t);

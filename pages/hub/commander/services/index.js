@@ -302,7 +302,7 @@ export default function ServicesPage() {
     return () => { supabase.removeChannel(ch); };
   }, [user?.id, refreshServices]);
 
-  const { data: swrData, isLoading: loading, mutate: refreshServices } = useSWR('/api/commander/sessions/current', async () => {
+  const { data: swrData, isLoading: loading, mutate: refreshServices } = useSWR(authChecking ? null : '/api/commander/sessions/current', async () => {
     const token = getAccessToken();
     if (!token) return null;
     const h = { Authorization: `Bearer ${token}` };

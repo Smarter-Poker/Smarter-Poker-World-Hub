@@ -95,7 +95,7 @@ export default function PlayerRewardsPage() {
     return () => { supabase.removeChannel(ch); };
   }, [user?.id, refreshRewards]);
 
-  const { data: swrData, isLoading: loading, mutate: refreshRewards } = useSWR('/api/commander/comps/balances', async () => {
+  const { data: swrData, isLoading: loading, mutate: refreshRewards } = useSWR(authChecking ? null : '/api/commander/comps/balances', async () => {
     const token = getAccessToken();
     if (!token) return null;
     const h = { Authorization: `Bearer ${token}` };
