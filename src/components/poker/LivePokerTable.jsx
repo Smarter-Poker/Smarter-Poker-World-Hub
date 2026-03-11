@@ -1572,6 +1572,30 @@ function ActionPanel({ actions, onAction, stack, currentBet, bigBlind, potTotal 
   const [betAmount, setBetAmount] = useState(0);
   const [showSlider, setShowSlider] = useState(false);
   const [customPresets, setCustomPresets] = useState(null);
+  
+  const [isEditingPresets, setIsEditingPresets] = useState(false);
+  const [editP1, setEditP1] = useState(0.33);
+  const [editP2, setEditP2] = useState(0.50);
+  const [editP3, setEditP3] = useState(0.67);
+  const [editP4, setEditP4] = useState(1.00);
+  const [editP5, setEditP5] = useState(2.00);
+
+  const handleSavePresets = () => {
+    const payload = { p1: editP1, p2: editP2, p3: editP3, p4: editP4, p5: editP5 };
+    localStorage.setItem('smarter-poker-bet-presets', JSON.stringify(payload));
+    eventBus.emit(EventType.DATA_MUTATED, 'bet_presets_changed');
+    setCustomPresets(payload);
+    setIsEditingPresets(false);
+  };
+
+  const handleOpenEditPresets = () => {
+    setEditP1(customPresets?.p1 || 0.33);
+    setEditP2(customPresets?.p2 || 0.50);
+    setEditP3(customPresets?.p3 || 0.67);
+    setEditP4(customPresets?.p4 || 1.00);
+    setEditP5(customPresets?.p5 || 2.00);
+    setIsEditingPresets(true);
+  };
 
   // Sync bet presets across tables
   useEffect(() => {
@@ -1587,13 +1611,14 @@ function ActionPanel({ actions, onAction, stack, currentBet, bigBlind, potTotal 
     
     // Listen for cross-tab or cross-component updates
     window.addEventListener('storage', loadPresets);
-    eventBus.on(EventType.DATA_MUTATED, (payload) => {
+    const unsub = eventBus.on(EventType.DATA_MUTATED, (payload) => {
       if (payload === 'bet_presets_changed') loadPresets();
     });
     
     return () => {
       window.removeEventListener('storage', loadPresets);
-      eventBus.off(EventType.DATA_MUTATED, loadPresets);
+      if (typeof unsub === 'function') unsub();
+      else eventBus.off(EventType.DATA_MUTATED, loadPresets); // Fallback if unsub isn't supported
     };
   }, []);
 
@@ -1697,16 +1722,47 @@ function ActionPanel({ actions, onAction, stack, currentBet, bigBlind, potTotal 
               }}
             />
 
-            {/* Presets */}
-            <div style={{ display: 'flex', gap: 6 }}>
-              {presets.map((p) => (
+          {/* Presets Row */}
+            {isEditingPresets ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <input type="number" step="0.01" value={editP1} onChange={e => setEditP1(parseFloat(e.target.value) || 0)} style={{ width: 44, fontSize: 11, background: 'rgba(0,0,0,0.5)', color: '#fff', border: '1px solid #555', borderRadius: 4, padding: '2px 4px', textAlign: 'center' }} />
+                  <input type="number" step="0.01" value={editP2} onChange={e => setEditP2(parseFloat(e.target.value) || 0)} style={{ width: 44, fontSize: 11, background: 'rgba(0,0,0,0.5)', color: '#fff', border: '1px solid #555', borderRadius: 4, padding: '2px 4px', textAlign: 'center' }} />
+                  <input type="number" step="0.01" value={editP3} onChange={e => setEditP3(parseFloat(e.target.value) || 0)} style={{ width: 44, fontSize: 11, background: 'rgba(0,0,0,0.5)', color: '#fff', border: '1px solid #555', borderRadius: 4, padding: '2px 4px', textAlign: 'center' }} />
+                  <input type="number" step="0.01" value={editP4} onChange={e => setEditP4(parseFloat(e.target.value) || 0)} style={{ width: 44, fontSize: 11, background: 'rgba(0,0,0,0.5)', color: '#fff', border: '1px solid #555', borderRadius: 4, padding: '2px 4px', textAlign: 'center' }} />
+                  <input type="number" step="0.01" value={editP5} onChange={e => setEditP5(parseFloat(e.target.value) || 0)} style={{ width: 44, fontSize: 11, background: 'rgba(0,0,0,0.5)', color: '#fff', border: '1px solid #555', borderRadius: 4, padding: '2px 4px', textAlign: 'center' }} />
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={() => setIsEditingPresets(false)} style={{ background: 'transparent', color: '#999', border: 'none', fontSize: 11, cursor: 'pointer' }}>Cancel</button>
+                  <button onClick={handleSavePresets} style={{ background: T.accent, color: '#000', border: 'none', borderRadius: 4, padding: '2px 10px', fontSize: 11, fontWeight: 'bold', cursor: 'pointer' }}>Save</button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: 6 }}>
+                {presets.map((p) => (
+                  <button
+                    key={p.label}
+                    onClick={() => setBetAmount(p.amount)}
+                    style={{
+                      background: 'rgba(255,215,0,0.1)',
+                      color: T.accent,
+                      border: `1px solid ${T.accentDim}`,
+                      borderRadius: 6,
+                      padding: '3px 10px',
+                      fontSize: 11,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {p.label}
+                  </button>
+                ))}
                 <button
-                  key={p.label}
-                  onClick={() => setBetAmount(p.amount)}
+                  onClick={() => setBetAmount(maxBet)}
                   style={{
-                    background: 'rgba(255,215,0,0.1)',
-                    color: T.accent,
-                    border: `1px solid ${T.accentDim}`,
+                    background: 'rgba(147,51,234,0.2)',
+                    color: '#c084fc',
+                    border: '1px solid #7c3aed',
                     borderRadius: 6,
                     padding: '3px 10px',
                     fontSize: 11,
@@ -1714,25 +1770,26 @@ function ActionPanel({ actions, onAction, stack, currentBet, bigBlind, potTotal 
                     cursor: 'pointer',
                   }}
                 >
-                  {p.label}
+                  All-In
                 </button>
-              ))}
-              <button
-                onClick={() => setBetAmount(maxBet)}
-                style={{
-                  background: 'rgba(147,51,234,0.2)',
-                  color: '#c084fc',
-                  border: '1px solid #7c3aed',
-                  borderRadius: 6,
-                  padding: '3px 10px',
-                  fontSize: 11,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                All-In
-              </button>
-            </div>
+                <button
+                  onClick={handleOpenEditPresets}
+                  title="Configure Bet Presets"
+                  style={{
+                    background: 'transparent',
+                    color: '#888',
+                    border: 'none',
+                    padding: '0 4px',
+                    fontSize: 14,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  ⚙️
+                </button>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -3717,8 +3774,11 @@ function LivePokerTable({
         }
       }
     };
-    eventBus.on(EventType.DATA_MUTATED, handleGlobalMutate);
-    return () => eventBus.off(EventType.DATA_MUTATED, handleGlobalMutate);
+    const unsub = eventBus.on(EventType.DATA_MUTATED, handleGlobalMutate);
+    return () => {
+      if (typeof unsub === 'function') unsub();
+      else eventBus.off(EventType.DATA_MUTATED, handleGlobalMutate);
+    };
   }, [send]);
 
   // Theme system
