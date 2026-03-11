@@ -684,8 +684,8 @@ export default function HorsesAdmin() {
         safeQuery(supabase.from('cashout_requests').select('id, amount, created_at, club_id, clubs(name)').eq('status', 'pending').order('created_at', { ascending: false }).limit(100)),
         safeQuery(supabase.from('clubs').select('id, name, club_id, member_count, status, created_at, owner_id').order('created_at', { ascending: false }).limit(200)),
         safeQuery(supabase.from('unions').select('id, name, code, created_at').order('created_at', { ascending: false }).limit(100)),
-        safeQuery(supabase.from('chip_transactions').select('amount, created_at').eq('type', 'mint').gte('created_at', new Date(Date.now() - 86400000).toISOString()).limit(200)),
-        safeQuery(supabase.from('chip_transactions').select('id, amount, type, created_at, club_id, clubs(name)').order('created_at', { ascending: false }).limit(50)),
+        safeQuery(supabase.from('chip_transactions').select('amount, created_at').eq('transaction_type', 'mint').gte('created_at', new Date(Date.now() - 86400000).toISOString()).limit(200)),
+        safeQuery(supabase.from('chip_transactions').select('id, amount, transaction_type, created_at, club_id').order('created_at', { ascending: false }).limit(50)),
       ]);
 
       const clubs = clubsRes?.data || [];
@@ -756,12 +756,12 @@ export default function HorsesAdmin() {
     try {
       const [membersRes, agentsRes, tablesRes, cashoutsRes, flagsRes, sessionsRes, txnsRes] = await Promise.all([
         safeQuery(supabase.from('club_members').select('*, profiles(display_name, username, email, player_number)').eq('club_id', club.id).order('created_at', { ascending: false }).limit(200)),
-        safeQuery(supabase.from('agents').select('*, profiles(display_name, username)').eq('club_id', club.id)),
+        safeQuery(supabase.from('agents').select('id, user_id, club_id, commission_rate, credit_limit, credit_used, status, created_at').eq('club_id', club.id)),
         safeQuery(supabase.from('tables').select('*').eq('club_id', club.id).order('created_at', { ascending: false })),
         safeQuery(supabase.from('cashout_requests').select('*, profiles(display_name, username)').eq('club_id', club.id).eq('status', 'pending').order('created_at', { ascending: false })),
         caFetch('/api/club-arena/anti-cheat', { action: 'get_flags', clubId: club.id }).catch(() => ({ flags: [] })),
         caFetch('/api/club-arena/anti-cheat', { action: 'get_sessions', clubId: club.id }).catch(() => ({ sessions: [] })),
-        safeQuery(supabase.from('chip_transactions').select('*').eq('club_id', club.id).order('created_at', { ascending: false }).limit(50)),
+        safeQuery(supabase.from('chip_transactions').select('id, amount, transaction_type, notes, created_at').eq('club_id', club.id).order('created_at', { ascending: false }).limit(50)),
       ]);
       setCaClubDetail({
         members: membersRes?.data || [],
@@ -801,7 +801,7 @@ export default function HorsesAdmin() {
     try {
       const [membershipsRes, txnsRes, cashoutsRes] = await Promise.all([
         safeQuery(supabase.from('club_members').select('*, clubs(name, club_id)').eq('user_id', profile.id)),
-        safeQuery(supabase.from('chip_transactions').select('*, clubs(name)').eq('user_id', profile.id).order('created_at', { ascending: false }).limit(30)),
+        safeQuery(supabase.from('chip_transactions').select('id, amount, transaction_type, notes, created_at, club_id').eq('user_id', profile.id).order('created_at', { ascending: false }).limit(30)),
         safeQuery(supabase.from('cashout_requests').select('*, clubs(name)').eq('user_id', profile.id).order('created_at', { ascending: false }).limit(20)),
       ]);
       setCaSelectedUser({ ...profile, memberships: membershipsRes?.data || [], txns: txnsRes?.data || [], cashouts: cashoutsRes?.data || [], loading: false });
@@ -3291,7 +3291,7 @@ export default function HorsesAdmin() {
                         <div style={{ maxHeight: 300, overflowY: 'auto' }}>
                           {(caClubDetail?.recentTxns || []).slice(0, 20).map((txn, i) => (
                             <div key={txn.id || i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: i % 2 === 0 ? '#1a1a2e' : 'transparent', borderRadius: 6, fontSize: 13 }}>
-                              <span style={{ color: '#aaa' }}>{txn.type || 'unknown'}</span>
+                              <span style={{ color: '#aaa' }}>{txn.transaction_type || 'unknown'}</span>
                               <span style={{ color: txn.amount > 0 ? '#31a24c' : '#FF453A', fontWeight: 600 }}>{txn.amount > 0 ? '+' : ''}{txn.amount}</span>
                               <span style={{ color: '#666', fontSize: 11 }}>{txn.created_at ? new Date(txn.created_at).toLocaleString() : ''}</span>
                             </div>

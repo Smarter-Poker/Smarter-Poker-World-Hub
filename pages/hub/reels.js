@@ -13,7 +13,7 @@ import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { reelsPreferences, savedReelsService } from '../../src/services/preferences-service';
-import { getAuthUser } from '../../src/lib/authUtils';
+import { getAuthUser, getAccessToken } from '../../src/lib/authUtils';
 import UploadReelModal from '../../src/components/reels/UploadReelModal';
 
 const C = {
@@ -271,7 +271,7 @@ export default function ReelsPage() {
             try {
                 await fetch('/api/social/interactions', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', ...(getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {}) },
                     body: JSON.stringify({ post_id: currentReel.id, user_id: userId, interaction_type: 'like' })
                 });
             } catch (e) {
@@ -300,7 +300,7 @@ export default function ReelsPage() {
         try {
             const res = await fetch('/api/social/interactions', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', ...(getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {}) },
                 body: JSON.stringify({ post_id: currentReel.id, user_id: userId, interaction_type: 'comment', content: commentText.trim() })
             });
             const json = await res.json();
@@ -323,7 +323,7 @@ export default function ReelsPage() {
             if (userId) {
                 fetch('/api/social/interactions', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', ...(getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {}) },
                     body: JSON.stringify({ post_id: currentReel.id, user_id: userId, interaction_type: 'share' })
                 }).catch(() => { });
             }

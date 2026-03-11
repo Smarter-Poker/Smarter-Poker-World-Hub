@@ -22,6 +22,7 @@ import { updateWatchDuration, getWatchedVideos, getWatchProgress, getRecentlyWat
 import { useVideoLibraryStore } from '../../src/stores/videoLibraryStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
+import { getAccessToken } from '../../src/lib/authUtils';
 
 // Full video catalog with YouTube embeds - 138 VIDEOS (96 cash + 42 tournaments)
 const FULL_VIDEOS = [
@@ -633,7 +634,11 @@ export default function VideoLibraryPage() {
 
         setAiAnalysisLoading(true);
         try {
-            const response = await fetch(`/api/video/analyze?videoId=${selectedVideo.videoId}&title=${encodeURIComponent(selectedVideo.title)}`, { signal });
+            const token = getAccessToken();
+            const response = await fetch(`/api/video/analyze?videoId=${selectedVideo.videoId}&title=${encodeURIComponent(selectedVideo.title)}`, {
+                signal,
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+            });
             const data = await response.json();
             if (data.success && data.analysis) {
                 setAiAnalysis(data.analysis);
