@@ -132,93 +132,125 @@ ALTER TABLE public.messenger_call_signals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.messenger_bookmarks ENABLE ROW LEVEL SECURITY;
 
 -- Conversations: user can see conversations they participate in
+DROP POLICY IF EXISTS "Users can view own conversations" ON public.messenger_conversations;
 CREATE POLICY "Users can view own conversations" ON public.messenger_conversations
     FOR SELECT USING (
         id IN (SELECT conversation_id FROM public.messenger_participants WHERE user_id = auth.uid())
     );
 
+DROP POLICY IF EXISTS "Users can create conversations" ON public.messenger_conversations;
 CREATE POLICY "Users can create conversations" ON public.messenger_conversations
     FOR INSERT WITH CHECK (created_by = auth.uid());
 
+DROP POLICY IF EXISTS "Owners can update conversations" ON public.messenger_conversations;
 CREATE POLICY "Owners can update conversations" ON public.messenger_conversations
     FOR UPDATE USING (
         id IN (SELECT conversation_id FROM public.messenger_participants WHERE user_id = auth.uid() AND role IN ('owner', 'admin'))
     );
 
 -- Participants: user can see participants of conversations they belong to
+DROP POLICY IF EXISTS "Users can view conversation participants" ON public.messenger_participants;
 CREATE POLICY "Users can view conversation participants" ON public.messenger_participants
     FOR SELECT USING (
         conversation_id IN (SELECT conversation_id FROM public.messenger_participants WHERE user_id = auth.uid())
     );
 
+DROP POLICY IF EXISTS "Users can join conversations" ON public.messenger_participants;
 CREATE POLICY "Users can join conversations" ON public.messenger_participants
     FOR INSERT WITH CHECK (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "Admins can manage participants" ON public.messenger_participants;
 CREATE POLICY "Admins can manage participants" ON public.messenger_participants
     FOR DELETE USING (
         conversation_id IN (SELECT conversation_id FROM public.messenger_participants WHERE user_id = auth.uid() AND role IN ('owner', 'admin'))
     );
 
 -- Messages: user can see messages in their conversations
+DROP POLICY IF EXISTS "Users can view conversation messages" ON public.messenger_messages;
 CREATE POLICY "Users can view conversation messages" ON public.messenger_messages
     FOR SELECT USING (
         conversation_id IN (SELECT conversation_id FROM public.messenger_participants WHERE user_id = auth.uid())
     );
 
+DROP POLICY IF EXISTS "Users can send messages" ON public.messenger_messages;
 CREATE POLICY "Users can send messages" ON public.messenger_messages
     FOR INSERT WITH CHECK (
         sender_id = auth.uid() AND
         conversation_id IN (SELECT conversation_id FROM public.messenger_participants WHERE user_id = auth.uid())
     );
 
+DROP POLICY IF EXISTS "Users can edit own messages" ON public.messenger_messages;
 CREATE POLICY "Users can edit own messages" ON public.messenger_messages
     FOR UPDATE USING (sender_id = auth.uid());
 
 -- Reactions: users can manage reactions on messages they can see
+DROP POLICY IF EXISTS "Users can view reactions" ON public.messenger_reactions;
 CREATE POLICY "Users can view reactions" ON public.messenger_reactions
     FOR SELECT USING (
         message_id IN (SELECT id FROM public.messenger_messages WHERE conversation_id IN (SELECT conversation_id FROM public.messenger_participants WHERE user_id = auth.uid()))
     );
 
+DROP POLICY IF EXISTS "Users can add reactions" ON public.messenger_reactions;
 CREATE POLICY "Users can add reactions" ON public.messenger_reactions
     FOR INSERT WITH CHECK (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "Users can remove own reactions" ON public.messenger_reactions;
 CREATE POLICY "Users can remove own reactions" ON public.messenger_reactions
     FOR DELETE USING (user_id = auth.uid());
 
 -- Translations: visible to all participants
+DROP POLICY IF EXISTS "Users can view translations" ON public.messenger_translations;
 CREATE POLICY "Users can view translations" ON public.messenger_translations
     FOR SELECT USING (
         message_id IN (SELECT id FROM public.messenger_messages WHERE conversation_id IN (SELECT conversation_id FROM public.messenger_participants WHERE user_id = auth.uid()))
     );
 
+DROP POLICY IF EXISTS "Users can create translations" ON public.messenger_translations;
 CREATE POLICY "Users can create translations" ON public.messenger_translations
     FOR INSERT WITH CHECK (true);
 
 -- Call Signals: visible to caller and callee
+DROP POLICY IF EXISTS "Users can view own call signals" ON public.messenger_call_signals;
 CREATE POLICY "Users can view own call signals" ON public.messenger_call_signals
     FOR SELECT USING (caller_id = auth.uid() OR callee_id = auth.uid());
 
+DROP POLICY IF EXISTS "Users can create call signals" ON public.messenger_call_signals;
 CREATE POLICY "Users can create call signals" ON public.messenger_call_signals
     FOR INSERT WITH CHECK (caller_id = auth.uid());
 
+DROP POLICY IF EXISTS "Users can update own call signals" ON public.messenger_call_signals;
 CREATE POLICY "Users can update own call signals" ON public.messenger_call_signals
     FOR UPDATE USING (caller_id = auth.uid() OR callee_id = auth.uid());
 
 -- Bookmarks: users manage their own
+DROP POLICY IF EXISTS "Users can view own bookmarks" ON public.messenger_bookmarks;
 CREATE POLICY "Users can view own bookmarks" ON public.messenger_bookmarks
     FOR SELECT USING (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "Users can create bookmarks" ON public.messenger_bookmarks;
 CREATE POLICY "Users can create bookmarks" ON public.messenger_bookmarks
     FOR INSERT WITH CHECK (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "Users can delete own bookmarks" ON public.messenger_bookmarks;
 CREATE POLICY "Users can delete own bookmarks" ON public.messenger_bookmarks
     FOR DELETE USING (user_id = auth.uid());
 
 -- ═══════════════════════════════════════════════════════════════════════
 -- REALTIME: Enable for messages, reactions, signals, participants
 -- ═══════════════════════════════════════════════════════════════════════
-ALTER PUBLICATION supabase_realtime ADD TABLE public.messenger_messages;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.messenger_reactions;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.messenger_call_signals;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.messenger_participants;
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.messenger_messages;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.messenger_reactions;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.messenger_call_signals;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.messenger_participants;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;

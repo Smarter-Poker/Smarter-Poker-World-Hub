@@ -20,6 +20,7 @@ CREATE INDEX IF NOT EXISTS idx_club_chat_user ON club_chat(user_id);
 -- RLS: Members can read their club's chat
 ALTER TABLE public.club_chat ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Members can read club chat" ON club_chat;
 CREATE POLICY "Members can read club chat" ON club_chat
   FOR SELECT USING (
     EXISTS (
@@ -30,6 +31,7 @@ CREATE POLICY "Members can read club chat" ON club_chat
     )
   );
 
+DROP POLICY IF EXISTS "Members can insert club chat" ON club_chat;
 CREATE POLICY "Members can insert club chat" ON club_chat
   FOR INSERT WITH CHECK (
     EXISTS (
@@ -40,7 +42,10 @@ CREATE POLICY "Members can insert club chat" ON club_chat
     )
   );
 
--- Enable realtime
-ALTER PUBLICATION supabase_realtime ADD TABLE club_chat;
+-- Enable realtime (idempotent)
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE club_chat;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 DO $$ BEGIN RAISE NOTICE 'club_chat table created with RLS and realtime'; END $$;

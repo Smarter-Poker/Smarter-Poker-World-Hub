@@ -47,9 +47,11 @@ ALTER TABLE public.club_arena_audit_logs ENABLE ROW LEVEL SECURITY;
 
 -- Allow authenticated users to READ messages for the table they are at (or admins for the club)
 DROP POLICY IF EXISTS "allow_read_messages" ON public.club_arena_messages;
+DROP POLICY IF EXISTS "allow_read_messages" ON public.club_arena_messages;
 CREATE POLICY "allow_read_messages" ON public.club_arena_messages
     FOR SELECT USING (true); -- Read-only to all authenticated, service role bypasses for write
 
+DROP POLICY IF EXISTS "allow_read_audit" ON public.club_arena_audit_logs;
 DROP POLICY IF EXISTS "allow_read_audit" ON public.club_arena_audit_logs;
 CREATE POLICY "allow_read_audit" ON public.club_arena_audit_logs
     FOR SELECT USING (
@@ -99,8 +101,14 @@ END;
 $$;
 
 -- Allow Realtime broadcasting so we can build a live audit terminal later
-ALTER PUBLICATION supabase_realtime ADD TABLE public.club_arena_messages;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.club_arena_audit_logs;
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.club_arena_messages;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.club_arena_audit_logs;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 COMMENT ON TABLE public.club_arena_audit_logs IS 'Absolute true accounting record capturing every granular engine action within a table.';
 COMMENT ON TABLE public.club_arena_messages IS 'Immutable chat ledger for all table messages.';

@@ -15,18 +15,21 @@ VALUES (
 ON CONFLICT (id) DO NOTHING;
 
 -- 2. RLS: Allow authenticated users to upload
+DROP POLICY IF EXISTS "Authenticated users can upload messenger media" ON storage.objects;
 CREATE POLICY "Authenticated users can upload messenger media"
 ON storage.objects FOR INSERT
 TO authenticated
 WITH CHECK (bucket_id = 'messenger_media');
 
 -- 3. RLS: Allow public read access
+DROP POLICY IF EXISTS "Public read access for messenger media" ON storage.objects;
 CREATE POLICY "Public read access for messenger media"
 ON storage.objects FOR SELECT
 TO public
 USING (bucket_id = 'messenger_media');
 
 -- 4. RLS: Allow owners to delete their own uploads
+DROP POLICY IF EXISTS "Users can delete their own messenger media" ON storage.objects;
 CREATE POLICY "Users can delete their own messenger media"
 ON storage.objects FOR DELETE
 TO authenticated

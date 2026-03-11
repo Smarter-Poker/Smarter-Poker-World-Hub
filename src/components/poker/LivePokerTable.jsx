@@ -6579,7 +6579,7 @@ function LivePokerTable({
     (async () => {
       try {
         const { data } = await supabase.from('poker_seat_preferences')
-          .select('felt_color, sound_enabled, updated_at')
+          .select('felt_color, sound_enabled, sound_volume, updated_at')
           .eq('user_id', userId)
           .eq('max_seats', 0)
           .maybeSingle();
@@ -6593,6 +6593,11 @@ function LivePokerTable({
         if (data.sound_enabled != null) {
           setSoundEnabled(data.sound_enabled);
           try { localStorage.setItem('poker-sound-enabled', String(data.sound_enabled)); } catch (_) {}
+        }
+        // K4: Apply sound volume from Supabase
+        if (data.sound_volume != null && data.sound_volume >= 0 && data.sound_volume <= 1) {
+          setSoundVolume(data.sound_volume);
+          try { localStorage.setItem('poker-sound-volume', String(data.sound_volume)); } catch (_) {}
         }
       } catch (_) {}
     })();
@@ -6625,7 +6630,7 @@ function LivePokerTable({
       return;
     }
     supabase.from('poker_seat_preferences')
-      .update({ updated_at: new Date().toISOString() })
+      .update({ sound_volume: soundVolume, updated_at: new Date().toISOString() })
       .eq('user_id', userId)
       .eq('max_seats', 0)
       .then(() => {}).catch(() => {});
