@@ -6,7 +6,7 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
-import { getAuthUser, getAccessToken } from '../../../../src/lib/authUtils';
+import { useRequireAuth, getAuthUser, getAccessToken } from '../../../../src/lib/authUtils';
 import SkeletonLight from '../../../../src/components/ui/SkeletonLight';
 import { supabase } from '../../../../src/lib/supabase';
 
@@ -20,7 +20,6 @@ const TABS = ['settings', 'members', 'posts', 'invitations'];
 export default function ManageSocialPage() {
     const router = useRouter();
     const { pageId } = router.query;
-    const [user, setUser] = useState(null);
     const [page, setPage] = useState(null);
     const [loading, setLoading] = useState(true);
     const [tab, setTab] = useState('settings');
@@ -36,11 +35,7 @@ export default function ManageSocialPage() {
         is_public: true, allow_member_posts: true, require_post_approval: false,
     });
 
-    useEffect(() => {
-        const u = getAuthUser();
-        if (!u) { router.push('/auth/login'); return; }
-        setUser(u);
-    }, [router]);
+    const { user, checking: authChecking } = useRequireAuth(`/hub/social-pages/${pageId}/manage`);
 
     const fetchPage = useCallback(async (signal) => {
         if (!pageId || !user) return;

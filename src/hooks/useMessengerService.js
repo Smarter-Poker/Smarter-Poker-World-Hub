@@ -1449,6 +1449,9 @@ export function useMessengerService({ conversationId, currentUser, messengerType
         } catch (_) {}
     }, [conversationId, currentUser]);
 
+    // Auto-load scheduled messages when conversation changes
+    useEffect(() => { if (conversationId) loadScheduledMessages(); }, [conversationId, loadScheduledMessages]);
+
     const scheduleMessage = useCallback(async (text, scheduledAt) => {
         const supabase = getSupabase();
         if (!supabase || !conversationId || !currentUser?.id || !text) return false;

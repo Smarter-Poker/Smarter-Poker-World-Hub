@@ -8,7 +8,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { supabase } from '../../../../src/lib/supabase';
-import { getAccessToken } from '../../../../src/lib/authUtils';
+import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
 import {
   ChevronLeft,
   Users,
@@ -77,32 +77,16 @@ export default function SquadDetailPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const { user: authUser, checking: authChecking } = useRequireAuth(`/hub/commander/squads/${id}`);
+
   useEffect(() => {
-    (async () => {
-    const token = getAccessToken();
-
-  if (!router.isReady) return null;
-
-    if (!token) {
-      router.push(`/auth/login?redirect=/hub/commander/squads/${id}`);
-      return;
-    }
-
-    // Get user ID from token
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      setUserId(payload.sub);
-    } catch (e) {
-      console.error('Token parse error:', e);
-    }
-
-    if (id) {
+    if (authUser?.id) setUserId(authUser.id);
+    if (id && !authChecking) {
       const _c = new AbortController();
       fetchSquad(_c.signal);
       return () => _c.abort();
     }
-    })();
-  }, [id, router]);
+  }, [id, authChecking, authUser]);
   // Realtime listener — live updates for squads/[id].js
   useEffect(() => {
     if (!id) return;

@@ -23,6 +23,14 @@ export default function LoginPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [rememberMe, setRememberMe] = useState(true); // Default to checked
 
+    // Honor ?redirect= param from useRequireAuth() — send user back to the page they came from
+    const getRedirectUrl = () => {
+        const r = router.query.redirect;
+        // Only allow internal redirects (prevent open redirect attacks)
+        if (r && typeof r === 'string' && r.startsWith('/')) return r;
+        return '/hub';
+    };
+
     // Load remembered email on mount
     useEffect(() => {
         const savedEmail = localStorage.getItem('smarter-poker-remembered-email');
@@ -40,7 +48,7 @@ export default function LoginPage() {
             if (session) {
                 // Set flag so hub plays intro animation
                 sessionStorage.setItem('just_authenticated', 'true');
-                router.push('/hub');
+                router.push(getRedirectUrl());
             }
         }
         checkSession();
@@ -76,7 +84,7 @@ export default function LoginPage() {
 
             // Set flag so hub plays intro animation
             sessionStorage.setItem('just_authenticated', 'true');
-            router.push('/hub');
+            router.push(getRedirectUrl());
         } catch (err) {
             console.error('Login error:', err);
 
@@ -120,7 +128,7 @@ export default function LoginPage() {
                 console.log('✅ Signup successful:', data.user?.email);
                 // Set flag so hub plays intro animation
                 sessionStorage.setItem('just_authenticated', 'true');
-                router.push('/hub');
+                router.push(getRedirectUrl());
             }
         } catch (err) {
             console.error('Signup error:', err);

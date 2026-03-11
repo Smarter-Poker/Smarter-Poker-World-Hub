@@ -6,27 +6,21 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../../src/components/seo/SEOHead';
 import { Users, Loader2, CheckCircle, XCircle, ArrowLeft } from 'lucide-react';
-import { getAccessToken } from '../../../../../src/lib/authUtils';
+import { useRequireAuth, getAccessToken } from '../../../../../src/lib/authUtils';
 
 export default function SquadJoinPage() {
   const router = useRouter();
   const { code } = router.query;
+  const { checking: authChecking } = useRequireAuth(`/hub/commander/squads/join/${code}`);
   const [status, setStatus] = useState('loading');
   const [squad, setSquad] = useState(null);
   const [error, setError] = useState(null);
   const [joining, setJoining] = useState(false);
 
   useEffect(() => {
-    (async () => {
-      if (!code) return;
-      const token = getAccessToken();
-      if (!token) {
-        router.push(`/auth/login?redirect=/hub/commander/squads/join/${code}`);
-        return;
-      }
-      fetchSquad();
-    })();
-  }, [code, router]);
+    if (authChecking || !code) return;
+    fetchSquad();
+  }, [code, authChecking]);
 
   async function fetchSquad(signal) {
     try {

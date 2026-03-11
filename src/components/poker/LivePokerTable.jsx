@@ -1261,76 +1261,7 @@ function ActionLogFeed({ entries = [], isOpen, onClose }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// F3: STACK GRAPH MODAL — full-size SVG chart of hero's stack over time
-// ═══════════════════════════════════════════════════════════════════════════
-
-function StackGraphModal({ history = [], onClose, initialBuyIn = 0 }) {
-  if (!history || history.length < 2) return null;
-  const min = Math.min(...history);
-  const max = Math.max(...history);
-  const range = max - min || 1;
-  const W = 300, H = 140;
-  const points = history.map((v, i) => {
-    const x = (i / (history.length - 1)) * W;
-    const y = H - ((v - min) / range) * H;
-    return { x, y, v };
-  });
-  const polyline = points.map(p => `${p.x},${p.y}`).join(' ');
-  const pnl = history[history.length - 1] - (initialBuyIn || history[0]);
-  const pnlColor = pnl >= 0 ? '#4ade80' : '#ef4444';
-  // Area fill
-  const areaPath = `M${points[0].x},${H} ${points.map(p => `L${p.x},${p.y}`).join(' ')} L${points[points.length - 1].x},${H} Z`;
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      onClick={onClose}
-      style={{ position: 'fixed', inset: 0, zIndex: 250, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}
-    >
-      <motion.div
-        initial={{ scale: 0.9 }}
-        animate={{ scale: 1 }}
-        onClick={e => e.stopPropagation()}
-        style={{ background: '#18191a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 16, width: 380, maxWidth: '92vw', padding: 20, boxShadow: '0 20px 60px rgba(0,0,0,0.8)' }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: '#E4E6EB' }}>📈 Stack History</div>
-            <div style={{ fontSize: 11, color: '#65676B' }}>{history.length} hands played</div>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 18, fontWeight: 900, color: pnlColor }}>{pnl >= 0 ? '+' : ''}{pnl.toLocaleString()}</div>
-            <div style={{ fontSize: 9, color: '#65676B' }}>SESSION P&L</div>
-          </div>
-        </div>
-        <svg width="100%" height={H + 20} viewBox={`0 0 ${W} ${H + 20}`} preserveAspectRatio="none" style={{ borderRadius: 8, background: 'rgba(255,255,255,0.02)' }}>
-          {/* Zero-line at buy-in */}
-          {initialBuyIn > 0 && (() => {
-            const zeroY = H - ((initialBuyIn - min) / range) * H;
-            return <line x1="0" y1={zeroY} x2={W} y2={zeroY} stroke="rgba(255,255,255,0.1)" strokeDasharray="4,4" />;
-          })()}
-          {/* Area fill */}
-          <path d={areaPath} fill={`${pnlColor}15`} />
-          {/* Line */}
-          <polyline points={polyline} fill="none" stroke={pnlColor} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
-          {/* Current value dot */}
-          <circle cx={points[points.length - 1].x} cy={points[points.length - 1].y} r="4" fill={pnlColor} stroke="#18191a" strokeWidth="2" />
-          {/* Labels */}
-          <text x="4" y={H + 14} fill="#4B5563" fontSize="8">{min.toLocaleString()}</text>
-          <text x={W - 4} y={H + 14} fill="#4B5563" fontSize="8" textAnchor="end">{max.toLocaleString()}</text>
-        </svg>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12, fontSize: 10, color: '#65676B' }}>
-          <span>Buy-in: {initialBuyIn.toLocaleString()}</span>
-          <span>Current: {history[history.length - 1].toLocaleString()}</span>
-        </div>
-        <button onClick={onClose} style={{ width: '100%', marginTop: 12, padding: '8px 0', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, color: '#E4E6EB', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Close</button>
-      </motion.div>
-    </motion.div>
-  );
-}
+// (F3 StackGraphModal superseded by H14 enhanced version above)
 
 // ═══════════════════════════════════════════════════════════════════════════
 // F4: TABLE STATS BANNER — floating banner with aggregate table metrics
@@ -4764,7 +4695,7 @@ function SessionStatsOverlay({ sessionStats, myStack, onClose }) {
 // TABLE INFO BAR
 // ═══════════════════════════════════════════════════════════════════════════
 
-function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, isSitting, isSittingOut, straddleEnabled, straddleOn, onToggleStraddle, autoTopUpOn, onToggleAutoTopUp, autoMuckOn, onToggleAutoMuck, lastHandResult, onShowLastHand, onShowHistory, sessionStats, myStack, sitOutNextBB, onToggleSitOutNextBB, showStackInBB, onToggleBBDisplay, cardSortMode, onCycleCardSort, hapticEnabled, onToggleHaptic, showHUD, onToggleHUD, fourColorDeck, onToggleFourColor, onShowLeaderboard, rabbitHuntEnabled, onToggleRabbitHunt, onShowKeyboard, onShowLayouts, stackHistory, onShowActionLog, onShowStackGraph, onShowTableStats }) {
+function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, isSitting, isSittingOut, straddleEnabled, straddleOn, onToggleStraddle, autoTopUpOn, onToggleAutoTopUp, autoMuckOn, onToggleAutoMuck, lastHandResult, onShowLastHand, onShowHistory, sessionStats, myStack, sitOutNextBB, onToggleSitOutNextBB, showStackInBB, onToggleBBDisplay, cardSortMode, onCycleCardSort, hapticEnabled, onToggleHaptic, showHUD, onToggleHUD, fourColorDeck, onToggleFourColor, onShowLeaderboard, rabbitHuntEnabled, onToggleRabbitHunt, onShowKeyboard, onShowLayouts, stackHistory, onShowActionLog, onShowStackGraph, onShowTableStats, onShowFelt }) {
   const [showStats, setShowStats] = useState(false);
   if (!tableState) return null;
 
@@ -4925,6 +4856,7 @@ function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, is
           />
           <SmallButton label='⌨️' onClick={onShowKeyboard} />
           <SmallButton label='📐 Layout' onClick={onShowLayouts} />
+          <SmallButton label='🎨 Felt' onClick={onShowFelt} />
           {stackHistory?.length > 1 && (
             <div style={{ display: 'flex', alignItems: 'center', marginLeft: 4 }}>
               <SessionSparkline history={stackHistory} width={60} height={20} />
@@ -5938,7 +5870,7 @@ function LivePokerTable({
   const sessionStatsRef = useRef({
     handsPlayed: 0, handsWon: 0, vpipCount: 0, pfrCount: 0,
     aggressionBets: 0, aggressionCalls: 0, biggestWin: 0, biggestLoss: 0,
-    plHistory: [0], positionWins: {}, positionTotal: {},
+    plHistory: [0], positionWins: {}, positionTotal: {}, totalPots: 0,
     sessionStart: Date.now(), startingStack: 0, currentStack: 0,
   });
   const [sessionStatsSnap, setSessionStatsSnap] = useState(() => sessionStatsRef.current);
@@ -5950,6 +5882,7 @@ function LivePokerTable({
     if (s.startingStack === 0 && mySeat.stack > 0) s.startingStack = mySeat.stack;
     s.currentStack = mySeat.stack || 0;
     s.handsPlayed += 1;
+    s.totalPots += (result.potTotal || 0);
     const netPL = s.currentStack - s.startingStack;
     s.plHistory = [...s.plHistory, netPL].slice(-50);
 
@@ -6787,6 +6720,13 @@ function LivePokerTable({
             zIndex: 0,
           }}
         />
+        {/* H4: Felt color overlay */}
+        <div style={{
+          position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
+          height: '100%', width: '100%', zIndex: 0, pointerEvents: 'none',
+          background: (FELT_OPTIONS.find(f => f.id === feltColor) || FELT_OPTIONS[0]).gradient,
+          mixBlendMode: 'multiply', opacity: 0.6, borderRadius: 'inherit',
+        }} />
 
         {/* Table content overlay — positioned over the vertical table */}
         <div
@@ -7042,6 +6982,7 @@ function LivePokerTable({
         }}
         onShowKeyboard={() => setShowKbHelp(true)}
         onShowLayouts={() => setShowLayoutManager(true)}
+        onShowFelt={() => setShowFeltPicker(true)}
         stackHistory={stackHistory}
         onShowActionLog={() => setShowActionLog(p => !p)}
         onShowStackGraph={() => setShowStackGraph(true)}
@@ -7256,6 +7197,35 @@ function LivePokerTable({
           <RabbitHuntOverlay
             cards={rabbitHuntCards}
             onClose={() => setRabbitHuntCards(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* H3: Win Amount Fly-Up */}
+      <WinFlyUp amount={winFlyUpAmount} isVisible={winFlyUpAmount > 0} />
+
+      {/* H8: Auto-Muck Flash */}
+      <AutoMuckFlash isVisible={autoMuckFlash} />
+
+      {/* H4: Felt Color Picker Modal */}
+      <AnimatePresence>
+        {showFeltPicker && (
+          <FeltColorPicker
+            currentFelt={feltColor}
+            onSelect={handleFeltChange}
+            onClose={() => setShowFeltPicker(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* H14: Stack Graph Modal */}
+      <AnimatePresence>
+        {showStackGraph && (
+          <StackGraphModal
+            history={sessionStatsRef.current?.plHistory || stackHistory}
+            startingStack={sessionStatsRef.current?.startingStack || 0}
+            onClose={() => setShowStackGraph(false)}
+            formatStack={formatStack}
           />
         )}
       </AnimatePresence>

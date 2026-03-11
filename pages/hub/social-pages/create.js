@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
-import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
+import { useRequireAuth, getAccessToken } from '../../../src/lib/authUtils';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -27,7 +27,6 @@ const CATEGORIES = [
 
 export default function CreateSocialPage() {
     const router = useRouter();
-    const [user, setUser] = useState(null);
     const [step, setStep] = useState(1);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState(null);
@@ -47,11 +46,7 @@ export default function CreateSocialPage() {
         require_post_approval: false,
     });
 
-    useEffect(() => {
-        const u = getAuthUser();
-        if (!u) { router.push('/auth/login?redirect=/hub/social-pages/create'); return; }
-        setUser(u);
-    }, [router]);
+    const { user, checking: authChecking } = useRequireAuth('/hub/social-pages/create');
 
     function update(field, value) {
         setForm(prev => ({ ...prev, [field]: value }));

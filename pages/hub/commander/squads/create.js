@@ -16,7 +16,7 @@ import {
   Check,
   Loader2
 } from 'lucide-react';
-import { getAccessToken } from '../../../../src/lib/authUtils';
+import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
 
 const GAME_TYPES = [
   { value: 'nlhe', label: 'No Limit Hold\'em' },
@@ -28,6 +28,8 @@ const GAME_TYPES = [
 export default function CreateSquadPage() {
   const router = useRouter();
   const { venue_id } = router.query;
+
+  const { checking: authChecking } = useRequireAuth('/hub/commander/squads/create');
 
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -47,19 +49,10 @@ export default function CreateSquadPage() {
   });
 
   useEffect(() => {
-    (async () => {
-    const token = getAccessToken();
-
-  if (!router.isReady) return null;
-
-    if (!token) {
-      router.push('/auth/login?redirect=/hub/commander/squads/create');
-      return;
-    }
+    if (authChecking) return;
     fetchVenues();
     fetchFriends();
-    })();
-  }, [router]);
+  }, [authChecking]);
 
   async function fetchVenues(signal) {
     try {
