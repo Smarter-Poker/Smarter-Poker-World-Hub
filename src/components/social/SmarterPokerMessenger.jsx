@@ -321,8 +321,13 @@ const MessageBubble = ({ message, isOwn, showAvatar, user, onAction }) => (
                 </div>
             )}
 
+            {/* P17-5: Sticker message dedicated renderer */}
+            {message.message_type === 'sticker' && !message.file && !message.contactCard && !message.isVoice && !message.image && !message.poll && (
+                <span style={{ fontSize: 48, lineHeight: 1, display: 'block', textAlign: 'center', padding: '4px 0' }}>{message.text}</span>
+            )}
+
             {/* P4-3 + P5-7 + P7-5: Rich text via markdown + auto-links + Mentions */}
-            {!message.file && !message.contactCard && !message.isVoice && !message.image && !message.poll && (
+            {message.message_type !== 'sticker' && !message.file && !message.contactCard && !message.isVoice && !message.image && !message.poll && (
                 <span dangerouslySetInnerHTML={{ __html: parseMarkdown(message.text) }} />
             )}
 
@@ -1143,6 +1148,12 @@ export const ChatWindow = ({
         const files = e.dataTransfer?.files;
         if (files?.length > 0) {
             const file = files[0];
+            // P17-2: Validate media before upload
+            const validation = svc.validateMediaUpload?.(file);
+            if (validation && !validation.valid) {
+                if (typeof window !== 'undefined') window.alert(`Upload blocked: ${validation.error}`);
+                return;
+            }
             const isImage = file.type.startsWith('image/');
             const isVideo = file.type.startsWith('video/');
             // P12-13: Upload to Supabase Storage
@@ -1765,7 +1776,7 @@ export const ChatWindow = ({
                         isPinned: pinnedIds.includes(msg.id),
                         threadCount: (prefs.threadReplies[msg.id] || []).length,
                         reactionList: prefs.reactions[msg.id] || [],
-                        isEdited: (prefs.editHistory[msg.id] || []).length > 0,
+                        isEdited: (prefs.editHistory[msg.id] || []).length > 0 || msg.media_metadata?.edited === true,
                         isOwn: msg.senderId === currentUser?.id,
                         readStatus: msg.readStatus || (msg.senderId === currentUser?.id ? 'sent' : null),
                         priorityFlag: prefs.priorityFlags?.[msg.id] || null,

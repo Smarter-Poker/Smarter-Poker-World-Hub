@@ -8277,22 +8277,26 @@ function LivePokerTable({
 
       {/* F2: Action Log Feed */}
       <AnimatePresence>
-        <ActionLogFeed
-          entries={actionLog}
-          isOpen={showActionLog}
-          onClose={() => setShowActionLog(false)}
-        />
+        {showActionLog && (
+          <ActionLogFeed
+            entries={actionLog}
+            isOpen={showActionLog}
+            onClose={() => setShowActionLog(false)}
+          />
+        )}
       </AnimatePresence>
 
 
       {/* F4: Table Stats Banner */}
       <AnimatePresence>
-        <TableStatsBanner
-          sessionStats={sessionStats}
-          tableState={tableState}
-          isOpen={showTableStats}
-          onClose={() => setShowTableStats(false)}
-        />
+        {showTableStats && (
+          <TableStatsBanner
+            sessionStats={sessionStatsSnap}
+            tableState={tableState}
+            isOpen={showTableStats}
+            onClose={() => setShowTableStats(false)}
+          />
+        )}
       </AnimatePresence>
 
       {/* F5: Run It Twice Prompt */}
