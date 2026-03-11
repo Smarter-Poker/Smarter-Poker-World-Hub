@@ -19,6 +19,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import GameCard from './GameCard';
 import { buildStickerAssetMap } from '../../lib/stickerOrchestrator';
+import useMiniStatePoller from '../../hooks/useMiniStatePoller';
 
 // ─────────────────────────────────────────────────────────────
 // FILTER TABS
@@ -115,6 +116,9 @@ export default function GameLobbyGrid({ clubId, token, onGamePress, pollMs = 150
   const [error, setError]           = useState(null);
   const pollRef                     = useRef(null);
 
+  // Live state poller integration
+  const { miniStates, observerRef } = useMiniStatePoller();
+
   // ── Load sticker assets once ──
   useEffect(() => {
     if (!token) return;
@@ -205,12 +209,14 @@ export default function GameLobbyGrid({ clubId, token, onGamePress, pollMs = 150
         ) : (
           <div style={styles.grid}>
             {visible.map(game => (
-              <GameCard
-                key={game.id}
-                game={game}
-                assetMap={assetMap}
-                onPress={onGamePress}
-              />
+                <div key={game.id} ref={(el) => observerRef(game.id, el)}>
+                <GameCard
+                    game={game}
+                    assetMap={assetMap}
+                    onPress={onGamePress}
+                    miniState={miniStates.get(game.id)}
+                />
+                </div>
             ))}
           </div>
         )}

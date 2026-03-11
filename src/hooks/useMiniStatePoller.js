@@ -178,7 +178,7 @@ export default function useMiniStatePoller() {
 
         if (_busEmit && busEvents.size > 0) {
           for (const evt of busEvents) {
-            _busEmit.dataMutated(evt);
+            _busEmit(evt, { tableId: payload.tableId });
           }
         }
       }
