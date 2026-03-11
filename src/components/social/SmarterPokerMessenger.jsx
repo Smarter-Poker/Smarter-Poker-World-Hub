@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { SPAvatar, SP_COLORS } from './SmarterPokerStyleCard';
 import { busEmit, eventBus, EventType } from '../../engine/EventBus';
 import { enqueueMutation } from '../../engine/OfflineSyncQueue';
+import { useMessengerService } from '../../hooks/useMessengerService';
 
 // ─── Lazy Supabase Getter ──────────────────────────────────────────────
 async function getSupabase() {
@@ -528,6 +529,12 @@ export const ChatWindow = ({
     isAdmin = false,
     minimized = false
 }) => {
+    // P12: Shared Messenger Service
+    const svc = useMessengerService({
+        conversationId: conversation?.id,
+        currentUser,
+        messengerType: 'social'
+    });
     const [inputText, setInputText] = useState('');
     const [showThemePicker, setShowThemePicker] = useState(false);
     const [showTemplates, setShowTemplates] = useState(false);
@@ -762,7 +769,18 @@ export const ChatWindow = ({
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages, showTemplates, showThemePicker]);
+    }, [messages, svc.messages, showTemplates, showThemePicker]);
+
+    // P12-4: Mark as read when messages update
+    useEffect(() => {
+        if (!minimized && svc.messages?.length && currentUser?.id) {
+            const unreadIds = svc.messages.filter(m => m.sender_id !== currentUser.id && m.status !== 'read').map(m => m.id);
+            if (unreadIds.length > 0) {
+                svc.markAsRead(unreadIds);
+                svc.refreshUnreadCount();
+            }
+        }
+    }, [svc.messages, minimized, currentUser?.id]);
 
     // E4: Restore scheduled queue timers on mount
     useEffect(() => {
@@ -803,57 +821,21 @@ export const ChatWindow = ({
                 const delayMs = new Date(scheduledTime).getTime() - Date.now();
                 const queueItem = { id: Date.now(), text: finalPayloadText, sendAt: scheduledTime, conversationId };
                 if (delayMs > 0) {
-                    setTimeout(() => { onSend?.(finalPayloadText); updatePrefs(p => ({ ...p, scheduledQueue: (p.scheduledQueue || []).filter(q => q.id !== queueItem.id) })); }, delayMs);
+                    setTimeout(() => { 
+                        onSend?.(finalPayloadText); 
+                        svc.sendMessage(finalPayloadText, { isEncrypted: isE2E }); // P12
+                        updatePrefs(p => ({ ...p, scheduledQueue: (p.scheduledQueue || []).filter(q => q.id !== queueItem.id) })); 
+                    }, delayMs);
                     updatePrefs(p => ({ ...p, scheduledQueue: [...(p.scheduledQueue || []), queueItem] }));
                     console.log(`[Messenger] Message scheduled to send in ${delayMs}ms — persisted to queue`);
                 } else {
                     onSend?.(finalPayloadText);
+                    svc.sendMessage(finalPayloadText, { isEncrypted: isE2E }); // P12
                 }
             } else {
-                if (!navigator.onLine) {
-                    // P8-4: Offline PWA Queue
-                    getSupabase().then(sb => {
-                        if (!sb) return;
-                        sb.auth.getSession().then(({ data: { session } }) => {
-                            if (session?.access_token) {
-                                enqueueMutation('/api/messenger/send-message', {
-                                    conversationId,
-                                    content: finalPayloadText
-                                }, {
-                                    Authorization: `Bearer ${session.access_token}`
-                                });
-                            }
-                        });
-                    });
-                    onSend?.(finalPayloadText); // Optimistic UI
-                } else {
-                    onSend?.(finalPayloadText);
-                    busEmit.messageSent(conversationId, otherUser?.id);
-
-                // P8-3: OS Push Notifications via OneSignal
-                if (otherUser?.id) {
-                    getSupabase().then(sb => {
-                        if (!sb) return;
-                        sb.auth.getSession().then(({ data: { session } }) => {
-                            if (session?.access_token) {
-                                fetch('/api/notifications/send', {
-                                    method: 'POST',
-                                    headers: {
-                                        'Content-Type': 'application/json',
-                                        'Authorization': `Bearer ${session.access_token}`
-                                    },
-                                    body: JSON.stringify({
-                                        title: `New message from ${currentUser?.name || 'Smarter.Poker'}`,
-                                        message: isE2E ? '🔒 Encrypted Message' : inputText,
-                                        externalUserIds: [otherUser.id],
-                                        url: window.location.href
-                                    })
-                                }).catch(e => console.warn('[Messenger] Push Notification trigger failed:', e));
-                            }
-                        });
-                    });
-                }
-                }
+                onSend?.(finalPayloadText); // P8-4: Optimistic UI
+                svc.sendMessage(finalPayloadText, { isEncrypted: isE2E }); // P12: Supabase Realtime Persistence + Push + Rate Limit + Offline Queue unified
+                busEmit.messageSent(conversationId, otherUser?.id);
             }
             setInputText('');
             setScheduledTime('');
@@ -948,7 +930,7 @@ export const ChatWindow = ({
         if (action === 'translate' && msg.text) {
             handleTranslate(msg.id, msg.text);
         }
-        // P11-10: Soft Delete
+        // P11-10 + P12: Soft Delete (Supabase)
         if (action === 'delete') {
             if (typeof window !== 'undefined' && window.confirm('Delete this message?')) {
                 updatePrefs(p => {
@@ -956,17 +938,23 @@ export const ChatWindow = ({
                     deletedSet.add(msg.id);
                     return { ...p, deletedMessages: [...deletedSet] };
                 });
+                svc.deleteMessage(msg.id); // P12-2: Supabase delete
                 busEmit.messageDeleted?.(conversationId, msg.id);
             }
         }
     };
 
-    // P5-2: Handle emoji reaction
+    // P5-2: Handle emoji reaction (P12-3: Supabase persistence)
     const handleReaction = (msgId, emoji) => {
         updatePrefs(p => {
             const current = p.reactions[msgId] || [];
             const exists = current.find(r => r.emoji === emoji && r.by === currentUser?.name);
             busEmit.messageReacted(conversationId, msgId, emoji);
+            if (exists) {
+                svc.removeReaction(msgId, emoji); // P12-3
+            } else {
+                svc.addReaction(msgId, emoji, 'emoji'); // P12-3
+            }
             return { ...p, reactions: { ...p.reactions, [msgId]: exists ? current.filter(r => !(r.emoji === emoji && r.by === currentUser?.name)) : [...current, { emoji, by: currentUser?.name || 'You' }] } };
         });
         setShowEmojiPicker(null);
@@ -995,6 +983,7 @@ export const ChatWindow = ({
             const current = p.reactions[msgId] || [];
             return { ...p, reactions: { ...p.reactions, [msgId]: [...current, { emoji: `gif:${gifUrl}`, by: currentUser?.name || 'You' }] } };
         });
+        svc.addReaction(msgId, null, 'gif', gifUrl); // P12-3: Supabase GIF reaction
         busEmit.messageReacted(conversationId, msgId, 'gif_reaction');
         setShowGifReactionPicker(null);
         setGifReactionResults([]);
@@ -1017,6 +1006,7 @@ export const ChatWindow = ({
 
     const sendGif = (gifUrl) => {
         onSend?.('GIF', { image: gifUrl, file: { name: 'GIF', type: 'image/gif' } });
+        svc.sendMessage('GIF', { image: gifUrl, file: { name: 'GIF', type: 'image/gif' } }); // P12-2
         setShowGifPanel(false);
         setGifSearchTerm('');
         setGifResults([]);
@@ -1108,14 +1098,18 @@ export const ChatWindow = ({
             const file = files[0];
             const isImage = file.type.startsWith('image/');
             const isVideo = file.type.startsWith('video/');
-            if (isImage || isVideo) {
-                const url = URL.createObjectURL(file);
-                onSend?.(file.name, { image: url, file: { name: file.name, type: file.type, size: file.size } });
+            // P12-13: Upload to Supabase Storage
+            svc.uploadMedia(file).then(publicUrl => {
+                const mediaUrl = publicUrl || URL.createObjectURL(file);
+                if (isImage || isVideo) {
+                    onSend?.(file.name, { image: mediaUrl, file: { name: file.name, type: file.type, size: file.size } });
+                    svc.sendMessage(file.name, { image: mediaUrl, file: { name: file.name, type: file.type, size: file.size } });
+                } else {
+                    onSend?.(file.name, { file: { name: file.name, type: file.type, size: file.size } });
+                    svc.sendMessage(file.name, { file: { name: file.name, type: file.type, size: file.size } });
+                }
                 busEmit.messageSent(conversationId, otherUser?.id);
-            } else {
-                onSend?.(file.name, { file: { name: file.name, type: file.type, size: file.size } });
-                busEmit.messageSent(conversationId, otherUser?.id);
-            }
+            });
         }
     };
 
@@ -1661,7 +1655,7 @@ export const ChatWindow = ({
 
             {/* Messages */}
             <div className="chat-messages">
-                {messages.filter(msg => {
+                {(svc.messages?.length ? svc.messages : messages).filter(msg => {
                     // P5-1: Apply search filter
                     if (msgSearch.trim() && !msg.text?.toLowerCase().includes(msgSearch.toLowerCase().trim())) return false;
                     return true;
