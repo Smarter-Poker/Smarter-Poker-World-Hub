@@ -4001,12 +4001,16 @@ function LivePokerTable({
     }).catch(() => { });
   }, [userId, supabase, seats?.map(s => s.player?.id).join(',')]);
 
-  // Fetch club chip balance when buy-in dialog opens
+  // Phase 4 Audit Fix: Fetch club chip balance continuously for accurate Auto Top-Up and Rebuy limits
   useEffect(() => {
-    if (buyInSeat === null || !tableState?.clubId || !userId) {
+    if (!tableState?.clubId || !userId) {
       setClubChipBalance(null);
       return;
     }
+    
+    let isMounted = true;
+    
+    // Initial fetch
     (async () => {
       try {
         const { data } = await supabase
@@ -4015,13 +4019,34 @@ function LivePokerTable({
           .eq('club_id', tableState.clubId)
           .eq('user_id', userId)
           .maybeSingle();
-        setClubChipBalance(data?.chip_balance || 0);
+        if (isMounted) setClubChipBalance(data?.chip_balance || 0);
       } catch (e) {
         console.warn('[LivePokerTable] Failed to fetch chip balance:', e);
-        setClubChipBalance(null);
+        if (isMounted) setClubChipBalance(null);
       }
     })();
-  }, [buyInSeat, tableState?.clubId, userId, supabase]);
+
+    // Realtime Postgres sync for live chip movements
+    let channel;
+    if (typeof supabase?.channel === 'function') {
+      channel = supabase.channel(`live-table-balance-${tableState.clubId}-${userId}`)
+        .on('postgres_changes', {
+           event: 'UPDATE', 
+           schema: 'public', 
+           table: 'club_members', 
+           filter: `user_id=eq.${userId}`
+        }, (payload) => {
+           if (payload.new?.club_id === tableState.clubId && isMounted) {
+              setClubChipBalance(payload.new.chip_balance || 0);
+           }
+        }).subscribe();
+    }
+
+    return () => {
+      isMounted = false;
+      if (channel) supabase.removeChannel(channel).catch(() => {});
+    };
+  }, [tableState?.clubId, userId, supabase]);
 
   // Derived state — use String() coercion to match engine convention
   const isSitting = tableState?.seats.some(
@@ -4434,26 +4459,12 @@ function LivePokerTable({
     soundRef.current?.play('chat');
     send('send_chat', { message });
   }, [send]);
-  const handleAddChips = useCallback(async () => {
+  const handleAddChips = useCallback(() => {
     setRebuyError(null);
-    setRebuyBalance(null);
+    setRebuyBalance(clubChipBalance || 0);
     setShowRebuy(true);
-    if (!tableState?.clubId || !userId) return;
-    setRebuyBalanceLoading(true);
-    try {
-      const { data } = await supabase
-        .from('club_members')
-        .select('chip_balance')
-        .eq('club_id', tableState.clubId)
-        .eq('user_id', userId)
-        .maybeSingle();
-      setRebuyBalance(data?.chip_balance ?? 0);
-    } catch (_) {
-      setRebuyBalance(0);
-    } finally {
-      setRebuyBalanceLoading(false);
-    }
-  }, [supabase, tableState?.clubId, userId]);
+    setRebuyBalanceLoading(false); // Native sync resolves instantly
+  }, [clubChipBalance]);
 
   const handleRebuyConfirm = useCallback(async (amount) => {
     setRebuyError(null);

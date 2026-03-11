@@ -172,28 +172,8 @@ export default function useMiniStatePoller() {
         stopFallbackPolling();
         console.log('[useMiniStatePoller] 🔌 Connected to zero-latency WebSocket stream');
 
-        // Start latency pinger — measures channel health every 10s
-        latencyPinger = setInterval(() => {
-          if (!mountedRef.current) return;
-          const pingStart = Date.now();
-          channel.send({ type: 'broadcast', event: 'ping', payload: { t: pingStart } });
-        }, 10000);
-
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
         channelHealthy.current = false;
-        startFallbackPolling();
-      }
-    });
-
-    // Listen for pong responses to measure latency
-    channel.on('broadcast', { event: 'ping' }, ({ payload }) => {
-      if (!mountedRef.current || !payload?.t) return;
-      const latency = Date.now() - payload.t;
-      setWsLatency(latency);
-
-      // Auto-degrade if latency is too high
-      if (latency > 500 && channelHealthy.current) {
-        console.warn(`[useMiniStatePoller] ⚠️ High latency: ${latency}ms — enabling HTTP fallback`);
         startFallbackPolling();
       }
     });
@@ -201,7 +181,6 @@ export default function useMiniStatePoller() {
     return () => {
       mountedRef.current = false;
       if (fetchTimeout.current) clearTimeout(fetchTimeout.current);
-      if (latencyPinger) clearInterval(latencyPinger);
       stopFallbackPolling();
       supabase.removeChannel(channel);
     };
