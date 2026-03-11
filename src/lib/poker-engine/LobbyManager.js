@@ -1140,6 +1140,8 @@ class LobbyManager {
           seatIndex: s.seatIndex,
           occupied: true,
           stack: s.stack || 0,
+          buyIn: s.buyIn || 0,
+          currentStreak: s.currentStreak || 0,
           isFolded: s.isFolded || false,
           isActor: s.isCurrentActor || false,
           isDealer: s.seatIndex === (state.game?.buttonSeat ?? -1),
@@ -1150,6 +1152,11 @@ class LobbyManager {
           lastActionAmount: lastAction?.amount,
         };
       });
+
+      // Calculate spectator count (total connections - seated players)
+      const seatedCount = seats.filter(s => s.occupied).length;
+      const totalConnections = entry.sync?._connections?.size || 0;
+      const spectatorCount = Math.max(0, totalConnections - seatedCount);
 
       // Hand result for flash animation
       const lastResult = entry._lastHandResult || null;
@@ -1182,6 +1189,8 @@ class LobbyManager {
             return this._showCardsConsent?.get(key) === true;
           }),
           potTotal: state.game?.potTotal || 0,
+          avgPotSize: entry.table?.avgPotSize || 0,
+          pots: state.game?.pots || [],
           handNumber: state.game?.handNumber || 0,
           currentActorSeat: seats.findIndex(s => s.isActor),
           turnEndTime: entry.timer?.turnEndTime || null,
@@ -1191,6 +1200,7 @@ class LobbyManager {
           lastChatMessage: lastChat,
           emojiReactions,
           tournamentOverlay: tourneyData,
+          spectatorCount,
         }
       });
     } catch (e) {

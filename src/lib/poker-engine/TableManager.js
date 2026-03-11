@@ -138,6 +138,10 @@ class TableManager {
     // Per-player tracking: Map<playerId, { handsDealt, vpipHands, warned }>
     this._vpipTracker = new Map();
 
+    // Table Stats (Rank badges)
+    this.avgPotSize = 0;
+    this.potCount = 0;
+
     // Table access control
     this.anonymousTable = config.anonymousTable || config.clubSettings?.anonymous_table || false;
 
@@ -980,6 +984,14 @@ class TableManager {
           seat.currentStreak = 0; // Reset streak if they played and lost
         }
       }
+    }
+
+    // ── Track Average Pot Size ──
+    const finalPot = this.game.potTotal || data.potTotal || (data.result?.pots || []).reduce((s, p) => s + p.amount, 0) || 0;
+    if (finalPot > 0) {
+      this.potCount++;
+      // Running average formula
+      this.avgPotSize = this.avgPotSize + (finalPot - this.avgPotSize) / this.potCount;
     }
 
     // ── Apply queued chip adds (requested during the hand) ──

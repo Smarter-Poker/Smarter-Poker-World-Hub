@@ -233,6 +233,14 @@ function TimerRingBox({ endTime, totalTime, children }) {
 }
 
 
+// ── Mini-View Themes ──
+const THEMES = [
+  { id: 'green', name: 'Classic Green', bg: 'radial-gradient(ellipse, #1a3a1a 30%, #0d1f0d 100%)' },
+  { id: 'blue', name: 'Ocean Blue', bg: 'radial-gradient(ellipse, #0a2a4a 30%, #051525 100%)' },
+  { id: 'red', name: 'Casino Red', bg: 'radial-gradient(ellipse, #4a1515 30%, #250a0a 100%)' },
+  { id: 'purple', name: 'Royal Purple', bg: 'radial-gradient(ellipse, #3a1a4a 30%, #1f0d25 100%)' }
+];
+
 // ── Main UI Component ──
 const STALE_THRESHOLD = 15000;
 
@@ -244,6 +252,12 @@ export default function TableMiniView({
   accentColor,
 }) {
   ensureKeyframes();
+
+  // Theme customization
+  const [themeIdx, setThemeIdx] = React.useState(0);
+  
+  // Replay Mini-View overlay
+  const [showReplay, setShowReplay] = React.useState(false);
 
   // Track previous seat occupancy for pop/fade animations
   const prevSeatsRef = React.useRef(null);
@@ -287,6 +301,7 @@ export default function TableMiniView({
   }
 
   const potTotal = miniState.potTotal || 0;
+  const avgPotSize = miniState.avgPotSize || 0;
   const handNumber = miniState.handNumber || 0;
   const seats = miniState.seats || [];
   const turnEndTime = miniState.turnEndTime;
@@ -297,6 +312,19 @@ export default function TableMiniView({
   const emojiReactions = miniState.emojiReactions || [];
   const tournamentOverlay = miniState.tournamentOverlay || null;
 
+  // Calculate Stakes / Table Rank
+  const bb = parseInt(String(blinds || '').split('/')[1]) || 0;
+  let tableRank = null;
+  if (bb > 0 && avgPotSize > 0) {
+    const bbMultiplier = avgPotSize / bb;
+    if (bbMultiplier > 60) tableRank = '🐋';
+    else if (bbMultiplier > 30) tableRank = '🦈';
+    else tableRank = '🐠';
+  }
+
+  // Identify GTO Spot (massive pot action)
+  const isGTOSpot = bb > 0 && potTotal >= bb * 50;
+
   const phaseLabel = PHASE_LABELS[phase] || null;
   const positions = getSeatPositions(maxSeats);
 
@@ -305,10 +333,39 @@ export default function TableMiniView({
     ? `2px solid ${accentColor}66`
     : '2px solid rgba(180, 150, 60, 0.5)';
 
+  const currentTheme = THEMES[themeIdx];
+
   return (
-    <div style={{ ...S.container, ...(isStale ? { opacity: 0.55 } : {}) }}>
+    <div 
+      style={{ ...S.container, ...(isStale ? { opacity: 0.55 } : {}) }}
+      role="region" aria-label={`Live Poker Table - Sector ${handNumber}`}
+    >
       {/* Oval felt table */}
-      <div style={{ ...S.feltOval, border: feltBorder }}>
+      <div style={{ ...S.feltOval, border: feltBorder, background: currentTheme.bg }}>
+
+        {/* Theme Cycler Button */}
+        <button
+          onClick={(e) => { e.stopPropagation(); setThemeIdx((idx) => (idx + 1) % THEMES.length); }}
+          style={S.themeBtn}
+          title={currentTheme.name}
+          aria-label={`Change theme from ${currentTheme.name}`}
+        >
+          🎨
+        </button>
+
+        {/* Table Stats (Spectators + Rank) */}
+        <div style={S.tableStatsRow}>
+          {miniState.spectatorCount > 0 && (
+            <div style={S.statBadge}>
+              <span style={S.statIcon}>👁️</span> {miniState.spectatorCount}
+            </div>
+          )}
+          {tableRank && (
+            <div style={S.statBadge} title="Table Rank (Avg Pot Action)">
+              {tableRank}
+            </div>
+          )}
+        </div>
 
         {blinds && (
           <div style={S.blindsBanner}>
@@ -329,7 +386,13 @@ export default function TableMiniView({
           const isAllIn = seatData.isAllIn;
           const displayName = seatData.displayName;
           const stack = seatData.stack;
+          const buyIn = seatData.buyIn || 0;
+          const currentStreak = seatData.currentStreak || 0;
           const lastAction = seatData.lastAction;
+          
+          const impact = stack - buyIn;
+          const impactColor = impact > 0 ? '#39FF14' : (impact < 0 ? '#FF4136' : 'rgba(255,255,255,0.4)');
+          const impactSign = impact > 0 ? '+' : '';
 
           // Hole cards shown at showdown
           const playerShownCards = shownCards.filter(c => c.seatIndex === seatData.seatIndex);
@@ -378,17 +441,26 @@ export default function TableMiniView({
               {/* Name & Stack Element + Timer Ring container */}
               {occupied && (
                 <div style={{ position: 'relative' }}>
+                  {currentStreak >= 3 && (
+                    <span style={S.streakBadge}>🔥{currentStreak}</span>
+                  )}
                   {isActor && turnEndTime ? (
                     <TimerRingBox endTime={turnEndTime} totalTime={turnTotalTime}>
                       <div style={S.nameBoxInner}>
                         <span style={S.nameText}>{displayName}</span>
-                        <span style={S.stackText}>{fmtPot(stack)}</span>
+                        <div style={S.stackRow}>
+                          <span style={S.stackText}>{fmtPot(stack)}</span>
+                          {buyIn > 0 && <span style={{...S.impactText, color: impactColor}}>{impactSign}{fmtPot(impact)}</span>}
+                        </div>
                       </div>
                     </TimerRingBox>
                   ) : (
                     <div style={S.nameBox}>
                       <span style={S.nameText}>{displayName}</span>
-                      <span style={S.stackText}>{isAllIn ? 'All-In' : fmtPot(stack)}</span>
+                      <div style={S.stackRow}>
+                        <span style={S.stackText}>{isAllIn ? 'All-In' : fmtPot(stack)}</span>
+                        {buyIn > 0 && <span style={{...S.impactText, color: impactColor}}>{impactSign}{fmtPot(impact)}</span>}
+                      </div>
                     </div>
                   )}
 
@@ -442,24 +514,70 @@ export default function TableMiniView({
                 ))}
               </div>
 
-              {potTotal > 0 && (
-                <div style={S.potRow}>
-                  {/* Chip Stack SVG Icon */}
-                  <svg width="10" height="10" viewBox="0 0 20 20" style={{ flexShrink: 0 }}>
-                    <ellipse cx="10" cy="16" rx="8" ry="3" fill="#C0392B" stroke="#E74C3C" strokeWidth="0.5" />
-                    <ellipse cx="10" cy="13" rx="8" ry="3" fill="#27AE60" stroke="#2ECC71" strokeWidth="0.5" />
-                    <ellipse cx="10" cy="10" rx="8" ry="3" fill="#2980B9" stroke="#3498DB" strokeWidth="0.5" />
-                    <ellipse cx="10" cy="7" rx="8" ry="3" fill="#F39C12" stroke="#F1C40F" strokeWidth="0.5" />
-                  </svg>
-                  <span style={S.potText}>{fmtPot(potTotal)}</span>
+              {/* ── Pot Visualization (Main + Side Pots) ── */}
+              {miniState.pots && miniState.pots.length > 1 ? (
+                <div style={S.multiPotContainer}>
+                  {miniState.pots.map((pot, pIdx) => (
+                    pot.amount > 0 && (
+                      <div key={pIdx} style={S.potRow}>
+                        <span style={S.sidePotLabel}>{pIdx === 0 ? 'MAIN' : `SIDE ${pIdx}`}</span>
+                        <svg width="10" height="10" viewBox="0 0 20 20" style={{ flexShrink: 0 }}>
+                          <ellipse cx="10" cy="16" rx="8" ry="3" fill="#C0392B" stroke="#E74C3C" strokeWidth="0.5" />
+                          <ellipse cx="10" cy="13" rx="8" ry="3" fill="#27AE60" stroke="#2ECC71" strokeWidth="0.5" />
+                          <ellipse cx="10" cy="10" rx="8" ry="3" fill="#2980B9" stroke="#3498DB" strokeWidth="0.5" />
+                          <ellipse cx="10" cy="7" rx="8" ry="3" fill="#F39C12" stroke="#F1C40F" strokeWidth="0.5" />
+                        </svg>
+                        <span style={S.potText}>{fmtPot(pot.amount)}</span>
+                        {isGTOSpot && <span style={S.gtoBadge}>⚡ SPOT</span>}
+                      </div>
+                    )
+                  ))}
                 </div>
+              ) : (
+                potTotal > 0 && (
+                  <div style={S.potRow}>
+                    {/* Chip Stack SVG Icon */}
+                    <svg width="10" height="10" viewBox="0 0 20 20" style={{ flexShrink: 0 }}>
+                      <ellipse cx="10" cy="16" rx="8" ry="3" fill="#C0392B" stroke="#E74C3C" strokeWidth="0.5" />
+                      <ellipse cx="10" cy="13" rx="8" ry="3" fill="#27AE60" stroke="#2ECC71" strokeWidth="0.5" />
+                      <ellipse cx="10" cy="10" rx="8" ry="3" fill="#2980B9" stroke="#3498DB" strokeWidth="0.5" />
+                      <ellipse cx="10" cy="7" rx="8" ry="3" fill="#F39C12" stroke="#F1C40F" strokeWidth="0.5" />
+                    </svg>
+                    <span style={S.potText}>{fmtPot(potTotal)}</span>
+                    {isGTOSpot && <span style={S.gtoBadge}>⚡ SPOT</span>}
+                  </div>
+                )
               )}
             </>
           )}
         </div>
 
         {handNumber > 0 && !isIdle && (
-          <div style={S.handBadge}>#{handNumber}</div>
+          <button 
+            style={S.handBadgeBtn} 
+            onClick={(e) => { e.stopPropagation(); setShowReplay(!showReplay); }}
+            title="View Hand Replay"
+            aria-label={`Show replay for hand ${handNumber}`}
+          >
+            #{handNumber}
+          </button>
+        )}
+
+        {/* ── Replay Mini-View Overlay ── */}
+        {showReplay && lastHandResult && (
+          <div style={S.replayOverlay}>
+            <div style={S.replayHeader}>
+              <span style={S.replayTitle}>PREVIOUS HAND</span>
+              <button 
+                style={S.replayCloseBtn} 
+                onClick={(e) => { e.stopPropagation(); setShowReplay(false); }}
+                aria-label="Close replay"
+              >×</button>
+            </div>
+            <div style={S.replayBody}>
+              <span style={S.replayWinner}>{lastHandResult.winnerName} won {fmtPot(lastHandResult.amount)}</span>
+            </div>
+          </div>
         )}
 
         {/* ── Hand Result Flash ── */}
@@ -563,15 +681,62 @@ const S = {
     fontFamily: '"Orbitron",monospace',
     letterSpacing: 0.3,
   },
-  handBadge: {
+  handBadgeBtn: {
     position: 'absolute',
     bottom: 2,
     right: 8,
     fontSize: 5,
     fontWeight: 700,
-    color: 'rgba(255,255,255,0.25)',
+    color: 'rgba(255,255,255,0.4)',
     fontFamily: 'monospace',
-    zIndex: 3,
+    zIndex: 15,
+    background: 'rgba(0,0,0,0.5)',
+    border: '0.5px solid rgba(255,255,255,0.2)',
+    borderRadius: 3,
+    padding: '1px 3px',
+    cursor: 'pointer',
+    transition: 'background 0.2s',
+  },
+  replayOverlay: {
+    position: 'absolute', top: '10%', left: '15%', width: '70%', height: '80%',
+    background: 'rgba(10,15,10,0.95)', border: '1px solid rgba(0,255,100,0.3)',
+    borderRadius: 8, zIndex: 50, display: 'flex', flexDirection: 'column',
+    boxShadow: '0 8px 16px rgba(0,0,0,0.8)', backdropFilter: 'blur(3px)',
+  },
+  replayHeader: {
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    padding: '2px 6px', borderBottom: '0.5px solid rgba(0,255,100,0.2)',
+    background: 'rgba(0,100,30,0.2)',
+  },
+  replayTitle: { fontSize: 6, fontWeight: 800, color: '#00FF66', letterSpacing: 0.5, fontFamily: '"Orbitron",monospace' },
+  replayCloseBtn: { background: 'none', border: 'none', color: '#fff', fontSize: 10, cursor: 'pointer', padding: 0, lineHeight: 1 },
+  replayBody: { flex: 1, padding: '4px 6px', display: 'flex', flexDirection: 'column', gap: 2, justifyContent: 'center', alignItems: 'center' },
+  replayWinner: { fontSize: 8, fontWeight: 800, color: '#FFD700', fontFamily: '"Orbitron",monospace', textAlign: 'center' },
+
+  tableStatsRow: {
+    position: 'absolute', top: 3, left: 8, zIndex: 3,
+    display: 'flex', gap: 3, alignItems: 'center',
+  },
+  statBadge: {
+    display: 'flex', alignItems: 'center', gap: 2,
+    background: 'rgba(0,0,0,0.6)', padding: '1px 4px',
+    borderRadius: 4, backdropFilter: 'blur(2px)',
+    fontSize: 6, fontWeight: 800, color: 'rgba(255,255,255,0.7)',
+    fontFamily: '"Orbitron",monospace', cursor: 'default',
+  },
+  statIcon: { fontSize: 5 },
+  streakBadge: {
+    position: 'absolute', top: -4, right: -4, zIndex: 12,
+    background: 'rgba(0,0,0,0.85)', padding: '1px 3px',
+    borderRadius: 3, fontSize: 6, fontWeight: 800,
+    color: '#FF851B', border: '0.5px solid rgba(255,133,27,0.5)',
+    animation: 'miniPulse 1.5s infinite',
+  },
+  themeBtn: {
+    position: 'absolute', bottom: 4, left: 10, zIndex: 10,
+    background: 'rgba(0,0,0,0.3)', border: 'none', borderRadius: '50%',
+    width: 14, height: 14, display: 'flex', alignItems: 'center', justifyContent: 'center',
+    cursor: 'pointer', fontSize: 8, padding: 0, opacity: 0.6,
   },
 
   // ── Seat Layout ──
@@ -658,6 +823,13 @@ const S = {
     fontFamily: '"Orbitron",monospace', letterSpacing: 0.2,
     marginTop: -1,
   },
+  stackRow: {
+    display: 'flex', alignItems: 'center', gap: 2, marginTop: -1,
+  },
+  impactText: {
+    fontSize: 5, fontWeight: 800, fontFamily: '"Orbitron",monospace',
+    letterSpacing: 0.2,
+  },
   actionBadge: {
     position: 'absolute', top: -6, left: '50%', transform: 'translateX(-50%)',
     background: '#0ea5e9', color: '#fff', fontSize: 6, fontWeight: 800,
@@ -716,9 +888,20 @@ const S = {
   potRow: {
     display: 'flex', gap: 3, alignItems: 'center', justifyContent: 'center',
   },
+  multiPotContainer: {
+    display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'center', maxWidth: '80%',
+  },
+  sidePotLabel: {
+    fontSize: 5, fontWeight: 800, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase',
+  },
   potText: {
     fontSize: 7, fontWeight: 700, color: 'rgba(255,255,255,0.7)', letterSpacing: 0.2,
     fontFamily: '"Orbitron",monospace', textShadow: '0 1px 3px rgba(0,0,0,0.7)',
+  },
+  gtoBadge: {
+    fontSize: 5, fontWeight: 900, color: '#000', background: '#FFD700',
+    padding: '1px 3px', borderRadius: 2, marginLeft: 2, letterSpacing: 0.5,
+    boxShadow: '0 0 4px rgba(255,215,0,0.8)', animation: 'miniActorPulse 1.5s infinite',
   },
 
   // ── Player Avatar ──

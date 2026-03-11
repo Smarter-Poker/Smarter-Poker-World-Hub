@@ -57,6 +57,25 @@ function ensureLivePulse() {
 
 // ── Click-to-Expand Modal ──
 function MiniViewExpandModal({ miniState, maxSeats, blinds, variant, accentColor, onClose }) {
+  React.useEffect(() => {
+    let timeout = setTimeout(() => onClose(), 15000);
+    const reset = () => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => onClose(), 15000);
+    };
+    window.addEventListener('mousemove', reset);
+    window.addEventListener('keydown', reset);
+    window.addEventListener('touchstart', reset);
+    window.addEventListener('click', reset);
+    return () => {
+      clearTimeout(timeout);
+      window.removeEventListener('mousemove', reset);
+      window.removeEventListener('keydown', reset);
+      window.removeEventListener('touchstart', reset);
+      window.removeEventListener('click', reset);
+    };
+  }, [onClose]);
+
   if (!miniState) return null;
   return (
     <div

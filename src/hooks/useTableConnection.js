@@ -456,6 +456,16 @@ export function useTableConnection({ supabase, tableId, userId }) {
         }
         requestState();
         break;
+      case 'mystery_bounty_revealed':
+        // PHASE 3 EXPANSION: Table-Wide God-Mode Confetti Sync
+        try {
+          // Emits directly to the local bus so the overlay triggers for everyone at the table
+          eventBus.emit('MYSTERY_BOUNTY_REVEALED', data, 'TableSync');
+          setChatMessages(prev => [...prev.slice(-100), {
+            type: 'system', message: `🎁 ${data.playerName} revealed a Mystery Bounty for ${data.amount.toLocaleString()} chips!`,
+          }]);
+        } catch (_) {}
+        break;
       default:
         requestState();
         break;
@@ -485,7 +495,7 @@ export function useTableConnection({ supabase, tableId, userId }) {
       'straddle_posted', 'straddle_declared',
       'all_in_equity',
       'emoji_thrown',
-      'bbj_triggered',
+      'bbj_triggered', 'mystery_bounty_revealed',
       'discard_required', 'card_discarded',
       'chips_added',
       'seven_deuce_bonus',
