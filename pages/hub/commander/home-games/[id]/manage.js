@@ -12,6 +12,7 @@ import RSVPManager from '../../../../../src/components/commander/home-games/RSVP
 import { supabase } from '../../../../../src/lib/supabase';
 import { useRequireAuth, getAccessToken } from '../../../../../src/lib/authUtils';
 import useTrainingBus from '../../../../../src/hooks/useTrainingBus';
+import { busEmit } from '../../../../../src/engine/EventBus';
 
 function ScheduleEventModal({ isOpen, onClose, onSubmit, group }) {
   const [eventData, setEventData] = useState({
@@ -310,6 +311,7 @@ export default function ManageHomeGamePage() {
         },
         body: JSON.stringify({ member_id: member.id, status: 'approved' })
       });
+      busEmit.dataMutated('home-games');
       fetchData();
     } catch (error) {
       console.error('Approve failed:', error);
@@ -325,6 +327,7 @@ export default function ManageHomeGamePage() {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
+      busEmit.dataMutated('home-games');
       fetchData();
     } catch (error) {
       console.error('Remove failed:', error);
@@ -396,6 +399,7 @@ export default function ManageHomeGamePage() {
 
       const data = await res.json();
       if (data.success) {
+        busEmit.dataMutated('home-games');
         fetchData();
       }
     } catch (error) {
@@ -422,6 +426,7 @@ export default function ManageHomeGamePage() {
 
       const data = await res.json();
       if (data.success) {
+        busEmit.dataMutated('home-games');
         fetchData();
       }
     } catch (error) {
@@ -444,6 +449,7 @@ export default function ManageHomeGamePage() {
 
       const data = await res.json();
       if (data.success) {
+        busEmit.dataMutated('home-games');
         router.push('/hub/commander/home-games');
       } else {
         setDeleteError(data.error?.message || 'Failed to delete group');

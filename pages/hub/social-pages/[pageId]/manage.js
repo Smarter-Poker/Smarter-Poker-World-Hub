@@ -129,6 +129,7 @@ export default function ManageSocialPage() {
             });
             const json = await res.json();
             if (json.success) {
+                busEmit.dataMutated('social-pages');
                 setMessage('Settings saved successfully');
                 setPage(json.data);
             } else {
@@ -148,6 +149,7 @@ export default function ManageSocialPage() {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
+            busEmit.dataMutated('social-pages');
             setPosts(prev => prev.filter(p => p.id !== postId));
         } catch (e) { console.error("[manage.js]", e); }
     };
@@ -163,6 +165,7 @@ export default function ManageSocialPage() {
                 },
                 body: JSON.stringify({ id: postId, author_id: user.id, is_pinned: !pinned }),
             });
+            busEmit.dataMutated('social-pages');
             setPosts(prev => prev.map(p => p.id === postId ? { ...p, is_pinned: !pinned } : p));
         } catch (e) { console.error("[manage.js]", e); }
     };

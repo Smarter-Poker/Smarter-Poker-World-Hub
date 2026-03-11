@@ -12,6 +12,7 @@ import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { supabase } from '../../../../src/lib/supabase';
 import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
+import { busEmit } from '../../../../src/engine/EventBus';
 import {
   Coffee,
   Coins,
@@ -338,6 +339,7 @@ export default function ServicesPage() {
 
       const data = await res.json();
       if (data.success) {
+        busEmit.dataMutated('services');
         setSelectedType(null);
         refreshServices();
       }
@@ -353,6 +355,7 @@ export default function ServicesPage() {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
+      busEmit.dataMutated('services');
       refreshServices();
     } catch (err) {
       console.error('Cancel failed:', err);
