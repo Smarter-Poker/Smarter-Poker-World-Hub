@@ -1327,9 +1327,9 @@ export const ChatWindow = ({
                     </span>
                 </div>
                 <div className="chat-header-actions">
-                    {/* P7-1 & P7-2: Live Audio / Video Calls */}
-                    <button className="header-btn call-btn" onClick={() => { setActiveCall({ type: 'audio', status: 'connecting' }); busEmit.callStarted('audio', conversationId, otherUser?.id); }} title="Start Voice Call" style={{ color: activeCall?.type === 'audio' ? '#0088ff' : undefined }}>📞</button>
-                    <button className="header-btn call-btn" onClick={() => { setActiveCall({ type: 'video', status: 'connecting' }); busEmit.callStarted('video', conversationId, otherUser?.id); }} title="Start Video Call" style={{ color: activeCall?.type === 'video' ? '#0088ff' : undefined }}>🎥</button>
+                    {/* P7-1 & P7-2: Live Audio / Video Calls (P12-5: WebRTC) */}
+                    <button className="header-btn call-btn" onClick={() => { setActiveCall({ type: 'audio', status: 'connecting' }); busEmit.callStarted('audio', conversationId, otherUser?.id); svc.startCall(otherUser?.id, 'audio'); }} title="Start Voice Call" style={{ color: activeCall?.type === 'audio' ? '#0088ff' : undefined }}>📞</button>
+                    <button className="header-btn call-btn" onClick={() => { setActiveCall({ type: 'video', status: 'connecting' }); busEmit.callStarted('video', conversationId, otherUser?.id); svc.startCall(otherUser?.id, 'video'); }} title="Start Video Call" style={{ color: activeCall?.type === 'video' ? '#0088ff' : undefined }}>🎥</button>
                     
                     {/* P8-5: Secret Chat / E2E Encryption */}
                     <button className="header-btn e2e-btn" onClick={() => setIsE2E(!isE2E)} title="Toggle E2E Encryption" style={{ color: isE2E ? '#00e676' : undefined }}>🔒</button>
@@ -1398,14 +1398,15 @@ export const ChatWindow = ({
                     </div>
                     {activeCall.type === 'video' && activeCall.status === 'connected' && (
                         <div className="video-pip-window">
-                            <div className="simulated-remote-video" />
+                            <video className="simulated-remote-video" autoPlay playsInline ref={node => { if (node && svc.remoteStreamRef.current) node.srcObject = svc.remoteStreamRef.current; }} />
+                            <video className="simulated-local-video" autoPlay playsInline muted srcObject={svc.localStreamRef.current} ref={node => { if (node && svc.localStreamRef.current) node.srcObject = svc.localStreamRef.current; }} style={{ position: 'absolute', bottom: 4, right: 4, width: 48, height: 48, borderRadius: 4, objectFit: 'cover' }} />
                         </div>
                     )}
                     <div className="call-controls">
                         {activeCall.status === 'connecting' && (
-                            <button className="call-btn-action accept" onClick={() => { setActiveCall({ ...activeCall, status: 'connected' }); busEmit.callStarted(activeCall.type, conversationId, otherUser?.id); }}>Accept</button>
+                            <button className="call-btn-action accept" onClick={() => { setActiveCall({ ...activeCall, status: 'connected' }); busEmit.callStarted(activeCall.type, conversationId, otherUser?.id); svc.answerCall(null, otherUser?.id, activeCall.type); }}>Accept</button>
                         )}
-                        <button className="call-btn-action hangup" onClick={() => { busEmit.callEnded(activeCall?.type, conversationId); setActiveCall(null); }}>End</button>
+                        <button className="call-btn-action hangup" onClick={() => { busEmit.callEnded(activeCall?.type, conversationId); setActiveCall(null); svc.endCall(); }}>End</button>
                     </div>
                 </div>
             )}

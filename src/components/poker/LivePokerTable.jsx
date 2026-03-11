@@ -3521,7 +3521,134 @@ function ThemePresetBar({ onSave, onLoad, onDelete }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SESSION STATS OVERLAY — expanded stats panel with VPIP/PFR/sparkline
+// HAND HISTORY BROWSER — Fetch and display past hands
+// ═══════════════════════════════════════════════════════════════════════════
+
+function HandHistoryBrowser({ tableId, userId, onClose }) {
+  const [hands, setHands] = useState([]);
+  const [page, setPage] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  const fetchHands = useCallback(async (p) => {
+    try {
+      setLoading(true);
+      const { data: { session } } = await getSupabase().auth.getSession();
+      const res = await fetch(`/api/poker/engine/hand-history?tableId=${tableId}&page=${p}&limit=10`, {
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      if (res.ok) {
+        const json = await res.json();
+        setHands(json.hands || []);
+        setTotal(json.total || 0);
+        setPage(json.page || 0);
+      }
+    } catch (err) { console.error('Error fetching hand history:', err); }
+    finally { setLoading(false); }
+  }, [tableId]);
+
+  useEffect(() => { fetchHands(0); }, [fetchHands]);
+
+  return (
+    <div style={{
+      position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+      background: 'rgba(5, 8, 15, 0.95)', backdropFilter: 'blur(10px)',
+      zIndex: 50, display: 'flex', flexDirection: 'column',
+    }}>
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        padding: '16px 20px', borderBottom: `1px solid ${T.border}`,
+        background: 'linear-gradient(to bottom, rgba(30,41,59,0.5), transparent)',
+      }}>
+        <h2 style={{ margin: 0, fontSize: 18, color: T.textPrimary, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ color: T.accent }}>📋</span> Hand History
+        </h2>
+        <button onClick={onClose} style={{
+          background: 'none', border: 'none', color: T.textMuted, fontSize: 24, cursor: 'pointer',
+        }}>✕</button>
+      </div>
+
+      <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {loading ? (
+          <div style={{ textAlign: 'center', color: T.textMuted, marginTop: 40 }}>Loading hands...</div>
+        ) : hands.length === 0 ? (
+          <div style={{ textAlign: 'center', color: T.textMuted, marginTop: 40 }}>No hands found in this session.</div>
+        ) : (
+          hands.map((h, i) => <HandHistoryRow key={h.id || i} hand={h} userId={userId} />)
+        )}
+      </div>
+
+      <div style={{
+        padding: 16, borderTop: `1px solid ${T.border}`, display: 'flex',
+        justifyContent: 'space-between', alignItems: 'center',
+      }}>
+        <button
+          onClick={() => fetchHands(page - 1)} disabled={page === 0 || loading}
+          style={{
+            padding: '8px 16px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: 6, color: page === 0 ? T.textMuted : T.textPrimary, cursor: page === 0 ? 'not-allowed' : 'pointer',
+          }}
+        >◀ Prev</button>
+        <span style={{ color: T.textMuted, fontSize: 13 }}>Page {page + 1} of {Math.max(1, Math.ceil(total / 10))}</span>
+        <button
+          onClick={() => fetchHands(page + 1)} disabled={(page + 1) * 10 >= total || loading}
+          style={{
+            padding: '8px 16px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: 6, color: (page + 1) * 10 >= total ? T.textMuted : T.textPrimary, cursor: (page + 1) * 10 >= total ? 'not-allowed' : 'pointer',
+          }}
+        >Next ▶</button>
+      </div>
+    </div>
+  );
+}
+
+function HandHistoryRow({ hand, userId }) {
+  const data = hand.hand_data || {};
+  const players = data.players || [];
+  const myPlayer = players.find(p => String(p.id) === String(userId) || String(p.playerId) === String(userId));
+  
+  // Calculate P&L for hero
+  const startStack = myPlayer?.initialStack || 0;
+  const endStack = myPlayer?.stack || 0;
+  const pnl = endStack - startStack;
+  const pnlColor = pnl > 0 ? '#4caf50' : pnl < 0 ? '#ef5350' : T.textMuted;
+
+  return (
+    <div style={{
+      background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
+      borderRadius: 12, padding: 12, display: 'flex', alignItems: 'center', gap: 16,
+    }}>
+      <div style={{ display: 'flex', flexDirection: 'column', minWidth: 60 }}>
+        <span style={{ fontSize: 10, color: T.textMuted }}>Hand #{data.handNumber || '?'}</span>
+        <span style={{ fontSize: 14, fontWeight: 700, color: T.accent }}>Pot: {data.potTotal?.toLocaleString() || '?'}</span>
+      </div>
+
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {data.communityCards?.length > 0 && (
+          <div style={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+            <span style={{ fontSize: 10, color: T.textMuted, width: 40 }}>Board:</span>
+            {data.communityCards.map((c, i) => <CardImg key={i} card={c} width={24} />)}
+          </div>
+        )}
+        {myPlayer?.holeCards && (
+          <div style={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+            <span style={{ fontSize: 10, color: T.textMuted, width: 40 }}>Hero:</span>
+            {myPlayer.holeCards.map((c, i) => <CardImg key={i} card={c} width={24} />)}
+          </div>
+        )}
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 80 }}>
+        <span style={{ fontSize: 10, color: T.textMuted }}>Result</span>
+        <span style={{ fontSize: 15, fontWeight: 800, color: pnlColor }}>
+          {pnl > 0 ? '+' : ''}{pnl.toLocaleString()}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // ═══════════════════════════════════════════════════════════════════════════
 
 function SessionStatsOverlay({ sessionStats, myStack, onClose }) {
