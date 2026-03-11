@@ -15,7 +15,7 @@ export default async function handler(req, res) {
     if (userError || !user) return res.status(401).json({ error: 'Invalid token' });
 
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
-    if (!profile || !['admin', 'superadmin'].includes(profile.role)) {
+    if (!profile || !['admin', 'superadmin', 'god'].includes(profile.role)) {
         return res.status(403).json({ error: 'Admin routes are disabled in production' });
     }
 

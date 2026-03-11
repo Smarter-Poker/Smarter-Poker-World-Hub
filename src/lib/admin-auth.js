@@ -44,7 +44,7 @@ export async function requireAdminAuth(req, res) {
       .eq('id', user.id)
       .maybeSingle();
 
-    if (!profile || !['admin', 'superadmin'].includes(profile.role)) {
+    if (!profile || !['admin', 'superadmin', 'god'].includes(profile.role)) {
       res.status(403).json({ error: 'Platform admin role required' });
       return { authorized: false };
     }

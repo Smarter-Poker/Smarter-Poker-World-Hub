@@ -42,7 +42,7 @@ async function isPlatformAdmin(userId) {
     .select('role')
     .eq('id', userId)
     .maybeSingle();
-  return ['admin', 'superadmin'].includes(data?.role);
+  return ['admin', 'superadmin', 'god'].includes(data?.role);
 }
 
 // Check if caller is union_lead for the given unionId

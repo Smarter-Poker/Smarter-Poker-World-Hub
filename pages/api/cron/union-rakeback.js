@@ -38,7 +38,7 @@ export default async function handler(req, res) {
       const { data: { user } } = await supabaseAdmin.auth.getUser(token);
       if (!user) return res.status(401).json({ error: 'Unauthorized' });
       const { data: profile } = await supabaseAdmin.from('profiles').select('role').eq('id', user.id).maybeSingle();
-      if (!['admin', 'superadmin'].includes(profile?.role)) {
+      if (!['admin', 'superadmin', 'god'].includes(profile?.role)) {
         return res.status(403).json({ error: 'Platform admin required' });
       }
     } else {

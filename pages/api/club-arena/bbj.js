@@ -146,7 +146,7 @@ export default async function handler(req, res) {
     if (!isClubStaff) {
       const { data: profile } = await supabaseAdmin
         .from('profiles').select('role').eq('id', user.id).maybeSingle();
-      if (!['admin', 'superadmin'].includes(profile?.role)) {
+      if (!['admin', 'superadmin', 'god'].includes(profile?.role)) {
         return res.status(403).json({ error: 'Club owner or admin required' });
       }
     }

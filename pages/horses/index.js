@@ -296,7 +296,7 @@ export default function HorsesAdmin() {
           return;
         }
 
-        if (!profile || !['admin', 'superadmin'].includes(profile.role)) {
+        if (!profile || !['admin', 'superadmin', 'god'].includes(profile.role)) {
           setLoginError('Access denied. Administrator privileges required.');
           setLoading(false);
           return;
@@ -338,7 +338,7 @@ export default function HorsesAdmin() {
         return;
       }
 
-      if (!profile || !['admin', 'superadmin'].includes(profile.role)) {
+      if (!profile || !['admin', 'superadmin', 'god'].includes(profile.role)) {
         setLoginError('Access denied. Admin privileges required.');
         return;
       }

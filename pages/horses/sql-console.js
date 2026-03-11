@@ -25,7 +25,7 @@ export default function OmnichannelSQLConsole() {
                 return;
             }
             const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).maybeSingle();
-            if (profile && ['admin', 'superadmin'].includes(profile.role)) {
+            if (profile && ['admin', 'superadmin', 'god'].includes(profile.role)) {
                 setIsAdmin(true);
             } else {
                 router.push('/');

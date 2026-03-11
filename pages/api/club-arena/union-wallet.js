@@ -38,7 +38,7 @@ async function verifyUnionLead(token, unionId) {
   // Platform admin fallback
   const { data: profile } = await supabaseAdmin
     .from('profiles').select('role').eq('id', user.id).maybeSingle();
-  if (['admin', 'superadmin'].includes(profile?.role)) return { user, isLead: true, isPlatformAdmin: true };
+  if (['admin', 'superadmin', 'god'].includes(profile?.role)) return { user, isLead: true, isPlatformAdmin: true };
 
   // Union admins can view but not move funds
   if (admin) return { user, isLead: false };
