@@ -240,9 +240,9 @@ class HandHistoryRecorder {
             big_blind: handRecord.bigBlind,
             player_ids: handRecord.players.map(p => p.id),
             hand_data: handRecord,
-            rake: handRecord.rake,
-            pot_total: handRecord.pots.reduce((sum, p) => sum + (p.amount || 0), 0),
-            winner_ids: handRecord.winners.map(w => w.playerId),
+            rake: handRecord.rake || 0,
+            pot_total: (handRecord.pots || []).reduce((sum, p) => sum + (p.amount || 0), 0),
+            winner_ids: (handRecord.winners || []).map(w => w.playerId),
             started_at: handRecord.startedAt,
             completed_at: handRecord.completedAt,
           });

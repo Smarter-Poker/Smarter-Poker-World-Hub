@@ -1104,17 +1104,29 @@ class LobbyManager {
     table.on('cards_dealt', triggerUpdate);
     table.on('showdown', triggerUpdate);
 
-    // Store hand result for flash animation
+    // Store hand result for flash animation AND DVR replayer
+    // ROOT CAUSE FIX: Previously wired to 'payout' which lacked handId/winners/handNumber.
+    // Now wired to 'hand_complete' which carries the full engine data contract.
     table.on('payout', (data) => {
+      triggerUpdate();
+    });
+    table.on('hand_complete', (data) => {
       const entry = this.tables.get(tableId);
       if (entry && data) {
+        const winners = data.result?.winners || data.winners || [];
+        const firstWinner = winners[0];
         entry._lastHandResult = {
-          winnerName: data.winnerName || data.winner?.displayName || 'Winner',
-          amount: data.amount || data.potWon || 0,
+          handId: data.handId || null,
+          handNumber: data.handNumber || 0,
+          winnerName: firstWinner?.displayName || firstWinner?.playerId || 'Winner',
+          amount: firstWinner?.amount || data.potTotal || 0,
+          winners,
+          rake: data.rake || data.result?.rake || 0,
+          result: data.result || null,
           timestamp: Date.now(),
         };
-        // Clear after 5s so it doesn't persist forever
-        setTimeout(() => { if (entry._lastHandResult) entry._lastHandResult = null; }, 5000);
+        // Clear after 30s — DVR needs longer than flash animations
+        setTimeout(() => { if (entry._lastHandResult) entry._lastHandResult = null; }, 30000);
       }
       triggerUpdate();
     });
