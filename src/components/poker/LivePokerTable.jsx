@@ -5892,17 +5892,20 @@ function LivePokerTable({
     }
   }, [soundEnabled, soundVolume]);
 
-  // J12: Sound preference Supabase sync — save + load across devices
+  // J12: Sound preference Supabase sync — save on toggle (skip initial mount to avoid race with J1 load)
+  const soundSyncMountedRef = useRef(false);
   useEffect(() => {
     if (!supabase || !userId) return;
-    // Save sound preference to Supabase
-    supabase.from('poker_seat_preferences').upsert({
-      user_id: userId,
-      max_seats: 0,
-      preferred_seat: 0,
-      sound_enabled: soundEnabled,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'user_id,max_seats' }).then(() => {}).catch(() => {});
+    if (!soundSyncMountedRef.current) {
+      soundSyncMountedRef.current = true;
+      return; // Skip initial mount — only sync on actual user toggle
+    }
+    // Use UPDATE only (not UPSERT) to avoid overwriting felt_color on the same row
+    supabase.from('poker_seat_preferences')
+      .update({ sound_enabled: soundEnabled, updated_at: new Date().toISOString() })
+      .eq('user_id', userId)
+      .eq('max_seats', 0)
+      .then(() => {}).catch(() => {});
   }, [soundEnabled, supabase, userId]);
 
   // Sound triggers based on game events
@@ -8965,7 +8968,6 @@ function LivePokerTable({
                 <motion.div initial={{ width: '100%' }} animate={{ width: '0%' }} transition={{ duration: 6, ease: 'linear' }}
                   style={{ height: '100%', borderRadius: 1, background: 'rgba(79,195,247,0.5)' }} />
               </div>
-              <div style={{ fontSize: 14, fontWeight: 800, color: '#E4E6EB', marginBottom: 12 }}>🃏 Run It Twice — Results</div>
               <div style={{ display: 'flex', gap: 16 }}>
                 {[{ board: board1, won: heroWon1, label: 'Board 1' }, { board: board2, won: heroWon2, label: 'Board 2' }].map((b, bi) => (
                   <div key={bi} style={{

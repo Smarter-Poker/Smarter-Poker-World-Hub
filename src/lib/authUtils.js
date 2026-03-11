@@ -165,9 +165,23 @@ export async function ensureAuthReady(supabaseClient) {
  *   const { user, checking } = useRequireAuth('/hub/commander/services');
  *   if (checking) return <SkeletonLoader />;
  * 
- * This waits for the Supabase session to stabilize before deciding to redirect,
- * eliminating false "please log in" redirects on hard refresh / browser wake.
+ * Features:
+ *  - 5-layer auth resolution via ensureAuthReady()
+ *  - sessionStorage fast-path for same-session page navigation
+ *  - Cross-tab sync: auto-redirects to login if auth is cleared in another tab
+ *  - Session backup on success: keeps backup fresh for recovery
+ *  - Auth singleton: deduplicates concurrent ensureAuthReady() calls
  */
+
+// Global singleton to deduplicate concurrent auth checks (#8)
+let _authPromise = null;
+function getAuthOnce(sb) {
+    if (!_authPromise) {
+        _authPromise = ensureAuthReady(sb).finally(() => { _authPromise = null; });
+    }
+    return _authPromise;
+}
+
 export function useRequireAuth(redirectPath) {
     const [user, setUser] = useState(null);
     const [checking, setChecking] = useState(true);
@@ -190,9 +204,9 @@ export function useRequireAuth(redirectPath) {
                 sessionStorage.removeItem('sp_auth_confirmed');
             }
 
-            // Full check: Dynamic import to avoid circular deps with supabase.ts
+            // Full check with singleton deduplication (#8)
             const { supabase: sb } = await import('./supabase');
-            const u = await ensureAuthReady(sb);
+            const u = await getAuthOnce(sb);
             if (cancelled) return;
             if (!u) {
                 const target = redirectPath || router.asPath;
@@ -203,11 +217,29 @@ export function useRequireAuth(redirectPath) {
                 if (typeof window !== 'undefined') {
                     sessionStorage.setItem('sp_auth_confirmed', '1');
                 }
+                // Keep session backup fresh on every successful auth (#7)
+                try { backupSession(); } catch (_) {}
             }
             setChecking(false);
         })();
         return () => { cancelled = true; };
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Cross-tab auth sync: auto-redirect if auth is cleared in another tab (#1)
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const handleStorage = (e) => {
+            if (e.key === 'smarter-poker-auth' && !e.newValue) {
+                // Auth was cleared in another tab — redirect to login
+                setUser(null);
+                sessionStorage.removeItem('sp_auth_confirmed');
+                const target = redirectPath || router.asPath;
+                router.push('/auth/login?redirect=' + encodeURIComponent(target));
+            }
+        };
+        window.addEventListener('storage', handleStorage);
+        return () => window.removeEventListener('storage', handleStorage);
+    }, [redirectPath, router]);
 
     return { user, checking };
 }

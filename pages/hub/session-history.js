@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '../../src/lib/supabase';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
-import eventBus from '../../src/lib/eventBus';
+import { eventBus } from '../../src/engine/EventBus';
 
 const getSupabase = () => typeof window !== 'undefined' ? createClient() : null;
 
@@ -50,7 +50,8 @@ export default function SessionHistoryPage() {
   // J6: EventBus reactivity — auto-refresh when session is saved at the table
   useEffect(() => {
     const handler = (payload) => {
-      if (payload === 'session_saved' || payload === 'session_stats') {
+      // I3: Catch all session stat update events including auto-persist from I2
+      if (payload === 'session_saved' || payload === 'session_stats' || payload === 'session_stats_updated') {
         fetchSessions();
       }
     };
@@ -69,6 +70,11 @@ export default function SessionHistoryPage() {
     const netPL = sessions.reduce((a, s) => a + ((s.ending_stack || 0) - (s.starting_stack || 0)), 0);
     const bigWin = Math.max(...sessions.map(s => s.biggest_win || 0));
     const bigLoss = Math.max(...sessions.map(s => s.biggest_loss || 0));
+    // I6/I12: Aggregate VPIP/PFR/Aggression across all sessions
+    const totalVpipCount = sessions.reduce((a, s) => a + (s.vpip_count || 0), 0);
+    const totalPfrCount = sessions.reduce((a, s) => a + (s.pfr_count || 0), 0);
+    const totalAggBets = sessions.reduce((a, s) => a + (s.aggression_bets || 0), 0);
+    const totalAggCalls = sessions.reduce((a, s) => a + (s.aggression_calls || 0), 0);
     const totalDuration = sessions.reduce((a, s) => {
       if (!s.session_start || !s.session_end) return a;
       return a + (new Date(s.session_end) - new Date(s.session_start));
@@ -77,6 +83,11 @@ export default function SessionHistoryPage() {
     return {
       totalHands, totalWon, netPL, bigWin, bigLoss, avgSessionMins,
       winRate: totalHands ? ((totalWon / totalHands) * 100).toFixed(1) : '0',
+      // I6: VPIP/PFR trend data + I12: Career aggregates
+      lifetimeVpip: totalHands ? ((totalVpipCount / totalHands) * 100).toFixed(1) : '0',
+      lifetimePfr: totalHands ? ((totalPfrCount / totalHands) * 100).toFixed(1) : '0',
+      lifetimeAF: totalAggCalls > 0 ? (totalAggBets / totalAggCalls).toFixed(1) : '—',
+      totalSessions: sessions.length,
     };
   }, [sessions]);
 
@@ -182,6 +193,7 @@ export default function SessionHistoryPage() {
 
         {/* Summary Cards */}
         {totals && (
+          <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
             {[
               { label: 'Net P&L', value: `${totals.netPL >= 0 ? '+' : ''}${totals.netPL.toLocaleString()}`, color: totals.netPL >= 0 ? T.green : T.red },
@@ -200,6 +212,24 @@ export default function SessionHistoryPage() {
               </div>
             ))}
           </div>
+
+          {/* I12: Career Stats Row */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
+            {[
+              { label: 'VPIP%', value: `${totals.lifetimeVpip}%`, color: parseFloat(totals.lifetimeVpip) > 30 ? T.gold : T.text },
+              { label: 'PFR%', value: `${totals.lifetimePfr}%`, color: parseFloat(totals.lifetimePfr) > 15 ? T.gold : T.text },
+              { label: 'Aggression', value: totals.lifetimeAF, color: T.accent },
+            ].map((s, i) => (
+              <div key={i} style={{
+                background: T.card, borderRadius: 10, padding: '10px 12px',
+                border: `1px solid ${T.border}`, textAlign: 'center',
+              }}>
+                <div style={{ fontSize: 16, fontWeight: 800, color: s.color }}>{s.value}</div>
+                <div style={{ fontSize: 9, color: T.textDim, marginTop: 2 }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+          </>
         )}
 
         {/* J14: Cumulative P&L Graph */}
