@@ -1,6 +1,6 @@
 /**
  * 💬 smarter-poker-style MESSENGER
- * src/app/social/components/SmarterPokerMessenger.jsx
+ * src/app/social/components/ClubArenaMessenger.jsx
  * 
  * Chat system with conversation list and message threads
  */
@@ -142,7 +142,7 @@ const useMessengerPrefs = () => {
 
     useEffect(() => {
         try {
-            const saved = localStorage.getItem('sp-messenger-prefs');
+            const saved = localStorage.getItem('ca-messenger-prefs');
             if (saved) setPrefs(JSON.parse(saved));
         } catch (e) { }
     }, []);
@@ -192,7 +192,7 @@ const useMessengerPrefs = () => {
         setPrefs(prev => {
             const next = typeof updater === 'function' ? updater(prev) : { ...prev, ...updater };
             try {
-                localStorage.setItem('sp-messenger-prefs', JSON.stringify(next));
+                localStorage.setItem('ca-messenger-prefs', JSON.stringify(next));
             } catch (e) { }
             syncToSupabase(next);
             return next;
