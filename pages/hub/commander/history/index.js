@@ -3,7 +3,7 @@
  * View past poker sessions with stats
  * Dark industrial sci-fi gaming theme
  */
-import { useEffect } from 'react';
+import React from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';

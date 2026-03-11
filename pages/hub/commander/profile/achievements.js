@@ -3,7 +3,7 @@
  * View all achievements and progress
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';

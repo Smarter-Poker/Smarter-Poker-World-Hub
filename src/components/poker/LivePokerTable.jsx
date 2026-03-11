@@ -948,6 +948,275 @@ function HandHistoryDrawer({ isOpen, onClose, hands = [], formatStack }) {
     </AnimatePresence>
   );
 }
+// ═══════════════════════════════════════════════════════════════════════════
+// F2: LIVE ACTION LOG FEED — scrollable ticker of game actions
+// ═══════════════════════════════════════════════════════════════════════════
+
+function ActionLogFeed({ entries = [], isOpen, onClose }) {
+  const listRef = useRef(null);
+  useEffect(() => {
+    if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
+  }, [entries]);
+  if (!isOpen) return null;
+  const ICON_MAP = { fold: '🏳️', check: '✓', call: '📞', bet: '💰', raise: '🔺', all_in: '🔥', deal: '🎴', board: '🃏' };
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -200 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -200 }}
+      style={{
+        position: 'absolute', top: 60, left: 10, width: 200, maxHeight: 180,
+        background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)',
+        borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)',
+        zIndex: 30, display: 'flex', flexDirection: 'column', overflow: 'hidden',
+      }}
+    >
+      <div style={{ padding: '6px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <span style={{ fontSize: 10, fontWeight: 700, color: '#E4E6EB' }}>📝 Action Log</span>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#65676B', fontSize: 14, cursor: 'pointer' }}>✕</button>
+      </div>
+      <div ref={listRef} style={{ flex: 1, overflowY: 'auto', padding: '4px 8px', maxHeight: 140 }}>
+        {entries.length === 0 && <div style={{ color: '#4B5563', fontSize: 9, textAlign: 'center', padding: 12 }}>Waiting for action…</div>}
+        {entries.map((e, i) => (
+          <motion.div key={i} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.02 * Math.min(i, 5) }} style={{ fontSize: 9, color: '#B0B0B0', padding: '2px 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+            <span style={{ marginRight: 4 }}>{ICON_MAP[e.type] || '•'}</span>
+            <span style={{ color: '#E4E6EB', fontWeight: 600 }}>{e.playerName || 'Dealer'}</span>{' '}
+            <span>{e.text}</span>
+            {e.amount > 0 && <span style={{ color: '#FFD700', fontWeight: 700, marginLeft: 4 }}>{e.amount.toLocaleString()}</span>}
+          </motion.div>
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// F3: STACK GRAPH MODAL — full-size SVG chart of hero's stack over time
+// ═══════════════════════════════════════════════════════════════════════════
+
+function StackGraphModal({ history = [], onClose, initialBuyIn = 0 }) {
+  if (!history || history.length < 2) return null;
+  const min = Math.min(...history);
+  const max = Math.max(...history);
+  const range = max - min || 1;
+  const W = 300, H = 140;
+  const points = history.map((v, i) => {
+    const x = (i / (history.length - 1)) * W;
+    const y = H - ((v - min) / range) * H;
+    return { x, y, v };
+  });
+  const polyline = points.map(p => `${p.x},${p.y}`).join(' ');
+  const pnl = history[history.length - 1] - (initialBuyIn || history[0]);
+  const pnlColor = pnl >= 0 ? '#4ade80' : '#ef4444';
+  // Area fill
+  const areaPath = `M${points[0].x},${H} ${points.map(p => `L${p.x},${p.y}`).join(' ')} L${points[points.length - 1].x},${H} Z`;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+      style={{ position: 'fixed', inset: 0, zIndex: 250, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}
+    >
+      <motion.div
+        initial={{ scale: 0.9 }}
+        animate={{ scale: 1 }}
+        onClick={e => e.stopPropagation()}
+        style={{ background: '#18191a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 16, width: 380, maxWidth: '92vw', padding: 20, boxShadow: '0 20px 60px rgba(0,0,0,0.8)' }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: '#E4E6EB' }}>📈 Stack History</div>
+            <div style={{ fontSize: 11, color: '#65676B' }}>{history.length} hands played</div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: 18, fontWeight: 900, color: pnlColor }}>{pnl >= 0 ? '+' : ''}{pnl.toLocaleString()}</div>
+            <div style={{ fontSize: 9, color: '#65676B' }}>SESSION P&L</div>
+          </div>
+        </div>
+        <svg width="100%" height={H + 20} viewBox={`0 0 ${W} ${H + 20}`} preserveAspectRatio="none" style={{ borderRadius: 8, background: 'rgba(255,255,255,0.02)' }}>
+          {/* Zero-line at buy-in */}
+          {initialBuyIn > 0 && (() => {
+            const zeroY = H - ((initialBuyIn - min) / range) * H;
+            return <line x1="0" y1={zeroY} x2={W} y2={zeroY} stroke="rgba(255,255,255,0.1)" strokeDasharray="4,4" />;
+          })()}
+          {/* Area fill */}
+          <path d={areaPath} fill={`${pnlColor}15`} />
+          {/* Line */}
+          <polyline points={polyline} fill="none" stroke={pnlColor} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+          {/* Current value dot */}
+          <circle cx={points[points.length - 1].x} cy={points[points.length - 1].y} r="4" fill={pnlColor} stroke="#18191a" strokeWidth="2" />
+          {/* Labels */}
+          <text x="4" y={H + 14} fill="#4B5563" fontSize="8">{min.toLocaleString()}</text>
+          <text x={W - 4} y={H + 14} fill="#4B5563" fontSize="8" textAnchor="end">{max.toLocaleString()}</text>
+        </svg>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12, fontSize: 10, color: '#65676B' }}>
+          <span>Buy-in: {initialBuyIn.toLocaleString()}</span>
+          <span>Current: {history[history.length - 1].toLocaleString()}</span>
+        </div>
+        <button onClick={onClose} style={{ width: '100%', marginTop: 12, padding: '8px 0', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, color: '#E4E6EB', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Close</button>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// F4: TABLE STATS BANNER — floating banner with aggregate table metrics
+// ═══════════════════════════════════════════════════════════════════════════
+
+function TableStatsBanner({ sessionStats, tableState, isOpen, onClose }) {
+  if (!isOpen || !sessionStats) return null;
+  const seats = tableState?.seats || [];
+  const activePlayers = seats.filter(s => s.player?.id && s.status !== 'empty');
+  const totalStacks = activePlayers.reduce((sum, s) => sum + (s.stack || 0), 0);
+  const avgStack = activePlayers.length > 0 ? Math.round(totalStacks / activePlayers.length) : 0;
+  const hrs = sessionStats.sessionStart ? ((Date.now() - sessionStats.sessionStart) / 3600000) : 0;
+  const handsPerHour = hrs > 0 ? Math.round((sessionStats.handsPlayed || 0) / hrs) : 0;
+  const avgPot = sessionStats.handsPlayed > 0 ? Math.round((sessionStats.totalPots || 0) / sessionStats.handsPlayed) : 0;
+  const bb = tableState?.config?.bigBlind || tableState?.bigBlind || 2;
+
+  const Stat = ({ icon, label, value, color = '#E4E6EB' }) => (
+    <div style={{ textAlign: 'center', minWidth: 50 }}>
+      <div style={{ fontSize: 11, marginBottom: 2 }}>{icon}</div>
+      <div style={{ fontSize: 14, fontWeight: 800, color, fontVariantNumeric: 'tabular-nums' }}>{value}</div>
+      <div style={{ fontSize: 7, fontWeight: 600, color: '#65676B', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
+    </div>
+  );
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -15 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -15 }}
+      style={{
+        position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)',
+        background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(12px)',
+        borderRadius: 14, border: '1px solid rgba(255,255,255,0.08)',
+        padding: '10px 20px', zIndex: 35,
+        boxShadow: '0 6px 24px rgba(0,0,0,0.5)',
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: '#E4E6EB' }}>📊 Table Stats</span>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#65676B', fontSize: 14, cursor: 'pointer' }}>✕</button>
+      </div>
+      <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
+        <Stat icon="🃏" label="Hands/Hr" value={handsPerHour} color="#4fc3f7" />
+        <Stat icon="💰" label="Avg Pot" value={avgPot > 0 ? avgPot.toLocaleString() : '—'} color="#FFD700" />
+        <Stat icon="🪙" label="Avg Stack" value={`${Math.round(avgStack / bb)}BB`} color="#4ade80" />
+        <Stat icon="👥" label="Players" value={activePlayers.length} />
+        <Stat icon="📋" label="Total Hands" value={sessionStats.handsPlayed || 0} />
+      </div>
+    </motion.div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// F5: RUN-IT-TWICE PROMPT — animated decision dialog
+// ═══════════════════════════════════════════════════════════════════════════
+
+function RunItTwicePrompt({ visible, onAccept, onDecline }) {
+  const [countdown, setCountdown] = useState(10);
+  const intervalRef = useRef(null);
+
+  useEffect(() => {
+    if (!visible) { setCountdown(10); return; }
+    intervalRef.current = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(intervalRef.current);
+          onDecline?.();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [visible]);
+
+  if (!visible) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.9 }}
+      style={{
+        position: 'absolute', top: '35%', left: '50%', transform: 'translate(-50%, -50%)',
+        background: 'linear-gradient(135deg, rgba(30,30,50,0.95), rgba(15,15,25,0.98))',
+        backdropFilter: 'blur(16px)',
+        borderRadius: 16, border: '1px solid rgba(79,195,247,0.3)',
+        padding: '20px 28px', zIndex: 90, textAlign: 'center',
+        boxShadow: '0 12px 40px rgba(0,0,0,0.7), 0 0 20px rgba(79,195,247,0.1)',
+        minWidth: 280,
+      }}
+    >
+      {/* Animated card backs */}
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 12 }}>
+        {[0, 1].map(i => (
+          <motion.div
+            key={i}
+            initial={{ rotateY: 0 }}
+            animate={{ rotateY: [0, 180, 360] }}
+            transition={{ duration: 2, repeat: Infinity, delay: i * 0.3 }}
+            style={{
+              width: 36, height: 50, borderRadius: 6,
+              background: i === 0
+                ? 'linear-gradient(135deg, #1a237e, #4a148c)'
+                : 'linear-gradient(135deg, #b71c1c, #e65100)',
+              border: '2px solid rgba(255,255,255,0.2)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 18,
+              boxShadow: `0 4px 12px rgba(${i === 0 ? '26,35,126' : '183,28,28'},0.4)`,
+            }}
+          >
+            {i === 0 ? '🂠' : '🂠'}
+          </motion.div>
+        ))}
+      </div>
+
+      <div style={{ fontSize: 16, fontWeight: 800, color: '#E4E6EB', marginBottom: 4 }}>Run It Twice?</div>
+      <div style={{ fontSize: 11, color: '#8E8E93', marginBottom: 16 }}>
+        Deal the remaining board cards twice for two separate outcomes
+      </div>
+
+      {/* Countdown */}
+      <div style={{ fontSize: 10, color: countdown <= 3 ? '#ef4444' : '#65676B', marginBottom: 12, fontWeight: 600 }}>
+        Auto-decline in {countdown}s
+      </div>
+
+      <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={onAccept}
+          style={{
+            background: 'linear-gradient(135deg, #1e88e5, #1565c0)',
+            color: '#fff', border: 'none', borderRadius: 10,
+            padding: '10px 24px', fontSize: 13, fontWeight: 800,
+            cursor: 'pointer', boxShadow: '0 4px 12px rgba(30,136,229,0.3)',
+          }}
+        >
+          ✅ Run It Twice
+        </motion.button>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={onDecline}
+          style={{
+            background: 'rgba(255,255,255,0.06)',
+            color: '#B0B0B0', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10,
+            padding: '10px 24px', fontSize: 13, fontWeight: 600,
+            cursor: 'pointer',
+          }}
+        >
+          Run Once
+        </motion.button>
+      </div>
+    </motion.div>
+  );
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // POT ODDS HUD — displays pot odds when hero faces a bet
@@ -5344,6 +5613,45 @@ function LivePokerTable({
 
   // ═══ PHASE 26: SESSION STATS ACCUMULATOR ═══
   const [showStatsPanel, setShowStatsPanel] = useState(false);
+
+  // ═══ WAVE F STATE ═══
+  const [actionLog, setActionLog] = useState([]);
+  const [showActionLog, setShowActionLog] = useState(false);
+  const [showStackGraph, setShowStackGraph] = useState(false);
+  const [showTableStats, setShowTableStats] = useState(false);
+  const [showRIT, setShowRIT] = useState(false);
+  const [chatReactions, setChatReactions] = useState({}); // { [msgIndex]: { emoji: count } }
+  const prevActionLogRef = useRef(null);
+
+  // F2: Action Log Accumulator — capture game events
+  useEffect(() => {
+    const la = tableState?.game?.lastAction;
+    if (!la || !la.type) return;
+    const key = `${la.type}-${la.playerId || ''}-${la.amount || 0}-${la.timestamp || Date.now()}`;
+    if (prevActionLogRef.current === key) return;
+    prevActionLogRef.current = key;
+
+    const seats = tableState?.seats || [];
+    const playerSeat = seats.find(s => s.player && String(s.player.id) === String(la.playerId));
+    const playerName = playerSeat?.player?.displayName || la.playerName || 'Player';
+
+    const textMap = {
+      fold: 'folded', check: 'checked', call: 'called',
+      bet: 'bet', raise: 'raised to', all_in: 'ALL IN',
+    };
+
+    setActionLog(prev => [
+      ...prev.slice(-29), // Keep max 30
+      { type: la.type, playerName, text: textMap[la.type] || la.type, amount: la.amount || 0, ts: Date.now() },
+    ]);
+  }, [tableState?.game?.lastAction]);
+
+  // F5: RIT prompt handler — show when server sends run_it_twice offer
+  useEffect(() => {
+    if (tableState?.game?.ritOffer && String(tableState.game.ritOffer.playerId) === String(userId)) {
+      setShowRIT(true);
+    }
+  }, [tableState?.game?.ritOffer, userId]);
   const sessionStatsRef = useRef({
     handsPlayed: 0, handsWon: 0, vpipCount: 0, pfrCount: 0,
     aggressionBets: 0, aggressionCalls: 0, biggestWin: 0, biggestLoss: 0,
@@ -6252,8 +6560,8 @@ function LivePokerTable({
           // Use rotated visual position if hero is seated, otherwise raw index
           const visualIndex = rotatedPositionMap ? rotatedPositionMap[i] : i;
           return (
+            <React.Fragment key={i}>
             <PlayerSeat
-              key={i}
               seat={seat}
               position={positions[visualIndex] || positions[0]}
               isHero={pid != null && String(pid) === String(userId)}
@@ -6286,6 +6594,7 @@ function LivePokerTable({
                 maxBuyIn={tableState?.config?.maxBuyIn || 0}
               />
             )}
+            </React.Fragment>
           );
         })}
       </div>
@@ -7534,6 +7843,45 @@ function LivePokerTable({
         hands={handHistory}
         formatStack={formatStack}
       />
+
+      {/* F2: Action Log Feed */}
+      <AnimatePresence>
+        <ActionLogFeed
+          entries={actionLog}
+          isOpen={showActionLog}
+          onClose={() => setShowActionLog(false)}
+        />
+      </AnimatePresence>
+
+      {/* F3: Stack Graph Modal */}
+      <AnimatePresence>
+        {showStackGraph && (
+          <StackGraphModal
+            history={stackHistory}
+            onClose={() => setShowStackGraph(false)}
+            initialBuyIn={sessionStats?.initialBuyIn || 0}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* F4: Table Stats Banner */}
+      <AnimatePresence>
+        <TableStatsBanner
+          sessionStats={sessionStats}
+          tableState={tableState}
+          isOpen={showTableStats}
+          onClose={() => setShowTableStats(false)}
+        />
+      </AnimatePresence>
+
+      {/* F5: Run It Twice Prompt */}
+      <AnimatePresence>
+        <RunItTwicePrompt
+          visible={showRIT}
+          onAccept={() => { send({ type: 'run_it_twice', accept: true }); setShowRIT(false); }}
+          onDecline={() => { send({ type: 'run_it_twice', accept: false }); setShowRIT(false); }}
+        />
+      </AnimatePresence>
 
       {/* Seat Open Flash */}
       <AnimatePresence>

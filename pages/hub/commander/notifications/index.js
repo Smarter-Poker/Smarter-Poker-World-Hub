@@ -122,7 +122,7 @@ export default function PlayerNotificationsPage() {
   const { isLoading: loading, mutate: refreshNotifications } = useSWR(
     '/api/commander/notifications/my',
     async (url) => {
-      const token = await getToken();
+      const token = getToken();
       if (!token) return null;
       return fetch(url, { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.json()).then(d => { if (d.success) setNotifications(d.data?.notifications || []); return d; });
