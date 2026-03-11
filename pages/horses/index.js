@@ -758,7 +758,7 @@ export default function HorsesAdmin() {
         safeQuery(supabase.from('club_members').select('*, profiles(display_name, username, email, player_number)').eq('club_id', club.id).order('created_at', { ascending: false }).limit(200)),
         safeQuery(supabase.from('agents').select('id, user_id, club_id, commission_rate, credit_limit, credit_used, status, created_at').eq('club_id', club.id)),
         safeQuery(supabase.from('tables').select('*').eq('club_id', club.id).order('created_at', { ascending: false })),
-        safeQuery(supabase.from('cashout_requests').select('*, profiles(display_name, username)').eq('club_id', club.id).eq('status', 'pending').order('created_at', { ascending: false })),
+        safeQuery(supabase.from('cashout_requests').select('id, club_id, player_id, amount, status, agent_note, created_at').eq('club_id', club.id).eq('status', 'pending').order('created_at', { ascending: false })),
         caFetch('/api/club-arena/anti-cheat', { action: 'get_flags', clubId: club.id }).catch(() => ({ flags: [] })),
         caFetch('/api/club-arena/anti-cheat', { action: 'get_sessions', clubId: club.id }).catch(() => ({ sessions: [] })),
         safeQuery(supabase.from('chip_transactions').select('id, amount, transaction_type, notes, created_at').eq('club_id', club.id).order('created_at', { ascending: false }).limit(50)),
@@ -802,7 +802,7 @@ export default function HorsesAdmin() {
       const [membershipsRes, txnsRes, cashoutsRes] = await Promise.all([
         safeQuery(supabase.from('club_members').select('*, clubs(name, club_id)').eq('user_id', profile.id)),
         safeQuery(supabase.from('chip_transactions').select('id, amount, transaction_type, notes, created_at, club_id').eq('user_id', profile.id).order('created_at', { ascending: false }).limit(30)),
-        safeQuery(supabase.from('cashout_requests').select('*, clubs(name)').eq('user_id', profile.id).order('created_at', { ascending: false }).limit(20)),
+        safeQuery(supabase.from('cashout_requests').select('id, club_id, amount, status, agent_note, created_at').eq('user_id', profile.id).order('created_at', { ascending: false }).limit(20)),
       ]);
       setCaSelectedUser({ ...profile, memberships: membershipsRes?.data || [], txns: txnsRes?.data || [], cashouts: cashoutsRes?.data || [], loading: false });
     } catch (err) {
