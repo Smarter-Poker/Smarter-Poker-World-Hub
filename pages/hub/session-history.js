@@ -135,6 +135,12 @@ export default function SessionHistoryPage() {
       .slice(0, 5);
   }, [sessions]);
 
+  const formatDate = (d) => {
+    if (!d) return '—';
+    const dt = new Date(d);
+    return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  };
+
   // L4: Comparison data
   const compareData = useMemo(() => {
     if (compareIds.length !== 2) return null;
@@ -177,11 +183,7 @@ export default function SessionHistoryPage() {
     URL.revokeObjectURL(url);
   }, [sessions]);
 
-  const formatDate = (d) => {
-    if (!d) return '—';
-    const dt = new Date(d);
-    return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-  };
+
 
   const T = {
     bg: '#0a0a0a', card: '#18191a', border: '#3E4042',
