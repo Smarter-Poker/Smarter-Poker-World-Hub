@@ -18,7 +18,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { supabase } from '../../src/lib/supabase';
-import { getSafeUser, getAuthUser, getAccessToken } from '../../src/lib/authUtils';
+import { useAuthUser, getAccessToken } from '../../src/lib/authUtils';
+import useTrainingBus from '../../src/hooks/useTrainingBus';
 import {
     ARCADE_GAMES,
     generateHandSnapQuestion,
@@ -111,7 +112,8 @@ const GAME_CARD_STYLES = {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default function DiamondArcade() {
-    const [user, setUser] = useState(null);
+    const { user } = useAuthUser();
+    useTrainingBus('diamond-arcade');
     const userId = user?.id;
 
     const [mounted, setMounted] = useState(false);
@@ -142,10 +144,9 @@ export default function DiamondArcade() {
         animations: true
     });
 
-    // SSG-safe: load user client-side
+    // SSG-safe: mount flag
     useEffect(() => {
         setMounted(true);
-        getSafeUser().then(u => { if (u) setUser(u); });
     }, []);
 
     // Load preferences from Supabase on mount
@@ -206,7 +207,7 @@ export default function DiamondArcade() {
 
     useEffect(() => {
         const _ctrl = new AbortController();
-        loadUser();
+        if (user?.id) loadUserStats(user.id);
         const interval = setInterval(() => {
             setResetTime(getTimeUntilReset());
         }, 1000);
@@ -215,15 +216,7 @@ export default function DiamondArcade() {
             clearInterval(interval);
             if (duelPollRef.current) clearInterval(duelPollRef.current);
         };
-    }, []);
-
-    async function loadUser() {
-        const user = getAuthUser();
-        if (user) {
-            setUser(user);
-            loadUserStats(user.id);
-        }
-    }
+    }, [user?.id]);
 
     async function loadUserStats(userId) {
         const { data } = await supabase.rpc('get_arcade_user_stats', { p_user_id: userId });
