@@ -5716,6 +5716,8 @@ function LivePokerTable({
             supabase={supabase}
             currentUserId={userId}
             cardBackPath={cardBackPath}
+            tableId={tableId}
+            clubId={tableState?.clubId}
             onClose={() => setShowLastHand(false)}
           />
         )}
