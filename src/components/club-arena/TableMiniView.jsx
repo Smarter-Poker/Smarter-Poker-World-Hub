@@ -255,6 +255,23 @@ export default function TableMiniView({
 
   // Theme customization
   const [themeIdx, setThemeIdx] = React.useState(0);
+
+  // ── Global EventBus Integration (Theme Sync) ──
+  React.useEffect(() => {
+    let unsubTheme;
+    try {
+      const { eventBus } = require('../../engine/EventBus');
+      if (eventBus) {
+        unsubTheme = eventBus.on('UI_PREF_CHANGED', (e) => {
+          if (e.payload?.key === 'miniViewTheme' && e.payload.value !== undefined) {
+            setThemeIdx(e.payload.value);
+          }
+        });
+      }
+    } catch { /* EventBus unavailable */ }
+    
+    return () => { if (unsubTheme) unsubTheme(); };
+  }, []);
   
   // Replay Mini-View overlay
   const [showReplay, setShowReplay] = React.useState(false);
@@ -345,7 +362,15 @@ export default function TableMiniView({
 
         {/* Theme Cycler Button */}
         <button
-          onClick={(e) => { e.stopPropagation(); setThemeIdx((idx) => (idx + 1) % THEMES.length); }}
+          onClick={(e) => { 
+            e.stopPropagation(); 
+            const next = (themeIdx + 1) % THEMES.length;
+            setThemeIdx(next); 
+            try {
+              const { eventBus } = require('../../engine/EventBus');
+              if (eventBus) eventBus.emit('UI_PREF_CHANGED', { key: 'miniViewTheme', value: next });
+            } catch {}
+          }}
           style={S.themeBtn}
           title={currentTheme.name}
           aria-label={`Change theme from ${currentTheme.name}`}
