@@ -176,6 +176,12 @@ const ACTION_LABEL_COLORS = {
   bet: '#f59e0b', raise: '#f59e0b', all_in: '#a855f7',
 };
 
+// Player note type → badge color mapping (hoisted from render loop for performance)
+const NOTE_TYPE_COLORS_MAP = {
+  fish: '#22c55e', shark: '#ef4444', whale: '#3b82f6',
+  nit: '#9ca3af', lag: '#f97316', tag: '#a855f7', reg: '#14b8a6',
+};
+
 function FloatingActionLabel({ action, amount, position }) {
   if (!action || !position) return null;
   const color = ACTION_LABEL_COLORS[action] || '#fff';

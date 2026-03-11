@@ -220,7 +220,12 @@ const MessageBubble = ({ message, isOwn, showAvatar, user, onAction }) => (
         )}
         {!isOwn && !showAvatar && <div className="avatar-spacer" />}
 
-        <div className={`message-bubble ${isOwn ? 'own' : 'other'} ${message.isDisappearing ? 'ephemeral' : ''} ${message.isPinned ? 'pinned-msg' : ''}`}>
+        <div className={`message-bubble ${isOwn ? 'own' : 'other'} ${message.isDisappearing ? 'ephemeral' : ''} ${message.isPinned ? 'pinned-msg' : ''} ${message.isDeleted ? 'deleted-msg' : ''}`}>
+            {/* P11-10: Deleted message placeholder */}
+            {message.isDeleted ? (
+                <span style={{ fontStyle: 'italic', opacity: 0.5, fontSize: 12 }}>This message was deleted</span>
+            ) : (
+            <>
             {/* P4-1: Pin indicator */}
             {message.isPinned && <span className="pin-indicator" title="Pinned">📍</span>}
 
@@ -316,6 +321,22 @@ const MessageBubble = ({ message, isOwn, showAvatar, user, onAction }) => (
                 <span dangerouslySetInnerHTML={{ __html: parseMarkdown(message.text) }} />
             )}
 
+            {/* P10-7 + P11-7: Link Preview Card */}
+            {message.linkPreview && !message.linkPreview.loading && (
+                <a href={message.linkPreview.url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit', display: 'block', marginTop: 6 }}>
+                    <div style={{ border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, overflow: 'hidden', background: 'rgba(0,0,0,0.15)', maxWidth: 280 }}>
+                        {message.linkPreview.image && (
+                            <img src={message.linkPreview.image} alt="" style={{ width: '100%', height: 140, objectFit: 'cover' }} />
+                        )}
+                        <div style={{ padding: '8px 10px' }}>
+                            <div style={{ fontWeight: 600, fontSize: 13, lineHeight: 1.3, marginBottom: 2 }}>{message.linkPreview.title}</div>
+                            {message.linkPreview.description && <div style={{ fontSize: 11, opacity: 0.7, lineHeight: 1.3, maxHeight: 30, overflow: 'hidden' }}>{message.linkPreview.description}</div>}
+                            <div style={{ fontSize: 10, opacity: 0.5, marginTop: 4 }}>{message.linkPreview.domain || message.linkPreview.url}</div>
+                        </div>
+                    </div>
+                </a>
+            )}
+
             {/* P5-6: Edit indicator */}
             {message.isEdited && <span className="edit-indicator" title="Edited">(edited)</span>}
 
@@ -376,12 +397,14 @@ const MessageBubble = ({ message, isOwn, showAvatar, user, onAction }) => (
                 <button onClick={() => onAction?.('edit', message)} title="Edit">Edit</button>
                 <button onClick={() => onAction?.('priority', message)} title="Set Priority">Flag</button>
                 {!message.isOwn && <button onClick={() => onAction?.('translate', message)} title="Translate">Translate</button>}
+                <button onClick={() => onAction?.('delete', message)} title="Delete" style={{ color: '#ff4444' }}>Del</button>
                 {LABEL_CATEGORIES.map(cat => (
                     <button key={cat} onClick={() => onAction?.('label', message, cat)} title={`Label: ${cat}`} style={{ fontSize: 10, padding: '2px 4px' }}>
                         {cat === 'Important' ? 'Imp' : cat === 'Action Required' ? 'Act' : cat === 'Tournament Info' ? 'Trn' : 'Cash'}
                     </button>
                 ))}
             </div>
+            </>)}{/* P11-10 close */}
         </div>
 
         {/* Timestamp (on hover) */}
