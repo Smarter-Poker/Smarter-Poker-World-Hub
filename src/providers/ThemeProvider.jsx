@@ -49,17 +49,15 @@ export function ThemeProvider({ children }) {
     const [mounted, setMounted] = useState(false);
 
     // Load preference from localStorage on mount
+    // DEFAULT: Light mode — only go dark if user explicitly chose it
     useEffect(() => {
         setMounted(true);
         const saved = localStorage.getItem('smarter-poker-theme');
         if (saved === 'dark') {
             setIsDark(true);
-        } else if (saved === 'light') {
-            setIsDark(false);
         } else {
-            // Check system preference
-            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            setIsDark(prefersDark);
+            // Default to light mode (ignore system preference)
+            setIsDark(false);
         }
     }, []);
 
@@ -78,6 +76,9 @@ export function ThemeProvider({ children }) {
             root.style.setProperty('--border', theme.border);
             root.style.setProperty('--blue', theme.blue);
             root.style.setProperty('--hover-bg', theme.hoverBg);
+
+            // Set data-theme for daisyUI component theming
+            root.setAttribute('data-theme', isDark ? 'dark' : 'light');
 
             // Add class to body for global styling
             document.body.classList.toggle('dark-mode', isDark);

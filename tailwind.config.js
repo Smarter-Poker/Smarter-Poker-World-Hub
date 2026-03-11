@@ -15,6 +15,6 @@ module.exports = {
     require('tailwindcss-3d'),
   ],
   daisyui: {
-    themes: ["dark", "black", "luxury"], 
+    themes: ["light", "dark", "black", "luxury"], 
   },
 }
