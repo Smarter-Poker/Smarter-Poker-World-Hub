@@ -14,7 +14,7 @@ import { motion } from 'framer-motion';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
-import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
+import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
@@ -50,10 +50,8 @@ export default function ChallengesPage() {
     setClaiming(challenge.id);
 
     try {
-      const token = getAccessToken();
-      const res = await fetch('/api/training/challenges', {
+      const res = await authedFetch('/api/training/challenges', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({
           userId: user.id,
           challengeId: challenge.id,

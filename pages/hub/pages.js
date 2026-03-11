@@ -10,7 +10,7 @@ import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
-import { getAuthUser, getAccessToken } from '../../src/lib/authUtils';
+import { getAuthUser, authedFetch } from '../../src/lib/authUtils';
 
 const CATEGORIES = [
     { key: 'all', label: 'All Pages' },
@@ -154,9 +154,8 @@ export default function PokerPagesPage() {
 
         // Call API
         try {
-            await fetch('/api/poker/follow', {
+            await authedFetch('/api/poker/follow', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', ...(getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {}) },
                 body: JSON.stringify({
                     page_type: pageType,
                     page_id: pageId,

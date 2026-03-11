@@ -14,7 +14,7 @@ import { motion } from 'framer-motion';
 import { supabase } from '../../../src/lib/supabase';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
-import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
+import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
@@ -119,10 +119,8 @@ export default function StreaksPage() {
     setClaiming(milestoneDays);
 
     try {
-      const token = getAccessToken();
-      const res = await fetch('/api/training/streak', {
+      const res = await authedFetch('/api/training/streak', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({
           userId: user.id,
           milestoneDays,
@@ -229,10 +227,8 @@ export default function StreaksPage() {
               <button
                 onClick={async () => {
                   try {
-                    const shareToken = getAccessToken();
-                    const res = await fetch('/api/training/share', {
+                    const res = await authedFetch('/api/training/share', {
                       method: 'POST',
-                      headers: { 'Content-Type': 'application/json', ...(shareToken ? { Authorization: `Bearer ${shareToken}` } : {}) },
                       body: JSON.stringify({
                         userId: user.id,
                         shareType: 'streak',

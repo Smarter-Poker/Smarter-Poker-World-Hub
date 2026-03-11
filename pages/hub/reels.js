@@ -13,7 +13,7 @@ import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { reelsPreferences, savedReelsService } from '../../src/services/preferences-service';
-import { getAuthUser, getAccessToken } from '../../src/lib/authUtils';
+import { getAuthUser, authedFetch } from '../../src/lib/authUtils';
 import UploadReelModal from '../../src/components/reels/UploadReelModal';
 
 const C = {
@@ -269,9 +269,8 @@ export default function ReelsPage() {
         const userId = typeof window !== 'undefined' ? localStorage.getItem('sp-anon-uid') : null;
         if (userId) {
             try {
-                await fetch('/api/social/interactions', {
+                await authedFetch('/api/social/interactions', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', ...(() => { const t = getAccessToken(); return t ? { Authorization: `Bearer ${t}` } : {}; })() },
                     body: JSON.stringify({ post_id: currentReel.id, user_id: userId, interaction_type: 'like' })
                 });
             } catch (e) {
@@ -298,9 +297,8 @@ export default function ReelsPage() {
         if (!userId) return;
         setSubmittingComment(true);
         try {
-            const res = await fetch('/api/social/interactions', {
+            const res = await authedFetch('/api/social/interactions', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', ...(getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {}) },
                 body: JSON.stringify({ post_id: currentReel.id, user_id: userId, interaction_type: 'comment', content: commentText.trim() })
             });
             const json = await res.json();
@@ -321,9 +319,8 @@ export default function ReelsPage() {
             setTimeout(() => setShareMsg(''), 2000);
             const userId = typeof window !== 'undefined' ? localStorage.getItem('sp-anon-uid') : null;
             if (userId) {
-                fetch('/api/social/interactions', {
+                authedFetch('/api/social/interactions', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', ...(() => { const t = getAccessToken(); return t ? { Authorization: `Bearer ${t}` } : {}; })() },
                     body: JSON.stringify({ post_id: currentReel.id, user_id: userId, interaction_type: 'share' })
                 }).catch(() => { });
             }

@@ -12,7 +12,7 @@ import useSWR from 'swr';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
-import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
+import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import { getGameById } from '../../../src/data/TRAINING_LIBRARY';
 import { supabase } from '../../../src/lib/supabase';
 import { busEmit } from '../../../src/engine/EventBus';
@@ -78,10 +78,8 @@ export default function TournamentsPage() {
 
     setRegistering(tournamentId);
     try {
-      const token = getAccessToken();
-      const res = await fetch('/api/training/tournaments', {
+      const res = await authedFetch('/api/training/tournaments', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({
           userId: user.id,
           tournamentId,

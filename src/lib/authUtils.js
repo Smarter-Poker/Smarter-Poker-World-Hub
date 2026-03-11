@@ -314,14 +314,62 @@ export async function authedFetch(url, options = {}) {
     }
     const response = await fetch(url, { ...options, headers });
 
-    // On 401, clear fast-path so next navigation triggers full auth check
-    if (response.status === 401) {
+    // On 401, attempt silent token refresh and retry ONCE
+    if (response.status === 401 && token) {
+        try {
+            const { supabase: sb } = await import('./supabase');
+            const { data } = await sb.auth.refreshSession();
+            if (data?.session?.access_token) {
+                // Retry with fresh token
+                const retryHeaders = {
+                    ...(options.headers || {}),
+                    Authorization: `Bearer ${data.session.access_token}`,
+                };
+                if (options.body && typeof options.body === 'string' && !retryHeaders['Content-Type']) {
+                    retryHeaders['Content-Type'] = 'application/json';
+                }
+                const retryResponse = await fetch(url, { ...options, headers: retryHeaders });
+                if (retryResponse.status !== 401) {
+                    return retryResponse; // Refresh worked
+                }
+            }
+        } catch (_) { /* refresh failed — fall through */ }
+
+        // Refresh didn't help — clear fast-path so next page does full auth
         try { sessionStorage.removeItem('sp_auth_confirmed'); } catch (_) {}
-        console.warn(`[authedFetch] 401 on ${url} — auth fast-path cleared`);
+        console.warn(`[authedFetch] 401 on ${url} — token refresh failed`);
     }
 
     return response;
 }
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * createAuthedFetcher — SWR-compatible fetcher with auto auth
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 
+ * Drop-in replacement for SWR's default fetcher. Auto-adds Bearer token.
+ * 
+ * Usage:
+ *   import { createAuthedFetcher } from '@/lib/authUtils';
+ *   const { data } = useSWR('/api/training/challenges', createAuthedFetcher());
+ * 
+ * Or for JSON parsing:
+ *   const fetcher = createAuthedFetcher();
+ *   const { data } = useSWR(key, fetcher);
+ */
+export function createAuthedFetcher() {
+    return async (url) => {
+        const res = await authedFetch(url);
+        if (!res.ok) {
+            const err = new Error(`HTTP ${res.status}`);
+            err.status = res.status;
+            throw err;
+        }
+        return res.json();
+    };
+}
+
 
 /**
  * Fetch data from Supabase REST API with authentication
@@ -563,6 +611,7 @@ export default {
     getSessionToken,
     getAccessToken,
     authedFetch,
+    createAuthedFetcher,
     fetchWithAuth,
     queryProfiles,
     queryDiamondBalance,

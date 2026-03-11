@@ -15,7 +15,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { usePersistedState } from '../../src/hooks/usePersistedState';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
-import { getAuthUser, getAccessToken } from '../../src/lib/authUtils';
+import { getAuthUser, authedFetch } from '../../src/lib/authUtils';
 import { supabase } from '../../src/lib/supabase';
 import SkeletonLight from '../../src/components/ui/SkeletonLight';
 
@@ -648,9 +648,8 @@ export default function MyClubsPage() {
 
         // Persist to API
         try {
-            await fetch('/api/poker/follow', {
+            await authedFetch('/api/poker/follow', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', ...(getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {}) },
                 body: JSON.stringify({
                     page_type: 'venue',
                     page_id: vid,
