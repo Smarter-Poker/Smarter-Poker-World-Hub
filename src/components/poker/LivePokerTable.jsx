@@ -2963,10 +2963,7 @@ function ActionPanel({ actions, onAction, stack, currentBet, bigBlind, potTotal 
         width: isMobile ? '95%' : 'auto',
       }}
     >
-      {/* Pot Odds HUD — appears when facing a bet/call */}
-      <AnimatePresence>
-        {canCall && <PotOddsHUD potSize={potTotal} betToCall={callAmount} heroStack={stack || 0} isVisible={true} />}
-      </AnimatePresence>
+      {/* Pot Odds HUD — rendered via Phase 27 main render (not here, avoids duplicate) */}
       {/* Bet slider + presets */}
       <AnimatePresence>
         {showSlider && betOrRaise && (
@@ -7074,7 +7071,7 @@ function LivePokerTable({
       {(() => {
         const callAction = isMyTurn && legalActions?.find(a => a.type === 'call');
         if (!callAction) return null;
-        const pot = tableState?.game?.pot || 0;
+        const pot = tableState?.game?.pot || tableState?.game?.potTotal || 0;
         const heroSeat = seats?.find(s => s?.player?.id != null && String(s.player.id) === String(userId));
         return (
           <PotOddsHUD
