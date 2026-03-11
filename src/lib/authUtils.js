@@ -287,6 +287,43 @@ export function getAccessToken() {
 }
 
 /**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * authedFetch — Drop-in replacement for fetch() that auto-injects Bearer token
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 
+ * USE THIS for internal /api/ route calls instead of raw fetch().
+ * Automatically adds Authorization header from getAccessToken().
+ * On 401, clears fast-path cache so next page load does full auth check.
+ * 
+ * Usage:
+ *   import { authedFetch } from '@/lib/authUtils';
+ *   const res = await authedFetch('/api/training/save-session', {
+ *       method: 'POST',
+ *       body: JSON.stringify({ gameId: 'foo', ... })
+ *   });
+ */
+export async function authedFetch(url, options = {}) {
+    const token = getAccessToken();
+    const headers = {
+        ...(options.headers || {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+    // Auto-add Content-Type for JSON bodies if not already set
+    if (options.body && typeof options.body === 'string' && !headers['Content-Type']) {
+        headers['Content-Type'] = 'application/json';
+    }
+    const response = await fetch(url, { ...options, headers });
+
+    // On 401, clear fast-path so next navigation triggers full auth check
+    if (response.status === 401) {
+        try { sessionStorage.removeItem('sp_auth_confirmed'); } catch (_) {}
+        console.warn(`[authedFetch] 401 on ${url} — auth fast-path cleared`);
+    }
+
+    return response;
+}
+
+/**
  * Fetch data from Supabase REST API with authentication
  * Bypasses supabase-js client to avoid AbortError
  */
@@ -525,6 +562,7 @@ export default {
     useRequireAuth,
     getSessionToken,
     getAccessToken,
+    authedFetch,
     fetchWithAuth,
     queryProfiles,
     queryDiamondBalance,

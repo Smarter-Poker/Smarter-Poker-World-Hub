@@ -11,6 +11,8 @@
 # 3. No .single() calls (must use .maybeSingle())
 # 4. No raw @supabase/supabase-js imports in API routes
 # 5. Basic syntax validation
+# 6. Auth route canonicalization (/auth/login not /auth/signin)
+# 7. Pages with /api/ fetch calls must import auth (getAccessToken/authedFetch)
 #
 # INSTALL: Run `bash scripts/install-hooks.sh` from the project root
 # ═══════════════════════════════════════════════════════════════════════════
@@ -188,6 +190,37 @@ if [ -z "$SIGNIN_HITS" ]; then
     echo -e "${GREEN}  ✓ All auth routes use canonical /auth/login path.${NC}"
 fi
 echo ""
+# ─── CHECK 7: Pages with /api/ fetch calls but no auth imports ───────────
+echo "CHECK 7: Unauth'd /api/ fetch calls..."
+
+UNAUTH_HITS=""
+for file in $JS_FILES; do
+    [ -f "$file" ] || continue
+    # Only check page files (not API routes, not components)
+    echo "$file" | grep -qE '^pages/(hub|auth)/' || continue
+    echo "$file" | grep -qE '^pages/api/' && continue
+
+    # Check if file has fetch calls to /api/
+    HAS_FETCH=$(grep -c "fetch('/api/\|fetch(\"/api/\|fetch(\`/api/" "$file" 2>/dev/null)
+    if [ "$HAS_FETCH" -gt 0 ]; then
+        # Check if file imports getAccessToken or authedFetch
+        HAS_AUTH=$(grep -c "getAccessToken\|authedFetch\|Authorization.*Bearer" "$file" 2>/dev/null)
+        if [ "$HAS_AUTH" -eq 0 ]; then
+            echo -e "${YELLOW}  ⚠ WARNING: ${file}${NC}"
+            echo "    Has ${HAS_FETCH} /api/ fetch call(s) but NO auth (getAccessToken/authedFetch) import."
+            echo "    If the API requires auth, add: import { getAccessToken } from '...authUtils';"
+            echo ""
+            WARNINGS=$((WARNINGS + 1))
+            UNAUTH_HITS="found"
+        fi
+    fi
+done
+
+if [ -z "$UNAUTH_HITS" ]; then
+    echo -e "${GREEN}  ✓ All pages with /api/ calls have auth imports.${NC}"
+fi
+echo ""
+
 # ─── CHECK 5: Basic syntax validation ────────────────────────────────────
 echo "CHECK 5: Syntax validation..."
 

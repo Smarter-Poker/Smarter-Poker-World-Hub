@@ -271,7 +271,7 @@ export default function ReelsPage() {
             try {
                 await fetch('/api/social/interactions', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', ...(getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {}) },
+                    headers: { 'Content-Type': 'application/json', ...(() => { const t = getAccessToken(); return t ? { Authorization: `Bearer ${t}` } : {}; })() },
                     body: JSON.stringify({ post_id: currentReel.id, user_id: userId, interaction_type: 'like' })
                 });
             } catch (e) {
@@ -323,7 +323,7 @@ export default function ReelsPage() {
             if (userId) {
                 fetch('/api/social/interactions', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', ...(getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {}) },
+                    headers: { 'Content-Type': 'application/json', ...(() => { const t = getAccessToken(); return t ? { Authorization: `Bearer ${t}` } : {}; })() },
                     body: JSON.stringify({ post_id: currentReel.id, user_id: userId, interaction_type: 'share' })
                 }).catch(() => { });
             }

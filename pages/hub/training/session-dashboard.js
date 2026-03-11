@@ -161,7 +161,6 @@ export default function SessionDashboardPage() {
     const unsubs = [
       eventBus.on('training:session-complete', refresh),
       eventBus.on('training:drill-complete', refresh),
-      eventBus.on('training:progress-updated', refresh),
     ];
     return () => unsubs.forEach((unsub) => unsub());
   }, [fetchData]);

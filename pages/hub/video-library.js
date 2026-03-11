@@ -839,7 +839,7 @@ export default function VideoLibraryPage() {
             const insight = insights[i];
             const timeSinceInsight = currentTime - insight.seconds;
             // Show insight if we're within 0-60 seconds past its timestamp
-            if (timeSinceInsight >= 0 && TimeSinceInsight <= 60) {
+            if (timeSinceInsight >= 0 && timeSinceInsight <= 60) {
                 return insight;
             }
         }

@@ -141,7 +141,7 @@ export default function LivesPage() {
         if (userId) {
             fetch('/api/social/interactions', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', ...(getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {}) },
+                headers: { 'Content-Type': 'application/json', ...(() => { const t = getAccessToken(); return t ? { Authorization: `Bearer ${t}` } : {}; })() },
                 body: JSON.stringify({ post_id: currentStream.id, user_id: userId, interaction_type: 'like' })
             }).catch(() => {
                 setLikedStreams(prev => ({ ...prev, [currentStream.id]: wasLiked }));
@@ -171,7 +171,7 @@ export default function LivesPage() {
         try {
             const res = await fetch('/api/social/interactions', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', ...(getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {}) },
+                headers: { 'Content-Type': 'application/json', ...(() => { const t = getAccessToken(); return t ? { Authorization: `Bearer ${t}` } : {}; })() },
                 body: JSON.stringify({ post_id: currentStream.id, user_id: userId, interaction_type: 'comment', content: chatText.trim() })
             });
             const json = await res.json();
@@ -196,7 +196,7 @@ export default function LivesPage() {
             if (userId) {
                 fetch('/api/social/interactions', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', ...(getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {}) },
+                    headers: { 'Content-Type': 'application/json', ...(() => { const t = getAccessToken(); return t ? { Authorization: `Bearer ${t}` } : {}; })() },
                     body: JSON.stringify({ post_id: currentStream.id, user_id: userId, interaction_type: 'share' })
                 }).catch(() => { });
             }
