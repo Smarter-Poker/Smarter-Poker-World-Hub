@@ -5767,7 +5767,6 @@ function LivePokerTable({
         onToggleHUD={handleToggleHUD}
         fourColorDeck={fourColorDeck}
         onToggleFourColor={handleToggleFourColor}
-        onShowHistory={() => setShowHandHistory(true)}
         onShowLeaderboard={() => setShowLeaderboard(true)}
       />
 

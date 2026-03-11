@@ -13,20 +13,16 @@ import { enqueueMutation } from '../../engine/OfflineSyncQueue';
 import { useMessengerService } from '../../hooks/useMessengerService';
 
 // ─── Lazy Supabase Getter ──────────────────────────────────────────────
-async function getSupabase() {
+let _supabase = null;
+function getSupabase() {
+    if (_supabase) return _supabase;
     if (typeof window === 'undefined') return null;
-    if (window._cachedSupabaseClient) return window._cachedSupabaseClient;
-    try {
-        const { createClient } = await import('@supabase/supabase-js');
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-        const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        if (!url || !key) return null;
-        window._cachedSupabaseClient = createClient(url, key);
-        return window._cachedSupabaseClient;
-    } catch (err) {
-        console.warn('Failed to load Supabase client dynamically:', err);
-        return null;
-    }
+    const { createClient } = require('@supabase/supabase-js');
+    _supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    );
+    return _supabase;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
