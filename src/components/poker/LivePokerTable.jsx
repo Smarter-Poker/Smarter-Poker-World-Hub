@@ -3771,6 +3771,12 @@ function LivePokerTable({
           setShowHUD(localStorage.getItem('poker-show-hud') === 'true');
         } else if (payload === 'four_color_deck_toggled') {
           setFourColorDeck(localStorage.getItem('poker-4color-deck') === 'true');
+        } else if (payload === 'theme_changed') {
+          setThemeId(getStoredThemeId());
+        } else if (payload === 'cardback_changed') {
+          setCardBack(getStoredCardBack());
+        } else if (payload === 'sound_changed') {
+          setSoundEnabled(localStorage.getItem('poker-sound-enabled') !== 'false');
         }
       }
     };
@@ -3783,7 +3789,16 @@ function LivePokerTable({
 
   // Theme system
   const [themeId, setThemeId] = useState(() => getStoredThemeId());
+  const handleThemeChange = useCallback((id) => {
+    setThemeId(id);
+    try { eventBus.emit('DATA_MUTATED', 'theme_changed'); } catch (_) {}
+  }, []);
+
   const [cardBack, setCardBack] = useState(() => getStoredCardBack());
+  const handleCardBackChange = useCallback((path) => {
+    setCardBack(path);
+    try { eventBus.emit('DATA_MUTATED', 'cardback_changed'); } catch (_) {}
+  }, []);
 
   // Admin role detection
   const [userRole, setUserRole] = useState(null);
@@ -3804,6 +3819,13 @@ function LivePokerTable({
   const [soundEnabled, setSoundEnabled] = useState(() => {
     try { return localStorage.getItem('poker-sound-enabled') !== 'false'; } catch { return true; }
   });
+  const handleToggleSound = useCallback(() => {
+    setSoundEnabled(prev => {
+      const next = !prev;
+      try { eventBus.emit('DATA_MUTATED', 'sound_changed'); } catch (_) {}
+      return next;
+    });
+  }, []);
   const [soundVolume, setSoundVolume] = useState(() => {
     try { return parseFloat(localStorage.getItem('poker-sound-volume') || '0.4'); } catch { return 0.4; }
   });
@@ -5010,11 +5032,11 @@ function LivePokerTable({
       {/* ═══════════ TABLE THEME PICKER ═══════════ */}
       <ThemePicker
         currentThemeId={themeId}
-        onThemeChange={(id) => setThemeId(id)}
+        onThemeChange={handleThemeChange}
         currentCardBack={cardBack}
-        onCardBackChange={(path) => setCardBack(path)}
+        onCardBackChange={handleCardBackChange}
         soundEnabled={soundEnabled}
-        onToggleSound={() => setSoundEnabled(prev => !prev)}
+        onToggleSound={handleToggleSound}
         fourColorDeck={fourColorDeck}
         onToggleFourColor={handleToggleFourColor}
         hapticEnabled={hapticEnabled}
@@ -5635,7 +5657,7 @@ function LivePokerTable({
       {/* ═══════════ SOUND CONTROLS ═══════════ */}
       <div style={{ position: 'fixed', top: 8, right: 8, zIndex: 250 }}>
         <button
-          onClick={() => setSoundEnabled(prev => !prev)}
+          onClick={handleToggleSound}
           onContextMenu={(e) => { e.preventDefault(); setShowSoundPanel(p => !p); }}
           onDoubleClick={() => setShowSoundPanel(p => !p)}
           style={{

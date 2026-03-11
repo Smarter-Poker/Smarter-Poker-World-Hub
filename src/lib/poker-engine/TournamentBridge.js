@@ -840,6 +840,27 @@ class TournamentBridge {
   }
 
   /**
+   * Internal helper to record tournament-level chip movements to the audit log.
+   * @private
+   */
+  _recordAuditLog(actionType, userId, amount, details = {}) {
+    if (!this.tournament || !this.tournament.clubId || !userId) return;
+    try {
+      const sb = ChipBridge.getSupabase();
+      sb.rpc('record_arena_audit_log', {
+        p_club_id: this.tournament.clubId,
+        p_table_id: `tournament_${this.tournament.id}`,
+        p_user_id: userId,
+        p_action_type: `tournament_${actionType}`,
+        p_amount: amount || 0,
+        p_details: details
+      }).catch(err => console.error('[TournamentBridge.AuditLog] RPC error:', err.message));
+    } catch (e) {
+      console.error('[TournamentBridge.AuditLog] Sync Error:', e.message);
+    }
+  }
+
+  /**
    * Destroy the bridge and clean up.
    */
   destroy() {
