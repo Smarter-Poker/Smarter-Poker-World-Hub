@@ -359,8 +359,9 @@ export function useAuthUser() {
     return { user, loading };
 }
 
-// Need to import these for the hook
+// Need to import these for the hooks
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🛡️ SESSION BACKUP / RESTORE — Last line of defense against accidental logout
