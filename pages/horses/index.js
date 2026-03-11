@@ -231,25 +231,9 @@ export default function HorsesAdmin() {
       }));
     });
 
-    // DIAMONDS_EARNED / DIAMONDS_SPENT: auto-refresh Economy tab when diamond transactions occur
-    const unsubDiamondsEarned = eventBus.on(EventType.DIAMONDS_EARNED, () => {
-      if (economyLoaded) loadEconomyData();
-    });
-    const unsubDiamondsSpent = eventBus.on(EventType.DIAMONDS_SPENT, () => {
-      if (economyLoaded) loadEconomyData();
-    });
-
-    // DATA_MUTATED: global data mutation (e.g. from SQL Console) — refresh core data
-    const unsubMutated = eventBus.on(EventType.DATA_MUTATED, () => {
-      loadDataRef.current?.();
-    });
-
     return () => {
       unsubMissed();
       unsubKB();
-      unsubDiamondsEarned();
-      unsubDiamondsSpent();
-      unsubMutated();
     };
   }, []);
 
@@ -510,12 +494,26 @@ export default function HorsesAdmin() {
       })
       .subscribe();
 
+    // 4. EventBus Listeners for real-time diamond/mutation events
+    const unsubDiamondsEarned = eventBus.on(EventType.DIAMONDS_EARNED, () => {
+      loadDataRef.current();
+    });
+    const unsubDiamondsSpent = eventBus.on(EventType.DIAMONDS_SPENT, () => {
+      loadDataRef.current();
+    });
+    const unsubMutated = eventBus.on(EventType.DATA_MUTATED, () => {
+      loadDataRef.current();
+    });
+
     return () => {
       if (bc) bc.close();
       window.removeEventListener('horses-updated', handleLocalSync);
       window.removeEventListener('horses-grinder-updated', handleLocalSync);
       window.removeEventListener('horses-settings-updated', handleLocalSync);
       supabase.removeChannel(channel);
+      unsubDiamondsEarned();
+      unsubDiamondsSpent();
+      unsubMutated();
     };
   }, [user]);
 
@@ -752,7 +750,7 @@ export default function HorsesAdmin() {
 
   const loadCaClubDetail = async (club) => {
     setCaSelectedClub(club);
-    setCaClubSubTab('overview');
+    setCaTab('overview');
     setCaClubDetail(null);
     setCaLoading(true);
     try {
