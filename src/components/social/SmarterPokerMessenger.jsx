@@ -345,11 +345,15 @@ const MessageBubble = ({ message, isOwn, showAvatar, user, onAction }) => (
             {/* P5-6: Edit indicator */}
             {message.isEdited && <span className="edit-indicator" title="Edited">(edited)</span>}
 
-            {/* P5-4 + P10-2: Delivery status ticks */}
             {message.isOwn && (
-                <span className="read-receipt" style={{ color: message.readStatus === 'read' ? '#0088ff' : '#999', fontSize: 10 }}>
+                <span className="read-receipt" style={{ color: message.readStatus === 'read' ? '#2D88FF' : '#999', fontSize: 10, marginLeft: 4 }}>
                     {message.readStatus === 'read' ? '✓✓' : message.readStatus === 'delivered' ? '✓✓' : '✓'}
                 </span>
+            )}
+
+            {/* P14-5: Forwarded indicator */}
+            {message.media_metadata?.forwarded_from && (
+                <div style={{ fontSize: 10, opacity: 0.5, fontStyle: 'italic', marginTop: 2 }}>↪ Forwarded</div>
             )}
 
             {/* Labels & Bookmarks Indicator */}
@@ -607,6 +611,13 @@ export const ChatWindow = ({
     // P11-13: Drag-and-Drop
     const [isDragging, setIsDragging] = useState(false);
     const dropZoneRef = useRef(null);
+
+    // P14: Advanced Features State
+    const [showForwardPicker, setShowForwardPicker] = useState(null); // messageId to forward
+    const [showPinnedPanel, setShowPinnedPanel] = useState(false);
+    const [showArchiveExport, setShowArchiveExport] = useState(false);
+    const [showSoundPicker, setShowSoundPicker] = useState(false);
+    const [waveformData, setWaveformData] = useState({});
     
     // P7-6: Lightbox State
     const [lightboxImage, setLightboxImage] = useState(null);
@@ -1144,9 +1155,11 @@ export const ChatWindow = ({
         setEditText('');
     };
 
-    // P7-3: Broadcast global typing indicator on input
+    // P7-3 + P14-2: Broadcast global typing indicator on input
     const handleInputChange = (e) => {
         setInputText(e.target.value);
+        // P14-2: Use Supabase Presence for typing
+        svc.sendTypingIndicator?.(true);
         if (channelRef.current) {
             channelRef.current.track({ user_id: currentUser?.id, is_typing: true });
         } else {
@@ -1155,6 +1168,7 @@ export const ChatWindow = ({
 
         clearTimeout(typingTimeoutRef.current);
         typingTimeoutRef.current = setTimeout(() => {
+            svc.sendTypingIndicator?.(false);
             if (channelRef.current) {
                 channelRef.current.track({ user_id: currentUser?.id, is_typing: false });
             } else {

@@ -24,15 +24,23 @@ function getSupabase() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// P12-6: STUN/TURN Config
-// ═══════════════════════════════════════════════════════════════
+// P14-1: STUN/TURN Config (with Twilio/Xirsys TURN fallback)
 const ICE_SERVERS = {
     iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
         { urls: 'stun:stun2.l.google.com:19302' },
-        { urls: 'stun:stun3.l.google.com:19302' },
-        { urls: 'stun:stun4.l.google.com:19302' },
+        // P14-1: Paid TURN relays — set env vars for production
+        ...(process.env.NEXT_PUBLIC_TURN_URL ? [{
+            urls: process.env.NEXT_PUBLIC_TURN_URL,
+            username: process.env.NEXT_PUBLIC_TURN_USERNAME || '',
+            credential: process.env.NEXT_PUBLIC_TURN_CREDENTIAL || '',
+        }] : []),
+        ...(process.env.NEXT_PUBLIC_TURN_URL_2 ? [{
+            urls: process.env.NEXT_PUBLIC_TURN_URL_2,
+            username: process.env.NEXT_PUBLIC_TURN_USERNAME_2 || '',
+            credential: process.env.NEXT_PUBLIC_TURN_CREDENTIAL_2 || '',
+        }] : []),
     ]
 };
 
@@ -776,6 +784,333 @@ export function useMessengerService({ conversationId, currentUser, messengerType
         }
     }, [conversationId, loadMessages, markAsDelivered]);
 
+    // ═════════════════════════════════════════════════════════
+    // P14-2: Presence Indicators (Supabase Presence Channel)
+    // ═════════════════════════════════════════════════════════
+    const [onlineUsers, setOnlineUsers] = useState({});
+    const [typingUsers, setTypingUsers] = useState({});
+    const presenceChannelRef = useRef(null);
+    const typingTimeoutRef = useRef(null);
+
+    useEffect(() => {
+        const supabase = getSupabase();
+        if (!supabase || !conversationId || !currentUser?.id) return;
+
+        const channel = supabase.channel(`presence:${conversationId}`, {
+            config: { presence: { key: currentUser.id } }
+        });
+
+        channel
+            .on('presence', { event: 'sync' }, () => {
+                const state = channel.presenceState();
+                const online = {};
+                Object.keys(state).forEach(uid => { online[uid] = true; });
+                setOnlineUsers(online);
+            })
+            .on('presence', { event: 'join' }, ({ key }) => {
+                setOnlineUsers(prev => ({ ...prev, [key]: true }));
+            })
+            .on('presence', { event: 'leave' }, ({ key }) => {
+                setOnlineUsers(prev => { const n = { ...prev }; delete n[key]; return n; });
+                setTypingUsers(prev => { const n = { ...prev }; delete n[key]; return n; });
+            })
+            .on('broadcast', { event: 'typing' }, ({ payload }) => {
+                if (payload.userId === currentUser.id) return;
+                setTypingUsers(prev => ({ ...prev, [payload.userId]: payload.isTyping }));
+                // Auto-clear after 4s
+                if (payload.isTyping) {
+                    setTimeout(() => {
+                        setTypingUsers(prev => { const n = { ...prev }; delete n[payload.userId]; return n; });
+                    }, 4000);
+                }
+            })
+            .subscribe(async (status) => {
+                if (status === 'SUBSCRIBED') {
+                    await channel.track({ online_at: new Date().toISOString(), user_id: currentUser.id });
+                }
+            });
+
+        presenceChannelRef.current = channel;
+
+        return () => {
+            supabase.removeChannel(channel);
+            presenceChannelRef.current = null;
+        };
+    }, [conversationId, currentUser?.id]);
+
+    const sendTypingIndicator = useCallback((isTyping = true) => {
+        if (!presenceChannelRef.current || !currentUser?.id) return;
+        clearTimeout(typingTimeoutRef.current);
+        presenceChannelRef.current.send({
+            type: 'broadcast',
+            event: 'typing',
+            payload: { userId: currentUser.id, isTyping }
+        });
+        if (isTyping) {
+            typingTimeoutRef.current = setTimeout(() => {
+                presenceChannelRef.current?.send({
+                    type: 'broadcast',
+                    event: 'typing',
+                    payload: { userId: currentUser.id, isTyping: false }
+                });
+            }, 3000);
+        }
+    }, [currentUser?.id]);
+
+    // ═════════════════════════════════════════════════════════
+    // P14-3: Read Receipt Status Helper
+    // ═════════════════════════════════════════════════════════
+    const getReceiptIcon = useCallback((msg) => {
+        if (!msg || msg.sender_id !== currentUser?.id) return null;
+        if (msg.status === 'read') return { icon: '✓✓', color: '#2D88FF', label: 'Read' };
+        if (msg.status === 'delivered') return { icon: '✓✓', color: '#B0B3B8', label: 'Delivered' };
+        return { icon: '✓', color: '#B0B3B8', label: 'Sent' };
+    }, [currentUser?.id]);
+
+    // ═════════════════════════════════════════════════════════
+    // P14-5: Link Preview Fetcher
+    // ═════════════════════════════════════════════════════════
+    const linkPreviewCache = useRef({});
+    const fetchLinkPreview = useCallback(async (url) => {
+        if (!url) return null;
+        if (linkPreviewCache.current[url]) return linkPreviewCache.current[url];
+        try {
+            const res = await fetch(`/api/link-preview?url=${encodeURIComponent(url)}`);
+            if (!res.ok) return null;
+            const data = await res.json();
+            linkPreviewCache.current[url] = data;
+            return data;
+        } catch (_) { return null; }
+    }, []);
+
+    // ═════════════════════════════════════════════════════════
+    // P14-4: Voice Waveform Analysis
+    // ═════════════════════════════════════════════════════════
+    const analyzeAudioWaveform = useCallback(async (audioUrl, barCount = 40) => {
+        if (typeof window === 'undefined' || !audioUrl) return Array(barCount).fill(0.3);
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const res = await fetch(audioUrl);
+            const buffer = await res.arrayBuffer();
+            const audioBuffer = await ctx.decodeAudioData(buffer);
+            const channelData = audioBuffer.getChannelData(0);
+            const step = Math.floor(channelData.length / barCount);
+            const bars = [];
+            for (let i = 0; i < barCount; i++) {
+                let sum = 0;
+                for (let j = 0; j < step; j++) {
+                    sum += Math.abs(channelData[i * step + j] || 0);
+                }
+                bars.push(Math.min(1, (sum / step) * 3));
+            }
+            ctx.close();
+            return bars;
+        } catch (_) { return Array(barCount).fill(0.3); }
+    }, []);
+
+    // ═════════════════════════════════════════════════════════
+    // P14-7: Message Forwarding
+    // ═════════════════════════════════════════════════════════
+    const forwardMessage = useCallback(async (messageId, targetConversationId) => {
+        const supabase = getSupabase();
+        if (!supabase || !currentUser?.id || !messageId || !targetConversationId) return null;
+        try {
+            // Get original message
+            const { data: original } = await supabase
+                .from('messenger_messages')
+                .select('*')
+                .eq('id', messageId)
+                .maybeSingle();
+            if (!original) return null;
+
+            // Insert forwarded copy
+            const { data, error } = await supabase
+                .from('messenger_messages')
+                .insert({
+                    conversation_id: targetConversationId,
+                    sender_id: currentUser.id,
+                    message_type: original.message_type,
+                    text: original.text,
+                    media_url: original.media_url,
+                    media_metadata: { ...original.media_metadata, forwarded_from: messageId, original_sender: original.sender_id },
+                    status: 'sent',
+                })
+                .select('*')
+                .maybeSingle();
+            if (error) throw error;
+
+            // Update target conversation last_message
+            await supabase
+                .from('messenger_conversations')
+                .update({ last_message_text: `Forwarded: ${(original.text || original.message_type).slice(0, 80)}`, last_message_at: new Date().toISOString() })
+                .eq('id', targetConversationId);
+
+            return data;
+        } catch (e) { console.error('[Forward] Error:', e); return null; }
+    }, [currentUser?.id]);
+
+    // ═════════════════════════════════════════════════════════
+    // P14-8: Conversation Archival & Export
+    // ═════════════════════════════════════════════════════════
+    const archiveConversation = useCallback(async (convId) => {
+        const supabase = getSupabase();
+        if (!supabase || !currentUser?.id) return;
+        try {
+            await supabase
+                .from('messenger_participants')
+                .update({ metadata: { archived: true, archived_at: new Date().toISOString() } })
+                .eq('conversation_id', convId || conversationId)
+                .eq('user_id', currentUser.id);
+            setConversations(prev => prev.filter(c => c.id !== (convId || conversationId)));
+        } catch (e) { console.error('[Archive] Error:', e); }
+    }, [conversationId, currentUser?.id]);
+
+    const unarchiveConversation = useCallback(async (convId) => {
+        const supabase = getSupabase();
+        if (!supabase || !currentUser?.id) return;
+        try {
+            await supabase
+                .from('messenger_participants')
+                .update({ metadata: { archived: false } })
+                .eq('conversation_id', convId)
+                .eq('user_id', currentUser.id);
+            await loadConversations();
+        } catch (e) { console.error('[Unarchive] Error:', e); }
+    }, [currentUser?.id, loadConversations]);
+
+    const exportConversation = useCallback(async (format = 'json') => {
+        if (!messages?.length) return null;
+        const exportData = {
+            conversationId,
+            exportedAt: new Date().toISOString(),
+            messageCount: messages.length,
+            messages: messages.map(m => ({
+                sender: m.sender_id,
+                text: m.text,
+                type: m.message_type,
+                time: m.created_at,
+                ...(m.media_url ? { media: m.media_url } : {}),
+            })),
+        };
+
+        if (format === 'json') {
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `chat_export_${conversationId?.slice(0, 8)}_${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            return true;
+        }
+        // PDF generation: simple text-based
+        if (format === 'pdf') {
+            const content = messages.map(m =>
+                `[${new Date(m.created_at).toLocaleString()}] ${m.sender_id?.slice(0, 8)}: ${m.text || `[${m.message_type}]`}`
+            ).join('\n');
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `chat_export_${conversationId?.slice(0, 8)}_${Date.now()}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+            return true;
+        }
+        return null;
+    }, [conversationId, messages]);
+
+    // ═════════════════════════════════════════════════════════
+    // P14-9: Custom Notification Sounds per Conversation
+    // ═════════════════════════════════════════════════════════
+    const NOTIFICATION_SOUNDS = [
+        { id: 'default', label: 'Default', url: '/sounds/message.mp3' },
+        { id: 'ding', label: 'Ding', url: '/sounds/ding.mp3' },
+        { id: 'chime', label: 'Chime', url: '/sounds/chime.mp3' },
+        { id: 'pop', label: 'Pop', url: '/sounds/pop.mp3' },
+        { id: 'bell', label: 'Bell', url: '/sounds/bell.mp3' },
+        { id: 'silent', label: 'Silent', url: null },
+    ];
+
+    const getConversationSoundPref = useCallback((convId) => {
+        if (typeof window === 'undefined') return 'default';
+        try {
+            const prefs = JSON.parse(localStorage.getItem('messenger_sound_prefs') || '{}');
+            return prefs[convId || conversationId] || 'default';
+        } catch (_) { return 'default'; }
+    }, [conversationId]);
+
+    const setConversationSoundPref = useCallback((soundId, convId) => {
+        if (typeof window === 'undefined') return;
+        try {
+            const prefs = JSON.parse(localStorage.getItem('messenger_sound_prefs') || '{}');
+            prefs[convId || conversationId] = soundId;
+            localStorage.setItem('messenger_sound_prefs', JSON.stringify(prefs));
+        } catch (_) {}
+    }, [conversationId]);
+
+    const playNotificationSound = useCallback((convId) => {
+        if (typeof window === 'undefined') return;
+        const soundId = getConversationSoundPref(convId);
+        const sound = NOTIFICATION_SOUNDS.find(s => s.id === soundId);
+        if (!sound?.url) return;
+        try {
+            const audio = new Audio(sound.url);
+            audio.volume = 0.5;
+            audio.play().catch(() => {});
+        } catch (_) {}
+    }, [getConversationSoundPref]);
+
+    // ═════════════════════════════════════════════════════════
+    // P14-10: Pinned Messages Panel
+    // ═════════════════════════════════════════════════════════
+    const [pinnedMessages, setPinnedMessages] = useState([]);
+
+    const pinMessage = useCallback(async (messageId) => {
+        const supabase = getSupabase();
+        if (!supabase || !currentUser?.id || !conversationId) return;
+        try {
+            await supabase
+                .from('messenger_messages')
+                .update({ media_metadata: { pinned: true, pinned_by: currentUser.id, pinned_at: new Date().toISOString() } })
+                .eq('id', messageId);
+            const msg = messages.find(m => m.id === messageId);
+            if (msg) setPinnedMessages(prev => [...prev.filter(p => p.id !== messageId), { ...msg, pinned: true }]);
+        } catch (e) { console.error('[Pin] Error:', e); }
+    }, [conversationId, currentUser?.id, messages]);
+
+    const unpinMessage = useCallback(async (messageId) => {
+        const supabase = getSupabase();
+        if (!supabase) return;
+        try {
+            await supabase
+                .from('messenger_messages')
+                .update({ media_metadata: {} })
+                .eq('id', messageId);
+            setPinnedMessages(prev => prev.filter(p => p.id !== messageId));
+        } catch (e) { console.error('[Unpin] Error:', e); }
+    }, []);
+
+    const loadPinnedMessages = useCallback(async () => {
+        const supabase = getSupabase();
+        if (!supabase || !conversationId) return [];
+        try {
+            const { data } = await supabase
+                .from('messenger_messages')
+                .select('*')
+                .eq('conversation_id', conversationId)
+                .contains('media_metadata', { pinned: true })
+                .order('created_at', { ascending: false });
+            setPinnedMessages(data || []);
+            return data || [];
+        } catch (_) { return []; }
+    }, [conversationId]);
+
+    // Load pinned messages when conversation changes
+    useEffect(() => {
+        if (conversationId) loadPinnedMessages();
+    }, [conversationId, loadPinnedMessages]);
+
     // ═══════════════════════════════════════════════════════════
     // Return Service API
     // ═══════════════════════════════════════════════════════════
@@ -824,6 +1159,40 @@ export function useMessengerService({ conversationId, currentUser, messengerType
         // P12-14: E2E
         exchangePublicKey,
         getRemotePublicKey,
+
+        // P14-2: Presence
+        onlineUsers,
+        typingUsers,
+        sendTypingIndicator,
+
+        // P14-3: Read Receipts UI
+        getReceiptIcon,
+
+        // P14-4: Voice Waveform
+        analyzeAudioWaveform,
+
+        // P14-5: Link Preview
+        fetchLinkPreview,
+
+        // P14-7: Forwarding
+        forwardMessage,
+
+        // P14-8: Archive/Export
+        archiveConversation,
+        unarchiveConversation,
+        exportConversation,
+
+        // P14-9: Notification Sounds
+        NOTIFICATION_SOUNDS,
+        getConversationSoundPref,
+        setConversationSoundPref,
+        playNotificationSound,
+
+        // P14-10: Pinned Messages
+        pinnedMessages,
+        pinMessage,
+        unpinMessage,
+        loadPinnedMessages,
     };
 }
 
