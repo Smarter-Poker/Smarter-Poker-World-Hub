@@ -10,12 +10,14 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import { ArrowLeft, Award, Star, Lock } from 'lucide-react';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
+import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 
 export default function AchievementsPage() {
   const router = useRouter();
   const [filter, setFilter] = useState('all');
 
   const { checking: authChecking } = useRequireAuth('/hub/commander/profile/achievements');
+  useTrainingBus('achievements');
 
   const { data: swrData, isLoading: loading } = useSWR('/api/commander/profile', async (url) => {
     const token = getAccessToken();

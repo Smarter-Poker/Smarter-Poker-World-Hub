@@ -9,6 +9,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { ArrowLeft, QrCode, CreditCard, Users, Clock, Gift, Star, Loader2, RefreshCw, Trophy, Crown } from 'lucide-react';
 import { useRequireAuth, getAccessToken } from '../../../src/lib/authUtils';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 const TIER_COLORS = {
   bronze: { bg: 'linear-gradient(135deg, #92400E, #D97706)', text: '#FFFBEB' },
@@ -25,6 +26,7 @@ export default function PlayerCard() {
   const intervalRef = useRef(null);
 
   const { checking: authChecking } = useRequireAuth('/hub/commander/player-card');
+  useTrainingBus('player-card');
 
   const getToken = () => getAccessToken();
 

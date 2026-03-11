@@ -12,6 +12,7 @@ import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
 import { useRequireAuth, getAccessToken, getAuthUser } from '../../src/lib/authUtils';
+import useTrainingBus from '../../src/hooks/useTrainingBus';
 import SEOHead from '../../src/components/seo/SEOHead';
 import {
     Trophy, DollarSign, Users, Calendar, Loader2,
@@ -29,6 +30,7 @@ export default function MyTournaments() {
     const router = useRouter();
     // Resilient auth gate — waits for Supabase session to stabilize
     const { user: authUser, checking: authChecking } = useRequireAuth('/hub/my-tournaments');
+    useTrainingBus('my-tournaments');
     const sessionToken = authChecking ? null : getAccessToken();
 
     // SWR-backed tournament fetch — only fires once token is available

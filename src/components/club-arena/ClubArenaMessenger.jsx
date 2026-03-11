@@ -373,7 +373,7 @@ const MessageBubble = ({ message, isOwn, showAvatar, user, onAction }) => (
 
             {/* Reactions */}
             {message.reactions?.length > 0 && (
-                <div className="message-reactions">
+                <div className="message-reactions" onClick={() => onAction?.('viewReactions', message)} style={{ cursor: 'pointer' }}>
                     {message.reactions.map((r, i) => (
                         <span key={i}>{r.emoji}</span>
                     ))}
@@ -389,7 +389,7 @@ const MessageBubble = ({ message, isOwn, showAvatar, user, onAction }) => (
 
             {/* P5-2 + P10-12: Reactions display with GIF support */}
             {message.reactionList?.length > 0 && (
-                <div className="message-reactions">
+                <div className="message-reactions" onClick={() => onAction?.('viewReactions', message)} style={{ cursor: 'pointer' }}>
                     {message.reactionList.map((r, i) => (
                         r.emoji?.startsWith('gif:') ? (
                             <img key={i} src={r.emoji.replace('gif:', '')} alt="GIF reaction" title={r.by} style={{ width: 32, height: 32, borderRadius: 4, objectFit: 'cover', cursor: 'default' }} />
@@ -1029,6 +1029,20 @@ export const ChatWindow = ({
         if (action === 'report') {
             setShowReportModal(msg.id);
             setReportReason('');
+        }
+        // P20-1: View who reacted
+        if (action === 'viewReactions') {
+            (async () => {
+                const reactions = await svc.getMessageReactions(msg.id);
+                setReactionDetailData(reactions);
+                setShowReactionDetail(msg.id);
+            })();
+        }
+        // P20-3: View edit history
+        if (action === 'viewEditHistory') {
+            const history = svc.getEditHistory(msg.id);
+            setEditHistoryData(history);
+            setShowEditHistory(msg.id);
         }
     };
 

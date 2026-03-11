@@ -6560,17 +6560,18 @@ function LivePokerTable({
   const handleFeltChangeWithSync = useCallback((feltId) => {
     handleFeltChange(feltId);
     if (supabase && userId) {
-      // UPSERT with ALL columns to avoid nulling sound_enabled on shared row (max_seats=0)
+      // UPSERT with ALL columns to avoid nulling any field on shared row (max_seats=0)
       supabase.from('poker_seat_preferences').upsert({
         user_id: userId,
         max_seats: 0,
         preferred_seat: 0,
         felt_color: feltId,
-        sound_enabled: soundEnabled, // Preserve current sound state
+        sound_enabled: soundEnabled,
+        sound_volume: soundVolume,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'user_id,max_seats' }).then(() => {}).catch(() => {});
     }
-  }, [handleFeltChange, supabase, userId, soundEnabled]);
+  }, [handleFeltChange, supabase, userId, soundEnabled, soundVolume]);
 
   // J1 + K2: Load felt color AND sound preference FROM Supabase on mount
   useEffect(() => {

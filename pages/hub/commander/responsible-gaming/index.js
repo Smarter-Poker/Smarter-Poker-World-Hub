@@ -21,6 +21,8 @@ import {
   Calendar
 } from 'lucide-react';
 import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
+import useTrainingBus from '../../../../src/hooks/useTrainingBus';
+import { busEmit } from '../../../../src/engine/EventBus';
 
 function LimitCard({ icon: Icon, label, value, onChange, max, unit = '$' }) {
   return (
@@ -88,6 +90,7 @@ export default function ResponsibleGamingPage() {
   const [riskStatus, setRiskStatus] = useState(null);
 
   const { checking: authChecking } = useRequireAuth('/hub/commander/responsible-gaming');
+  useTrainingBus('responsible-gaming');
 
   const { isLoading: loading, mutate: refreshSettings } = useSWR(
     '/api/commander/responsible-gaming/limits',
@@ -127,6 +130,7 @@ export default function ResponsibleGamingPage() {
 
       const data = await res.json();
       if (data.success) {
+        busEmit.dataMutated('responsible-gaming');
         setSaveMessage({ type: 'success', text: 'Limits Saved Successfully' });
       } else {
         setSaveMessage({ type: 'error', text: 'Failed To Save Limits' });
@@ -161,6 +165,7 @@ export default function ResponsibleGamingPage() {
 
       const data = await res.json();
       if (data.success) {
+        busEmit.dataMutated('responsible-gaming');
         setShowExclusionConfirm(false);
         setActiveExclusion({
           type: exclusion === 'permanent' ? 'permanent' : 'temporary',

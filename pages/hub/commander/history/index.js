@@ -11,6 +11,7 @@ import { History, Clock, DollarSign, TrendingUp } from 'lucide-react';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { usePersistedState } from '../../../../src/hooks/usePersistedState';
 import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
+import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 
 function SessionCard({ session }) {
   const checkIn = new Date(session.check_in_at);
@@ -87,6 +88,7 @@ export default function PlayerHistoryPage() {
 
   // Auth guard — resilient session check
   const { checking: authChecking } = useRequireAuth('/hub/commander/history');
+  useTrainingBus('history');
 
   // SWR-backed session history — re-fetches when filter changes
   const { data: swrData, isLoading: loading } = useSWR(

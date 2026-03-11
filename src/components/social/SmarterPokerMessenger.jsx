@@ -1023,6 +1023,20 @@ export const ChatWindow = ({
             setShowReportModal(msg.id);
             setReportReason('');
         }
+        // P20-1: View who reacted
+        if (action === 'viewReactions') {
+            (async () => {
+                const reactions = await svc.getMessageReactions(msg.id);
+                setReactionDetailData(reactions);
+                setShowReactionDetail(msg.id);
+            })();
+        }
+        // P20-3: View edit history
+        if (action === 'viewEditHistory') {
+            const history = svc.getEditHistory(msg.id);
+            setEditHistoryData(history);
+            setShowEditHistory(msg.id);
+        }
     };
 
     // P5-2: Handle emoji reaction (P12-3: Supabase persistence)

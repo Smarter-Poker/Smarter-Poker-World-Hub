@@ -11,6 +11,7 @@ import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { User, Clock, DollarSign, MapPin, Calendar, TrendingUp, Award, Star, ChevronRight, Settings, Bell, History, Gift, Edit2, Globe } from 'lucide-react';
 import { supabase } from '../../../../src/lib/supabase';
 import { getAuthUser, getAccessToken, useRequireAuth } from '../../../../src/lib/authUtils';
+import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 
 function StatCard({ icon: Icon, label, value, subtext, color = '#22D3EE' }) {
   return (
@@ -75,6 +76,7 @@ export default function PlayerProfilePage() {
   const [hasClubPage, setHasClubPage] = useState(null);
 
   const { checking: authChecking } = useRequireAuth('/hub/commander/profile');
+  useTrainingBus('profile');
 
   const { data: swrData, isLoading: loading, mutate: refreshProfile } = useSWR('/api/commander/profile', async () => {
     const token = getAccessToken();
