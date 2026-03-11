@@ -634,7 +634,6 @@ export const ChatWindow = ({
     const [stickerPackIdx, setStickerPackIdx] = useState(0);
     const [showShortcuts, setShowShortcuts] = useState(false);
     const [editingMessageId, setEditingMessageId] = useState(null);
-    const [editText, setEditText] = useState('');
     
     // P7-6: Lightbox State
     const [lightboxImage, setLightboxImage] = useState(null);
@@ -1889,6 +1888,75 @@ export const ChatWindow = ({
                         <input type="text" value={groupName} onChange={e => setGroupName(e.target.value)} placeholder="Group name..." style={{ width: '100%', padding: '8px 12px', marginBottom: 12, borderRadius: 8, border: '1px solid rgba(255,255,255,0.2)', background: '#333', color: '#fff', fontSize: 13, boxSizing: 'border-box' }} />
                         <div style={{ color: '#888', fontSize: 11, marginBottom: 8 }}>Members will be added from your conversations:</div>
                         <button disabled={!groupName.trim()} onClick={async () => { const conv = await svc.createGroupConversation({ name: groupName, participants: [] }); if (conv) { setShowGroupWizard(false); setGroupName(''); } }} style={{ display: 'block', width: '100%', padding: '10px 12px', borderRadius: 10, border: 'none', background: groupName.trim() ? '#2D88FF' : 'rgba(255,255,255,0.05)', color: groupName.trim() ? '#fff' : '#999', cursor: groupName.trim() ? 'pointer' : 'not-allowed', fontSize: 13, fontWeight: 600 }}>✨ Create Group</button>
+                    </div>
+                </div>
+            )}
+
+            {/* ═══ P16-1: Media Gallery Drawer ═══ */}
+            {showMediaGallery && (
+                <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: 280, background: '#242526', borderLeft: '1px solid rgba(255,255,255,0.1)', zIndex: 90, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                        <strong style={{ color: '#fff', fontSize: 14 }}>📸 Media Gallery</strong>
+                        <button onClick={() => setShowMediaGallery(false)} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: 18 }}>✕</button>
+                    </div>
+                    <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                        {['images', 'videos', 'files', 'voice'].map(tab => (
+                            <button key={tab} onClick={() => setMediaGalleryTab(tab)} style={{ flex: 1, padding: '8px 4px', background: mediaGalleryTab === tab ? 'rgba(45,136,255,0.15)' : 'transparent', border: 'none', borderBottom: mediaGalleryTab === tab ? '2px solid #2D88FF' : '2px solid transparent', color: mediaGalleryTab === tab ? '#2D88FF' : '#999', fontSize: 11, cursor: 'pointer', textTransform: 'capitalize' }}>{tab}</button>
+                        ))}
+                    </div>
+                    <div style={{ flex: 1, overflowY: 'auto', padding: 12 }}>
+                        {(svc.mediaGallery?.[mediaGalleryTab] || []).length === 0 && (
+                            <div style={{ color: '#666', fontSize: 12, textAlign: 'center', padding: 20 }}>No {mediaGalleryTab} found</div>
+                        )}
+                        {mediaGalleryTab === 'images' && (svc.mediaGallery?.images || []).map(item => (
+                            <div key={item.id} style={{ marginBottom: 8, borderRadius: 8, overflow: 'hidden' }}>
+                                <img src={item.media_url} alt="" style={{ width: '100%', borderRadius: 8, objectFit: 'cover', maxHeight: 120 }} />
+                                <div style={{ color: '#888', fontSize: 10, marginTop: 2 }}>{new Date(item.created_at).toLocaleDateString()}</div>
+                            </div>
+                        ))}
+                        {mediaGalleryTab !== 'images' && (svc.mediaGallery?.[mediaGalleryTab] || []).map(item => (
+                            <div key={item.id} style={{ padding: '8px 10px', marginBottom: 4, borderRadius: 8, background: 'rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ color: '#ccc', fontSize: 12 }}>{item.text || item.media_url?.split('/').pop() || 'File'}</span>
+                                <span style={{ color: '#888', fontSize: 10 }}>{new Date(item.created_at).toLocaleDateString()}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* ═══ P16-4: Sticker Picker ═══ */}
+            {showStickerPicker && (
+                <div style={{ position: 'absolute', bottom: 70, left: 12, right: 12, background: '#242526', borderRadius: 16, padding: 12, border: '1px solid rgba(255,255,255,0.1)', zIndex: 80, maxHeight: 200, overflow: 'auto' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                            {(svc.STICKER_PACKS || []).map((pack, idx) => (
+                                <button key={pack.id} onClick={() => setStickerPackIdx(idx)} style={{ padding: '4px 8px', borderRadius: 8, border: 'none', background: stickerPackIdx === idx ? 'rgba(45,136,255,0.2)' : 'transparent', color: stickerPackIdx === idx ? '#2D88FF' : '#999', cursor: 'pointer', fontSize: 11 }}>{pack.name}</button>
+                            ))}
+                        </div>
+                        <button onClick={() => setShowStickerPicker(false)} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: 16 }}>✕</button>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 6 }}>
+                        {((svc.STICKER_PACKS || [])[stickerPackIdx]?.stickers || []).map((sticker, i) => (
+                            <button key={i} onClick={() => { svc.sendSticker(sticker); setShowStickerPicker(false); }} style={{ padding: 8, borderRadius: 8, border: 'none', background: 'rgba(255,255,255,0.05)', cursor: 'pointer', fontSize: 24, transition: 'transform 0.1s' }} onMouseEnter={e => e.target.style.transform='scale(1.3)'} onMouseLeave={e => e.target.style.transform='scale(1)'}>{sticker}</button>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* ═══ P16-9: Keyboard Shortcuts Panel ═══ */}
+            {showShortcuts && (
+                <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ background: '#242526', borderRadius: 16, padding: 20, width: 320, border: '1px solid rgba(255,255,255,0.1)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                            <strong style={{ color: '#fff', fontSize: 14 }}>⌨️ Keyboard Shortcuts</strong>
+                            <button onClick={() => setShowShortcuts(false)} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: 18 }}>✕</button>
+                        </div>
+                        {(svc.KEYBOARD_SHORTCUTS || []).map((s, i) => (
+                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                <span style={{ color: '#ccc', fontSize: 12 }}>{s.action}</span>
+                                <kbd style={{ padding: '2px 8px', borderRadius: 4, background: 'rgba(255,255,255,0.1)', color: '#2D88FF', fontSize: 11, fontFamily: 'monospace' }}>{s.keys}</kbd>
+                            </div>
+                        ))}
                     </div>
                 </div>
             )}

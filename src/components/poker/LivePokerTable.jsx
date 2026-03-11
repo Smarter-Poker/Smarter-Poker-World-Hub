@@ -6598,8 +6598,8 @@ function LivePokerTable({
           // Use rotated visual position if hero is seated, otherwise raw index
           const visualIndex = rotatedPositionMap ? rotatedPositionMap[i] : i;
           return (
-            <React.Fragment key={i}>
             <PlayerSeat
+              key={i}
               seat={seat}
               position={positions[visualIndex] || positions[0]}
               isHero={pid != null && String(pid) === String(userId)}

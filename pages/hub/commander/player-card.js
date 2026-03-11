@@ -37,7 +37,7 @@ export default function PlayerCard() {
   // SWR-backed profile fetch
   const { data: player, isLoading: loading } = useSWR('/api/hub/profile', (url) => {
     const token = getToken();
-    if (!token) { router.push('/auth/login?redirect=/hub/commander/player-card'); return null; }
+    if (!token) return null; // useRequireAuth handles redirect
     return fetch(url, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(json => json.success || json.data ? (json.data || json) : null);
