@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { createClient } from '../../src/lib/supabase';
+import supabase from '../../src/lib/supabase';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import { eventBus } from '../../src/engine/EventBus';
 
-const getSupabase = () => typeof window !== 'undefined' ? createClient() : null;
+const getSupabase = () => typeof window !== 'undefined' ? supabase : null;
 
 export default function SessionHistoryPage() {
   useTrainingBus('session-history');
