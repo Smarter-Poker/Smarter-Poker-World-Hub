@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '../../src/lib/supabase';
-import { useTrainingBus } from '../../src/hooks/useTrainingBus';
+import useTrainingBus from '../../src/hooks/useTrainingBus';
 
 const getSupabase = () => typeof window !== 'undefined' ? createClient() : null;
 
 export default function SessionHistoryPage() {
-  if (useTrainingBus) useTrainingBus('session-history');
+  useTrainingBus('session-history');
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
