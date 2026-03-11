@@ -475,6 +475,104 @@ function HandStrengthMeter({ holeCards, board, visible, fourColorDeck }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// HAND HISTORY DRAWER — scrollable session hand log
+// ═══════════════════════════════════════════════════════════════════════════
+
+function HandHistoryDrawer({ isOpen, onClose, hands = [], formatStack }) {
+  if (!isOpen) return null;
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0, x: 300 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: 300 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        onClick={e => e.stopPropagation()}
+        style={{
+          position: 'fixed', right: 0, top: 0, bottom: 0, width: 340, maxWidth: '85vw',
+          background: 'rgba(18, 18, 20, 0.95)', backdropFilter: 'blur(20px)',
+          borderLeft: '1px solid rgba(255,255,255,0.08)', zIndex: 200,
+          display: 'flex', flexDirection: 'column', overflow: 'hidden',
+        }}
+      >
+        {/* Header */}
+        <div style={{
+          padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        }}>
+          <div style={{ fontSize: 16, fontWeight: 800, color: '#E4E6EB' }}>📋 Hand History</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: 11, color: '#8E8E93' }}>{hands.length} hands</span>
+            <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#8E8E93', fontSize: 18, cursor: 'pointer' }}>✕</button>
+          </div>
+        </div>
+
+        {/* Scrollable list */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: 12 }}>
+          {hands.length === 0 && (
+            <div style={{ textAlign: 'center', color: '#6B7280', padding: 40, fontSize: 13 }}>
+              No hands played yet
+            </div>
+          )}
+          {hands.map((h, idx) => {
+            const winnerNames = h.winners?.map(w => w.displayName || w.playerName || 'Player').join(', ') || 'Unknown';
+            const heroWon = h.winners?.some(w => w.isHero);
+            const timeAgo = Math.round((Date.now() - h.ts) / 60000);
+            const pnlColor = heroWon ? '#22c55e' : '#ef4444';
+            return (
+              <motion.div
+                key={h.handId || idx}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.03 }}
+                style={{
+                  background: 'rgba(255,255,255,0.03)',
+                  border: `1px solid rgba(255,255,255,0.06)`,
+                  borderRadius: 10, padding: '10px 14px', marginBottom: 8,
+                  borderLeft: `3px solid ${pnlColor}40`,
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                  <span style={{ fontSize: 10, color: '#8E8E93', fontFamily: 'monospace' }}>#{h.handId?.slice(-6) || idx}</span>
+                  <span style={{ fontSize: 9, color: '#6B7280' }}>{timeAgo < 1 ? 'just now' : `${timeAgo}m ago`}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#E4E6EB' }}>
+                    Pot: {formatStack ? formatStack(h.potTotal) : h.potTotal?.toLocaleString() || '0'}
+                  </span>
+                  <span style={{ fontSize: 11, color: pnlColor, fontWeight: 700 }}>
+                    {heroWon ? '✅ Won' : '—'}
+                  </span>
+                </div>
+                {/* Board cards */}
+                {h.board?.length > 0 && (
+                  <div style={{ display: 'flex', gap: 3, marginTop: 6 }}>
+                    {h.board.map((card, ci) => (
+                      <div key={ci} style={{
+                        width: 20, height: 28, borderRadius: 3,
+                        background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.1)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 9, fontWeight: 700,
+                        color: typeof card === 'string' && (card.includes('h') || card.includes('d')) ? '#e53935' : '#fff',
+                      }}>
+                        {typeof card === 'string' ? card : '?'}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div style={{ fontSize: 10, color: '#8E8E93', marginTop: 4 }}>
+                  Winner: {winnerNames} {h.bombPot ? '💣' : ''}
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // POT ODDS HUD — displays pot odds when hero faces a bet
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -1335,13 +1433,17 @@ function PlayerSeat({
 
         {/* Position badge (D / SB / BB / UTG) */}
         {posBadge && (
-          <div style={{
-            position: 'absolute', bottom: -2, left: '50%', transform: 'translateX(-50%)',
-            background: posBadge.bg, color: posBadge.color,
-            fontSize: 9, fontWeight: 900, padding: '1px 6px', borderRadius: 6,
-            lineHeight: 1.3, zIndex: 5, border: '1px solid rgba(0,0,0,0.2)',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
-          }}>{posBadge.label}</div>
+          <motion.div
+            layoutId={posBadge.label === 'D' ? 'dealer-btn' : undefined}
+            layout={posBadge.label === 'D' ? true : undefined}
+            transition={posBadge.label === 'D' ? { type: 'spring', stiffness: 200, damping: 25 } : undefined}
+            style={{
+              position: 'absolute', bottom: -2, left: '50%', transform: 'translateX(-50%)',
+              background: posBadge.bg, color: posBadge.color,
+              fontSize: 9, fontWeight: 900, padding: '1px 6px', borderRadius: 6,
+              lineHeight: 1.3, zIndex: 5, border: '1px solid rgba(0,0,0,0.2)',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+            }}>{posBadge.label}</motion.div>
         )}
       </div>
 
@@ -1642,7 +1744,7 @@ function CommunityCards({ cards = [], boards, prevCardCount, fourColorDeck }) {
 // POT DISPLAY
 // ═══════════════════════════════════════════════════════════════════════════
 
-function PotDisplay({ potTotal, pots = [] }) {
+function PotDisplay({ potTotal, pots = [], formatFn }) {
   if (!potTotal || potTotal <= 0) return null;
 
   // Generate chip stack visualization based on pot size
@@ -1698,30 +1800,61 @@ function PotDisplay({ potTotal, pots = [] }) {
       >
         <span style={{ fontSize: 14, color: T.accent }}>🏆</span>
         <span style={{ fontSize: 16, fontWeight: 800, color: T.accent, fontVariantNumeric: 'tabular-nums' }}>
-          {potTotal.toLocaleString()}
+          {formatFn ? formatFn(potTotal) : potTotal.toLocaleString()}
         </span>
       </motion.div>
 
       {pots.length > 1 && (
-        <div style={{ display: 'flex', gap: 6 }}>
-          {pots.map((pot, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, x: i % 2 === 0 ? -10 : 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
-              style={{
-                background: 'rgba(0,0,0,0.5)',
-                color: T.textSecondary,
-                fontSize: 10,
-                padding: '2px 8px',
-                borderRadius: 8,
-                border: '1px solid rgba(255,255,255,0.1)',
-              }}
-            >
-              {i === 0 ? 'Main' : `Side ${i}`}: {(pot.amount || 0).toLocaleString()}
-            </motion.div>
-          ))}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+          {pots.map((pot, i) => {
+            const POT_COLORS = ['#FFD700', '#4fc3f7', '#ce93d8', '#f48fb1'];
+            const potColor = POT_COLORS[i] || POT_COLORS[0];
+            const miniChipCount = Math.min(Math.ceil((pot.amount || 0) / 200), 4);
+            return (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 10, scale: 0.8 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ delay: 0.15 * i, type: 'spring', stiffness: 200 }}
+                style={{
+                  background: `rgba(0,0,0,0.6)`,
+                  border: `1px solid ${potColor}40`,
+                  borderRadius: 10,
+                  padding: '4px 10px',
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  boxShadow: `0 0 6px ${potColor}20`,
+                }}
+              >
+                {/* Mini chip stack */}
+                <div style={{ display: 'flex', position: 'relative', width: 16 + miniChipCount * 2, height: 16 }}>
+                  {Array.from({ length: miniChipCount }).map((_, ci) => (
+                    <div
+                      key={ci}
+                      style={{
+                        position: 'absolute',
+                        left: ci * 3, top: ci * -2,
+                        width: 12, height: 12, borderRadius: '50%',
+                        background: `radial-gradient(circle, ${potColor} 30%, ${potColor}99 100%)`,
+                        border: '1px solid rgba(255,255,255,0.5)',
+                        boxShadow: `0 0 4px ${potColor}40`,
+                      }}
+                    />
+                  ))}
+                </div>
+                <div>
+                  <div style={{ color: potColor, fontSize: 10, fontWeight: 800, lineHeight: 1.2 }}>
+                    {i === 0 ? 'Main' : `Side ${i}`}
+                  </div>
+                  <div style={{ color: '#E4E6EB', fontSize: 11, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+                    {(pot.amount || 0).toLocaleString()}
+                  </div>
+                  {pot.eligible && (
+                    <div style={{ color: '#8E8E93', fontSize: 8 }}>{pot.eligible} players</div>
+                  )}
+                </div>
+              </motion.div>
+            );
+          })}
         </div>
       )}
     </div>
@@ -3295,6 +3428,99 @@ function TournamentHUD({ tournamentId, userId }) {
 
 
 // ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
+// THEME PRESET BAR — Save/Load named theme combinations
+// ═══════════════════════════════════════════════════════════════════════════
+
+function ThemePresetBar({ onSave, onLoad, onDelete }) {
+  const [expanded, setExpanded] = useState(false);
+  const [presets, setPresets] = useState([]);
+
+  useEffect(() => {
+    const read = () => {
+      try { setPresets(JSON.parse(localStorage.getItem('poker-theme-presets') || '[]')); } catch (_) { setPresets([]); }
+    };
+    read();
+    const unsub = eventBus.on('DATA_MUTATED', (d) => {
+      if (typeof d === 'string' && d.includes('theme_preset')) read();
+    });
+    return () => { if (typeof unsub === 'function') unsub(); };
+  }, []);
+
+  return (
+    <div style={{
+      position: 'absolute', bottom: 44, right: 10, zIndex: 30,
+    }}>
+      <button
+        onClick={() => setExpanded(!expanded)}
+        style={{
+          background: 'rgba(0,0,0,0.6)', color: T.textSecondary,
+          border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8,
+          padding: '4px 10px', fontSize: 10, cursor: 'pointer', fontWeight: 600,
+        }}
+      >
+        🎨 Presets {expanded ? '▾' : '▸'}
+      </button>
+
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 5 }}
+            style={{
+              marginTop: 4, background: 'rgba(10,15,25,0.92)',
+              backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 10, padding: 8, minWidth: 160,
+              boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+            }}
+          >
+            <button
+              onClick={onSave}
+              style={{
+                width: '100%', background: `${T.accent}20`, border: `1px solid ${T.accent}40`,
+                borderRadius: 6, color: T.accent, padding: '5px 0', fontSize: 10,
+                fontWeight: 700, cursor: 'pointer', marginBottom: 6,
+              }}
+            >💾 Save Current</button>
+
+            {presets.length === 0 ? (
+              <div style={{ fontSize: 9, color: T.textMuted, textAlign: 'center', padding: 8 }}>
+                No presets saved yet
+              </div>
+            ) : (
+              <div style={{ maxHeight: 120, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 3 }}>
+                {presets.map((p, i) => (
+                  <div key={i} style={{
+                    display: 'flex', alignItems: 'center', gap: 4,
+                    background: 'rgba(255,255,255,0.04)', borderRadius: 6, padding: '4px 8px',
+                  }}>
+                    <button
+                      onClick={() => onLoad(p)}
+                      style={{
+                        flex: 1, background: 'none', border: 'none', color: T.textPrimary,
+                        fontSize: 10, fontWeight: 600, cursor: 'pointer', textAlign: 'left',
+                      }}
+                    >{p.name}</button>
+                    <button
+                      onClick={() => { onDelete(i); setPresets(prev => prev.filter((_, idx) => idx !== i)); }}
+                      style={{
+                        background: 'none', border: 'none', color: '#ef4444',
+                        fontSize: 10, cursor: 'pointer', padding: '0 2px', opacity: 0.6,
+                      }}
+                    >✕</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // SESSION STATS OVERLAY — expanded stats panel with VPIP/PFR/sparkline
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -3399,7 +3625,7 @@ function SessionStatsOverlay({ sessionStats, myStack, onClose }) {
 // TABLE INFO BAR
 // ═══════════════════════════════════════════════════════════════════════════
 
-function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, isSitting, isSittingOut, straddleEnabled, straddleOn, onToggleStraddle, autoTopUpOn, onToggleAutoTopUp, autoMuckOn, onToggleAutoMuck, lastHandResult, onShowLastHand, sessionStats, myStack, sitOutNextBB, onToggleSitOutNextBB, showStackInBB, onToggleBBDisplay, cardSortMode, onCycleCardSort, hapticEnabled, onToggleHaptic, showHUD, onToggleHUD, fourColorDeck, onToggleFourColor, onShowLeaderboard }) {
+function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, isSitting, isSittingOut, straddleEnabled, straddleOn, onToggleStraddle, autoTopUpOn, onToggleAutoTopUp, autoMuckOn, onToggleAutoMuck, lastHandResult, onShowLastHand, onShowHistory, sessionStats, myStack, sitOutNextBB, onToggleSitOutNextBB, showStackInBB, onToggleBBDisplay, cardSortMode, onCycleCardSort, hapticEnabled, onToggleHaptic, showHUD, onToggleHUD, fourColorDeck, onToggleFourColor, onShowLeaderboard }) {
   const [showStats, setShowStats] = useState(false);
   if (!tableState) return null;
 
@@ -3502,6 +3728,7 @@ function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, is
           )}
           <SmallButton label="Add Chips" onClick={onAddChips} />
           {lastHandResult && <SmallButton label="📋 Last Hand" onClick={onShowLastHand} />}
+          {onShowHistory && <SmallButton label="📜 History" onClick={onShowHistory} />}
           <SmallButton
             label={autoTopUpOn ? '💰 Auto Top-Up ✓' : '💰 Auto-Chip'}
             onClick={onToggleAutoTopUp}
@@ -3698,12 +3925,18 @@ function GTOCheckBadge({ result, heroAction, visible }) {
 
 function ChipFlyAnimation({ winners, seatPositions, seats }) {
   const [chips, setChips] = useState([]);
+  const [splashes, setSplashes] = useState([]);
 
   useEffect(() => {
     if (!winners?.length || !seatPositions || !seats) return;
 
     const newChips = [];
-    const chipColors = ['#e53935', '#1e88e5', '#43a047', '#000000', '#9c27b0', '#ff9800', '#fdd835'];
+    const chipPalettes = [
+      ['#FFD700', '#FF6B35', '#FFC107'], // Gold stack
+      ['#1e88e5', '#42a5f5', '#64b5f6'], // Blue stack
+      ['#43a047', '#66bb6a', '#81c784'], // Green stack
+      ['#9c27b0', '#ab47bc', '#ce93d8'], // Purple stack
+    ];
 
     winners.forEach((w, wi) => {
       const seat = seats.find(s => s.player && String(s.player.id) === String(w.playerId));
@@ -3711,26 +3944,36 @@ function ChipFlyAnimation({ winners, seatPositions, seats }) {
       const pos = seatPositions[seat.seatIndex];
       if (!pos) return;
 
-      // 5-8 chips per winner
-      const count = Math.min(Math.max(3, Math.ceil((w.amount || 0) / 200)), 8);
+      // 3-6 stacked chip tokens per winner (scaled by pot size)
+      const count = Math.min(Math.max(2, Math.ceil((w.amount || 0) / 300)), 6);
+      const palette = chipPalettes[wi % chipPalettes.length];
       for (let i = 0; i < count; i++) {
         newChips.push({
           id: `chip-${wi}-${i}`,
           targetX: pos.x,
           targetY: pos.y,
-          color: chipColors[(wi * 3 + i) % chipColors.length],
-          delay: 0.3 + wi * 0.15 + i * 0.05,
-          size: 12 + Math.random() * 4,
+          palette,
+          delay: 0.2 + wi * 0.12 + i * 0.06,
+          winnerIndex: wi,
         });
       }
     });
 
     setChips(newChips);
-    const timer = setTimeout(() => setChips([]), 2500);
-    return () => clearTimeout(timer);
+    // Show splash after chips arrive
+    const splashTimer = setTimeout(() => {
+      const newSplashes = winners.map((w, wi) => {
+        const seat = seats.find(s => s.player && String(s.player.id) === String(w.playerId));
+        const pos = seat ? seatPositions[seat.seatIndex] : null;
+        return pos ? { id: `splash-${wi}`, x: pos.x, y: pos.y } : null;
+      }).filter(Boolean);
+      setSplashes(newSplashes);
+    }, 900);
+    const clearTimer = setTimeout(() => { setChips([]); setSplashes([]); }, 2500);
+    return () => { clearTimeout(splashTimer); clearTimeout(clearTimer); };
   }, [winners, seatPositions, seats]);
 
-  if (!chips.length) return null;
+  if (!chips.length && !splashes.length) return null;
 
   return (
     <>
@@ -3745,26 +3988,56 @@ function ChipFlyAnimation({ winners, seatPositions, seats }) {
           animate={{
             left: `${chip.targetX}%`,
             top: `${chip.targetY}%`,
-            scale: [1, 1.3, 0.8],
-            opacity: [1, 1, 0],
+            scale: [1, 1.2, 0.9],
+            opacity: [1, 1, 0.6],
           }}
           transition={{
-            duration: 0.6,
+            duration: 0.7,
             delay: chip.delay,
             ease: [0.25, 0.1, 0.25, 1],
           }}
           style={{
             position: 'absolute',
-            width: chip.size, height: chip.size,
-            borderRadius: '50%',
-            background: `radial-gradient(circle at 35% 35%, ${chip.color}dd, ${chip.color})`,
-            border: '1.5px solid rgba(255,255,255,0.45)',
-            boxShadow: `0 2px 6px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,255,0.3)`,
-            zIndex: 55,
-            pointerEvents: 'none',
+            width: 24, height: 24,
+            zIndex: 80, pointerEvents: 'none',
           }}
-        />
+        >
+          {/* Stacked 3-chip token */}
+          {chip.palette.map((color, ci) => (
+            <div
+              key={ci}
+              style={{
+                position: 'absolute',
+                top: ci * -3, left: ci * 1,
+                width: 18, height: 18, borderRadius: '50%',
+                background: `radial-gradient(circle at 35% 35%, ${color}dd, ${color})`,
+                border: '1.5px solid rgba(255,255,255,0.5)',
+                boxShadow: `0 0 ${6 + ci * 3}px ${color}60`,
+              }}
+            />
+          ))}
+        </motion.div>
       ))}
+      {/* Splash glow burst at winner seats */}
+      <AnimatePresence>
+        {splashes.map(s => (
+          <motion.div
+            key={s.id}
+            initial={{ scale: 0, opacity: 0.8 }}
+            animate={{ scale: 2.5, opacity: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+            style={{
+              position: 'absolute',
+              left: `${s.x}%`, top: `${s.y}%`,
+              width: 30, height: 30, borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(255,215,0,0.5) 0%, transparent 70%)',
+              transform: 'translate(-50%, -50%)',
+              zIndex: 79, pointerEvents: 'none',
+            }}
+          />
+        ))}
+      </AnimatePresence>
     </>
   );
 }
@@ -4318,12 +4591,38 @@ function LivePokerTable({
     return () => unsub();
   }, [tableId, userId]);
 
-  // Auto-open buy-in when waitlist seat is offered
+  // Auto-open buy-in when waitlist seat is offered + flash notification
+  const [seatOpenFlash, setSeatOpenFlash] = useState(false);
   useEffect(() => {
     if (seatOffer && !isSitting && buyInSeat === null) {
       setBuyInSeat(seatOffer.seatIndex);
+      setSeatOpenFlash(true);
+      try { soundRef.current?.play('notify'); } catch (_) {}
+      setTimeout(() => setSeatOpenFlash(false), 3000);
     }
   }, [seatOffer, isSitting, buyInSeat]);
+
+  // ═══ HAND HISTORY ACCUMULATOR ═══
+  const [handHistory, setHandHistory] = useState([]);
+  const [showHandHistory, setShowHandHistory] = useState(false);
+  const prevHandIdRef = useRef(null);
+
+  useEffect(() => {
+    if (!result || !result.handId || result.handId === prevHandIdRef.current) return;
+    prevHandIdRef.current = result.handId;
+    const entry = {
+      handId: result.handId,
+      ts: Date.now(),
+      winners: result.winners || [],
+      potTotal: result.potTotal || 0,
+      board: result.communityCards || result.board || [],
+      heroCards: myCards || [],
+      heroAction: result.heroAction || null,
+      phase: result.phase || 'showdown',
+      bombPot: result.bombPot || false,
+    };
+    setHandHistory(prev => [entry, ...prev].slice(0, 50)); // Keep last 50
+  }, [result, myCards]);
 
   const [noteTarget, setNoteTarget] = useState(null); // { id, displayName } for notes modal
   const [quickViewTarget, setQuickViewTarget] = useState(null); // { id, displayName, avatarUrl, stack, stats }
@@ -4414,6 +4713,23 @@ function LivePokerTable({
   const positions = useMemo(() => getSeatPositions(maxSeats), [maxSeats]);
   const [preAction, setPreAction] = useState(null); // 'fold' | 'check_fold' | 'check' | 'call_any' | null
   const [showLastHand, setShowLastHand] = useState(false);
+
+  // ═══ ENHANCED SESSION STATS ═══
+  const [biggestPot, setBiggestPot] = useState(0);
+  const [handsWon, setHandsWon] = useState(0);
+  const [vpipCount, setVpipCount] = useState(0);
+
+  useEffect(() => {
+    if (!result || !result.handId) return;
+    // Track biggest pot
+    const pot = result.potTotal || 0;
+    if (pot > biggestPot) setBiggestPot(pot);
+    // Track hands won by hero
+    const heroWon = result.winners?.some(w => String(w.playerId) === String(userId));
+    if (heroWon) setHandsWon(prev => prev + 1);
+    // Track VPIP (voluntarily put money in the pot)
+    if (result.heroVPIP) setVpipCount(prev => prev + 1);
+  }, [result, userId, biggestPot]);
 
   // Toggle States
   const [sitOutNextBB, setSitOutNextBB] = useState(false);
@@ -5057,6 +5373,7 @@ function LivePokerTable({
           <PotDisplay
             potTotal={tableState?.game?.potTotal || 0}
             pots={tableState?.game?.pots || []}
+            formatFn={formatStack}
           />
 
           {/* Run It Twice/Thrice — handled by inline isRitOfferActive block below */}
@@ -5234,6 +5551,7 @@ function LivePokerTable({
         onToggleHUD={handleToggleHUD}
         fourColorDeck={fourColorDeck}
         onToggleFourColor={handleToggleFourColor}
+        onShowHistory={() => setShowHandHistory(true)}
         onShowLeaderboard={() => setShowLeaderboard(true)}
       />
 
@@ -5629,6 +5947,43 @@ function LivePokerTable({
         onToggleFourColor={handleToggleFourColor}
         hapticEnabled={hapticEnabled}
         onToggleHaptic={handleToggleHaptic}
+      />
+
+      {/* ═══ THEME PRESETS ═══ */}
+      <ThemePresetBar
+        onSave={() => {
+          const name = prompt('Preset name:');
+          if (!name?.trim()) return;
+          try {
+            const presets = JSON.parse(localStorage.getItem('poker-theme-presets') || '[]');
+            presets.push({
+              name: name.trim(),
+              themeId, cardBack, soundEnabled, fourColorDeck, hapticEnabled,
+              showHUD, showStackInBB, autoMuck, soundVolume,
+              createdAt: Date.now(),
+            });
+            localStorage.setItem('poker-theme-presets', JSON.stringify(presets));
+            eventBus.emit('DATA_MUTATED', 'theme_preset_saved');
+          } catch (_) {}
+        }}
+        onLoad={(preset) => {
+          if (preset.themeId) handleThemeChange(preset.themeId);
+          if (preset.cardBack) handleCardBackChange(preset.cardBack);
+          if (preset.soundEnabled !== undefined) { setSoundEnabled(preset.soundEnabled); localStorage.setItem('poker-sound', preset.soundEnabled ? 'on' : 'off'); }
+          if (preset.fourColorDeck !== undefined) { setFourColorDeck(preset.fourColorDeck); localStorage.setItem('poker-four-color-deck', String(preset.fourColorDeck)); }
+          if (preset.hapticEnabled !== undefined) { setHapticEnabled(preset.hapticEnabled); localStorage.setItem('poker-haptic', String(preset.hapticEnabled)); }
+          if (preset.showHUD !== undefined) { setShowHUD(preset.showHUD); localStorage.setItem('poker-show-hud', String(preset.showHUD)); }
+          if (preset.showStackInBB !== undefined) { setShowStackInBB(preset.showStackInBB); localStorage.setItem('poker-bb-display', String(preset.showStackInBB)); }
+          if (preset.soundVolume !== undefined) { setSoundVolume(preset.soundVolume); localStorage.setItem('poker-sound-volume', String(preset.soundVolume)); }
+          eventBus.emit('DATA_MUTATED', 'theme_preset_loaded');
+        }}
+        onDelete={(idx) => {
+          try {
+            const presets = JSON.parse(localStorage.getItem('poker-theme-presets') || '[]');
+            presets.splice(idx, 1);
+            localStorage.setItem('poker-theme-presets', JSON.stringify(presets));
+          } catch (_) {}
+        }}
       />
 
       {/* ═══════════ INSURANCE OFFER OVERLAY ═══════════ */}
@@ -6231,10 +6586,44 @@ function LivePokerTable({
               initialBuyIn: sessionStats?.initialBuyIn || 0,
               totalAdded: sessionStats?.totalAdded || 0,
               sessionStart: sessionStats?.sessionStart,
+              biggestPot,
+              handsWon,
+              vpipCount,
+              vpipPct: sessionStats?.handsPlayed > 0 ? Math.round((vpipCount / sessionStats.handsPlayed) * 100) : 0,
+              winRate: sessionStats?.handsPlayed > 0 ? Math.round((handsWon / sessionStats.handsPlayed) * 100) : 0,
             }}
             onClose={() => { setShowSessionSummary(false); onLeave?.(); }}
             onShare={handleShareSession}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Hand History Drawer */}
+      <HandHistoryDrawer
+        isOpen={showHandHistory}
+        onClose={() => setShowHandHistory(false)}
+        hands={handHistory}
+        formatStack={formatStack}
+      />
+
+      {/* Seat Open Flash */}
+      <AnimatePresence>
+        {seatOpenFlash && (
+          <motion.div
+            initial={{ opacity: 0, y: -40 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -40 }}
+            style={{
+              position: 'fixed', top: 16, left: '50%', transform: 'translateX(-50%)',
+              background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+              color: '#fff', padding: '10px 24px', borderRadius: 12,
+              fontSize: 14, fontWeight: 800, zIndex: 250,
+              boxShadow: '0 4px 20px rgba(34,197,94,0.4)',
+              display: 'flex', alignItems: 'center', gap: 8,
+            }}
+          >
+            🎉 A seat opened up! Buy in now.
+          </motion.div>
         )}
       </AnimatePresence>
 
