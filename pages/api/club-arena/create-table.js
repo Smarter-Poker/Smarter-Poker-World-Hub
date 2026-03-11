@@ -170,6 +170,7 @@ export default async function handler(req, res) {
                     insurance: cleanSettings.insurance || false,
                     bomb_pot_enabled: cleanSettings.bomb_pot || cleanSettings.bomb_pot_enabled || false,
                     bomb_pot_frequency: parseInt(cleanSettings.bomb_pot_frequency) || 0,
+                    bomb_pot_ante_multiplier: Math.max(1, Math.min(10, parseInt(cleanSettings.bomb_pot_ante_multiplier) || 2)),
                     auto_muck: cleanSettings.auto_muck !== false,
                     // ── Game Modes ──
                     private_game: cleanSettings.private_game || false,

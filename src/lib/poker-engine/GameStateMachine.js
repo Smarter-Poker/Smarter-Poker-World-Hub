@@ -236,7 +236,8 @@ class GameStateMachine {
 
     if (isBombPot) {
       // ── BOMB POT: Everyone antes, skip preflop, deal flop ──
-      const bombPotAnte = this.config.bigBlind * 2; // 2x BB per player
+      const multiplier = this.config.bombPotAnteMultiplier || 2;
+      const bombPotAnte = this.config.bigBlind * multiplier; // Nx BB per player (configurable)
       const bombPotAmounts = [];
       for (const player of this.currentHand.players) {
         const amount = Math.min(bombPotAnte, player.stack);

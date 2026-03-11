@@ -595,6 +595,7 @@ class GameController {
         maintainHands: Number(row.settings?.maintain_hands) || 10,
         bombPot: row.settings?.bomb_pot_enabled || row.settings?.bomb_pot || false,
         bombPotFrequency: parseInt(row.settings?.bomb_pot_frequency) || 0, // N = every Nth hand is bomb pot
+        bombPotAnteMultiplier: Math.max(1, parseInt(row.settings?.bomb_pot_ante_multiplier) || 2), // Nx BB per player
         // Muck, cap, privacy settings
         autoMuck: row.settings?.auto_muck !== false, // default true
         capAmount: Number(row.settings?.cap_amount) || 0,
