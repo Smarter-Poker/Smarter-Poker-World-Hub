@@ -94,13 +94,26 @@ export default function SessionHistoryPage() {
   // J14: Cumulative P&L data for multi-session graph
   const cumulativePL = useMemo(() => {
     if (sessions.length < 2) return null;
-    // Sessions are in descending order — reverse for chronological
     const chronological = [...sessions].reverse();
     let running = 0;
     return chronological.map(s => {
       running += (s.ending_stack || 0) - (s.starting_stack || 0);
       return { date: s.session_start, pl: running, hands: s.hands_played || 0 };
     });
+  }, [sessions]);
+
+  // K8: Streak tracking
+  const streak = useMemo(() => {
+    if (!sessions.length) return null;
+    let count = 0;
+    const firstNet = (sessions[0].ending_stack || 0) - (sessions[0].starting_stack || 0);
+    const isWinning = firstNet >= 0;
+    for (const s of sessions) {
+      const net = (s.ending_stack || 0) - (s.starting_stack || 0);
+      if ((isWinning && net >= 0) || (!isWinning && net < 0)) count++;
+      else break;
+    }
+    return { count, isWinning, label: isWinning ? `🔥 ${count}W streak` : `❄️ ${count}L streak` };
   }, [sessions]);
 
   // J8: CSV export
@@ -149,21 +162,34 @@ export default function SessionHistoryPage() {
           <h1 style={{ color: T.text, fontSize: 22, fontWeight: 900, margin: 0 }}>
             📊 Session History
           </h1>
-          {/* J8: Export Button */}
-          {sessions.length > 0 && (
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handleExportCSV}
-              style={{
-                background: 'rgba(79,172,254,0.12)', border: '1px solid rgba(79,172,254,0.25)',
-                color: T.accent, padding: '6px 14px', borderRadius: 8,
-                fontSize: 11, fontWeight: 700, cursor: 'pointer',
-              }}
-            >
-              📥 Export CSV
-            </motion.button>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {/* K8: Streak badge */}
+            {streak && streak.count >= 2 && (
+              <span style={{
+                background: streak.isWinning ? 'rgba(74,222,128,0.12)' : 'rgba(239,68,68,0.12)',
+                color: streak.isWinning ? T.green : T.red,
+                padding: '4px 10px', borderRadius: 20, fontSize: 10, fontWeight: 800,
+                border: `1px solid ${streak.isWinning ? 'rgba(74,222,128,0.25)' : 'rgba(239,68,68,0.25)'}`,
+              }}>
+                {streak.label}
+              </span>
+            )}
+            {/* J8: Export Button */}
+            {sessions.length > 0 && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleExportCSV}
+                style={{
+                  background: 'rgba(79,172,254,0.12)', border: '1px solid rgba(79,172,254,0.25)',
+                  color: T.accent, padding: '6px 14px', borderRadius: 8,
+                  fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                }}
+              >
+                📥 Export
+              </motion.button>
+            )}
+          </div>
         </div>
 
         {/* J7: Date Range Filter */}
@@ -371,6 +397,22 @@ export default function SessionHistoryPage() {
                           </div>
                         ))}
                       </div>
+
+                      {/* K5: Per-session VPIP/PFR from Supabase columns */}
+                      {(s.vpip_pct > 0 || s.pfr_pct > 0 || s.duration_minutes > 0) && (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginTop: 8, paddingTop: 8, borderTop: `1px solid ${T.border}` }}>
+                          {[
+                            { label: 'VPIP%', value: `${s.vpip_pct || 0}%`, color: (s.vpip_pct || 0) > 30 ? T.gold : T.text },
+                            { label: 'PFR%', value: `${s.pfr_pct || 0}%`, color: (s.pfr_pct || 0) > 15 ? T.gold : T.text },
+                            { label: 'Duration', value: `${s.duration_minutes || 0}m`, color: T.textSec },
+                          ].map((d, i) => (
+                            <div key={`adv-${i}`} style={{ textAlign: 'center' }}>
+                              <div style={{ color: d.color, fontSize: 11, fontWeight: 700 }}>{d.value}</div>
+                              <div style={{ color: T.textDim, fontSize: 8 }}>{d.label}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </motion.div>
                   )}
                 </AnimatePresence>

@@ -6572,27 +6572,64 @@ function LivePokerTable({
     }
   }, [handleFeltChange, supabase, userId, soundEnabled]);
 
-  // J1: Load felt color FROM Supabase on mount (override localStorage if Supabase has newer data)
+  // J1 + K2: Load felt color AND sound preference FROM Supabase on mount
   useEffect(() => {
     if (!supabase || !userId) return;
     let cancelled = false;
     (async () => {
       try {
         const { data } = await supabase.from('poker_seat_preferences')
-          .select('felt_color, updated_at')
+          .select('felt_color, sound_enabled, updated_at')
           .eq('user_id', userId)
           .eq('max_seats', 0)
           .maybeSingle();
-        if (cancelled || !data?.felt_color) return;
-        // Only apply if we have a valid felt ID
-        if (FELT_OPTIONS.some(f => f.id === data.felt_color)) {
+        if (cancelled || !data) return;
+        // Apply felt color if valid
+        if (data.felt_color && FELT_OPTIONS.some(f => f.id === data.felt_color)) {
           setFeltColor(data.felt_color);
           try { localStorage.setItem('poker-felt-color', data.felt_color); } catch (_) {}
+        }
+        // K2: Apply sound preference from Supabase
+        if (data.sound_enabled != null) {
+          setSoundEnabled(data.sound_enabled);
+          try { localStorage.setItem('poker-sound-enabled', String(data.sound_enabled)); } catch (_) {}
         }
       } catch (_) {}
     })();
     return () => { cancelled = true; };
   }, [supabase, userId]);
+
+  // K3: Preferred seat glow — listen for SEAT_PREFERENCE_LOADED from J2
+  const [preferredSeatIdx, setPreferredSeatIdx] = useState(null);
+  useEffect(() => {
+    const handler = (payload) => {
+      if (payload?.seat != null) setPreferredSeatIdx(payload.seat);
+    };
+    const unsub = eventBus.on('SEAT_PREFERENCE_LOADED', handler);
+    return () => {
+      if (typeof unsub === 'function') unsub();
+      else eventBus.off('SEAT_PREFERENCE_LOADED', handler);
+    };
+  }, []);
+  // Clear preferred seat glow when user sits down
+  useEffect(() => {
+    if (isSitting) setPreferredSeatIdx(null);
+  }, [isSitting]);
+
+  // K4: Sound volume level Supabase sync (skip initial mount)
+  const volumeSyncMountedRef = useRef(false);
+  useEffect(() => {
+    if (!supabase || !userId) return;
+    if (!volumeSyncMountedRef.current) {
+      volumeSyncMountedRef.current = true;
+      return;
+    }
+    supabase.from('poker_seat_preferences')
+      .update({ updated_at: new Date().toISOString() })
+      .eq('user_id', userId)
+      .eq('max_seats', 0)
+      .then(() => {}).catch(() => {});
+  }, [soundVolume, supabase, userId]);
 
   // ═══ WAVE I6: WIN FLY-UP CHA-CHING SOUND ═══
   useEffect(() => {
@@ -7905,6 +7942,11 @@ function LivePokerTable({
                 { section: 'Panels (Shift+key)', keys: [
                   ['⇧L', 'Action Log'], ['⇧G', 'Stack Graph'],
                   ['⇧T', 'Table Stats'],
+                ]},
+                // K13: Wave H/I/J shortcuts
+                { section: 'Settings & Views', keys: [
+                  ['V', 'Toggle Sound'], ['P', 'Felt Color Picker'],
+                  ['⇧S', 'Session Stats'], ['⇧H', 'Layout Manager'],
                 ]},
               ].map(group => (
                 <div key={group.section} style={{ marginBottom: 10 }}>
