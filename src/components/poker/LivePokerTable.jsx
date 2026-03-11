@@ -28,7 +28,6 @@
 
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useTableConnection } from '../../hooks/useTableConnection';
 import { PokerSoundManager } from './PokerSoundManager';
 import ThrowableEmojis from './ThrowableEmojis';
 import BBJTicker from './BBJTicker';
@@ -45,6 +44,64 @@ import {
 import ThemePicker from './ThemePicker';
 import PlayerNoteModal from './PlayerNoteModal';
 import PlayerQuickView from './PlayerQuickView';
+// ═══════════════════════════════════════════════════════════════════════════
+// BET CHIP ANIMATION — chips fly from player to pot center
+// ═══════════════════════════════════════════════════════════════════════════
+
+function BetChipAnimation({ tableState }) {
+  const [chips, setChips] = useState([]);
+  const idRef = useRef(0);
+
+  useEffect(() => {
+    const la = tableState?.game?.lastAction;
+    if (!la || !la.seatIndex || !['bet', 'raise', 'call'].includes(la.type) || !la.amount) return;
+
+    // We only animate the bet chips *entering* the pot area
+    const id = ++idRef.current;
+    
+    // Position mappings
+    const seatIdx = la.seatIndex;
+    const maxSeats = tableState.seats?.length || 9;
+    
+    // Rough estimate of seat position coordinates (0,0 is center of table)
+    const angle = (seatIdx / maxSeats) * Math.PI * 2;
+    const startX = Math.sin(angle) * 150;
+    const startY = -Math.cos(angle) * 150;
+
+    setChips(prev => [...prev.slice(-3), { id, startX, startY, amount: la.amount }]);
+    
+    // Play sound and remove from DOM after arrival
+    const t = setTimeout(() => {
+      if (window.pokerSound) window.pokerSound.play('bet');
+      setChips(prev => prev.filter(c => c.id !== id));
+    }, 600);
+    
+    return () => clearTimeout(t);
+  }, [tableState?.game?.lastAction?.seq]);
+
+  return (
+    <div style={{ position: 'absolute', top: '50%', left: '50%', zIndex: 20 }}>
+      {chips.map(chip => (
+        <motion.div
+          key={chip.id}
+          initial={{ x: chip.startX, y: chip.startY, scale: 0.5, opacity: 0 }}
+          animate={{ x: 0, y: -40, scale: 1, opacity: 1 }} // Aim for exactly PotDisplay coordinate (Y:-40 via 28% top)
+          transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+          style={{
+            position: 'absolute', width: 20, height: 20, borderRadius: '50%',
+            background: `radial-gradient(circle at 30% 30%, #4facfe, #00f2fe)`,
+            border: '2px solid rgba(255,255,255,0.8)',
+            boxShadow: '0 4px 8px rgba(0,0,0,0.4), inset 0 -2px 4px rgba(0,0,0,0.3)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 8, fontWeight: 900, color: '#000', marginLeft: -10, marginTop: -10,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 import HandReplayerModal from './HandReplayerModal';
 import {
   TableEmojiBar, FloatingReaction, AnalyticsSidebar,
@@ -55,6 +112,7 @@ import {
   usePingMeasurement, checkAutoRebuy, checkEmojiRateLimit,
 } from './TableExperienceComponents';
 import { eventBus, EventType } from '../../engine/EventBus';
+import ClubArenaMessenger from '../club-arena/ClubArenaMessenger';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MYSTERY BOUNTY ENVELOPE OVERLAY
@@ -4528,6 +4586,32 @@ function LivePokerTable({
     sessionStats, tableAlert, seatOffer, spinReveal,
   } = useTableConnection({ supabase, tableId, userId });
 
+  // P13-1: HUD Messenger State
+  const [isMessengerOpen, setIsMessengerOpen] = useState(false);
+  const [messengerBadgeCount, setMessengerBadgeCount] = useState(0);
+
+  // P13-2 & P13-3: Messenger Event Bus Listeners
+  useEffect(() => {
+    const unsubMsg = eventBus.on(EventType.MESSAGE_RECEIVED, (e) => {
+      // Only increment badge if it's closed
+      if (!isMessengerOpen) {
+        setMessengerBadgeCount(c => c + 1);
+        PokerSoundManager.play('chip_stack'); // Small notification sound
+      }
+    });
+
+    const unsubCall = eventBus.on(EventType.CALL_STARTED, (e) => {
+      // Auto-open messenger on incoming call so user sees the ringing WebRTC modal
+      if (!isMessengerOpen) setIsMessengerOpen(true);
+      PokerSoundManager.play('deal'); // Alert the user loudly
+    });
+
+    return () => {
+      unsubMsg();
+      unsubCall();
+    };
+  }, [isMessengerOpen]);
+
   // Notify parent (MultiTableView) when action state changes
   useEffect(() => {
     if (legalActions && legalActions.length > 0) {
@@ -5253,6 +5337,7 @@ function LivePokerTable({
     if (typeof window !== 'undefined') return localStorage.getItem('poker-stack-bb') === 'true';
     return false;
   });
+  const [showHistoryBrowser, setShowHistoryBrowser] = useState(false);
   const handleToggleBBDisplay = useCallback(() => {
     setShowStackInBB(prev => {
       const next = !prev;
@@ -5530,6 +5615,9 @@ function LivePokerTable({
             <EquityBar players={result.allInEquity.players} tableState={tableState} />
           )}
 
+          {/* Bet-to-Pot Animation */}
+          <BetChipAnimation tableState={tableState} />
+
           {/* Floating action labels */}
           <AnimatePresence>
             {floatingLabels.map(fl => (
@@ -5670,6 +5758,7 @@ function LivePokerTable({
         onToggleSitOutNextBB={() => setSitOutNextBB(p => !p)}
         showStackInBB={showStackInBB}
         onToggleBBDisplay={handleToggleBBDisplay}
+        onShowHistory={() => setShowHistoryBrowser(true)}
         cardSortMode={cardSortMode}
         onCycleCardSort={cycleCardSort}
         hapticEnabled={hapticEnabled}
@@ -5996,6 +6085,36 @@ function LivePokerTable({
         </div>
       )}
 
+      {/* ═══════════ P13-1: HUD MESSENGER TOGGLE (Top Right) ═══════════ */}
+      <button
+        onClick={() => {
+          setIsMessengerOpen(o => !o);
+          if (!isMessengerOpen) setMessengerBadgeCount(0);
+        }}
+        style={{
+          position: 'absolute', top: 8, right: 8, zIndex: 60,
+          background: isMessengerOpen ? 'rgba(45, 136, 255, 0.9)' : 'rgba(0,0,0,0.6)',
+          border: `1px solid ${isMessengerOpen ? '#2D88FF' : 'rgba(255,255,255,0.2)'}`,
+          backdropFilter: 'blur(8px)', borderRadius: '50%', width: 36, height: 36,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer', transition: 'all 0.2s',
+          boxShadow: isMessengerOpen ? '0 0 12px rgba(45, 136, 255, 0.4)' : 'none',
+        }}
+        title="Open Messenger"
+      >
+        <div style={{ fontSize: 16 }}>💬</div>
+        {messengerBadgeCount > 0 && !isMessengerOpen && (
+          <div style={{
+            position: 'absolute', top: -4, right: -4, background: '#FF3B30',
+            color: '#fff', fontSize: 9, fontWeight: 800, width: 16, height: 16,
+            borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            border: '2px solid #111',
+          }}>
+            {messengerBadgeCount > 9 ? '9+' : messengerBadgeCount}
+          </div>
+        )}
+      </button>
+
       {/* ═══════════ BBJ WIN CELEBRATION ═══════════ */}
       <AnimatePresence>
         {result?.bbj && (
@@ -6112,6 +6231,14 @@ function LivePokerTable({
           } catch (_) {}
         }}
       />
+
+      {showHistoryBrowser && (
+        <HandHistoryBrowser
+          tableId={tableId}
+          userId={userId}
+          onClose={() => setShowHistoryBrowser(false)}
+        />
+      )}
 
       {/* ═══════════ INSURANCE OFFER OVERLAY ═══════════ */}
       <AnimatePresence>

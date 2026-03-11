@@ -16,9 +16,17 @@ import { useMessengerService } from '../../hooks/useMessengerService';
 async function getSupabase() {
     if (typeof window === 'undefined') return null;
     if (window._cachedSupabaseClient) return window._cachedSupabaseClient;
-    const { createClient } = await import('../../lib/supabase');
-    window._cachedSupabaseClient = createClient();
-    return window._cachedSupabaseClient;
+    try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        if (!url || !key) return null;
+        window._cachedSupabaseClient = createClient(url, key);
+        return window._cachedSupabaseClient;
+    } catch (err) {
+        console.warn('Failed to load Supabase client dynamically:', err);
+        return null;
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

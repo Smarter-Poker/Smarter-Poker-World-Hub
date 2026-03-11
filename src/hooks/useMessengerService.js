@@ -8,8 +8,7 @@
  * Usage: const svc = useMessengerService({ conversationId, currentUser, messengerType });
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
-
-// ═══════════════════════════════════════════════════════════════
+import { eventBus, EventType } from '../engine/EventBus';
 // Lazy Supabase getter (SSG-safe)
 // ═══════════════════════════════════════════════════════════════
 let _supabase = null;
@@ -237,6 +236,12 @@ export function useMessengerService({ conversationId, currentUser, messengerType
                     return [...prev, newMsg];
                 });
                 setUnreadCount(prev => prev + 1);
+                
+                // P13-2: Emit event for HUD listeners (like LivePokerTable)
+                eventBus.emit(EventType.MESSAGE_RECEIVED, {
+                    message: newMsg,
+                    conversationId
+                });
             })
             .on('postgres_changes', {
                 event: 'UPDATE',
@@ -408,6 +413,14 @@ export function useMessengerService({ conversationId, currentUser, messengerType
                     const signal = payload.new;
                     if (signal.caller_id === currentUser.id) return; // Ignore own signals
 
+                    if (signal.signal_type === 'offer' && pc.signalingState === 'stable') {
+                        // P13-3: Emit event for HUD listeners to auto-open the call modal
+                        eventBus.emit(EventType.CALL_STARTED, {
+                            callerId: signal.caller_id,
+                            calleeId: signal.callee_id,
+                            callType: signal.call_type
+                        });
+                    }
                     if (signal.signal_type === 'answer' && pc.signalingState !== 'stable') {
                         await pc.setRemoteDescription(new RTCSessionDescription(signal.signal_data));
                     }
