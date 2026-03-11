@@ -4485,7 +4485,7 @@ function SessionStatsOverlay({ sessionStats, myStack, onClose }) {
 // TABLE INFO BAR
 // ═══════════════════════════════════════════════════════════════════════════
 
-function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, isSitting, isSittingOut, straddleEnabled, straddleOn, onToggleStraddle, autoTopUpOn, onToggleAutoTopUp, autoMuckOn, onToggleAutoMuck, lastHandResult, onShowLastHand, onShowHistory, sessionStats, myStack, sitOutNextBB, onToggleSitOutNextBB, showStackInBB, onToggleBBDisplay, cardSortMode, onCycleCardSort, hapticEnabled, onToggleHaptic, showHUD, onToggleHUD, fourColorDeck, onToggleFourColor, onShowLeaderboard, rabbitHuntEnabled, onToggleRabbitHunt, onShowKeyboard, onShowLayouts, stackHistory }) {
+function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, isSitting, isSittingOut, straddleEnabled, straddleOn, onToggleStraddle, autoTopUpOn, onToggleAutoTopUp, autoMuckOn, onToggleAutoMuck, lastHandResult, onShowLastHand, onShowHistory, sessionStats, myStack, sitOutNextBB, onToggleSitOutNextBB, showStackInBB, onToggleBBDisplay, cardSortMode, onCycleCardSort, hapticEnabled, onToggleHaptic, showHUD, onToggleHUD, fourColorDeck, onToggleFourColor, onShowLeaderboard, rabbitHuntEnabled, onToggleRabbitHunt, onShowKeyboard, onShowLayouts, stackHistory, onShowActionLog, onShowStackGraph, onShowTableStats }) {
   const [showStats, setShowStats] = useState(false);
   if (!tableState) return null;
 
@@ -4589,6 +4589,9 @@ function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, is
           <SmallButton label="Add Chips" onClick={onAddChips} />
           {lastHandResult && <SmallButton label="📋 Last Hand" onClick={onShowLastHand} />}
           {onShowHistory && <SmallButton label="📜 History" onClick={onShowHistory} />}
+          {onShowActionLog && <SmallButton label="📝 Log" onClick={onShowActionLog} />}
+          {onShowStackGraph && <SmallButton label="📈 Stack" onClick={onShowStackGraph} />}
+          {onShowTableStats && <SmallButton label="📊 Stats" onClick={onShowTableStats} />}
           <SmallButton
             label={autoTopUpOn ? '💰 Auto Top-Up ✓' : '💰 Auto-Chip'}
             onClick={onToggleAutoTopUp}
@@ -6702,6 +6705,9 @@ function LivePokerTable({
         onShowKeyboard={() => setShowKbHelp(true)}
         onShowLayouts={() => setShowLayoutManager(true)}
         stackHistory={stackHistory}
+        onShowActionLog={() => setShowActionLog(p => !p)}
+        onShowStackGraph={() => setShowStackGraph(true)}
+        onShowTableStats={() => setShowTableStats(p => !p)}
       />
 
       {/* Hand strength indicator (hero only, during active hand) */}
