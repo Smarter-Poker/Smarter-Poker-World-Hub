@@ -247,11 +247,13 @@ const NOTE_TYPE_COLORS_MAP = {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function RabbitHuntOverlay({ cards, onClose }) {
+  const hasCards = cards?.length > 0;
   useEffect(() => {
+    if (!hasCards) return;
     const t = setTimeout(onClose, 5000);
     return () => clearTimeout(t);
-  }, [onClose]);
-  if (!cards?.length) return null;
+  }, [onClose, hasCards]);
+  if (!hasCards) return null;
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -3685,15 +3687,17 @@ function BuyInDialog({ minBuyIn, maxBuyIn, bigBlind, chipBalance, isClubTable, o
 // CHAT OVERLAY
 // ═══════════════════════════════════════════════════════════════════════════
 
-function ChatOverlay({ messages, onSend, players = [] }) {
+function ChatOverlay({ messages, onSend, players = [], reactions = {}, onReact }) {
   const [text, setText] = useState('');
   const [expanded, setExpanded] = useState(false);
   const [showEmoji, setShowEmoji] = useState(false);
   const listRef = useRef(null);
   const [mutedIds, setMutedIds] = useState([]);
   const [readCount, setReadCount] = useState(0);
+  const [hoveredMsg, setHoveredMsg] = useState(null);
 
   const QUICK_EMOJIS = ['😀', '😂', '😎', '🤔', '👍', '👎', '🔥', '❤️', '💀', '🃏', '♠️', '♦️', '♣️', '♥️', '🏆', '💰', '🤑', '😱', '🤷', 'GG'];
+  const REACTION_EMOJIS = ['👍', '😂', '🔥', '💰', '😎', '💀'];
 
   useEffect(() => {
     const readMutes = () => {
@@ -3794,7 +3798,11 @@ function ChatOverlay({ messages, onSend, players = [] }) {
 
             <div ref={listRef} style={{ flex: 1, overflowY: 'auto', padding: 8, fontSize: 11 }}>
               {filteredMessages.map((m, i) => (
-                <div key={i} style={{ marginBottom: 3 }} title={m.timestamp ? timeAgo(m.timestamp) : ''}>
+                <div key={i} style={{ marginBottom: 3, position: 'relative' }}
+                  title={m.timestamp ? timeAgo(m.timestamp) : ''}
+                  onMouseEnter={() => setHoveredMsg(i)}
+                  onMouseLeave={() => setHoveredMsg(null)}
+                >
                   {m.type === 'dealer' ? (
                     <span style={{ color: '#F5A623', fontWeight: 600, fontSize: 10, fontStyle: 'italic' }}>🂠 {m.text}</span>
                   ) : m.type === 'emoji' ? (
@@ -3805,6 +3813,32 @@ function ChatOverlay({ messages, onSend, players = [] }) {
                       <span style={{ color: T.textPrimary }}>{renderText(m.message)}</span>
                       {m.timestamp && <span style={{ color: '#555', fontSize: 8, marginLeft: 4 }}>{timeAgo(m.timestamp)}</span>}
                     </>
+                  )}
+                  {/* F1: Reaction badges */}
+                  {reactions[i] && Object.keys(reactions[i]).length > 0 && (
+                    <div style={{ display: 'flex', gap: 2, marginTop: 1, flexWrap: 'wrap' }}>
+                      {Object.entries(reactions[i]).map(([emoji, count]) => (
+                        <span key={emoji} style={{ fontSize: 9, background: 'rgba(255,255,255,0.06)', borderRadius: 6, padding: '0 3px', cursor: 'pointer' }}
+                          onClick={() => onReact?.(i, emoji)}
+                        >{emoji} {count}</span>
+                      ))}
+                    </div>
+                  )}
+                  {/* F1: Quick reaction hover bar */}
+                  {hoveredMsg === i && m.type !== 'dealer' && (
+                    <div style={{
+                      position: 'absolute', right: 0, top: -2,
+                      background: 'rgba(0,0,0,0.9)', border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: 8, padding: '1px 3px', display: 'flex', gap: 1, zIndex: 5,
+                    }}>
+                      {REACTION_EMOJIS.map(em => (
+                        <button key={em} onClick={() => onReact?.(i, em)}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 10, padding: '0 2px', borderRadius: 4 }}
+                          onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                        >{em}</button>
+                      ))}
+                    </div>
                   )}
                 </div>
               ))}
@@ -5460,13 +5494,14 @@ function LivePokerTable({
       }
       prevPhaseRef.current = phase;
     }
-    // G3: ALL-IN SOUND TRIGGER
+    // G3: ALL-IN SOUND TRIGGER — compare by serialized key, not object reference
     const lastAction = tableState.game.lastAction;
-    if (lastAction && lastAction !== prevLastActionRef.current) {
-      prevLastActionRef.current = lastAction;
+    const lastActionKey = lastAction ? `${lastAction.type}_${lastAction.ts || lastAction.handId || ''}` : null;
+    if (lastActionKey && lastActionKey !== prevLastActionRef.current) {
+      prevLastActionRef.current = lastActionKey;
       if (isActive && lastAction.type === 'all_in') {
         sm.play('allIn');
-        if (hapticEnabled) haptic('allIn');
+        if (hapticEnabled) haptic('heavy');
       }
     }
   }, [tableState?.game?.phase, tableState?.game?.lastAction, isActive, hapticEnabled]);
@@ -6588,19 +6623,26 @@ function LivePokerTable({
               showHUD={showHUD}
               fourColorDeck={fourColorDeck}
             />
-            {/* G2: AutoTopUpBadge — rendered on hero seat */}
-            {pid != null && String(pid) === String(userId) && (
-              <AutoTopUpBadge
-                isOn={autoTopUpOn}
-                onToggle={handleToggleAutoTopUp}
-                stack={seat.stack || 0}
-                maxBuyIn={tableState?.config?.maxBuyIn || 0}
-              />
-            )}
-            </React.Fragment>
           );
         })}
       </div>
+
+      {/* G2: AutoTopUpBadge — positioned over hero's seat area */}
+      {isSitting && mySeat && positions[0] && (
+        <div style={{
+          position: 'absolute',
+          left: `calc(${positions[0].left} + 30px)`,
+          top: `calc(${positions[0].top} + 50px)`,
+          zIndex: 25,
+        }}>
+          <AutoTopUpBadge
+            isOn={autoTopUpOn}
+            onToggle={handleToggleAutoTopUp}
+            stack={mySeat?.stack || 0}
+            maxBuyIn={tableState?.config?.maxBuyIn || 0}
+          />
+        </div>
+      )}
 
       {/* Tournament HUD — blind clock, level, players */}
       {(tournamentId || (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('tournament'))) && (
@@ -6806,7 +6848,14 @@ function LivePokerTable({
       {/* Chat */}
       {/* Chat — hidden when ban_chat enabled */}
       {!tableState?.config?.banChat && (
-        <ChatOverlay messages={chatMessages} onSend={handleChat} players={seats?.filter(s => s?.player?.displayName).map(s => s.player.displayName) || []} />
+        <ChatOverlay messages={chatMessages} onSend={handleChat} players={seats?.filter(s => s?.player?.displayName).map(s => s.player.displayName) || []}
+          reactions={chatReactions}
+          onReact={(msgIdx, emoji) => setChatReactions(prev => {
+            const msgR = { ...(prev[msgIdx] || {}) };
+            msgR[emoji] = (msgR[emoji] || 0) + 1;
+            return { ...prev, [msgIdx]: msgR };
+          })}
+        />
       )}
 
       {/* Quick Emoji Bar — always-visible emoji buttons */}

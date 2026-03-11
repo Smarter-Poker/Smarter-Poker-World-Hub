@@ -626,6 +626,15 @@ export const ChatWindow = ({
     const [showMemberList, setShowMemberList] = useState(false);
     const [showReportModal, setShowReportModal] = useState(null); // messageId
     const [reportReason, setReportReason] = useState('');
+
+    // P16: Media Gallery, UX Enhancement & Accessibility State
+    const [showMediaGallery, setShowMediaGallery] = useState(false);
+    const [mediaGalleryTab, setMediaGalleryTab] = useState('images');
+    const [showStickerPicker, setShowStickerPicker] = useState(false);
+    const [stickerPackIdx, setStickerPackIdx] = useState(0);
+    const [showShortcuts, setShowShortcuts] = useState(false);
+    const [editingMessageId, setEditingMessageId] = useState(null);
+    const [editText, setEditText] = useState('');
     
     // P7-6: Lightbox State
     const [lightboxImage, setLightboxImage] = useState(null);
@@ -1426,6 +1435,12 @@ export const ChatWindow = ({
                     <button className="header-btn" onClick={() => { if (svc.blockedUsers?.includes(otherUser?.id)) { svc.unblockUser(otherUser?.id); } else { svc.blockUser(otherUser?.id); } }} title={svc.blockedUsers?.includes(otherUser?.id) ? 'Unblock User' : 'Block User'} style={{ color: svc.blockedUsers?.includes(otherUser?.id) ? '#ff4444' : undefined }}>🚫</button>
                     {/* P15-1: Create Group */}
                     <button className="header-btn" onClick={() => setShowGroupWizard(!showGroupWizard)} title="Create Group" style={{ color: showGroupWizard ? '#2D88FF' : undefined }}>👥</button>
+                    {/* P16-1: Media Gallery toggle */}
+                    <button className="header-btn" onClick={() => { setShowMediaGallery(!showMediaGallery); if (!showMediaGallery) svc.loadMediaGallery(); }} title="Media Gallery" style={{ color: showMediaGallery ? '#2D88FF' : undefined }}>📸</button>
+                    {/* P16-4: Sticker Picker toggle */}
+                    <button className="header-btn" onClick={() => setShowStickerPicker(!showStickerPicker)} title="Stickers" style={{ color: showStickerPicker ? '#2D88FF' : undefined }}>🎭</button>
+                    {/* P16-9: Keyboard Shortcuts */}
+                    <button className="header-btn" onClick={() => setShowShortcuts(!showShortcuts)} title="Keyboard Shortcuts" style={{ color: showShortcuts ? '#2D88FF' : undefined }}>⌨️</button>
                     {/* P6-1: DND toggle */}
                     <button className="header-btn" onClick={() => updatePrefs(p => ({ ...p, dndConversations: { ...p.dndConversations, [conversationId]: !isDND } }))} title={isDND ? 'Disable DND' : 'Do Not Disturb'} style={{ color: isDND ? '#E41E3F' : undefined }}>🔕</button>
                     {/* P6-6: Mute timer */}

@@ -1364,6 +1364,257 @@ export function useMessengerService({ conversationId, currentUser, messengerType
     }, [conversationSort]);
 
     // ═══════════════════════════════════════════════════════════
+    // Phase 16: Media Gallery, UX Enhancement & Accessibility
+    // ═══════════════════════════════════════════════════════════
+
+    // ── P16-1: Media Gallery ──
+    const [mediaGallery, setMediaGallery] = useState({ images: [], videos: [], files: [], voice: [] });
+
+    const loadMediaGallery = useCallback(async () => {
+        const supabase = getSupabase();
+        if (!supabase || !conversationId) return;
+        try {
+            const { data } = await supabase
+                .from('messenger_messages')
+                .select('id, message_type, text, media_url, media_metadata, created_at, sender_id')
+                .eq('conversation_id', conversationId)
+                .in('message_type', ['image', 'video', 'file', 'voice'])
+                .order('created_at', { ascending: false })
+                .limit(200);
+            const gallery = { images: [], videos: [], files: [], voice: [] };
+            (data || []).forEach(m => {
+                if (m.message_type === 'image') gallery.images.push(m);
+                else if (m.message_type === 'video') gallery.videos.push(m);
+                else if (m.message_type === 'voice') gallery.voice.push(m);
+                else gallery.files.push(m);
+            });
+            setMediaGallery(gallery);
+        } catch (_) {}
+    }, [conversationId]);
+
+    // ── P16-2: Message Edit History ──
+    const editMessage = useCallback(async (messageId, newText) => {
+        const supabase = getSupabase();
+        if (!supabase || !messageId || !newText) return false;
+        try {
+            // Get current message for edit trail
+            const { data: current } = await supabase
+                .from('messenger_messages')
+                .select('text, media_metadata')
+                .eq('id', messageId)
+                .maybeSingle();
+            if (!current) return false;
+            const editHistory = current.media_metadata?.edit_history || [];
+            editHistory.push({ text: current.text, edited_at: new Date().toISOString() });
+            await supabase.from('messenger_messages')
+                .update({ text: newText, media_metadata: { ...current.media_metadata, edit_history: editHistory, edited: true } })
+                .eq('id', messageId);
+            // Update local state
+            setMessages(prev => prev.map(m => m.id === messageId ? { ...m, text: newText, media_metadata: { ...m.media_metadata, edit_history: editHistory, edited: true } } : m));
+            return true;
+        } catch (_) { return false; }
+    }, []);
+
+    const getEditHistory = useCallback((messageId) => {
+        const msg = messages.find(m => m.id === messageId);
+        return msg?.media_metadata?.edit_history || [];
+    }, [messages]);
+
+    // ── P16-3: Scheduled Messages ──
+    const [scheduledMessages, setScheduledMessages] = useState([]);
+
+    const loadScheduledMessages = useCallback(async () => {
+        const supabase = getSupabase();
+        if (!supabase || !conversationId || !currentUser?.id) return;
+        try {
+            const { data } = await supabase
+                .from('messenger_scheduled')
+                .select('*')
+                .eq('conversation_id', conversationId)
+                .eq('sender_id', currentUser.id)
+                .eq('status', 'pending')
+                .order('scheduled_at', { ascending: true });
+            setScheduledMessages(data || []);
+        } catch (_) {}
+    }, [conversationId, currentUser]);
+
+    const scheduleMessage = useCallback(async (text, scheduledAt) => {
+        const supabase = getSupabase();
+        if (!supabase || !conversationId || !currentUser?.id || !text) return false;
+        try {
+            await supabase.from('messenger_scheduled').insert({
+                conversation_id: conversationId,
+                sender_id: currentUser.id,
+                text,
+                scheduled_at: scheduledAt,
+                status: 'pending'
+            });
+            await loadScheduledMessages();
+            return true;
+        } catch (_) { return false; }
+    }, [conversationId, currentUser, loadScheduledMessages]);
+
+    const cancelScheduledMessage = useCallback(async (scheduledId) => {
+        const supabase = getSupabase();
+        if (!supabase || !scheduledId) return false;
+        try {
+            await supabase.from('messenger_scheduled').update({ status: 'cancelled' }).eq('id', scheduledId);
+            setScheduledMessages(prev => prev.filter(m => m.id !== scheduledId));
+            return true;
+        } catch (_) { return false; }
+    }, []);
+
+    // ── P16-4: Sticker Packs ──
+    const STICKER_PACKS = [
+        { id: 'poker', name: '♠️ Poker', stickers: ['🃏', '♠️', '♥️', '♦️', '♣️', '🎰', '💰', '🏆', '🎲', '👑', '🔥', '💎'] },
+        { id: 'reactions', name: '😄 Reactions', stickers: ['😂', '🤣', '😍', '🥰', '😎', '🤯', '🥳', '😱', '🤔', '👏', '🙌', '💪'] },
+        { id: 'animals', name: '🐾 Animals', stickers: ['🐶', '🐱', '🦁', '🐻', '🐼', '🦊', '🐯', '🐸', '🦄', '🐙', '🦋', '🐝'] }
+    ];
+
+    const sendSticker = useCallback(async (sticker) => {
+        const supabase = getSupabase();
+        if (!supabase || !conversationId || !currentUser?.id) return false;
+        try {
+            await supabase.from('messenger_messages').insert({
+                conversation_id: conversationId,
+                sender_id: currentUser.id,
+                text: sticker,
+                message_type: 'sticker',
+                media_metadata: { sticker: true, size: 48 }
+            });
+            return true;
+        } catch (_) { return false; }
+    }, [conversationId, currentUser]);
+
+    // ── P16-5: Advanced Search ──
+    const searchMessagesAdvanced = useCallback(async ({ query = '', dateFrom, dateTo, sender, type } = {}) => {
+        const supabase = getSupabase();
+        if (!supabase || !conversationId) return [];
+        try {
+            let q = supabase
+                .from('messenger_messages')
+                .select('*')
+                .eq('conversation_id', conversationId);
+            if (query) q = q.ilike('text', `%${query}%`);
+            if (dateFrom) q = q.gte('created_at', dateFrom);
+            if (dateTo) q = q.lte('created_at', dateTo);
+            if (sender) q = q.eq('sender_id', sender);
+            if (type) q = q.eq('message_type', type);
+            q = q.order('created_at', { ascending: false }).limit(50);
+            const { data } = await q;
+            return data || [];
+        } catch (_) { return []; }
+    }, [conversationId]);
+
+    // ── P16-6: Contact Favorites ──
+    const [favoriteContacts, setFavoriteContacts] = useState([]);
+
+    const loadFavorites = useCallback(async () => {
+        const supabase = getSupabase();
+        if (!supabase || !currentUser?.id) return;
+        try {
+            const { data } = await supabase
+                .from('messenger_favorites')
+                .select('favorite_user_id')
+                .eq('user_id', currentUser.id);
+            setFavoriteContacts((data || []).map(r => r.favorite_user_id));
+        } catch (_) {}
+    }, [currentUser]);
+
+    useEffect(() => { loadFavorites(); }, [loadFavorites]);
+
+    const toggleFavorite = useCallback(async (userId) => {
+        const supabase = getSupabase();
+        if (!supabase || !currentUser?.id || !userId) return false;
+        const isFav = favoriteContacts.includes(userId);
+        try {
+            if (isFav) {
+                await supabase.from('messenger_favorites').delete().eq('user_id', currentUser.id).eq('favorite_user_id', userId);
+                setFavoriteContacts(prev => prev.filter(id => id !== userId));
+            } else {
+                await supabase.from('messenger_favorites').insert({ user_id: currentUser.id, favorite_user_id: userId });
+                setFavoriteContacts(prev => [...prev, userId]);
+            }
+            return true;
+        } catch (_) { return false; }
+    }, [currentUser, favoriteContacts]);
+
+    // ── P16-7: Conversation Wallpaper ──
+    const [conversationWallpaper, setConversationWallpaper] = useState(null);
+
+    const uploadWallpaper = useCallback(async (file) => {
+        const supabase = getSupabase();
+        if (!supabase || !conversationId || !file) return null;
+        try {
+            const fileName = `wallpapers/${conversationId}/${Date.now()}_${file.name}`;
+            const { error } = await supabase.storage.from('messenger-media').upload(fileName, file);
+            if (error) return null;
+            const { data: urlData } = supabase.storage.from('messenger-media').getPublicUrl(fileName);
+            const publicUrl = urlData?.publicUrl;
+            if (publicUrl) {
+                await supabase.from('messenger_participants')
+                    .update({ settings: { wallpaper: publicUrl } })
+                    .eq('conversation_id', conversationId)
+                    .eq('user_id', currentUser?.id);
+                setConversationWallpaper(publicUrl);
+            }
+            return publicUrl;
+        } catch (_) { return null; }
+    }, [conversationId, currentUser]);
+
+    // Load wallpaper on conversation change
+    useEffect(() => {
+        (async () => {
+            const settings = await getConversationSettings();
+            if (settings?.wallpaper) setConversationWallpaper(settings.wallpaper);
+            else setConversationWallpaper(null);
+        })();
+    }, [conversationId, getConversationSettings]);
+
+    // ── P16-8: Translation Language Picker ──
+    const TRANSLATION_LANGUAGES = [
+        { code: 'en', label: 'English' }, { code: 'es', label: 'Español' },
+        { code: 'fr', label: 'Français' }, { code: 'de', label: 'Deutsch' },
+        { code: 'pt', label: 'Português' }, { code: 'zh', label: '中文' },
+        { code: 'ja', label: '日本語' }, { code: 'ko', label: '한국어' },
+        { code: 'ar', label: 'العربية' }, { code: 'ru', label: 'Русский' }
+    ];
+
+    const translateMessage = useCallback(async (messageId, targetLang = 'en') => {
+        const msg = messages.find(m => m.id === messageId);
+        if (!msg?.text) return null;
+        // Use browser-side translation API placeholder
+        // In production, this would call /api/translate
+        try {
+            const resp = await fetch(`/api/translate?text=${encodeURIComponent(msg.text)}&target=${targetLang}`);
+            if (resp.ok) {
+                const { translated } = await resp.json();
+                return translated;
+            }
+        } catch (_) {}
+        return `[${targetLang.toUpperCase()}] ${msg.text}`;
+    }, [messages]);
+
+    // ── P16-9: Keyboard Shortcuts ──
+    const KEYBOARD_SHORTCUTS = [
+        { keys: 'Ctrl+Enter', action: 'Send Message' },
+        { keys: 'Ctrl+/', action: 'Toggle Search' },
+        { keys: 'Escape', action: 'Close Modal / Panel' },
+        { keys: 'Ctrl+Shift+S', action: 'Open Sticker Picker' },
+        { keys: 'Ctrl+Shift+G', action: 'Open Media Gallery' },
+        { keys: 'Ctrl+Shift+E', action: 'Toggle E2E Encryption' },
+        { keys: 'Ctrl+Shift+M', action: 'Mute / Unmute' },
+        { keys: 'Ctrl+B', action: 'Toggle Bookmarks' }
+    ];
+
+    // ── P16-10: Accessibility helpers ──
+    const a11yProps = useCallback((role, label) => ({
+        role,
+        'aria-label': label,
+        tabIndex: 0,
+    }), []);
+
+    // ═══════════════════════════════════════════════════════════
     // Return Service API
     // ═══════════════════════════════════════════════════════════
     return {
@@ -1481,6 +1732,45 @@ export function useMessengerService({ conversationId, currentUser, messengerType
         conversationSort,
         setConversationSort,
         sortedConversations,
+
+        // P16-1: Media Gallery
+        mediaGallery,
+        loadMediaGallery,
+
+        // P16-2: Edit History
+        editMessage,
+        getEditHistory,
+
+        // P16-3: Scheduled Messages
+        scheduledMessages,
+        scheduleMessage,
+        cancelScheduledMessage,
+        loadScheduledMessages,
+
+        // P16-4: Sticker Packs
+        STICKER_PACKS,
+        sendSticker,
+
+        // P16-5: Advanced Search
+        searchMessagesAdvanced,
+
+        // P16-6: Contact Favorites
+        favoriteContacts,
+        toggleFavorite,
+
+        // P16-7: Wallpaper
+        conversationWallpaper,
+        uploadWallpaper,
+
+        // P16-8: Translation
+        TRANSLATION_LANGUAGES,
+        translateMessage,
+
+        // P16-9: Keyboard Shortcuts
+        KEYBOARD_SHORTCUTS,
+
+        // P16-10: Accessibility
+        a11yProps,
     };
 }
 
