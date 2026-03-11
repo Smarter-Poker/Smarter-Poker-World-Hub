@@ -642,6 +642,31 @@ class LobbyManager {
               },
             });
           }
+
+          // [AUDIT LOG] Record the Bad Beat Jackpot winners and losers locally in the true ledger
+          try {
+            const sbAudit = ChipBridge.getSupabase();
+            sbAudit.rpc('record_arena_audit_log', {
+              p_club_id: clubId,
+              p_table_id: config.tableId,
+              p_user_id: bbjData.loserId,
+              p_action_type: 'bbj_loser_pool',
+              p_amount: awardResult.loser_payout,
+              p_details: { handNumber: bbjData.handNumber, hand: bbjData.loserHand }
+            }).catch(()=>{});
+
+            sbAudit.rpc('record_arena_audit_log', {
+              p_club_id: clubId,
+              p_table_id: config.tableId,
+              p_user_id: bbjData.winnerId,
+              p_action_type: 'bbj_winner_pool',
+              p_amount: awardResult.winner_payout,
+              p_details: { handNumber: bbjData.handNumber, hand: bbjData.winnerHand }
+            }).catch(()=>{});
+            
+            // NOTE: We could theoretically loop the tableSharePayout to all players, 
+            // but tracking the two massive chip movements provides the primary BBJ absolute trace.
+          } catch(e) {}
         }
       } catch (err) {
         console.error('[BBJ] Trigger error:', err.message);
@@ -672,6 +697,18 @@ class LobbyManager {
         }).then(({ error }) => {
           if (error) console.error('[LobbyManager] Insurance premium recording failed:', error.message);
         }).catch(console.error);
+
+        // [AUDIT LOG] Trace the chip movement leaving the player's account for the premium
+        try {
+          sb.rpc('record_arena_audit_log', {
+            p_club_id: config.clubId,
+            p_table_id: config.tableId,
+            p_user_id: data.buyerId,
+            p_action_type: 'insurance_premium',
+            p_amount: -(data.premium),
+            p_details: { coverage: data.amount, equity: data.trailerEquity }
+          }).catch(()=>{});
+        } catch (e) {}
       }
     });
 
@@ -694,6 +731,18 @@ class LobbyManager {
         }).then(({ error }) => {
           if (error) console.error('[LobbyManager] Insurance payout recording failed:', error.message);
         });
+
+        // [AUDIT LOG] Trace the chip movement entering the player's account from the insurance hit
+        try {
+          sb.rpc('record_arena_audit_log', {
+            p_club_id: config.clubId,
+            p_table_id: config.tableId,
+            p_user_id: data.buyerId,
+            p_action_type: 'insurance_payout',
+            p_amount: data.payout,
+            p_details: { premium: data.premium, netGain: data.netGain }
+          }).catch(()=>{});
+        } catch (e) {}
       }
     });
 
