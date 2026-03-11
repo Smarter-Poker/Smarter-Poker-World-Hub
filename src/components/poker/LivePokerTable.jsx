@@ -46,6 +46,13 @@ import ThemePicker from './ThemePicker';
 import PlayerNoteModal from './PlayerNoteModal';
 import PlayerQuickView from './PlayerQuickView';
 import HandReplayerModal from './HandReplayerModal';
+import {
+  TableEmojiBar, FloatingReaction, AnalyticsSidebar,
+  PlayerNotesPopup, getPlayerNoteColor,
+  SessionSummaryModal, SpectatorBadge,
+  ReconnectionOverlay, ReportHandButton,
+  ConnectionQualityHUD,
+} from './TableExperienceComponents';
 import { eventBus, EventType } from '../../engine/EventBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -4836,6 +4843,46 @@ function LivePokerTable({
 
   // ═══ WAVE B: TABLE LEADERBOARD TOGGLE ═══
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+
+  // ═══ PHASE 23: TABLE EXPERIENCE STATE ═══
+  const [showEmojiBar, setShowEmojiBar] = useState(false);
+  const [floatingReactions, setFloatingReactions] = useState([]);
+  const [showSessionSummary, setShowSessionSummary] = useState(false);
+  const [disconnectedAt, setDisconnectedAt] = useState(null);
+  const [wsLatency, setWsLatency] = useState(null);
+
+  // #7: Track connection state for reconnection overlay
+  useEffect(() => {
+    if (connected) {
+      setDisconnectedAt(null);
+    } else if (!connected && !disconnectedAt) {
+      setDisconnectedAt(Date.now());
+    }
+  }, [connected, disconnectedAt]);
+
+  // #4: Handle emoji send → broadcast + float animation
+  const handleEmojiSend = useCallback((emoji) => {
+    // Add floating reaction at center of table
+    const id = Date.now();
+    setFloatingReactions(prev => [...prev, { id, emoji }]);
+    // Broadcast to other players via the table channel
+    send?.({ type: 'emoji_reaction', emojiId: emoji.id, emojiLabel: emoji.label });
+  }, [send]);
+
+  // #3: Handle session summary on leave
+  const handleLeaveWithSummary = useCallback(() => {
+    if (sessionStats?.handsPlayed > 0) {
+      setShowSessionSummary(true);
+    } else {
+      onLeave?.();
+    }
+  }, [sessionStats, onLeave]);
+
+  const handleShareSession = useCallback(() => {
+    const text = `🎰 Smarter.Poker Session\n📊 Hands: ${sessionStats?.handsPlayed || 0}\n💰 P&L: ${(sessionStats?.totalAdded || 0) >= 0 ? '+' : ''}${sessionStats?.totalAdded || 0}\n⏱️ Duration: ${sessionStats?.sessionStart ? Math.round((Date.now() - sessionStats.sessionStart) / 60000) : 0}m`;
+    navigator.clipboard?.writeText(text);
+  }, [sessionStats]);
+
   const handleChat = useCallback((message) => {
     soundRef.current?.play('chat');
     send('send_chat', { message });
@@ -6016,6 +6063,68 @@ function LivePokerTable({
             tableId={tableId}
             clubId={tableState?.clubId}
             onClose={() => setShowLastHand(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ═══════════ PHASE 23: TABLE EXPERIENCE COMPONENTS ═══════════ */}
+      
+      {/* #9: Connection Quality HUD — top-left corner */}
+      <div style={{ position: 'absolute', top: 8, left: 8, zIndex: 50, display: 'flex', gap: 6, alignItems: 'center' }}>
+        <ConnectionQualityHUD connected={connected} latency={wsLatency} />
+        {/* #6: Spectator Badge */}
+        <SpectatorBadge count={tableState?.spectatorCount || 0} />
+      </div>
+
+      {/* #4: Custom Emoji Bar — bottom-right toggle */}
+      <div style={{ position: 'absolute', bottom: 180, right: 12, zIndex: 50, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+        <AnimatePresence>
+          {showEmojiBar && <TableEmojiBar onSend={handleEmojiSend} disabled={!connected} />}
+        </AnimatePresence>
+        <button
+          onClick={() => setShowEmojiBar(s => !s)}
+          style={{
+            width: 40, height: 40, borderRadius: '50%', border: 'none',
+            background: showEmojiBar ? '#2374E1' : 'rgba(0,0,0,0.6)',
+            color: '#fff', fontSize: 18, cursor: 'pointer',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+          }}
+          title="Table Reactions"
+        >
+          😎
+        </button>
+      </div>
+
+      {/* #4: Floating Emoji Reactions */}
+      <AnimatePresence>
+        {floatingReactions.map(r => (
+          <FloatingReaction
+            key={r.id}
+            emoji={r.emoji}
+            onComplete={() => setFloatingReactions(prev => prev.filter(x => x.id !== r.id))}
+          />
+        ))}
+      </AnimatePresence>
+
+      {/* #7: Reconnection Overlay */}
+      <ReconnectionOverlay
+        disconnectedAt={disconnectedAt}
+        onForceReconnect={() => { setDisconnectedAt(null); window.location.reload(); }}
+      />
+
+      {/* #3: Session Summary Modal */}
+      <AnimatePresence>
+        {showSessionSummary && (
+          <SessionSummaryModal
+            stats={{
+              handsPlayed: sessionStats?.handsPlayed || 0,
+              netPnl: sessionStats?.totalAdded || 0,
+              initialBuyIn: sessionStats?.initialBuyIn || 0,
+              totalAdded: sessionStats?.totalAdded || 0,
+              sessionStart: sessionStats?.sessionStart,
+            }}
+            onClose={() => { setShowSessionSummary(false); onLeave?.(); }}
+            onShare={handleShareSession}
           />
         )}
       </AnimatePresence>
