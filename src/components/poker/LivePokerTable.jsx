@@ -432,6 +432,36 @@ function TableLayoutManager({ onClose }) {
     try { return JSON.parse(localStorage.getItem('poker-table-layouts') || '[]'); } catch { return []; }
   });
 
+  // J3: Load layouts from Supabase on mount (merge with localStorage)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const sb = window.__SUPABASE_CLIENT;
+    const uid = window.__POKER_USER_ID;
+    if (!sb || !uid) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await sb.from('poker_table_layouts')
+          .select('name, arrangement, created_at')
+          .eq('user_id', uid)
+          .order('created_at', { ascending: false })
+          .limit(20);
+        if (cancelled || !data?.length) return;
+        setLayouts(prev => {
+          const existingNames = new Set(prev.map(l => l.name));
+          const newLayouts = data
+            .filter(d => !existingNames.has(d.name))
+            .map(d => ({ name: d.name, arrangement: d.arrangement?.arrangement || 'saved', createdAt: new Date(d.created_at).getTime() }));
+          if (newLayouts.length === 0) return prev;
+          const merged = [...prev, ...newLayouts];
+          try { localStorage.setItem('poker-table-layouts', JSON.stringify(merged)); } catch (_) {}
+          return merged;
+        });
+      } catch (_) {}
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   const saveLayout = () => {
     const name = prompt('Layout name:');
     if (!name?.trim()) return;
@@ -1383,7 +1413,17 @@ function ActionLogFeed({ entries = [], isOpen, onClose }) {
     >
       <div style={{ padding: '6px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <span style={{ fontSize: 10, fontWeight: 700, color: '#E4E6EB' }}>📝 Action Log</span>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#65676B', fontSize: 14, cursor: 'pointer' }}>✕</button>
+        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+          {/* I5: Copy log to clipboard */}
+          <button onClick={(e) => {
+            e.stopPropagation();
+            const text = filtered.map(e => `${ICON_MAP[e.type] || '•'} ${e.playerName} ${e.text}${e.amount > 0 ? ' ' + e.amount.toLocaleString() : ''}`).join('\n');
+            navigator.clipboard?.writeText(`📝 Action Log (${filtered.length} entries)\n${text}\n🎰 smarter.poker`)?.then(() => {
+              try { eventBus.emit('SOUND_PLAY', { id: 'notify' }); } catch (_) {}
+            });
+          }} style={{ background: 'none', border: 'none', color: '#4fc3f7', fontSize: 11, cursor: 'pointer', padding: '0 2px' }} title="Copy log">📋</button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#65676B', fontSize: 14, cursor: 'pointer' }}>✕</button>
+        </div>
       </div>
       {/* G12: Filter buttons */}
       <div style={{ display: 'flex', gap: 3, padding: '4px 8px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
@@ -1483,8 +1523,12 @@ function TableStatsBanner({ sessionStats, tableState, isOpen, onClose }) {
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 6, display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
           {posStats.map(p => (
             <div key={p.pos} style={{ textAlign: 'center', minWidth: 36 }}>
-              <div style={{ fontSize: 9, fontWeight: 800, color: p.pct > 50 ? '#4ade80' : '#B0B3B8' }}>{p.pct}%</div>
-              <div style={{ fontSize: 7, color: '#65676B', fontWeight: 600 }}>{p.pos}</div>
+              <div style={{ fontSize: 9, fontWeight: 800, color: p.pct > 50 ? '#4ade80' : p.pct >= 30 ? '#FFD700' : '#ef5350' }}>{p.pct}%</div>
+              {/* I11: Mini sparkline bar */}
+              <div style={{ width: 28, height: 3, borderRadius: 2, background: 'rgba(255,255,255,0.06)', margin: '2px auto', overflow: 'hidden' }}>
+                <div style={{ width: `${Math.min(100, p.pct)}%`, height: '100%', borderRadius: 2, background: p.pct > 50 ? '#4ade80' : p.pct >= 30 ? '#FFD700' : '#ef5350', transition: 'width 0.5s ease' }} />
+              </div>
+              <div style={{ fontSize: 7, color: '#65676B', fontWeight: 600 }}>{p.pos} ({p.wins}/{p.total})</div>
             </div>
           ))}
         </div>
@@ -5848,6 +5892,19 @@ function LivePokerTable({
     }
   }, [soundEnabled, soundVolume]);
 
+  // J12: Sound preference Supabase sync — save + load across devices
+  useEffect(() => {
+    if (!supabase || !userId) return;
+    // Save sound preference to Supabase
+    supabase.from('poker_seat_preferences').upsert({
+      user_id: userId,
+      max_seats: 0,
+      preferred_seat: 0,
+      sound_enabled: soundEnabled,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id,max_seats' }).then(() => {}).catch(() => {});
+  }, [soundEnabled, supabase, userId]);
+
   // Sound triggers based on game events
   const prevPhaseRef = useRef(null);
   const prevResultRef = useRef(null);
@@ -5981,6 +6038,7 @@ function LivePokerTable({
 
   // G2: Incoming chat reaction listener from other players
   const prevReactionsLenRef = useRef(0);
+  const lastReactTimeRef = useRef(0); // I8: reaction cooldown
   useEffect(() => {
     const reactions = tableState?.chatReactions;
     if (!reactions || !Array.isArray(reactions)) return;
@@ -6075,10 +6133,17 @@ function LivePokerTable({
     };
 
     setActionLog(prev => [
-      ...prev.slice(-29), // Keep max 30
+      ...prev.slice(-29),
       { type: la.type, playerName, text: textMap[la.type] || la.type, amount: la.amount || 0, ts: Date.now() },
     ]);
-  }, [tableState?.game?.lastAction]);
+
+    // I1: Track aggression factor for hero actions
+    if (String(la.playerId) === String(userId)) {
+      const s = sessionStatsRef.current;
+      if (la.type === 'bet' || la.type === 'raise' || la.type === 'all_in') s.aggressionBets += 1;
+      if (la.type === 'call') s.aggressionCalls += 1;
+    }
+  }, [tableState?.game?.lastAction, userId]);
 
   // F5: RIT prompt handler — show when server sends run_it_twice offer
   useEffect(() => {
@@ -6146,7 +6211,43 @@ function LivePokerTable({
 
     // G4: Save session stats to localStorage for crash recovery
     try { localStorage.setItem(`poker-session-${tableId}`, JSON.stringify(snap)); } catch (_) {}
+
+    // I2: Auto-persist to Supabase every 5 hands
+    if (s.handsPlayed > 0 && s.handsPlayed % 5 === 0) {
+      try {
+        supabase?.auth?.getSession?.().then(({ data }) => {
+          const token = data?.session?.access_token;
+          if (token) {
+            fetch('/api/poker/engine/session-stats', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+              body: JSON.stringify({ tableId, clubId: tableState?.clubId, stats: snap }),
+            }).then(() => {
+              try { eventBus.emit('DATA_MUTATED', 'session_stats_updated'); } catch (_) {}
+            }).catch(() => {});
+          }
+        }).catch(() => {});
+      } catch (_) {}
+    }
   }, [result]);
+
+  // I2: beforeunload — persist session stats to localStorage on tab close
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleBeforeUnload = () => {
+      const snap = sessionStatsRef.current;
+      if (snap.handsPlayed > 0) {
+        try { localStorage.setItem(`poker-session-${tableId}`, JSON.stringify(snap)); } catch (_) {}
+        // Also attempt Supabase save via sendBeacon
+        try {
+          const payload = JSON.stringify({ tableId, clubId: tableState?.clubId, stats: snap });
+          navigator.sendBeacon?.('/api/poker/engine/session-stats', new Blob([payload], { type: 'application/json' }));
+        } catch (_) {}
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [tableId]);
 
   // Phase 4 Audit Fix: Fetch club chip balance continuously for accurate Auto Top-Up and Rebuy limits
   useEffect(() => {
@@ -6323,21 +6424,32 @@ function LivePokerTable({
       position_total: s.positionTotal,
       session_start: new Date(s.sessionStart).toISOString(),
       session_end: new Date().toISOString(),
+      // J9: Expanded stats
+      vpip_pct: s.handsPlayed > 0 ? Math.round((s.vpipCount || 0) / s.handsPlayed * 100) : 0,
+      pfr_pct: s.handsPlayed > 0 ? Math.round((s.pfrCount || 0) / s.handsPlayed * 100) : 0,
+      duration_minutes: Math.round((Date.now() - s.sessionStart) / 60000),
     };
     try {
       if (sessionRowIdRef.current) {
-        // UPDATE existing row
         await supabase.from('poker_session_stats')
           .update(payload)
           .eq('id', sessionRowIdRef.current);
       } else {
-        // INSERT new row and capture the ID
         const { data } = await supabase.from('poker_session_stats')
           .insert(payload)
           .select('id')
           .maybeSingle();
         if (data?.id) sessionRowIdRef.current = data.id;
       }
+      // J13: Emit session summary for lobby card consumption
+      eventBus.emit('SESSION_SUMMARY_UPDATED', {
+        handsPlayed: s.handsPlayed,
+        netPL: s.currentStack - s.startingStack,
+        winRate: s.handsPlayed > 0 ? Math.round((s.handsWon / s.handsPlayed) * 100) : 0,
+        duration: Math.round((Date.now() - s.sessionStart) / 60000),
+      });
+      // Also notify session history page
+      eventBus.emit('DATA_MUTATED', 'session_saved');
     } catch (_) {}
   }, [supabase, userId, tableId, tableState?.clubId]);
 
@@ -6350,6 +6462,17 @@ function LivePokerTable({
       saveSessionToSupabase(); // Save on unmount too
     };
   }, [saveSessionToSupabase]);
+
+  // J4: Periodic auto-save every 30 seconds (crash protection)
+  useEffect(() => {
+    if (!supabase || !userId || !tableId) return;
+    const interval = setInterval(() => {
+      if (sessionStatsRef.current?.handsPlayed > 0) {
+        saveSessionToSupabase();
+      }
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [saveSessionToSupabase, supabase, userId, tableId]);
 
   // ═══ WAVE I2: SESSION STATS AUTO-LOAD ON RECONNECT ═══
   useEffect(() => {
@@ -6410,6 +6533,25 @@ function LivePokerTable({
     }, { onConflict: 'user_id,max_seats' }).then(() => {}).catch(() => {});
   }, [mySeat, maxSeats, tableState?.seats, supabase, userId]);
 
+  // J2: Load seat preference FROM Supabase on table join — suggest preferred seat
+  useEffect(() => {
+    if (!supabase || !userId || !maxSeats || isSitting) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await supabase.from('poker_seat_preferences')
+          .select('preferred_seat')
+          .eq('user_id', userId)
+          .eq('max_seats', maxSeats)
+          .maybeSingle();
+        if (cancelled || !data || data.preferred_seat == null) return;
+        // Emit suggestion via EventBus — UI can show "Your preferred seat is #X"
+        eventBus.emit('SEAT_PREFERENCE_LOADED', { seat: data.preferred_seat, maxSeats });
+      } catch (_) {}
+    })();
+    return () => { cancelled = true; };
+  }, [supabase, userId, maxSeats, isSitting]);
+
   // ═══ WAVE I5: FELT COLOR SUPABASE SYNC ═══
   // Save felt preference to Supabase alongside localStorage
   const handleFeltChangeWithSync = useCallback((feltId) => {
@@ -6424,6 +6566,28 @@ function LivePokerTable({
       }, { onConflict: 'user_id,max_seats' }).then(() => {}).catch(() => {});
     }
   }, [handleFeltChange, supabase, userId]);
+
+  // J1: Load felt color FROM Supabase on mount (override localStorage if Supabase has newer data)
+  useEffect(() => {
+    if (!supabase || !userId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await supabase.from('poker_seat_preferences')
+          .select('felt_color, updated_at')
+          .eq('user_id', userId)
+          .eq('max_seats', 0)
+          .maybeSingle();
+        if (cancelled || !data?.felt_color) return;
+        // Only apply if we have a valid felt ID
+        if (FELT_OPTIONS.some(f => f.id === data.felt_color)) {
+          setFeltColor(data.felt_color);
+          try { localStorage.setItem('poker-felt-color', data.felt_color); } catch (_) {}
+        }
+      } catch (_) {}
+    })();
+    return () => { cancelled = true; };
+  }, [supabase, userId]);
 
   // ═══ WAVE I6: WIN FLY-UP CHA-CHING SOUND ═══
   useEffect(() => {
@@ -7616,6 +7780,10 @@ function LivePokerTable({
         <ChatOverlay messages={chatMessages} onSend={handleChat} players={seats?.filter(s => s?.player?.displayName).map(s => s.player.displayName) || []}
           reactions={chatReactions}
           onReact={(msgIdx, emoji) => {
+            // I8: Reaction cooldown (2s per user)
+            const now = Date.now();
+            if (lastReactTimeRef.current && now - lastReactTimeRef.current < 2000) return;
+            lastReactTimeRef.current = now;
             // G7: Play reaction sound
             try { eventBus.emit('SOUND_PLAY', { id: 'notify' }); } catch (_) {}
             // G11: Haptic feedback
@@ -7726,7 +7894,12 @@ function LivePokerTable({
                 { section: 'Utilities', keys: [
                   ['S', 'Sit Out / Sit In'], ['M', 'Toggle Auto-Muck'],
                   ['H', 'Toggle HUD'], ['L', 'Last Hand Replayer'],
-                  ['? or /', 'This Help'], ['Esc', 'Close Overlay'],
+                  ['? or /', 'This Help'], ['Esc', 'Close All Panels'],
+                ]},
+                // I10: Wave F panel shortcuts
+                { section: 'Panels (Shift+key)', keys: [
+                  ['⇧L', 'Action Log'], ['⇧G', 'Stack Graph'],
+                  ['⇧T', 'Table Stats'],
                 ]},
               ].map(group => (
                 <div key={group.section} style={{ marginBottom: 10 }}>
@@ -8764,7 +8937,7 @@ function LivePokerTable({
         />
       </AnimatePresence>
 
-      {/* G9: RIT Dual-Board Visual Result */}
+      {/* G9: RIT Dual-Board Visual Result + I7: Auto-dismiss after 6s */}
       <AnimatePresence>
         {tableState?.game?.ritResult && (() => {
           const rit = tableState.game.ritResult;
@@ -8786,6 +8959,12 @@ function LivePokerTable({
                 boxShadow: '0 12px 40px rgba(0,0,0,0.7)',
               }}
             >
+              <div style={{ fontSize: 14, fontWeight: 800, color: '#E4E6EB', marginBottom: 12 }}>🃏 Run It Twice — Results</div>
+              {/* I7: Auto-dismiss countdown bar */}
+              <div style={{ width: '100%', height: 2, borderRadius: 1, background: 'rgba(255,255,255,0.06)', marginBottom: 10, overflow: 'hidden' }}>
+                <motion.div initial={{ width: '100%' }} animate={{ width: '0%' }} transition={{ duration: 6, ease: 'linear' }}
+                  style={{ height: '100%', borderRadius: 1, background: 'rgba(79,195,247,0.5)' }} />
+              </div>
               <div style={{ fontSize: 14, fontWeight: 800, color: '#E4E6EB', marginBottom: 12 }}>🃏 Run It Twice — Results</div>
               <div style={{ display: 'flex', gap: 16 }}>
                 {[{ board: board1, won: heroWon1, label: 'Board 1' }, { board: board2, won: heroWon2, label: 'Board 2' }].map((b, bi) => (
