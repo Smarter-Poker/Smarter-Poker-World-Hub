@@ -1,0 +1,355 @@
+diff --git a/pages/hub/club-arena/agent-dashboard.js b/pages/hub/club-arena/agent-dashboard.js
+index d840f33c..35a2f843 100644
+--- a/pages/hub/club-arena/agent-dashboard.js
++++ b/pages/hub/club-arena/agent-dashboard.js
+@@ -3,7 +3,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
+ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+ import ClubArenaEmbed from '../../../src/components/club-arena/ClubArenaEmbed';
+ 
+-export default function ClubArenaAgent DashboardPage() {
++export default function ClubArenaAgentDashboardPage() {
+     return (
+         <>
+             <SEOHead title="Agent Dashboard | Smarter.Poker" />
+diff --git a/pages/hub/club-arena/hand-histories.js b/pages/hub/club-arena/hand-histories.js
+index f9c171cf..b4412c5b 100644
+--- a/pages/hub/club-arena/hand-histories.js
++++ b/pages/hub/club-arena/hand-histories.js
+@@ -3,7 +3,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
+ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+ import ClubArenaEmbed from '../../../src/components/club-arena/ClubArenaEmbed';
+ 
+-export default function ClubArenaHand HistoriesPage() {
++export default function ClubArenaHandHistoriesPage() {
+     return (
+         <>
+             <SEOHead title="Hand Histories | Smarter.Poker" />
+diff --git a/pages/hub/club-arena/player-stats.js b/pages/hub/club-arena/player-stats.js
+index f787c67f..2c775192 100644
+--- a/pages/hub/club-arena/player-stats.js
++++ b/pages/hub/club-arena/player-stats.js
+@@ -3,7 +3,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
+ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+ import ClubArenaEmbed from '../../../src/components/club-arena/ClubArenaEmbed';
+ 
+-export default function ClubArenaPlayer StatsPage() {
++export default function ClubArenaPlayerStatsPage() {
+     return (
+         <>
+             <SEOHead title="Player Stats | Smarter.Poker" />
+diff --git a/pages/hub/club-arena/union-dashboard.js b/pages/hub/club-arena/union-dashboard.js
+index 8d50456e..df1cb727 100644
+--- a/pages/hub/club-arena/union-dashboard.js
++++ b/pages/hub/club-arena/union-dashboard.js
+@@ -3,7 +3,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
+ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+ import ClubArenaEmbed from '../../../src/components/club-arena/ClubArenaEmbed';
+ 
+-export default function ClubArenaUnion DashboardPage() {
++export default function ClubArenaUnionDashboardPage() {
+     return (
+         <>
+             <SEOHead title="Union Dashboard | Smarter.Poker" />
+diff --git a/pages/hub/club-arena/union-games.js b/pages/hub/club-arena/union-games.js
+index 8811737d..456dac0f 100644
+--- a/pages/hub/club-arena/union-games.js
++++ b/pages/hub/club-arena/union-games.js
+@@ -3,7 +3,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
+ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+ import ClubArenaEmbed from '../../../src/components/club-arena/ClubArenaEmbed';
+ 
+-export default function ClubArenaUnion GamesPage() {
++export default function ClubArenaUnionGamesPage() {
+     return (
+         <>
+             <SEOHead title="Union Games | Smarter.Poker" />
+diff --git a/src/components/poker/LivePokerTable.jsx b/src/components/poker/LivePokerTable.jsx
+index c8ed59ab..22641d83 100644
+--- a/src/components/poker/LivePokerTable.jsx
++++ b/src/components/poker/LivePokerTable.jsx
+@@ -495,54 +495,135 @@ function PotOddsHUD({ callAmount, potTotal, visible }) {
+ // EQUITY PROGRESS BAR — animated win% on all-in
+ // ═══════════════════════════════════════════════════════════════════════════
+ 
+-function EquityBar({ players }) {
++function EquityBar({ players, tableState }) {
+   if (!players || players.length < 2) return null;
+ 
+-  // Sort by equity descending for visual consistency
++  // For exactly 2 players, we use a true "Tug-of-War" design.
++  if (players.length === 2) {
++    const p1 = players[0];
++    const p2 = players[1];
++    
++    // Attempt to lookup player names from the seat map if missing from the equity object
++    const getName = (id) => {
++      const seat = tableState?.seats?.find(s => String(s?.player?.id) === String(id));
++      return seat?.player?.displayName || 'Unknown';
++    };
++
++    const n1 = p1.name || getName(p1.id);
++    const n2 = p2.name || getName(p2.id);
++
++    const is1Fav = (p1.equity || 0) >= (p2.equity || 0);
++
++    return (
++      <motion.div
++        initial={{ opacity: 0, y: -20, scale: 0.9 }}
++        animate={{ opacity: 1, y: 0, scale: 1 }}
++        exit={{ opacity: 0, y: -20, scale: 0.9 }}
++        transition={{ type: 'spring', stiffness: 300, damping: 20 }}
++        style={{
++          position: 'absolute',
++          top: 70, // Positioned at the top of the table like a broadcast HUD
++          left: '50%',
++          transform: 'translateX(-50%)',
++          width: '65%',
++          maxWidth: 600,
++          zIndex: 60,
++          background: 'rgba(20, 21, 23, 0.95)',
++          borderRadius: 24,
++          padding: '6px 12px',
++          border: '1px solid rgba(255,255,255,0.15)',
++          boxShadow: '0 10px 40px rgba(0,0,0,0.8)',
++          backdropFilter: 'blur(12px)',
++        }}
++      >
++        {/* Header HUD Element */}
++        <div style={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', background: '#FA383E', color: '#fff', fontSize: 10, fontWeight: 800, padding: '2px 14px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.3)', letterSpacing: 1, boxShadow: '0 2px 8px rgba(250, 56, 62, 0.5)' }}>ALL-IN SHOWDOWN</div>
++
++        {/* Player Names & Odds Display Header */}
++        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, marginTop: 4 }}>
++          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flex: 1 }}>
++            <span style={{ color: '#fff', fontSize: 14, fontWeight: 800, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: 100 }}>{n1}</span>
++            <span style={{ color: is1Fav ? '#4ade80' : '#A0A3A8', fontSize: 18, fontWeight: 900 }}>{(p1.equity || 0).toFixed(1)}%</span>
++            {is1Fav && <span style={{ fontSize: 10, color: '#4ade80' }}>★</span>}
++          </div>
++          <div style={{ color: '#666', fontSize: 10, fontWeight: 800 }}>VS</div>
++          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flex: 1, justifyContent: 'flex-end' }}>
++            {!is1Fav && <span style={{ fontSize: 10, color: '#4ade80' }}>★</span>}
++            <span style={{ color: !is1Fav ? '#4ade80' : '#A0A3A8', fontSize: 18, fontWeight: 900 }}>{(p2.equity || 0).toFixed(1)}%</span>
++            <span style={{ color: '#fff', fontSize: 14, fontWeight: 800, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: 100 }}>{n2}</span>
++          </div>
++        </div>
++
++        {/* Tug-of-War Bar */}
++        <div style={{ position: 'relative', height: 16, borderRadius: 8, background: '#111', overflow: 'hidden', border: '1px solid #000', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.5)' }}>
++          <motion.div
++            initial={{ width: '50%' }}
++            animate={{ width: `${p1.equity || 0}%` }}
++            transition={{ type: 'spring', bounce: 0, duration: 0.8 }}
++            style={{ position: 'absolute', left: 0, top: 0, bottom: 0, background: is1Fav ? 'linear-gradient(90deg, #16a34a, #4ade80)' : 'linear-gradient(90deg, #b91c1c, #ef4444)', borderRight: '2px solid #fff', boxShadow: is1Fav ? '0 0 10px rgba(74, 222, 128, 0.5)' : 'none' }}
++          />
++          <motion.div
++            initial={{ width: '50%' }}
++            animate={{ width: `${p2.equity || 0}%` }}
++            transition={{ type: 'spring', bounce: 0, duration: 0.8 }}
++            style={{ position: 'absolute', right: 0, top: 0, bottom: 0, background: !is1Fav ? 'linear-gradient(270deg, #16a34a, #4ade80)' : 'linear-gradient(270deg, #b91c1c, #ef4444)', boxShadow: !is1Fav ? '0 0 10px rgba(74, 222, 128, 0.5)' : 'none' }}
++          />
++        </div>
++      </motion.div>
++    );
++  }
++
++  // Multi-way all-in fallback
+   const sorted = [...players].sort((a, b) => (b.equity || 0) - (a.equity || 0));
+   const eqColors = ['#22c55e', '#ef4444', '#f59e0b', '#3b82f6', '#a855f7', '#ec4899'];
+ 
+   return (
+     <motion.div
+-      initial={{ opacity: 0, scaleX: 0 }}
+-      animate={{ opacity: 1, scaleX: 1 }}
++      initial={{ opacity: 0, y: -20 }}
++      animate={{ opacity: 1, y: 0 }}
++      exit={{ opacity: 0, y: -20 }}
+       transition={{ duration: 0.5 }}
+       style={{
+         position: 'absolute',
+-        bottom: '18%',
+-        left: '15%',
+-        right: '15%',
++        top: 70,
++        left: '50%',
++        transform: 'translateX(-50%)',
++        width: '70%',
++        maxWidth: 600,
+         zIndex: 60,
+-        borderRadius: 8,
++        borderRadius: 12,
+         overflow: 'hidden',
+-        height: 14,
++        height: 24,
+         display: 'flex',
+-        background: 'rgba(0,0,0,0.6)',
+-        border: '1px solid rgba(255,255,255,0.1)',
++        background: 'rgba(0,0,0,0.85)',
++        border: '1px solid rgba(255,255,255,0.2)',
++        boxShadow: '0 10px 30px rgba(0,0,0,0.8)',
+       }}
+     >
++      <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', background: '#FA383E', color: '#fff', fontSize: 9, fontWeight: 800, padding: '2px 10px', borderRadius: 10, zIndex: 61, letterSpacing: 0.5 }}>MULTI-WAY SHOWDOWN</div>
+       {sorted.map((p, i) => (
+         <motion.div
+           key={p.id || i}
+           initial={{ width: 0 }}
+           animate={{ width: `${p.equity || 0}%` }}
+-          transition={{ duration: 1.2, delay: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
++          transition={{ duration: 1.2, delay: 0.1, ease: [0.34, 1.56, 0.64, 1] }}
+           style={{
+             height: '100%',
+             background: eqColors[i % eqColors.length],
+             display: 'flex',
+             alignItems: 'center',
+             justifyContent: 'center',
+-            fontSize: 9,
+-            fontWeight: 900,
++            fontSize: 11,
++            fontWeight: 800,
+             color: '#fff',
+-            textShadow: '0 1px 2px rgba(0,0,0,0.8)',
++            textShadow: '0 1px 3px rgba(0,0,0,0.9)',
+             whiteSpace: 'nowrap',
+             overflow: 'hidden',
+-            minWidth: (p.equity || 0) > 15 ? 'auto' : 0,
++            borderRight: i < sorted.length - 1 ? '1px solid rgba(0,0,0,0.5)' : 'none',
++            minWidth: (p.equity || 0) > 8 ? 'auto' : 0,
+           }}
+         >
+-          {(p.equity || 0) > 15 ? `${(p.equity || 0).toFixed(0)}%` : ''}
++          {(p.equity || 0) > 8 ? `${(p.equity || 0).toFixed(1)}%` : ''}
+         </motion.div>
+       ))}
+     </motion.div>
+@@ -1740,17 +1821,23 @@ function ActionButton({ label, sublabel, color, onClick }) {
+ }
+ 
+ /**
+- * PreActionBar — Checkboxes for pre-selecting actions before your turn
++ * PreActionPanel — Checkboxes for pre-selecting actions before your turn
+  * Shows when you're seated, not your turn, and a hand is in progress
+  */
+-function PreActionBar({ preAction, setPreAction }) {
++function PreActionPanel({ preSelectedAction, setPreSelectedAction, currentBet = 0, myBet = 0 }) {
++  const amountToCall = Math.max(0, currentBet - myBet);
++  
+   const options = [
+-    { value: 'fold', label: 'Fold', color: '#ef5350' },
++    { value: 'fold_any', label: 'Fold to Any', color: '#ef5350' },
+     { value: 'check_fold', label: 'Check/Fold', color: '#ff9800' },
+-    { value: 'check', label: 'Check', color: '#42a5f5' },
+     { value: 'call_any', label: 'Call Any', color: '#66bb6a' },
+   ];
+ 
++  // Only offer "Check" explicitly if there's no bet to them right now
++  if (amountToCall === 0) {
++    options.splice(2, 0, { value: 'check', label: 'Check', color: '#42a5f5' });
++  }
++
+   return (
+     <motion.div
+       initial={{ opacity: 0, y: 10 }}
+@@ -1758,49 +1845,50 @@ function PreActionBar({ preAction, setPreAction }) {
+       exit={{ opacity: 0, y: 10 }}
+       style={{
+         position: 'absolute',
+-        bottom: 10,
++        bottom: 12,
+         left: '50%',
+         transform: 'translateX(-50%)',
+         display: 'flex',
+-        gap: 6,
+-        zIndex: 30,
+-        background: 'rgba(0,0,0,0.7)',
+-        backdropFilter: 'blur(8px)',
+-        borderRadius: 10,
+-        padding: '6px 12px',
+-        border: '1px solid rgba(255,255,255,0.08)',
++        gap: 8,
++        zIndex: 35,
++        background: 'rgba(20, 21, 23, 0.85)',
++        backdropFilter: 'blur(12px)',
++        borderRadius: 12,
++        padding: '8px 14px',
++        border: '1px solid rgba(255,255,255,0.1)',
++        boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+       }}
+     >
+       {options.map(opt => {
+-        const active = preAction === opt.value;
++        const active = preSelectedAction === opt.value;
+         return (
+           <button
+             key={opt.value}
+-            onClick={() => setPreAction(active ? null : opt.value)}
++            onClick={() => setPreSelectedAction(active ? null : opt.value)}
+             style={{
+-              background: active ? `${opt.color}33` : 'transparent',
+-              border: `1px solid ${active ? opt.color : 'rgba(255,255,255,0.15)'}`,
++              background: active ? `${opt.color}25` : 'rgba(255,255,255,0.03)',
++              border: `1px solid ${active ? opt.color : 'rgba(255,255,255,0.1)'}`,
+               borderRadius: 8,
+               padding: '6px 14px',
+-              color: active ? opt.color : '#b0b3b8',
++              color: active ? opt.color : '#A0A3A8',
+               fontSize: 12,
+-              fontWeight: active ? 700 : 500,
++              fontWeight: active ? 700 : 600,
+               cursor: 'pointer',
+               display: 'flex',
+               alignItems: 'center',
+-              gap: 4,
+-              transition: 'all 0.15s',
++              gap: 6,
++              transition: 'all 0.15s ease',
+             }}
+           >
+-            <span style={{
+-              width: 14, height: 14, borderRadius: 3, display: 'inline-flex',
+-              alignItems: 'center', justifyContent: 'center',
+-              border: `1.5px solid ${active ? opt.color : 'rgba(255,255,255,0.3)'}`,
++            <div style={{
++              width: 14, height: 14, borderRadius: 3,
++              display: 'flex', alignItems: 'center', justifyContent: 'center',
++              border: `1.5px solid ${active ? opt.color : '#555'}`,
+               background: active ? opt.color : 'transparent',
+-              fontSize: 10, color: '#fff', fontWeight: 900,
++              color: '#fff', fontSize: 10, fontWeight: 900
+             }}>
+               {active ? '✓' : ''}
+-            </span>
++            </div>
+             {opt.label}
+           </button>
+         );
+@@ -1809,6 +1897,8 @@ function PreActionBar({ preAction, setPreAction }) {
+   );
+ }
+ 
++
++
+ // ═══════════════════════════════════════════════════════════════════════════
+ // BUY-IN DIALOG
+ // ═══════════════════════════════════════════════════════════════════════════
+@@ -4380,7 +4470,7 @@ function LivePokerTable({
+ 
+           {/* Equity progress bar on all-in */}
+           {result?.allInEquity?.players && (
+-            <EquityBar players={result.allInEquity.players} />
++            <EquityBar players={result.allInEquity.players} tableState={tableState} />
+           )}
+ 
+           {/* Floating action labels */}
+@@ -4611,7 +4701,12 @@ function LivePokerTable({
+ 
+         {/* Pre-action buttons: show when seated, not your turn, hand in progress */}
+         {!isMyTurn && isSitting && !isSittingOut && tableState?.game?.phase && tableState.game.phase !== 'idle' && !result && (
+-          <PreActionBar preAction={preAction} setPreAction={setPreAction} />
++          <PreActionPanel
++            preSelectedAction={preAction}
++            setPreSelectedAction={setPreAction}
++            currentBet={tableState?.game?.currentBet || 0}
++            myBet={mySeat?.invested || 0}
++          />
+         )}
+       </AnimatePresence>
+ 
