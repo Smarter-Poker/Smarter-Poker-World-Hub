@@ -26,14 +26,27 @@ const PLAYER_TYPES = [
 export default function PlayerNoteModal({ isOpen, onClose, player, initialNote, onSave }) {
   const [noteText, setNoteText] = useState('');
   const [playerType, setPlayerType] = useState('unknown');
+  const [colorLabel, setColorLabel] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const BADGE_COLORS = [
+    { id: null, hex: null, label: 'Auto' },
+    { id: '#22c55e', hex: '#22c55e', label: 'Green' },
+    { id: '#ef4444', hex: '#ef4444', label: 'Red' },
+    { id: '#3b82f6', hex: '#3b82f6', label: 'Blue' },
+    { id: '#f97316', hex: '#f97316', label: 'Orange' },
+    { id: '#a855f7', hex: '#a855f7', label: 'Purple' },
+    { id: '#eab308', hex: '#eab308', label: 'Gold' },
+    { id: '#14b8a6', hex: '#14b8a6', label: 'Teal' },
+  ];
 
   // Initialize state when modal opens
   useEffect(() => {
     if (isOpen && player) {
       setNoteText(initialNote?.notes || '');
       setPlayerType(initialNote?.player_type || 'unknown');
+      setColorLabel(initialNote?.color_label || null);
 
       // Check local storage for mute status
       try {
@@ -85,14 +98,14 @@ export default function PlayerNoteModal({ isOpen, onClose, player, initialNote, 
           targetId: player.id,
           notes: noteText,
           playerType: playerType,
-          color: null // Future proofing
+          color: colorLabel || null
         })
       });
 
       const data = await res.json();
       if (data.success) {
         if (onSave) {
-          onSave({ notes: noteText, player_type: playerType });
+          onSave({ notes: noteText, player_type: playerType, color_label: colorLabel });
         }
         try { eventBus.emit('DATA_MUTATED', 'player_note_saved'); } catch (_e) {}
         onClose();
@@ -166,6 +179,32 @@ export default function PlayerNoteModal({ isOpen, onClose, player, initialNote, 
                   >
                     <span>{type.emoji}</span>
                     <span>{type.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Badge Color Picker */}
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 12, color: T.dim, marginBottom: 8, textTransform: 'uppercase', fontWeight: 600, letterSpacing: 0.5 }}>Badge Color</div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                {BADGE_COLORS.map(bc => (
+                  <button
+                    key={bc.label}
+                    onClick={() => setColorLabel(bc.id)}
+                    title={bc.label}
+                    style={{
+                      width: 28, height: 28, borderRadius: '50%',
+                      background: bc.hex || 'linear-gradient(135deg, #444, #666)',
+                      border: colorLabel === bc.id ? '3px solid #fff' : '2px solid rgba(255,255,255,0.15)',
+                      cursor: 'pointer',
+                      boxShadow: colorLabel === bc.id ? `0 0 8px ${bc.hex || '#666'}` : 'none',
+                      transition: 'all 0.2s',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 11, color: '#fff', fontWeight: 700,
+                    }}
+                  >
+                    {!bc.hex && 'A'}
                   </button>
                 ))}
               </div>

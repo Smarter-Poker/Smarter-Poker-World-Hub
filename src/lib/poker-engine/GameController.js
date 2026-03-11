@@ -1979,6 +1979,7 @@ class GameController {
             maintainHands: Number(row.settings?.maintain_hands) || 10,
             bombPot: row.settings?.bomb_pot_enabled || row.settings?.bomb_pot || false,
             bombPotFrequency: parseInt(row.settings?.bomb_pot_frequency) || 0,
+            bombPotAnteMultiplier: Math.max(1, parseInt(row.settings?.bomb_pot_ante_multiplier) || 2),
             autoMuck: row.settings?.auto_muck !== false,
             capAmount: Number(row.settings?.cap_amount) || 0,
             doubleBoard: row.settings?.double_board || false,

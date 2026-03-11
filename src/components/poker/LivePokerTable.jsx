@@ -778,6 +778,112 @@ function cardIntToPath(card) {
   return `/cards/${SUITS[suit]}_${RANKS[rank]}.png`;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// SQUEEZE CARD — 3-phase: face-down → peek tilt → full reveal
+// ═══════════════════════════════════════════════════════════════════════════
+
+function SqueezeCard({ card, width = 48, delay = 0, fourColorDeck = false }) {
+  const height = Math.round(width * 1.4);
+  const backPath = getStoredCardBack();
+  const faceSrc = cardIntToPath(card);
+  const [phase, setPhase] = useState(0); // 0=faceDown, 1=peeking, 2=revealed
+  const prevCardRef = useRef(card);
+
+  // Reset when card changes (new hand)
+  useEffect(() => {
+    if (card !== prevCardRef.current) {
+      setPhase(0);
+      prevCardRef.current = card;
+    }
+  }, [card]);
+
+  // Auto-reveal after 3s if still face-down
+  useEffect(() => {
+    if (phase === 0) {
+      const t = setTimeout(() => setPhase(2), 3000 + delay * 1000);
+      return () => clearTimeout(t);
+    }
+  }, [phase, delay]);
+
+  // 4-color deck filter
+  const fourColorStyle = fourColorDeck && card != null ? (() => {
+    const suit = card % 4;
+    if (suit === 0) return { filter: 'hue-rotate(110deg) saturate(1.3)' };
+    if (suit === 1) return { filter: 'hue-rotate(220deg) saturate(1.2)' };
+    return {};
+  })() : {};
+
+  const handleTap = () => {
+    if (phase === 0) setPhase(1); // peek
+    else if (phase === 1) setPhase(2); // reveal
+  };
+
+  return (
+    <motion.div
+      onClick={handleTap}
+      style={{
+        width, height, perspective: 800, flexShrink: 0, cursor: phase < 2 ? 'pointer' : 'default',
+      }}
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay }}
+    >
+      <motion.div
+        animate={{
+          rotateY: phase === 0 ? 180 : phase === 1 ? 150 : 0,
+          rotateZ: phase === 1 ? -8 : 0,
+          scale: phase === 1 ? 1.08 : 1,
+        }}
+        transition={{
+          duration: phase === 2 ? 0.4 : 0.3,
+          ease: phase === 2 ? [0.34, 1.56, 0.64, 1] : 'easeOut',
+        }}
+        style={{
+          width: '100%', height: '100%', position: 'relative',
+          transformStyle: 'preserve-3d',
+        }}
+      >
+        {/* Front face */}
+        <div style={{
+          position: 'absolute', inset: 0, backfaceVisibility: 'hidden',
+          borderRadius: 4, overflow: 'hidden',
+          boxShadow: phase === 2 ? '0 4px 16px rgba(0,0,0,0.8)' : '0 2px 8px rgba(0,0,0,0.6)',
+          border: '1px solid rgba(255,255,255,0.15)',
+        }}>
+          {faceSrc && <img src={faceSrc} alt={`Card ${card}`} style={{ width: '100%', height: '100%', objectFit: 'cover', ...fourColorStyle }} draggable={false} />}
+        </div>
+        {/* Back face */}
+        <div style={{
+          position: 'absolute', inset: 0, backfaceVisibility: 'hidden',
+          transform: 'rotateY(180deg)',
+          borderRadius: 4, overflow: 'hidden',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.6)',
+          border: '1px solid rgba(255,255,255,0.1)',
+        }}>
+          <img src={backPath} alt="Card back" style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false} />
+        </div>
+      </motion.div>
+      {/* Peek indicator */}
+      {phase === 0 && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: [0.3, 0.7, 0.3] }}
+          transition={{ duration: 2, repeat: Infinity }}
+          style={{
+            position: 'absolute', bottom: -2, left: '50%', transform: 'translateX(-50%)',
+            fontSize: 7, color: 'rgba(255,255,255,0.6)', fontWeight: 700,
+            whiteSpace: 'nowrap', pointerEvents: 'none',
+          }}
+        >
+          TAP TO PEEK
+        </motion.div>
+      )}
+    </motion.div>
+  );
+}
+
+
+
 function CardImg({ card, width = 48, faceDown = false, style = {}, delay = 0, cardBackPath, showdown = false, fourColorDeck = false }) {
   const height = Math.round(width * 1.4);
   const backPath = cardBackPath || getStoredCardBack();
@@ -1328,23 +1434,30 @@ function PlayerSeat({
       )}
 
       {/* Hole cards (hero or showdown) */}
-      {holeCards && holeCards.length > 0 && (
-        <>
-          <div style={{
-            display: 'flex', gap: 3, marginTop: 2,
-            ...(isWinner ? {
-              filter: 'drop-shadow(0 0 8px #FFD700) drop-shadow(0 0 16px rgba(255,215,0,0.4))',
-              animation: 'winGlow 1.2s ease-in-out infinite alternate',
-            } : {}),
-          }}>
-            {holeCards.map((card, i) => (
-              <CardImg key={i} card={card} width={cardWidth} delay={i * 0.15} showdown={!isHero} fourColorDeck={fourColorDeck} />
-            ))}
-          </div>
-          {/* Hand Strength Meter — hero only */}
-          {isHero && <HandStrengthMeter holeCards={holeCards} board={board} visible={true} fourColorDeck={fourColorDeck} />}
-        </>
-      )}
+      {holeCards && holeCards.length > 0 && (() => {
+        // Card squeeze: hero cards start face-down, tap to peek, tap again to reveal
+        const squeezeEnabled = isHero && typeof window !== 'undefined' && localStorage.getItem('poker-card-squeeze') !== 'false';
+        return (
+          <>
+            <div style={{
+              display: 'flex', gap: 3, marginTop: 2,
+              ...(isWinner ? {
+                filter: 'drop-shadow(0 0 8px #FFD700) drop-shadow(0 0 16px rgba(255,215,0,0.4))',
+                animation: 'winGlow 1.2s ease-in-out infinite alternate',
+              } : {}),
+            }}>
+              {holeCards.map((card, i) => (
+                squeezeEnabled ? (
+                  <SqueezeCard key={`sq-${card}-${i}`} card={card} width={cardWidth} delay={i * 0.15} fourColorDeck={fourColorDeck} />
+                ) : (
+                  <CardImg key={i} card={card} width={cardWidth} delay={i * 0.15} showdown={!isHero} fourColorDeck={fourColorDeck} />
+                )
+              ))}
+            </div>
+            {isHero && <HandStrengthMeter holeCards={holeCards} board={board} visible={true} fourColorDeck={fourColorDeck} />}
+          </>
+        );
+      })()}
 
       {/* Face-down cards for non-hero active players */}
       {!holeCards && !isEmpty && !isFolded && seat.isInHand && (
@@ -4535,19 +4648,43 @@ function LivePokerTable({
   }, [send]);
 
   // ═══ KEYBOARD SHORTCUTS ═══
-  // F=Fold, C=Check/Call, R=Raise/Bet, A=All-In, Space=Check/Call, Esc=Cancel
+  // Game: F=Fold, C=Check/Call, A=All-In, Space=Check/Call, 1-9=Bet sizes
+  // Utility: T=Time Bank, S=Sit Out, M=Muck, H=HUD, L=Last Hand, ?=Help
+  const [showKbHelp, setShowKbHelp] = useState(false);
   useEffect(() => {
     const onKeyDown = (e) => {
-      if (!isActive) return; // Prevent controlling background tables
-      // Don't trigger if typing in an input/textarea
+      if (!isActive) return;
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-      if (!isMyTurn || !legalActions?.length) return;
 
       const key = e.key.toLowerCase();
+
+      // Utility shortcuts — work anytime (no turn guard)
+      if (key === 's' && isSitting) { e.preventDefault(); isSittingOut ? send('sit_in') : send('sit_out'); return; }
+      if (key === 'm' && isSitting) { e.preventDefault(); setAutoMuck(p => !p); return; }
+      if (key === 'h') { e.preventDefault(); setShowHUD(p => { const v = !p; try { localStorage.setItem('poker-show-hud', v); eventBus.emit('DATA_MUTATED', 'hud_toggled'); } catch(_){} return v; }); return; }
+      if (key === 'l' && lastHandResult) { e.preventDefault(); setShowLastHand(true); return; }
+      if (key === '?' || key === '/') { e.preventDefault(); setShowKbHelp(p => !p); return; }
+      if (key === 'escape') { setShowKbHelp(false); return; }
+
+      // Game action shortcuts — only when it's our turn
+      if (!isMyTurn || !legalActions?.length) return;
+
       const canFold = legalActions.some(a => a.type === 'fold');
       const canCheck = legalActions.some(a => a.type === 'check');
       const canCall = legalActions.find(a => a.type === 'call');
       const canAllIn = legalActions.some(a => a.type === 'all_in');
+      const canBet = legalActions.find(a => a.type === 'bet' || a.type === 'raise');
+
+      // 1-9: bet size presets (1=min, 9=max, linear interpolation)
+      if (key >= '1' && key <= '9' && canBet) {
+        e.preventDefault();
+        const min = canBet.minAmount || tableState?.config?.bigBlind || 2;
+        const max = canBet.maxAmount || mySeat?.stack || min;
+        const idx = parseInt(key) - 1; // 0-8
+        const amount = Math.round(min + (max - min) * (idx / 8));
+        handleAction({ type: canBet.type, amount: Math.min(Math.max(amount, min), max) });
+        return;
+      }
 
       switch (key) {
         case 'f':
@@ -4562,14 +4699,17 @@ function LivePokerTable({
         case 'a':
           if (canAllIn) { e.preventDefault(); handleAction({ type: 'all_in' }); }
           break;
-        // R just focuses the bet/raise — actual amount is via slider
+        case 't':
+          e.preventDefault();
+          send('use_timebank');
+          break;
         default:
           break;
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [isActive, isMyTurn, legalActions, handleAction]);
+  }, [isActive, isMyTurn, legalActions, handleAction, isSitting, isSittingOut, send, lastHandResult, tableState?.config?.bigBlind, mySeat?.stack]);
 
   const handleSitDown = useCallback((amount) => {
     send('sit_down', { seatIndex: buyInSeat, buyIn: amount, displayName, avatarUrl });
@@ -4874,9 +5014,12 @@ function LivePokerTable({
         {seats.map((seat, i) => {
           const pid = seat.player?.id;
           const noteData = pid && String(pid) !== String(userId) ? playerNotes[pid] : null;
-          const noteColorVal = noteData?.player_type && noteData.player_type !== 'unknown'
-            ? 'rgba(255, 215, 0, 0.4)' // Gold tint if tagged
-            : null;
+          const NOTE_TYPE_COLORS = {
+            fish: '#22c55e', shark: '#ef4444', whale: '#3b82f6',
+            nit: '#9ca3af', lag: '#f97316', tag: '#a855f7', reg: '#14b8a6',
+          };
+          const noteColorVal = noteData?.color_label
+            || (noteData?.player_type && noteData.player_type !== 'unknown' ? NOTE_TYPE_COLORS[noteData.player_type] || '#FFD700' : null);
           // Poker position from game state (btn, sb, bb, utg, mp)
           const gamePlayer = tableState?.game?.players?.find(p => String(p.id) === String(pid));
           const gamePosition = gamePlayer?.position || null;

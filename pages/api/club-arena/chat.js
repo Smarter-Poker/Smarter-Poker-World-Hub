@@ -1,4 +1,9 @@
-import { getSupabase } from '../../../src/lib/supabaseClient';
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 /**
  * Chat API — persists table chat messages to club_chat table.
@@ -7,7 +12,7 @@ import { getSupabase } from '../../../src/lib/supabaseClient';
  * GET: load last 50 messages for a table
  */
 export default async function handler(req, res) {
-  const supabase = getSupabase();
+  const supabase = supabaseAdmin;
   const tableId = req.query.tableId || req.body?.tableId;
 
   if (req.method === 'GET') {
