@@ -57,6 +57,8 @@ export default function ReelsPage() {
     const [comments, setComments] = useState([]);
     const [commentText, setCommentText] = useState('');
     const [submittingComment, setSubmittingComment] = useState(false);
+    const [likeBusy, setLikeBusy] = useState(false);
+    const [shareBusy, setShareBusy] = useState(false);
     const containerRef = useRef(null);
     const iframeRef = useRef(null);
     const touchStartY = useRef(0);
@@ -263,7 +265,8 @@ export default function ReelsPage() {
     };
 
     const handleLike = async () => {
-        if (!currentReel) return;
+        if (!currentReel || likeBusy) return;
+        setLikeBusy(true);
         const wasLiked = liked[currentReel.id];
         setLiked(prev => ({ ...prev, [currentReel.id]: !wasLiked }));
         const userId = typeof window !== 'undefined' ? localStorage.getItem('sp-anon-uid') : null;
@@ -277,6 +280,7 @@ export default function ReelsPage() {
                 setLiked(prev => ({ ...prev, [currentReel.id]: wasLiked }));
             }
         }
+        setLikeBusy(false);
     };
 
     const handleComment = async () => {
@@ -311,7 +315,8 @@ export default function ReelsPage() {
     };
 
     const handleShare = async () => {
-        if (!currentReel) return;
+        if (!currentReel || shareBusy) return;
+        setShareBusy(true);
         const url = window.location.origin + '/hub/reels?id=' + currentReel.id;
         try {
             await navigator.clipboard.writeText(url);
@@ -322,11 +327,14 @@ export default function ReelsPage() {
                 authedFetch('/api/social/interactions', {
                     method: 'POST',
                     body: JSON.stringify({ post_id: currentReel.id, user_id: userId, interaction_type: 'share' })
-                }).catch(() => { });
+                }).catch(() => { }).finally(() => setShareBusy(false));
+            } else {
+                setShareBusy(false);
             }
         } catch {
             setShareMsg('Failed');
             setTimeout(() => setShareMsg(''), 2000);
+            setShareBusy(false);
         }
     };
 

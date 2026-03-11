@@ -30,6 +30,8 @@ export default function LivesPage() {
     const [chatMessages, setChatMessages] = useState([]);
     const [chatText, setChatText] = useState('');
     const [submittingChat, setSubmittingChat] = useState(false);
+    const [likeBusy, setLikeBusy] = useState(false);
+    const [shareBusy, setShareBusy] = useState(false);
     const [userId, setUserId] = useState(null);
     const containerRef = useRef(null);
     const videoRefs = useRef({});
@@ -94,7 +96,7 @@ export default function LivesPage() {
         const diff = touchStart - touchEnd;
 
         if (Math.abs(diff) > 50) {
-            if (diff > 0 && CurrentIndex < streams.length - 1) {
+            if (diff > 0 && currentIndex < streams.length - 1) {
                 // Swipe up - next video
                 setCurrentIndex(prev => prev + 1);
             } else if (diff < 0 && currentIndex > 0) {
@@ -107,7 +109,7 @@ export default function LivesPage() {
 
     // Handle wheel scroll
     const handleWheel = useCallback((e) => {
-        if (e.deltaY > 30 && CurrentIndex < streams.length - 1) {
+        if (e.deltaY > 30 && currentIndex < streams.length - 1) {
             setCurrentIndex(prev => prev + 1);
         } else if (e.deltaY < -30 && currentIndex > 0) {
             setCurrentIndex(prev => prev - 1);
@@ -134,7 +136,8 @@ export default function LivesPage() {
     const handleLivelike = async () => {
         // ═══ ACTION GATE: Like requires access ═══
         if (!guardAction()) return;
-        if (!currentStream) return;
+        if (!currentStream || likeBusy) return;
+        setLikeBusy(true);
         const wasLiked = likedStreams[currentStream.id];
         setLikedStreams(prev => ({ ...prev, [currentStream.id]: !wasLiked }));
         const userId = typeof window !== 'undefined' ? localStorage.getItem('sp-anon-uid') : null;
@@ -144,7 +147,9 @@ export default function LivesPage() {
                 body: JSON.stringify({ post_id: currentStream.id, user_id: userId, interaction_type: 'like' })
             }).catch(() => {
                 setLikedStreams(prev => ({ ...prev, [currentStream.id]: wasLiked }));
-            });
+            }).finally(() => setLikeBusy(false));
+        } else {
+            setLikeBusy(false);
         }
     };
 
@@ -184,7 +189,8 @@ export default function LivesPage() {
     const handleLiveShare = async () => {
         // ═══ ACTION GATE: Share requires access ═══
         if (!guardAction()) return;
-        if (!currentStream) return;
+        if (!currentStream || shareBusy) return;
+        setShareBusy(true);
         const url = window.location.origin + '/hub/lives?id=' + currentStream.id;
         try {
             await navigator.clipboard.writeText(url);
@@ -195,11 +201,14 @@ export default function LivesPage() {
                 authedFetch('/api/social/interactions', {
                     method: 'POST',
                     body: JSON.stringify({ post_id: currentStream.id, user_id: userId, interaction_type: 'share' })
-                }).catch(() => { });
+                }).catch(() => { }).finally(() => setShareBusy(false));
+            } else {
+                setShareBusy(false);
             }
         } catch {
             setShareMsg('Failed');
             setTimeout(() => setShareMsg(''), 2000);
+            setShareBusy(false);
         }
     };
 
