@@ -903,6 +903,52 @@ export default function MultiTableView({ supabase, userId, initialTable, onExit 
         onSitOutAll={handleSitOutAll}
       />
 
+      {/* ═══ PHASE 26: MULTI-TABLE HUD DASHBOARD (Bloomberg Bar) ═══ */}
+      {tables.length > 1 && (
+        <div style={{
+          position: 'fixed', top: TAB_BAR_HEIGHT, left: 0, right: 0,
+          height: 36, zIndex: 9999,
+          background: 'linear-gradient(180deg, rgba(15,15,20,0.95) 0%, rgba(10,10,15,0.98) 100%)',
+          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          backdropFilter: 'blur(12px)',
+          display: 'flex', alignItems: 'center', gap: 6,
+          padding: '0 10px', overflowX: 'auto', overflowY: 'hidden',
+          scrollbarWidth: 'none',
+        }}>
+          {tables.map((t, idx) => {
+            const slot = slots.find(s => s?.tableId === t.tableId);
+            const isAction = actionNeeded.has(t.tableId);
+            const isCurrent = activeTable?.tableId === t.tableId;
+            return (
+              <button
+                key={t.tableId}
+                onClick={() => handleSwitch(slots.indexOf(slot))}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  padding: '3px 10px', borderRadius: 6, border: 'none',
+                  background: isCurrent ? 'rgba(255,215,0,0.12)' : isAction ? 'rgba(239,68,68,0.12)' : 'rgba(255,255,255,0.04)',
+                  cursor: 'pointer', flexShrink: 0, transition: 'all 0.2s',
+                  animation: isAction ? 'mtv_tileActionPulse 1.5s ease-in-out infinite alternate' : 'none',
+                }}
+              >
+                {isAction && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#ef4444', boxShadow: '0 0 6px #ef4444', flexShrink: 0 }} />}
+                <span style={{ color: isCurrent ? '#FFD700' : '#B0B3B8', fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap' }}>
+                  {slot?.variant || 'Table'}
+                </span>
+                <span style={{ color: '#666', fontSize: 9, fontVariantNumeric: 'tabular-nums' }}>
+                  {slot?.stakes || ''}
+                </span>
+              </button>
+            );
+          })}
+          {/* Aggregate session total */}
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, paddingLeft: 8 }}>
+            <span style={{ color: '#555', fontSize: 9 }}>TABLES:</span>
+            <span style={{ color: '#FFD700', fontSize: 11, fontWeight: 800 }}>{tables.length}</span>
+          </div>
+        </div>
+      )}
+
       {/* ── Table area (offset below tab bar) ── */}
       <div
         ref={containerRef}

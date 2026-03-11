@@ -22,11 +22,39 @@
  */
 
 export class PokerSoundManager {
+
+  // ═══ PHASE 26: SOUND PACK SYSTEM ═══
+  // Packs modify the synthesis parameters (frequency, waveform, envelope)
+  static PACKS = {
+    casino: {
+      label: 'Casino', waveform: 'sine', filterQ: 1, reverbMix: 0.15,
+      freqMult: 1.0, envAttack: 0.01, envRelease: 1.0,
+    },
+    minimal: {
+      label: 'Minimal', waveform: 'sine', filterQ: 0.5, reverbMix: 0,
+      freqMult: 1.2, envAttack: 0.005, envRelease: 0.5,
+    },
+    retro: {
+      label: 'Retro', waveform: 'square', filterQ: 2, reverbMix: 0,
+      freqMult: 0.8, envAttack: 0.001, envRelease: 0.3,
+    },
+  };
+
   constructor() {
     this._enabled = true;
     this._volume = 0.4;
     this._ctx = null;
     this._initialized = false;
+    // Phase 26: Sound pack + category volumes
+    this._pack = 'casino';
+    this._categoryVolumes = { actions: 1.0, alerts: 1.0, chat: 0.5, ambient: 0.3 };
+    // Load persisted pack from localStorage
+    try {
+      const saved = typeof localStorage !== 'undefined' && localStorage.getItem('poker-sound-pack');
+      if (saved && PokerSoundManager.PACKS[saved]) this._pack = saved;
+      const vols = typeof localStorage !== 'undefined' && localStorage.getItem('poker-sound-volumes');
+      if (vols) Object.assign(this._categoryVolumes, JSON.parse(vols));
+    } catch (_) {}
   }
 
   _getCtx() {
@@ -49,6 +77,51 @@ export class PokerSoundManager {
   get volume() { return this._volume; }
   set muted(val) { this._enabled = !val; }
   get muted() { return !this._enabled; }
+
+  // ═══ Phase 26: Getters & Setters for Packs ═══
+  get soundPack() { return this._pack; }
+  setSoundPack(packName) {
+    if (PokerSoundManager.PACKS[packName]) {
+      this._pack = packName;
+      try { localStorage.setItem('poker-sound-pack', packName); } catch (_) {}
+    }
+  }
+
+  get categoryVolumes() { return { ...this._categoryVolumes }; }
+  setCategoryVolume(category, vol) {
+    this._categoryVolumes[category] = Math.max(0, Math.min(1, vol));
+    try { localStorage.setItem('poker-sound-volumes', JSON.stringify(this._categoryVolumes)); } catch (_) {}
+  }
+
+  get packConfig() { return PokerSoundManager.PACKS[this._pack] || PokerSoundManager.PACKS.casino; }
+
+  /**
+   * Phase 26: Spatial audio panning — play a sound with stereo position
+   * seatIndex: 0-N seat position, totalSeats: max seats at table
+   * Maps to L/R stereo pan from -1 (far left) to +1 (far right)
+   */
+  playSpatial(sound, seatIndex = 0, totalSeats = 9) {
+    if (!this._enabled) return;
+    const ctx = this._getCtx();
+    if (!ctx) return;
+    // Calculate pan position: distribute seats across stereo field
+    const pan = totalSeats > 1 ? ((seatIndex / (totalSeats - 1)) * 2 - 1) * 0.8 : 0;
+    this._currentPan = pan;
+    this.play(sound);
+    this._currentPan = 0; // Reset
+  }
+
+  // Get a connected output node that may include spatial panning
+  _getOutput(ctx) {
+    if (this._currentPan && typeof StereoPannerNode !== 'undefined') {
+      try {
+        const panner = new StereoPannerNode(ctx, { pan: this._currentPan });
+        panner.connect(ctx.destination);
+        return panner;
+      } catch (_) {}
+    }
+    return ctx.destination;
+  }
 
   /**
    * Play a sound by name

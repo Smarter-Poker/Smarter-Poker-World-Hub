@@ -44,6 +44,7 @@ import {
 import ThemePicker from './ThemePicker';
 import PlayerNoteModal from './PlayerNoteModal';
 import PlayerQuickView from './PlayerQuickView';
+import LiveStatsDashboard from './LiveStatsDashboard';
 // ═══════════════════════════════════════════════════════════════════════════
 // BET CHIP ANIMATION — chips fly from player to pot center
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1917,27 +1918,54 @@ function PlayerSeat({
       {/* Chip Count + Chip Stack Visualization */}
       {!isEmpty && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          {/* Mini chip stack tower — height proportional to BBs */}
+          {/* Premium 5-Tier Chip Stack (Phase 26) */}
           {(() => {
             const bb = (typeof stack === 'number' && seat.bigBlind) ? Math.floor(stack / (seat.bigBlind || 1)) : 0;
-            const chipCount = bb >= 100 ? 5 : bb >= 50 ? 4 : bb >= 20 ? 3 : bb >= 5 ? 2 : 1;
-            const CHIP_COLORS = ['#e8e8e8', '#ef4444', '#22c55e', '#1e1e1e', '#a855f7'];
+            // Denomination tiers: White=1BB, Red=5BB, Green=25BB, Black=100BB, Purple=500BB
+            const DENOM = [
+              { color: '#e8e8e8', edge: '#b0b0b0', stripe: '#ccc', min: 0 },    // White
+              { color: '#ef4444', edge: '#b91c1c', stripe: '#fca5a5', min: 5 },  // Red
+              { color: '#22c55e', edge: '#15803d', stripe: '#86efac', min: 25 },  // Green
+              { color: '#1a1a2e', edge: '#0a0a15', stripe: '#666', min: 100 },    // Black
+              { color: '#a855f7', edge: '#7c3aed', stripe: '#d8b4fe', min: 500 }, // Purple
+            ];
+            // Build chips by denomination (up to 8 max for visual clarity)
+            const chips = [];
+            let remaining = bb;
+            for (let d = DENOM.length - 1; d >= 0 && chips.length < 8; d--) {
+              while (remaining >= DENOM[d].min && DENOM[d].min > 0 && chips.length < 8) {
+                chips.push(DENOM[d]);
+                remaining -= DENOM[d].min;
+              }
+            }
+            if (chips.length === 0) chips.push(DENOM[0]); // Always show at least 1
+            chips.reverse(); // Stack from bottom up
             return (
-              <div style={{ display: 'flex', flexDirection: 'column-reverse', alignItems: 'center', gap: 0, marginRight: 1 }}>
-                {Array.from({ length: chipCount }).map((_, ci) => (
+              <div style={{ display: 'flex', flexDirection: 'column-reverse', alignItems: 'center', gap: 0, marginRight: 2 }}>
+                {chips.map((chip, ci) => (
                   <motion.div
-                    key={ci}
-                    initial={{ scale: 0, y: 8 }}
-                    animate={{ scale: 1, y: 0 }}
-                    transition={{ delay: ci * 0.05, duration: 0.2, ease: 'easeOut' }}
+                    key={`chip-${ci}-${chip.color}`}
+                    layout
+                    initial={{ scale: 0, y: 10, opacity: 0 }}
+                    animate={{ scale: 1, y: 0, opacity: 1 }}
+                    exit={{ scale: 0, y: -8, opacity: 0 }}
+                    transition={{ delay: ci * 0.04, duration: 0.25, type: 'spring', stiffness: 400, damping: 20 }}
                     style={{
-                      width: 14, height: 4, borderRadius: 2,
-                      background: `linear-gradient(to bottom, ${CHIP_COLORS[ci % CHIP_COLORS.length]}cc, ${CHIP_COLORS[ci % CHIP_COLORS.length]})`,
-                      border: '0.5px solid rgba(255,255,255,0.35)',
-                      boxShadow: '0 1px 1px rgba(0,0,0,0.4), inset 0 0.5px 0.5px rgba(255,255,255,0.2)',
-                      marginBottom: ci > 0 ? -1 : 0,
+                      width: 16, height: 5, borderRadius: 3,
+                      background: `linear-gradient(180deg, ${chip.color}ee 0%, ${chip.edge} 100%)`,
+                      border: `0.5px solid rgba(255,255,255,0.3)`,
+                      boxShadow: `0 1px 2px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.25)`,
+                      marginBottom: ci > 0 ? -1.5 : 0,
+                      position: 'relative',
+                      overflow: 'hidden',
                     }}
-                  />
+                  >
+                    {/* Edge stripe — gives each chip its denomination identity */}
+                    <div style={{
+                      position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+                      width: 8, height: 1.5, background: chip.stripe, borderRadius: 1, opacity: 0.6,
+                    }} />
+                  </motion.div>
                 ))}
               </div>
             );
@@ -2337,7 +2365,7 @@ function DiscardPanel({ cards, onDiscard }) {
   );
 }
 
-function ActionPanel({ actions, onAction, stack, currentBet, bigBlind, potTotal = 0 }) {
+function ActionPanel({ actions, onAction, stack, currentBet, bigBlind, potTotal = 0, street = 'preflop' }) {
   const [betAmount, setBetAmount] = useState(0);
   const [showSlider, setShowSlider] = useState(false);
   const [customPresets, setCustomPresets] = useState(null);
@@ -2410,20 +2438,45 @@ function ActionPanel({ actions, onAction, stack, currentBet, bigBlind, potTotal 
 
   if (!actions || actions.length === 0) return null;
 
-  // Determine preset multipliers (use custom if available, else default)
-  const p1 = customPresets?.p1 || 0.33; // 33% pot
-  const p2 = customPresets?.p2 || 0.50; // 50% pot
-  const p3 = customPresets?.p3 || 0.67; // 67% pot
-  const p4 = customPresets?.p4 || 1.00; // 100% pot
-  const p5 = customPresets?.p5 || 2.00; // 2x pot
+  // ═══ PHASE 26: SMART GTO BET SIZING ═══
+  // Street-aware presets: Preflop uses BB multiples, Postflop uses pot fractions
+  const isPreflop = street === 'preflop' || street === 'pre';
+  const effectivePot = potTotal || bigBlind * 2;
+  const bb = bigBlind || 2;
 
-  const presets = betOrRaise ? [
-    { label: `${Math.round(p1 * 100)}%`, amount: Math.max(minBet, Math.floor((potTotal || bigBlind * 2) * p1)) },
-    { label: `${Math.round(p2 * 100)}%`, amount: Math.max(minBet, Math.floor((potTotal || bigBlind * 2) * p2)) },
-    { label: `${Math.round(p3 * 100)}%`, amount: Math.max(minBet, Math.floor((potTotal || bigBlind * 2) * p3)) },
-    { label: `${Math.round(p4 * 100)}%`, amount: Math.max(minBet, Math.floor((potTotal || bigBlind * 2) * p4)) },
-    { label: `${p5}x`, amount: Math.max(minBet, Math.floor((potTotal || bigBlind * 2) * p5)) },
-  ].filter(p => p.amount <= maxBet) : [];
+  // Custom user overrides (if user set them)
+  const p1 = customPresets?.p1 || (isPreflop ? null : 0.33);
+  const p2 = customPresets?.p2 || (isPreflop ? null : 0.50);
+  const p3 = customPresets?.p3 || (isPreflop ? null : 0.67);
+  const p4 = customPresets?.p4 || (isPreflop ? null : 1.00);
+  const p5 = customPresets?.p5 || (isPreflop ? null : 1.50);
+
+  const presets = betOrRaise ? (() => {
+    let raw;
+    if (isPreflop && !customPresets) {
+      // GTO preflop sizing: BB multiples
+      raw = [
+        { label: '2.5×', amount: Math.floor(bb * 2.5) },
+        { label: '3×', amount: Math.floor(bb * 3) },
+        { label: '4×', amount: Math.floor(bb * 4) },
+        { label: '5×', amount: Math.floor(bb * 5) },
+      ];
+    } else {
+      // GTO postflop sizing: pot fractions
+      raw = [
+        { label: '⅓', amount: Math.floor(effectivePot * (p1 || 0.33)) },
+        { label: '½', amount: Math.floor(effectivePot * (p2 || 0.50)) },
+        { label: '⅔', amount: Math.floor(effectivePot * (p3 || 0.67)) },
+        { label: 'Pot', amount: Math.floor(effectivePot * (p4 || 1.00)) },
+        { label: '1.5×', amount: Math.floor(effectivePot * (p5 || 1.50)) },
+      ];
+    }
+    return raw
+      .map(p => ({ ...p, amount: Math.max(minBet, p.amount) }))
+      .filter(p => p.amount <= maxBet)
+      // Deduplicate amounts that resolve to the same value
+      .filter((p, i, arr) => i === 0 || p.amount !== arr[i - 1].amount);
+  })() : [];
 
   // Mobile responsive sizing
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 390;
@@ -2599,7 +2652,16 @@ function ActionPanel({ actions, onAction, stack, currentBet, bigBlind, potTotal 
                 </div>
               </div>
             ) : (
-              <div style={{ display: 'flex', gap: 6 }}>
+              <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center' }}>
+                {/* Min quick-jump */}
+                <button
+                  onClick={() => setBetAmount(minBet)}
+                  style={{
+                    background: 'rgba(96,165,250,0.12)', color: '#60a5fa',
+                    border: '1px solid rgba(96,165,250,0.25)', borderRadius: 6,
+                    padding: '3px 7px', fontSize: 10, fontWeight: 700, cursor: 'pointer',
+                  }}
+                >Min</button>
                 {presets.map((p) => (
                   <button
                     key={p.label}
@@ -3354,16 +3416,16 @@ function BuyInDialog({ minBuyIn, maxBuyIn, bigBlind, chipBalance, isClubTable, o
 // CHAT OVERLAY
 // ═══════════════════════════════════════════════════════════════════════════
 
-function ChatOverlay({ messages, onSend }) {
+function ChatOverlay({ messages, onSend, players = [] }) {
   const [text, setText] = useState('');
   const [expanded, setExpanded] = useState(false);
   const [showEmoji, setShowEmoji] = useState(false);
   const listRef = useRef(null);
   const [mutedIds, setMutedIds] = useState([]);
+  const [readCount, setReadCount] = useState(0);
 
   const QUICK_EMOJIS = ['😀', '😂', '😎', '🤔', '👍', '👎', '🔥', '❤️', '💀', '🃏', '♠️', '♦️', '♣️', '♥️', '🏆', '💰', '🤑', '😱', '🤷', 'GG'];
 
-  // Load muted players from localStorage and listen for changes
   useEffect(() => {
     const readMutes = () => {
       try {
@@ -3376,75 +3438,94 @@ function ChatOverlay({ messages, onSend }) {
     return () => window.removeEventListener('ca_mute_updated', readMutes);
   }, []);
 
-  // Filter out messages from muted players (always show dealer/system)
   const filteredMessages = useMemo(() => {
     if (!mutedIds.length) return messages;
     return messages.filter(m => m.type === 'dealer' || !m.senderId || !mutedIds.includes(m.senderId));
   }, [messages, mutedIds]);
 
+  const unreadCount = expanded ? 0 : Math.max(0, filteredMessages.length - readCount);
+  useEffect(() => { if (expanded) setReadCount(filteredMessages.length); }, [expanded, filteredMessages.length]);
+
   useEffect(() => {
-    if (listRef.current) {
-      listRef.current.scrollTop = listRef.current.scrollHeight;
-    }
+    if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
   }, [filteredMessages]);
 
+  const timeAgo = (ts) => {
+    if (!ts) return '';
+    const s = Math.floor((Date.now() - ts) / 1000);
+    if (s < 60) return 'now';
+    if (s < 3600) return `${Math.floor(s / 60)}m`;
+    return `${Math.floor(s / 3600)}h`;
+  };
+
+  const renderText = (t) => {
+    if (!t) return null;
+    return t.split(/(@\w+)/g).map((p, i) =>
+      p.startsWith('@') ? <span key={i} style={{ color: '#FFD700', fontWeight: 800 }}>{p}</span> : p
+    );
+  };
+
+  const pinnedMsg = filteredMessages.find(m => m.pinned);
+
   return (
-    <div
-      style={{
-        position: 'absolute',
-        bottom: 80,
-        left: 10,
-        width: 240,
-        zIndex: 25,
-      }}
-    >
-      {/* Toggle */}
-      <button
-        onClick={() => setExpanded(!expanded)}
-        style={{
-          background: 'rgba(0,0,0,0.6)',
-          color: T.textSecondary,
-          border: '1px solid rgba(255,255,255,0.1)',
-          borderRadius: 8,
-          padding: '4px 10px',
-          fontSize: 11,
-          cursor: 'pointer',
-          marginBottom: 4,
-        }}
-      >
-        💬 {expanded ? 'Hide' : 'Chat'}
-        {!expanded && filteredMessages.length > 0 && (
-          <span style={{ color: T.accent, marginLeft: 4 }}>{filteredMessages.length}</span>
+    <div style={{ position: 'absolute', bottom: 80, left: 10, width: 240, zIndex: 25 }}>
+      <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+        <button
+          onClick={() => setExpanded(!expanded)}
+          style={{
+            background: 'rgba(0,0,0,0.6)', color: T.textSecondary,
+            border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8,
+            padding: '4px 10px', fontSize: 11, cursor: 'pointer', position: 'relative',
+          }}
+        >
+          💬 {expanded ? 'Hide' : 'Chat'}
+          {!expanded && unreadCount > 0 && (
+            <span style={{
+              position: 'absolute', top: -6, right: -6,
+              background: '#ef4444', color: '#fff', borderRadius: '50%',
+              width: 16, height: 16, fontSize: 9, fontWeight: 800,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 0 6px rgba(239,68,68,0.5)',
+            }}>{unreadCount > 9 ? '9+' : unreadCount}</span>
+          )}
+        </button>
+        {expanded && (
+          <motion.button
+            whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+            onClick={() => onSend('GG 🤝')}
+            style={{
+              background: 'rgba(255,215,0,0.15)', color: '#FFD700',
+              border: '1px solid rgba(255,215,0,0.3)', borderRadius: 6,
+              padding: '3px 8px', fontSize: 10, fontWeight: 800, cursor: 'pointer',
+            }}
+          >GG</motion.button>
         )}
-      </button>
+      </div>
 
       <AnimatePresence>
         {expanded && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 180 }}
+            animate={{ opacity: 1, height: 200 }}
             exit={{ opacity: 0, height: 0 }}
             style={{
-              background: 'rgba(0,0,0,0.75)',
-              borderRadius: 8,
+              background: 'rgba(0,0,0,0.75)', borderRadius: 8,
               border: '1px solid rgba(255,255,255,0.1)',
-              display: 'flex',
-              flexDirection: 'column',
-              overflow: 'hidden',
-              backdropFilter: 'blur(10px)',
+              display: 'flex', flexDirection: 'column', overflow: 'hidden',
+              backdropFilter: 'blur(10px)', marginTop: 4,
             }}
           >
-            <div
-              ref={listRef}
-              style={{
-                flex: 1,
-                overflowY: 'auto',
-                padding: 8,
-                fontSize: 11,
-              }}
-            >
+            {pinnedMsg && (
+              <div style={{
+                padding: '4px 8px', background: 'rgba(255,215,0,0.08)',
+                borderBottom: '1px solid rgba(255,215,0,0.15)', fontSize: 10,
+                color: '#FFD700', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4,
+              }}>📌 {pinnedMsg.text || pinnedMsg.message}</div>
+            )}
+
+            <div ref={listRef} style={{ flex: 1, overflowY: 'auto', padding: 8, fontSize: 11 }}>
               {filteredMessages.map((m, i) => (
-                <div key={i} style={{ marginBottom: 3 }}>
+                <div key={i} style={{ marginBottom: 3 }} title={m.timestamp ? timeAgo(m.timestamp) : ''}>
                   {m.type === 'dealer' ? (
                     <span style={{ color: '#F5A623', fontWeight: 600, fontSize: 10, fontStyle: 'italic' }}>🂠 {m.text}</span>
                   ) : m.type === 'emoji' ? (
@@ -3452,7 +3533,8 @@ function ChatOverlay({ messages, onSend }) {
                   ) : (
                     <>
                       <span style={{ color: T.accent, fontWeight: 700 }}>{m.displayName}: </span>
-                      <span style={{ color: T.textPrimary }}>{m.message}</span>
+                      <span style={{ color: T.textPrimary }}>{renderText(m.message)}</span>
+                      {m.timestamp && <span style={{ color: '#555', fontSize: 8, marginLeft: 4 }}>{timeAgo(m.timestamp)}</span>}
                     </>
                   )}
                 </div>
@@ -3461,58 +3543,27 @@ function ChatOverlay({ messages, onSend }) {
 
             <div style={{ display: 'flex', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
               <input
-                type="text"
-                value={text}
+                type="text" value={text}
                 onChange={(e) => setText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && text.trim()) {
-                    onSend(text.trim());
-                    setText('');
-                  }
-                }}
-                placeholder="Type..."
-                style={{
-                  flex: 1,
-                  background: 'transparent',
-                  color: T.textPrimary,
-                  border: 'none',
-                  padding: '6px 8px',
-                  fontSize: 11,
-                  outline: 'none',
-                }}
+                onKeyDown={(e) => { if (e.key === 'Enter' && text.trim()) { onSend(text.trim()); setText(''); } }}
+                placeholder="Type... (use @ to mention)"
+                style={{ flex: 1, background: 'transparent', color: T.textPrimary, border: 'none', padding: '6px 8px', fontSize: 11, outline: 'none' }}
               />
               <button
                 onClick={() => setShowEmoji(!showEmoji)}
-                style={{
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  fontSize: 14, padding: '4px 6px', opacity: showEmoji ? 1 : 0.5,
-                }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, padding: '4px 6px', opacity: showEmoji ? 1 : 0.5 }}
               >😀</button>
             </div>
 
-            {/* Emoji quick picker */}
             <AnimatePresence>
               {showEmoji && (
                 <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  style={{
-                    display: 'flex', flexWrap: 'wrap', gap: 2, padding: '4px 6px',
-                    borderTop: '1px solid rgba(255,255,255,0.08)',
-                    background: 'rgba(0,0,0,0.3)',
-                  }}
+                  initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                  style={{ display: 'flex', flexWrap: 'wrap', gap: 2, padding: '4px 6px', borderTop: '1px solid rgba(255,255,255,0.08)', background: 'rgba(0,0,0,0.3)' }}
                 >
                   {QUICK_EMOJIS.map((em) => (
-                    <button
-                      key={em}
-                      onClick={() => { onSend(em); setShowEmoji(false); }}
-                      style={{
-                        background: 'none', border: 'none', cursor: 'pointer',
-                        fontSize: em.length > 2 ? 9 : 14, padding: '2px 3px',
-                        borderRadius: 4, color: em.length > 2 ? '#FFD700' : undefined,
-                        fontWeight: em.length > 2 ? 800 : undefined,
-                      }}
+                    <button key={em} onClick={() => { onSend(em); setShowEmoji(false); }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: em.length > 2 ? 9 : 14, padding: '2px 3px', borderRadius: 4, color: em.length > 2 ? '#FFD700' : undefined, fontWeight: em.length > 2 ? 800 : undefined }}
                       onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
                       onMouseLeave={e => e.currentTarget.style.background = 'none'}
                     >{em}</button>
@@ -3526,6 +3577,17 @@ function ChatOverlay({ messages, onSend }) {
     </div>
   );
 }
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TABLE INFO BAR
+// ═══════════════════════════════════════════════════════════════════════════
+
+
+
+
+
+
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TABLE INFO BAR
@@ -5270,6 +5332,45 @@ function LivePokerTable({
     return () => { if (unsub) unsub(); };
   }, []);
 
+  // ═══ PHASE 26: SESSION STATS ACCUMULATOR ═══
+  const [showStatsPanel, setShowStatsPanel] = useState(false);
+  const sessionStatsRef = useRef({
+    handsPlayed: 0, handsWon: 0, vpipCount: 0, pfrCount: 0,
+    aggressionBets: 0, aggressionCalls: 0, biggestWin: 0, biggestLoss: 0,
+    plHistory: [0], positionWins: {}, positionTotal: {},
+    sessionStart: Date.now(), startingStack: 0, currentStack: 0,
+  });
+  const [sessionStatsSnap, setSessionStatsSnap] = useState(() => sessionStatsRef.current);
+
+  // Track hands completing for stats
+  useEffect(() => {
+    if (!result || !mySeat) return;
+    const s = sessionStatsRef.current;
+    if (s.startingStack === 0 && mySeat.stack > 0) s.startingStack = mySeat.stack;
+    s.currentStack = mySeat.stack || 0;
+    s.handsPlayed += 1;
+    const netPL = s.currentStack - s.startingStack;
+    s.plHistory = [...s.plHistory, netPL].slice(-50);
+
+    // Did hero win this hand?
+    const heroWon = result?.winners?.some(w => String(w.playerId) === String(userId));
+    if (heroWon) {
+      s.handsWon += 1;
+      const winAmt = result.winners.find(w => String(w.playerId) === String(userId))?.amount || 0;
+      if (winAmt > s.biggestWin) s.biggestWin = winAmt;
+    } else {
+      const lostAmt = result?.invested?.[userId] || 0;
+      if (lostAmt > s.biggestLoss) s.biggestLoss = lostAmt;
+    }
+
+    // Position tracking
+    const pos = mySeat.positionLabel || 'MP';
+    s.positionTotal[pos] = (s.positionTotal[pos] || 0) + 1;
+    if (heroWon) s.positionWins[pos] = (s.positionWins[pos] || 0) + 1;
+
+    setSessionStatsSnap({ ...s });
+  }, [result]);
+
   // Phase 4 Audit Fix: Fetch club chip balance continuously for accurate Auto Top-Up and Rebuy limits
   useEffect(() => {
     if (!tableState?.clubId || !userId) {
@@ -6348,6 +6449,7 @@ function LivePokerTable({
             currentBet={tableState?.game?.currentBet || 0}
             bigBlind={tableState?.config?.bigBlind || tableState?.bigBlind || 2}
             potTotal={tableState?.game?.potTotal || 0}
+            street={tableState?.game?.phase || 'preflop'}
           />
         )}
 
@@ -6704,6 +6806,31 @@ function LivePokerTable({
           send('throw_emoji', { emoji: throwable, throwable, targetId });
         }}
       />
+
+      {/* ═══════════ PHASE 26: LIVE STATS DASHBOARD ═══════════ */}
+      <LiveStatsDashboard
+        isOpen={showStatsPanel}
+        onClose={() => setShowStatsPanel(false)}
+        stats={sessionStatsSnap}
+      />
+      
+      {/* Stats Toggle Button — top-right, beside existing HUD controls */}
+      <div style={{ position: 'absolute', top: 8, right: showStatsPanel ? 276 : 8, zIndex: 55, transition: 'right 0.3s ease' }}>
+        <motion.button
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => setShowStatsPanel(s => !s)}
+          style={{
+            width: 36, height: 36, borderRadius: '50%', border: 'none',
+            background: showStatsPanel ? '#2374E1' : 'rgba(0,0,0,0.6)',
+            color: showStatsPanel ? '#fff' : '#B0B3B8',
+            fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+            backdropFilter: 'blur(8px)',
+          }}
+          title="Session Statistics"
+        >📊</motion.button>
+      </div>
 
       {/* ═══════════ TABLE THEME PICKER ═══════════ */}
       <ThemePicker
