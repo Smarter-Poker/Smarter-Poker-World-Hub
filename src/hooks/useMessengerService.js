@@ -2180,6 +2180,181 @@ ${messages.map(m =>
     }, []);
 
     // ═══════════════════════════════════════════════════════════
+    // Phase 20: Premium Finish & Social Polish
+    // ═══════════════════════════════════════════════════════════
+
+    // ── P20-1: Message Reactions Floating Panel ──
+    const getMessageReactions = useCallback(async (messageId) => {
+        const supabase = getSupabase();
+        if (!supabase || !messageId) return [];
+        try {
+            const { data } = await supabase
+                .from('messenger_reactions')
+                .select('emoji, user_id, created_at')
+                .eq('message_id', messageId)
+                .order('created_at', { ascending: false });
+            return (data || []).map(r => ({
+                emoji: r.emoji,
+                userId: r.user_id,
+                userLabel: r.user_id?.slice(0, 6),
+                reactedAt: r.created_at
+            }));
+        } catch (_) { return []; }
+    }, []);
+
+    // ── P20-2: Contact Insights Card ──
+    const getContactInsights = useCallback((otherUserId) => {
+        if (!otherUserId || !messages.length) return null;
+        const theirMsgs = messages.filter(m => m.sender_id === otherUserId);
+        const myMsgs = messages.filter(m => m.sender_id === currentUser?.id);
+        const mediaMessages = messages.filter(m => m.message_type === 'image' || m.message_type === 'file' || m.message_type === 'voice');
+        const firstMsg = messages[0];
+        const lastMsg = messages[messages.length - 1];
+        // Average response time (in minutes)
+        let totalResponseTime = 0;
+        let responseCount = 0;
+        for (let i = 1; i < messages.length; i++) {
+            if (messages[i].sender_id !== messages[i - 1].sender_id) {
+                const diff = new Date(messages[i].created_at) - new Date(messages[i - 1].created_at);
+                if (diff > 0 && diff < 86400000) { // ignore gaps > 24h
+                    totalResponseTime += diff;
+                    responseCount++;
+                }
+            }
+        }
+        const avgResponseMin = responseCount > 0 ? Math.round((totalResponseTime / responseCount) / 60000) : null;
+        return {
+            totalMessages: messages.length,
+            theirMessages: theirMsgs.length,
+            myMessages: myMsgs.length,
+            sharedMedia: mediaMessages.length,
+            conversationAge: firstMsg ? Math.ceil((Date.now() - new Date(firstMsg.created_at)) / 86400000) : 0,
+            lastActive: lastMsg?.created_at || null,
+            avgResponseTime: avgResponseMin,
+            topEmojis: theirMsgs.filter(m => /[\u{1F600}-\u{1F64F}]/u.test(m.text || '')).length
+        };
+    }, [messages, currentUser]);
+
+    // ── P20-4: Unread Separator Index ──
+    const getUnreadSeparatorIndex = useCallback(() => {
+        if (!messages.length || !currentUser?.id) return -1;
+        for (let i = messages.length - 1; i >= 0; i--) {
+            if (messages[i].sender_id !== currentUser.id && messages[i].read_at) {
+                return i + 1 < messages.length ? i + 1 : -1;
+            }
+        }
+        const firstUnread = messages.findIndex(m => m.sender_id !== currentUser.id && !m.read_at);
+        return firstUnread;
+    }, [messages, currentUser]);
+
+    // ── P20-5: Conversation Theme ──
+    const [conversationTheme, setConversationThemeState] = useState({ accentColor: '#2D88FF', fontSize: 13 });
+
+    useEffect(() => {
+        if (conversationId && svcSettings?.theme) {
+            setConversationThemeState(svcSettings.theme);
+        }
+    }, [conversationId]);
+
+    const setConversationTheme = useCallback(async (theme) => {
+        setConversationThemeState(theme);
+        await saveConversationSettings?.({ ...svcSettings, theme });
+    }, [saveConversationSettings, svcSettings]);
+
+    // ── P20-6: Batch Forward Messages ──
+    const forwardMultipleMessages = useCallback(async (messageIds, targetConversationId) => {
+        if (!messageIds?.length || !targetConversationId) return { success: false, forwarded: 0 };
+        let forwarded = 0;
+        for (const msgId of messageIds) {
+            const result = await forwardMessage(msgId, targetConversationId);
+            if (result) forwarded++;
+        }
+        return { success: forwarded > 0, forwarded };
+    }, [forwardMessage]);
+
+    // ── P20-9: Voice-to-Text Transcription ──
+    const transcribeVoice = useCallback(async (audioUrl) => {
+        if (typeof window === 'undefined' || !audioUrl) return null;
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) return { text: null, error: 'Speech recognition not supported in this browser' };
+        try {
+            const response = await fetch(audioUrl);
+            const blob = await response.blob();
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const arrayBuffer = await blob.arrayBuffer();
+            await audioContext.decodeAudioData(arrayBuffer);
+            // Use MediaRecorder + SpeechRecognition pipeline
+            return new Promise((resolve) => {
+                const recognition = new SpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.lang = 'en-US';
+                let transcript = '';
+                recognition.onresult = (e) => { transcript = e.results[0]?.[0]?.transcript || ''; };
+                recognition.onerror = () => resolve({ text: null, error: 'Transcription failed' });
+                recognition.onend = () => resolve({ text: transcript || null, error: transcript ? null : 'No speech detected' });
+                // Note: SpeechRecognition works with microphone input by default
+                // For pre-recorded audio, we'd need a server-side solution
+                // This provides the framework — returns a helpful message for now
+                resolve({ text: null, error: 'Voice transcription requires microphone input. Server-side transcription coming soon.' });
+            });
+        } catch (e) { return { text: null, error: e.message || 'Transcription failed' }; }
+    }, []);
+
+    // ── P20-10: Conversation Export Formats ──
+    const exportConversation = useCallback((format = 'txt') => {
+        if (!messages.length) return null;
+        const convName = `Conversation_${conversationId?.slice(0, 8) || 'export'}`;
+        const timestamp = new Date().toISOString().slice(0, 10);
+
+        if (format === 'txt') {
+            const lines = messages.map(m => {
+                const time = new Date(m.created_at).toLocaleString();
+                const sender = m.sender_id === currentUser?.id ? 'You' : (m.sender_id?.slice(0, 6) || 'User');
+                return `[${time}] ${sender}: ${m.text || `[${m.message_type}]`}`;
+            });
+            const content = `${convName} — Exported ${timestamp}\n${'='.repeat(50)}\n\n${lines.join('\n')}`;
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = `${convName}_${timestamp}.txt`; a.click();
+            URL.revokeObjectURL(url);
+            return true;
+        }
+
+        if (format === 'html') {
+            const rows = messages.map(m => {
+                const time = new Date(m.created_at).toLocaleString();
+                const sender = m.sender_id === currentUser?.id ? 'You' : (m.sender_id?.slice(0, 6) || 'User');
+                const isMine = m.sender_id === currentUser?.id;
+                return `<div style="margin:4px 0;padding:6px 10px;border-radius:12px;max-width:70%;${isMine ? 'margin-left:auto;background:#2D88FF;color:#fff' : 'background:#3A3B3C;color:#e4e6eb'}"><strong>${sender}</strong> <span style="font-size:10px;opacity:0.7">${time}</span><br>${m.text || `[${m.message_type}]`}</div>`;
+            });
+            const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${convName}</title><style>body{font-family:system-ui;background:#18191A;color:#e4e6eb;max-width:600px;margin:40px auto;padding:20px}h1{font-size:18px}</style></head><body><h1>${convName}</h1><p style="color:#999;font-size:12px">Exported ${timestamp}</p>${rows.join('')}</body></html>`;
+            const blob = new Blob([html], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = `${convName}_${timestamp}.html`; a.click();
+            URL.revokeObjectURL(url);
+            return true;
+        }
+
+        if (format === 'csv') {
+            const csvRows = ['Time,Sender,Type,Text'];
+            messages.forEach(m => {
+                const time = new Date(m.created_at).toISOString();
+                const sender = m.sender_id === currentUser?.id ? 'You' : (m.sender_id?.slice(0, 6) || 'User');
+                const text = (m.text || `[${m.message_type}]`).replace(/"/g, '""');
+                csvRows.push(`"${time}","${sender}","${m.message_type}","${text}"`);
+            });
+            const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = `${convName}_${timestamp}.csv`; a.click();
+            URL.revokeObjectURL(url);
+            return true;
+        }
+
+        return false;
+    }, [messages, conversationId, currentUser]);
+
+    // ═══════════════════════════════════════════════════════════
     // Return Service API
     // ═══════════════════════════════════════════════════════════
     return {
