@@ -880,6 +880,16 @@ export const ChatWindow = ({
         if (action === 'priority') {
             setShowPriorityPicker(showPriorityPicker === msg.id ? null : msg.id);
         }
+        // P9-1: GIF Reaction
+        if (action === 'gif_react') {
+            setShowGifReactionPicker(showGifReactionPicker === msg.id ? null : msg.id);
+            setGifReactionResults([]);
+            setGifReactionSearch('');
+        }
+        // P9-3: Translate
+        if (action === 'translate' && msg.text) {
+            handleTranslate(msg.id, msg.text);
+        }
     };
 
     // P5-2: Handle emoji reaction
@@ -1404,6 +1414,78 @@ export const ChatWindow = ({
                 </div>
             )}
 
+            {/* P9-1: Animated GIF Reaction Picker */}
+            {showGifReactionPicker && (
+                <div className="emoji-picker-overlay" style={{ maxHeight: 320, overflowY: 'auto' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                        <strong>GIF React</strong>
+                        <button style={{ background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => { setShowGifReactionPicker(null); setGifReactionResults([]); setGifReactionSearch(''); }}>✕</button>
+                    </div>
+                    <input
+                        type="text"
+                        placeholder="Search GIF reactions..."
+                        value={gifReactionSearch}
+                        onChange={e => searchGifReactions(e.target.value)}
+                        style={{ width: '100%', border: '1px solid #ddd', borderRadius: 6, padding: '5px 8px', fontSize: 11, marginBottom: 6, boxSizing: 'border-box' }}
+                        autoFocus
+                    />
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
+                        {GIF_REACTION_KEYWORDS.map(kw => (
+                            <button key={kw} onClick={() => searchGifReactions(kw)} style={{ background: gifReactionSearch === kw ? '#0088ff' : '#f0f0f0', color: gifReactionSearch === kw ? '#fff' : '#333', border: 'none', borderRadius: 12, padding: '3px 8px', fontSize: 10, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                                {kw}
+                            </button>
+                        ))}
+                    </div>
+                    {gifReactionResults.length > 0 && (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 4 }}>
+                            {gifReactionResults.map(gif => (
+                                <img
+                                    key={gif.id}
+                                    src={gif.preview || gif.url}
+                                    alt="GIF reaction"
+                                    onClick={() => sendGifReaction(showGifReactionPicker, gif.url)}
+                                    style={{ width: '100%', borderRadius: 6, cursor: 'pointer', maxHeight: 80, objectFit: 'cover' }}
+                                />
+                            ))}
+                        </div>
+                    )}
+                    {gifReactionResults.length === 0 && gifReactionSearch && (
+                        <div style={{ textAlign: 'center', color: '#999', fontSize: 11, padding: 8 }}>Click a keyword or type to search...</div>
+                    )}
+                </div>
+            )}
+
+            {/* P9-2: GIF Search Panel */}
+            {showGifPanel && (
+                <div className="emoji-picker-overlay" style={{ maxHeight: 300, overflowY: 'auto' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                        <strong>Send a GIF</strong>
+                        <button style={{ background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => { setShowGifPanel(false); setGifResults([]); setGifSearchTerm(''); }}>✕</button>
+                    </div>
+                    <input
+                        type="text"
+                        placeholder="Search GIFs..."
+                        value={gifSearchTerm}
+                        onChange={e => handleGifSearch(e.target.value)}
+                        style={{ width: '100%', border: '1px solid #ddd', borderRadius: 6, padding: '5px 8px', fontSize: 11, marginBottom: 6, boxSizing: 'border-box' }}
+                        autoFocus
+                    />
+                    {gifResults.length > 0 && (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
+                            {gifResults.map(gif => (
+                                <img
+                                    key={gif.id}
+                                    src={gif.url}
+                                    alt="GIF"
+                                    onClick={() => sendGif(gif.url)}
+                                    style={{ width: '100%', borderRadius: 6, cursor: 'pointer', maxHeight: 80, objectFit: 'cover' }}
+                                />
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
             {/* P5-6: Edit Modal */}
             {editingMsg && (
                 <div style={{ padding: '6px 8px', background: '#fff9e6', borderBottom: '1px solid #ffd700', fontSize: 11 }}>
@@ -1528,6 +1610,12 @@ export const ChatWindow = ({
                     <button className="input-btn" onClick={() => setShowTemplates(!showTemplates)} title="Templates">📋</button>
                     <button className="input-btn" onClick={() => fileInputRef.current?.click()} title="Attach File">📎</button>
                     <input type="file" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileUpload} />
+                    {/* P9-2: GIF Search */}
+                    <button className="input-btn" onClick={() => setShowGifPanel(!showGifPanel)} title="Send GIF" style={{ color: showGifPanel ? '#0088ff' : undefined }}>GIF</button>
+                    {/* P9-4: Contact Card */}
+                    <button className="input-btn" onClick={sendContactCard} title="Share Contact Card">📇</button>
+                    {/* P9-5: Location Sharing */}
+                    <button className="input-btn" onClick={handleShareLocation} title="Share Location" disabled={sharingLocation} style={{ opacity: sharingLocation ? 0.5 : 1 }}>📍</button>
                     {/* P5-3 & P8-2: MediaRecorder UI */}
                     <button className={`input-btn ${isRecording ? 'recording' : ''}`} onClick={isRecording ? stopRecording : startRecording} title={isRecording ? 'Stop Recording' : 'Voice Message'}>
                         {isRecording ? <span style={{fontSize: 12, fontWeight: 'bold', color: 'red'}}>🔴 {Math.floor(recordingTime/60)}:{(recordingTime%60).toString().padStart(2, '0')}</span> : '🎤'}

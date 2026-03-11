@@ -4243,9 +4243,10 @@ function LivePokerTable({
 
   // ═══ RUN-IT-TWICE / THRICE PROMPT (from backend result.runItOffer) ═══
   const offer = result?.runItOffer;
-  const isRitOfferActive = !!offer && (offer.proposerId === String(userId) || offer.responderIds.includes(String(userId)));
-  const isRitProposer = offer?.proposerId === String(userId);
-  const isRitResponder = offer?.responderIds.includes(String(userId));
+  const offerResponders = Array.isArray(offer?.responderIds) ? offer.responderIds : [];
+  const isRitOfferActive = !!offer && (String(offer.proposerId) === String(userId) || offerResponders.includes(String(userId)));
+  const isRitProposer = !!offer && String(offer.proposerId) === String(userId);
+  const isRitResponder = offerResponders.includes(String(userId));
 
   const handleRITResponse = useCallback((choice) => {
     send('respond_run_it', { choice });
@@ -4277,6 +4278,7 @@ function LivePokerTable({
     let autoAction = null;
     switch (preAction) {
       case 'fold':
+      case 'fold_any':
         if (canFold) autoAction = { type: 'fold' };
         break;
       case 'check_fold':
@@ -4295,6 +4297,13 @@ function LivePokerTable({
       const timer = setTimeout(() => {
         send('player_action', { action: autoAction });
         setPreAction(null);
+        // Play sound + haptic for auto-action
+        const sm = soundRef.current;
+        if (sm) {
+          const soundMap = { fold: 'fold', check: 'check', call: 'call' };
+          if (soundMap[autoAction.type]) sm.play(soundMap[autoAction.type]);
+        }
+        if (hapticEnabled) haptic(autoAction.type === 'fold' ? 'light' : 'medium');
         // Visual feedback — show what pre-action fired
         setPreActionFired({ action: autoAction.type, ts: Date.now() });
         // Clear feedback after 2s (safe — component-level cleanup via key-based AnimatePresence)
@@ -4308,7 +4317,7 @@ function LivePokerTable({
       // Pre-action doesn't match — clear it, let player decide manually
       setPreAction(null);
     }
-  }, [isMyTurn, legalActions, preAction, send]);
+  }, [isMyTurn, legalActions, preAction, send, hapticEnabled]);
 
   // Clear pre-action when hand ends, and process Auto Top-Up
   useEffect(() => {

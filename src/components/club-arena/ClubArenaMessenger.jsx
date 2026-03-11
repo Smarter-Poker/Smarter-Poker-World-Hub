@@ -59,11 +59,18 @@ const SMART_REPLIES = [
     { trigger: ['when', 'time', 'schedule'], replies: ['Let me check...', 'I\'ll get back to you', 'What time works?'] }
 ];
 
-// P5-2: Emoji categories for reaction picker
+// P5-2: Emoji categories for reaction picker (original)
 const EMOJI_GRID = [
     { cat: 'Smileys', emojis: ['😀','😂','🤣','😍','😎','🤩','😜','🤔','😱','😡','😢','🤯'] },
     { cat: 'Hands', emojis: ['👍','👎','👏','🙌','🤝','✌️','🤞','💪','❤️','🔥','⭐','🎰'] },
     { cat: 'Poker', emojis: ['🃏','♠️','♥️','♦️','♣️','💰','💵','🏆','🎯','🎲','🧪','🚀'] }
+];
+
+// P9-1: Animated GIF Reaction Keywords (Tenor search prompts)
+const GIF_REACTION_KEYWORDS = [
+    'thumbs up', 'clapping', 'laughing', 'mind blown', 'crying', 'angry',
+    'eye roll', 'slow clap', 'mic drop', 'deal with it', 'facepalm',
+    'celebration', 'poker face', 'money rain', 'high five', 'shocked'
 ];
 
 // P5-7: Auto-link detector
@@ -517,6 +524,22 @@ export const ChatWindow = ({
     const [showPriorityPicker, setShowPriorityPicker] = useState(null);
     const [showGroupCreate, setShowGroupCreate] = useState(false);
     const [groupParticipants, setGroupParticipants] = useState([]);
+
+    // P9-1: GIF Reaction State
+    const [showGifReactionPicker, setShowGifReactionPicker] = useState(null);
+    const [gifReactionResults, setGifReactionResults] = useState([]);
+    const [gifReactionSearch, setGifReactionSearch] = useState('');
+
+    // P9-2: GIF Search State
+    const [showGifPanel, setShowGifPanel] = useState(false);
+    const [gifSearchTerm, setGifSearchTerm] = useState('');
+    const [gifResults, setGifResults] = useState([]);
+    // P9-3: Translation State
+    const [translatedMsgs, setTranslatedMsgs] = useState({});
+    // P9-5: Location Sharing State
+    const [sharingLocation, setSharingLocation] = useState(false);
+    // P9-6: Group Admin State
+    const [showGroupAdmin, setShowGroupAdmin] = useState(false);
     
     // P7-6: Lightbox State
     const [lightboxImage, setLightboxImage] = useState(null);
@@ -859,6 +882,16 @@ export const ChatWindow = ({
         if (action === 'priority') {
             setShowPriorityPicker(showPriorityPicker === msg.id ? null : msg.id);
         }
+        // P9-1: GIF Reaction
+        if (action === 'gif_react') {
+            setShowGifReactionPicker(showGifReactionPicker === msg.id ? null : msg.id);
+            setGifReactionResults([]);
+            setGifReactionSearch('');
+        }
+        // P9-3: Translate
+        if (action === 'translate' && msg.text) {
+            handleTranslate(msg.id, msg.text);
+        }
     };
 
     // P5-2: Handle emoji reaction
@@ -870,6 +903,88 @@ export const ChatWindow = ({
             return { ...p, reactions: { ...p.reactions, [msgId]: exists ? current.filter(r => !(r.emoji === emoji && r.by === currentUser?.name)) : [...current, { emoji, by: currentUser?.name || 'You' }] } };
         });
         setShowEmojiPicker(null);
+    };
+
+    // P9-1: GIF Reaction Handler
+    const searchGifReactions = async (keyword) => {
+        setGifReactionSearch(keyword);
+        if (!keyword.trim()) { setGifReactionResults([]); return; }
+        try {
+            const res = await fetch(`https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(keyword + ' reaction')}&key=AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ&client_key=ca_messenger&limit=8&media_filter=tinygif`);
+            const data = await res.json();
+            setGifReactionResults((data.results || []).map(r => ({
+                id: r.id,
+                url: r.media_formats?.tinygif?.url || r.media_formats?.gif?.url || '',
+                preview: r.media_formats?.nanogif?.url || r.media_formats?.tinygif?.url || ''
+            })));
+        } catch (err) { console.warn('[GIF Reaction] Tenor search failed:', err); }
+    };
+
+    const sendGifReaction = (msgId, gifUrl) => {
+        updatePrefs(p => {
+            const current = p.reactions[msgId] || [];
+            return { ...p, reactions: { ...p.reactions, [msgId]: [...current, { emoji: `gif:${gifUrl}`, by: currentUser?.name || 'You' }] } };
+        });
+        busEmit.messageReacted(conversationId, msgId, 'gif_reaction');
+        setShowGifReactionPicker(null);
+        setGifReactionResults([]);
+        setGifReactionSearch('');
+    };
+
+    // P9-2: GIF Search Handler
+    const handleGifSearch = async (query) => {
+        setGifSearchTerm(query);
+        if (!query.trim()) { setGifResults([]); return; }
+        try {
+            const res = await fetch(`https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(query)}&key=AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ&client_key=ca_messenger&limit=12`);
+            const data = await res.json();
+            setGifResults((data.results || []).map(r => ({ id: r.id, url: r.media_formats?.gif?.url || r.media_formats?.tinygif?.url || '' })));
+        } catch (err) { console.warn('[GIF] Tenor search failed:', err); }
+    };
+
+    const sendGif = (gifUrl) => {
+        onSend?.('', { image: gifUrl, file: { name: 'GIF', type: 'image/gif' } });
+        setShowGifPanel(false);
+        setGifSearchTerm('');
+        setGifResults([]);
+        busEmit.messageSent(conversationId, otherUser?.id);
+    };
+
+    // P9-3: Auto-Translate Message
+    const handleTranslate = async (msgId, text) => {
+        if (translatedMsgs[msgId]) return;
+        try {
+            const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=autodetect|en`);
+            const data = await res.json();
+            if (data?.responseData?.translatedText) {
+                setTranslatedMsgs(prev => ({ ...prev, [msgId]: data.responseData.translatedText }));
+            }
+        } catch (err) { console.warn('[Translate] Failed:', err); }
+    };
+
+    // P9-4: Contact Card Sharing
+    const sendContactCard = () => {
+        if (!currentUser) return;
+        const cardPayload = JSON.stringify({ type: 'contact_card', name: currentUser.name, avatar: currentUser.avatar, id: currentUser.id });
+        onSend?.(`📇 Contact Card: ${currentUser.name}`, { contactCard: cardPayload });
+        busEmit.messageSent(conversationId, otherUser?.id);
+    };
+
+    // P9-5: Location Sharing
+    const handleShareLocation = () => {
+        if (!navigator.geolocation) { alert('Geolocation not supported'); return; }
+        setSharingLocation(true);
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                const { latitude, longitude } = pos.coords;
+                const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${latitude},${longitude}&zoom=15&size=300x200&markers=color:red|${latitude},${longitude}&key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8`;
+                onSend?.(`📍 Location: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`, { image: mapUrl, location: { lat: latitude, lng: longitude } });
+                setSharingLocation(false);
+                busEmit.messageSent(conversationId, otherUser?.id);
+            },
+            (err) => { console.error('[Location] Failed:', err); alert('Location access denied.'); setSharingLocation(false); },
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
     };
 
     // P5-6: Save edit
@@ -1301,6 +1416,87 @@ export const ChatWindow = ({
                 </div>
             )}
 
+            {/* P9-1: Animated GIF Reaction Picker */}
+            {showGifReactionPicker && (
+                <div className="emoji-picker-overlay" style={{ maxHeight: 320, overflowY: 'auto' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                        <strong>GIF React</strong>
+                        <button style={{ background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => { setShowGifReactionPicker(null); setGifReactionResults([]); setGifReactionSearch(''); }}>✕</button>
+                    </div>
+                    <input
+                        type="text"
+                        placeholder="Search GIF reactions..."
+                        value={gifReactionSearch}
+                        onChange={e => searchGifReactions(e.target.value)}
+                        style={{ width: '100%', border: '1px solid #ddd', borderRadius: 6, padding: '5px 8px', fontSize: 11, marginBottom: 6, boxSizing: 'border-box' }}
+                        autoFocus
+                    />
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
+                        {GIF_REACTION_KEYWORDS.map(kw => (
+                            <button key={kw} onClick={() => searchGifReactions(kw)} style={{ background: gifReactionSearch === kw ? '#0088ff' : '#f0f0f0', color: gifReactionSearch === kw ? '#fff' : '#333', border: 'none', borderRadius: 12, padding: '3px 8px', fontSize: 10, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                                {kw}
+                            </button>
+                        ))}
+                    </div>
+                    {gifReactionResults.length > 0 && (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 4 }}>
+                            {gifReactionResults.map(gif => (
+                                <img key={gif.id} src={gif.preview || gif.url} alt="GIF reaction" onClick={() => sendGifReaction(showGifReactionPicker, gif.url)} style={{ width: '100%', borderRadius: 6, cursor: 'pointer', maxHeight: 80, objectFit: 'cover' }} />
+                            ))}
+                        </div>
+                    )}
+                    {gifReactionResults.length === 0 && gifReactionSearch && (
+                        <div style={{ textAlign: 'center', color: '#999', fontSize: 11, padding: 8 }}>Click a keyword or type to search...</div>
+                    )}
+                </div>
+            )}
+
+            {/* P9-2: GIF Search Panel */}
+            {showGifPanel && (
+                <div className="emoji-picker-overlay" style={{ maxHeight: 300, overflowY: 'auto' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                        <strong>Send a GIF</strong>
+                        <button style={{ background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => { setShowGifPanel(false); setGifResults([]); setGifSearchTerm(''); }}>✕</button>
+                    </div>
+                    <input
+                        type="text"
+                        placeholder="Search GIFs..."
+                        value={gifSearchTerm}
+                        onChange={e => handleGifSearch(e.target.value)}
+                        style={{ width: '100%', border: '1px solid #ddd', borderRadius: 6, padding: '5px 8px', fontSize: 11, marginBottom: 6, boxSizing: 'border-box' }}
+                        autoFocus
+                    />
+                    {gifResults.length > 0 && (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
+                            {gifResults.map(gif => (
+                                <img key={gif.id} src={gif.url} alt="GIF" onClick={() => sendGif(gif.url)} style={{ width: '100%', borderRadius: 6, cursor: 'pointer', maxHeight: 80, objectFit: 'cover' }} />
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* P9-6: Group Admin Panel (Club Arena Only) */}
+            {showGroupAdmin && isAdmin && (
+                <div style={{ padding: '8px 12px', background: '#f8f9fa', borderBottom: '2px solid #0088ff', fontSize: 11 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                        <strong style={{ fontSize: 13 }}>Group Administration</strong>
+                        <button style={{ background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setShowGroupAdmin(false)}>✕</button>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                        <button style={{ background: '#0088ff', color: 'white', border: 'none', borderRadius: 6, padding: '6px 10px', cursor: 'pointer', fontSize: 11 }}>Add Member</button>
+                        <button style={{ background: '#E41E3F', color: 'white', border: 'none', borderRadius: 6, padding: '6px 10px', cursor: 'pointer', fontSize: 11 }}>Remove Member</button>
+                        <button style={{ background: '#ff9800', color: 'white', border: 'none', borderRadius: 6, padding: '6px 10px', cursor: 'pointer', fontSize: 11 }}>Assign Moderator</button>
+                        <button style={{ background: '#4caf50', color: 'white', border: 'none', borderRadius: 6, padding: '6px 10px', cursor: 'pointer', fontSize: 11 }}>Set Group Name</button>
+                        <button style={{ background: '#9c27b0', color: 'white', border: 'none', borderRadius: 6, padding: '6px 10px', cursor: 'pointer', fontSize: 11 }}>Set Group Avatar</button>
+                        <button style={{ background: '#607d8b', color: 'white', border: 'none', borderRadius: 6, padding: '6px 10px', cursor: 'pointer', fontSize: 11 }}>Manage Permissions</button>
+                    </div>
+                    <div style={{ marginTop: 8, padding: '4px 8px', background: '#e3f2fd', borderRadius: 6, fontSize: 10, color: '#1565c0' }}>
+                        Admin controls for managing group chat participants, roles, and permissions within the Club Arena hierarchy.
+                    </div>
+                </div>
+            )}
+
             {/* P5-6: Edit Modal */}
             {editingMsg && (
                 <div style={{ padding: '6px 8px', background: '#fff9e6', borderBottom: '1px solid #ffd700', fontSize: 11 }}>
@@ -1425,6 +1621,14 @@ export const ChatWindow = ({
                     <button className="input-btn" onClick={() => setShowTemplates(!showTemplates)} title="Templates">📋</button>
                     <button className="input-btn" onClick={() => fileInputRef.current?.click()} title="Attach File">📎</button>
                     <input type="file" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileUpload} />
+                    {/* P9-2: GIF Search */}
+                    <button className="input-btn" onClick={() => setShowGifPanel(!showGifPanel)} title="Send GIF" style={{ color: showGifPanel ? '#0088ff' : undefined }}>GIF</button>
+                    {/* P9-4: Contact Card */}
+                    <button className="input-btn" onClick={sendContactCard} title="Share Contact Card">📇</button>
+                    {/* P9-5: Location Sharing */}
+                    <button className="input-btn" onClick={handleShareLocation} title="Share Location" disabled={sharingLocation} style={{ opacity: sharingLocation ? 0.5 : 1 }}>📍</button>
+                    {/* P9-6: Group Admin (Club Arena Only) */}
+                    {isAdmin && <button className="input-btn" onClick={() => setShowGroupAdmin(!showGroupAdmin)} title="Group Admin" style={{ color: showGroupAdmin ? '#0088ff' : undefined }}>⚙️</button>}
                     {/* P5-3 & P8-2: MediaRecorder UI */}
                     <button className={`input-btn ${isRecording ? 'recording' : ''}`} onClick={isRecording ? stopRecording : startRecording} title={isRecording ? 'Stop Recording' : 'Voice Message'}>
                         {isRecording ? <span style={{fontSize: 12, fontWeight: 'bold', color: 'red'}}>🔴 {Math.floor(recordingTime/60)}:{(recordingTime%60).toString().padStart(2, '0')}</span> : '🎤'}
