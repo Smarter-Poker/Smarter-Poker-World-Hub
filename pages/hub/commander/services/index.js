@@ -10,7 +10,7 @@ import Head from 'next/head';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { supabase } from '../../../../src/lib/supabase';
-import { getAccessToken } from '../../../../src/lib/authUtils';
+import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
 import {
   Coffee,
   Coins,
@@ -289,12 +289,7 @@ export default function ServicesPage() {
 
   const [selectedType, setSelectedType] = useState(null);
 
-  useEffect(() => {
-    (async () => {
-    const token = getAccessToken();
-    if (!token) router.push('/auth/login?redirect=/hub/commander/services');
-    })();
-  }, [router]);
+  const { checking: authChecking } = useRequireAuth('/hub/commander/services');
   // Realtime listener — live updates for services/index.js
   useEffect(() => {
     if (!user?.id) return;

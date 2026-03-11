@@ -11,7 +11,7 @@ import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
-import { getAccessToken, getAuthUser } from '../../src/lib/authUtils';
+import { useRequireAuth, getAccessToken, getAuthUser } from '../../src/lib/authUtils';
 import SEOHead from '../../src/components/seo/SEOHead';
 import {
     Trophy, DollarSign, Users, Calendar, Loader2,
@@ -27,19 +27,9 @@ function ordinal(n) {
 
 export default function MyTournaments() {
     const router = useRouter();
-    const [sessionToken, setSessionToken] = useState(null);
-    const [authChecked, setAuthChecked] = useState(false);
-
-    // Get session token once, redirect if unauthenticated
-    useEffect(() => {
-        const tok = getAccessToken();
-        if (!tok) {
-            router.push('/auth/login?redirect=/hub/my-tournaments');
-        } else {
-            setSessionToken(tok);
-        }
-        setAuthChecked(true);
-    }, []);
+    // Resilient auth gate — waits for Supabase session to stabilize
+    const { user: authUser, checking: authChecking } = useRequireAuth('/hub/my-tournaments');
+    const sessionToken = authChecking ? null : getAccessToken();
 
     // SWR-backed tournament fetch — only fires once token is available
     const { data: swrData, isLoading: swrLoading, mutate } = useSWR(
@@ -85,7 +75,7 @@ export default function MyTournaments() {
         };
     }, [sessionToken, mutate]);
 
-    const loading = !authChecked || swrLoading;
+    const loading = authChecking || swrLoading;
     const tournaments = swrData || [];
     const stats = {
         played: tournaments.length,

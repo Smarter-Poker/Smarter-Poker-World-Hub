@@ -8,7 +8,7 @@ import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { ArrowLeft, Bell, Eye, Shield, Save, Loader2 } from 'lucide-react';
-import { getAccessToken } from '../../../../src/lib/authUtils';
+import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
 
 function ToggleSetting({ label, description, value, onChange }) {
   return (
@@ -45,12 +45,7 @@ export default function ProfileSettingsPage() {
     display_compact_mode: false
   });
 
-  useEffect(() => {
-    (async () => {
-    const token = getAccessToken();
-    if (!token) router.push('/auth/login?redirect=/hub/commander/profile/settings');
-    })();
-  }, [router]);
+  const { checking: authChecking } = useRequireAuth('/hub/commander/profile/settings');
 
   const { isLoading: loading } = useSWR('/api/commander/profile', async (url) => {
     const token = getAccessToken();

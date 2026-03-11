@@ -10,7 +10,7 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import { Users, Plus, Clock, UserPlus, Check, X } from 'lucide-react';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { supabase } from '../../../../src/lib/supabase';
-import { getAccessToken } from '../../../../src/lib/authUtils';
+import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
 
 function SquadCard({ squad, onView }) {
   const statusColors = {
@@ -90,14 +90,7 @@ function EmptyState({ onCreateSquad }) {
 export default function SquadsPage() {
   const router = useRouter();
 
-  useEffect(() => {    const _c = new AbortController();
-    (async () => {
-  
-      const token = getAccessToken();
-      if (!token) router.push('/auth/login?redirect=/hub/commander/squads');
-      return () => _c.abort();
-    })();
-  }, [router]);
+  const { checking: authChecking } = useRequireAuth('/hub/commander/squads');
   // Realtime listener — live updates for squads/index.js
   useEffect(() => {
     if (!user?.id) return;

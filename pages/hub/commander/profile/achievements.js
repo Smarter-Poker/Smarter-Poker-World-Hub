@@ -9,18 +9,13 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { ArrowLeft, Award, Star, Lock } from 'lucide-react';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
-import { getAccessToken } from '../../../../src/lib/authUtils';
+import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
 
 export default function AchievementsPage() {
   const router = useRouter();
   const [filter, setFilter] = useState('all');
 
-  useEffect(() => {
-    (async () => {
-    const token = getAccessToken();
-    if (!token) router.push('/auth/login?redirect=/hub/commander/profile/achievements');
-    })();
-  }, [router]);
+  const { checking: authChecking } = useRequireAuth('/hub/commander/profile/achievements');
 
   const { data: swrData, isLoading: loading } = useSWR('/api/commander/profile', async (url) => {
     const token = getAccessToken();

@@ -20,7 +20,7 @@ import {
   Lock,
   Calendar
 } from 'lucide-react';
-import { getAccessToken } from '../../../../src/lib/authUtils';
+import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
 
 function LimitCard({ icon: Icon, label, value, onChange, max, unit = '$' }) {
   return (
@@ -87,12 +87,7 @@ export default function ResponsibleGamingPage() {
   const [saveMessage, setSaveMessage] = useState(null);
   const [riskStatus, setRiskStatus] = useState(null);
 
-  useEffect(() => {
-    (async () => {
-    const token = getAccessToken();
-    if (!token) router.push('/auth/login?redirect=/hub/commander/responsible-gaming');
-    })();
-  }, [router]);
+  const { checking: authChecking } = useRequireAuth('/hub/commander/responsible-gaming');
 
   const { isLoading: loading, mutate: refreshSettings } = useSWR(
     '/api/commander/responsible-gaming/limits',

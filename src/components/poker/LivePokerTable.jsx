@@ -5172,6 +5172,7 @@ function LivePokerTable({
   // Sound triggers based on game events
   const prevPhaseRef = useRef(null);
   const prevResultRef = useRef(null);
+  const prevLastActionRef = useRef(null);
   useEffect(() => {
     const sm = soundRef.current;
     if (!sm || !tableState?.game) return;
@@ -5187,7 +5188,16 @@ function LivePokerTable({
       }
       prevPhaseRef.current = phase;
     }
-  }, [tableState?.game?.phase, isActive, hapticEnabled]);
+    // G3: ALL-IN SOUND TRIGGER
+    const lastAction = tableState.game.lastAction;
+    if (lastAction && lastAction !== prevLastActionRef.current) {
+      prevLastActionRef.current = lastAction;
+      if (isActive && lastAction.type === 'all_in') {
+        sm.play('allIn');
+        if (hapticEnabled) haptic('allIn');
+      }
+    }
+  }, [tableState?.game?.phase, tableState?.game?.lastAction, isActive, hapticEnabled]);
 
   // Sound for results (win/lose)
   useEffect(() => {
@@ -5444,30 +5454,28 @@ function LivePokerTable({
     try { return JSON.parse(localStorage.getItem('poker-seat-prefs') || '{}'); } catch { return {}; }
   });
 
-  // ═══ WAVE F: PRE-ACTION AUTO-EXECUTE ═══
+  // (Pre-action auto-execute handled at L5580+ with full sound/haptic/visual feedback)
+
+  // ═══ WAVE F: RABBIT HUNT TRIGGER ═══
+  // When result arrives and hero folded, show remaining community cards
   useEffect(() => {
-    if (!isMyTurn || !legalActions?.length || !preAction) return;
-    const canFold = legalActions.some(a => a.type === 'fold');
-    const canCheck = legalActions.some(a => a.type === 'check');
-    const canCall = legalActions.find(a => a.type === 'call');
-    
-    if (preAction === 'fold_any' && canFold) {
-      handleAction({ type: 'fold' });
-      setPreAction(null);
-    } else if (preAction === 'check_fold') {
-      if (canCheck) { handleAction({ type: 'check' }); setPreAction(null); }
-      else if (canFold) { handleAction({ type: 'fold' }); setPreAction(null); }
-      else setPreAction(null); // Clear if neither available
-    } else if (preAction === 'check' && canCheck) {
-      handleAction({ type: 'check' });
-      setPreAction(null);
-    } else if (preAction === 'call_any' && canCall) {
-      handleAction({ type: 'call' });
-      setPreAction(null);
-    } else {
-      // Pre-action not applicable for current situation — keep it but don't auto-fire
+    if (!result || !rabbitHuntEnabled || !isSitting) return;
+    // Check if hero folded this hand
+    const heroFolded = result.foldedPlayerIds?.includes(String(userId));
+    if (!heroFolded) return;
+    // Get the community cards that were dealt
+    const board = result.communityCards || result.board || tableState?.game?.communityCards || [];
+    // Only show rabbit hunt if hand ended before river (< 5 community cards)
+    if (board.length >= 5) return;
+    // Generate placeholder remaining cards
+    const remaining = Array(5 - board.length).fill('?');
+    // If result has full board data (some engines provide this), use real cards
+    if (result.fullBoard?.length > board.length) {
+      const extras = result.fullBoard.slice(board.length);
+      for (let i = 0; i < extras.length && i < remaining.length; i++) remaining[i] = extras[i];
     }
-  }, [isMyTurn, legalActions, preAction, handleAction]);
+    setRabbitHuntCards(remaining);
+  }, [result, rabbitHuntEnabled, isSitting, userId, tableState?.game?.communityCards]);
 
   // ═══ WAVE F: SEAT PREFERENCE MEMORY ═══
   useEffect(() => {
@@ -6269,6 +6277,15 @@ function LivePokerTable({
               showHUD={showHUD}
               fourColorDeck={fourColorDeck}
             />
+            {/* G2: AutoTopUpBadge — rendered on hero seat */}
+            {pid != null && String(pid) === String(userId) && (
+              <AutoTopUpBadge
+                isOn={autoTopUpOn}
+                onToggle={handleToggleAutoTopUp}
+                stack={seat.stack || 0}
+                maxBuyIn={tableState?.config?.maxBuyIn || 0}
+              />
+            )}
           );
         })}
       </div>

@@ -10,7 +10,7 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import { Bell, MapPin, Clock, Users, Gift, Trophy, AlertCircle, Check, Trash2 } from 'lucide-react';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { supabase } from '../../../../src/lib/supabase';
-import { getAccessToken } from '../../../../src/lib/authUtils';
+import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
 
 const NOTIFICATION_ICONS = {
   seat_available: Users,
@@ -104,16 +104,9 @@ export default function PlayerNotificationsPage() {
   const [filter, setFilter] = useState('all'); // 'all', 'unread'
   const [notifications, setNotifications] = useState([]);
 
-  const getToken = async () => {
-    const token = getAccessToken();
-    return session?.access_token || null;
-  };
+  const { checking: authChecking } = useRequireAuth('/hub/commander/notifications');
 
-  useEffect(() => {
-    getToken().then(token => {
-      if (!token) router.push('/auth/login?redirect=/hub/commander/notifications');
-    });
-  }, [router]);
+  const getToken = () => getAccessToken();
   // Realtime listener — live updates for notifications/index.js
   useEffect(() => {
     if (!user?.id) return;

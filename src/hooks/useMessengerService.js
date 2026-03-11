@@ -1112,6 +1112,258 @@ export function useMessengerService({ conversationId, currentUser, messengerType
     }, [conversationId, loadPinnedMessages]);
 
     // ═══════════════════════════════════════════════════════════
+    // Phase 15: Group Management, Security & Cross-Platform
+    // ═══════════════════════════════════════════════════════════
+
+    // ── P15-1: Create Group Conversation ──
+    const createGroupConversation = useCallback(async ({ name, participants = [], avatar = null }) => {
+        const supabase = getSupabase();
+        if (!supabase || !currentUser?.id) return null;
+        try {
+            const { data: conv } = await supabase
+                .from('messenger_conversations')
+                .insert({
+                    type: 'group',
+                    name: name || 'New Group',
+                    avatar_url: avatar,
+                    metadata: { admin_ids: [currentUser.id], created_by: currentUser.id }
+                })
+                .select()
+                .maybeSingle();
+            if (!conv) return null;
+            const participantRows = [currentUser.id, ...participants].map(uid => ({
+                conversation_id: conv.id,
+                user_id: uid,
+                role: uid === currentUser.id ? 'admin' : 'member'
+            }));
+            await supabase.from('messenger_participants').insert(participantRows);
+            return conv;
+        } catch (_) { return null; }
+    }, [currentUser]);
+
+    // ── P15-2: Update Group Settings ──
+    const updateGroupSettings = useCallback(async (settings = {}) => {
+        const supabase = getSupabase();
+        if (!supabase || !conversationId) return false;
+        try {
+            const update = {};
+            if (settings.name) update.name = settings.name;
+            if (settings.avatar_url) update.avatar_url = settings.avatar_url;
+            if (settings.metadata) update.metadata = settings.metadata;
+            await supabase.from('messenger_conversations').update(update).eq('id', conversationId);
+            return true;
+        } catch (_) { return false; }
+    }, [conversationId]);
+
+    // ── P15-3: Add/Remove Group Members ──
+    const addGroupMember = useCallback(async (userId) => {
+        const supabase = getSupabase();
+        if (!supabase || !conversationId || !userId) return false;
+        try {
+            await supabase.from('messenger_participants').insert({
+                conversation_id: conversationId,
+                user_id: userId,
+                role: 'member'
+            });
+            return true;
+        } catch (_) { return false; }
+    }, [conversationId]);
+
+    const removeGroupMember = useCallback(async (userId) => {
+        const supabase = getSupabase();
+        if (!supabase || !conversationId || !userId) return false;
+        try {
+            await supabase.from('messenger_participants')
+                .delete()
+                .eq('conversation_id', conversationId)
+                .eq('user_id', userId);
+            return true;
+        } catch (_) { return false; }
+    }, [conversationId]);
+
+    // ── P15-4: Leave Group ──
+    const leaveGroup = useCallback(async () => {
+        const supabase = getSupabase();
+        if (!supabase || !conversationId || !currentUser?.id) return false;
+        try {
+            await supabase.from('messenger_participants')
+                .delete()
+                .eq('conversation_id', conversationId)
+                .eq('user_id', currentUser.id);
+            return true;
+        } catch (_) { return false; }
+    }, [conversationId, currentUser]);
+
+    // ── P15-5: Block/Unblock Users ──
+    const [blockedUsers, setBlockedUsers] = useState([]);
+
+    const loadBlockedUsers = useCallback(async () => {
+        const supabase = getSupabase();
+        if (!supabase || !currentUser?.id) return;
+        try {
+            const { data } = await supabase
+                .from('messenger_blocked')
+                .select('blocked_id')
+                .eq('blocker_id', currentUser.id);
+            setBlockedUsers((data || []).map(r => r.blocked_id));
+        } catch (_) {}
+    }, [currentUser]);
+
+    useEffect(() => { loadBlockedUsers(); }, [loadBlockedUsers]);
+
+    const blockUser = useCallback(async (userId) => {
+        const supabase = getSupabase();
+        if (!supabase || !currentUser?.id || !userId) return false;
+        try {
+            await supabase.from('messenger_blocked').insert({
+                blocker_id: currentUser.id,
+                blocked_id: userId
+            });
+            setBlockedUsers(prev => [...prev, userId]);
+            return true;
+        } catch (_) { return false; }
+    }, [currentUser]);
+
+    const unblockUser = useCallback(async (userId) => {
+        const supabase = getSupabase();
+        if (!supabase || !currentUser?.id || !userId) return false;
+        try {
+            await supabase.from('messenger_blocked')
+                .delete()
+                .eq('blocker_id', currentUser.id)
+                .eq('blocked_id', userId);
+            setBlockedUsers(prev => prev.filter(id => id !== userId));
+            return true;
+        } catch (_) { return false; }
+    }, [currentUser]);
+
+    // ── P15-6: Report Message ──
+    const reportMessage = useCallback(async (messageId, reason = 'inappropriate') => {
+        const supabase = getSupabase();
+        if (!supabase || !currentUser?.id || !messageId) return false;
+        try {
+            await supabase.from('messenger_reports').insert({
+                reporter_id: currentUser.id,
+                message_id: messageId,
+                conversation_id: conversationId,
+                reason,
+                metadata: { reported_at: new Date().toISOString() }
+            });
+            return true;
+        } catch (_) { return false; }
+    }, [currentUser, conversationId]);
+
+    // ── P15-7: Clear Conversation ──
+    const clearConversation = useCallback(async () => {
+        const supabase = getSupabase();
+        if (!supabase || !conversationId) return false;
+        try {
+            await supabase.from('messenger_messages')
+                .update({ text: '[deleted]', message_type: 'deleted', media_metadata: { cleared: true } })
+                .eq('conversation_id', conversationId);
+            setMessages([]);
+            return true;
+        } catch (_) { return false; }
+    }, [conversationId]);
+
+    // ── P15-8: Media Sanitization Guard ──
+    const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/webm', 'audio/mpeg', 'audio/ogg', 'audio/webm', 'application/pdf'];
+    const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
+
+    const validateMediaUpload = useCallback((file) => {
+        if (!file) return { valid: false, error: 'No file provided' };
+        if (!ALLOWED_MIME_TYPES.includes(file.type)) return { valid: false, error: `File type ${file.type} not allowed` };
+        if (file.size > MAX_FILE_SIZE) return { valid: false, error: `File too large (max 25MB)` };
+        return { valid: true, error: null };
+    }, []);
+
+    // ── P15-9: Cross-Device Settings Sync ──
+    const getConversationSettings = useCallback(async () => {
+        const supabase = getSupabase();
+        if (!supabase || !conversationId || !currentUser?.id) return {};
+        try {
+            const { data } = await supabase
+                .from('messenger_participants')
+                .select('settings')
+                .eq('conversation_id', conversationId)
+                .eq('user_id', currentUser.id)
+                .maybeSingle();
+            return data?.settings || {};
+        } catch (_) { return {}; }
+    }, [conversationId, currentUser]);
+
+    const saveConversationSettings = useCallback(async (settings) => {
+        const supabase = getSupabase();
+        if (!supabase || !conversationId || !currentUser?.id) return false;
+        try {
+            await supabase.from('messenger_participants')
+                .update({ settings })
+                .eq('conversation_id', conversationId)
+                .eq('user_id', currentUser.id);
+            return true;
+        } catch (_) { return false; }
+    }, [conversationId, currentUser]);
+
+    // ── P15-10: Read State Sync ──
+    const syncReadState = useCallback(async () => {
+        const supabase = getSupabase();
+        if (!supabase || !conversationId || !currentUser?.id) return;
+        try {
+            const { data: lastMsg } = await supabase
+                .from('messenger_messages')
+                .select('id')
+                .eq('conversation_id', conversationId)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+            if (lastMsg) {
+                await supabase.from('messenger_participants')
+                    .update({ last_read_message_id: lastMsg.id, last_read_at: new Date().toISOString() })
+                    .eq('conversation_id', conversationId)
+                    .eq('user_id', currentUser.id);
+            }
+        } catch (_) {}
+    }, [conversationId, currentUser]);
+
+    // Sync read state on mount
+    useEffect(() => { if (conversationId) syncReadState(); }, [conversationId, syncReadState]);
+
+    // ── P15-11: Message Deduplication ──
+    const deduplicateMessages = useCallback((msgs) => {
+        const seen = new Set();
+        return (msgs || []).filter(m => {
+            if (seen.has(m.id)) return false;
+            seen.add(m.id);
+            return true;
+        });
+    }, []);
+
+    // ── P15-12: Conversation Sorting ──
+    const [conversationSort, setConversationSort] = useState('recent'); // 'recent' | 'unread' | 'pinned' | 'name'
+
+    const sortedConversations = useCallback((convos, pinnedIds = []) => {
+        const sorted = [...(convos || [])];
+        switch (conversationSort) {
+            case 'unread':
+                sorted.sort((a, b) => (b.unread_count || 0) - (a.unread_count || 0));
+                break;
+            case 'pinned':
+                sorted.sort((a, b) => {
+                    const aPin = pinnedIds.includes(a.id) ? 1 : 0;
+                    const bPin = pinnedIds.includes(b.id) ? 1 : 0;
+                    return bPin - aPin;
+                });
+                break;
+            case 'name':
+                sorted.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+                break;
+            default: // 'recent'
+                sorted.sort((a, b) => new Date(b.last_message_at || 0) - new Date(a.last_message_at || 0));
+        }
+        return sorted;
+    }, [conversationSort]);
+
+    // ═══════════════════════════════════════════════════════════
     // Return Service API
     // ═══════════════════════════════════════════════════════════
     return {
@@ -1193,6 +1445,42 @@ export function useMessengerService({ conversationId, currentUser, messengerType
         pinMessage,
         unpinMessage,
         loadPinnedMessages,
+
+        // P15-1/2/3/4: Group Management
+        createGroupConversation,
+        updateGroupSettings,
+        addGroupMember,
+        removeGroupMember,
+        leaveGroup,
+
+        // P15-5: Block/Unblock
+        blockedUsers,
+        blockUser,
+        unblockUser,
+
+        // P15-6: Report
+        reportMessage,
+
+        // P15-7: Clear Conversation
+        clearConversation,
+
+        // P15-8: Media Sanitization
+        validateMediaUpload,
+
+        // P15-9: Settings Sync
+        getConversationSettings,
+        saveConversationSettings,
+
+        // P15-10: Read State Sync
+        syncReadState,
+
+        // P15-11: Deduplication
+        deduplicateMessages,
+
+        // P15-12: Conversation Sorting
+        conversationSort,
+        setConversationSort,
+        sortedConversations,
     };
 }
 

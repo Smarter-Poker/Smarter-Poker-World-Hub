@@ -9,7 +9,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { ArrowLeft, Save, User, Camera } from 'lucide-react';
-import { getAccessToken } from '../../../../src/lib/authUtils';
+import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
 
 export default function ProfileEditPage() {
   const router = useRouter();
@@ -20,12 +20,7 @@ export default function ProfileEditPage() {
     display_name: '', email: '', phone: '', bio: '', avatar_url: ''
   });
 
-  useEffect(() => {
-    (async () => {
-    const token = getAccessToken();
-    if (!token) router.push('/auth/login?redirect=/hub/commander/profile/edit');
-    })();
-  }, [router]);
+  const { checking: authChecking } = useRequireAuth('/hub/commander/profile/edit');
 
   const { isLoading: loading } = useSWR('/api/commander/profile', async (url) => {
     const token = getAccessToken();

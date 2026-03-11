@@ -406,6 +406,7 @@ const MessageBubble = ({ message, isOwn, showAvatar, user, onAction }) => (
                 <button onClick={() => onAction?.('edit', message)} title="Edit">Edit</button>
                 <button onClick={() => onAction?.('priority', message)} title="Set Priority">Flag</button>
                 {!message.isOwn && <button onClick={() => onAction?.('translate', message)} title="Translate">Translate</button>}
+                <button onClick={() => onAction?.('report', message)} title="Report" style={{ color: '#ff9800', fontSize: 10 }}>Report</button>
                 <button onClick={() => onAction?.('delete', message)} title="Delete" style={{ color: '#ff4444' }}>Del</button>
                 {LABEL_CATEGORIES.map(cat => (
                     <button key={cat} onClick={() => onAction?.('label', message, cat)} title={`Label: ${cat}`} style={{ fontSize: 10, padding: '2px 4px' }}>
@@ -613,11 +614,18 @@ export const ChatWindow = ({
     const dropZoneRef = useRef(null);
 
     // P14: Advanced Features State
-    const [showForwardPicker, setShowForwardPicker] = useState(null); // messageId to forward
+    const [showForwardPicker, setShowForwardPicker] = useState(null);
     const [showPinnedPanel, setShowPinnedPanel] = useState(false);
     const [showArchiveExport, setShowArchiveExport] = useState(false);
     const [showSoundPicker, setShowSoundPicker] = useState(false);
     const [waveformData, setWaveformData] = useState({});
+
+    // P15: Group Management, Security & Cross-Platform State
+    const [showGroupWizard, setShowGroupWizard] = useState(false);
+    const [groupName, setGroupName] = useState('');
+    const [showMemberList, setShowMemberList] = useState(false);
+    const [showReportModal, setShowReportModal] = useState(null); // messageId
+    const [reportReason, setReportReason] = useState('');
     
     // P7-6: Lightbox State
     const [lightboxImage, setLightboxImage] = useState(null);
@@ -957,9 +965,14 @@ export const ChatWindow = ({
                     deletedSet.add(msg.id);
                     return { ...p, deletedMessages: [...deletedSet] };
                 });
-                svc.deleteMessage(msg.id); // P12-2: Supabase delete
+                svc.deleteMessage(msg.id);
                 busEmit.messageDeleted?.(conversationId, msg.id);
             }
+        }
+        // P15-6: Report
+        if (action === 'report') {
+            setShowReportModal(msg.id);
+            setReportReason('');
         }
     };
 
@@ -1409,6 +1422,10 @@ export const ChatWindow = ({
                     <button className="header-btn" onClick={() => setShowSoundPicker(!showSoundPicker)} title="Notification Sound" style={{ color: showSoundPicker ? '#2D88FF' : undefined }}>🔔</button>
                     {/* P14-8: Archive/Export toggle */}
                     <button className="header-btn" onClick={() => setShowArchiveExport(!showArchiveExport)} title="Archive/Export" style={{ color: showArchiveExport ? '#2D88FF' : undefined }}>💾</button>
+                    {/* P15-5: Block User toggle */}
+                    <button className="header-btn" onClick={() => { if (svc.blockedUsers?.includes(otherUser?.id)) { svc.unblockUser(otherUser?.id); } else { svc.blockUser(otherUser?.id); } }} title={svc.blockedUsers?.includes(otherUser?.id) ? 'Unblock User' : 'Block User'} style={{ color: svc.blockedUsers?.includes(otherUser?.id) ? '#ff4444' : undefined }}>🚫</button>
+                    {/* P15-1: Create Group */}
+                    <button className="header-btn" onClick={() => setShowGroupWizard(!showGroupWizard)} title="Create Group" style={{ color: showGroupWizard ? '#2D88FF' : undefined }}>👥</button>
                     {/* P6-1: DND toggle */}
                     <button className="header-btn" onClick={() => updatePrefs(p => ({ ...p, dndConversations: { ...p.dndConversations, [conversationId]: !isDND } }))} title={isDND ? 'Disable DND' : 'Do Not Disturb'} style={{ color: isDND ? '#E41E3F' : undefined }}>🔕</button>
                     {/* P6-6: Mute timer */}
@@ -1797,7 +1814,9 @@ export const ChatWindow = ({
                     </div>
                     <button onClick={() => { svc.archiveConversation(); setShowArchiveExport(false); }} style={{ display: 'block', width: '100%', padding: '8px 12px', marginBottom: 6, borderRadius: 8, border: 'none', background: 'rgba(255,255,255,0.08)', color: '#fff', cursor: 'pointer', fontSize: 12, textAlign: 'left' }}>📦 Archive Conversation</button>
                     <button onClick={() => { svc.exportConversation('json'); setShowArchiveExport(false); }} style={{ display: 'block', width: '100%', padding: '8px 12px', marginBottom: 6, borderRadius: 8, border: 'none', background: 'rgba(255,255,255,0.08)', color: '#fff', cursor: 'pointer', fontSize: 12, textAlign: 'left' }}>📄 Export as JSON</button>
-                    <button onClick={() => { svc.exportConversation('pdf'); setShowArchiveExport(false); }} style={{ display: 'block', width: '100%', padding: '8px 12px', borderRadius: 8, border: 'none', background: 'rgba(255,255,255,0.08)', color: '#fff', cursor: 'pointer', fontSize: 12, textAlign: 'left' }}>📝 Export as Text</button>
+                    <button onClick={() => { svc.exportConversation('pdf'); setShowArchiveExport(false); }} style={{ display: 'block', width: '100%', padding: '8px 12px', marginBottom: 6, borderRadius: 8, border: 'none', background: 'rgba(255,255,255,0.08)', color: '#fff', cursor: 'pointer', fontSize: 12, textAlign: 'left' }}>📝 Export as Text</button>
+                    <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.1)', margin: '8px 0' }} />
+                    <button onClick={() => { if (typeof window !== 'undefined' && window.confirm('Clear all messages? This cannot be undone.')) { svc.clearConversation(); setShowArchiveExport(false); } }} style={{ display: 'block', width: '100%', padding: '8px 12px', borderRadius: 8, border: 'none', background: 'rgba(255,68,68,0.15)', color: '#ff4444', cursor: 'pointer', fontSize: 12, textAlign: 'left' }}>🗑️ Clear All Messages</button>
                 </div>
             )}
 
@@ -1819,6 +1838,42 @@ export const ChatWindow = ({
                         {(svc.conversations || []).length === 0 && (
                             <div style={{ color: '#888', fontSize: 12, textAlign: 'center', padding: 20 }}>No conversations to forward to</div>
                         )}
+                    </div>
+                </div>
+            )}
+
+            {/* ═══ P15-6: Report Modal ═══ */}
+            {showReportModal && (
+                <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ background: '#242526', borderRadius: 16, padding: 20, width: 300, border: '1px solid rgba(255,255,255,0.1)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                            <strong style={{ color: '#fff', fontSize: 14 }}>⚠️ Report Message</strong>
+                            <button onClick={() => setShowReportModal(null)} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: 18 }}>✕</button>
+                        </div>
+                        <select value={reportReason} onChange={e => setReportReason(e.target.value)} style={{ width: '100%', padding: 8, marginBottom: 12, borderRadius: 8, border: '1px solid rgba(255,255,255,0.2)', background: '#333', color: '#fff', fontSize: 12 }}>
+                            <option value="">Select reason...</option>
+                            <option value="spam">Spam</option>
+                            <option value="harassment">Harassment</option>
+                            <option value="inappropriate">Inappropriate Content</option>
+                            <option value="scam">Scam / Fraud</option>
+                            <option value="other">Other</option>
+                        </select>
+                        <button disabled={!reportReason} onClick={async () => { await svc.reportMessage(showReportModal, reportReason); setShowReportModal(null); if (typeof window !== 'undefined') window.alert('Message reported. Thank you.'); }} style={{ display: 'block', width: '100%', padding: '10px 12px', borderRadius: 10, border: 'none', background: reportReason ? '#ff9800' : 'rgba(255,255,255,0.05)', color: reportReason ? '#fff' : '#999', cursor: reportReason ? 'pointer' : 'not-allowed', fontSize: 13, fontWeight: 600 }}>🚩 Submit Report</button>
+                    </div>
+                </div>
+            )}
+
+            {/* ═══ P15-1: Group Creation Wizard ═══ */}
+            {showGroupWizard && (
+                <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ background: '#242526', borderRadius: 16, padding: 20, width: 320, border: '1px solid rgba(255,255,255,0.1)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                            <strong style={{ color: '#fff', fontSize: 14 }}>👥 Create Group</strong>
+                            <button onClick={() => setShowGroupWizard(false)} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: 18 }}>✕</button>
+                        </div>
+                        <input type="text" value={groupName} onChange={e => setGroupName(e.target.value)} placeholder="Group name..." style={{ width: '100%', padding: '8px 12px', marginBottom: 12, borderRadius: 8, border: '1px solid rgba(255,255,255,0.2)', background: '#333', color: '#fff', fontSize: 13, boxSizing: 'border-box' }} />
+                        <div style={{ color: '#888', fontSize: 11, marginBottom: 8 }}>Members will be added from your conversations:</div>
+                        <button disabled={!groupName.trim()} onClick={async () => { const conv = await svc.createGroupConversation({ name: groupName, participants: [] }); if (conv) { setShowGroupWizard(false); setGroupName(''); } }} style={{ display: 'block', width: '100%', padding: '10px 12px', borderRadius: 10, border: 'none', background: groupName.trim() ? '#2D88FF' : 'rgba(255,255,255,0.05)', color: groupName.trim() ? '#fff' : '#999', cursor: groupName.trim() ? 'pointer' : 'not-allowed', fontSize: 13, fontWeight: 600 }}>✨ Create Group</button>
                     </div>
                 </div>
             )}

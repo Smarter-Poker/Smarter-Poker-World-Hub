@@ -8,6 +8,7 @@ import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { ArrowLeft, QrCode, CreditCard, Users, Clock, Gift, Star, Loader2, RefreshCw, Trophy, Crown } from 'lucide-react';
+import { useRequireAuth, getAccessToken } from '../../../src/lib/authUtils';
 
 const TIER_COLORS = {
   bronze: { bg: 'linear-gradient(135deg, #92400E, #D97706)', text: '#FFFBEB' },
@@ -23,8 +24,9 @@ export default function PlayerCard() {
   const [qrRefresh, setQrRefresh] = useState(0);
   const intervalRef = useRef(null);
 
-  const getToken = () => typeof window !== 'undefined'
-    ? localStorage.getItem('sb-access-token') : null;
+  const { checking: authChecking } = useRequireAuth('/hub/commander/player-card');
+
+  const getToken = () => getAccessToken();
 
   // QR rotation timer
   useEffect(() => {

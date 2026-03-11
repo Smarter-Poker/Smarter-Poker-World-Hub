@@ -12,7 +12,7 @@ import { Gift, Clock, TrendingUp, History, Star, ChevronRight, Utensils, CreditC
 import CompBalanceCard from '../../../../src/components/commander/comps/CompBalanceCard';
 import CompTransactionList from '../../../../src/components/commander/comps/CompTransactionList';
 import { supabase } from '../../../../src/lib/supabase';
-import { getAccessToken } from '../../../../src/lib/authUtils';
+import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
 
 const REWARD_CATEGORIES = [
   { id: 'food', label: 'Food & Beverage', icon: Utensils, color: '#F59E0B' },
@@ -79,15 +79,7 @@ export default function PlayerRewardsPage() {
   const [showRedeemInput, setShowRedeemInput] = useState(false);
   const [redeemingId, setRedeemingId] = useState(null);
 
-  useEffect(() => {
-    (async () => {
-      const _c = new AbortController();
-  
-      const token = getAccessToken();
-      if (!token) router.push('/auth/login?redirect=/hub/commander/rewards');
-      return () => _c.abort();
-    })();
-  }, [router]);
+  const { checking: authChecking } = useRequireAuth('/hub/commander/rewards');
   // Realtime listener — live updates for rewards/index.js
   useEffect(() => {
     if (!user?.id) return;

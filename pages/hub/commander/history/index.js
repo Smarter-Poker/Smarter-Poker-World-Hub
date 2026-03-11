@@ -10,7 +10,7 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import { History, Clock, DollarSign, TrendingUp } from 'lucide-react';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { usePersistedState } from '../../../../src/hooks/usePersistedState';
-import { getAccessToken } from '../../../../src/lib/authUtils';
+import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
 
 function SessionCard({ session }) {
   const checkIn = new Date(session.check_in_at);
@@ -85,13 +85,8 @@ export default function PlayerHistoryPage() {
 
   const [filter, setFilter] = usePersistedState('sp-filters-commander-history', 'all'); // 'all', 'week', 'month', 'year'
 
-  // Auth redirect
-  useEffect(() => {
-    (async () => {
-      const token = getAccessToken();
-      if (!token) router.push('/auth/login?redirect=/hub/commander/history');
-    })();
-  }, [router]);
+  // Auth guard — resilient session check
+  const { checking: authChecking } = useRequireAuth('/hub/commander/history');
 
   // SWR-backed session history — re-fetches when filter changes
   const { data: swrData, isLoading: loading } = useSWR(

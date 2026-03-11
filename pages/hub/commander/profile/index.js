@@ -10,8 +10,7 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { User, Clock, DollarSign, MapPin, Calendar, TrendingUp, Award, Star, ChevronRight, Settings, Bell, History, Gift, Edit2, Globe } from 'lucide-react';
 import { supabase } from '../../../../src/lib/supabase';
-import { getAuthUser } from '../../../../src/lib/authUtils';
-import { getAccessToken } from '../../../../src/lib/authUtils';
+import { getAuthUser, getAccessToken, useRequireAuth } from '../../../../src/lib/authUtils';
 
 function StatCard({ icon: Icon, label, value, subtext, color = '#22D3EE' }) {
   return (
@@ -75,14 +74,7 @@ export default function PlayerProfilePage() {
   const [recommendations, setRecommendations] = useState([]);
   const [hasClubPage, setHasClubPage] = useState(null);
 
-  useEffect(() => {
-    const _c = new AbortController();
-    (async () => {
-      const token = getAccessToken();
-      if (!token) router.push('/auth/login?redirect=/hub/commander/profile');
-    })();
-    return () => _c.abort();
-  }, [router]);
+  const { checking: authChecking } = useRequireAuth('/hub/commander/profile');
 
   const { data: swrData, isLoading: loading, mutate: refreshProfile } = useSWR('/api/commander/profile', async () => {
     const token = getAccessToken();

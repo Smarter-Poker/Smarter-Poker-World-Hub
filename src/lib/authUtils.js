@@ -454,6 +454,8 @@ export function clearAuth(force = false) {
 export default {
     getAuthUser,
     getSafeUser,
+    ensureAuthReady,
+    useRequireAuth,
     getSessionToken,
     getAccessToken,
     fetchWithAuth,
