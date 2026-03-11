@@ -308,7 +308,7 @@ const MessageBubble = ({ message, isOwn, showAvatar, user, onAction }) => (
                 </div>
             )}
 
-            {/* P5-3: Voice message */}
+            {/* P5-3: Voice message + P21-1: Transcribe button */}
             {message.isVoice && (
                 <div className="voice-message">
                     <button className="voice-play-btn">▶</button>
@@ -318,6 +318,7 @@ const MessageBubble = ({ message, isOwn, showAvatar, user, onAction }) => (
                         ))}
                     </div>
                     <span className="voice-duration">{message.voiceDuration || '0:03'}</span>
+                    <button onClick={() => onAction?.('transcribe', message)} title="Transcribe Voice" style={{ background: 'none', border: 'none', color: '#8ab4f8', cursor: 'pointer', fontSize: 10, marginLeft: 4 }}>📝</button>
                 </div>
             )}
 
@@ -411,6 +412,7 @@ const MessageBubble = ({ message, isOwn, showAvatar, user, onAction }) => (
                 <button onClick={() => onAction?.('edit', message)} title="Edit">Edit</button>
                 <button onClick={() => onAction?.('priority', message)} title="Set Priority">Flag</button>
                 {!message.isOwn && <button onClick={() => onAction?.('translate', message)} title="Translate">Translate</button>}
+                <button onClick={() => onAction?.('remind', message)} title="Remind Me Later" style={{ color: '#ffd700', fontSize: 10 }}>⏰</button>
                 <button onClick={() => onAction?.('report', message)} title="Report" style={{ color: '#ff9800', fontSize: 10 }}>Report</button>
                 <button onClick={() => onAction?.('delete', message)} title="Delete" style={{ color: '#ff4444' }}>Del</button>
                 {LABEL_CATEGORIES.map(cat => (
@@ -671,7 +673,13 @@ export const ChatWindow = ({
     const [multiSelectMode, setMultiSelectMode] = useState(false);
     const [selectedMessageIds, setSelectedMessageIds] = useState([]);
 
-    // P19+P20: Reset panel states on conversation switch
+    // P21: Phase 21 State
+    const [showRemindersPanel, setShowRemindersPanel] = useState(false);
+    const [showFormatToolbar, setShowFormatToolbar] = useState(false);
+    const [reminderPickerMsg, setReminderPickerMsg] = useState(null);
+    const [reminderTime, setReminderTime] = useState('');
+
+    // P19+P20+P21: Reset panel states on conversation switch
     useEffect(() => {
         // P19 resets
         setShowSearchOverlay(false);
@@ -688,6 +696,10 @@ export const ChatWindow = ({
         setReactionDetailData([]);
         setMultiSelectMode(false);
         setSelectedMessageIds([]);
+        // P21 resets
+        setShowRemindersPanel(false);
+        setReminderPickerMsg(null);
+        setShowFormatToolbar(false);
     }, [conversationId]);
     
     // P7-6: Lightbox State
@@ -925,7 +937,7 @@ export const ChatWindow = ({
                 }
             } else {
                 onSend?.(finalPayloadText); // P8-4: Optimistic UI
-                svc.sendMessage(finalPayloadText, { isEncrypted: isE2E }); // P12: Supabase Realtime Persistence + Push + Rate Limit + Offline Queue unified
+                svc.sendMessageWithMentionDetection(finalPayloadText, 'text'); // P21-6: Mention detection + P12 persistence
                 busEmit.messageSent(conversationId, otherUser?.id);
             }
             setInputText('');
@@ -1055,6 +1067,21 @@ export const ChatWindow = ({
             const history = svc.getEditHistory(msg.id);
             setEditHistoryData(history);
             setShowEditHistory(msg.id);
+        }
+        // P21-1: Transcribe voice message
+        if (action === 'transcribe') {
+            (async () => {
+                const result = await svc.transcribeVoice(msg.media_url || msg.audioUrl);
+                if (result?.text) {
+                    setVoiceTranscripts(prev => ({ ...prev, [msg.id]: result.text }));
+                } else {
+                    setVoiceTranscripts(prev => ({ ...prev, [msg.id]: result?.error || 'Transcription unavailable' }));
+                }
+            })();
+        }
+        // P21-2: Set reminder
+        if (action === 'remind') {
+            setReminderPickerMsg(msg);
         }
     };
 
@@ -1544,6 +1571,10 @@ export const ChatWindow = ({
                     <button className="header-btn" onClick={() => setShowExportPicker(!showExportPicker)} title="Export Chat" style={{ color: showExportPicker ? '#2D88FF' : undefined }}>💾</button>
                     {/* P20-6: Multi-Select Forward */}
                     <button className="header-btn" onClick={() => { setMultiSelectMode(!multiSelectMode); if (multiSelectMode) setSelectedMessageIds([]); }} title={multiSelectMode ? 'Cancel Select' : 'Select Messages'} style={{ color: multiSelectMode ? '#ffd700' : undefined }}>☑️</button>
+                    {/* P21-2: Reminders */}
+                    <button className="header-btn" onClick={() => setShowRemindersPanel(!showRemindersPanel)} title="Reminders" style={{ color: showRemindersPanel ? '#ffd700' : undefined }}>⏰</button>
+                    {/* P21-3: Format Toolbar */}
+                    <button className="header-btn" onClick={() => setShowFormatToolbar(!showFormatToolbar)} title="Format Guide" style={{ color: showFormatToolbar ? '#8ab4f8' : undefined }}>✏️</button>
                     {/* P15-5: Block User toggle */}
                     <button className="header-btn" onClick={() => { if (svc.blockedUsers?.includes(otherUser?.id)) { svc.unblockUser(otherUser?.id); } else { svc.blockUser(otherUser?.id); } }} title={svc.blockedUsers?.includes(otherUser?.id) ? 'Unblock User' : 'Block User'} style={{ color: svc.blockedUsers?.includes(otherUser?.id) ? '#ff4444' : undefined }}>🚫</button>
                     {/* P15-1: Create Group */}
@@ -2391,6 +2422,78 @@ export const ChatWindow = ({
                     <span style={{ color: '#8ab4f8', fontWeight: 'bold' }}>{selectedMessageIds.length} selected</span>
                     <button onClick={async () => { const targetId = prompt('Enter target conversation ID:'); if (targetId) { await svc.forwardMultipleMessages(selectedMessageIds, targetId); setMultiSelectMode(false); setSelectedMessageIds([]); } }} style={{ background: '#2D88FF', border: 'none', borderRadius: 6, padding: '3px 10px', color: '#fff', fontSize: 10, cursor: 'pointer' }}>↪ Forward Selected</button>
                     <button onClick={() => { setMultiSelectMode(false); setSelectedMessageIds([]); }} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: 10, marginLeft: 'auto' }}>Cancel</button>
+                </div>
+            )}
+
+            {/* P21-5: Offline Banner */}
+            {svc.isOffline && (
+                <div style={{ padding: '6px 12px', background: 'rgba(255,68,68,0.15)', borderRadius: 8, margin: '0 8px 6px', display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: '#ff6b6b' }}>
+                    <span style={{ fontSize: 14 }}>📡</span>
+                    <span style={{ fontWeight: 'bold' }}>You are offline</span>
+                    <span style={{ color: '#999', marginLeft: 'auto' }}>Messages will be sent when reconnected</span>
+                </div>
+            )}
+
+            {/* P21-2: Reminder Picker Modal */}
+            {reminderPickerMsg && (
+                <div style={{ position: 'absolute', bottom: 60, right: 12, background: 'rgba(36,37,38,0.98)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 10, padding: 12, maxWidth: 220, zIndex: 70 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <span style={{ fontWeight: 'bold', fontSize: 12, color: '#e4e6eb' }}>⏰ Remind Me</span>
+                        <button onClick={() => setReminderPickerMsg(null)} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer' }}>✕</button>
+                    </div>
+                    <div style={{ fontSize: 10, color: '#999', marginBottom: 6 }}>"{reminderPickerMsg.text?.slice(0, 50) || '[Media]'}..."</div>
+                    {[
+                        { label: 'In 15 minutes', ms: 15 * 60 * 1000 },
+                        { label: 'In 1 hour', ms: 60 * 60 * 1000 },
+                        { label: 'In 3 hours', ms: 3 * 60 * 60 * 1000 },
+                        { label: 'Tomorrow 9am', ms: (() => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(9, 0, 0, 0); return d.getTime() - Date.now(); })() },
+                    ].map((opt, i) => (
+                        <button key={i} onClick={async () => { await svc.setMessageReminder(reminderPickerMsg.id, new Date(Date.now() + opt.ms).toISOString()); setReminderPickerMsg(null); }} style={{ display: 'block', width: '100%', padding: '6px 8px', margin: '3px 0', background: 'rgba(45,136,255,0.12)', border: '1px solid rgba(45,136,255,0.3)', borderRadius: 6, color: '#8ab4f8', cursor: 'pointer', fontSize: 11, textAlign: 'left' }}>{opt.label}</button>
+                    ))}
+                    <div style={{ marginTop: 6, borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 6 }}>
+                        <input type="datetime-local" value={reminderTime} onChange={(e) => setReminderTime(e.target.value)} style={{ width: '100%', background: '#242526', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 4, color: '#e4e6eb', padding: '4px 6px', fontSize: 10 }} />
+                        <button onClick={async () => { if (reminderTime) { await svc.setMessageReminder(reminderPickerMsg.id, new Date(reminderTime).toISOString()); setReminderPickerMsg(null); setReminderTime(''); } }} style={{ marginTop: 4, width: '100%', padding: '5px', background: '#2D88FF', border: 'none', borderRadius: 4, color: '#fff', cursor: 'pointer', fontSize: 10 }}>Set Custom Reminder</button>
+                    </div>
+                </div>
+            )}
+
+            {/* P21-2: Reminders Drawer */}
+            {showRemindersPanel && (
+                <div style={{ background: 'rgba(24,25,26,0.96)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, margin: '0 8px 6px', padding: 10, maxHeight: 200, overflowY: 'auto' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <span style={{ fontWeight: 'bold', fontSize: 12, color: '#e4e6eb' }}>⏰ Active Reminders ({svc.messageReminders?.length || 0})</span>
+                        <button onClick={() => setShowRemindersPanel(false)} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer' }}>✕</button>
+                    </div>
+                    {(!svc.messageReminders || svc.messageReminders.length === 0) && <div style={{ textAlign: 'center', color: '#666', fontSize: 11, padding: 10 }}>No active reminders</div>}
+                    {(svc.messageReminders || []).map((r, i) => (
+                        <div key={i} style={{ padding: '6px 8px', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: 11, color: '#ccc', display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <div style={{ flex: 1 }}>
+                                <div style={{ fontSize: 9, color: '#ffd700' }}>🔔 {new Date(r.remind_at).toLocaleString()}</div>
+                                <div>{r.message_preview}</div>
+                            </div>
+                            <button onClick={() => svc.dismissReminder(r.id)} style={{ background: 'none', border: 'none', color: '#ff6b6b', cursor: 'pointer', fontSize: 10 }}>✕</button>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* P21-3: Format Toolbar Hint */}
+            {showFormatToolbar && (
+                <div style={{ padding: '4px 12px', background: 'rgba(45,136,255,0.08)', borderRadius: 6, margin: '0 8px 4px', fontSize: 10, color: '#8ab4f8', display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <span><strong>**bold**</strong></span>
+                    <span><em>*italic*</em></span>
+                    <span><code style={{ background: 'rgba(255,255,255,0.1)', padding: '0 3px', borderRadius: 2 }}>`code`</code></span>
+                    <span><del>~~strike~~</del></span>
+                    <span style={{ color: '#999' }}>URLs auto-link</span>
+                    <button onClick={() => setShowFormatToolbar(false)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#666', cursor: 'pointer', fontSize: 10 }}>✕</button>
+                </div>
+            )}
+
+            {/* P21-6: @smarter.poker mention detection badge */}
+            {inputText && (inputText.toLowerCase().includes('@smarter.poker') || inputText.toLowerCase().includes('@smarterpoker')) && (
+                <div style={{ padding: '3px 12px', margin: '0 8px 4px', borderRadius: 6, background: 'rgba(255,215,0,0.1)', border: '1px solid rgba(255,215,0,0.3)', fontSize: 10, color: '#ffd700', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: 12 }}>🔗</span>
+                    <span>This message will be linked to <strong>Smarter.Poker Admin Panel</strong></span>
                 </div>
             )}
 

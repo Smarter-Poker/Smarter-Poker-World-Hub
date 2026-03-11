@@ -2364,6 +2364,210 @@ ${messages.map(m =>
     }, [messages, conversationId, currentUser]);
 
     // ═══════════════════════════════════════════════════════════
+    // Phase 21: Intelligence V3 & Admin Integration
+    // ═══════════════════════════════════════════════════════════
+
+    // ── P21-1: Voice Transcription Trigger ──
+    // (Uses existing transcribeVoice from P20-9, frontend wiring needed)
+
+    // ── P21-2: Message Reminders ──
+    const [messageReminders, setMessageReminders] = useState([]);
+
+    const setMessageReminder = useCallback(async (messageId, remindAt, noteText = '') => {
+        const supabase = getSupabase();
+        if (!supabase || !messageId || !remindAt || !currentUser?.id) return false;
+        try {
+            const msg = messages.find(m => m.id === messageId);
+            const { data, error } = await supabase.from('messenger_reminders').insert({
+                message_id: messageId,
+                user_id: currentUser.id,
+                conversation_id: conversationId,
+                remind_at: remindAt,
+                note: noteText,
+                message_preview: msg?.text?.slice(0, 100) || '[Media]',
+                status: 'pending'
+            }).select().maybeSingle();
+            if (error) throw error;
+            if (data) setMessageReminders(prev => [...prev, data]);
+            return true;
+        } catch (_) { return false; }
+    }, [messages, conversationId, currentUser]);
+
+    const getReminders = useCallback(async () => {
+        const supabase = getSupabase();
+        if (!supabase || !currentUser?.id) return [];
+        try {
+            const { data } = await supabase.from('messenger_reminders')
+                .select('*')
+                .eq('user_id', currentUser.id)
+                .eq('status', 'pending')
+                .order('remind_at', { ascending: true });
+            const reminders = data || [];
+            setMessageReminders(reminders);
+            return reminders;
+        } catch (_) { return []; }
+    }, [currentUser]);
+
+    const dismissReminder = useCallback(async (reminderId) => {
+        const supabase = getSupabase();
+        if (!supabase || !reminderId) return false;
+        try {
+            await supabase.from('messenger_reminders')
+                .update({ status: 'dismissed' })
+                .eq('id', reminderId);
+            setMessageReminders(prev => prev.filter(r => r.id !== reminderId));
+            return true;
+        } catch (_) { return false; }
+    }, []);
+
+    // Load reminders on mount
+    useEffect(() => { if (currentUser?.id) getReminders(); }, [currentUser?.id, getReminders]);
+
+    // Check for due reminders every 30 seconds
+    useEffect(() => {
+        const interval = setInterval(() => {
+            const now = new Date().toISOString();
+            const dueReminders = messageReminders.filter(r => r.remind_at <= now && r.status === 'pending');
+            if (dueReminders.length > 0 && typeof window !== 'undefined') {
+                dueReminders.forEach(r => {
+                    // Browser notification
+                    if (Notification?.permission === 'granted') {
+                        new Notification('Message Reminder', { body: r.message_preview || 'You have a reminder', icon: '/favicon.ico' });
+                    }
+                    // Mark as fired
+                    dismissReminder(r.id);
+                });
+            }
+        }, 30000);
+        return () => clearInterval(interval);
+    }, [messageReminders, dismissReminder]);
+
+    // ── P21-3: Message Text Formatting ──
+    const formatMessageText = useCallback((text) => {
+        if (!text) return text;
+        let formatted = text;
+        // Bold: **text** or __text__
+        formatted = formatted.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        formatted = formatted.replace(/__(.+?)__/g, '<strong>$1</strong>');
+        // Italic: *text* or _text_
+        formatted = formatted.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
+        formatted = formatted.replace(/(?<!_)_(?!_)(.+?)(?<!_)_(?!_)/g, '<em>$1</em>');
+        // Code: `text`
+        formatted = formatted.replace(/`([^`]+)`/g, '<code style="background:rgba(255,255,255,0.1);padding:1px 4px;border-radius:3px;font-family:monospace;font-size:0.9em">$1</code>');
+        // Strikethrough: ~~text~~
+        formatted = formatted.replace(/~~(.+?)~~/g, '<del>$1</del>');
+        // Links: auto-detect URLs
+        formatted = formatted.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener" style="color:#8ab4f8;text-decoration:underline">$1</a>');
+        return formatted;
+    }, []);
+
+    // ── P21-4: Virtualized Message List ──
+    // (Frontend-only — will use windowing in SPM/CAM render)
+
+    // ── P21-5: Offline Message Queue ──
+    const offlineQueueRef = useRef([]);
+    const [isOffline, setIsOffline] = useState(false);
+
+    // Monitor online/offline status
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const handleOnline = () => {
+            setIsOffline(false);
+            // Flush queued messages
+            if (offlineQueueRef.current.length > 0) {
+                const queue = [...offlineQueueRef.current];
+                offlineQueueRef.current = [];
+                queue.forEach(async (queuedMsg) => {
+                    try {
+                        await sendMessage(queuedMsg.text, queuedMsg.type || 'text', queuedMsg.mediaUrl);
+                    } catch (_) {
+                        // Re-queue if still failing
+                        offlineQueueRef.current.push(queuedMsg);
+                    }
+                });
+            }
+        };
+        const handleOffline = () => setIsOffline(true);
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+        setIsOffline(!navigator.onLine);
+        return () => {
+            window.removeEventListener('online', handleOnline);
+            window.removeEventListener('offline', handleOffline);
+        };
+    }, [sendMessage]);
+
+    const queueOfflineMessage = useCallback((text, type = 'text', mediaUrl = null) => {
+        const queuedMsg = { text, type, mediaUrl, queuedAt: Date.now(), id: `offline_${Date.now()}` };
+        offlineQueueRef.current.push(queuedMsg);
+        // Show in local messages as "sending..."
+        setMessages(prev => [...prev, {
+            id: queuedMsg.id,
+            text,
+            sender_id: currentUser?.id,
+            message_type: type,
+            media_url: mediaUrl,
+            created_at: new Date().toISOString(),
+            _offline: true, // flag for UI styling
+            _pending: true
+        }]);
+        return queuedMsg;
+    }, [currentUser]);
+
+    // ── P21-6: @smarter.poker Admin Link Service ──
+    const SMARTER_POKER_MENTIONS = ['@smarter.poker', '@smarterpoker', '@sp'];
+
+    const handleSmarterPokerMention = useCallback(async (messageText, messageId) => {
+        const supabase = getSupabase();
+        if (!supabase || !messageText || !currentUser?.id) return false;
+        const lowerText = messageText.toLowerCase();
+        const hasMention = SMARTER_POKER_MENTIONS.some(m => lowerText.includes(m));
+        if (!hasMention) return false;
+
+        try {
+            // Log to admin messages table for the /horses panel
+            await supabase.from('messenger_admin_messages').insert({
+                message_id: messageId,
+                user_id: currentUser.id,
+                conversation_id: conversationId,
+                message_text: messageText,
+                sender_display: currentUser.email || currentUser.id?.slice(0, 8),
+                status: 'unread',
+                source: 'messenger_mention',
+                created_at: new Date().toISOString()
+            });
+            return true;
+        } catch (_) { return false; }
+    }, [conversationId, currentUser]);
+
+    // Auto-detect @smarter.poker mentions in sent messages
+    const sendMessageWithMentionDetection = useCallback(async (text, type = 'text', mediaUrl = null) => {
+        // If offline, queue it
+        if (isOffline) {
+            return queueOfflineMessage(text, type, mediaUrl);
+        }
+        const result = await sendMessage(text, type, mediaUrl);
+        // Check for @smarter.poker mention after sending
+        if (result && text) {
+            handleSmarterPokerMention(text, result.id || result);
+        }
+        return result;
+    }, [sendMessage, isOffline, queueOfflineMessage, handleSmarterPokerMention]);
+
+    const getAdminMentions = useCallback(async () => {
+        const supabase = getSupabase();
+        if (!supabase) return [];
+        try {
+            const { data } = await supabase.from('messenger_admin_messages')
+                .select('*')
+                .eq('status', 'unread')
+                .order('created_at', { ascending: false })
+                .limit(50);
+            return data || [];
+        } catch (_) { return []; }
+    }, []);
+
+    // ═══════════════════════════════════════════════════════════
     // Return Service API
     // ═══════════════════════════════════════════════════════════
     return {
@@ -2593,6 +2797,26 @@ ${messages.map(m =>
 
         // P20-10: Export Formats
         exportConversationFormatted,
+
+        // P21-1: Voice Transcription (uses existing transcribeVoice)
+
+        // P21-2: Message Reminders
+        messageReminders,
+        setMessageReminder,
+        getReminders,
+        dismissReminder,
+
+        // P21-3: Message Formatting
+        formatMessageText,
+
+        // P21-5: Offline Queue
+        isOffline,
+        queueOfflineMessage,
+        sendMessageWithMentionDetection,
+
+        // P21-6: @smarter.poker Admin Link
+        handleSmarterPokerMention,
+        getAdminMentions,
     };
 }
 
