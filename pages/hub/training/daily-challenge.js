@@ -15,23 +15,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import Card from '../../../src/components/training/Card';
-
-// ═══════════════════════════════════════════════════════════════════════════
-// AUTH HELPER
-// ═══════════════════════════════════════════════════════════════════════════
+import { getAccessToken, getAuthUser } from '../../../src/lib/authUtils';
 
 function getAuthHeaders() {
-  try {
-    const raw =
-      localStorage.getItem('sb-auth-token') || localStorage.getItem('supabase.auth.token');
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      const token = parsed?.access_token || parsed?.currentSession?.access_token;
-      if (token) return { Authorization: `Bearer ${token}` };
-    }
-  } catch (e) {
-    /* ignore */
-  }
+  const token = getAccessToken();
+  if (token) return { Authorization: `Bearer ${token}` };
   return {};
 }
 
@@ -248,7 +236,8 @@ export default function DailyChallengePage() {
 
       // Record on server (fire and forget)
       try {
-        const userId = JSON.parse(localStorage.getItem('sb-auth-token') || '{}')?.user?.id;
+        const user = getAuthUser();
+        const userId = user?.id;
         if (userId) {
           fetch('/api/training/hand-of-the-day', {
             method: 'POST',

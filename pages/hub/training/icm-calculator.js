@@ -14,27 +14,10 @@ import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
-
-// SSR-safe bus emitter
-
-// ── Save-session helper (SSR-safe) ──────────────────────────────
-function getAuthToken() {
-  if (typeof window === 'undefined') return null;
-  try {
-    const raw =
-      localStorage.getItem('sb-auth-token') || localStorage.getItem('supabase.auth.token');
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      return parsed?.access_token || parsed?.currentSession?.access_token || null;
-    }
-  } catch (e) {
-    /* ignore */
-  }
-  return null;
-}
+import { getAccessToken } from '../../../src/lib/authUtils';
 
 function saveSession(payload) {
-  const token = getAuthToken();
+  const token = getAccessToken();
   if (!token) return;
   fetch('/api/training/save-session', {
     method: 'POST',
@@ -98,19 +81,9 @@ const PRESETS = [
   },
 ];
 
-// Auth helper
 function getAuthHeaders() {
-  try {
-    const raw =
-      localStorage.getItem('sb-auth-token') || localStorage.getItem('supabase.auth.token');
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      const token = parsed?.access_token || parsed?.currentSession?.access_token;
-      if (token) return { Authorization: `Bearer ${token}` };
-    }
-  } catch (e) {
-    /* ignore */
-  }
+  const token = getAccessToken();
+  if (token) return { Authorization: `Bearer ${token}` };
   return {};
 }
 

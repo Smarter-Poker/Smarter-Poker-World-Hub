@@ -14,6 +14,7 @@ import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../src/engine/EventBus';
+import { getAccessToken } from '../../../src/lib/authUtils';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -41,19 +42,9 @@ const PRESETS = [
   { name: 'Pair vs Overcards', hands: ['6d6c', 'AhKs'], board: [] },
 ];
 
-// Auth helper
 function getAuthHeaders() {
-  try {
-    const raw =
-      localStorage.getItem('sb-auth-token') || localStorage.getItem('supabase.auth.token');
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      const headerToken = parsed?.access_token || parsed?.currentSession?.access_token;
-      if (headerToken) return { Authorization: `Bearer ${headerToken}` };
-    }
-  } catch (e) {
-    /* ignore */
-  }
+  const token = getAccessToken();
+  if (token) return { Authorization: `Bearer ${token}` };
   return {};
 }
 
