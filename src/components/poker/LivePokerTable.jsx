@@ -556,6 +556,9 @@ function ChipStackViz({ stack, bigBlind }) {
 
 function PotScoopAnimation({ isActive, winnerPosition }) {
   if (!isActive || !winnerPosition) return null;
+  // Convert numeric percentages to CSS left/top positioning
+  const targetLeft = `${winnerPosition.x}%`;
+  const targetTop = `${winnerPosition.y}%`;
   return (
     <AnimatePresence>
       {isActive && (
@@ -569,13 +572,8 @@ function PotScoopAnimation({ isActive, winnerPosition }) {
           {[0, 1, 2, 3, 4].map(i => (
             <motion.div
               key={i}
-              initial={{ x: '50%', y: '40%', scale: 1, opacity: 1 }}
-              animate={{
-                x: winnerPosition.x || '50%',
-                y: winnerPosition.y || '30%',
-                scale: 0.4,
-                opacity: 0,
-              }}
+              initial={{ left: '50%', top: '40%', scale: 1, opacity: 1 }}
+              animate={{ left: targetLeft, top: targetTop, scale: 0.4, opacity: 0 }}
               transition={{
                 duration: 0.7 + i * 0.1,
                 delay: i * 0.08,
@@ -587,7 +585,7 @@ function PotScoopAnimation({ isActive, winnerPosition }) {
                 background: `radial-gradient(circle, ${['#FFD700', '#e53935', '#43a047', '#1e88e5', '#ff8f00'][i]}, ${['#FFA000', '#c62828', '#2e7d32', '#0d47a1', '#e65100'][i]})`,
                 border: '1px solid rgba(255,255,255,0.3)',
                 boxShadow: '0 2px 6px rgba(0,0,0,0.5)',
-                left: -8, top: -8,
+                marginLeft: -8, marginTop: -8,
               }}
             />
           ))}
@@ -604,6 +602,11 @@ function PotScoopAnimation({ isActive, winnerPosition }) {
 function WinFlyUp({ amount, isVisible }) {
   if (!isVisible || !amount || amount <= 0) return null;
   const formatted = amount >= 1000 ? `${(amount / 1000).toFixed(1)}K` : amount.toLocaleString();
+  // Pre-compute random offsets so they don't change on re-render
+  const offsets = useMemo(() => [0, 1, 2, 3, 4].map(i => ({
+    x: (i - 2) * 25 + (Math.sin(i * 1.7) * 10),
+    y: -(20 + (Math.cos(i * 2.3) * 15 + 15)),
+  })), []);
   return (
     <AnimatePresence>
       {isVisible && (
@@ -627,20 +630,14 @@ function WinFlyUp({ amount, isVisible }) {
           }}>
             +{formatted}
           </div>
-          {/* Sparkle particles */}
-          {[0, 1, 2, 3, 4].map(i => (
+          {/* Sparkle particles — offsets are stable across re-renders */}
+          {offsets.map((off, i) => (
             <motion.span
               key={i}
               initial={{ opacity: 1, x: 0, y: 0 }}
-              animate={{
-                opacity: 0,
-                x: (i - 2) * 25 + (Math.random() * 10),
-                y: -(20 + Math.random() * 30),
-              }}
+              animate={{ opacity: 0, x: off.x, y: off.y }}
               transition={{ duration: 1.2, delay: 0.2 + i * 0.1 }}
-              style={{
-                position: 'absolute', fontSize: 10, pointerEvents: 'none',
-              }}
+              style={{ position: 'absolute', fontSize: 10, pointerEvents: 'none' }}
             >✨</motion.span>
           ))}
         </motion.div>
@@ -8700,7 +8697,26 @@ function LivePokerTable({
               vpipPct: sessionStats?.handsPlayed > 0 ? Math.round((vpipCount / sessionStats.handsPlayed) * 100) : 0,
               winRate: sessionStats?.handsPlayed > 0 ? Math.round((handsWon / sessionStats.handsPlayed) * 100) : 0,
             }}
-            onClose={() => { setShowSessionSummary(false); onLeave?.(); }}
+            onClose={() => {
+              // Persist session stats to Supabase before leaving
+              try {
+                const snap = sessionStatsRef.current;
+                supabase?.auth?.getSession?.().then(({ data }) => {
+                  const token = data?.session?.access_token;
+                  if (token && snap.handsPlayed > 0) {
+                    fetch('/api/poker/engine/session-stats', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                      body: JSON.stringify({ tableId, clubId: tableState?.clubId, stats: snap }),
+                    }).catch(() => {});
+                  }
+                }).catch(() => {});
+                // Clear localStorage session
+                try { localStorage.removeItem(`poker-session-${tableId}`); } catch (_) {}
+              } catch (_) {}
+              setShowSessionSummary(false);
+              onLeave?.();
+            }}
             onShare={handleShareSession}
           />
         )}

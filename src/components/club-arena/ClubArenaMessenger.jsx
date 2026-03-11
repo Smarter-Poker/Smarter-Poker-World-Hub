@@ -714,7 +714,7 @@ export const ChatWindow = ({
         const handleReceived = (event) => {
             const { conversationId: evtConvId, senderId, type } = event.payload || {};
             // P17: Skip internal event types (edit, sticker, favorite_toggled) — they are handled by their own subscriptions
-            if (type === 'edit' || type === 'sticker' || type === 'favorite_toggled') return;
+            if (type === 'edit' || type === 'sticker' || type === 'favorite_toggled' || type === 'label_added') return;
             if (evtConvId === conversationId && senderId !== currentUser?.id) {
                 if (minimized || document.hidden) {
                     updatePrefs(p => ({ ...p, unreadCounts: { ...p.unreadCounts, [evtConvId]: (p.unreadCounts?.[evtConvId] || 0) + 1 } }));
@@ -2085,7 +2085,10 @@ export const ChatWindow = ({
                     <div style={{ padding: '6px 12px', background: 'linear-gradient(90deg, rgba(45,136,255,0.15), rgba(45,136,255,0.05))', borderRadius: 8, margin: '0 8px 6px', display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: '#ddd' }}>
                         <span style={{ fontSize: 14 }}>📋</span>
                         <span style={{ flex: 1 }}>{summary.summary}</span>
-                        <button onClick={() => svc.markAsRead()} style={{ background: 'none', border: 'none', color: '#2D88FF', cursor: 'pointer', fontSize: 10, whiteSpace: 'nowrap' }}>Mark Read</button>
+                        <button onClick={() => {
+                            const unreadIds = (messages || []).filter(m => m.sender_id !== currentUser?.id && !m.read_at).map(m => m.id);
+                            if (unreadIds.length > 0) svc.markAsRead(unreadIds);
+                        }} style={{ background: 'none', border: 'none', color: '#2D88FF', cursor: 'pointer', fontSize: 10, whiteSpace: 'nowrap' }}>Mark Read</button>
                     </div>
                 );
             })()}

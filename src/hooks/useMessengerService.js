@@ -2196,9 +2196,6 @@ ${messages.map(m =>
         uploadWallpaper,
         resetWallpaper, // P17-9
 
-        // P15-8: Media Sanitization (now exported for frontend use)
-        validateMediaUpload,
-
         // P16-8: Translation
         TRANSLATION_LANGUAGES,
         translateMessage,
