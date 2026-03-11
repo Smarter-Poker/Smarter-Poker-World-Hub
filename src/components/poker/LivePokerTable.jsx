@@ -491,6 +491,274 @@ function TableLayoutManager({ onClose }) {
   );
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// WAVE H1: ANIMATED CHIP STACK VISUALIZATION
+// ═══════════════════════════════════════════════════════════════════════════
+
+function ChipStackViz({ stack, bigBlind }) {
+  if (!stack || !bigBlind || stack <= 0) return null;
+  const bbCount = stack / bigBlind;
+  // Render 1-5 chip layers based on stack depth
+  const layers = Math.min(5, Math.max(1, Math.ceil(bbCount / 25)));
+  const chipColors = ['#e53935', '#43a047', '#1e88e5', '#8e24aa', '#ff8f00'];
+  return (
+    <div style={{
+      display: 'flex', flexDirection: 'column-reverse', alignItems: 'center',
+      gap: 0, position: 'relative', height: layers * 6 + 8, width: 22,
+    }}>
+      {Array.from({ length: layers }, (_, i) => (
+        <motion.div
+          key={i}
+          initial={{ y: -10, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: i * 0.08, duration: 0.25 }}
+          style={{
+            width: 20, height: 6, borderRadius: 3,
+            background: `linear-gradient(90deg, ${chipColors[i]}, ${chipColors[i]}cc)`,
+            border: '1px solid rgba(255,255,255,0.25)',
+            boxShadow: `0 1px 2px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.2)`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// WAVE H3: WIN AMOUNT FLY-UP — gold text + sparkle particles on hero win
+// ═══════════════════════════════════════════════════════════════════════════
+
+function WinFlyUp({ amount, isVisible }) {
+  if (!isVisible || !amount || amount <= 0) return null;
+  const formatted = amount >= 1000 ? `${(amount / 1000).toFixed(1)}K` : amount.toLocaleString();
+  return (
+    <AnimatePresence>
+      {isVisible && (
+        <motion.div
+          key="win-fly"
+          initial={{ opacity: 0, y: 20, scale: 0.5 }}
+          animate={{ opacity: 1, y: -30, scale: 1.2 }}
+          exit={{ opacity: 0, y: -80, scale: 0.8 }}
+          transition={{ duration: 1.8, ease: 'easeOut' }}
+          style={{
+            position: 'absolute', bottom: '55%', left: '50%', transform: 'translateX(-50%)',
+            zIndex: 80, pointerEvents: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center',
+          }}
+        >
+          <div style={{
+            fontSize: 28, fontWeight: 900, letterSpacing: -0.5,
+            background: 'linear-gradient(135deg, #FFD700, #FFA000, #FFD700)',
+            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+            textShadow: '0 0 20px rgba(255,215,0,0.6)',
+            filter: 'drop-shadow(0 2px 8px rgba(255,215,0,0.4))',
+          }}>
+            +{formatted}
+          </div>
+          {/* Sparkle particles */}
+          {[0, 1, 2, 3, 4].map(i => (
+            <motion.span
+              key={i}
+              initial={{ opacity: 1, x: 0, y: 0 }}
+              animate={{
+                opacity: 0,
+                x: (i - 2) * 25 + (Math.random() * 10),
+                y: -(20 + Math.random() * 30),
+              }}
+              transition={{ duration: 1.2, delay: 0.2 + i * 0.1 }}
+              style={{
+                position: 'absolute', fontSize: 10, pointerEvents: 'none',
+              }}
+            >✨</motion.span>
+          ))}
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// WAVE H4: TABLE FELT CUSTOMIZATION — choose felt color/texture
+// ═══════════════════════════════════════════════════════════════════════════
+
+const FELT_OPTIONS = [
+  { id: 'classic-green', label: 'Classic Green', color: '#0d5a2e', gradient: 'radial-gradient(ellipse, #1a7a42 0%, #0d5a2e 60%, #064020 100%)' },
+  { id: 'royal-blue', label: 'Royal Blue', color: '#0a3d6e', gradient: 'radial-gradient(ellipse, #1565c0 0%, #0a3d6e 60%, #062a4e 100%)' },
+  { id: 'wine-red', label: 'Wine Red', color: '#6d1b2a', gradient: 'radial-gradient(ellipse, #9c2340 0%, #6d1b2a 60%, #461220 100%)' },
+  { id: 'midnight', label: 'Midnight', color: '#1a1a2e', gradient: 'radial-gradient(ellipse, #2a2a4e 0%, #1a1a2e 60%, #0f0f1e 100%)' },
+  { id: 'purple-haze', label: 'Purple Haze', color: '#2d1b4e', gradient: 'radial-gradient(ellipse, #4a2f80 0%, #2d1b4e 60%, #1a1030 100%)' },
+  { id: 'emerald', label: 'Emerald', color: '#064e3b', gradient: 'radial-gradient(ellipse, #10b981 0%, #064e3b 60%, #023020 100%)' },
+];
+
+function FeltColorPicker({ currentFelt, onSelect, onClose }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 20 }}
+      style={{
+        position: 'fixed', bottom: 60, left: 12, zIndex: 200,
+        background: 'rgba(24,25,26,0.97)', borderRadius: 12,
+        padding: 16, width: 200, border: '1px solid #3E4042',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.6)', backdropFilter: 'blur(12px)',
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+        <span style={{ color: '#E4E6EB', fontSize: 13, fontWeight: 700 }}>🎨 Table Felt</span>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#B0B3B8', fontSize: 16, cursor: 'pointer' }}>✕</button>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+        {FELT_OPTIONS.map(f => (
+          <motion.button
+            key={f.id}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => onSelect(f.id)}
+            style={{
+              width: '100%', aspectRatio: '1', borderRadius: 8,
+              background: f.gradient, border: currentFelt === f.id ? '2px solid #4facfe' : '1px solid rgba(255,255,255,0.15)',
+              cursor: 'pointer', position: 'relative', overflow: 'hidden',
+            }}
+          >
+            {currentFelt === f.id && <span style={{ position: 'absolute', top: 1, right: 2, fontSize: 10 }}>✓</span>}
+          </motion.button>
+        ))}
+      </div>
+      <div style={{ marginTop: 6, textAlign: 'center', color: '#888', fontSize: 9 }}>
+        {FELT_OPTIONS.find(f => f.id === currentFelt)?.label || 'Classic Green'}
+      </div>
+    </motion.div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// WAVE H8: AUTO-MUCK FLASH — visual confirmation when hand is auto-mucked
+// ═══════════════════════════════════════════════════════════════════════════
+
+function AutoMuckFlash({ isVisible }) {
+  if (!isVisible) return null;
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: [0, 1, 1, 0], scale: [0.8, 1, 1, 0.9] }}
+      transition={{ duration: 1.5, times: [0, 0.15, 0.7, 1] }}
+      style={{
+        position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)',
+        zIndex: 80, background: 'rgba(139, 92, 246, 0.2)', borderRadius: 10,
+        padding: '6px 18px', border: '1px solid rgba(139, 92, 246, 0.4)',
+        display: 'flex', alignItems: 'center', gap: 6,
+        boxShadow: '0 4px 16px rgba(139, 92, 246, 0.3)', backdropFilter: 'blur(8px)',
+        pointerEvents: 'none',
+      }}
+    >
+      <span style={{ fontSize: 14 }}>🃏</span>
+      <span style={{ color: '#c4b5fd', fontSize: 12, fontWeight: 700 }}>Cards Mucked</span>
+    </motion.div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// WAVE H14: STACK GRAPH MODAL — full-screen expandable sparkline
+// ═══════════════════════════════════════════════════════════════════════════
+
+function StackGraphModal({ history, startingStack, onClose, formatStack }) {
+  if (!history || history.length < 2) return null;
+  const min = Math.min(...history);
+  const max = Math.max(...history);
+  const range = max - min || 1;
+  const W = 600, H = 250, PAD = 40;
+
+  const points = history.map((v, i) => ({
+    x: PAD + (i / (history.length - 1)) * (W - PAD * 2),
+    y: PAD + (1 - (v - min) / range) * (H - PAD * 2),
+    val: v,
+    hand: i + 1,
+  }));
+  const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
+  const lastVal = history[history.length - 1];
+  const firstVal = history[0];
+  const net = lastVal - firstVal;
+  const color = net >= 0 ? '#4ade80' : '#ef5350';
+  const fmt = formatStack || (v => v.toLocaleString());
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 300,
+        background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      }}
+    >
+      <div onClick={e => e.stopPropagation()} style={{
+        background: 'rgba(24,25,26,0.97)', borderRadius: 16, padding: 24,
+        border: '1px solid #3E4042', boxShadow: '0 16px 64px rgba(0,0,0,0.8)',
+        maxWidth: '90vw', width: W + 48,
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div>
+            <div style={{ color: '#E4E6EB', fontSize: 16, fontWeight: 800 }}>📈 Session Stack Graph</div>
+            <div style={{ color: '#888', fontSize: 11 }}>{history.length} hands played</div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ color, fontSize: 18, fontWeight: 900 }}>{net >= 0 ? '+' : ''}{fmt(net)}</div>
+            <div style={{ color: '#888', fontSize: 10 }}>Net P&L</div>
+          </div>
+        </div>
+        <svg width={W} height={H} style={{ display: 'block', margin: '0 auto' }}>
+          {/* Grid lines */}
+          {[0, 0.25, 0.5, 0.75, 1].map(f => {
+            const y = PAD + f * (H - PAD * 2);
+            const val = max - f * range;
+            return (
+              <React.Fragment key={f}>
+                <line x1={PAD} y1={y} x2={W - PAD} y2={y} stroke="rgba(255,255,255,0.06)" strokeWidth={0.5} />
+                <text x={PAD - 6} y={y + 3} fill="#666" fontSize={8} textAnchor="end">{fmt(Math.round(val))}</text>
+              </React.Fragment>
+            );
+          })}
+          {/* Starting stack reference line */}
+          {startingStack != null && (
+            <line x1={PAD} y1={PAD + (1 - (startingStack - min) / range) * (H - PAD * 2)}
+                  x2={W - PAD} y2={PAD + (1 - (startingStack - min) / range) * (H - PAD * 2)}
+                  stroke="rgba(255,255,255,0.15)" strokeWidth={0.5} strokeDasharray="4,4" />
+          )}
+          {/* Area fill */}
+          <path
+            d={`${pathD} L${points[points.length - 1].x},${H - PAD} L${PAD},${H - PAD} Z`}
+            fill={`${color}15`}
+          />
+          {/* Line */}
+          <path d={pathD} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+          {/* Current point */}
+          <circle cx={points[points.length - 1].x} cy={points[points.length - 1].y} r={4} fill={color} stroke="#fff" strokeWidth={1.5} />
+        </svg>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12, padding: '0 8px' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ color: '#4ade80', fontSize: 13, fontWeight: 800 }}>{fmt(max)}</div>
+            <div style={{ color: '#888', fontSize: 9 }}>Peak</div>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ color: '#ef5350', fontSize: 13, fontWeight: 800 }}>{fmt(min)}</div>
+            <div style={{ color: '#888', fontSize: 9 }}>Valley</div>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ color: '#E4E6EB', fontSize: 13, fontWeight: 800 }}>{fmt(lastVal)}</div>
+            <div style={{ color: '#888', fontSize: 9 }}>Current</div>
+          </div>
+        </div>
+        <button onClick={onClose} style={{
+          display: 'block', margin: '16px auto 0', padding: '6px 24px', borderRadius: 8,
+          background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
+          color: '#B0B3B8', fontSize: 11, fontWeight: 700, cursor: 'pointer',
+        }}>Close</button>
+      </div>
+    </motion.div>
+  );
+}
+
 function FloatingActionLabel({ action, amount, position }) {
   if (!action || !position) return null;
   const color = ACTION_LABEL_COLORS[action] || '#fff';
@@ -5817,6 +6085,56 @@ function LivePokerTable({
     if (!result || !mySeat?.stack) return;
     setStackHistory(prev => [...prev.slice(-49), mySeat.stack]);
   }, [result, mySeat?.stack]);
+
+  // ═══ WAVE H: STATE HOOKS ═══
+  const [feltColor, setFeltColor] = useState(() => {
+    try { return localStorage.getItem('poker-felt-color') || 'classic-green'; } catch { return 'classic-green'; }
+  });
+  const [showFeltPicker, setShowFeltPicker] = useState(false);
+  const [winFlyUpAmount, setWinFlyUpAmount] = useState(0);
+  const [autoMuckFlash, setAutoMuckFlash] = useState(false);
+
+  // H4: Felt color change handler
+  const handleFeltChange = useCallback((feltId) => {
+    setFeltColor(feltId);
+    try {
+      localStorage.setItem('poker-felt-color', feltId);
+      eventBus.emit('DATA_MUTATED', 'felt_changed');
+    } catch (_) {}
+    setShowFeltPicker(false);
+  }, []);
+
+  // H3: Win Fly-Up trigger — show gold amount when hero wins
+  useEffect(() => {
+    if (!result?.winners) return;
+    const heroWin = result.winners.find(w => String(w.playerId) === String(userId));
+    if (heroWin && heroWin.amount > 0) {
+      setWinFlyUpAmount(heroWin.amount);
+      const t = setTimeout(() => setWinFlyUpAmount(0), 2500);
+      return () => clearTimeout(t);
+    }
+  }, [result, userId]);
+
+  // H8: Auto-muck flash trigger — when hero loses with autoMuck ON
+  useEffect(() => {
+    if (!result?.winners || !autoMuck) return;
+    const heroWon = result.winners.some(w => String(w.playerId) === String(userId));
+    if (!heroWon && isSitting && myCards?.length > 0) {
+      setAutoMuckFlash(true);
+      const t = setTimeout(() => setAutoMuckFlash(false), 1800);
+      return () => clearTimeout(t);
+    }
+  }, [result, userId, autoMuck, isSitting, myCards]);
+
+  // H4: Felt color EventBus sync for multi-table
+  useEffect(() => {
+    const unsub = eventBus.on('DATA_MUTATED', (payload) => {
+      if (payload === 'felt_changed') {
+        try { setFeltColor(localStorage.getItem('poker-felt-color') || 'classic-green'); } catch (_) {}
+      }
+    });
+    return () => { if (typeof unsub === 'function') unsub(); };
+  }, []);
 
   // ═══ ENHANCED SESSION STATS ═══
   const [biggestPot, setBiggestPot] = useState(0);

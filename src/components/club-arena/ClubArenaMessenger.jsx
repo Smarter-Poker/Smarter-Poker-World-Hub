@@ -1060,12 +1060,19 @@ export const ChatWindow = ({
         busEmit.messageSent(conversationId, otherUser?.id);
     };
 
-    // P9-3: Auto-Translate Message (P10-11: Debounced)
+    // P9-3: Auto-Translate Message (P10-11: Debounced, P16-8: Uses svc.translateMessage)
     const handleTranslate = async (msgId, text) => {
         if (translatedMsgs[msgId]) return;
         if (translateDebounceRef.current) clearTimeout(translateDebounceRef.current);
         translateDebounceRef.current = setTimeout(async () => {
             try {
+                // P16-8: Try backend translation first
+                const translated = await svc.translateMessage?.(msgId, 'en');
+                if (translated) {
+                    setTranslatedMsgs(prev => ({ ...prev, [msgId]: translated }));
+                    return;
+                }
+                // Fallback to external API
                 const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=autodetect|en`);
                 const data = await res.json();
                 if (data?.responseData?.translatedText) {
@@ -1173,9 +1180,11 @@ export const ChatWindow = ({
         });
     };
 
-    // P5-6: Save edit
-    const handleSaveEdit = () => {
+    // P5-6: Save edit (P16-2: Now persists to Supabase via svc.editMessage)
+    const handleSaveEdit = async () => {
         if (editingMsg && editText.trim()) {
+            // P16-2: Persist edit to Supabase with full history trail
+            await svc.editMessage?.(editingMsg.id, editText.trim());
             updatePrefs(p => {
                 const history = p.editHistory[editingMsg.id] || [];
                 return { ...p, editHistory: { ...p.editHistory, [editingMsg.id]: [...history, { text: editingMsg.text, editedAt: Date.now() }] } };
@@ -1314,6 +1323,11 @@ export const ChatWindow = ({
     };
 
     const handleKeyPress = (e) => {
+        // P16-9: Keyboard Shortcuts
+        if (e.ctrlKey && e.shiftKey && e.key === 'S') { e.preventDefault(); setShowStickerPicker(prev => !prev); return; }
+        if (e.ctrlKey && e.shiftKey && e.key === 'G') { e.preventDefault(); setShowMediaGallery(prev => !prev); if (!showMediaGallery) svc.loadMediaGallery?.(); return; }
+        if (e.ctrlKey && e.key === '/') { e.preventDefault(); setMsgSearch(msgSearch ? '' : ' '); return; }
+        if (e.key === 'Escape') { setShowStickerPicker(false); setShowMediaGallery(false); setShowShortcuts(false); setShowForwardPicker(null); return; }
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             if (editingMsg) { handleSaveEdit(); } else { handleSend(); }
@@ -1363,7 +1377,7 @@ export const ChatWindow = ({
     }
 
     return (
-        <div className="chat-window" style={{ background: theme.startsWith('linear') ? undefined : theme, backgroundImage: theme.startsWith('linear') ? theme : undefined }}>
+        <div className="chat-window" style={{ background: theme.startsWith('linear') ? undefined : theme, backgroundImage: svc.conversationWallpaper ? `url(${svc.conversationWallpaper})` : (theme.startsWith('linear') ? theme : undefined), backgroundSize: svc.conversationWallpaper ? 'cover' : undefined, backgroundPosition: svc.conversationWallpaper ? 'center' : undefined }}>
             {/* Header */}
             <div className="chat-header">
                 <div style={{ position: 'relative', display: 'inline-block' }}>
