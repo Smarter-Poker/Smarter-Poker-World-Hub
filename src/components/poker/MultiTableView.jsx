@@ -380,6 +380,32 @@ function GlobalControlsHUD({ onSitOutAll }) {
             <span style={{ fontSize: 18 }}>🛑</span>
             Sit Out All Tables
           </button>
+
+          <button
+            onClick={() => {
+              try { eventBus.emit('DATA_MUTATED', 'global_sit_in_all'); } catch (e) { console.error('SitInAll emit failed:', e); }
+              setOpen(false);
+            }}
+            style={{
+              width: '100%',
+              textAlign: 'left',
+              background: 'transparent',
+              border: 'none',
+              padding: '12px 16px',
+              color: '#2ECC71',
+              fontSize: 14,
+              fontWeight: 600,
+              borderRadius: 8,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              marginTop: 4,
+            }}
+          >
+            <span style={{ fontSize: 18 }}>▶️</span>
+            Sit In All Tables
+          </button>
         </div>
       )}
     </div>

@@ -110,6 +110,29 @@ export function useMultiTable({ supabase, userId }) {
     }
   }, [slots, activeIndex, viewMode, pendingSlotIndex]);
 
+  // ── Browser Tab Flashing (Phase 13) ──
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    let interval;
+    if (actionNeeded.size > 0) {
+      let isAltTitle = false;
+      interval = setInterval(() => {
+        document.title = isAltTitle ? 'Smarter.Poker Hub' : '(!) Your Turn';
+        isAltTitle = !isAltTitle;
+      }, 1000);
+      // Immediately set the alert title when action first hits
+      document.title = '(!) Your Turn';
+    } else {
+      document.title = 'Smarter.Poker Hub';
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+      document.title = 'Smarter.Poker Hub';
+    };
+  }, [actionNeeded.size]);
+
   // ── Derived: non-null tables (for rendering) ──
   const tables = slots
     .map((slot, idx) => (slot ? { ...slot, _slotIndex: idx } : null))

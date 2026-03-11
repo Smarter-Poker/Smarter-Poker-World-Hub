@@ -1490,6 +1490,31 @@ function DiscardPanel({ cards, onDiscard }) {
 function ActionPanel({ actions, onAction, stack, currentBet, bigBlind, potTotal = 0 }) {
   const [betAmount, setBetAmount] = useState(0);
   const [showSlider, setShowSlider] = useState(false);
+  const [customPresets, setCustomPresets] = useState(null);
+
+  // Sync bet presets across tables
+  useEffect(() => {
+    const loadPresets = () => {
+      try {
+        const saved = localStorage.getItem('smarter-poker-bet-presets');
+        if (saved) setCustomPresets(JSON.parse(saved));
+      } catch (e) {
+        console.error('Failed to parse bet presets', e);
+      }
+    };
+    loadPresets();
+    
+    // Listen for cross-tab or cross-component updates
+    window.addEventListener('storage', loadPresets);
+    eventBus.on(EventType.DATA_MUTATED, (payload) => {
+      if (payload === 'bet_presets_changed') loadPresets();
+    });
+    
+    return () => {
+      window.removeEventListener('storage', loadPresets);
+      eventBus.off(EventType.DATA_MUTATED, loadPresets);
+    };
+  }, []);
 
   // Parse legal actions
   const canFold = actions?.find(a => a.type === 'fold');
@@ -1510,12 +1535,19 @@ function ActionPanel({ actions, onAction, stack, currentBet, bigBlind, potTotal 
 
   if (!actions || actions.length === 0) return null;
 
+  // Determine preset multipliers (use custom if available, else default)
+  const p1 = customPresets?.p1 || 0.33; // 33% pot
+  const p2 = customPresets?.p2 || 0.50; // 50% pot
+  const p3 = customPresets?.p3 || 0.67; // 67% pot
+  const p4 = customPresets?.p4 || 1.00; // 100% pot
+  const p5 = customPresets?.p5 || 2.00; // 2x pot
+
   const presets = betOrRaise ? [
-    { label: '⅓', amount: Math.max(minBet, Math.floor((potTotal || bigBlind * 2) * 0.33)) },
-    { label: '½', amount: Math.max(minBet, Math.floor((potTotal || bigBlind * 2) * 0.5)) },
-    { label: '⅔', amount: Math.max(minBet, Math.floor((potTotal || bigBlind * 2) * 0.67)) },
-    { label: 'Pot', amount: Math.max(minBet, potTotal || bigBlind * 2) },
-    { label: '2×', amount: Math.max(minBet, (potTotal || bigBlind * 2) * 2) },
+    { label: `${Math.round(p1 * 100)}%`, amount: Math.max(minBet, Math.floor((potTotal || bigBlind * 2) * p1)) },
+    { label: `${Math.round(p2 * 100)}%`, amount: Math.max(minBet, Math.floor((potTotal || bigBlind * 2) * p2)) },
+    { label: `${Math.round(p3 * 100)}%`, amount: Math.max(minBet, Math.floor((potTotal || bigBlind * 2) * p3)) },
+    { label: `${Math.round(p4 * 100)}%`, amount: Math.max(minBet, Math.floor((potTotal || bigBlind * 2) * p4)) },
+    { label: `${p5}x`, amount: Math.max(minBet, Math.floor((potTotal || bigBlind * 2) * p5)) },
   ].filter(p => p.amount <= maxBet) : [];
 
   // Mobile responsive sizing
@@ -3577,6 +3609,9 @@ function LivePokerTable({
     const handleGlobalMutate = (payload) => {
       if (payload === 'global_sit_out_all') {
         send('sit_out'); // Trigger the backend action for this specific table
+      }
+      if (payload === 'global_sit_in_all') {
+        send('sit_in');
       }
       if (typeof window !== 'undefined') {
         if (payload === 'bb_display_toggled') {
