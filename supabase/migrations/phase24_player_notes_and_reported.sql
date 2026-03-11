@@ -5,13 +5,13 @@
 -- #3: Player Notes — Supabase sync across devices
 CREATE TABLE IF NOT EXISTS player_notes (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  owner_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   target_player_id TEXT NOT NULL, -- can be UUID or username
   note_text TEXT DEFAULT '',
   color_label TEXT DEFAULT 'fish',
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(owner_id, target_player_id)
+  UNIQUE(user_id, target_player_id)
 );
 
 -- #11: RLS — Only the note owner can read/write their own notes
@@ -19,19 +19,19 @@ ALTER TABLE player_notes ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can read their own player notes"
   ON player_notes FOR SELECT
-  USING (auth.uid() = owner_id);
+  USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can insert their own player notes"
   ON player_notes FOR INSERT
-  WITH CHECK (auth.uid() = owner_id);
+  WITH CHECK (auth.uid() = user_id);
 
 CREATE POLICY "Users can update their own player notes"
   ON player_notes FOR UPDATE
-  USING (auth.uid() = owner_id);
+  USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can delete their own player notes"
   ON player_notes FOR DELETE
-  USING (auth.uid() = owner_id);
+  USING (auth.uid() = user_id);
 
 -- #8/#9: Add reported columns to hand_histories (if not already present)
 DO $$
@@ -56,5 +56,5 @@ CREATE INDEX IF NOT EXISTS idx_hand_histories_reported
   ON hand_histories (reported) WHERE reported = true;
 
 -- Index for player notes lookup
-CREATE INDEX IF NOT EXISTS idx_player_notes_owner
-  ON player_notes (owner_id);
+CREATE INDEX IF NOT EXISTS idx_player_notes_user
+  ON player_notes (user_id);
