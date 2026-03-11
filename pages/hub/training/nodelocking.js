@@ -337,6 +337,87 @@ export default function NodelockingPage() {
   const [selectedProfile, setSelectedProfile] = useState('nit');
   const [customTendencies, setCustomTendencies] = useState(null);
 
+  // Custom profile persistence (Supabase)
+  const [savedProfiles, setSavedProfiles] = useState([]);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [newProfileName, setNewProfileName] = useState('');
+  const [profileSaveStatus, setProfileSaveStatus] = useState(null);
+  const [showMyProfiles, setShowMyProfiles] = useState(false);
+
+  // Load saved profiles on mount
+  useEffect(() => {
+    async function loadProfiles() {
+      try {
+        const token = await getAccessToken();
+        if (!token) return;
+        const res = await authedFetch('/api/training/save-session?action=list&gameId=nodelocking_profile', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const profiles = (Array.isArray(data.sessions) ? data.sessions : Array.isArray(data) ? data : [])
+            .filter((s) => s.game_id === 'nodelocking_profile' || s.gameId === 'nodelocking_profile')
+            .map((s) => {
+              try {
+                const meta = typeof s.metadata === 'string' ? JSON.parse(s.metadata) : s.metadata;
+                return { id: s.id, name: meta?.profileName || 'Unnamed', tendencies: meta?.tendencies || {}, createdAt: s.created_at };
+              } catch { return null; }
+            })
+            .filter(Boolean);
+          setSavedProfiles(profiles);
+        }
+      } catch (e) {
+        console.warn('[Nodelocking] Could not load profiles:', e);
+      }
+    }
+    loadProfiles();
+  }, []);
+
+  // Save current custom profile
+  const saveCustomProfile = useCallback(async () => {
+    if (!newProfileName.trim() || !customTendencies) return;
+    setProfileSaveStatus('saving');
+    try {
+      const token = await getAccessToken();
+      if (!token) throw new Error('No auth');
+      await authedFetch('/api/training/save-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          gameId: 'nodelocking_profile',
+          gameName: 'Nodelocking Custom Profile',
+          handsPlayed: 0,
+          accuracy: 0,
+          metadata: JSON.stringify({
+            profileName: newProfileName.trim(),
+            tendencies: customTendencies,
+            baseProfile: selectedProfile,
+          }),
+        }),
+      });
+      setSavedProfiles((prev) => [...prev, { name: newProfileName.trim(), tendencies: customTendencies, createdAt: new Date().toISOString() }]);
+      setProfileSaveStatus('saved');
+      setShowSaveModal(false);
+      setNewProfileName('');
+      setTimeout(() => setProfileSaveStatus(null), 3000);
+    } catch (e) {
+      console.error('[Nodelocking] Profile save error:', e);
+      setProfileSaveStatus('error');
+      setTimeout(() => setProfileSaveStatus(null), 3000);
+    }
+  }, [newProfileName, customTendencies, selectedProfile]);
+
+  // Load a saved profile
+  const loadCustomProfile = useCallback((profile) => {
+    setCustomTendencies(profile.tendencies);
+    setShowMyProfiles(false);
+  }, []);
+
+  // Delete a saved profile
+  const deleteCustomProfile = useCallback((index) => {
+    setSavedProfiles((prev) => prev.filter((_, i) => i !== index));
+  }, []);
+
   useEffect(() => {
     try {
       const saved = localStorage.getItem('sp_nodelock_profile');
@@ -571,6 +652,166 @@ export default function NodelockingPage() {
                 </motion.button>
               ))}
           </div>
+
+          {/* My Profiles Tab + Save Button */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 14, alignItems: 'center' }}>
+            <button
+              onClick={() => setShowMyProfiles(!showMyProfiles)}
+              style={{
+                padding: '6px 14px',
+                borderRadius: 8,
+                fontSize: 10,
+                fontWeight: 700,
+                border: 'none',
+                cursor: 'pointer',
+                background: showMyProfiles ? 'rgba(0,212,255,0.15)' : 'rgba(255,255,255,0.05)',
+                color: showMyProfiles ? '#00d4ff' : '#64748b',
+              }}
+            >
+              📁 My Profiles ({savedProfiles.length})
+            </button>
+            {customTendencies && (
+              <button
+                onClick={() => setShowSaveModal(true)}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: 8,
+                  fontSize: 10,
+                  fontWeight: 700,
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+                  color: '#fff',
+                }}
+              >
+                💾 Save Custom Profile
+              </button>
+            )}
+            {profileSaveStatus === 'saved' && (
+              <span style={{ fontSize: 10, color: '#22c55e', fontWeight: 600 }}>✓ Saved!</span>
+            )}
+          </div>
+
+          {/* My Profiles List */}
+          {showMyProfiles && (
+            <div
+              style={{
+                padding: 12,
+                marginBottom: 14,
+                borderRadius: 10,
+                background: 'rgba(0,212,255,0.03)',
+                border: '1px solid rgba(0,212,255,0.15)',
+              }}
+            >
+              {savedProfiles.length === 0 ? (
+                <div style={{ fontSize: 11, color: '#475569', textAlign: 'center', padding: 10 }}>
+                  No saved profiles yet. Adjust sliders and click "Save Custom Profile".
+                </div>
+              ) : (
+                savedProfiles.map((p, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      padding: '6px 10px',
+                      borderRadius: 6,
+                      background: 'rgba(0,0,0,0.2)',
+                      marginBottom: 4,
+                    }}
+                  >
+                    <span style={{ fontSize: 11, fontWeight: 600, color: '#e2e8f0', flex: 1 }}>{p.name}</span>
+                    <button
+                      onClick={() => loadCustomProfile(p)}
+                      style={{ padding: '3px 10px', borderRadius: 6, fontSize: 9, fontWeight: 700, border: 'none', cursor: 'pointer', background: 'rgba(0,212,255,0.15)', color: '#00d4ff' }}
+                    >
+                      Load
+                    </button>
+                    <button
+                      onClick={() => deleteCustomProfile(i)}
+                      style={{ padding: '3px 8px', borderRadius: 6, fontSize: 9, fontWeight: 700, border: 'none', cursor: 'pointer', background: 'rgba(239,68,68,0.15)', color: '#ef4444' }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
+          {/* Save Profile Modal */}
+          {showSaveModal && (
+            <div
+              style={{
+                position: 'fixed',
+                inset: 0,
+                background: 'rgba(0,0,0,0.7)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 9999,
+              }}
+              onClick={() => setShowSaveModal(false)}
+            >
+              <div
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  background: '#1a1a2e',
+                  borderRadius: 14,
+                  padding: 24,
+                  width: '90%',
+                  maxWidth: 340,
+                  border: '1px solid rgba(0,212,255,0.2)',
+                }}
+              >
+                <div style={{ fontSize: 14, fontWeight: 800, color: '#00d4ff', marginBottom: 12, fontFamily: "'Orbitron', monospace" }}>Save Villain Profile</div>
+                <input
+                  value={newProfileName}
+                  onChange={(e) => setNewProfileName(e.target.value)}
+                  placeholder="Profile name (e.g. 'Loose Reg')"
+                  maxLength={30}
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: 8,
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    background: 'rgba(0,0,0,0.3)',
+                    color: '#e2e8f0',
+                    fontSize: 13,
+                    fontWeight: 500,
+                    marginBottom: 12,
+                    outline: 'none',
+                  }}
+                />
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    onClick={saveCustomProfile}
+                    disabled={!newProfileName.trim() || profileSaveStatus === 'saving'}
+                    style={{
+                      flex: 1,
+                      padding: '10px',
+                      borderRadius: 8,
+                      fontSize: 12,
+                      fontWeight: 700,
+                      border: 'none',
+                      cursor: 'pointer',
+                      background: newProfileName.trim() ? 'linear-gradient(135deg, #22c55e, #16a34a)' : 'rgba(255,255,255,0.05)',
+                      color: newProfileName.trim() ? '#fff' : '#475569',
+                    }}
+                  >
+                    {profileSaveStatus === 'saving' ? 'Saving...' : 'Save'}
+                  </button>
+                  <button
+                    onClick={() => setShowSaveModal(false)}
+                    style={{ padding: '10px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700, border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.06)', color: '#94a3b8' }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Active Profile Description */}
           <div

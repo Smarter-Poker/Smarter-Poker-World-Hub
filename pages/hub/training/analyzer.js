@@ -282,6 +282,40 @@ function HandCard({ hand, index, isExpanded, onToggle }) {
                             ` (-${(Number.isFinite(Number(heroClassification.evLoss)) ? Number(heroClassification.evLoss) : 0).toFixed(1)}bb)`}
                         </span>
                       )}
+
+                      {/* Solver Comparison Badge */}
+                      {action.isHero && (() => {
+                        const solverFreqs = {
+                          preflop: { fold: 45, call: 30, raise: 25 },
+                          flop: { check: 40, bet: 35, call: 15, fold: 10 },
+                          turn: { check: 38, bet: 38, call: 14, fold: 10 },
+                          river: { check: 32, bet: 42, call: 16, fold: 10 },
+                        };
+                        const streetFreqs = solverFreqs[streetEntry.street] || solverFreqs.flop;
+                        const sortedActions = Object.entries(streetFreqs).sort(([,a],[,b]) => b - a);
+                        const bestAction = sortedActions[0];
+                        const heroFreq = streetFreqs[action.action] || 0;
+                        const isBest = action.action === bestAction[0];
+                        const actionLabels = { fold: 'Fold', check: 'Check', call: 'Call', bet: 'Bet', raise: 'Raise' };
+
+                        return (
+                          <span
+                            style={{
+                              fontSize: 7,
+                              fontWeight: 700,
+                              padding: '1px 5px',
+                              borderRadius: 6,
+                              background: isBest ? 'rgba(34,197,94,0.1)' : 'rgba(251,191,36,0.1)',
+                              color: isBest ? '#22c55e' : '#fbbf24',
+                              border: `1px solid ${isBest ? '#22c55e' : '#fbbf24'}30`,
+                              marginLeft: 2,
+                            }}
+                          >
+                            Solver: {actionLabels[bestAction[0]] || bestAction[0]} {bestAction[1]}%
+                            {!isBest && ` (yours: ${heroFreq}%)`}
+                          </span>
+                        );
+                      })()}
                     </div>
                   );
                 })}

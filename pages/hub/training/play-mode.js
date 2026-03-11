@@ -182,6 +182,10 @@ function usePlayMode() {
   const [handResults, setHandResults] = useState([]);
   const [showdownResult, setShowdownResult] = useState(null);
 
+  // Villain range narrowing tracker
+  const [villainRangeHistory, setVillainRangeHistory] = useState([]);
+  const villainRangeRef = useRef(100);
+
   const deckRef = useRef([]);
 
   // Start a new hand
@@ -208,6 +212,8 @@ function usePlayMode() {
     setHeroStack(config.stackDepth);
     setActionHistory([]);
     setShowdownResult(null);
+    setVillainRangeHistory([{ street: 'preflop', width: 100 }]);
+    villainRangeRef.current = 100;
     setHandNumber((prev) => prev + 1);
     setGameState('playing');
 
@@ -496,6 +502,12 @@ function usePlayMode() {
         return;
       }
 
+      // Narrow villain range based on their action
+      const narrowingFactors = { fold: 0, call: 0.7, check: 0.85, bet: 0.55, raise: 0.4, allin: 0.25 };
+      const factor = narrowingFactors[villainAction.action] || 0.8;
+      villainRangeRef.current = Math.max(5, Math.round(villainRangeRef.current * factor));
+      setVillainRangeHistory((prev) => [...prev, { street: currentStreet, width: villainRangeRef.current, action: villainAction.action }]);
+
       // Add villain's contribution to pot
       newPot += villainAction.amount;
       setPot(newPot);
@@ -749,6 +761,7 @@ function usePlayMode() {
     screenShake,
     speedBonus,
     showSpeedBonus,
+    villainRangeHistory,
   };
 }
 
@@ -1619,6 +1632,41 @@ export default function PlayModePage() {
                       {a.amount > 0 ? ` ${(Number.isFinite(Number(a.amount)) ? Number(a.amount) : 0).toFixed(1)}BB` : ''}
                     </div>
                   ))}
+                </div>
+              )}
+
+              {/* Villain Range Narrowing Indicator */}
+              {game.villainRangeHistory && game.villainRangeHistory.length > 0 && (
+                <div style={{
+                  marginTop: 10,
+                  padding: '8px 12px',
+                  background: 'rgba(124,58,237,0.08)',
+                  border: '1px solid rgba(124,58,237,0.2)',
+                  borderRadius: 8,
+                }}>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: '#a855f7', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>
+                    Villain Range Narrowing
+                  </div>
+                  <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                    {game.villainRangeHistory.map((r, i) => (
+                      <React.Fragment key={i}>
+                        <div style={{
+                          padding: '2px 6px',
+                          borderRadius: 4,
+                          background: `rgba(124,58,237,${0.1 + (1 - r.width / 100) * 0.3})`,
+                          fontSize: 9,
+                          fontWeight: 700,
+                          color: '#c4b5fd',
+                          fontFamily: "'Orbitron', monospace",
+                        }}>
+                          {r.width}%
+                        </div>
+                        {i < game.villainRangeHistory.length - 1 && (
+                          <span style={{ color: '#475569', fontSize: 8 }}>→</span>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </div>
                 </div>
               )}
             </motion.div>

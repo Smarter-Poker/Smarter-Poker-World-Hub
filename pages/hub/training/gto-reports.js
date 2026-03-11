@@ -700,6 +700,17 @@ export default function GTOReportsPage() {
                     if (diff <= 5) return null;
                     const direction = uVal > gtoVal ? 'too high' : 'too low';
                     const meta = STAT_LABELS[key] || {};
+                    const DRILL_MAP = {
+                      vpip: { label: 'Preflop Range Trainer', href: '/hub/training?drill=range-construction' },
+                      pfr: { label: 'Aggression Drill', href: '/hub/training?drill=preflop-aggression' },
+                      threeBet: { label: '3-Bet Defense', href: '/hub/training?drill=3bet-defense' },
+                      foldTo3Bet: { label: '3-Bet Response', href: '/hub/training?drill=3bet-defense' },
+                      cBet: { label: 'C-Bet Frequency', href: '/hub/training?drill=cbet-practice' },
+                      foldToCBet: { label: 'C-Bet Defense', href: '/hub/training?drill=cbet-defense' },
+                      wtsd: { label: 'Showdown Value', href: '/hub/training/bluff-catcher' },
+                      wwsf: { label: 'Postflop Play', href: '/hub/training/play-mode' },
+                    };
+                    const drill = DRILL_MAP[key];
                     return (
                       <div
                         key={key}
@@ -711,17 +722,112 @@ export default function GTOReportsPage() {
                           border: '1px solid rgba(239,68,68,0.1)',
                           fontSize: 11,
                           color: '#e2e8f0',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 8,
                         }}
                       >
-                        <strong style={{ color: '#f97316' }}>{meta.label || key}</strong> is{' '}
-                        {direction} by <strong>{(Number.isFinite(Number(diff)) ? Number(diff) : 0).toFixed(1)}%</strong>.{' '}
-                        {direction === 'too high'
-                          ? `Consider tightening your ${meta.label || key} range.`
-                          : `Try increasing your ${meta.label || key} frequency in practice.`}
+                        <div style={{ flex: 1 }}>
+                          <strong style={{ color: '#f97316' }}>{meta.label || key}</strong> is{' '}
+                          {direction} by <strong>{(Number.isFinite(Number(diff)) ? Number(diff) : 0).toFixed(1)}%</strong>.{' '}
+                          {direction === 'too high'
+                            ? `Consider tightening your ${meta.label || key} range.`
+                            : `Try increasing your ${meta.label || key} frequency in practice.`}
+                        </div>
+                        {drill && (
+                          <button
+                            onClick={() => router.push(drill.href)}
+                            style={{
+                              flexShrink: 0,
+                              padding: '4px 10px',
+                              borderRadius: 6,
+                              fontSize: 9,
+                              fontWeight: 700,
+                              border: 'none',
+                              cursor: 'pointer',
+                              background: 'linear-gradient(135deg, #00d4ff, #7c3aed)',
+                              color: '#fff',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            Train This →
+                          </button>
+                        )}
                       </div>
                     );
                   })
                   .filter(Boolean)}
+              </div>
+
+              {/* Recommended Drills Section */}
+              <div
+                style={{
+                  marginTop: 14,
+                  padding: '14px 16px',
+                  borderRadius: 12,
+                  background: 'linear-gradient(135deg, rgba(0,212,255,0.05), rgba(124,58,237,0.03))',
+                  border: '1px solid rgba(0,212,255,0.15)',
+                }}
+              >
+                <div style={{ fontSize: 12, fontWeight: 800, color: '#00d4ff', marginBottom: 10, fontFamily: "'Orbitron', monospace", textTransform: 'uppercase', letterSpacing: 1 }}>
+                  🎯 Recommended Drills
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 8 }}>
+                  {(() => {
+                    const weakStats = Object.entries(GTO_BASELINES.overall)
+                      .map(([key, gtoVal]) => ({ key, diff: Math.abs((userStats[key] || 0) - gtoVal), label: (STAT_LABELS[key] || {}).label || key }))
+                      .filter((s) => s.diff > 5)
+                      .sort((a, b) => b.diff - a.diff)
+                      .slice(0, 3);
+
+                    const DRILL_PAGES = {
+                      vpip: { name: 'Range Construction', desc: 'Practice opening ranges by position', href: '/hub/training/range-trainer', icon: '🎯' },
+                      pfr: { name: 'Preflop Aggression', desc: 'Master raise-first strategy', href: '/hub/training/play-mode', icon: '🚀' },
+                      threeBet: { name: '3-Bet Scenarios', desc: 'Practice 3-bet and squeeze spots', href: '/hub/training/blind-defense', icon: '🔥' },
+                      foldTo3Bet: { name: '3-Bet Defense', desc: 'Learn when to call, 4-bet, or fold', href: '/hub/training/blind-defense', icon: '🛡️' },
+                      cBet: { name: 'C-Bet Practice', desc: 'Optimize continuation betting', href: '/hub/training/play-mode', icon: '💰' },
+                      foldToCBet: { name: 'Facing C-Bets', desc: 'Defend correctly vs c-bets', href: '/hub/training/bluff-catcher', icon: '📞' },
+                      wtsd: { name: 'Showdown Decisions', desc: 'Hero call vs value bet spots', href: '/hub/training/bluff-catcher', icon: '🃏' },
+                      wwsf: { name: 'Postflop Play', desc: 'Full hand simulation practice', href: '/hub/training/play-mode', icon: '🎮' },
+                    };
+
+                    if (weakStats.length === 0) {
+                      return (
+                        <div style={{ fontSize: 11, color: '#22c55e', padding: 8 }}>
+                          ✅ Your stats are close to GTO! Keep training to maintain your edge.
+                        </div>
+                      );
+                    }
+
+                    return weakStats.map((stat) => {
+                      const page = DRILL_PAGES[stat.key] || { name: 'General Training', href: '/hub/training', icon: '🎯', desc: 'Improve your overall game' };
+                      return (
+                        <button
+                          key={stat.key}
+                          onClick={() => router.push(page.href)}
+                          style={{
+                            padding: '10px 14px',
+                            borderRadius: 10,
+                            background: 'rgba(0,0,0,0.2)',
+                            border: '1px solid rgba(255,255,255,0.06)',
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                            transition: 'all 0.15s',
+                          }}
+                        >
+                          <div style={{ fontSize: 16, marginBottom: 4 }}>{page.icon}</div>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', marginBottom: 2 }}>
+                            {page.name}
+                          </div>
+                          <div style={{ fontSize: 9, color: '#64748b', marginBottom: 4 }}>{page.desc}</div>
+                          <div style={{ fontSize: 8, fontWeight: 700, color: '#f97316' }}>
+                            Fix: {stat.label} ({(Number.isFinite(Number(stat.diff)) ? Number(stat.diff) : 0).toFixed(1)}% off GTO)
+                          </div>
+                        </button>
+                      );
+                    });
+                  })()}
+                </div>
               </div>
             </>
           )}

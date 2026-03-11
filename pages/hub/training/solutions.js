@@ -428,6 +428,39 @@ function SolutionsBrowserInner({ setError }) {
   const [bookmarkedHashes, setBookmarkedHashes] = useState(new Set());
   const [showBookmarksOnly, setShowBookmarksOnly] = useState(false);
 
+  // Phase 17: Board Texture Filter
+  const [boardTexture, setBoardTexture] = useState('All');
+  const BOARD_TEXTURES = ['All', 'Monotone', 'Two-Tone', 'Rainbow', 'Paired', 'Connected'];
+  const TEXTURE_FILTER_COLORS = {
+    All: '#00d4ff',
+    Monotone: '#a855f7',
+    'Two-Tone': '#3b82f6',
+    Rainbow: '#22c55e',
+    Paired: '#f59e0b',
+    Connected: '#ef4444',
+  };
+
+  // Board texture classifier
+  function classifyBoardTexture(boardCards) {
+    if (!boardCards || boardCards.length < 3) return [];
+    const suits = boardCards.slice(0, 3).map((c) => (typeof c === 'string' ? c[c.length - 1] : ''));
+    const ranks = boardCards.slice(0, 3).map((c) => {
+      if (typeof c !== 'string') return 0;
+      const r = c[0];
+      return 'AKQJT98765432'.indexOf(r);
+    });
+    const tags = [];
+    const uniqueSuits = new Set(suits).size;
+    if (uniqueSuits === 1) tags.push('Monotone');
+    else if (uniqueSuits === 2) tags.push('Two-Tone');
+    else tags.push('Rainbow');
+    const uniqueRanks = new Set(ranks).size;
+    if (uniqueRanks < boardCards.slice(0, 3).length) tags.push('Paired');
+    const sorted = [...ranks].filter((r) => r >= 0).sort((a, b) => a - b);
+    if (sorted.length >= 3 && sorted[sorted.length - 1] - sorted[0] <= 4) tags.push('Connected');
+    return tags;
+  }
+
   // Fetch bookmarks on mount
   useEffect(() => {
     async function loadBookmarks() {
@@ -874,6 +907,33 @@ function SolutionsBrowserInner({ setError }) {
                   }}
                 >
                   {p}
+                </button>
+              ))}
+            </div>
+
+            {/* Phase 17: Board Texture Filter */}
+            <div style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.08)' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ fontSize: 10, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>Texture:</span>
+              {BOARD_TEXTURES.map((tex) => (
+                <button
+                  key={tex}
+                  onClick={() => { setBoardTexture(tex); setPage(1); }}
+                  style={{
+                    padding: '4px 8px',
+                    borderRadius: 6,
+                    fontSize: 10,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    border: 'none',
+                    background: boardTexture === tex
+                      ? `${TEXTURE_FILTER_COLORS[tex]}20`
+                      : 'rgba(255,255,255,0.04)',
+                    color: boardTexture === tex ? TEXTURE_FILTER_COLORS[tex] : '#475569',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {tex}
                 </button>
               ))}
             </div>

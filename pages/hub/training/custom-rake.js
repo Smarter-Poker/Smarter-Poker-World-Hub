@@ -154,15 +154,7 @@ export default function CustomRakePage() {
   const rakeCap = preset.id === 'custom' ? customCap : preset.cap;
 
   const impact = useMemo(() => {
-    const result = calculateRakeImpact(rakePct, rakeCap, stackDepth);
-    eventBus?.emit?.('training:session-complete', {
-      game_id: 'custom-rake',
-      accuracy: 100,
-      correct_answers: 1,
-      total_questions: 1,
-      hands_played: 1,
-    });
-    return result;
+    return calculateRakeImpact(rakePct, rakeCap, stackDepth);
   }, [rakePct, rakeCap, stackDepth]);
 
   return (

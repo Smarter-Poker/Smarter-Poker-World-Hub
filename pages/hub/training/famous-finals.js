@@ -308,40 +308,42 @@ export default function FamousFinalsPage() {
           ? 1
           : 0);
       const total = activeEvent.spots.length;
-      try {
-        const token = getAccessToken();
-        if (token) {
-          fetch('/api/training/save-session', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify({
-              gameId: 'famous-finals',
+      (async () => {
+        try {
+          const token = await getAccessToken();
+          if (token) {
+            fetch('/api/training/save-session', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+              body: JSON.stringify({
+                gameId: 'famous-finals',
+                questionsAnswered: total,
+                questionsCorrect: correct,
+                accuracy: Math.round((correct / total) * 100),
+                trainerConfig: { eventId: activeEvent.id, series: activeEvent.series },
+              }),
+            });
+          }
+          eventBus?.emit?.(
+            EventType?.SESSION_END || 'session:end',
+            {
+              accuracy: Math.round((correct / total) * 100),
               questionsAnswered: total,
               questionsCorrect: correct,
-              accuracy: Math.round((correct / total) * 100),
-              trainerConfig: { eventId: activeEvent.id, series: activeEvent.series },
-            }),
-          });
-        }
-        eventBus?.emit?.(
-          EventType?.SESSION_END || 'session:end',
-          {
+            },
+            'famous-finals'
+          );
+          eventBus?.emit?.('training:session-complete', {
+            game_id: 'famous-finals',
             accuracy: Math.round((correct / total) * 100),
-            questionsAnswered: total,
-            questionsCorrect: correct,
-          },
-          'famous-finals'
-        );
-        eventBus?.emit?.('training:session-complete', {
-          game_id: 'famous-finals',
-          accuracy: Math.round((correct / total) * 100),
-          correct_answers: correct,
-          total_questions: total,
-          hands_played: total,
-        });
-      } catch (e) {
-        console.error(e);
-      }
+            correct_answers: correct,
+            total_questions: total,
+            hands_played: total,
+          });
+        } catch (e) {
+          console.error(e);
+        }
+      })();
     }
   }, [spotIndex, activeEvent, results, showFeedback, selectedAnswer, currentSpot]);
 

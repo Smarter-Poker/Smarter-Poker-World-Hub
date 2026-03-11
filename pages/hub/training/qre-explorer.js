@@ -132,26 +132,28 @@ export default function QREExplorerPage() {
   const handlePreset = (preset) => {
     setActivePreset(preset.id);
     setLambda(preset.lambda);
-    try {
-      const token = getAccessToken();
-      if (token) {
-        fetch('/api/training/save-session', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({
-            gameId: 'qre-explorer',
-            questionsAnswered: 1,
-            questionsCorrect: 1,
-            accuracy: 100,
-          }),
-        });
-      }
-      eventBus?.emit?.(
-        EventType?.SESSION_END || 'session:end',
-        { accuracy: 100, questionsAnswered: 1, questionsCorrect: 1 },
-        'qre-explorer'
-      );
-    } catch (e) {}
+    (async () => {
+      try {
+        const token = await getAccessToken();
+        if (token) {
+          fetch('/api/training/save-session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({
+              gameId: 'qre-explorer',
+              questionsAnswered: 1,
+              questionsCorrect: 1,
+              accuracy: 100,
+            }),
+          });
+        }
+        eventBus?.emit?.(
+          EventType?.SESSION_END || 'session:end',
+          { accuracy: 100, questionsAnswered: 1, questionsCorrect: 1 },
+          'qre-explorer'
+        );
+      } catch (e) {}
+    })();
   };
 
   return (

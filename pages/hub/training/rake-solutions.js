@@ -161,9 +161,9 @@ export default function RakeSolutionsPage() {
     return result;
   }, [compareRake]);
 
-  const handleViewInsight = () => {
+  const handleViewInsight = async () => {
     try {
-      const token = getAccessToken();
+      const token = await getAccessToken();
       if (token) {
         fetch('/api/training/save-session', {
           method: 'POST',
