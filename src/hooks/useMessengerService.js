@@ -1070,9 +1070,12 @@ export function useMessengerService({ conversationId, currentUser, messengerType
         const supabase = getSupabase();
         if (!supabase || !currentUser?.id || !conversationId) return;
         try {
+            // BUG-FIX: Merge with existing metadata instead of overwriting
+            const { data: existing } = await supabase.from('messenger_messages').select('media_metadata').eq('id', messageId).maybeSingle();
+            const merged = { ...(existing?.media_metadata || {}), pinned: true, pinned_by: currentUser.id, pinned_at: new Date().toISOString() };
             await supabase
                 .from('messenger_messages')
-                .update({ media_metadata: { pinned: true, pinned_by: currentUser.id, pinned_at: new Date().toISOString() } })
+                .update({ media_metadata: merged })
                 .eq('id', messageId);
             const msg = messages.find(m => m.id === messageId);
             if (msg) setPinnedMessages(prev => [...prev.filter(p => p.id !== messageId), { ...msg, pinned: true }]);
@@ -1083,9 +1086,15 @@ export function useMessengerService({ conversationId, currentUser, messengerType
         const supabase = getSupabase();
         if (!supabase) return;
         try {
+            // BUG-FIX: Preserve existing metadata, only remove pin fields
+            const { data: existing } = await supabase.from('messenger_messages').select('media_metadata').eq('id', messageId).maybeSingle();
+            const cleaned = { ...(existing?.media_metadata || {}) };
+            delete cleaned.pinned;
+            delete cleaned.pinned_by;
+            delete cleaned.pinned_at;
             await supabase
                 .from('messenger_messages')
-                .update({ media_metadata: {} })
+                .update({ media_metadata: cleaned })
                 .eq('id', messageId);
             setPinnedMessages(prev => prev.filter(p => p.id !== messageId));
         } catch (e) { console.error('[Unpin] Error:', e); }
@@ -1395,25 +1404,27 @@ export function useMessengerService({ conversationId, currentUser, messengerType
     // ── P16-2: Message Edit History ──
     const editMessage = useCallback(async (messageId, newText) => {
         const supabase = getSupabase();
-        if (!supabase || !messageId || !newText) return false;
+        if (!supabase || !messageId || !newText || !currentUser?.id) return false;
         try {
-            // Get current message for edit trail
+            // Get current message for edit trail — with sender ownership check
             const { data: current } = await supabase
                 .from('messenger_messages')
-                .select('text, media_metadata')
+                .select('text, media_metadata, sender_id')
                 .eq('id', messageId)
+                .eq('sender_id', currentUser.id) // BUG-FIX: Only edit own messages
                 .maybeSingle();
             if (!current) return false;
             const editHistory = current.media_metadata?.edit_history || [];
             editHistory.push({ text: current.text, edited_at: new Date().toISOString() });
             await supabase.from('messenger_messages')
                 .update({ text: newText, media_metadata: { ...current.media_metadata, edit_history: editHistory, edited: true } })
-                .eq('id', messageId);
+                .eq('id', messageId)
+                .eq('sender_id', currentUser.id);
             // Update local state
             setMessages(prev => prev.map(m => m.id === messageId ? { ...m, text: newText, media_metadata: { ...m.media_metadata, edit_history: editHistory, edited: true } } : m));
             return true;
         } catch (_) { return false; }
-    }, []);
+    }, [currentUser]);
 
     const getEditHistory = useCallback((messageId) => {
         const msg = messages.find(m => m.id === messageId);
@@ -1482,6 +1493,10 @@ export function useMessengerService({ conversationId, currentUser, messengerType
                 message_type: 'sticker',
                 media_metadata: { sticker: true, size: 48 }
             });
+            // BUG-FIX: Update conversation last_message to reflect sticker
+            await supabase.from('messenger_conversations')
+                .update({ last_message_text: `Sticker: ${sticker}`, last_message_at: new Date().toISOString() })
+                .eq('id', conversationId);
             return true;
         } catch (_) { return false; }
     }, [conversationId, currentUser]);
@@ -1552,15 +1567,17 @@ export function useMessengerService({ conversationId, currentUser, messengerType
             const { data: urlData } = supabase.storage.from('messenger-media').getPublicUrl(fileName);
             const publicUrl = urlData?.publicUrl;
             if (publicUrl) {
+                // BUG-FIX: Merge wallpaper into existing settings instead of overwriting
+                const existingSettings = await getConversationSettings();
                 await supabase.from('messenger_participants')
-                    .update({ settings: { wallpaper: publicUrl } })
+                    .update({ settings: { ...existingSettings, wallpaper: publicUrl } })
                     .eq('conversation_id', conversationId)
                     .eq('user_id', currentUser?.id);
                 setConversationWallpaper(publicUrl);
             }
             return publicUrl;
         } catch (_) { return null; }
-    }, [conversationId, currentUser]);
+    }, [conversationId, currentUser, getConversationSettings]);
 
     // Load wallpaper on conversation change
     useEffect(() => {
