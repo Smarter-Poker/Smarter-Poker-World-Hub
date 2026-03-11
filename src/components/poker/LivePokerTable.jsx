@@ -830,6 +830,7 @@ function SqueezeCard({ card, width = 48, delay = 0, fourColorDeck = false }) {
       onClick={handleTap}
       style={{
         width, height, perspective: 800, flexShrink: 0, cursor: phase < 2 ? 'pointer' : 'default',
+        position: 'relative',
       }}
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -4696,7 +4697,7 @@ function LivePokerTable({
 
       // Utility shortcuts — work anytime (no turn guard)
       if (key === 's' && isSitting) { e.preventDefault(); isSittingOut ? send('sit_in') : send('sit_out'); return; }
-      if (key === 'm' && isSitting) { e.preventDefault(); setAutoMuck(p => !p); return; }
+      if (key === 'm' && isSitting) { e.preventDefault(); handleToggleAutoMuck(); return; }
       if (key === 'h') { e.preventDefault(); setShowHUD(p => { const v = !p; try { localStorage.setItem('poker-show-hud', v); eventBus.emit('DATA_MUTATED', 'hud_toggled'); } catch(_){} return v; }); return; }
       if (key === 'l' && lastHandResult) { e.preventDefault(); setShowLastHand(true); return; }
       if (key === '?' || key === '/') { e.preventDefault(); setShowKbHelp(p => !p); return; }
@@ -4745,7 +4746,7 @@ function LivePokerTable({
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [isActive, isMyTurn, legalActions, handleAction, isSitting, isSittingOut, send, lastHandResult, tableState?.config?.bigBlind, mySeat?.stack]);
+  }, [isActive, isMyTurn, legalActions, handleAction, isSitting, isSittingOut, send, lastHandResult, handleToggleAutoMuck, tableState?.config?.bigBlind, mySeat?.stack]);
 
   const handleSitDown = useCallback((amount) => {
     send('sit_down', { seatIndex: buyInSeat, buyIn: amount, displayName, avatarUrl });
@@ -5090,12 +5091,8 @@ function LivePokerTable({
         {seats.map((seat, i) => {
           const pid = seat.player?.id;
           const noteData = pid && String(pid) !== String(userId) ? playerNotes[pid] : null;
-          const NOTE_TYPE_COLORS = {
-            fish: '#22c55e', shark: '#ef4444', whale: '#3b82f6',
-            nit: '#9ca3af', lag: '#f97316', tag: '#a855f7', reg: '#14b8a6',
-          };
           const noteColorVal = noteData?.color_label
-            || (noteData?.player_type && noteData.player_type !== 'unknown' ? NOTE_TYPE_COLORS[noteData.player_type] || '#FFD700' : null);
+            || (noteData?.player_type && noteData.player_type !== 'unknown' ? NOTE_TYPE_COLORS_MAP[noteData.player_type] || '#FFD700' : null);
           // Poker position from game state (btn, sb, bb, utg, mp)
           const gamePlayer = tableState?.game?.players?.find(p => String(p.id) === String(pid));
           const gamePosition = gamePlayer?.position || null;
