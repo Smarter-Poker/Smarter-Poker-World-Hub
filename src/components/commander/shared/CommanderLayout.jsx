@@ -16,7 +16,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { X, Users, Clock, Layout, Map, Bell, Trophy,
   Monitor, DollarSign, Gift, Calendar, Tv, Activity, BarChart3,
-  AlertTriangle, PlusCircle, Lock, Upload, QrCode, Settings, LogOut, Globe, Crown, FileText
+  AlertTriangle, PlusCircle, Lock, Upload, QrCode, Settings, LogOut, Globe, Crown, FileText, Shield
 } from 'lucide-react';
 import CommanderErrorBoundary from './CommanderErrorBoundary';
 import FloorCallAlert from './FloorCallAlert';
@@ -51,6 +51,7 @@ const NAV_ITEMS = [
   { divider: true },
   { label: 'Open Cash Game', href: '/commander/open-game', icon: PlusCircle },
   { label: 'Close Day', href: '/commander/close-day', icon: Lock },
+  { label: 'Live Arena Ledger', href: '/commander/arena-ledger', icon: Shield },
   { label: 'Member Import', href: '/commander/member-import', icon: Upload },
   { label: 'Membership Plans', href: '/commander/membership-plans', icon: Crown },
   { label: 'QR Code', href: '/commander/qr-code', icon: QrCode },

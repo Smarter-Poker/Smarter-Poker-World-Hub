@@ -46,6 +46,7 @@ import { useRouter } from 'next/router';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { usePersistedState } from '../../src/hooks/usePersistedState';
 import { supabase } from '../../src/lib/supabase';
+import { eventBus, EventType } from '../../src/engine/EventBus';
 import { getAuthUser } from '../../src/lib/authUtils';
 import { useExternalLink } from '../../src/components/ui/ExternalLinkModal';
 import { useUnreadCount } from '../../src/hooks/useUnreadCount';
@@ -5125,6 +5126,44 @@ export default function SocialMediaPage() {
             } catch (e) { console.error(e); }
         }
     };
+
+    // 📡 Supabase Realtime: Listen for incoming messages across all conversations
+    useEffect(() => {
+        if (!user?.id) return;
+        
+        const channel = supabase.channel('messenger_realtime')
+            .on(
+                'postgres_changes',
+                { event: 'INSERT', schema: 'public', table: 'social_messages' },
+                (payload) => {
+                    const newMsg = payload.new;
+                    const convId = newMsg.conversation_id;
+                    
+                    // Update chatMsgs if this conversation is open and it's not our own message (we optimistically add our own)
+                    if (newMsg.sender_id !== user.id) {
+                        setChatMsgs(prev => {
+                            // Find which open chat has this conversation ID
+                            const chatEntry = openChats.find(c => c.conversationId === convId);
+                            if (chatEntry) {
+                                return {
+                                    ...prev,
+                                    [chatEntry.id]: [...(prev[chatEntry.id] || []), { id: newMsg.id, text: newMsg.content, senderId: newMsg.sender_id }]
+                                };
+                            }
+                            return prev;
+                        });
+                        
+                        // Fire global event bus so the badge and SmartPokerMessenger can react
+                        eventBus.emit(EventType.MESSAGE_RECEIVED, { conversationId: convId, senderId: newMsg.sender_id }, 'SocialMedia');
+                    }
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [user?.id, openChats]);
 
     const handleSendMsg = async (cid, txt) => {
         const chat = openChats.find(x => x.id === cid);

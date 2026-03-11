@@ -10,8 +10,17 @@ import Link from 'next/link';
 import { SPAvatar, SP_COLORS } from './SmarterPokerStyleCard';
 import { busEmit, eventBus, EventType } from '../../engine/EventBus';
 
+// ─── Lazy Supabase Getter ──────────────────────────────────────────────
+async function getSupabase() {
+    if (typeof window === 'undefined') return null;
+    if (window._cachedSupabaseClient) return window._cachedSupabaseClient;
+    const { createClient } = await import('../../lib/supabase');
+    window._cachedSupabaseClient = createClient();
+    return window._cachedSupabaseClient;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
-// 💾 PERSISTENCE HOOK (P2 features)
+// 💾 PERSISTENCE HOOK (Local + Supabase Background Sync)
 // ═══════════════════════════════════════════════════════════════════════════
 
 // Disappearing timer options
@@ -136,12 +145,54 @@ const useMessengerPrefs = () => {
         } catch (e) { }
     }, []);
 
+    // Phase 6 Deep Sweep: Background sync to SQL
+    const syncToSupabase = async (state) => {
+        const sb = await getSupabase();
+        if (!sb) return;
+        const { data: { session } } = await sb.auth.getSession();
+        if (!session?.user?.id) return;
+        
+        const uid = session.user.id;
+        
+        // Non-blocking fire-and-forget sync
+        setTimeout(async () => {
+            try {
+                // Bookmarks
+                const bms = state.bookmarks || [];
+                for (const b of bms) {
+                    await sb.from('messenger_bookmarks').upsert({ message_id: b.id, user_id: uid, message_text: b.text }, { onConflict: 'message_id,user_id' });
+                }
+                
+                // Labels
+                const lbls = state.labels || {};
+                for (const [msgId, msgLabels] of Object.entries(lbls)) {
+                    for (const lbl of msgLabels) {
+                        await sb.from('messenger_labels').upsert({ message_id: msgId, user_id: uid, label: lbl }, { onConflict: 'message_id,user_id,label' });
+                    }
+                }
+                
+                // Themes
+                const thms = state.themes || {};
+                for (const [convId, themeStr] of Object.entries(thms)) {
+                    await sb.from('messenger_themes').upsert({ conversation_id: convId, user_id: uid, theme_value: themeStr }, { onConflict: 'conversation_id,user_id' });
+                }
+                
+                // Note: Other tables (reactions, pins, edit history) can be synced similarly, 
+                // but because their structures vary slightly, we prioritize core premium features first.
+                // EventBus already transmits real-time actions.
+            } catch (err) {
+                console.warn('[Messenger] Supabase Sync soft-fail:', err.message);
+            }
+        }, 100);
+    };
+
     const updatePrefs = (updater) => {
         setPrefs(prev => {
             const next = typeof updater === 'function' ? updater(prev) : { ...prev, ...updater };
             try {
                 localStorage.setItem('sp-messenger-prefs', JSON.stringify(next));
             } catch (e) { }
+            syncToSupabase(next);
             return next;
         });
     };

@@ -17,6 +17,7 @@ import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { messengerPreferences } from '../../src/services/preferences-service';
+import { eventBus, EventType } from '../../src/engine/EventBus';
 
 // Dynamic import for LiveKit (client-side only)
 const LiveKitCall = dynamic(
@@ -1244,7 +1245,57 @@ export default function MessengerPage() {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
-    // Subscribe to real-time messages
+    // 📡 GLOBAL Background Listener: Listen for messages in ANY conversation (to update sidebar/badges)
+    useEffect(() => {
+        if (!user?.id) return;
+        
+        const channel = supabase.channel('global_messenger_changes')
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'social_messages'
+            }, async (payload) => {
+                const newMsg = payload.new;
+                // Ignore our own messages
+                if (newMsg.sender_id === user.id) return;
+                
+                // Fire global event bus so the badge universally updates everywhere
+                if (typeof window !== 'undefined' && eventBus) {
+                    eventBus.emit(EventType.MESSAGE_RECEIVED, { conversationId: newMsg.conversation_id, senderId: newMsg.sender_id }, 'FullMessenger');
+                }
+
+                // If it's NOT the active conversation, we need to manually update the conversation sidebar
+                if (!activeConversation || activeConversation.id !== newMsg.conversation_id) {
+                    playMessageSound();
+                    
+                    setConversations(prev => {
+                        const exists = prev.find(c => c.id === newMsg.conversation_id);
+                        let updated;
+                        if (exists) {
+                            updated = prev.map(c => 
+                                c.id === newMsg.conversation_id 
+                                    ? { ...c, last_message_preview: newMsg.content, last_message_at: newMsg.created_at, unread_count: (c.unread_count || 0) + 1 }
+                                    : c
+                            );
+                        } else {
+                            // Ideally fetch the new conversation details here, but for now just skip creating a ghost thread
+                            return prev;
+                        }
+                        
+                        return updated.sort((a, b) => {
+                            const timeA = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
+                            const timeB = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
+                            return timeB - timeA;
+                        });
+                    });
+                }
+            })
+            .subscribe();
+
+        return () => supabase.removeChannel(channel);
+    }, [user?.id, activeConversation]);
+
+    // Subscribe to real-time messages for ACTIVE conversation
     useEffect(() => {
         if (!user || !activeConversation) return;
 
