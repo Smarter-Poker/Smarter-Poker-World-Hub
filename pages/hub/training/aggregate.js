@@ -12,6 +12,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { getAccessToken } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -58,7 +59,10 @@ export default function AggregateReports() {
       });
       if (heroPosition) params.set('heroPosition', heroPosition);
 
-      const res = await fetch(`/api/training/aggregate-report?${params}`);
+      const token = getAccessToken();
+      const res = await fetch(`/api/training/aggregate-report?${params}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       const data = await res.json();
       if (data.success) {
         setReport(data.report);

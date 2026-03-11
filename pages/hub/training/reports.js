@@ -10,9 +10,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
-import { getAuthUser } from '../../../src/lib/authUtils';
+import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import { usePersistedState } from '../../../src/hooks/usePersistedState';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { eventBus, EventType } from '../../../src/engine/EventBus';
 import GTODeviationHeatmap from '../../../src/components/training/GTODeviationHeatmap';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -196,7 +197,10 @@ export default function GTOReports() {
     if (!userId) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/training/gto-reports?userId=${userId}&period=${period}`);
+      const token = getAccessToken();
+      const res = await fetch(`/api/training/gto-reports?userId=${userId}&period=${period}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       const data = await res.json();
       if (data.success) setReport(data.report);
     } catch (err) {
