@@ -2051,6 +2051,135 @@ ${messages.map(m =>
     }, [conversationId, messages, loadMessages]);
 
     // ═══════════════════════════════════════════════════════════
+    // Phase 19: Intelligence V2 & Real-Time Enhancements
+    // ═══════════════════════════════════════════════════════════
+
+    // ── P19-7: Smart Compose (Autocomplete) ──
+    const userPhraseCache = useRef({});
+    const getAutoComplete = useCallback((partialText) => {
+        if (!partialText || partialText.length < 3) return [];
+        const lower = partialText.toLowerCase().trim();
+        // Build phrase cache from user's sent messages
+        if (Object.keys(userPhraseCache.current).length === 0 && messages.length > 0) {
+            const myMsgs = messages.filter(m => m.sender_id === currentUser?.id && m.text);
+            myMsgs.forEach(m => {
+                const words = m.text.split(/\s+/);
+                for (let i = 0; i < words.length - 1; i++) {
+                    const prefix = words.slice(i, i + 2).join(' ').toLowerCase();
+                    const rest = words.slice(i + 2, i + 6).join(' ');
+                    if (rest && prefix.length > 3) {
+                        if (!userPhraseCache.current[prefix]) userPhraseCache.current[prefix] = [];
+                        if (!userPhraseCache.current[prefix].includes(rest)) {
+                            userPhraseCache.current[prefix].push(rest);
+                        }
+                    }
+                }
+            });
+        }
+        // Common poker phrases fallback
+        const pokerPhrases = {
+            'good ': ['game', 'luck', 'hand', 'run'],
+            'want to ': ['play tonight?', 'join the table?', 'run it twice?', 'grab a seat?'],
+            'nice ': ['hand!', 'bluff!', 'call!', 'fold.'],
+            'i think ': ['we should play deeper', "that's a great spot", "you're right", 'the table is good'],
+            'are you ': ['playing tonight?', 'at the table?', 'still in?', 'joining us?'],
+            'what ': ['stakes?', 'time?', 'table?', 'game?'],
+            'let me ': ['know', 'check', 'think about it', 'see the board'],
+            'how ': ['much?', 'are you?', 'many players?', 'long is the wait?'],
+        };
+        // Match user phrase cache first, then poker phrases
+        const suggestions = [];
+        Object.entries(userPhraseCache.current).forEach(([prefix, completions]) => {
+            if (lower.endsWith(prefix) || prefix.startsWith(lower.slice(-prefix.length))) {
+                completions.slice(0, 3).forEach(c => {
+                    if (!suggestions.includes(c)) suggestions.push(c);
+                });
+            }
+        });
+        Object.entries(pokerPhrases).forEach(([prefix, completions]) => {
+            if (lower.endsWith(prefix)) {
+                completions.forEach(c => {
+                    if (!suggestions.includes(c)) suggestions.push(c);
+                });
+            }
+        });
+        return suggestions.slice(0, 4);
+    }, [messages, currentUser]);
+
+    // ── P19-8: Sentiment Analysis ──
+    const analyzeSentiment = useCallback((messageText) => {
+        if (!messageText) return { score: 0, label: 'neutral', emoji: '😐' };
+        const text = messageText.toLowerCase();
+        const positiveWords = ['great', 'awesome', 'love', 'amazing', 'good', 'nice', 'thanks', 'thank', 'congrats', 'congratulations', 'win', 'won', 'perfect', 'excellent', 'happy', 'glad', 'beautiful', 'fantastic', 'incredible', 'wonderful', 'best', 'lol', 'haha', '😂', '😊', '🎉', '🏆', '💪', '🔥', '❤️', '👍', '💯', 'gg', 'well played'];
+        const negativeWords = ['bad', 'terrible', 'hate', 'awful', 'worst', 'sucks', 'angry', 'frustrated', 'annoyed', 'disappointed', 'lost', 'losing', 'damn', 'crap', 'ugh', 'stupid', 'unfair', 'ridiculous', 'horrible', '😡', '😤', '😠', '💔', 'tilted', 'rigged', 'cooler', 'bad beat'];
+        let score = 0;
+        positiveWords.forEach(w => { if (text.includes(w)) score += 1; });
+        negativeWords.forEach(w => { if (text.includes(w)) score -= 1; });
+        // Normalize to -1 to 1 range
+        score = Math.max(-1, Math.min(1, score / 3));
+        if (score > 0.3) return { score, label: 'positive', emoji: '😊' };
+        if (score < -0.3) return { score, label: 'negative', emoji: '😠' };
+        return { score, label: 'neutral', emoji: '😐' };
+    }, []);
+
+    // ── P19-9: Spam Detection (Enhanced Rate Limiter) ──
+    const spamDetectionRef = useRef({ lastMessages: [], warnings: 0, blocked: false, blockedUntil: null });
+
+    const checkSpamStatus = useCallback((messageText) => {
+        const sd = spamDetectionRef.current;
+        const now = Date.now();
+        // Unblock if block period expired
+        if (sd.blocked && sd.blockedUntil && now > sd.blockedUntil) {
+            sd.blocked = false;
+            sd.warnings = 0;
+            sd.lastMessages = [];
+        }
+        if (sd.blocked) return { allowed: false, reason: 'You are temporarily blocked for spam. Try again shortly.', severity: 'blocked' };
+
+        // Basic rate limit check
+        if (!checkRateLimit(conversationId)) {
+            sd.warnings++;
+            if (sd.warnings >= 3) {
+                sd.blocked = true;
+                sd.blockedUntil = now + 120000; // 2 min block
+                return { allowed: false, reason: 'Spam detected. Blocked for 2 minutes.', severity: 'blocked' };
+            }
+            return { allowed: false, reason: `Slow down! ${30 - sd.warnings * 10}s cooldown.`, severity: 'warning' };
+        }
+
+        // Pattern detection: repetitive messages
+        const recent = sd.lastMessages.filter(m => now - m.time < 30000);
+        const duplicateCount = recent.filter(m => m.text === messageText).length;
+        if (duplicateCount >= 3) {
+            sd.warnings++;
+            return { allowed: false, reason: 'Duplicate message detected. Please vary your messages.', severity: 'warning' };
+        }
+
+        // Pattern detection: very rapid bursts (5+ msgs in 5 seconds)
+        const burstCount = recent.filter(m => now - m.time < 5000).length;
+        if (burstCount >= 5) {
+            sd.warnings++;
+            return { allowed: false, reason: 'Sending too fast. Please slow down.', severity: 'warning' };
+        }
+
+        // Track this message
+        sd.lastMessages.push({ text: messageText, time: now });
+        // Keep only last 30 seconds
+        sd.lastMessages = sd.lastMessages.filter(m => now - m.time < 30000);
+        return { allowed: true, reason: null, severity: 'ok' };
+    }, [conversationId]);
+
+    // ── P19-3: Search Highlighting Helper ──
+    const highlightSearchMatches = useCallback((text, query) => {
+        if (!text || !query || query.length < 2) return text;
+        try {
+            const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(`(${escaped})`, 'gi');
+            return text.replace(regex, '⟪$1⟫'); // markers for frontend to render as highlights
+        } catch (_) { return text; }
+    }, []);
+
+    // ═══════════════════════════════════════════════════════════
     // Return Service API
     // ═══════════════════════════════════════════════════════════
     return {
@@ -2246,6 +2375,18 @@ ${messages.map(m =>
         // P18-10: Backup & Restore
         backupConversation,
         restoreConversation,
+
+        // P19-7: Smart Compose
+        getAutoComplete,
+
+        // P19-8: Sentiment Analysis
+        analyzeSentiment,
+
+        // P19-9: Spam Detection
+        checkSpamStatus,
+
+        // P19-3: Search Highlighting
+        highlightSearchMatches,
     };
 }
 

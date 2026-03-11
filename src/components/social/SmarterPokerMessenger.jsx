@@ -649,6 +649,16 @@ export const ChatWindow = ({
     const [autoAwayMsg, setAutoAwayMsg] = useState('I\'m away right now. I\'ll get back to you soon!');
     const [showBackupRestore, setShowBackupRestore] = useState(false);
     const backupFileInputRef = useRef(null);
+
+    // P19: Intelligence V2 & Real-Time Enhancements State
+    const [showSearchOverlay, setShowSearchOverlay] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [localSearchResults, setLocalSearchResults] = useState([]);
+    const [showSchedulePanel, setShowSchedulePanel] = useState(false);
+    const [scheduleText, setScheduleText] = useState('');
+    const [scheduleDate, setScheduleDate] = useState('');
+    const [autoCompleteSuggestions, setAutoCompleteSuggestions] = useState([]);
+    const [spamWarning, setSpamWarning] = useState(null);
     
     // P7-6: Lightbox State
     const [lightboxImage, setLightboxImage] = useState(null);
@@ -1476,6 +1486,10 @@ export const ChatWindow = ({
                     <button className="header-btn" onClick={() => setShowLabelPicker(!showLabelPicker)} title="Labels" style={{ color: showLabelPicker ? '#2D88FF' : undefined }}>🏷️</button>
                     {/* P18-10: Backup/Restore toggle */}
                     <button className="header-btn" onClick={() => setShowBackupRestore(!showBackupRestore)} title="Backup/Restore" style={{ color: showBackupRestore ? '#2D88FF' : undefined }}>📦</button>
+                    {/* P19-3: Search toggle */}
+                    <button className="header-btn" onClick={() => setShowSearchOverlay(!showSearchOverlay)} title="Search Messages" style={{ color: showSearchOverlay ? '#2D88FF' : undefined }}>🔎</button>
+                    {/* P19-5: Scheduled messages toggle */}
+                    <button className="header-btn" onClick={() => setShowSchedulePanel(!showSchedulePanel)} title="Scheduled Messages" style={{ color: showSchedulePanel ? '#2D88FF' : undefined }}>⏰</button>
                     {/* P15-5: Block User toggle */}
                     <button className="header-btn" onClick={() => { if (svc.blockedUsers?.includes(otherUser?.id)) { svc.unblockUser(otherUser?.id); } else { svc.blockUser(otherUser?.id); } }} title={svc.blockedUsers?.includes(otherUser?.id) ? 'Unblock User' : 'Block User'} style={{ color: svc.blockedUsers?.includes(otherUser?.id) ? '#ff4444' : undefined }}>🚫</button>
                     {/* P15-1: Create Group */}
@@ -2125,6 +2139,88 @@ export const ChatWindow = ({
                 </div>
             )}
 
+            {/* P19-1: Typing Indicator Bar */}
+            {Object.entries(svc.typingUsers || {}).some(([uid, isTyping]) => isTyping && uid !== currentUser?.id) && (
+                <div style={{ padding: '4px 12px', fontSize: 11, color: '#B0B3B8', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ display: 'flex', gap: 2 }}>
+                        <span style={{ width: 4, height: 4, borderRadius: '50%', background: '#2D88FF', animation: 'bounce 1.4s infinite ease-in-out', animationDelay: '0s' }} />
+                        <span style={{ width: 4, height: 4, borderRadius: '50%', background: '#2D88FF', animation: 'bounce 1.4s infinite ease-in-out', animationDelay: '0.2s' }} />
+                        <span style={{ width: 4, height: 4, borderRadius: '50%', background: '#2D88FF', animation: 'bounce 1.4s infinite ease-in-out', animationDelay: '0.4s' }} />
+                    </span>
+                    Someone is typing...
+                </div>
+            )}
+
+            {/* P19-9: Spam Detection Warning Toast */}
+            {spamWarning && (
+                <div style={{ padding: '6px 12px', background: spamWarning.severity === 'blocked' ? 'rgba(228,30,63,0.2)' : 'rgba(255,215,0,0.15)', borderRadius: 8, margin: '0 8px 6px', fontSize: 11, color: spamWarning.severity === 'blocked' ? '#ff4444' : '#ffd700', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span>{spamWarning.severity === 'blocked' ? '🚫' : '⚠️'}</span>
+                    <span style={{ flex: 1 }}>{spamWarning.reason}</span>
+                    <button onClick={() => setSpamWarning(null)} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: 12 }}>✕</button>
+                </div>
+            )}
+
+            {/* P19-7: Smart Compose Autocomplete Dropdown */}
+            {autoCompleteSuggestions.length > 0 && (
+                <div style={{ padding: '4px 8px', margin: '0 8px 4px', background: 'rgba(45,136,255,0.08)', borderRadius: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {autoCompleteSuggestions.map((suggestion, i) => (
+                        <button key={i} onClick={() => { setInputText(prev => prev + suggestion + ' '); setAutoCompleteSuggestions([]); }} style={{ background: 'rgba(45,136,255,0.15)', border: '1px solid rgba(45,136,255,0.3)', borderRadius: 12, padding: '2px 8px', fontSize: 10, color: '#8ab4f8', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                            ↳ {suggestion}
+                        </button>
+                    ))}
+                </div>
+            )}
+
+            {/* P19-3: Search Overlay */}
+            {showSearchOverlay && (
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(24,25,26,0.97)', zIndex: 50, display: 'flex', flexDirection: 'column', borderRadius: 12 }}>
+                    <div style={{ padding: '12px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                        <span style={{ fontSize: 16 }}>🔍</span>
+                        <input type="text" placeholder="Search messages..." value={searchQuery} onChange={async (e) => { setSearchQuery(e.target.value); if (e.target.value.length >= 2) { const results = await svc.searchMessages(e.target.value); setLocalSearchResults(results || []); } else { setLocalSearchResults([]); } }} autoFocus style={{ flex: 1, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 20, padding: '6px 12px', color: '#e4e6eb', fontSize: 13, outline: 'none' }} />
+                        <button onClick={() => { setShowSearchOverlay(false); setSearchQuery(''); setLocalSearchResults([]); }} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: 18 }}>✕</button>
+                    </div>
+                    <div style={{ flex: 1, overflowY: 'auto', padding: 8 }}>
+                        {localSearchResults.length === 0 && searchQuery.length >= 2 && <div style={{ textAlign: 'center', padding: 20, color: '#666', fontSize: 12 }}>No messages found</div>}
+                        {localSearchResults.map((result, i) => {
+                            const highlighted = svc.highlightSearchMatches(result.text, searchQuery);
+                            return (
+                                <div key={i} onClick={() => { setShowSearchOverlay(false); setSearchQuery(''); setLocalSearchResults([]); }} style={{ padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer', borderRadius: 6, marginBottom: 2 }}>
+                                    <div style={{ fontSize: 10, color: '#666', marginBottom: 2 }}>{new Date(result.created_at).toLocaleString()}</div>
+                                    <div style={{ fontSize: 12, color: '#e4e6eb' }}>{highlighted?.split('⟪').map((part, j) => { const [match, rest] = part.split('⟫'); return j === 0 ? part : <span key={j}><mark style={{ background: '#2D88FF33', color: '#8ab4f8', padding: '0 2px', borderRadius: 2 }}>{match}</mark>{rest}</span>; })}</div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
+
+
+            {/* P19-5: Scheduled Messages Panel */}
+            {showSchedulePanel && (
+                <div style={{ background: 'rgba(24,25,26,0.96)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, margin: '0 8px 6px', padding: 10 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <span style={{ fontWeight: 'bold', fontSize: 12, color: '#e4e6eb' }}>⏰ Scheduled Messages</span>
+                        <button onClick={() => setShowSchedulePanel(false)} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer' }}>✕</button>
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+                        <input type="text" placeholder="Message to schedule..." value={scheduleText} onChange={(e) => setScheduleText(e.target.value)} style={{ flex: 1, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6, padding: '4px 8px', color: '#e4e6eb', fontSize: 11, outline: 'none' }} />
+                        <input type="datetime-local" value={scheduleDate} onChange={(e) => setScheduleDate(e.target.value)} style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6, padding: '4px 6px', color: '#e4e6eb', fontSize: 10, outline: 'none' }} />
+                        <button onClick={async () => { if (scheduleText && scheduleDate) { await svc.scheduleMessage?.(scheduleText, new Date(scheduleDate).toISOString()); setScheduleText(''); setScheduleDate(''); } }} style={{ background: '#2D88FF', border: 'none', borderRadius: 6, padding: '4px 10px', color: '#fff', fontSize: 11, cursor: 'pointer', whiteSpace: 'nowrap' }}>Schedule</button>
+                    </div>
+                    {(svc.scheduledMessages || []).length === 0 && <div style={{ textAlign: 'center', color: '#666', fontSize: 11, padding: 6 }}>No scheduled messages</div>}
+                    {(svc.scheduledMessages || []).map((sm, i) => (
+                        <div key={i} style={{ padding: '6px 8px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6 }}>
+                            <div style={{ flex: 1 }}>
+                                <div style={{ fontSize: 11, color: '#ccc' }}>{sm.text?.slice(0, 50)}</div>
+                                <div style={{ fontSize: 9, color: '#666' }}>📅 {new Date(sm.scheduled_at).toLocaleString()}</div>
+                            </div>
+                            <button onClick={() => svc.cancelScheduledMessage?.(sm.id)} style={{ background: 'rgba(228,30,63,0.2)', border: 'none', borderRadius: 4, padding: '2px 8px', color: '#ff4444', fontSize: 10, cursor: 'pointer' }}>Cancel</button>
+                        </div>
+                    ))}
+                </div>
+            )}
+
             {/* P18-10: Backup/Restore Panel */}
             {showBackupRestore && (
                 <div style={{ padding: '8px 12px', background: 'rgba(36,37,38,0.97)', borderRadius: 8, margin: '0 8px 4px', border: '1px solid rgba(255,255,255,0.1)' }}>
@@ -2203,7 +2299,7 @@ export const ChatWindow = ({
                             type="text"
                             placeholder="Aa"
                             value={inputText}
-                            onChange={handleInputChange}
+                            onChange={(e) => { handleInputChange(e); const ac = svc.getAutoComplete?.(e.target.value); setAutoCompleteSuggestions(ac || []); }}
                             onKeyPress={handleKeyPress}
                         />
                         <span style={{ position: 'relative', display: 'inline-flex' }}>
