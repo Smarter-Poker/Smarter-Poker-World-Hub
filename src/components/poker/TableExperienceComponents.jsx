@@ -174,12 +174,18 @@ const POKER_EMOJIS = [
 // ── Emoji Reaction Tray ──
 export function TableEmojiBar({ onSend, disabled }) {
   const [cooldown, setCooldown] = useState(false);
+  const cooldownTimerRef = useRef(null);
+
+  // BUG-1 FIX: Clear timer on unmount to prevent memory leak
+  useEffect(() => {
+    return () => { if (cooldownTimerRef.current) clearTimeout(cooldownTimerRef.current); };
+  }, []);
   
   const handleSend = useCallback((emoji) => {
     if (cooldown || disabled) return;
     onSend(emoji);
     setCooldown(true);
-    setTimeout(() => setCooldown(false), 3000);
+    cooldownTimerRef.current = setTimeout(() => setCooldown(false), 3000);
   }, [cooldown, disabled, onSend]);
 
   return (
@@ -248,8 +254,6 @@ export function AnalyticsSidebar({ hands, onClose }) {
     let totalPnl = 0;
     let wins = 0;
     let showdowns = 0;
-    let vpipCount = 0;
-    let pfrCount = 0;
     const pnlHistory = [];
     const positionPnl = {};
     
@@ -277,8 +281,8 @@ export function AnalyticsSidebar({ hands, onClose }) {
       showdownPct: hands.length > 0 ? Math.round((showdowns / hands.length) * 100) : 0,
       pnlHistory,
       positionPnl,
-      biggestWin: Math.max(...hands.map(h => h.hand_data?.players?.find(p => p.netResult > 0)?.netResult || 0)),
-      biggestLoss: Math.min(...hands.map(h => h.hand_data?.players?.find(p => p.netResult < 0)?.netResult || 0)),
+      biggestWin: Math.max(0, ...hands.map(h => h.hand_data?.players?.find(p => p.netResult > 0)?.netResult || 0)),
+      biggestLoss: Math.min(0, ...hands.map(h => h.hand_data?.players?.find(p => p.netResult < 0)?.netResult || 0)),
     };
   }, [hands]);
 
