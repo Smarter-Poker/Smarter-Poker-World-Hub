@@ -171,7 +171,7 @@ export class PokerSoundManager {
     const filter = ctx.createBiquadFilter();
     filter.type = 'highpass';
     filter.frequency.value = 2000;
-    noise.connect(filter).connect(g).connect(ctx.destination);
+    noise.connect(filter).connect(g).connect(this._getOutput(ctx));
     noise.start(); noise.stop(ctx.currentTime + 0.06);
   }
 
@@ -185,7 +185,7 @@ export class PokerSoundManager {
       osc.type = 'sine';
       g.gain.setValueAtTime(this._volume * 0.2, t + i * 0.08);
       g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.08 + 0.05);
-      osc.connect(g).connect(ctx.destination);
+      osc.connect(g).connect(this._getOutput(ctx));
       osc.start(t + i * 0.08);
       osc.stop(t + i * 0.08 + 0.05);
     }
@@ -203,7 +203,7 @@ export class PokerSoundManager {
     filter.type = 'bandpass';
     filter.frequency.value = 4000;
     filter.Q.value = 1;
-    noise.connect(filter).connect(g).connect(ctx.destination);
+    noise.connect(filter).connect(g).connect(this._getOutput(ctx));
     noise.start(); noise.stop(ctx.currentTime + 0.2);
   }
 
@@ -216,7 +216,7 @@ export class PokerSoundManager {
     osc.type = 'sine';
     g.gain.setValueAtTime(this._volume * 0.25, ctx.currentTime);
     g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
-    osc.connect(g).connect(ctx.destination);
+    osc.connect(g).connect(this._getOutput(ctx));
     osc.start(); osc.stop(ctx.currentTime + 0.12);
   }
 
@@ -230,7 +230,7 @@ export class PokerSoundManager {
       osc.type = 'sine';
       g.gain.setValueAtTime(this._volume * 0.2, t + i * 0.06);
       g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.06 + 0.08);
-      osc.connect(g).connect(ctx.destination);
+      osc.connect(g).connect(this._getOutput(ctx));
       osc.start(t + i * 0.06);
       osc.stop(t + i * 0.06 + 0.08);
     }
@@ -246,7 +246,7 @@ export class PokerSoundManager {
     filter.type = 'lowpass';
     filter.frequency.setValueAtTime(3000, ctx.currentTime);
     filter.frequency.exponentialRampToValueAtTime(500, ctx.currentTime + 0.15);
-    noise.connect(filter).connect(g).connect(ctx.destination);
+    noise.connect(filter).connect(g).connect(this._getOutput(ctx));
     noise.start(); noise.stop(ctx.currentTime + 0.15);
   }
 
@@ -260,14 +260,14 @@ export class PokerSoundManager {
     osc1.type = 'sawtooth';
     g1.gain.setValueAtTime(this._volume * 0.15, t);
     g1.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
-    osc1.connect(g1).connect(ctx.destination);
+    osc1.connect(g1).connect(this._getOutput(ctx));
     osc1.start(t); osc1.stop(t + 0.3);
     // High snap
     const noise = this._noiseBuffer(ctx, 0.15);
     const g2 = ctx.createGain();
     g2.gain.setValueAtTime(this._volume * 0.3, t + 0.05);
     g2.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
-    noise.connect(g2).connect(ctx.destination);
+    noise.connect(g2).connect(this._getOutput(ctx));
     noise.start(t + 0.05); noise.stop(t + 0.2);
   }
 
@@ -282,7 +282,7 @@ export class PokerSoundManager {
       osc.type = 'sine';
       g.gain.setValueAtTime(this._volume * 0.2, t + i * 0.12);
       g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.12 + 0.4);
-      osc.connect(g).connect(ctx.destination);
+      osc.connect(g).connect(this._getOutput(ctx));
       osc.start(t + i * 0.12);
       osc.stop(t + i * 0.12 + 0.4);
     });
@@ -297,7 +297,7 @@ export class PokerSoundManager {
     osc.type = 'sine';
     g.gain.setValueAtTime(this._volume * 0.1, ctx.currentTime);
     g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-    osc.connect(g).connect(ctx.destination);
+    osc.connect(g).connect(this._getOutput(ctx));
     osc.start(); osc.stop(ctx.currentTime + 0.3);
   }
 
@@ -311,7 +311,7 @@ export class PokerSoundManager {
       osc.type = 'sine';
       g.gain.setValueAtTime(this._volume * 0.25, t + i * 0.15);
       g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.15 + 0.15);
-      osc.connect(g).connect(ctx.destination);
+      osc.connect(g).connect(this._getOutput(ctx));
       osc.start(t + i * 0.15);
       osc.stop(t + i * 0.15 + 0.15);
     });
@@ -325,7 +325,7 @@ export class PokerSoundManager {
     osc.type = 'sine';
     g.gain.setValueAtTime(this._volume * 0.15, ctx.currentTime);
     g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
-    osc.connect(g).connect(ctx.destination);
+    osc.connect(g).connect(this._getOutput(ctx));
     osc.start(); osc.stop(ctx.currentTime + 0.05);
   }
 
@@ -337,7 +337,7 @@ export class PokerSoundManager {
     osc.type = 'sine';
     g.gain.setValueAtTime(this._volume * 0.1, ctx.currentTime);
     g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
-    osc.connect(g).connect(ctx.destination);
+    osc.connect(g).connect(this._getOutput(ctx));
     osc.start(); osc.stop(ctx.currentTime + 0.05);
   }
 
@@ -349,7 +349,7 @@ export class PokerSoundManager {
       const g = ctx.createGain();
       g.gain.setValueAtTime(this._volume * (0.1 + i * 0.03), t + i * 0.07);
       g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.07 + 0.04);
-      n.connect(g).connect(ctx.destination);
+      n.connect(g).connect(this._getOutput(ctx));
       n.start(t + i * 0.07); n.stop(t + i * 0.07 + 0.04);
     }
   }
@@ -366,7 +366,7 @@ export class PokerSoundManager {
       g.gain.setValueAtTime(this._volume * 0.25, t + i * 0.1);
       g.gain.linearRampToValueAtTime(this._volume * 0.15, t + i * 0.1 + 0.3);
       g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.1 + 0.6);
-      osc.connect(g).connect(ctx.destination);
+      osc.connect(g).connect(this._getOutput(ctx));
       osc.start(t + i * 0.1);
       osc.stop(t + i * 0.1 + 0.6);
     });
@@ -382,7 +382,7 @@ export class PokerSoundManager {
     osc.type = 'sine';
     g.gain.setValueAtTime(this._volume * 0.2, t);
     g.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
-    osc.connect(g).connect(ctx.destination);
+    osc.connect(g).connect(this._getOutput(ctx));
     osc.start(t); osc.stop(t + 0.2);
     // Subtle click after sweep
     const click = this._noiseBuffer(ctx, 0.03);
@@ -391,7 +391,7 @@ export class PokerSoundManager {
     cg.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
     const cf = ctx.createBiquadFilter();
     cf.type = 'highpass'; cf.frequency.value = 3000;
-    click.connect(cf).connect(cg).connect(ctx.destination);
+    click.connect(cf).connect(cg).connect(this._getOutput(ctx));
     click.start(t + 0.12); click.stop(t + 0.15);
   }
 
@@ -406,7 +406,7 @@ export class PokerSoundManager {
       osc.type = 'triangle';
       g.gain.setValueAtTime(this._volume * 0.18, t + i * 0.08);
       g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.08 + 0.35);
-      osc.connect(g).connect(ctx.destination);
+      osc.connect(g).connect(this._getOutput(ctx));
       osc.start(t + i * 0.08);
       osc.stop(t + i * 0.08 + 0.35);
     });
@@ -417,7 +417,7 @@ export class PokerSoundManager {
     ng.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
     const nf = ctx.createBiquadFilter();
     nf.type = 'bandpass'; nf.frequency.value = 6000; nf.Q.value = 3;
-    noise.connect(nf).connect(ng).connect(ctx.destination);
+    noise.connect(nf).connect(ng).connect(this._getOutput(ctx));
     noise.start(t + 0.1); noise.stop(t + 0.5);
   }
 
@@ -435,7 +435,7 @@ export class PokerSoundManager {
     g.gain.linearRampToValueAtTime(this._volume * 0.3, t + 0.8);
     g.gain.linearRampToValueAtTime(this._volume * 0.4, t + 1.2);
     g.gain.exponentialRampToValueAtTime(0.001, t + 1.5);
-    osc.connect(g).connect(ctx.destination);
+    osc.connect(g).connect(this._getOutput(ctx));
     osc.start(t);
     osc.stop(t + 1.5);
 
@@ -449,7 +449,7 @@ export class PokerSoundManager {
     nGain.gain.setValueAtTime(0.001, t);
     nGain.gain.linearRampToValueAtTime(this._volume * 0.2, t + 1.2);
     nGain.gain.exponentialRampToValueAtTime(0.001, t + 1.5);
-    noise.connect(filter).connect(nGain).connect(ctx.destination);
+    noise.connect(filter).connect(nGain).connect(this._getOutput(ctx));
     noise.start(t); noise.stop(t + 1.5);
   }
 
@@ -466,7 +466,7 @@ export class PokerSoundManager {
       g.gain.setValueAtTime(0.001, t + (i * 0.05));
       g.gain.linearRampToValueAtTime(this._volume * 0.25, t + (i * 0.05) + 0.05);
       g.gain.exponentialRampToValueAtTime(0.001, t + 1.0);
-      osc.connect(g).connect(ctx.destination);
+      osc.connect(g).connect(this._getOutput(ctx));
       osc.start(t + (i * 0.05));
       osc.stop(t + 1.0);
     });
@@ -485,7 +485,7 @@ export class PokerSoundManager {
         osc.frequency.exponentialRampToValueAtTime(freq * 0.8, t + delay + 0.2); // slight bend
         g.gain.setValueAtTime(this._volume * (0.05 + Math.random() * 0.05), t + delay);
         g.gain.exponentialRampToValueAtTime(0.001, t + delay + (0.1 + Math.random() * 0.2));
-        osc.connect(g).connect(ctx.destination);
+        osc.connect(g).connect(this._getOutput(ctx));
         osc.start(t + delay);
         osc.stop(t + delay + 0.3);
     }

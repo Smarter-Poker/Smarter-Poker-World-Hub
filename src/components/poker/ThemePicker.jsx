@@ -277,6 +277,41 @@ export default function ThemePicker({ currentThemeId, onThemeChange, currentCard
                         💡 Tip: Mute sounds for multi-tabling or late-night sessions
                       </div>
                     </div>
+
+                    {/* Phase 26: Sound Pack Picker */}
+                    <div style={{ padding: '8px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>
+                      <div style={{ color: '#fff', fontSize: 13, fontWeight: 600, marginBottom: 8 }}>🎵 Sound Pack</div>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        {[
+                          { id: 'casino', label: '🎰 Casino', desc: 'Warm, reverbed' },
+                          { id: 'minimal', label: '⚡ Minimal', desc: 'Clicks only' },
+                          { id: 'retro', label: '👾 Retro', desc: '8-bit chiptune' },
+                        ].map(pack => {
+                          const currentPack = typeof localStorage !== 'undefined' ? (localStorage.getItem('poker-sound-pack') || 'casino') : 'casino';
+                          const isActive = currentPack === pack.id;
+                          return (
+                            <button
+                              key={pack.id}
+                              onClick={() => {
+                                try { localStorage.setItem('poker-sound-pack', pack.id); } catch (_) {}
+                                // Dispatch event so LPT's soundRef picks it up
+                                try { window.dispatchEvent(new CustomEvent('poker-sound-pack-changed', { detail: pack.id })); } catch (_) {}
+                              }}
+                              style={{
+                                flex: 1, padding: '8px 4px', borderRadius: 8,
+                                background: isActive ? 'rgba(24,119,242,0.12)' : 'rgba(255,255,255,0.04)',
+                                border: isActive ? '1px solid #1877F2' : '1px solid rgba(255,255,255,0.08)',
+                                color: isActive ? '#1877F2' : '#B0B3B8',
+                                cursor: 'pointer', textAlign: 'center',
+                              }}
+                            >
+                              <div style={{ fontSize: 12, fontWeight: 700 }}>{pack.label}</div>
+                              <div style={{ fontSize: 9, color: '#65676B', marginTop: 2 }}>{pack.desc}</div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
                 )}
 

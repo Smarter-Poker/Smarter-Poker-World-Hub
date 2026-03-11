@@ -6491,7 +6491,7 @@ function LivePokerTable({
       {/* Chat */}
       {/* Chat — hidden when ban_chat enabled */}
       {!tableState?.config?.banChat && (
-        <ChatOverlay messages={chatMessages} onSend={handleChat} />
+        <ChatOverlay messages={chatMessages} onSend={handleChat} players={seats?.filter(s => s?.player?.displayName).map(s => s.player.displayName) || []} />
       )}
 
       {/* Quick Emoji Bar — always-visible emoji buttons */}
