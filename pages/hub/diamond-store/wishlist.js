@@ -10,30 +10,23 @@ import { useState, useEffect } from 'react';
 import { wishlistService } from '../../../src/services/preferences-service';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
-import { getAuthUser } from '../../../src/lib/authUtils';
+import { getAuthUser, useRequireAuth } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 export default function Wishlist() {
+    const { user, checking: authChecking } = useRequireAuth('/hub/diamond-store/wishlist');
     const bus = useTrainingBus('diamond-store-wishlist');
-    const [user, setUser] = useState(null);
     const [wishlist, setWishlist] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        if (authChecking || !user?.id) return;
         loadWishlist();
-    }, []);
+    }, [authChecking, user?.id]);
 
     const loadWishlist = async () => {
         try {
-            const authUser = await getAuthUser();
-            setUser(authUser);
-
-            if (!authUser) {
-                setLoading(false);
-                return;
-            }
-
-            const items = await wishlistService.getWishlist(authUser.id);
+            const items = await wishlistService.getWishlist(user.id);
             setWishlist(items);
             setLoading(false);
         } catch (error) {

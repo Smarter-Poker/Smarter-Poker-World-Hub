@@ -11,13 +11,15 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
-import { getAuthUser } from '../../../src/lib/authUtils';
+import { getAuthUser, useRequireAuth, getAccessToken } from '../../../src/lib/authUtils';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import toast from '../../../src/stores/toastStore';
 import { supabase } from '../../../src/lib/supabase';
 import { busEmit } from '../../../src/engine/EventBus';
 
 export default function ShoppingCart() {
-    const [user, setUser] = useState(null);
+    const { user, checking: authChecking } = useRequireAuth('/hub/diamond-store/cart');
+    useTrainingBus('diamond-store-cart');
     const [cart, setCart] = useState([]);
     const [loading, setLoading] = useState(true);
     const [diamondBalance, setDiamondBalance] = useState(0);
@@ -27,11 +29,9 @@ export default function ShoppingCart() {
     const DIAMONDS_PER_DOLLAR = 100;
 
     useEffect(() => {
-        const _c = new AbortController();
-
+        if (authChecking) return;
         loadCart();
-        return () => _c.abort();
-    }, []);
+    }, [authChecking, user?.id]);
     // Realtime subscription — live updates
     useEffect(() => {
         if (!user?.id) return;
@@ -46,11 +46,8 @@ export default function ShoppingCart() {
 
     const loadCart = async (signal) => {
         try {
-            const authUser = await getAuthUser();
-            setUser(authUser);
-
             // Load cart - prefer Supabase for logged-in users, fallback to localStorage
-            if (authUser?.id) {
+            if (user?.id) {
                 try {
                     const { data: prefData } = await supabase
                         .from('user_preferences')
@@ -80,13 +77,16 @@ export default function ShoppingCart() {
             }
 
             // Fetch diamond balance
-            if (authUser?.token) {
-                const res = await fetch('/api/store/diamond-transactions?limit=1', {
-                    headers: { Authorization: `Bearer ${authUser.token}` }
-                });
-                const data = await res.json();
-                if (data.success) {
-                    setDiamondBalance(data.balance || 0);
+            if (user?.id) {
+                const token = getAccessToken();
+                if (token) {
+                    const res = await fetch('/api/store/diamond-transactions?limit=1', {
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        setDiamondBalance(data.balance || 0);
+                    }
                 }
             }
 

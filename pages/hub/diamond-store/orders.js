@@ -11,18 +11,19 @@ import Link from 'next/link';
 import { supabase } from '../../../src/lib/supabase';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
-import { getAuthUser } from '../../../src/lib/authUtils';
+import { getAuthUser, useRequireAuth, getAccessToken } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 export default function OrderHistory() {
+    const { user, checking: authChecking } = useRequireAuth('/hub/diamond-store/orders');
     const bus = useTrainingBus('diamond-store-orders');
-    const [user, setUser] = useState(null);
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        if (authChecking || !user?.id) return;
         loadOrders();
-    }, []);
+    }, [authChecking, user?.id]);
   // Realtime subscription — live updates
   useEffect(() => {
     if (!user?.id) return;
@@ -37,19 +38,11 @@ export default function OrderHistory() {
 
     const loadOrders = async () => {
         try {
-            const authUser = await getAuthUser();
-            setUser(authUser);
-
-            if (!authUser) {
-                setLoading(false);
-                return;
-            }
-
             // Fetch orders from database
             const { data, error } = await supabase
                 .from('orders')
                 .select('*')
-                .eq('user_id', authUser.id)
+                .eq('user_id', user.id)
                 .order('created_at', { ascending: false })
                 .limit(50) // order history
 
