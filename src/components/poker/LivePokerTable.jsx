@@ -7032,6 +7032,11 @@ function LivePokerTable({
       if (key === 'h' && !e.shiftKey) { e.preventDefault(); setShowHUD(p => { const v = !p; try { localStorage.setItem('poker-show-hud', v); eventBus.emit('DATA_MUTATED', 'hud_toggled'); } catch(_){} return v; }); return; }
       if (key === 'l' && !e.shiftKey && lastHandResult) { e.preventDefault(); setShowLastHand(true); return; }
       if (key === '?' || key === '/') { e.preventDefault(); setShowKbHelp(p => !p); return; }
+      // K13: Wave H/I/J shortcuts — sound, felt, session stats, layout
+      if (key === 'v' && !e.shiftKey) { e.preventDefault(); handleToggleSound(); return; }
+      if (key === 'p' && !e.shiftKey) { e.preventDefault(); setShowFeltPicker(p => !p); return; }
+      if (e.shiftKey && key === 's') { e.preventDefault(); setShowSessionSummary(p => !p); return; }
+      if (e.shiftKey && key === 'h') { e.preventDefault(); setShowLayoutManager(p => !p); return; }
       if (key === 'escape') { setShowKbHelp(false); setShowActionLog(false); setShowStackGraph(false); setShowTableStats(false); setShowFeltPicker(false); setShowLayoutManager(false); return; }
 
       // Game action shortcuts — only when it's our turn
