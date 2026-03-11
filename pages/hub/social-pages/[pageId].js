@@ -6,7 +6,9 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
-import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
+import { useAuthUser, getAccessToken } from '../../../src/lib/authUtils';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { busEmit } from '../../../src/engine/EventBus';
 import SkeletonLight from '../../../src/components/ui/SkeletonLight';
 import { supabase } from '../../../src/lib/supabase';
 
@@ -215,7 +217,8 @@ function PostCard({ post, user, onLike, onComment }) {
 export default function SocialPageDetail() {
     const router = useRouter();
     const { pageId } = router.query;
-    const [user, setUser] = useState(null);
+    const { user } = useAuthUser();
+    useTrainingBus('social-page-detail');
     const [page, setPage] = useState(null);
     const [posts, setPosts] = useState([]);
     const [followers, setFollowers] = useState([]);
@@ -226,10 +229,7 @@ export default function SocialPageDetail() {
     const [newPost, setNewPost] = useState('');
     const [posting, setPosting] = useState(false);
 
-    useEffect(() => {
-        const u = getAuthUser();
-        if (u) setUser(u);
-    }, []);
+
 
     const fetchPage = useCallback(async (signal) => {
         if (!pageId) return;
@@ -331,6 +331,7 @@ export default function SocialPageDetail() {
                     action: newState ? 'follow' : 'unfollow',
                 }),
             });
+            busEmit.dataMutated('social-pages');
         } catch (e) { console.error("[[pageId].js]", e); }
     };
 
@@ -352,6 +353,7 @@ export default function SocialPageDetail() {
             });
             const json = await res.json();
             if (json.success) {
+                busEmit.dataMutated('social-pages');
                 setNewPost('');
                 fetchPosts();
             }

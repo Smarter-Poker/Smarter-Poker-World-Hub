@@ -10,7 +10,9 @@ import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
-import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
+import { useAuthUser, getAccessToken } from '../../../src/lib/authUtils';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { busEmit } from '../../../src/engine/EventBus';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -145,7 +147,8 @@ function PageCard({ page, isFollowing, onFollow, onView }) {
 
 export default function SocialPagesHub() {
     const router = useRouter();
-    const [user, setUser] = useState(null);
+    const { user } = useAuthUser();
+    useTrainingBus('social-pages');
 
     // Persisted filters for tab and typeFilter
     const { filters, setFilter } = usePersistedFilters('social-pages', {
@@ -162,12 +165,7 @@ export default function SocialPagesHub() {
     const [searchInput, setSearchInput] = useState('');
     const [followingIds, setFollowingIds] = useState(new Set());
 
-    useEffect(() => {    const _c = new AbortController();
 
-        const u = getAuthUser();
-        if (u) setUser(u);
-    return () => _c.abort();
-  }, []);
 
     // SWR-backed pages fetch — cached 60s, instant on tab/filter switch
     const swrParams = new URLSearchParams({ limit: '50' });
@@ -190,12 +188,7 @@ export default function SocialPagesHub() {
     );
     const pages = swrData || [];
 
-    useEffect(() => {    const _c = new AbortController();
 
-        const u = getAuthUser();
-        if (u) setUser(u);
-    return () => _c.abort();
-  }, []);
 
     useEffect(() => {    const _c = new AbortController();
 
@@ -234,6 +227,7 @@ export default function SocialPagesHub() {
                     action: isFollowing ? 'unfollow' : 'follow'
                 }),
             });
+            busEmit.dataMutated('social-pages');
         } catch { }
     };
 

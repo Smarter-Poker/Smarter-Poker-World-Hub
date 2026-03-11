@@ -6,6 +6,19 @@ import { eventBus } from '../../src/engine/EventBus';
 
 const getSupabase = () => typeof window !== 'undefined' ? createClient() : null;
 
+// Card index → display string (matches engine output: 0-51)
+const SUITS = ['c', 'd', 'h', 's'];
+const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
+function cardStr(idx) {
+  if (typeof idx === 'string') return idx; // already string like "Ah"
+  if (typeof idx !== 'number' || idx < 0 || idx > 51) return '??';
+  return RANKS[idx % 13] + SUITS[Math.floor(idx / 13)];
+}
+function isRed(card) {
+  const s = typeof card === 'string' ? card : cardStr(card);
+  return s.endsWith('h') || s.endsWith('d');
+}
+
 export default function HandHistoryPage() {
   useTrainingBus('hand-history');
   const [hands, setHands] = useState([]);
@@ -14,7 +27,7 @@ export default function HandHistoryPage() {
   const [filterTable, setFilterTable] = useState('all');
   const userIdRef = useRef(null);
 
-  // Fetch hand histories
+  // Fetch hand histories — query via player_ids contains
   const fetchHands = useCallback(async () => {
     const sb = getSupabase();
     if (!sb) return;
@@ -25,8 +38,8 @@ export default function HandHistoryPage() {
         userIdRef.current = user.id;
       }
       let query = sb.from('hand_histories')
-        .select('*')
-        .eq('user_id', userIdRef.current)
+        .select('id,table_id,club_id,hand_number,variant,small_blind,big_blind,player_ids,hand_data,pot_total,winner_ids,started_at,completed_at,created_at')
+        .contains('player_ids', [userIdRef.current])
         .order('created_at', { ascending: false })
         .limit(200);
 
@@ -61,9 +74,10 @@ export default function HandHistoryPage() {
   const stats = useMemo(() => {
     if (!hands.length) return null;
     const totalHands = hands.length;
-    const totalPot = hands.reduce((a, h) => a + (h.pot_total || h.hand_data?.potTotal || 0), 0);
-    const avgPot = Math.round(totalPot / totalHands);
-    return { totalHands, totalPot, avgPot };
+    const totalPot = hands.reduce((a, h) => a + (h.pot_total || 0), 0);
+    const avgPot = totalHands ? Math.round(totalPot / totalHands) : 0;
+    const winsCount = hands.filter(h => (h.winner_ids || []).includes(userIdRef.current)).length;
+    return { totalHands, totalPot, avgPot, winsCount, winPct: totalHands ? Math.round(winsCount / totalHands * 100) : 0 };
   }, [hands]);
 
   const formatDate = (d) => {
@@ -89,7 +103,7 @@ export default function HandHistoryPage() {
           </h1>
           {stats && (
             <span style={{ color: T.textSec, fontSize: 11, fontWeight: 600 }}>
-              {stats.totalHands} hands • Avg pot {stats.avgPot.toLocaleString()}
+              {stats.totalHands} hands • {stats.winPct}% win • Avg pot {stats.avgPot.toLocaleString()}
             </span>
           )}
         </div>
@@ -139,13 +153,29 @@ export default function HandHistoryPage() {
         <AnimatePresence>
           {hands.map(h => {
             const hd = h.hand_data || {};
-            const handId = h.hand_id || hd.handId || h.id;
-            const pot = h.pot_total || hd.potTotal || 0;
+            const heroPlayer = (hd.players || []).find(p => String(p.id) === String(userIdRef.current));
+            const heroWon = (h.winner_ids || []).includes(userIdRef.current);
+            const heroNet = heroPlayer?.netResult || 0;
+            const heroCards = heroPlayer?.holeCards || [];
             const winners = hd.winners || [];
-            const heroWon = winners.some(w => String(w.playerId) === String(userIdRef.current));
-            const board = hd.board || hd.communityCards || [];
-            const heroCards = hd.heroCards || [];
-            const actionLog = hd.actionLog || [];
+
+            // Community cards — use hand_data.streets.flop/turn/river cards or communityCards
+            const streets = hd.streets || {};
+            const flopCards = streets.flop?.cards || [];
+            const turnCards = streets.turn?.cards || [];
+            const riverCards = streets.river?.cards || [];
+            const allBoardCards = [...new Set([...flopCards, ...turnCards.slice(flopCards.length), ...riverCards.slice(turnCards.length)])].slice(0, 5);
+            // Fallback to communityCards if streets didn't give us anything
+            const board = allBoardCards.length > 0 ? allBoardCards : (hd.communityCards || []).slice(0, 5);
+
+            // Action log from all streets
+            const actionLog = [
+              ...(streets.preflop?.actions || []),
+              ...(streets.flop?.actions || []),
+              ...(streets.turn?.actions || []),
+              ...(streets.river?.actions || []),
+            ];
+
             const isExpanded = expandedId === h.id;
 
             return (
@@ -165,15 +195,20 @@ export default function HandHistoryPage() {
                   <div>
                     <div style={{ color: T.text, fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
                       <span style={{ color: heroWon ? T.green : T.red }}>{heroWon ? '✅ Won' : '❌ Lost'}</span>
-                      <span style={{ color: T.textDim, fontSize: 9 }}>#{typeof handId === 'string' ? handId.slice(-6) : handId}</span>
+                      <span style={{ color: T.textDim, fontSize: 9 }}>Hand #{h.hand_number || '—'}</span>
                     </div>
                     <div style={{ color: T.textDim, fontSize: 9, marginTop: 2 }}>
-                      {formatDate(h.created_at)} • {h.table_id ? h.table_id.slice(0, 12) : '—'}
+                      {formatDate(h.completed_at || h.created_at)} • {h.small_blind}/{h.big_blind} {h.variant || 'NLH'}
                     </div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: T.gold }}>{pot.toLocaleString()}</div>
-                    <div style={{ fontSize: 8, color: T.textDim }}>pot</div>
+                    <div style={{
+                      fontSize: 14, fontWeight: 800,
+                      color: heroNet >= 0 ? T.green : T.red,
+                    }}>
+                      {heroNet >= 0 ? '+' : ''}{heroNet.toLocaleString()}
+                    </div>
+                    <div style={{ fontSize: 8, color: T.textDim }}>pot {(h.pot_total || 0).toLocaleString()}</div>
                   </div>
                 </div>
 
@@ -198,8 +233,8 @@ export default function HandHistoryPage() {
                                 border: '1px solid rgba(255,255,255,0.2)',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 fontSize: 11, fontWeight: 800,
-                                color: typeof c === 'string' && (c.includes('h') || c.includes('d')) ? '#e53935' : '#fff',
-                              }}>{typeof c === 'string' ? c : '?'}</div>
+                                color: isRed(c) ? '#e53935' : '#fff',
+                              }}>{cardStr(c)}</div>
                             ))}
                           </div>
                         </div>
@@ -217,8 +252,8 @@ export default function HandHistoryPage() {
                                 border: '1px solid rgba(255,255,255,0.12)',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 fontSize: 9, fontWeight: 800,
-                                color: typeof c === 'string' && (c.includes('h') || c.includes('d')) ? '#e53935' : '#fff',
-                              }}>{typeof c === 'string' ? c : '?'}</div>
+                                color: isRed(c) ? '#e53935' : '#fff',
+                              }}>{cardStr(c)}</div>
                             ))}
                           </div>
                         </div>
@@ -230,23 +265,47 @@ export default function HandHistoryPage() {
                           <div style={{ fontSize: 8, color: T.textDim, fontWeight: 700, textTransform: 'uppercase', marginBottom: 3 }}>Winners</div>
                           {winners.map((w, i) => (
                             <div key={i} style={{ fontSize: 10, color: T.green, fontWeight: 600 }}>
-                              {w.playerName || 'Player'} won {(w.amount || 0).toLocaleString()}
+                              {w.hand || 'Winner'} — {(w.amount || 0).toLocaleString()} chips
                             </div>
                           ))}
+                        </div>
+                      )}
+
+                      {/* Players */}
+                      {(hd.players || []).length > 0 && (
+                        <div style={{ marginBottom: 8 }}>
+                          <div style={{ fontSize: 8, color: T.textDim, fontWeight: 700, textTransform: 'uppercase', marginBottom: 3 }}>Players</div>
+                          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                            {(hd.players || []).map((pl, i) => (
+                              <div key={i} style={{
+                                fontSize: 9, color: pl.netResult >= 0 ? T.green : T.red, fontWeight: 600,
+                                background: 'rgba(255,255,255,0.03)', padding: '2px 6px', borderRadius: 4,
+                              }}>
+                                {String(pl.id) === String(userIdRef.current) ? '⭐ You' : `Seat ${pl.seatIndex}`}
+                                : {pl.netResult >= 0 ? '+' : ''}{pl.netResult}
+                                {pl.showedCards && pl.holeCards ? ` [${pl.holeCards.map(c => cardStr(c)).join('')}]` : ''}
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       )}
 
                       {/* Action Log */}
                       {actionLog.length > 0 && (
                         <div>
-                          <div style={{ fontSize: 8, color: T.textDim, fontWeight: 700, textTransform: 'uppercase', marginBottom: 3 }}>Action Log</div>
-                          <div style={{ maxHeight: 80, overflowY: 'auto' }}>
-                            {actionLog.map((a, i) => (
-                              <div key={i} style={{ fontSize: 9, color: T.textSec, padding: '1px 0' }}>
-                                <span style={{ color: T.text, fontWeight: 600 }}>{a.playerName || 'Player'}</span>{' '}
-                                {a.text || a.type}{a.amount > 0 ? ` ${a.amount.toLocaleString()}` : ''}
-                              </div>
-                            ))}
+                          <div style={{ fontSize: 8, color: T.textDim, fontWeight: 700, textTransform: 'uppercase', marginBottom: 3 }}>Action Log ({actionLog.length})</div>
+                          <div style={{ maxHeight: 100, overflowY: 'auto' }}>
+                            {actionLog.map((a, i) => {
+                              const isHero = String(a.playerId) === String(userIdRef.current);
+                              return (
+                                <div key={i} style={{ fontSize: 9, color: T.textSec, padding: '1px 0' }}>
+                                  <span style={{ color: isHero ? T.accent : T.text, fontWeight: isHero ? 700 : 600 }}>
+                                    {isHero ? '⭐ You' : `${a.playerId?.slice(0, 8) || 'Player'}`}
+                                  </span>{' '}
+                                  {a.type}{a.amount > 0 ? ` ${a.amount.toLocaleString()}` : ''}
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       )}
