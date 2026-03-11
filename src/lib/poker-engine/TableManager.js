@@ -444,6 +444,14 @@ class TableManager {
       });
     }
 
+    // Lazy cleanup of _departedStacks to prevent memory leaks from long-running tables
+    const now = Date.now();
+    for (const [key, data] of this._departedStacks.entries()) {
+      if (now - data.leftAt > this._ratholeTimeoutMs) {
+        this._departedStacks.delete(key);
+      }
+    }
+
     this._vacateSeat(seat);
 
     this.emit('player_left', { playerId, seatIndex: seat.seatIndex, cashout: totalCashout });
@@ -934,8 +942,13 @@ class TableManager {
    * @private
    */
   _vacateSeat(seat) {
-    // Clear session VPIP tracking for nit game
-    if (seat.player?.id) this._vpipTracker.delete(String(seat.player.id));
+    // Clear session tracking maps to prevent memory leaks in tables lasting days/weeks
+    if (seat.player?.id) {
+      const pId = String(seat.player.id);
+      this._vpipTracker.delete(pId);
+      this._autoRebuyPrefs.delete(pId);
+      this._autoTopUpPrefs.delete(pId);
+    }
     seat.status = SEAT_STATUS.EMPTY;
     seat.player = null;
     seat.stack = 0;

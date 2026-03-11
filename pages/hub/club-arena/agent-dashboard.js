@@ -3,7 +3,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaEmbed from '../../../src/components/club-arena/ClubArenaEmbed';
 
-export default function ClubArenaAgent DashboardPage() {
+export default function ClubArenaAgentDashboardPage() {
     return (
         <>
             <SEOHead title="Agent Dashboard | Smarter.Poker" />

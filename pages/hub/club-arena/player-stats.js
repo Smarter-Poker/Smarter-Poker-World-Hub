@@ -3,7 +3,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaEmbed from '../../../src/components/club-arena/ClubArenaEmbed';
 
-export default function ClubArenaPlayer StatsPage() {
+export default function ClubArenaPlayerStatsPage() {
     return (
         <>
             <SEOHead title="Player Stats | Smarter.Poker" />

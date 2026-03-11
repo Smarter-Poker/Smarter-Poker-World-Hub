@@ -112,49 +112,56 @@ export default function useMiniStatePoller() {
         const now = Date.now();
 
         // Collect bus events to fire OUTSIDE setState (React 18 pure updater rule)
-        const busEvents = [];
+        const busEvents = new Set();
 
         setMiniStates(prev => {
+          busEvents.clear(); // Reset on each updater invocation (Strict Mode defense)
           const next = new Map(prev);
           const state = { ...payload, _fetchedAt: now };
           const existing = prev.get(state.tableId);
 
           // ── Detect significant state changes for EventBus ──
           if (_busEmit) {
-            // Hand number change
-            if (state.handNumber) {
-              const prevHand = prevHandNumbers.current.get(state.tableId);
-              if (prevHand !== undefined && prevHand !== state.handNumber) {
-                busEvents.push('mini_state_hand_change');
-              }
-              prevHandNumbers.current.set(state.tableId, state.handNumber);
-            }
+            // Hand number change logic moved down to avoid ref mutation in updater
+
 
             // Phase transition
             if (existing && existing.phase !== state.phase) {
-              busEvents.push('mini_state_phase_change');
+              busEvents.add('mini_state_phase_change');
             }
 
             // Winner flash
             if (state.lastHandResult && (!existing?.lastHandResult || 
                 existing.lastHandResult.timestamp !== state.lastHandResult.timestamp)) {
-              busEvents.push('mini_state_winner_flash');
+              busEvents.add('mini_state_winner_flash');
             }
 
             // Chat message
             if (state.lastChatMessage && (!existing?.lastChatMessage ||
                 existing.lastChatMessage.timestamp !== state.lastChatMessage.timestamp)) {
-              busEvents.push('mini_state_chat_message');
+              busEvents.add('mini_state_chat_message');
             }
 
             // Emoji reaction
             if (state.emojiReactions?.length > (existing?.emojiReactions?.length || 0)) {
-              busEvents.push('mini_state_emoji_reaction');
+              busEvents.add('mini_state_emoji_reaction');
             }
 
             // Pot change
             if (existing && state.potTotal !== existing.potTotal && state.potTotal > 0) {
-              busEvents.push('mini_state_pot_change');
+              busEvents.add('mini_state_pot_change');
+            }
+
+            // Hand number change
+            if (state.handNumber) {
+              const prevHand = prevHandNumbers.current.get(state.tableId);
+              if (prevHand !== undefined && prevHand !== state.handNumber) {
+                busEvents.add('mini_state_hand_change');
+              }
+              // Only update the ref if we are reasonably sure this is the final/committed invocation.
+              // In React 18, refs mutated inside updaters can drift. 
+              // Wait, ref mutation inside updater is an anti-pattern too! 
+              // We should mutate refs outside. We can do that below.
             }
           }
 
@@ -163,7 +170,13 @@ export default function useMiniStatePoller() {
         });
 
         // Fire bus events OUTSIDE setState — safe for React 18
-        if (_busEmit && busEvents.length > 0) {
+        if (busEvents.has('mini_state_hand_change')) {
+            prevHandNumbers.current.set(payload.tableId, payload.handNumber);
+        } else if (payload.handNumber && !prevHandNumbers.current.has(payload.tableId)) {
+            prevHandNumbers.current.set(payload.tableId, payload.handNumber);
+        }
+
+        if (_busEmit && busEvents.size > 0) {
           for (const evt of busEvents) {
             _busEmit.dataMutated(evt);
           }
