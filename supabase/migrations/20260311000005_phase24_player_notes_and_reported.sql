@@ -17,18 +17,22 @@ CREATE TABLE IF NOT EXISTS player_notes (
 -- #11: RLS — Only the note owner can read/write their own notes
 ALTER TABLE player_notes ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can read their own player notes" ON player_notes;
 CREATE POLICY "Users can read their own player notes"
   ON player_notes FOR SELECT
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can insert their own player notes" ON player_notes;
 CREATE POLICY "Users can insert their own player notes"
   ON player_notes FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update their own player notes" ON player_notes;
 CREATE POLICY "Users can update their own player notes"
   ON player_notes FOR UPDATE
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can delete their own player notes" ON player_notes;
 CREATE POLICY "Users can delete their own player notes"
   ON player_notes FOR DELETE
   USING (auth.uid() = user_id);
