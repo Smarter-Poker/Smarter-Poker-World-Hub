@@ -1730,30 +1730,87 @@ function ActionPanel({ actions, onAction, stack, currentBet, bigBlind, potTotal 
             </div>
 
             {/* Premium Increment Track */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%' }}>
+            <style dangerouslySetInnerHTML={{__html: `
+              .premium-bet-slider {
+                -webkit-appearance: none;
+                appearance: none;
+                width: 100%;
+                height: 12px;
+                background: rgba(0, 0, 0, 0.6);
+                border-radius: 6px;
+                outline: none;
+                box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.8), 0 1px 1px rgba(255,255,255,0.05);
+                position: relative;
+                cursor: grab;
+              }
+              .premium-bet-slider:active {
+                cursor: grabbing;
+              }
+              .premium-bet-slider::-webkit-slider-runnable-track {
+                width: 100%;
+                height: 12px;
+                border-radius: 6px;
+                background: linear-gradient(to right, 
+                  #FFD700 0%, 
+                  #FF6B35 var(--slider-pct, 0%), 
+                  rgba(255, 255, 255, 0.05) var(--slider-pct, 0%), 
+                  rgba(255, 255, 255, 0.05) 100%);
+              }
+              .premium-bet-slider::-webkit-slider-thumb {
+                -webkit-appearance: none;
+                appearance: none;
+                width: 34px;
+                height: 34px;
+                border-radius: 50%;
+                background: radial-gradient(circle at 35% 25%, #fff 0%, #e8e8e8 20%, #888 70%, #222 100%);
+                border: 2px solid #FFD700;
+                box-shadow: 0 0 15px rgba(255, 215, 0, 0.5), 0 4px 8px rgba(0,0,0,0.6), inset 0 2px 4px rgba(255,255,255,0.8), inset 0 -2px 4px rgba(0,0,0,0.5);
+                cursor: pointer;
+                transition: transform 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                margin-top: -11px;
+              }
+              .premium-bet-slider:active::-webkit-slider-thumb {
+                transform: scale(1.15);
+                box-shadow: 0 0 20px rgba(255, 215, 0, 0.9), 0 6px 12px rgba(0,0,0,0.7), inset 0 2px 5px rgba(255,255,255,0.8);
+              }
+              .bet-btn-haptic {
+                transition: all 0.1s ease;
+              }
+              .bet-btn-haptic:active {
+                transform: scale(0.9);
+                background: rgba(255,215,0,0.15) !important;
+                border-color: #FFD700 !important;
+              }
+            `}} />
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, width: '100%' }}>
               <button 
+                className="bet-btn-haptic"
                 onClick={() => handleTick(-1)}
-                style={{ width: 44, height: 44, borderRadius: 22, background: 'rgba(255,255,255,0.05)', color: '#fff', fontSize: 24, paddingBottom: 2, border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                style={{ width: 44, height: 44, flexShrink: 0, borderRadius: 22, background: 'linear-gradient(145deg, rgba(255,255,255,0.08), rgba(0,0,0,0.2))', color: '#fff', fontSize: 26, paddingBottom: 2, border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.1)' }}
               >−</button>
               
               <input
+                className="premium-bet-slider"
                 type="range"
                 min={minBet}
                 max={maxBet}
                 step={1}
-                value={betAmount}
+                value={betAmount || minBet}
                 onChange={(e) => {
                    setBetAmount(parseInt(e.target.value));
                    try { if (typeof navigator !== 'undefined' && navigator.vibrate && parseInt(e.target.value) % (bigBlind || 2) === 0) navigator.vibrate(2); } catch(_){}
                 }}
                 style={{
-                  flex: 1, height: 6, borderRadius: 3, accentColor: '#FFD700', cursor: 'grab'
+                  flex: 1,
+                  '--slider-pct': `${maxBet > minBet ? (((betAmount || minBet) - minBet) / (maxBet - minBet)) * 100 : 0}%`
                 }}
               />
 
               <button 
+                className="bet-btn-haptic"
                 onClick={() => handleTick(1)}
-                style={{ width: 44, height: 44, borderRadius: 22, background: 'rgba(255,255,255,0.05)', color: '#fff', fontSize: 22, paddingBottom: 2, border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                style={{ width: 44, height: 44, flexShrink: 0, borderRadius: 22, background: 'linear-gradient(145deg, rgba(255,255,255,0.08), rgba(0,0,0,0.2))', color: '#fff', fontSize: 24, paddingBottom: 2, border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.1)' }}
               >+</button>
             </div>
 
