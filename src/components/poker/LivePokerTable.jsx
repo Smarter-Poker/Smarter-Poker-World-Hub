@@ -2965,7 +2965,7 @@ function ActionPanel({ actions, onAction, stack, currentBet, bigBlind, potTotal 
     >
       {/* Pot Odds HUD — appears when facing a bet/call */}
       <AnimatePresence>
-        {canCall && <PotOddsHUD potSize={potTotal} betToCall={callAmount} heroStack={0} isVisible={true} />}
+        {canCall && <PotOddsHUD potSize={potTotal} betToCall={callAmount} heroStack={stack || 0} isVisible={true} />}
       </AnimatePresence>
       {/* Bet slider + presets */}
       <AnimatePresence>
