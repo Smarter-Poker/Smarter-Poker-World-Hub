@@ -144,6 +144,66 @@ Utilities:           src/lib/commander/
 2. The spec is comprehensive - the answer is likely there
 3. If truly not covered, document the gap and ask
 
+## Club Arena Integration (CRITICAL — READ BEFORE TOUCHING CLUB ARENA)
+
+### Architecture Overview
+Club Arena is a **separate Vite + React SPA** deployed to its own Vercel project.
+It is embedded into smarter.poker via iframe using the `ClubArenaEmbed` component.
+
+```
+User visits smarter.poker/hub/club-arena/promotions
+  → Next.js serves pages/hub/club-arena/[[...slug]].js (catch-all route)
+  → Renders <UniversalHeader /> + <ClubArenaEmbed spaRoute="promotions" />
+  → ClubArenaEmbed loads iframe: https://club-arena.vercel.app/hub/club-arena/promotions
+  → Auth token passed via postMessage from World Hub to iframe
+```
+
+### Two Separate Repos, Two Separate Vercel Projects
+| Component | Repo | Vercel Project | Domain |
+|-----------|------|----------------|--------|
+| World Hub (Next.js) | Smarter-Poker/Smarter-Poker-World-Hub | smarter-poker | smarter.poker |
+| Club Arena (Vite SPA) | Smarter-Poker/Smarter-Poker-Club-Arena | club-arena | club-arena.vercel.app |
+
+### Deployment Pipeline
+- Push to `Smarter-Poker-Club-Arena` → auto-deploys to `club-arena.vercel.app` → changes appear on smarter.poker automatically (iframe loads from club-arena.vercel.app)
+- Push to `Smarter-Poker-World-Hub` → auto-deploys to `smarter.poker`
+- Club Arena changes do NOT require a World Hub deploy (iframe is loaded at runtime)
+
+### Key Files
+```
+World Hub side:
+  src/components/club-arena/ClubArenaEmbed.js  — Iframe wrapper (SPA_ORIGIN = club-arena.vercel.app)
+  pages/hub/club-arena/[[...slug]].js          — Catch-all route (handles ALL Club Arena paths)
+  pages/hub/club-arena/lobby.js                — Specific page (takes priority over catch-all)
+  pages/hub/club-arena/tournaments.js          — Specific page
+  (15 total specific pages + 1 catch-all)
+
+Club Arena side (separate repo):
+  src/App.tsx                    — React Router with 70+ routes
+  src/pages/                     — All page components
+  src/components/                — Shared components
+  src/services/                  — API service layer (Supabase)
+```
+
+### Routing Rules
+1. Specific pages (lobby.js, tournaments.js, etc.) take priority over the catch-all
+2. The catch-all `[[...slug]].js` handles ALL other routes automatically
+3. New routes added to the Club Arena SPA work immediately on smarter.poker — no World Hub changes needed
+4. The iframe URL pattern: `https://club-arena.vercel.app/hub/club-arena/{spaRoute}`
+
+### Auth Flow
+1. World Hub gets Supabase session via `supabase.auth.getSession()`
+2. On iframe load, sends `postMessage({ type: 'SMARTER_AUTH_TOKEN', token, refreshToken })` to iframe
+3. Club Arena SPA receives the token and uses it for authenticated API calls
+
+### Common Pitfalls
+- DO NOT add rewrites in next.config.js for Club Arena routes — the iframe approach handles everything
+- If a specific Club Arena route needs custom SEO metadata, create a specific page file (e.g., `pages/hub/club-arena/promotions.js`) — it will take priority over the catch-all
+- The catch-all already passes query params through to the SPA, so `?club=abc123` works
+- If Club Arena changes aren't showing on smarter.poker, check the Club Arena Vercel deployment (not the World Hub deployment)
+
+---
+
 ## General Project Info
 
 ### Tech Stack

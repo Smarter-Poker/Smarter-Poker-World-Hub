@@ -5584,6 +5584,8 @@ function LivePokerTable({
           setCardBack(getStoredCardBack());
         } else if (payload === 'sound_changed') {
           setSoundEnabled(localStorage.getItem('poker-sound-enabled') !== 'false');
+        } else if (payload === 'felt_changed') {
+          try { setFeltColor(localStorage.getItem('poker-felt-color') || 'classic-green'); } catch (_) {}
         }
       }
     };
@@ -6066,15 +6068,6 @@ function LivePokerTable({
     }
   }, [result, userId, autoMuck, isSitting, myCards]);
 
-  // H4: Felt color EventBus sync for multi-table
-  useEffect(() => {
-    const unsub = eventBus.on('DATA_MUTATED', (payload) => {
-      if (payload === 'felt_changed') {
-        try { setFeltColor(localStorage.getItem('poker-felt-color') || 'classic-green'); } catch (_) {}
-      }
-    });
-    return () => { if (typeof unsub === 'function') unsub(); };
-  }, []);
 
   // ═══ ENHANCED SESSION STATS ═══
   const [biggestPot, setBiggestPot] = useState(0);
