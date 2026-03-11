@@ -1300,7 +1300,7 @@ export default function SignUpPage() {
                             </div>
 
                             <button
-                                onClick={() => router.push('/auth/signin')}
+                                onClick={() => router.push('/auth/login')}
                                 style={styles.signupLink}
                             >
                                 Already Have An Account? <span style={styles.accentText}>Sign In</span>

@@ -1109,7 +1109,7 @@ function GodModeArenaInner({
                     <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
                         {isAuthError && (
                             <button
-                                onClick={() => window.location.href = '/auth/signin'}
+                                onClick={() => window.location.href = '/auth/login'}
                                 style={{
                                     padding: '12px 24px', borderRadius: 10, border: 'none',
                                     background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',

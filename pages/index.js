@@ -146,7 +146,7 @@ export default function LandingPage() {
             <button onClick={() => router.push('/auth/signup')} style={styles.navButton}>
               Sign Up
             </button>
-            <button onClick={() => router.push('/auth/signin')} style={styles.navButtonPrimary}>
+            <button onClick={() => router.push('/auth/login')} style={styles.navButtonPrimary}>
               Sign In
             </button>
           </div>

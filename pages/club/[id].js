@@ -442,7 +442,7 @@ export default function ClubPage() {
     }
 
     if (!activeUserId) {
-      router.push('/auth/signin?redirect=' + encodeURIComponent(router.asPath));
+      router.push('/auth/login?redirect=' + encodeURIComponent(router.asPath));
       return;
     }
 
@@ -467,7 +467,7 @@ export default function ClubPage() {
 
   async function handleLike(postId) {
     if (!user?.id) {
-      router.push('/auth/signin?redirect=' + encodeURIComponent(router.asPath));
+      router.push('/auth/login?redirect=' + encodeURIComponent(router.asPath));
       return;
     }
     // Optimistic update
@@ -722,7 +722,7 @@ export default function ClubPage() {
 
   const handleWriteReviewClick = () => {
     if (!user?.id) {
-      router.push('/auth/signin?redirect=' + encodeURIComponent(router.asPath));
+      router.push('/auth/login?redirect=' + encodeURIComponent(router.asPath));
       return;
     }
     setShowReviewForm(true);
