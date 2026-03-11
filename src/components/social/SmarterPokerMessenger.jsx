@@ -1896,14 +1896,22 @@ export const ChatWindow = ({
                     const showAvatar = !isOwn && (!prevMsg || prevMsg.senderId !== enrichedMsg.senderId);
 
                     return (
-                        <MessageBubble
-                            key={enrichedMsg.id || i}
-                            message={enrichedMsg}
-                            isOwn={isOwn}
-                            showAvatar={showAvatar}
-                            user={otherUser}
-                            onAction={handleAction}
-                        />
+                        <div key={enrichedMsg.id || i} style={{ display: 'flex', alignItems: 'flex-start', gap: multiSelectMode ? 6 : 0 }}>
+                            {multiSelectMode && (
+                                <div onClick={() => setSelectedMessageIds(prev => prev.includes(enrichedMsg.id) ? prev.filter(id => id !== enrichedMsg.id) : [...prev, enrichedMsg.id])} style={{ minWidth: 22, height: 22, marginTop: 8, borderRadius: 4, border: selectedMessageIds.includes(enrichedMsg.id) ? '2px solid #2D88FF' : '2px solid rgba(255,255,255,0.3)', background: selectedMessageIds.includes(enrichedMsg.id) ? '#2D88FF' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 12, color: '#fff', flexShrink: 0 }}>
+                                    {selectedMessageIds.includes(enrichedMsg.id) && '✓'}
+                                </div>
+                            )}
+                            <div style={{ flex: 1 }}>
+                                <MessageBubble
+                                    message={enrichedMsg}
+                                    isOwn={isOwn}
+                                    showAvatar={showAvatar}
+                                    user={otherUser}
+                                    onAction={handleAction}
+                                />
+                            </div>
+                        </div>
                     );
                 })}
                 <div ref={messagesEndRef} />

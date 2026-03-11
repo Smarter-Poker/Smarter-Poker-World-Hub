@@ -2286,6 +2286,7 @@ ${messages.map(m =>
             const audioContext = new (window.AudioContext || window.webkitAudioContext)();
             const arrayBuffer = await blob.arrayBuffer();
             await audioContext.decodeAudioData(arrayBuffer);
+            audioContext.close(); // P20 BUG FIX: prevent resource leak
             // Use MediaRecorder + SpeechRecognition pipeline
             return new Promise((resolve) => {
                 const recognition = new SpeechRecognition();
@@ -2325,11 +2326,14 @@ ${messages.map(m =>
         }
 
         if (format === 'html') {
+            // P20 BUG FIX: HTML-escape text to prevent XSS in exported files
+            const escHtml = (s) => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
             const rows = messages.map(m => {
                 const time = new Date(m.created_at).toLocaleString();
                 const sender = m.sender_id === currentUser?.id ? 'You' : (m.sender_id?.slice(0, 6) || 'User');
                 const isMine = m.sender_id === currentUser?.id;
-                return `<div style="margin:4px 0;padding:6px 10px;border-radius:12px;max-width:70%;${isMine ? 'margin-left:auto;background:#2D88FF;color:#fff' : 'background:#3A3B3C;color:#e4e6eb'}"><strong>${sender}</strong> <span style="font-size:10px;opacity:0.7">${time}</span><br>${m.text || `[${m.message_type}]`}</div>`;
+                const safeText = escHtml(m.text) || `[${escHtml(m.message_type)}]`;
+                return `<div style="margin:4px 0;padding:6px 10px;border-radius:12px;max-width:70%;${isMine ? 'margin-left:auto;background:#2D88FF;color:#fff' : 'background:#3A3B3C;color:#e4e6eb'}"><strong>${sender}</strong> <span style="font-size:10px;opacity:0.7">${time}</span><br>${safeText}</div>`;
             });
             const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${convName}</title><style>body{font-family:system-ui;background:#18191A;color:#e4e6eb;max-width:600px;margin:40px auto;padding:20px}h1{font-size:18px}</style></head><body><h1>${convName}</h1><p style="color:#999;font-size:12px">Exported ${timestamp}</p>${rows.join('')}</body></html>`;
             const blob = new Blob([html], { type: 'text/html' });
@@ -2344,7 +2348,9 @@ ${messages.map(m =>
             messages.forEach(m => {
                 const time = new Date(m.created_at).toISOString();
                 const sender = m.sender_id === currentUser?.id ? 'You' : (m.sender_id?.slice(0, 6) || 'User');
-                const text = (m.text || `[${m.message_type}]`).replace(/"/g, '""');
+                let text = (m.text || `[${m.message_type}]`).replace(/"/g, '""');
+                // P20 BUG FIX: prevent CSV formula injection
+                if (/^[=+\-@]/.test(text)) text = "'" + text;
                 csvRows.push(`"${time}","${sender}","${m.message_type}","${text}"`);
             });
             const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
