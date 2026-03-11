@@ -10,6 +10,8 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { ArrowLeft, Save, User, Camera } from 'lucide-react';
 import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
+import useTrainingBus from '../../../../src/hooks/useTrainingBus';
+import { busEmit } from '../../../../src/engine/EventBus';
 
 export default function ProfileEditPage() {
   const router = useRouter();
@@ -21,6 +23,7 @@ export default function ProfileEditPage() {
   });
 
   const { checking: authChecking } = useRequireAuth('/hub/commander/profile/edit');
+  useTrainingBus('profile-edit-commander');
 
   const { isLoading: loading } = useSWR('/api/commander/profile', async (url) => {
     const token = getAccessToken();
@@ -55,6 +58,7 @@ export default function ProfileEditPage() {
       });
       const data = await res.json();
       if (data.success) {
+        busEmit.dataMutated('profile');
         setSuccess(true);
         setTimeout(() => router.push('/hub/commander/profile'), 1000);
       } else {

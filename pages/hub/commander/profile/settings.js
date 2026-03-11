@@ -9,6 +9,8 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { ArrowLeft, Bell, Eye, Shield, Save, Loader2 } from 'lucide-react';
 import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
+import useTrainingBus from '../../../../src/hooks/useTrainingBus';
+import { busEmit } from '../../../../src/engine/EventBus';
 
 function ToggleSetting({ label, description, value, onChange }) {
   return (
@@ -46,6 +48,7 @@ export default function ProfileSettingsPage() {
   });
 
   const { checking: authChecking } = useRequireAuth('/hub/commander/profile/settings');
+  useTrainingBus('profile-settings');
 
   const { isLoading: loading } = useSWR('/api/commander/profile', async (url) => {
     const token = getAccessToken();
@@ -74,6 +77,7 @@ export default function ProfileSettingsPage() {
       });
       const data = await res.json();
       if (data.success) {
+        busEmit.dataMutated('profile');
         setSuccess(true);
         setTimeout(() => setSuccess(false), 2000);
       }
