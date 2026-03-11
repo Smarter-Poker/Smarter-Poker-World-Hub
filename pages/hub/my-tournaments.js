@@ -7,7 +7,7 @@
  * Links to each tournament's public page for full details.
  * Requires authentication.
  */
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
