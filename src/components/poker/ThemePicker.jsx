@@ -366,6 +366,34 @@ export default function ThemePicker({ currentThemeId, onThemeChange, currentCard
                       </button>
                     </div>
 
+                    {/* Phase 27 #6: Auto-Muck Toggle */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>
+                      <div>
+                        <div style={{ color: '#fff', fontSize: 13, fontWeight: 600 }}>Auto-Muck</div>
+                        <div style={{ color: '#65676B', fontSize: 11 }}>Auto-hide losing hands</div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          const current = typeof localStorage !== 'undefined' ? localStorage.getItem('poker-auto-muck') === 'true' : false;
+                          try { localStorage.setItem('poker-auto-muck', String(!current)); } catch (_) {}
+                          try { window.dispatchEvent(new CustomEvent('poker-auto-muck-changed', { detail: !current })); } catch (_) {}
+                        }}
+                        style={{
+                          width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer',
+                          background: (typeof localStorage !== 'undefined' && localStorage.getItem('poker-auto-muck') === 'true') ? '#22c55e' : '#3A3B3C',
+                          position: 'relative', transition: 'background 0.2s',
+                        }}
+                      >
+                        <div style={{
+                          width: 18, height: 18, borderRadius: '50%', background: '#fff',
+                          position: 'absolute', top: 3,
+                          left: (typeof localStorage !== 'undefined' && localStorage.getItem('poker-auto-muck') === 'true') ? 23 : 3,
+                          transition: 'left 0.2s',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                        }} />
+                      </button>
+                    </div>
+
                     <div style={{ padding: '8px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>
                       <div style={{ color: '#65676B', fontSize: 11 }}>
                         💡 4-color deck uses green for ♣ and blue for ♦ to reduce misreads

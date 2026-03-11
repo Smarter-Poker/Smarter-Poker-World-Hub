@@ -45,6 +45,7 @@ import ThemePicker from './ThemePicker';
 import PlayerNoteModal from './PlayerNoteModal';
 import PlayerQuickView from './PlayerQuickView';
 import LiveStatsDashboard from './LiveStatsDashboard';
+import PotOddsHUD from './PotOddsHUD';
 // ═══════════════════════════════════════════════════════════════════════════
 // BET CHIP ANIMATION — chips fly from player to pot center
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1225,36 +1226,8 @@ function RunItTwicePrompt({ visible, onAccept, onDecline }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// POT ODDS HUD — displays pot odds when hero faces a bet
+// POT ODDS HUD — imported from ./PotOddsHUD.jsx (Phase 27 upgrade)
 // ═══════════════════════════════════════════════════════════════════════════
-
-function PotOddsHUD({ callAmount, potTotal, visible }) {
-  if (!visible || !callAmount || callAmount <= 0 || !potTotal) return null;
-  const potOddsRatio = (potTotal + callAmount) / callAmount;
-  const potOddsPct = ((callAmount / (potTotal + callAmount)) * 100).toFixed(1);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.9 }}
-      style={{
-        display: 'flex', alignItems: 'center', gap: 8,
-        background: 'rgba(0,0,0,0.85)', borderRadius: 10,
-        padding: '4px 12px', marginBottom: 4,
-        border: '1px solid rgba(59,130,246,0.3)',
-        boxShadow: '0 0 15px rgba(59,130,246,0.15)',
-        backdropFilter: 'blur(8px)',
-      }}
-    >
-      <span style={{ fontSize: 10, fontWeight: 600, color: '#93c5fd', textTransform: 'uppercase', letterSpacing: 0.5 }}>Pot Odds</span>
-      <span style={{ fontSize: 13, fontWeight: 800, color: '#60a5fa', fontVariantNumeric: 'tabular-nums' }}>
-        {potOddsRatio.toFixed(1)}:1
-      </span>
-      <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>({potOddsPct}%)</span>
-    </motion.div>
-  );
-}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // EQUITY PROGRESS BAR — animated win% on all-in
@@ -2793,7 +2766,7 @@ function ActionPanel({ actions, onAction, stack, currentBet, bigBlind, potTotal 
     >
       {/* Pot Odds HUD — appears when facing a bet/call */}
       <AnimatePresence>
-        {canCall && <PotOddsHUD callAmount={callAmount} potTotal={potTotal} visible={true} />}
+        {canCall && <PotOddsHUD potSize={potTotal} betToCall={callAmount} heroStack={0} isVisible={true} />}
       </AnimatePresence>
       {/* Bet slider + presets */}
       <AnimatePresence>
@@ -6756,36 +6729,124 @@ function LivePokerTable({
         onShowTableStats={() => setShowTableStats(p => !p)}
       />
 
-      {/* Hand strength indicator (hero only, during active hand) */}
+      {/* ═══ PHASE 27: HAND STRENGTH INDICATOR — Premium 5-tier color bar ═══ */}
       {myCards && myCards.length > 0 && isSitting && !result?.winners && (() => {
         const board = tableState?.game?.communityCards || [];
         const strength = getHandStrength(myCards, board);
         if (!strength || !strength.label) return null;
         const cat = strength.category || 0;
-        const color = cat >= 7 ? '#FFD700' : cat >= 5 ? '#4ECDC4' : cat >= 3 ? '#60a5fa' : '#B0B3B8';
+        // 5-tier: 0-1 Weak (red) | 2-3 Marginal (orange) | 4-5 Medium (yellow) | 6-7 Strong (green) | 8-9 Monster (gold/diamond)
+        const tiers = [
+          { min: 0, color: '#ef4444', bg: 'rgba(239,68,68,0.12)', icon: '🔴', label: 'Weak' },
+          { min: 2, color: '#f97316', bg: 'rgba(249,115,22,0.12)', icon: '🟠', label: 'Marginal' },
+          { min: 4, color: '#eab308', bg: 'rgba(234,179,8,0.12)', icon: '🟡', label: 'Medium' },
+          { min: 6, color: '#22c55e', bg: 'rgba(34,197,94,0.12)', icon: '🟢', label: 'Strong' },
+          { min: 8, color: '#FFD700', bg: 'rgba(255,215,0,0.15)', icon: '💎', label: 'Monster' },
+        ];
+        const tier = [...tiers].reverse().find(t => cat >= t.min) || tiers[0];
+        const fillPct = Math.min(100, ((cat + 1) / 10) * 100);
         return (
-          <div style={{
-            position: 'fixed',
-            bottom: isMyTurn && legalActions ? 120 : 16,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 100,
-            background: 'rgba(0,0,0,0.75)',
-            border: `1px solid ${color}40`,
-            borderRadius: 12,
-            padding: '3px 14px',
-            fontSize: 12,
-            fontWeight: 700,
-            color,
-            textAlign: 'center',
-            backdropFilter: 'blur(8px)',
-            pointerEvents: 'none',
-            transition: 'bottom 0.3s ease',
-          }}>
-            {strength.label}
-          </div>
+          <motion.div
+            key={tier.label}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            style={{
+              position: 'fixed',
+              bottom: isMyTurn && legalActions ? 120 : 16,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 100,
+              background: 'rgba(0,0,0,0.8)',
+              border: `1px solid ${tier.color}30`,
+              borderRadius: 14,
+              padding: '4px 14px 6px',
+              minWidth: 160,
+              textAlign: 'center',
+              backdropFilter: 'blur(10px)',
+              pointerEvents: 'none',
+              transition: 'bottom 0.3s ease',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 4 }}>
+              <span style={{ fontSize: 10 }}>{tier.icon}</span>
+              <span style={{ color: tier.color, fontSize: 11, fontWeight: 800, letterSpacing: 0.5 }}>{strength.label}</span>
+            </div>
+            {/* Gradient fill bar */}
+            <div style={{
+              width: '100%', height: 4, borderRadius: 2,
+              background: 'rgba(255,255,255,0.08)',
+              overflow: 'hidden',
+            }}>
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${fillPct}%` }}
+                transition={{ duration: 0.5, ease: 'easeOut' }}
+                style={{
+                  height: '100%', borderRadius: 2,
+                  background: `linear-gradient(90deg, ${tier.color}80, ${tier.color})`,
+                  boxShadow: `0 0 6px ${tier.color}60`,
+                }}
+              />
+            </div>
+          </motion.div>
         );
       })()}
+
+      {/* ═══ PHASE 27: POT ODDS HUD — shows when hero faces a bet ═══ */}
+      {(() => {
+        const callAction = isMyTurn && legalActions?.find(a => a.type === 'call');
+        if (!callAction) return null;
+        const pot = tableState?.game?.pot || 0;
+        const heroSeat = seats?.find(s => s?.player?.id != null && String(s.player.id) === String(userId));
+        return (
+          <PotOddsHUD
+            potSize={pot}
+            betToCall={callAction.amount || 0}
+            heroStack={heroSeat?.stack || 0}
+            isVisible={true}
+          />
+        );
+      })()}
+
+      {/* ═══ PHASE 27: ACTION TIMELINE — horizontal pill bar of current hand actions ═══ */}
+      {tableState?.game?.actionLog && tableState.game.actionLog.length > 0 && isSitting && (
+        <div style={{
+          position: 'fixed', top: 50, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 90, display: 'flex', gap: 3, maxWidth: '80vw',
+          overflowX: 'auto', overflowY: 'hidden', scrollbarWidth: 'none',
+          padding: '3px 6px', backdropFilter: 'blur(8px)',
+          background: 'rgba(0,0,0,0.6)', borderRadius: 10,
+          border: '1px solid rgba(255,255,255,0.06)',
+        }}>
+          {tableState.game.actionLog.slice(-8).map((action, i) => {
+            const colors = {
+              bet: '#3b82f6', call: '#22c55e', raise: '#eab308',
+              fold: '#6b7280', check: '#8b5cf6', allIn: '#ef4444',
+            };
+            const actionColor = colors[action.type] || '#666';
+            return (
+              <div key={i} style={{
+                display: 'flex', alignItems: 'center', gap: 3,
+                padding: '2px 8px', borderRadius: 6, flexShrink: 0,
+                background: `${actionColor}18`,
+                border: `1px solid ${actionColor}30`,
+              }}>
+                <span style={{ color: '#B0B3B8', fontSize: 9, fontWeight: 700 }}>
+                  {action.playerName?.split(' ')[0] || 'P'}
+                </span>
+                <span style={{ color: actionColor, fontSize: 9, fontWeight: 800, textTransform: 'uppercase' }}>
+                  {action.type}
+                </span>
+                {action.amount > 0 && (
+                  <span style={{ color: '#888', fontSize: 8, fontVariantNumeric: 'tabular-nums' }}>
+                    {action.amount.toLocaleString()}
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* ═══ YOUR TURN INDICATOR — Pulsing banner when action is on hero ═══ */}
       <AnimatePresence>

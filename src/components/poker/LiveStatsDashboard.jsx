@@ -235,6 +235,56 @@ export default function LiveStatsDashboard({ isOpen, onClose, stats }) {
             {/* Position Win Rates */}
             <div>
               <div style={{ color: '#666', fontSize: 9, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Win Rate by Position</div>
+
+              {/* Phase 27 #4: Mini Table Felt Heatmap */}
+              <div style={{
+                position: 'relative', width: '100%', height: 80,
+                background: 'radial-gradient(ellipse at center, #1a3a2a 0%, #0d1f15 70%)',
+                borderRadius: 40, border: '2px solid rgba(139,69,19,0.5)',
+                marginBottom: 10, boxShadow: 'inset 0 0 20px rgba(0,0,0,0.5)',
+              }}>
+                {/* Position dots arranged around the mini table */}
+                {[
+                  { pos: 'BTN', x: '82%', y: '50%' },
+                  { pos: 'SB', x: '70%', y: '15%' },
+                  { pos: 'BB', x: '50%', y: '10%' },
+                  { pos: 'EP', x: '30%', y: '15%' },
+                  { pos: 'MP', x: '18%', y: '50%' },
+                  { pos: 'LP', x: '30%', y: '85%' },
+                ].map(seat => {
+                  const wins = positionWins[seat.pos] || 0;
+                  const total = positionTotal[seat.pos] || 0;
+                  const winPct = total > 0 ? (wins / total) * 100 : 50;
+                  const dotColor = total === 0 ? '#555' : winPct >= 50 ? '#22c55e' : winPct >= 30 ? '#eab308' : '#ef4444';
+                  return (
+                    <div
+                      key={seat.pos}
+                      style={{
+                        position: 'absolute', left: seat.x, top: seat.y,
+                        transform: 'translate(-50%, -50%)',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1,
+                      }}
+                    >
+                      <div style={{
+                        width: 14, height: 14, borderRadius: '50%',
+                        background: `radial-gradient(circle, ${dotColor}, ${dotColor}88)`,
+                        border: '1.5px solid rgba(255,255,255,0.2)',
+                        boxShadow: total > 0 ? `0 0 6px ${dotColor}60` : 'none',
+                      }} />
+                      <span style={{ color: '#aaa', fontSize: 7, fontWeight: 700 }}>{seat.pos}</span>
+                    </div>
+                  );
+                })}
+                {/* "D" dealer button */}
+                <div style={{
+                  position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
+                  width: 16, height: 16, borderRadius: '50%',
+                  background: '#FFD700', color: '#000', fontSize: 8, fontWeight: 900,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: '0 0 8px rgba(255,215,0,0.4)',
+                }}>D</div>
+              </div>
+
               {Object.entries(POS_COLORS).map(([pos, color]) => (
                 <PositionBar
                   key={pos}
