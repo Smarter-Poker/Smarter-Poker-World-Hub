@@ -117,6 +117,8 @@ function HorsesDashboard({ user, onLogout }) {
     const [searchTerm, setSearchTerm] = useState('');
     const [notification, setNotification] = useState(null);
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [reportedHands, setReportedHands] = useState([]);
+    const [reportedLoading, setReportedLoading] = useState(false);
     const [newPersona, setNewPersona] = useState({
         name: '',
         gender: 'male',
@@ -296,6 +298,29 @@ function HorsesDashboard({ user, onLogout }) {
         setPipelineRuns([newRun, ...pipelineRuns.slice(0, 9)]);
     };
 
+    // ═══ #9: Load Reported Hands ═══
+    const loadReportedHands = async () => {
+        setReportedLoading(true);
+        try {
+            const { data, error } = await supabase
+                .from('hand_histories')
+                .select('id, hand_number, table_id, club_id, pot_total, started_at, reported_at, hand_data')
+                .eq('reported', true)
+                .order('reported_at', { ascending: false })
+                .limit(50);
+            if (!error && data) setReportedHands(data);
+        } catch { /* non-fatal */ }
+        setReportedLoading(false);
+    };
+
+    const dismissReport = async (handId) => {
+        try {
+            await supabase.from('hand_histories').update({ reported: false }).eq('id', handId);
+            setReportedHands(reportedHands.filter(h => h.id !== handId));
+            showNotification('Report dismissed', 'success');
+        } catch { showNotification('Error dismissing report', 'error'); }
+    };
+
     // Filter personas
     const filteredPersonas = personas.filter(p => {
         const matchesSearch = p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -359,6 +384,12 @@ function HorsesDashboard({ user, onLogout }) {
                     onClick={() => setActiveTab('stats')}
                 >
                     📊 Statistics
+                </button>
+                <button
+                    className={activeTab === 'reported' ? 'active' : ''}
+                    onClick={() => { setActiveTab('reported'); loadReportedHands(); }}
+                >
+                    ⚠️ Reported Hands
                 </button>
             </nav>
 
@@ -718,6 +749,79 @@ function HorsesDashboard({ user, onLogout }) {
                                 ))}
                             </div>
                         </div>
+                    </div>
+                )}
+
+                {/* REPORTED HANDS — #9 */}
+                {activeTab === 'reported' && (
+                    <div className="stats-view">
+                        <h2>⚠️ Reported Hands</h2>
+                        <p style={{ color: '#888', marginBottom: 16, fontSize: 14 }}>
+                            Hands flagged by players for admin review. Investigate disputes and dismiss false reports.
+                        </p>
+
+                        {reportedLoading && <p style={{ color: '#888' }}>Loading reported hands...</p>}
+
+                        {!reportedLoading && reportedHands.length === 0 && (
+                            <div style={{
+                                background: '#1a2e1a', border: '1px solid #333', borderRadius: 12,
+                                padding: 32, textAlign: 'center', color: '#4CAF50'
+                            }}>
+                                <div style={{ fontSize: 40, marginBottom: 8 }}>✅</div>
+                                <div style={{ fontWeight: 700, fontSize: 16 }}>No Reported Hands</div>
+                                <div style={{ color: '#888', fontSize: 12, marginTop: 4 }}>All clear — no disputes pending.</div>
+                            </div>
+                        )}
+
+                        {reportedHands.length > 0 && (
+                            <table className="runs-table">
+                                <thead>
+                                    <tr>
+                                        <th>Hand #</th>
+                                        <th>Table</th>
+                                        <th>Pot</th>
+                                        <th>Played At</th>
+                                        <th>Reported At</th>
+                                        <th>Winners</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {reportedHands.map(h => (
+                                        <tr key={h.id}>
+                                            <td style={{ fontWeight: 700, color: '#FFD700' }}>#{h.hand_number}</td>
+                                            <td style={{ color: '#B0B3B8', fontSize: 11, fontFamily: 'monospace' }}>
+                                                {h.table_id ? h.table_id.slice(0, 8) : '—'}
+                                            </td>
+                                            <td style={{ color: '#4CAF50', fontWeight: 700 }}>
+                                                {(h.pot_total || 0).toLocaleString()}
+                                            </td>
+                                            <td style={{ fontSize: 11 }}>
+                                                {h.started_at ? new Date(h.started_at).toLocaleString() : '—'}
+                                            </td>
+                                            <td style={{ fontSize: 11, color: '#ff4d4f' }}>
+                                                {h.reported_at ? new Date(h.reported_at).toLocaleString() : '—'}
+                                            </td>
+                                            <td style={{ fontSize: 11 }}>
+                                                {h.hand_data?.winners?.map(w => {
+                                                    const p = h.hand_data?.players?.find(x => String(x.id) === String(w.playerId));
+                                                    return p?.displayName || 'Player';
+                                                }).join(', ') || '—'}
+                                            </td>
+                                            <td>
+                                                <button
+                                                    className="btn-success"
+                                                    onClick={() => dismissReport(h.id)}
+                                                    style={{ fontSize: 11, padding: '4px 10px' }}
+                                                >
+                                                    ✓ Dismiss
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
                     </div>
                 )}
             </main>

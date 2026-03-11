@@ -52,6 +52,7 @@ import {
   SessionSummaryModal, SpectatorBadge,
   ReconnectionOverlay, ReportHandButton,
   ConnectionQualityHUD,
+  usePingMeasurement, checkAutoRebuy, checkEmojiRateLimit,
 } from './TableExperienceComponents';
 import { eventBus, EventType } from '../../engine/EventBus';
 
@@ -4636,8 +4637,13 @@ function LivePokerTable({
           }
         }
       }
+
+      // ═══ #7: AUTO-REBUY CHECK (Phase 24) ════
+      if (tableId && mySeat?.stack != null) {
+        checkAutoRebuy(tableId, mySeat.stack, send);
+      }
     }
-  }, [result, autoTopUpOn, mySeat?.stack, clubChipBalance, tableState?.config?.maxBuyIn, send]);
+  }, [result, autoTopUpOn, mySeat?.stack, clubChipBalance, tableState?.config?.maxBuyIn, send, tableId]);
 
   // ═══ FLOATING ACTION LABELS ═══
   const [floatingLabels, setFloatingLabels] = useState([]);

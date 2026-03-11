@@ -383,16 +383,55 @@ function setPlayerNote(playerId, note) {
   } catch { /* quota */ }
 }
 
-export function PlayerNotesPopup({ playerId, displayName, position, onClose }) {
+// #3: Supabase sync — persist notes across devices
+async function syncNoteToSupabase(supabase, userId, playerId, note) {
+  if (!supabase || !userId) return;
+  try {
+    await supabase.from('player_notes').upsert({
+      owner_id: userId,
+      target_player_id: playerId,
+      note_text: note.text || '',
+      color_label: note.colorId || 'fish',
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'owner_id,target_player_id' });
+  } catch { /* non-fatal — localStorage is the fallback */ }
+}
+
+async function loadNotesFromSupabase(supabase, userId) {
+  if (!supabase || !userId) return null;
+  try {
+    const { data, error } = await supabase
+      .from('player_notes')
+      .select('target_player_id, note_text, color_label, updated_at')
+      .eq('owner_id', userId);
+    if (error || !data) return null;
+    const notes = {};
+    for (const row of data) {
+      notes[row.target_player_id] = {
+        text: row.note_text,
+        colorId: row.color_label,
+        updatedAt: new Date(row.updated_at).getTime(),
+      };
+    }
+    return notes;
+  } catch { return null; }
+}
+
+export function PlayerNotesPopup({ playerId, displayName, position, onClose, supabase, currentUserId }) {
   const [notes] = useState(() => getPlayerNotes());
   const existing = notes[playerId] || {};
   const [text, setText] = useState(existing.text || '');
   const [color, setColor] = useState(existing.colorId || 'fish');
+  const [saving, setSaving] = useState(false);
 
-  const handleSave = () => {
+  const handleSave = useCallback(async () => {
+    setSaving(true);
     setPlayerNote(playerId, { text, colorId: color });
+    // #3: Also sync to Supabase
+    await syncNoteToSupabase(supabase, currentUserId, playerId, { text, colorId: color });
+    setSaving(false);
     onClose();
-  };
+  }, [playerId, text, color, supabase, currentUserId, onClose]);
 
   return (
     <motion.div
@@ -441,7 +480,7 @@ export function PlayerNotesPopup({ playerId, displayName, position, onClose }) {
       />
 
       <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-        <button onClick={handleSave} style={{ flex: 1, padding: '6px 0', background: '#2374E1', color: '#fff', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Save</button>
+        <button onClick={handleSave} disabled={saving} style={{ flex: 1, padding: '6px 0', background: '#2374E1', color: '#fff', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>{saving ? 'Saving...' : 'Save'}</button>
         <button onClick={onClose} style={{ padding: '6px 10px', background: '#333', color: '#888', border: 'none', borderRadius: 6, fontSize: 12, cursor: 'pointer' }}>Cancel</button>
       </div>
     </motion.div>
@@ -505,6 +544,30 @@ export function SessionSummaryModal({ stats, onClose, onShare }) {
           <button onClick={onShare} style={{ flex: 1, padding: '10px 0', background: '#2374E1', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>📤 Share</button>
           <button onClick={onClose} style={{ flex: 1, padding: '10px 0', background: '#333', color: '#E4E6EB', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Close</button>
         </div>
+
+        {/* #5: Mini P&L Sparkline */}
+        {stats.pnlHistory && stats.pnlHistory.length > 1 && (() => {
+          const h = stats.pnlHistory;
+          const maxAbs = Math.max(1, ...h.map(p => Math.abs(p.pnl)));
+          const chartW = 300;
+          const chartH = 50;
+          return (
+            <div style={{ marginTop: 16, background: '#1a1a1f', borderRadius: 8, padding: 10, border: '1px solid #333' }}>
+              <div style={{ color: '#888', fontSize: 9, fontWeight: 600, marginBottom: 4, textTransform: 'uppercase' }}>Session P&L Graph</div>
+              <svg width="100%" height={chartH} viewBox={`0 0 ${chartW} ${chartH}`} preserveAspectRatio="none">
+                <line x1="0" y1={chartH / 2} x2={chartW} y2={chartH / 2} stroke="#333" strokeWidth="0.5" />
+                <polyline
+                  fill="none"
+                  stroke={(stats.netPnl || 0) >= 0 ? '#4CAF50' : '#ff4d4f'}
+                  strokeWidth="2"
+                  points={h.map((p, i) =>
+                    `${(i / (h.length - 1)) * chartW},${chartH / 2 - (p.pnl / maxAbs) * (chartH / 2 - 4)}`
+                  ).join(' ')}
+                />
+              </svg>
+            </div>
+          );
+        })()}
       </motion.div>
     </motion.div>
   );
@@ -684,3 +747,101 @@ export function setAutoActionSettings(tableId, settings) {
     localStorage.setItem(`auto_actions_${tableId}`, JSON.stringify(settings));
   } catch { /* quota */ }
 }
+
+// #7: Auto-Rebuy Trigger — checks stack vs threshold and fires rebuy
+export function checkAutoRebuy(tableId, currentStack, send) {
+  const settings = getAutoActionSettings(tableId);
+  if (!settings.autoRebuy || !settings.rebuyThreshold || !send) return false;
+  if (currentStack < settings.rebuyThreshold) {
+    const rebuyAmount = settings.rebuyAmount || settings.rebuyThreshold * 2;
+    send({ type: 'rebuy', amount: rebuyAmount });
+    return true;
+  }
+  return false;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  #8 — CONNECTION PING MEASUREMENT
+// ═══════════════════════════════════════════════════════════
+
+export function usePingMeasurement(send, connected) {
+  const [latency, setLatency] = useState(null);
+  const pingTimerRef = useRef(null);
+  const pingStartRef = useRef(null);
+
+  useEffect(() => {
+    if (!connected || !send) { setLatency(null); return; }
+
+    const measurePing = () => {
+      pingStartRef.current = Date.now();
+      try { send({ type: 'ping', ts: pingStartRef.current }); } catch { /* ignore */ }
+    };
+
+    // Measure every 10 seconds
+    measurePing();
+    pingTimerRef.current = setInterval(measurePing, 10000);
+
+    return () => { if (pingTimerRef.current) clearInterval(pingTimerRef.current); };
+  }, [connected, send]);
+
+  // Call this when pong is received
+  const handlePong = useCallback(() => {
+    if (pingStartRef.current) {
+      setLatency(Date.now() - pingStartRef.current);
+      pingStartRef.current = null;
+    }
+  }, []);
+
+  return { latency, handlePong };
+}
+
+// ═══════════════════════════════════════════════════════════
+//  #10 — SERVER-SIDE EMOJI RATE LIMIT HELPER
+// ═══════════════════════════════════════════════════════════
+
+const emojiRateLimitMap = new Map();
+const EMOJI_RATE_LIMIT_MS = 3000;
+
+export function checkEmojiRateLimit(userId) {
+  const now = Date.now();
+  const lastSent = emojiRateLimitMap.get(userId);
+  if (lastSent && now - lastSent < EMOJI_RATE_LIMIT_MS) return false;
+  emojiRateLimitMap.set(userId, now);
+  // Cleanup old entries every 60s
+  if (emojiRateLimitMap.size > 100) {
+    const cutoff = now - 60000;
+    for (const [uid, ts] of emojiRateLimitMap) {
+      if (ts < cutoff) emojiRateLimitMap.delete(uid);
+    }
+  }
+  return true;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  #4 — DVR SCREENSHOT EXPORT (canvas-based)
+// ═══════════════════════════════════════════════════════════
+
+export async function captureReplayerScreenshot(containerRef) {
+  if (!containerRef?.current) return null;
+  try {
+    // Dynamic import of html2canvas — only when user clicks screenshot
+    const html2canvas = (await import('html2canvas')).default;
+    const canvas = await html2canvas(containerRef.current, {
+      backgroundColor: '#121212',
+      scale: 2,
+      useCORS: true,
+      logging: false,
+    });
+    return canvas.toDataURL('image/png');
+  } catch (err) {
+    console.warn('Screenshot capture failed:', err);
+    // Fallback: copy text representation
+    return null;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  #3 — SUPABASE PLAYER NOTES SYNC EXPORTS
+// ═══════════════════════════════════════════════════════════
+
+export { syncNoteToSupabase, loadNotesFromSupabase, NOTE_COLORS };
