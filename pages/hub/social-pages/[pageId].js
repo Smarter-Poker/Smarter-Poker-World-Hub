@@ -294,7 +294,7 @@ export default function SocialPageDetail() {
   // Realtime subscription — live updates
   useEffect(() => {
 
-    if (!router.isReady) return null;
+    if (!router.isReady) return;
 
     if (!pageId) return;
     const _ch = supabase
