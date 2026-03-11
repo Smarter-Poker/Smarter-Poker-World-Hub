@@ -143,6 +143,48 @@ function ensureKeyframes() {
   }
 }
 
+// ── Audio Helper for Transient Events ──
+let _sharedAudioCtx = null;
+function playTransientSound(type = 'bubble') {
+  try {
+    if (typeof window === 'undefined') return;
+    if (!_sharedAudioCtx) {
+        _sharedAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (_sharedAudioCtx.state === 'suspended') _sharedAudioCtx.resume();
+    
+    const osc = _sharedAudioCtx.createOscillator();
+    const gain = _sharedAudioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(_sharedAudioCtx.destination);
+    
+    const now = _sharedAudioCtx.currentTime;
+    if (type === 'bubble') {
+        // Soft pop for chat/emoji
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(400, now);
+        osc.frequency.exponentialRampToValueAtTime(600, now + 0.1);
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.15, now + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        osc.start(now);
+        osc.stop(now + 0.1);
+    } else if (type === 'flash') {
+        // Chime for winner
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(880, now); // A5
+        osc.frequency.exponentialRampToValueAtTime(440, now + 0.3);
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.1, now + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+        osc.start(now);
+        osc.stop(now + 0.4);
+    }
+  } catch (e) {
+      // Audio failed / no user gesture
+  }
+}
+
 // ── Timer Box Wrapper with Sound ──
 function TimerRingBox({ endTime, totalTime, children }) {
   const [timeLeft, setTimeLeft] = React.useState(
@@ -256,9 +298,9 @@ export default function TableMiniView({
   // Theme customization
   const [themeIdx, setThemeIdx] = React.useState(0);
 
-  // ── Global EventBus Integration (Theme Sync) ──
+  // ── Global EventBus Integration (Theme Sync & Audio Transients) ──
   React.useEffect(() => {
-    let unsubTheme;
+    let unsubTheme, unsubChat, unsubEmoji, unsubWinner;
     try {
       const { eventBus } = require('../../engine/EventBus');
       if (eventBus) {
@@ -267,11 +309,28 @@ export default function TableMiniView({
             setThemeIdx(e.payload.value);
           }
         });
+        
+        unsubChat = eventBus.on('mini_state_chat_message', (e) => {
+          if (e.payload?.tableId === miniState?.tableId) playTransientSound('bubble');
+        });
+        
+        unsubEmoji = eventBus.on('mini_state_emoji_reaction', (e) => {
+          if (e.payload?.tableId === miniState?.tableId) playTransientSound('bubble');
+        });
+        
+        unsubWinner = eventBus.on('mini_state_winner_flash', (e) => {
+          if (e.payload?.tableId === miniState?.tableId) playTransientSound('flash');
+        });
       }
     } catch { /* EventBus unavailable */ }
     
-    return () => { if (unsubTheme) unsubTheme(); };
-  }, []);
+    return () => { 
+      if (unsubTheme) unsubTheme(); 
+      if (unsubChat) unsubChat();
+      if (unsubEmoji) unsubEmoji();
+      if (unsubWinner) unsubWinner();
+    };
+  }, [miniState?.tableId]);
   
   // Replay Mini-View overlay
   const [showReplay, setShowReplay] = React.useState(false);
