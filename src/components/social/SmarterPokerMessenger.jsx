@@ -59,11 +59,18 @@ const SMART_REPLIES = [
     { trigger: ['when', 'time', 'schedule'], replies: ['Let me check...', 'I\'ll get back to you', 'What time works?'] }
 ];
 
-// P5-2: Emoji categories for reaction picker
+// P5-2: Emoji categories for reaction picker (original)
 const EMOJI_GRID = [
     { cat: 'Smileys', emojis: ['😀','😂','🤣','😍','😎','🤩','😜','🤔','😱','😡','😢','🤯'] },
     { cat: 'Hands', emojis: ['👍','👎','👏','🙌','🤝','✌️','🤞','💪','❤️','🔥','⭐','🎰'] },
     { cat: 'Poker', emojis: ['🃏','♠️','♥️','♦️','♣️','💰','💵','🏆','🎯','🎲','🧪','🚀'] }
+];
+
+// P9-1: Animated GIF Reaction Keywords (Tenor search prompts)
+const GIF_REACTION_KEYWORDS = [
+    'thumbs up', 'clapping', 'laughing', 'mind blown', 'crying', 'angry',
+    'eye roll', 'slow clap', 'mic drop', 'deal with it', 'facepalm',
+    'celebration', 'poker face', 'money rain', 'high five', 'shocked'
 ];
 
 // P5-7: Auto-link detector
@@ -517,6 +524,20 @@ export const ChatWindow = ({
     const [showPriorityPicker, setShowPriorityPicker] = useState(null);
     const [showGroupCreate, setShowGroupCreate] = useState(false);
     const [groupParticipants, setGroupParticipants] = useState([]);
+
+    // P9-1: GIF Reaction State
+    const [showGifReactionPicker, setShowGifReactionPicker] = useState(null); // msgId or null
+    const [gifReactionResults, setGifReactionResults] = useState([]);
+    const [gifReactionSearch, setGifReactionSearch] = useState('');
+
+    // P9-2: GIF Search State
+    const [showGifPanel, setShowGifPanel] = useState(false);
+    const [gifSearchTerm, setGifSearchTerm] = useState('');
+    const [gifResults, setGifResults] = useState([]);
+    // P9-3: Translation State
+    const [translatedMsgs, setTranslatedMsgs] = useState({});
+    // P9-5: Location Sharing State
+    const [sharingLocation, setSharingLocation] = useState(false);
     
     // P7-6: Lightbox State
     const [lightboxImage, setLightboxImage] = useState(null);
@@ -870,6 +891,88 @@ export const ChatWindow = ({
             return { ...p, reactions: { ...p.reactions, [msgId]: exists ? current.filter(r => !(r.emoji === emoji && r.by === currentUser?.name)) : [...current, { emoji, by: currentUser?.name || 'You' }] } };
         });
         setShowEmojiPicker(null);
+    };
+
+    // P9-1: GIF Reaction Handler
+    const searchGifReactions = async (keyword) => {
+        setGifReactionSearch(keyword);
+        if (!keyword.trim()) { setGifReactionResults([]); return; }
+        try {
+            const res = await fetch(`https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(keyword + ' reaction')}&key=AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ&client_key=sp_messenger&limit=8&media_filter=tinygif`);
+            const data = await res.json();
+            setGifReactionResults((data.results || []).map(r => ({
+                id: r.id,
+                url: r.media_formats?.tinygif?.url || r.media_formats?.gif?.url || '',
+                preview: r.media_formats?.nanogif?.url || r.media_formats?.tinygif?.url || ''
+            })));
+        } catch (err) { console.warn('[GIF Reaction] Tenor search failed:', err); }
+    };
+
+    const sendGifReaction = (msgId, gifUrl) => {
+        updatePrefs(p => {
+            const current = p.reactions[msgId] || [];
+            return { ...p, reactions: { ...p.reactions, [msgId]: [...current, { emoji: `gif:${gifUrl}`, by: currentUser?.name || 'You' }] } };
+        });
+        busEmit.messageReacted(conversationId, msgId, 'gif_reaction');
+        setShowGifReactionPicker(null);
+        setGifReactionResults([]);
+        setGifReactionSearch('');
+    };
+
+    // P9-2: GIF Search Handler
+    const handleGifSearch = async (query) => {
+        setGifSearchTerm(query);
+        if (!query.trim()) { setGifResults([]); return; }
+        try {
+            const res = await fetch(`https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(query)}&key=AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ&client_key=sp_messenger&limit=12`);
+            const data = await res.json();
+            setGifResults((data.results || []).map(r => ({ id: r.id, url: r.media_formats?.gif?.url || r.media_formats?.tinygif?.url || '' })));
+        } catch (err) { console.warn('[GIF] Tenor search failed:', err); }
+    };
+
+    const sendGif = (gifUrl) => {
+        onSend?.('', { image: gifUrl, file: { name: 'GIF', type: 'image/gif' } });
+        setShowGifPanel(false);
+        setGifSearchTerm('');
+        setGifResults([]);
+        busEmit.messageSent(conversationId, otherUser?.id);
+    };
+
+    // P9-3: Auto-Translate Message
+    const handleTranslate = async (msgId, text) => {
+        if (translatedMsgs[msgId]) return; // already translated
+        try {
+            const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=autodetect|en`);
+            const data = await res.json();
+            if (data?.responseData?.translatedText) {
+                setTranslatedMsgs(prev => ({ ...prev, [msgId]: data.responseData.translatedText }));
+            }
+        } catch (err) { console.warn('[Translate] Failed:', err); }
+    };
+
+    // P9-4: Contact Card Sharing
+    const sendContactCard = () => {
+        if (!currentUser) return;
+        const cardPayload = JSON.stringify({ type: 'contact_card', name: currentUser.name, avatar: currentUser.avatar, id: currentUser.id });
+        onSend?.(`📇 Contact Card: ${currentUser.name}`, { contactCard: cardPayload });
+        busEmit.messageSent(conversationId, otherUser?.id);
+    };
+
+    // P9-5: Location Sharing
+    const handleShareLocation = () => {
+        if (!navigator.geolocation) { alert('Geolocation not supported'); return; }
+        setSharingLocation(true);
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                const { latitude, longitude } = pos.coords;
+                const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${latitude},${longitude}&zoom=15&size=300x200&markers=color:red|${latitude},${longitude}&key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8`;
+                onSend?.(`📍 Location: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`, { image: mapUrl, location: { lat: latitude, lng: longitude } });
+                setSharingLocation(false);
+                busEmit.messageSent(conversationId, otherUser?.id);
+            },
+            (err) => { console.error('[Location] Failed:', err); alert('Location access denied.'); setSharingLocation(false); },
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
     };
 
     // P5-6: Save edit

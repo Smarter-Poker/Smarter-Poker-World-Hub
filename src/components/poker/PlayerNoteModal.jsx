@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { eventBus } from '../../engine/EventBus';
 
 const T = {
   bg: 'rgba(15,15,20,0.95)',
@@ -65,6 +66,7 @@ export default function PlayerNoteModal({ isOpen, onClose, player, initialNote, 
 
       // Dispatch a custom event so TableChatHUD can update immediately
       window.dispatchEvent(new CustomEvent('ca_mute_updated'));
+      try { eventBus.emit('DATA_MUTATED', `player_mute_${nextMuted ? 'added' : 'removed'}`); } catch (_e) {}
     } catch (err) {
       console.error('Failed to update mute list:', err);
     }
@@ -92,6 +94,7 @@ export default function PlayerNoteModal({ isOpen, onClose, player, initialNote, 
         if (onSave) {
           onSave({ notes: noteText, player_type: playerType });
         }
+        try { eventBus.emit('DATA_MUTATED', 'player_note_saved'); } catch (_e) {}
         onClose();
       } else {
         alert(data.error || 'Failed to save note');

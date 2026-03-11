@@ -2632,14 +2632,34 @@ function ChatOverlay({ messages, onSend }) {
   const [expanded, setExpanded] = useState(false);
   const [showEmoji, setShowEmoji] = useState(false);
   const listRef = useRef(null);
+  const [mutedIds, setMutedIds] = useState([]);
 
   const QUICK_EMOJIS = ['😀', '😂', '😎', '🤔', '👍', '👎', '🔥', '❤️', '💀', '🃏', '♠️', '♦️', '♣️', '♥️', '🏆', '💰', '🤑', '😱', '🤷', 'GG'];
+
+  // Load muted players from localStorage and listen for changes
+  useEffect(() => {
+    const readMutes = () => {
+      try {
+        const raw = localStorage.getItem('ca_muted_players');
+        setMutedIds(raw ? JSON.parse(raw) : []);
+      } catch (_) { setMutedIds([]); }
+    };
+    readMutes();
+    window.addEventListener('ca_mute_updated', readMutes);
+    return () => window.removeEventListener('ca_mute_updated', readMutes);
+  }, []);
+
+  // Filter out messages from muted players (always show dealer/system)
+  const filteredMessages = useMemo(() => {
+    if (!mutedIds.length) return messages;
+    return messages.filter(m => m.type === 'dealer' || !m.senderId || !mutedIds.includes(m.senderId));
+  }, [messages, mutedIds]);
 
   useEffect(() => {
     if (listRef.current) {
       listRef.current.scrollTop = listRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [filteredMessages]);
 
   return (
     <div
@@ -2666,8 +2686,8 @@ function ChatOverlay({ messages, onSend }) {
         }}
       >
         💬 {expanded ? 'Hide' : 'Chat'}
-        {!expanded && messages.length > 0 && (
-          <span style={{ color: T.accent, marginLeft: 4 }}>{messages.length}</span>
+        {!expanded && filteredMessages.length > 0 && (
+          <span style={{ color: T.accent, marginLeft: 4 }}>{filteredMessages.length}</span>
         )}
       </button>
 
@@ -2696,7 +2716,7 @@ function ChatOverlay({ messages, onSend }) {
                 fontSize: 11,
               }}
             >
-              {messages.map((m, i) => (
+              {filteredMessages.map((m, i) => (
                 <div key={i} style={{ marginBottom: 3 }}>
                   {m.type === 'dealer' ? (
                     <span style={{ color: '#F5A623', fontWeight: 600, fontSize: 10, fontStyle: 'italic' }}>🂠 {m.text}</span>
