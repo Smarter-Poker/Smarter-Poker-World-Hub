@@ -13,6 +13,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { eventBus } from '../../../src/engine/EventBus';
 import MistakeCluster from '../../../src/components/training/MistakeCluster';
 import GhostReplayEngine from '../../../src/components/training/GhostReplayEngine';
 import { getAccessToken } from '../../../src/lib/authUtils';
@@ -157,13 +158,12 @@ export default function SessionDashboardPage() {
   // Bus listeners — auto-refresh when training events fire
   useEffect(() => {
     const refresh = () => fetchData();
-    const events = [
-      'training:session-complete',
-      'training:drill-complete',
-      'training:progress-updated',
+    const unsubs = [
+      eventBus.on('training:session-complete', refresh),
+      eventBus.on('training:drill-complete', refresh),
+      eventBus.on('training:progress-updated', refresh),
     ];
-    events.forEach((e) => window.addEventListener(e, refresh));
-    return () => events.forEach((e) => window.removeEventListener(e, refresh));
+    return () => unsubs.forEach((unsub) => unsub());
   }, [fetchData]);
 
   // Compute trend data from sessions

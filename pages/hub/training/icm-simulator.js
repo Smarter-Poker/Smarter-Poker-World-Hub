@@ -12,6 +12,7 @@ import { motion } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { getAccessToken } from '../../../src/lib/authUtils';
 
 // Simple exact ICM calculation for up to 6 players
 function calculateICM(stacks, payouts) {
@@ -83,11 +84,7 @@ export default function IcmSimulatorPage() {
   const [equities, setEquities] = useState([]);
   const [calculating, setCalculating] = useState(false);
 
-  useEffect(() => {
-    const h = () => {};
-    window.addEventListener('training:session-complete', h);
-    return () => window.removeEventListener('training:session-complete', h);
-  }, []);
+
 
   const runSim = () => {
     setCalculating(true);
@@ -98,12 +95,15 @@ export default function IcmSimulatorPage() {
       setEquities(res);
       setCalculating(false);
 
-      // Emit completion metric
-      fetch('/api/training/save-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gameId: 'icm-simulator', stats: { sims_run: 1 } }),
-      }).catch(() => {});
+      // Persist session with auth
+      const token = getAccessToken();
+      if (token) {
+        fetch('/api/training/save-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ game_id: 'icm-simulator', hands_played: 1, accuracy: 100 }),
+        }).catch(() => {});
+      }
     }, 500);
   };
 

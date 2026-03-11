@@ -6,6 +6,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
+import { getAccessToken } from '../../../src/lib/authUtils';
 
 const SUITS = ['♠', '♥', '♦', '♣'];
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
@@ -98,7 +99,7 @@ export default function HandLabV2() {
       // Save via session protocol
       fetch('/api/training/save-session', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {}) },
         body: JSON.stringify({
           gameId: 'hand-lab',
           stats: {

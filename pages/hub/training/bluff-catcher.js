@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
+import { getAccessToken } from '../../../src/lib/authUtils';
 
 // Pseudo-MDF based bluff-catching scenarios
 const SCENARIOS = [
@@ -81,7 +82,7 @@ export default function BluffCatcherTrainer() {
     try {
       await fetch('/api/training/save-session', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {}) },
         body: JSON.stringify({
           gameId: 'bluff-catcher',
           stats: {
