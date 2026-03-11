@@ -20,6 +20,11 @@ export default async function handler(req, res) {
     const { data: { user: _authUser }, error: _authErr } = await _authSupa.auth.getUser(_token);
     if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
+    // BUG-G FIX: Require admin/superadmin/god role — analytics data is sensitive
+    const { data: _profile } = await _authSupa.from('profiles').select('role').eq('id', _authUser.id).maybeSingle();
+    if (!_profile || !['admin', 'superadmin', 'god'].includes(_profile.role)) {
+        return res.status(403).json({ success: false, error: 'Admin access required' });
+    }
 
     const { days = '7', type = 'summary' } = req.query;
     const numDays = parseInt(days, 10);

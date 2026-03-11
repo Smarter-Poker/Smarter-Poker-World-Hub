@@ -167,6 +167,8 @@ export default function HorsesAdmin() {
   const [caLeaveRequests, setCaLeaveRequests] = useState([]);
   const [caLeaveLoading, setCaLeaveLoading] = useState(false);
   const [caLeaveTab, setCaLeaveTab] = useState('pending'); // 'pending' | 'all'
+  // Club detail sub-tab and anti-cheat data
+  const [caTab, setCaTab] = useState('overview');
   // Processing
   const [caProcessing, setCaProcessing] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -229,9 +231,25 @@ export default function HorsesAdmin() {
       }));
     });
 
+    // DIAMONDS_EARNED / DIAMONDS_SPENT: auto-refresh Economy tab when diamond transactions occur
+    const unsubDiamondsEarned = eventBus.on(EventType.DIAMONDS_EARNED, () => {
+      if (economyLoaded) loadEconomyData();
+    });
+    const unsubDiamondsSpent = eventBus.on(EventType.DIAMONDS_SPENT, () => {
+      if (economyLoaded) loadEconomyData();
+    });
+
+    // DATA_MUTATED: global data mutation (e.g. from SQL Console) — refresh core data
+    const unsubMutated = eventBus.on(EventType.DATA_MUTATED, () => {
+      loadDataRef.current?.();
+    });
+
     return () => {
       unsubMissed();
       unsubKB();
+      unsubDiamondsEarned();
+      unsubDiamondsSpent();
+      unsubMutated();
     };
   }, []);
 
@@ -250,11 +268,13 @@ export default function HorsesAdmin() {
   // Economy State
   const [economyData, setEconomyData] = useState(null);
   const [economyLoading, setEconomyLoading] = useState(false);
+  const [economyError, setEconomyError] = useState(null);
   const [promoCreating, setPromoCreating] = useState(false);
 
   // Anti-Abuse State
   const [abuseData, setAbuseData] = useState(null);
   const [abuseLoading, setAbuseLoading] = useState(false);
+  const [abuseError, setAbuseError] = useState(null);
   const [newPersona, setNewPersona] = useState({
     name: '',
     gender: 'male',
@@ -410,13 +430,13 @@ export default function HorsesAdmin() {
 
   const loadEconomyData = async (signal) => {
     setEconomyLoading(true);
+    setEconomyError(null);
     try {
       // BUG 2 FIX: Add auth header
       const {
         data: { session },
       } = await supabase.auth.getSession();
       if (!session?.access_token) {
-        // Silently ignore if logged out during sync
         setEconomyLoading(false);
         return;
       }
@@ -429,13 +449,15 @@ export default function HorsesAdmin() {
         if (data.success) {
           setEconomyData(data);
           setEconomyLoaded(true);
+        } else {
+          setEconomyError(data.error || 'Unknown error');
         }
       } else {
         const errData = await res.json().catch(() => ({}));
-        console.warn(errData.error || `Economy data error: ${res.status}`);
+        setEconomyError(errData.error || `Error ${res.status}`);
       }
     } catch (err) {
-      console.error('Failed to load economy data:', err);
+      if (err.name !== 'AbortError') setEconomyError(err.message);
     } finally {
       setEconomyLoading(false);
     }
@@ -507,7 +529,9 @@ export default function HorsesAdmin() {
     }
   };
 
+  const [analyticsError, setAnalyticsError] = useState(null);
   const loadAnalytics = async (signal) => {
+    setAnalyticsError(null);
     try {
       const {
         data: { session },
@@ -521,10 +545,13 @@ export default function HorsesAdmin() {
       if (res.ok) {
         const json = await res.json();
         if (json.success) setAnalyticsData(json.data);
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        setAnalyticsError(errData.error || `Error ${res.status}`);
       }
       setAnalyticsLoaded(true);
     } catch (e) {
-      console.error('Failed to load analytics:', e);
+      if (e.name !== 'AbortError') setAnalyticsError(e.message);
       setAnalyticsLoaded(true);
     }
   };
@@ -592,13 +619,13 @@ export default function HorsesAdmin() {
 
   const loadAntiAbuseData = async (signal) => {
     setAbuseLoading(true);
+    setAbuseError(null);
     try {
-      // BUG 3 companion: Send auth header to secured API
       const {
         data: { session },
       } = await supabase.auth.getSession();
       if (!session?.access_token) {
-        showNotification('Session expired. Please re-login.', 'error');
+        setAbuseError('Session expired. Please re-login.');
         setAbuseLoading(false);
         return;
       }
@@ -612,17 +639,16 @@ export default function HorsesAdmin() {
           setAbuseData(data);
           setAbuseLoaded(true);
         } else {
-          showNotification('Failed to load anti-abuse data', 'error');
+          setAbuseError('API returned failure');
           setAbuseData(EMPTY_ABUSE_DATA);
         }
       } else {
         const errData = await res.json().catch(() => ({}));
-        showNotification(errData.error || `Error ${res.status}: Failed to load data`, 'error');
+        setAbuseError(errData.error || `Error ${res.status}`);
         setAbuseData(EMPTY_ABUSE_DATA);
       }
     } catch (err) {
-      console.error('Failed to load anti-abuse data:', err);
-      showNotification('Network error loading anti-abuse data', 'error');
+      if (err.name !== 'AbortError') setAbuseError(err.message);
       setAbuseData(EMPTY_ABUSE_DATA);
     } finally {
       setAbuseLoading(false);
@@ -641,38 +667,41 @@ export default function HorsesAdmin() {
     return res.json();
   };
 
+  // Safe query wrapper — returns fallback on error instead of crashing Promise.all
+  const safeQuery = async (queryPromise, fallback = { data: [] }) => {
+    try {
+      const result = await queryPromise;
+      if (result.error) { console.warn('[safeQuery] Supabase error:', result.error.message); return fallback; }
+      return result;
+    } catch (err) { console.warn('[safeQuery] Query failed:', err.message); return fallback; }
+  };
+
   const loadClubArenaData = async () => {
     setCaLoading(true);
     try {
-      // Platform-wide stats from DB
-      const [
-        { count: totalClubs },
-        { count: totalMembers },
-        { count: totalTables },
-        { data: pendingCashouts },
-        { data: clubs },
-        { data: unions },
-        { data: recentMints },
-        { data: recentTxns },
-      ] = await Promise.all([
-        supabase.from('clubs').select('*', { count: 'exact', head: true }),
-        supabase.from('club_members').select('*', { count: 'exact', head: true }),
-        supabase.from('tables').select('*', { count: 'exact', head: true }).eq('status', 'active'),
-        supabase.from('cashout_requests').select('id, amount, created_at, club_id, clubs(name)').eq('status', 'pending').order('created_at', { ascending: false }).limit(100),
-        supabase.from('clubs').select('id, name, club_id, member_count, status, created_at, owner_id').order('created_at', { ascending: false }).limit(200),
-        supabase.from('unions').select('id, name, code, created_at').order('created_at', { ascending: false }).limit(100),
-        supabase.from('chip_transactions').select('amount, created_at').eq('type', 'mint').gte('created_at', new Date(Date.now() - 86400000).toISOString()).limit(200),
-        supabase.from('chip_transactions').select('id, amount, type, created_at, club_id, clubs(name)').order('created_at', { ascending: false }).limit(50),
+      const [clubsCountRes, membersCountRes, tablesCountRes, cashoutsRes, clubsRes, unionsRes, mintsRes, txnsRes] = await Promise.all([
+        safeQuery(supabase.from('clubs').select('*', { count: 'exact', head: true }), { count: 0 }),
+        safeQuery(supabase.from('club_members').select('*', { count: 'exact', head: true }), { count: 0 }),
+        safeQuery(supabase.from('tables').select('*', { count: 'exact', head: true }).eq('status', 'active'), { count: 0 }),
+        safeQuery(supabase.from('cashout_requests').select('id, amount, created_at, club_id, clubs(name)').eq('status', 'pending').order('created_at', { ascending: false }).limit(100)),
+        safeQuery(supabase.from('clubs').select('id, name, club_id, member_count, status, created_at, owner_id').order('created_at', { ascending: false }).limit(200)),
+        safeQuery(supabase.from('unions').select('id, name, code, created_at').order('created_at', { ascending: false }).limit(100)),
+        safeQuery(supabase.from('chip_transactions').select('amount, created_at').eq('type', 'mint').gte('created_at', new Date(Date.now() - 86400000).toISOString()).limit(200)),
+        safeQuery(supabase.from('chip_transactions').select('id, amount, type, created_at, club_id, clubs(name)').order('created_at', { ascending: false }).limit(50)),
       ]);
 
-      const totalMinted24h = (recentMints || []).reduce((s, t) => s + (t.amount || 0), 0);
-      const pendingCashoutTotal = (pendingCashouts || []).reduce((s, c) => s + (c.amount || 0), 0);
+      const clubs = clubsRes?.data || [];
+      const pendingCashouts = cashoutsRes?.data || [];
+      const recentMints = mintsRes?.data || [];
+      const recentTxns = txnsRes?.data || [];
+      const totalMinted24h = recentMints.reduce((s, t) => s + (t.amount || 0), 0);
+      const pendingCashoutTotal = pendingCashouts.reduce((s, c) => s + (c.amount || 0), 0);
 
-      setCaStats({ totalClubs: totalClubs || 0, totalMembers: totalMembers || 0, totalTables: totalTables || 0, pendingCashouts: pendingCashouts?.length || 0, pendingCashoutTotal, totalMinted24h });
-      setCaClubs(clubs || []);
-      setCaUnions(unions || []);
-      setCaPendingCashouts(pendingCashouts || []);
-      setCaFinance({ recentTxns: recentTxns || [], totalMinted24h, pendingCashoutTotal });
+      setCaStats({ totalClubs: clubsCountRes?.count || 0, totalMembers: membersCountRes?.count || 0, totalTables: tablesCountRes?.count || 0, pendingCashouts: pendingCashouts.length, pendingCashoutTotal, totalMinted24h });
+      setCaClubs(clubs);
+      setCaUnions(unionsRes?.data || []);
+      setCaPendingCashouts(pendingCashouts);
+      setCaFinance({ recentTxns, totalMinted24h, pendingCashoutTotal });
       setCaLoaded(true);
     } catch (err) {
       showNotification('Failed to load Club Arena data', 'error');
@@ -727,31 +756,23 @@ export default function HorsesAdmin() {
     setCaClubDetail(null);
     setCaLoading(true);
     try {
-      const [
-        { data: members },
-        { data: agents },
-        { data: tables },
-        { data: pendingCashouts },
-        flagsRes,
-        sessionsRes,
-        { data: recentTxns },
-      ] = await Promise.all([
-        supabase.from('club_members').select('*, profiles(display_name, username, email, player_number)').eq('club_id', club.id).order('created_at', { ascending: false }).limit(200),
-        supabase.from('agents').select('*, profiles(display_name, username)').eq('club_id', club.id),
-        supabase.from('tables').select('*').eq('club_id', club.id).order('created_at', { ascending: false }),
-        supabase.from('cashout_requests').select('*, profiles(display_name, username)').eq('club_id', club.id).eq('status', 'pending').order('created_at', { ascending: false }),
-        caFetch('/api/club-arena/anti-cheat', { action: 'get_flags', clubId: club.id }),
-        caFetch('/api/club-arena/anti-cheat', { action: 'get_sessions', clubId: club.id }),
-        supabase.from('chip_transactions').select('*').eq('club_id', club.id).order('created_at', { ascending: false }).limit(50),
+      const [membersRes, agentsRes, tablesRes, cashoutsRes, flagsRes, sessionsRes, txnsRes] = await Promise.all([
+        safeQuery(supabase.from('club_members').select('*, profiles(display_name, username, email, player_number)').eq('club_id', club.id).order('created_at', { ascending: false }).limit(200)),
+        safeQuery(supabase.from('agents').select('*, profiles(display_name, username)').eq('club_id', club.id)),
+        safeQuery(supabase.from('tables').select('*').eq('club_id', club.id).order('created_at', { ascending: false })),
+        safeQuery(supabase.from('cashout_requests').select('*, profiles(display_name, username)').eq('club_id', club.id).eq('status', 'pending').order('created_at', { ascending: false })),
+        caFetch('/api/club-arena/anti-cheat', { action: 'get_flags', clubId: club.id }).catch(() => ({ flags: [] })),
+        caFetch('/api/club-arena/anti-cheat', { action: 'get_sessions', clubId: club.id }).catch(() => ({ sessions: [] })),
+        safeQuery(supabase.from('chip_transactions').select('*').eq('club_id', club.id).order('created_at', { ascending: false }).limit(50)),
       ]);
       setCaClubDetail({
-        members: members || [],
-        agents: agents || [],
-        tables: tables || [],
-        pendingCashouts: pendingCashouts || [],
-        flags: flagsRes.flags || [],
-        sessions: sessionsRes.sessions || [],
-        recentTxns: recentTxns || [],
+        members: membersRes?.data || [],
+        agents: agentsRes?.data || [],
+        tables: tablesRes?.data || [],
+        pendingCashouts: cashoutsRes?.data || [],
+        flags: flagsRes?.flags || [],
+        sessions: sessionsRes?.sessions || [],
+        recentTxns: txnsRes?.data || [],
       });
     } catch (err) {
       showNotification('Failed to load club detail', 'error');
@@ -780,23 +801,12 @@ export default function HorsesAdmin() {
   const loadCaUserDetail = async (profile) => {
     setCaSelectedUser({ ...profile, loading: true });
     try {
-      const { data: memberships } = await supabase
-        .from('club_members')
-        .select('*, clubs(name, club_id)')
-        .eq('user_id', profile.id);
-      const { data: txns } = await supabase
-        .from('chip_transactions')
-        .select('*, clubs(name)')
-        .eq('user_id', profile.id)
-        .order('created_at', { ascending: false })
-        .limit(30);
-      const { data: cashouts } = await supabase
-        .from('cashout_requests')
-        .select('*, clubs(name)')
-        .eq('user_id', profile.id)
-        .order('created_at', { ascending: false })
-        .limit(20);
-      setCaSelectedUser({ ...profile, memberships: memberships || [], txns: txns || [], cashouts: cashouts || [], loading: false });
+      const [membershipsRes, txnsRes, cashoutsRes] = await Promise.all([
+        safeQuery(supabase.from('club_members').select('*, clubs(name, club_id)').eq('user_id', profile.id)),
+        safeQuery(supabase.from('chip_transactions').select('*, clubs(name)').eq('user_id', profile.id).order('created_at', { ascending: false }).limit(30)),
+        safeQuery(supabase.from('cashout_requests').select('*, clubs(name)').eq('user_id', profile.id).order('created_at', { ascending: false }).limit(20)),
+      ]);
+      setCaSelectedUser({ ...profile, memberships: membershipsRes?.data || [], txns: txnsRes?.data || [], cashouts: cashoutsRes?.data || [], loading: false });
     } catch (err) {
       setCaSelectedUser(prev => ({ ...prev, loading: false }));
     }
@@ -858,7 +868,13 @@ export default function HorsesAdmin() {
 
   const toggleAllPersonas = async (activate) => {
     setPersonas(personas.map((p) => ({ ...p, is_active: activate })));
-    showNotification(`All personas ${activate ? 'activated' : 'deactivated'}`);
+    try {
+      await supabase.from('content_authors').update({ is_active: activate }).neq('id', 0);
+      showNotification(`All personas ${activate ? 'activated' : 'deactivated'}`);
+      broadcastUpdate('horses-updated');
+    } catch (err) {
+      showNotification('Failed to persist bulk toggle', 'error');
+    }
   };
 
   const updateSetting = async (key, value) => {
@@ -1812,6 +1828,11 @@ export default function HorsesAdmin() {
                 <p style={{ textAlign: 'center', padding: '20px', color: '#888' }}>
                   Loading Analytics...
                 </p>
+              ) : analyticsError ? (
+                <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+                  <p style={{ color: '#ef4444', marginBottom: 12 }}>Failed to load analytics: {analyticsError}</p>
+                  <button onClick={() => { setAnalyticsLoaded(false); setAnalyticsError(null); loadAnalytics(); }} className={styles.actionBtn}>Retry</button>
+                </div>
               ) : (
                 <>
                   <div className={styles.statsOverview}>
@@ -2254,6 +2275,11 @@ export default function HorsesAdmin() {
 
               {economyLoading ? (
                 <div className={styles.loadingSpinner}>Loading Economy Data...</div>
+              ) : economyError ? (
+                <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+                  <p style={{ color: '#ef4444', marginBottom: 12 }}>Failed to load economy data: {economyError}</p>
+                  <button onClick={() => { setEconomyError(null); loadEconomyData(); }} className={styles.actionBtn}>Retry</button>
+                </div>
               ) : !economyData ? (
                 <div className={styles.loadingSpinner}>No Data Available</div>
               ) : (
@@ -2518,6 +2544,11 @@ export default function HorsesAdmin() {
 
               {abuseLoading ? (
                 <div className={styles.loadingSpinner}>Loading Anti-Abuse Data...</div>
+              ) : abuseError ? (
+                <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+                  <p style={{ color: '#ef4444', marginBottom: 12 }}>Failed to load anti-abuse data: {abuseError}</p>
+                  <button onClick={() => { setAbuseError(null); loadAntiAbuseData(); }} className={styles.actionBtn}>Retry</button>
+                </div>
               ) : !abuseData ? (
                 <div className={styles.loadingSpinner}>No Data Available</div>
               ) : (
@@ -3170,7 +3201,7 @@ export default function HorsesAdmin() {
                         background: '#1a1a2e', border: '1px solid #2d2d44', borderRadius: 12,
                         padding: 16, cursor: 'pointer', transition: 'border-color 0.2s',
                       }}
-                        onClick={() => { setCaSelectedClub(club); setCaTab('flags'); loadClubArenaData(club.id); }}
+                        onClick={() => { setCaTab('flags'); loadCaClubDetail(club); }}
                         onMouseEnter={e => e.currentTarget.style.borderColor = '#4a9eff'}
                         onMouseLeave={e => e.currentTarget.style.borderColor = '#2d2d44'}
                       >
@@ -3201,7 +3232,7 @@ export default function HorsesAdmin() {
                   {/* Back + Club Header */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
                     <button
-                      onClick={() => { setCaSelectedClub(null); setCaFlags([]); setCaSessions([]); }}
+                      onClick={() => { setCaSelectedClub(null); setCaClubDetail(null); }}
                       style={{ background: '#2d2d44', color: '#aaa', border: 'none', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontSize: 13 }}
                     >
                       ← All Clubs
@@ -3213,8 +3244,14 @@ export default function HorsesAdmin() {
                   </div>
 
                   {/* Sub-tab bar */}
-                  <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-                    {[['flags', `🚩 Flags (${caFlags.length})`], ['sessions', `👁️ Sessions (${caSessions.length})`]].map(([id, label]) => (
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
+                    {[
+                      ['overview', `📊 Overview`],
+                      ['members', `👥 Members (${(caClubDetail?.members || []).length})`],
+                      ['tables', `🎰 Tables (${(caClubDetail?.tables || []).length})`],
+                      ['flags', `🚩 Flags (${(caClubDetail?.flags || []).length})`],
+                      ['sessions', `👁️ Sessions (${(caClubDetail?.sessions || []).length})`],
+                    ].map(([id, label]) => (
                       <button key={id} onClick={() => setCaTab(id)} style={{
                         background: caTab === id ? '#FF453A' : '#2d2d44',
                         color: caTab === id ? '#fff' : '#aaa',
@@ -3222,7 +3259,7 @@ export default function HorsesAdmin() {
                         fontSize: 13, fontWeight: 600, cursor: 'pointer',
                       }}>{label}</button>
                     ))}
-                    <button onClick={() => loadClubArenaData(caSelectedClub.id)} disabled={caLoading}
+                    <button onClick={() => loadCaClubDetail(caSelectedClub)} disabled={caLoading}
                       style={{ marginLeft: 'auto', background: '#2d2d44', color: '#aaa', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 12, cursor: 'pointer' }}>
                       🔄 Refresh
                     </button>
@@ -3230,10 +3267,81 @@ export default function HorsesAdmin() {
 
                   {caLoading ? (
                     <div className={styles.loadingSpinner}>Loading...</div>
+                  ) : caTab === 'overview' ? (
+                    <>
+                      {/* Stats Row */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 20 }}>
+                        {[
+                          ['Members', (caClubDetail?.members || []).length, '#4a9eff'],
+                          ['Agents', (caClubDetail?.agents || []).length, '#FF9500'],
+                          ['Tables', (caClubDetail?.tables || []).length, '#31a24c'],
+                          ['Pending Cashouts', (caClubDetail?.pendingCashouts || []).length, '#FF453A'],
+                          ['Open Flags', (caClubDetail?.flags || []).length, '#ef4444'],
+                          ['Active Sessions', (caClubDetail?.sessions || []).length, '#a855f7'],
+                        ].map(([label, value, color]) => (
+                          <div key={label} style={{ background: '#1a1a2e', borderRadius: 10, padding: 16, textAlign: 'center', border: '1px solid #2d2d44' }}>
+                            <div style={{ fontSize: 24, fontWeight: 700, color }}>{value}</div>
+                            <div style={{ fontSize: 11, color: '#888', marginTop: 4 }}>{label}</div>
+                          </div>
+                        ))}
+                      </div>
+                      {/* Recent Transactions */}
+                      <h4 style={{ color: '#e4e6eb', margin: '20px 0 12px', fontSize: 14 }}>Recent Transactions</h4>
+                      {(caClubDetail?.recentTxns || []).length === 0 ? (
+                        <div style={{ textAlign: 'center', color: '#888', padding: '20px 0' }}>No recent transactions.</div>
+                      ) : (
+                        <div style={{ maxHeight: 300, overflowY: 'auto' }}>
+                          {(caClubDetail?.recentTxns || []).slice(0, 20).map((txn, i) => (
+                            <div key={txn.id || i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: i % 2 === 0 ? '#1a1a2e' : 'transparent', borderRadius: 6, fontSize: 13 }}>
+                              <span style={{ color: '#aaa' }}>{txn.type || 'unknown'}</span>
+                              <span style={{ color: txn.amount > 0 ? '#31a24c' : '#FF453A', fontWeight: 600 }}>{txn.amount > 0 ? '+' : ''}{txn.amount}</span>
+                              <span style={{ color: '#666', fontSize: 11 }}>{txn.created_at ? new Date(txn.created_at).toLocaleString() : ''}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  ) : caTab === 'members' ? (
+                    <>
+                      {(caClubDetail?.members || []).length === 0 ? (
+                        <div style={{ textAlign: 'center', color: '#888', padding: '40px 0' }}>No members in this club.</div>
+                      ) : (
+                        <div style={{ maxHeight: 500, overflowY: 'auto' }}>
+                          {(caClubDetail?.members || []).map((m, i) => (
+                            <div key={m.id || i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: i % 2 === 0 ? '#1a1a2e' : 'transparent', borderRadius: 6, marginBottom: 2 }}>
+                              <div>
+                                <span style={{ fontWeight: 600, color: '#e4e6eb', fontSize: 14 }}>{m.profiles?.display_name || m.profiles?.username || 'Unknown'}</span>
+                                {m.profiles?.email && <span style={{ color: '#666', fontSize: 11, marginLeft: 8 }}>{m.profiles.email}</span>}
+                              </div>
+                              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                <span style={{ background: m.role === 'owner' ? '#FF9500' : m.role === 'agent' ? '#4a9eff' : '#2d2d44', color: m.role === 'owner' ? '#fff' : m.role === 'agent' ? '#fff' : '#aaa', borderRadius: 4, padding: '2px 8px', fontSize: 11, fontWeight: 600 }}>{m.role || 'member'}</span>
+                                <span style={{ color: '#666', fontSize: 11 }}>{m.created_at ? new Date(m.created_at).toLocaleDateString() : ''}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  ) : caTab === 'tables' ? (
+                    <>
+                      {(caClubDetail?.tables || []).length === 0 ? (
+                        <div style={{ textAlign: 'center', color: '#888', padding: '40px 0' }}>No tables in this club.</div>
+                      ) : (caClubDetail?.tables || []).map((table, i) => (
+                        <div key={table.id || i} style={{ background: '#1a1a2e', borderRadius: 10, padding: 16, marginBottom: 12, border: '1px solid #2d2d44', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <div style={{ fontWeight: 600, color: '#e4e6eb', fontSize: 14 }}>{table.name || `Table ${table.id}`}</div>
+                            <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>
+                              {table.game_type || 'NLH'} • {table.stakes || 'Unknown stakes'} • Seats: {table.max_seats || '?'}
+                            </div>
+                          </div>
+                          <span style={{ background: table.status === 'active' ? '#31a24c22' : '#636366', color: table.status === 'active' ? '#31a24c' : '#aaa', borderRadius: 4, padding: '2px 10px', fontSize: 11, fontWeight: 600 }}>{table.status || 'inactive'}</span>
+                        </div>
+                      ))}
+                    </>
                   ) : caTab === 'flags' ? (
-                    caFlags.length === 0 ? (
+                    (caClubDetail?.flags || []).length === 0 ? (
                       <div style={{ textAlign: 'center', color: '#888', padding: '40px 0' }}>✅ No open flags for this club.</div>
-                    ) : caFlags.map((flag, i) => (
+                    ) : (caClubDetail?.flags || []).map((flag, i) => (
                       <div key={flag.id || i} style={{
                         background: '#1a1a2e', borderRadius: 10, padding: 16, marginBottom: 12,
                         border: `1px solid ${flag.severity === 'high' ? '#FF453A' : flag.severity === 'medium' ? '#FF9500' : '#2d2d44'}`,
@@ -3267,7 +3375,7 @@ export default function HorsesAdmin() {
                                   body: JSON.stringify(body),
                                 });
                                 showNotification(verdict === 'kick' ? 'Player kicked' : `Flag marked ${verdict}`);
-                                loadClubArenaData(caSelectedClub.id);
+                                loadCaClubDetail(caSelectedClub);
                               } catch (e) { showNotification(e.message, 'error'); }
                               finally { setCaProcessing(false); }
                             }} style={{
@@ -3283,9 +3391,9 @@ export default function HorsesAdmin() {
                       </div>
                     ))
                   ) : (
-                    caSessions.length === 0 ? (
+                    (caClubDetail?.sessions || []).length === 0 ? (
                       <div style={{ textAlign: 'center', color: '#888', padding: '40px 0' }}>No active sessions at this club right now.</div>
-                    ) : caSessions.map((session, i) => (
+                    ) : (caClubDetail?.sessions || []).map((session, i) => (
                       <div key={session.id || i} style={{
                         background: '#1a1a2e', borderRadius: 10, padding: 16, marginBottom: 12,
                         border: '1px solid #2d2d44', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -3306,7 +3414,7 @@ export default function HorsesAdmin() {
                               body: JSON.stringify({ action: 'kick_player', clubId: caSelectedClub.id, targetUserId: session.user_id, reason: 'admin_kick' }),
                             });
                             showNotification('Player kicked');
-                            loadClubArenaData(caSelectedClub.id);
+                            loadCaClubDetail(caSelectedClub);
                           } catch (e) { showNotification(e.message, 'error'); }
                           finally { setCaProcessing(false); }
                         }} style={{ background: '#FF453A', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>

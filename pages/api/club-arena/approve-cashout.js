@@ -131,7 +131,8 @@ export default async function handler(req, res) {
     // ═════════════════════════════════════════════════════════════
     if (action === 'approve') {
       // Rate: 100 chips = 38 diamonds
-      const diamondsReturned = Math.floor((cashout.amount / 100) * 38);
+      // BUG-06 FIX: Math.round for fairness (was Math.floor — systematically shortchanged players)
+      const diamondsReturned = Math.round((cashout.amount / 100) * 38);
 
       // Atomic diamond credit via RPC
       const { error: creditErr } = await supabaseAdmin.rpc('fn_credit_diamonds', {

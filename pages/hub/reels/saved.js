@@ -23,7 +23,7 @@ export default function SavedReels() {
 
     const loadSavedReels = async () => {
         try {
-            const authUser = await getAuthUser();
+            const authUser = getAuthUser();
             setUser(authUser);
 
             if (!authUser) {

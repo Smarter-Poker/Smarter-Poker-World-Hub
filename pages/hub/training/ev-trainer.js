@@ -20,6 +20,7 @@ import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
+import { getAccessToken } from '../../../src/lib/authUtils';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // BUS EMITTER (SSR-safe)
@@ -28,20 +29,6 @@ import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 // ═══════════════════════════════════════════════════════════════════════════
 // AUTH HELPER (SSR-safe)
 // ═══════════════════════════════════════════════════════════════════════════
-function getAuthToken() {
-  if (typeof window === 'undefined') return null;
-  try {
-    const raw =
-      localStorage.getItem('sb-auth-token') || localStorage.getItem('supabase.auth.token');
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      return parsed?.access_token || parsed?.currentSession?.access_token || null;
-    }
-  } catch (e) {
-    /* ignore */
-  }
-  return null;
-}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // QUESTION GENERATOR ENGINE
@@ -231,7 +218,7 @@ export default function EVTrainer() {
       });
 
       // Persist to Supabase via save-session API
-      const token = getAuthToken();
+      const token = getAccessToken();
       if (token) {
         fetch('/api/training/save-session', {
           method: 'POST',

@@ -80,7 +80,7 @@ export default function TrainingProgress() {
 
   const loadProgress = async () => {
     try {
-      const authUser = await getAuthUser();
+      const authUser = getAuthUser();
       setUser(authUser);
 
       if (!authUser) {

@@ -15,23 +15,11 @@ import { motion } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import MistakeCluster from '../../../src/components/training/MistakeCluster';
 import GhostReplayEngine from '../../../src/components/training/GhostReplayEngine';
-
-// ═══════════════════════════════════════════════════════════════════════════
-// AUTH HELPER
-// ═══════════════════════════════════════════════════════════════════════════
+import { getAccessToken } from '../../../src/lib/authUtils';
 
 function getAuthHeaders() {
-  try {
-    const raw =
-      localStorage.getItem('sb-auth-token') || localStorage.getItem('supabase.auth.token');
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      const token = parsed?.access_token || parsed?.currentSession?.access_token;
-      if (token) return { Authorization: `Bearer ${token}` };
-    }
-  } catch (e) {
-    /* ignore */
-  }
+  const token = getAccessToken();
+  if (token) return { Authorization: `Bearer ${token}` };
   return {};
 }
 

@@ -441,11 +441,12 @@ export default async function handler(req, res) {
         }).catch(e => console.error('[settle-period] Invoice insert error:', e.message));
       }
 
-      // Generate club_to_agent invoices
+      // Generate club_to_agent invoices — BATCHED (was serial N inserts)
+      const agentInvoices = [];
       for (const cr of commissionRecords) {
         const agentInfo = (agents || []).find(a => a.id === cr.agent_id);
         if (!agentInfo) continue;
-        await supabaseAdmin.from('settlement_invoices').insert({
+        agentInvoices.push({
           club_id: clubId,
           period_id: pid,
           invoice_type: 'club_to_agent',
@@ -461,7 +462,11 @@ export default async function handler(req, res) {
             commission_amount: cr.commission_amount,
           },
           status: 'generated',
-        }).catch(e => console.error('[settle-period] Agent invoice error:', e.message));
+        });
+      }
+      if (agentInvoices.length > 0) {
+        await supabaseAdmin.from('settlement_invoices').insert(agentInvoices)
+          .catch(e => console.error('[settle-period] Batch agent invoice error:', e.message));
       }
 
       // Close the period
@@ -623,16 +628,19 @@ export default async function handler(req, res) {
       // This prevents commissions being marked paid when chip transfer fails.
       const paidIds = [];
 
+      // ── Pre-fetch all agent user_ids in ONE query (was N+1: 1 lookup per commission) ──
+      const allAgentIds = [...new Set(pending.map(c => c.agent_id))];
+      const { data: allAgentData } = await supabaseAdmin
+        .from('agents')
+        .select('id, user_id')
+        .in('id', allAgentIds);
+      const agentUserMap = new Map((allAgentData || []).map(a => [a.id, a.user_id]));
+
       // Distribute chips to each agent
       for (const cr of pending) {
-        // Get agent's user_id for chip transfer
-        const { data: agentData } = await supabaseAdmin
-          .from('agents')
-          .select('user_id')
-          .eq('id', cr.agent_id)
-          .maybeSingle();
+        const agentUserId = agentUserMap.get(cr.agent_id);
 
-        if (agentData && cr.commission_amount > 0) {
+        if (agentUserId && cr.commission_amount > 0) {
           // Debit club treasury FIRST
           const { error: debitErr } = await supabaseAdmin.rpc('fn_debit_treasury', {
             p_club_id: clubId,
@@ -643,7 +651,7 @@ export default async function handler(req, res) {
             // Credit agent's chip balance
             await supabaseAdmin.rpc('fn_credit_chips', {
               p_club_id: clubId,
-              p_user_id: agentData.user_id,
+              p_user_id: agentUserId,
               p_amount: cr.commission_amount,
             });
 
@@ -651,7 +659,7 @@ export default async function handler(req, res) {
             await supabaseAdmin.from('chip_transactions').insert({
               club_id: clubId,
               from_user_id: null,
-              to_user_id: agentData.user_id,
+              to_user_id: agentUserId,
               amount: cr.commission_amount,
               transaction_type: 'commission',
               notes: `Agent commission paid: ${cr.commission_amount.toLocaleString()} chips — Period settlement`,
@@ -680,14 +688,14 @@ export default async function handler(req, res) {
           .eq('status', 'pending');
 
         // Update settlement invoice for this agent
-        if (agentData) {
+        if (agentUserId) {
           await supabaseAdmin
             .from('settlement_invoices')
             .update({ status: 'paid', chips_transferred: true, transferred_at: now })
             .eq('club_id', clubId)
             .eq('period_id', periodId)
             .eq('invoice_type', 'club_to_agent')
-            .eq('to_entity_id', String(agentData.user_id))
+            .eq('to_entity_id', String(agentUserId))
             .eq('status', 'generated');
         }
 
@@ -713,10 +721,10 @@ export default async function handler(req, res) {
 
       // Notify each paid agent (fire-and-forget)
       for (const cr of pending.filter(c => paidIds.includes(c.id) && c.commission_amount > 0)) {
-        const { data: ag } = await supabaseAdmin.from('agents').select('user_id').eq('id', cr.agent_id).maybeSingle();
-        if (ag?.user_id) {
+        const agentUserId = agentUserMap.get(cr.agent_id);
+        if (agentUserId) {
           notifyUser(supabaseAdmin, {
-            userId: ag.user_id, type: 'commission_paid',
+            userId: agentUserId, type: 'commission_paid',
             title: `💵 Commission Paid: ${cr.commission_amount.toLocaleString()}`,
             message: `Your commission of ${cr.commission_amount.toLocaleString()} chips has been paid.`,
             data: { clubId, amount: cr.commission_amount },

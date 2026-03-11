@@ -31,7 +31,7 @@ export default function ArticlePage() {
     useEffect(() => {
         async function loadUser() {
             try {
-                const user = await getAuthUser();
+                const user = getAuthUser();
                 if (user?.id) setUserId(user.id);
             } catch (e) { console.error("[article.js]", e); }
         }

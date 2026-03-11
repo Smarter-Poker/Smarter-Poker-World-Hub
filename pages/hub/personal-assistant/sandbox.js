@@ -24,7 +24,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { useSandboxAnalysis, useArchetypes, useRecentSessions, useBookmarks, useStudyDeck, useQuizLeaderboard } from '../../../src/hooks/useAssistant';
 import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 import { supabase } from '../../../src/lib/supabase';
-import { getAuthUser } from '../../../src/lib/authUtils';
+import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import { calculateEquity, simulateRunouts } from '../../../src/lib/sandbox/EquityEngine';
 import { getRangeGrid, getRangePercentage } from '../../../src/lib/sandbox/PreflopCharts';
 import { parseHandHistory } from '../../../src/lib/sandbox/HandHistoryParser';
@@ -948,13 +948,10 @@ export default function VirtualSandbox() {
         if (offlineData && offlineData.length > 0) setSessionLog(offlineData);
         return;
       }
-      const token = typeof window !== 'undefined' ? localStorage.getItem('supabase.auth.token') : null;
+      const token = getAccessToken();
       let headers = {};
       if (token) {
-        try {
-          const parsed = JSON.parse(token);
-          headers.Authorization = `Bearer ${parsed.currentSession?.access_token}`;
-        } catch (e) { }
+        headers.Authorization = `Bearer ${token}`;
       }
       const res = await fetch('/api/sandbox/sessions', { headers });
       const json = await res.json();

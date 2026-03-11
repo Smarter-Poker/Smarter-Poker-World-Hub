@@ -15,6 +15,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
+const { isUUID } = require('../../../src/lib/club-arena/validate');
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -51,12 +52,17 @@ export default async function handler(req, res) {
             }
 
             const results = [];
+            // BUG-01 FIX: Use internal fetch to settle-period API so commission calculation
+            // actually runs. Previously just updated status without computing commissions.
+            const baseUrl = process.env.NEXT_PUBLIC_SITE_URL
+                || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+
             for (const club of autoClubs) {
                 try {
                     // Find current open period
                     const { data: openPeriod } = await supabaseAdmin
                         .from('settlement_periods')
-                        .select('id, start_date')
+                        .select('id, start_at')  // BUG-05 FIX: was start_date
                         .eq('club_id', club.id)
                         .eq('status', 'open')
                         .order('created_at', { ascending: false })
@@ -67,30 +73,52 @@ export default async function handler(req, res) {
                         continue;
                     }
 
-                    // Close the period by updating status
-                    await supabaseAdmin
-                        .from('settlement_periods')
-                        .update({ status: 'closed', end_date: new Date().toISOString() })
-                        .eq('id', openPeriod.id);
-
-                    // Open a new period
-                    await supabaseAdmin
-                        .from('settlement_periods')
-                        .insert({
-                            club_id: club.id,
-                            status: 'open',
-                            start_date: new Date().toISOString(),
+                    // BUG-01 FIX: Call the full settle-period close logic via internal API
+                    // This calculates commissions, invoices, union holds — not just status update
+                    let settleSuccess = false;
+                    try {
+                        const settleRes = await fetch(`${baseUrl}/api/club-arena/settle-period`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'x-admin-secret': process.env.ADMIN_ROUTE_SECRET || '',
+                            },
+                            body: JSON.stringify({ clubId: club.id, action: 'close' }),
                         });
+                        const settleData = await settleRes.json();
+                        settleSuccess = settleData.success;
+                    } catch (settleErr) {
+                        console.error(`[auto_close] settle-period call failed for ${club.name}:`, settleErr.message);
+                        // Fallback: at minimum close the period so it's not orphaned
+                        await supabaseAdmin
+                            .from('settlement_periods')
+                            .update({ status: 'closed', settled_at: new Date().toISOString() })  // BUG-05 FIX: was end_date
+                            .eq('id', openPeriod.id);
+                    }
+
+                    // Open a new period via settle-period open action
+                    try {
+                        await fetch(`${baseUrl}/api/club-arena/settle-period`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'x-admin-secret': process.env.ADMIN_ROUTE_SECRET || '',
+                            },
+                            body: JSON.stringify({ clubId: club.id, action: 'open' }),
+                        });
+                    } catch (openErr) {
+                        console.error(`[auto_close] settle-period open failed for ${club.name}:`, openErr.message);
+                    }
 
                     logAudit(supabaseAdmin, {
                         actionType: 'auto_settlement_close',
                         userId: 'SYSTEM',
                         clubId: club.id,
-                        details: { periodId: openPeriod.id, trigger: 'cron' },
+                        details: { periodId: openPeriod.id, trigger: 'cron', settleSuccess },
                         ip: extractIP(req),
                     });
 
-                    results.push({ clubId: club.id, name: club.name, status: 'closed_and_reopened', periodId: openPeriod.id });
+                    results.push({ clubId: club.id, name: club.name, status: 'closed_and_reopened', periodId: openPeriod.id, settleSuccess });
                 } catch (err) {
                     results.push({ clubId: club.id, name: club.name, status: 'error', message: err.message });
                 }
@@ -131,31 +159,43 @@ export default async function handler(req, res) {
         try {
             const { data: periods } = await supabaseAdmin
                 .from('settlement_periods')
-                .select('id, status, start_date, end_date, created_at')
+                .select('id, status, start_at, end_at, created_at, total_rake_collected')  // BUG-05 FIX: was start_date, end_date
                 .eq('club_id', clubId)
                 .order('created_at', { ascending: false })
                 .limit(limit);
 
-            // Aggregate stats for each period
-            const enriched = [];
-            for (const p of (periods || [])) {
-                const { data: commissions } = await supabaseAdmin
+            // BUG-12 FIX: Batch-query all commissions for all period IDs at once
+            // (was N+1: one query per period in a for loop)
+            const periodIds = (periods || []).map(p => p.id);
+            let allCommissions = [];
+            if (periodIds.length > 0) {
+                const { data: comms } = await supabaseAdmin
                     .from('commission_history')
-                    .select('amount, status')
-                    .eq('period_id', p.id);
+                    .select('period_id, commission_earned, status')  // BUG-08 FIX: was 'amount'
+                    .in('period_id', periodIds);
+                allCommissions = comms || [];
+            }
 
-                const totalRake = (commissions || []).reduce((s, c) => s + (c.amount || 0), 0);
-                const paidCount = (commissions || []).filter(c => c.status === 'paid').length;
-                const pendingCount = (commissions || []).filter(c => c.status !== 'paid').length;
+            // Group commissions by period_id
+            const commsByPeriod = {};
+            for (const c of allCommissions) {
+                if (!commsByPeriod[c.period_id]) commsByPeriod[c.period_id] = [];
+                commsByPeriod[c.period_id].push(c);
+            }
 
-                enriched.push({
+            const enriched = (periods || []).map(p => {
+                const comms = commsByPeriod[p.id] || [];
+                const totalCommissions = comms.reduce((s, c) => s + (c.commission_earned || 0), 0);
+                const paidCount = comms.filter(c => c.status === 'paid').length;
+                const pendingCount = comms.filter(c => c.status !== 'paid').length;
+                return {
                     ...p,
-                    totalCommissions: totalRake,
+                    totalCommissions,
                     paidCount,
                     pendingCount,
-                    agentCount: (commissions || []).length,
-                });
-            }
+                    agentCount: comms.length,
+                };
+            });
 
             // Get auto-schedule status
             const { data: club } = await supabaseAdmin
@@ -211,27 +251,31 @@ export default async function handler(req, res) {
         if (!batchPeriodId) return res.status(400).json({ error: 'periodId required' });
 
         try {
+            // BUG-04 FIX: Validate periodId UUID
+            if (!isUUID(batchPeriodId)) return res.status(400).json({ error: 'Invalid periodId format' });
+
             const { data: commissions } = await supabaseAdmin
                 .from('commission_history')
-                .select('id, agent_id, amount, status')
+                .select('id, agent_id, commission_earned, status')  // BUG-08 FIX: was 'amount'
                 .eq('period_id', batchPeriodId)
                 .neq('status', 'paid');
 
             // Enrich with agent display names
             const agentIds = [...new Set((commissions || []).map(c => c.agent_id))];
-            const { data: profiles } = await supabaseAdmin
-                .from('profiles')
-                .select('id, display_name, username')
-                .in('id', agentIds);
-
-            const profileMap = {};
-            for (const p of (profiles || [])) profileMap[p.id] = p.display_name || p.username || p.id.substring(0, 8);
+            let profileMap = {};
+            if (agentIds.length > 0) {
+                const { data: profiles } = await supabaseAdmin
+                    .from('profiles')
+                    .select('id, display_name, username')
+                    .in('id', agentIds);
+                for (const p of (profiles || [])) profileMap[p.id] = p.display_name || p.username || p.id.substring(0, 8);
+            }
 
             const preview = (commissions || []).map(c => ({
                 commissionId: c.id,
                 agentId: c.agent_id,
                 agentName: profileMap[c.agent_id] || c.agent_id.substring(0, 8),
-                amount: c.amount,
+                amount: c.commission_earned || 0,  // BUG-08 FIX: was c.amount
                 status: c.status,
             }));
 

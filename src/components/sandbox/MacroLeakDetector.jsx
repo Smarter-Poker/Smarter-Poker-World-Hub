@@ -4,6 +4,7 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
+import { getAccessToken } from '../../lib/authUtils';
 
 const M = {
     bg: '#18191A', card: '#242526', border: '#3E4042',
@@ -17,13 +18,10 @@ export default function MacroLeakDetector() {
 
     const fetchAnalysis = useCallback(async () => {
         try {
-            const token = typeof window !== 'undefined' ? localStorage.getItem('supabase.auth.token') : null;
+            const token = getAccessToken();
             let headers = {};
             if (token) {
-                try {
-                    const parsed = JSON.parse(token);
-                    headers.Authorization = `Bearer ${parsed.currentSession?.access_token}`;
-                } catch (e) { }
+                headers.Authorization = `Bearer ${token}`;
             }
 
             const res = await fetch('/api/sandbox/macro-analysis', { headers });

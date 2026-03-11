@@ -6,6 +6,8 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
+const { isUUID } = require('../../../src/lib/club-arena/validate');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -131,12 +133,20 @@ export default async function handler(req, res) {
 
   // ─── POST: configure / get_config ─────────────────────────────────────────
   if (req.method === 'POST') {
+    // BUG-03 FIX: POST actions were missing rate limiting entirely
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
+
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ error: 'Auth required' });
     const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
     if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
+    // Idempotency guard on mutation actions
+    if (checkIdempotency(req, res)) return;
+
     const { action, clubId, bbjEnabled } = req.body;
+    // BUG-04 FIX: Validate UUID format
+    if (!isUUID(clubId)) return res.status(400).json({ error: 'Invalid clubId format' });
     if (!clubId) return res.status(400).json({ error: 'clubId required' });
 
     // Verify caller is owner or admin of this club (or platform admin)

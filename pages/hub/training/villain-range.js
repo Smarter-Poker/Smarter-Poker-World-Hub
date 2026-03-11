@@ -23,29 +23,12 @@ import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
-
-// ═══════════════════════════════════════════════════════════════════════════
-// BUS EMITTER (safe, SSR-compatible)
-// ═══════════════════════════════════════════════════════════════════════════
+import { getAccessToken } from '../../../src/lib/authUtils';
 
 // ── Save-session helper (SSR-safe) ──────────────────────────────
-function getAuthToken() {
-  if (typeof window === 'undefined') return null;
-  try {
-    const raw =
-      localStorage.getItem('sb-auth-token') || localStorage.getItem('supabase.auth.token');
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      return parsed?.access_token || parsed?.currentSession?.access_token || null;
-    }
-  } catch (e) {
-    /* ignore */
-  }
-  return null;
-}
 
 function saveSession(payload) {
-  const token = getAuthToken();
+  const token = getAccessToken();
   if (!token) return;
   fetch('/api/training/save-session', {
     method: 'POST',
@@ -523,7 +506,7 @@ export default function VillainRange() {
       console.warn('[Profiles] localStorage save error:', err);
     }
     // Save to Supabase
-    const token = getAuthToken();
+    const token = getAccessToken();
     if (token) {
       saveSession({
         game_id: 'villain-profile',

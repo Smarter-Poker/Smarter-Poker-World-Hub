@@ -14,6 +14,13 @@
     "no-undef": "off",
     "react/no-unescaped-entities": "off",
     "@next/next/no-img-element": "off",
-    "import/no-anonymous-default-export": "off"
+    "import/no-anonymous-default-export": "off",
+    "no-restricted-syntax": [
+      "warn",
+      {
+        "selector": "AwaitExpression[argument.callee.name='getAuthUser']",
+        "message": "getAuthUser() is SYNCHRONOUS — do not await it. Use direct assignment: const user = getAuthUser();"
+      }
+    ]
   }
 }

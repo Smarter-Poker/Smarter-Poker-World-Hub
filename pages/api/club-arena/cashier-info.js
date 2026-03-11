@@ -14,6 +14,8 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
+const { isUUID, rejectBadPayload } = require('../../../src/lib/club-arena/validate');
+const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -37,13 +39,16 @@ export default async function handler(req, res) {
     const { clubId, action, amount, cashoutId } = req.body;
     if (!clubId) return res.status(400).json({ error: 'clubId required' });
 
+    // BUG-04 FIX: Strict UUID validation (was missing entirely)
+    if (!isUUID(clubId)) return res.status(400).json({ error: 'Invalid clubId format' });
+
     // ─── SUMMARY: Complete financial snapshot ─────────────────
     if (action === 'summary') {
         try {
-            // Player balance
+            // Player balance (F-04: include promo_balance for visibility)
             const { data: member } = await supabaseAdmin
                 .from('club_members')
-                .select('chip_balance, role')
+                .select('chip_balance, promo_balance, role')
                 .eq('club_id', clubId)
                 .eq('user_id', user.id)
                 .maybeSingle();
@@ -87,6 +92,7 @@ export default async function handler(req, res) {
             return res.status(200).json({
                 success: true,
                 balance: member.chip_balance || 0,
+                promoBalance: member.promo_balance || 0,  // F-04: Promo balance visibility
                 role: member.role,
                 pendingCashouts: pendingCashouts || [],
                 recentTransactions: txns,
@@ -137,6 +143,9 @@ export default async function handler(req, res) {
 
     // ─── PRESETS: Configure quick-amount buttons ──────────────
     if (action === 'presets') {
+        // BUG-09 FIX: Add idempotency guard for settings mutation
+        if (checkIdempotency(req, res)) return;
+
         // Verify owner/admin
         const { data: mem } = await supabaseAdmin
             .from('club_members')

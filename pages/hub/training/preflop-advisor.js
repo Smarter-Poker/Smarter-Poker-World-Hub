@@ -12,20 +12,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import Card from '../../../src/components/training/Card';
+import { getAccessToken } from '../../../src/lib/authUtils';
 
-function getAuthToken() {
-  if (typeof window === 'undefined') return null;
-  try {
-    const r = localStorage.getItem('sb-auth-token') || localStorage.getItem('supabase.auth.token');
-    if (r) {
-      const p = JSON.parse(r);
-      return p?.access_token || p?.currentSession?.access_token || null;
-    }
-  } catch {}
-  return null;
-}
 function saveSession(payload) {
-  const token = getAuthToken();
+  const token = getAccessToken();
   if (!token) return;
   fetch('/api/training/save-session', {
     method: 'POST',

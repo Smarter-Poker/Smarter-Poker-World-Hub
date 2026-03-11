@@ -14,7 +14,7 @@ import {
   Play, CheckCircle
 } from 'lucide-react';
 import { supabase } from '../../../../src/lib/supabase';
-import { getAccessToken } from '../../../../src/lib/authUtils';
+import { getAccessToken, ensureAuthReady } from '../../../../src/lib/authUtils';
 
 function TournamentCard({ tournament, onRegister, isRegistered }) {
   const router = useRouter();
@@ -141,11 +141,12 @@ export default function PlayerTournamentsHub() {
   const loadTournaments = () => refreshTournaments();
 
   const handleRegister = async (tournament) => {
-    const token = getAccessToken();
-    if (!token) {
+    const authUser = await ensureAuthReady(supabase);
+    if (!authUser) {
       router.push('/auth/login?redirect=/hub/commander/tournaments');
       return;
     }
+    const token = getAccessToken();
 
     try {
       const res = await fetch(`/api/commander/tournaments/${tournament.id}/entries`, {

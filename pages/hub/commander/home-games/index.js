@@ -12,7 +12,7 @@ import GroupCard from '../../../../src/components/commander/home-games/GroupCard
 import GameCalendar from '../../../../src/components/commander/home-games/GameCalendar';
 import { supabase } from '../../../../src/lib/supabase';
 import { usePersistedFilters } from '../../../../src/hooks/usePersistedFilters';
-import { getAccessToken } from '../../../../src/lib/authUtils';
+import { getAccessToken, ensureAuthReady } from '../../../../src/lib/authUtils';
 
 /* Inline HomeGameCard replaced by shared GroupCard component */
 
@@ -143,11 +143,12 @@ export default function PlayerHomeGamesHub() {
     if (!joinCode.trim()) return;
 
     try {
-      const token = getAccessToken();
-      if (!token) {
+      const authUser = await ensureAuthReady(supabase);
+      if (!authUser) {
         router.push('/auth/login?redirect=/hub/commander/home-games');
         return;
       }
+      const token = getAccessToken();
 
       const res = await fetch(`/api/commander/home-games/join/${joinCode.trim()}`, {
         method: 'POST',
@@ -207,8 +208,8 @@ export default function PlayerHomeGamesHub() {
   };
 
   const handleJoinGame = async (game) => {
-    const token = getAccessToken();
-    if (!token) {
+    const authUser = await ensureAuthReady(supabase);
+    if (!authUser) {
       router.push('/auth/login?redirect=/hub/commander/home-games');
       return;
     }

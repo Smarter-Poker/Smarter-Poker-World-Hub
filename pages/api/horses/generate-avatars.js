@@ -95,10 +95,24 @@ export default async function handler(req, res) {
         return res.status(405).json({ success: false, error: 'POST only' });
     }
 
-    // BUG #268 FIX: Require admin auth — batch job that calls paid Grok API
+    // Auth: Support JWT (from admin UI) or header secret (from cron)
+    const authHeader = req.headers.authorization;
     const adminSecret = req.headers['x-admin-secret'];
     const envSecret = process.env.ADMIN_ROUTE_SECRET;
-    if (!envSecret || adminSecret !== envSecret) {
+    let isAuthorized = false;
+
+    if (authHeader) {
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+      if (!error && user) {
+        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
+        if (profile && ['admin', 'superadmin', 'god'].includes(profile.role)) isAuthorized = true;
+      }
+    }
+    if (!isAuthorized && envSecret && adminSecret === envSecret) {
+      isAuthorized = true;
+    }
+    if (!isAuthorized) {
         return res.status(401).json({ success: false, error: 'Admin authentication required' });
     }
 

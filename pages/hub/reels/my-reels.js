@@ -23,7 +23,7 @@ export default function MyReels() {
 
     const loadReels = async () => {
         try {
-            const authUser = await getAuthUser();
+            const authUser = getAuthUser();
             setUser(authUser);
 
             if (!authUser) {

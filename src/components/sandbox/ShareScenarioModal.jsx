@@ -4,6 +4,7 @@
  */
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getAccessToken } from '../../lib/authUtils';
 
 const M = {
     bg: 'rgba(11,13,17,0.95)',
@@ -25,13 +26,10 @@ export default function ShareScenarioModal({ onClose, sandboxState }) {
         setLoading(true);
         setError(null);
         try {
-            const token = typeof window !== 'undefined' ? localStorage.getItem('supabase.auth.token') : null;
+            const token = getAccessToken();
             let headers = { 'Content-Type': 'application/json' };
             if (token) {
-                try {
-                    const parsed = JSON.parse(token);
-                    headers.Authorization = `Bearer ${parsed.currentSession?.access_token}`;
-                } catch (e) { }
+                headers.Authorization = `Bearer ${token}`;
             }
 
             const res = await fetch('/api/sandbox/create-share', {

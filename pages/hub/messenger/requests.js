@@ -36,7 +36,7 @@ export default function MessageRequests() {
 
     const loadRequests = async () => {
         try {
-            const authUser = await getAuthUser();
+            const authUser = getAuthUser();
             setUser(authUser);
 
             if (!authUser) {

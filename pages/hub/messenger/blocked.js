@@ -24,7 +24,7 @@ export default function BlockedUsers() {
 
     const loadBlockedUsers = async () => {
         try {
-            const authUser = await getAuthUser();
+            const authUser = getAuthUser();
             setUser(authUser);
 
             if (!authUser) {

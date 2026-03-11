@@ -90,7 +90,7 @@ export default function ReelsPage() {
     useEffect(() => {    const _c = new AbortController();
 
         const loadUserData = async(signal) => {
-            const authUser = await getAuthUser();
+            const authUser = getAuthUser();
             setUser(authUser);
 
             if (authUser) {
@@ -473,9 +473,9 @@ export default function ReelsPage() {
         };}, []);
   // Realtime subscription — live updates
   useEffect(() => {
-    if (!userId) return;
+    if (!user?.id) return;
     const _ch = supabase
-      .channel(`reels:${userId}`)
+      .channel(`reels:${user.id}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_reels' }, () => {
         loadReels();
       })
@@ -484,7 +484,7 @@ export default function ReelsPage() {
       })
       .subscribe();
     return () => { supabase.removeChannel(_ch); };
-  }, [userId]);
+  }, [user?.id]);
 
 
     if (loading) {

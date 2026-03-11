@@ -4,6 +4,7 @@
  */
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getAccessToken } from '../../lib/authUtils';
 
 const M = {
     bg: 'rgba(11,13,17,0.95)',
@@ -26,14 +27,10 @@ export default function SaveHandModal({ onClose, sandboxState, onSaveComplete })
     useEffect(() => {
         async function fetchFolders() {
             try {
-                const token = typeof window !== 'undefined' ? localStorage.getItem('supabase.auth.token') : null; // Use appropriate getter here normally, simplified for sandbox env
+                const token = getAccessToken();
                 let headers = {};
-                // Very basic token extraction if needed, typically we use getAccessToken()
                 if (token) {
-                    try {
-                        const parsed = JSON.parse(token);
-                        headers.Authorization = `Bearer ${parsed.currentSession?.access_token}`;
-                    } catch (e) { }
+                    headers.Authorization = `Bearer ${token}`;
                 }
 
                 const res = await fetch('/api/sandbox/saved-hands', { headers });
@@ -58,13 +55,10 @@ export default function SaveHandModal({ onClose, sandboxState, onSaveComplete })
 
         try {
             const tags = tagsInput.split(',').map(t => t.trim()).filter(Boolean);
-            const token = typeof window !== 'undefined' ? localStorage.getItem('supabase.auth.token') : null;
+            const token = getAccessToken();
             let headers = { 'Content-Type': 'application/json' };
             if (token) {
-                try {
-                    const parsed = JSON.parse(token);
-                    headers.Authorization = `Bearer ${parsed.currentSession?.access_token}`;
-                } catch (e) { }
+                headers.Authorization = `Bearer ${token}`;
             }
 
             const res = await fetch('/api/sandbox/save-hand', {

@@ -81,11 +81,14 @@ export default function CreateHomeGamePage() {
     setError(null);
 
     try {
-      const token = getAccessToken();
-      if (!token) {
+      const { ensureAuthReady } = await import('../../../../src/lib/authUtils');
+      const { supabase: sb } = await import('../../../../src/lib/supabase');
+      const authUser = await ensureAuthReady(sb);
+      if (!authUser) {
         router.push('/auth/login?redirect=/hub/commander/home-games/create');
         return;
       }
+      const token = getAccessToken();
 
       const payload = {
         ...formData,
