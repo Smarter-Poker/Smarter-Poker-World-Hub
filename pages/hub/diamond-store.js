@@ -704,12 +704,16 @@ export default function DiamondStorePage() {
         })();
         return () => _c.abort();
     }, []);
-    // Realtime subscription — live updates
+    // Realtime subscription — live updates (read actual VIP status from payload)
     useEffect(() => {
         if (!user?.id) return;
         const _ch = supabase
             .channel(`dstore:${user?.id}`)
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user?.id}` }, () => { setIsVip(false); })
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user?.id}` }, (payload) => {
+                if (payload.new && payload.new.is_vip !== undefined) {
+                    setIsVip(!!payload.new.is_vip);
+                }
+            })
             .subscribe();
         return () => { supabase.removeChannel(_ch); };
     }, [user?.id]);

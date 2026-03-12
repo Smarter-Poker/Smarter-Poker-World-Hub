@@ -4567,6 +4567,10 @@ function SocialMediaPage() {
                 (async () => {
                     await supabase.from('notifications').update({ read: true }).in('id', unreadIds);
                     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+                    // Sync: tell other tabs + header to update badge count
+                    broadcastSync('smarter_poker_notif_sync', 'refresh_notifications');
+                    eventBus.emit(EventType.NOTIFICATIONS_READ, { count: unreadIds.length }, 'SocialNotifDropdown');
+                    busEmit.dataMutated('notifications');
                 })();
             }
         }
