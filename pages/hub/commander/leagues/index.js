@@ -4,7 +4,7 @@
  * UI: Dark industrial sci-fi gaming UI with metallic chrome frames
  * Per API_REFERENCE.md: /leagues endpoints
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
@@ -12,6 +12,7 @@ import { Trophy, Users, Calendar, ChevronRight, Search, DollarSign } from 'lucid
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { usePersistedState } from '../../../../src/hooks/usePersistedState';
 import { getAccessToken } from '../../../../src/lib/authUtils';
+import { supabase } from '../../../../src/lib/supabase';
 
 function LeagueCard({ league, onView }) {
   const statusConfig = {
@@ -107,7 +108,7 @@ export default function LeaguesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = usePersistedState('sp-filters-commander-leagues', 'all');
 
-  const { data: swrData, isLoading: loading } = useSWR('/api/commander/leagues', async () => {
+  const { data: swrData, isLoading: loading, mutate: refreshLeagues } = useSWR('/api/commander/leagues', async () => {
     const token = getAccessToken();
     const [allRes, myRes] = await Promise.all([
       fetch('/api/commander/leagues'),
@@ -122,6 +123,15 @@ export default function LeaguesPage() {
   });
   const leagues = swrData?.leagues || [];
   const myLeagues = swrData?.myLeagues || [];
+
+  // Realtime listener — live updates when leagues are created/updated
+  useEffect(() => {
+    const ch = supabase
+      .channel('leagues-list')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_leagues' }, () => { refreshLeagues(); })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [refreshLeagues]);
 
   function handleViewLeague(leagueId) {
     router.push(`/hub/commander/leagues/${leagueId}`);

@@ -4,7 +4,7 @@
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  * Per API_REFERENCE.md: GET /leagues/:id, GET /leagues/:id/standings
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
@@ -12,6 +12,7 @@ import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { Trophy, Users, Calendar, ChevronLeft, Loader2, DollarSign, Clock } from 'lucide-react';
 import { getAuthUser, getAccessToken } from '../../../../src/lib/authUtils';
 import { usePersistedState } from '../../../../src/hooks/usePersistedState';
+import { supabase } from '../../../../src/lib/supabase';
 
 function StandingRow({ entry, rank, isCurrentUser }) {
   return (
@@ -86,12 +87,10 @@ export default function LeagueDetailPage() {
   // Get current user ID from Supabase session (set by useEffect below)
   const [currentUserId, setCurrentUserId] = React.useState(null);
   React.useEffect(() => {
+    if (!router.isReady) return;
     const authUser = getAuthUser();
-
-  if (!router.isReady) return null;
-
     if (authUser?.id) setCurrentUserId(authUser.id);
-  }, []);
+  }, [router.isReady]);
 
   // SWR — parallel fetch of league details + standings
   const swrKey = id ? `/api/commander/leagues/${id}` : null;
@@ -113,6 +112,16 @@ export default function LeagueDetailPage() {
   const league = swrData?.league || null;
   const standings = swrData?.standings || [];
   const events = swrData?.events || [];
+
+  // Realtime listener — live updates for league detail
+  useEffect(() => {
+    if (!id) return;
+    const ch = supabase
+      .channel(`league-detail:${id}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'commander_leagues', filter: `id=eq.${id}` }, () => { refreshLeague(); })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [id, refreshLeague]);
 
   async function handleJoinLeague(signal) {
     setJoining(true);

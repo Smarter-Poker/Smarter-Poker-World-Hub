@@ -511,7 +511,9 @@ function createTableClient(supabase, tableId, playerId, callbacks = {}) {
   return {
     channel,
     
-    // Send player action (fold/check/call/bet/raise/all_in)
+    /**
+     * @deprecated Use POST /api/poker/engine/action instead
+     */
     sendAction(action) {
       channel.send({
         type: 'broadcast',
@@ -520,7 +522,9 @@ function createTableClient(supabase, tableId, playerId, callbacks = {}) {
       });
     },
     
-    // Sit down at a seat
+    /**
+     * @deprecated Use POST /api/poker/engine/sit-down instead
+     */
     sitDown(seatIndex, buyIn, displayName, avatarUrl) {
       channel.send({
         type: 'broadcast',
@@ -529,7 +533,9 @@ function createTableClient(supabase, tableId, playerId, callbacks = {}) {
       });
     },
     
-    // Stand up (leave table)
+    /**
+     * @deprecated Use POST /api/poker/engine/stand-up instead
+     */
     standUp() {
       channel.send({
         type: 'broadcast',
@@ -538,7 +544,9 @@ function createTableClient(supabase, tableId, playerId, callbacks = {}) {
       });
     },
     
-    // Sit out
+    /**
+     * @deprecated Use POST /api/poker/engine/sit-out instead
+     */
     sitOut() {
       channel.send({
         type: 'broadcast',
@@ -547,7 +555,9 @@ function createTableClient(supabase, tableId, playerId, callbacks = {}) {
       });
     },
     
-    // Sit back in
+    /**
+     * @deprecated Use POST /api/poker/engine/sit-in instead
+     */
     sitIn() {
       channel.send({
         type: 'broadcast',
@@ -556,7 +566,9 @@ function createTableClient(supabase, tableId, playerId, callbacks = {}) {
       });
     },
     
-    // Add chips (rebuy)
+    /**
+     * @deprecated Use POST /api/poker/engine/add-chips instead
+     */
     addChips(amount) {
       channel.send({
         type: 'broadcast',
@@ -565,7 +577,9 @@ function createTableClient(supabase, tableId, playerId, callbacks = {}) {
       });
     },
     
-    // Join waitlist
+    /**
+     * @deprecated Use POST /api/poker/engine/join-waitlist instead
+     */
     joinWaitlist(displayName, seatPreference) {
       channel.send({
         type: 'broadcast',
@@ -574,7 +588,9 @@ function createTableClient(supabase, tableId, playerId, callbacks = {}) {
       });
     },
     
-    // Leave waitlist
+    /**
+     * @deprecated Use POST /api/poker/engine/leave-waitlist instead
+     */
     leaveWaitlist() {
       channel.send({
         type: 'broadcast',
@@ -583,7 +599,9 @@ function createTableClient(supabase, tableId, playerId, callbacks = {}) {
       });
     },
     
-    // Send chat message
+    /**
+     * @deprecated Use POST /api/poker/engine/chat instead
+     */
     sendChat(message) {
       channel.send({
         type: 'broadcast',

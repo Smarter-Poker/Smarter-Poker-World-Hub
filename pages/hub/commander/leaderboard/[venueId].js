@@ -4,13 +4,14 @@
  * Dark industrial sci-fi gaming theme
  */
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import { usePersistedFilters } from '../../../../src/hooks/usePersistedFilters';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { Trophy, Clock, DollarSign, Medal, Star, Calendar } from 'lucide-react';
 import LeaderboardDisplay from '../../../../src/components/commander/leaderboards/LeaderboardDisplay';
+import { supabase } from '../../../../src/lib/supabase';
 
 /* Inline LeaderboardRow replaced by shared LeaderboardDisplay component */
 
@@ -65,7 +66,7 @@ export default function LeaderboardPage() {
 
   // SWR — parallel fetch, re-fires when metric/period/venueId changes
   const swrKey = venueId ? `/api/commander/leaderboards/${venueId}?metric=${metric}&period=${period}` : null;
-  const { data: swrData, isLoading: loading } = useSWR(swrKey, async () => {
+  const { data: swrData, isLoading: loading, mutate: refreshLeaderboard } = useSWR(swrKey, async () => {
     const [leaderboardRes, promosRes, venueRes, listRes] = await Promise.all([
       fetch(`/api/commander/leaderboards/${venueId}?metric=${metric}&period=${period}`),
       fetch(`/api/commander/promotions?venue_id=${venueId}&active=true`),
@@ -84,6 +85,17 @@ export default function LeaderboardPage() {
   const promotions = swrData?.promotions || [];
   const venue = swrData?.venue || null;
   const leaderboardsList = swrData?.leaderboardsList || [];
+
+  // Realtime listener — live updates for venue leaderboard
+  useEffect(() => {
+    if (!venueId) return;
+    const ch = supabase
+      .channel(`lb:${venueId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_checkins', filter: `venue_id=eq.${venueId}` }, () => { refreshLeaderboard(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_leaderboard_entries' }, () => { refreshLeaderboard(); })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [venueId, refreshLeaderboard]);
 
   const METRICS = [
     { value: 'hours', label: 'Hours Played', icon: Clock },

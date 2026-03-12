@@ -1,18 +1,16 @@
 /**
- * useRealtimeUpdates — Supabase Realtime Subscriptions for Commander
+ * @deprecated — USE useCommanderSync OR DIRECT postgres_changes INSTEAD
  * ═══════════════════════════════════════════════════════════════════
  *
- * Subscribes to postgres_changes on Commander tables.
- * Used by pages that need granular per-table callbacks.
+ * This file is preserved as a re-export shim for backward compatibility.
+ * All pages now use either:
+ *   1. useCommanderSync  — BroadcastChannel-based cross-tab sync
+ *   2. Direct supabase.channel().on('postgres_changes', ...) — per-page realtime
  *
- * For general "refetch everything" sync, prefer useCommanderSync instead.
- *
- * Hardening:
- *   ✓ Auto-reconnect on channel error (max 5 attempts, exponential backoff)
- *   ✓ Stable callback ref (no stale closures)
- *   ✓ Debug-only logging (no console.log in production)
- *   ✓ Includes commander_floor_calls subscription
+ * useTournamentClock is still valid (broadcast-based, unique functionality).
+ * useRealtimeUpdates should NOT be used for new code.
  */
+
 import { useEffect, useRef } from 'react';
 import { supabase } from '../supabase';
 
