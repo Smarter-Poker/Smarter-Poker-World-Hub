@@ -49,8 +49,8 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
     const authRetryRef = useRef(null);
     const authAckedRef = useRef(false);
     const retryCountRef = useRef(0);
-    const heartbeatRef = useRef(null);
     const heartbeatTimerRef = useRef(null);
+    const resetHeartbeatTimerRef = useRef(null);
 
     // Stabilize query object identity to prevent infinite re-renders
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -187,7 +187,7 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
                 case 'NAVIGATE':
                 case 'CLUB_ARENA_NAVIGATE':
                     if (data.url) window.location.href = data.url;
-                    if (data.path) window.location.href = data.path;
+                    else if (data.path) window.location.href = data.path;
                     break;
 
                 /* URL Sync — SPA reports its current route */
@@ -204,7 +204,9 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
 
                 /* Heartbeat — SPA is alive, reset the dead-iframe timer */
                 case 'CLUB_ARENA_HEARTBEAT':
-                    resetHeartbeatTimer();
+                    // Use ref to always call the latest version of resetHeartbeatTimer
+                    // (avoids stale closure since this useEffect has [] deps)
+                    resetHeartbeatTimerRef.current?.();
                     break;
             }
         };
@@ -226,6 +228,11 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
             }
         }, HEARTBEAT_TIMEOUT_MS);
     }, [loadState]);
+
+    // Keep the ref in sync so the [] deps message handler always has the latest function
+    useEffect(() => {
+        resetHeartbeatTimerRef.current = resetHeartbeatTimer;
+    }, [resetHeartbeatTimer]);
 
     // Start heartbeat monitoring once the iframe is ready and auth is complete
     useEffect(() => {
