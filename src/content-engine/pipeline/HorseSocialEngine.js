@@ -394,7 +394,7 @@ async function commentOnPosts(maxComments = 20, includeRealUsers = true) {
     // Get all horses
     const { data: allHorses } = await supabase
         .from('content_authors')
-        .select('id, name, profile_id')
+        .select('id, name, profile_id, avatar_url')
         .eq('is_active', true)
         .not('profile_id', 'is', null);
 
