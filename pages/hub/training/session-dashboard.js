@@ -392,7 +392,9 @@ export default function SessionDashboard() {
 
         if (res.ok) {
           const data = await res.json();
-          setSessions(Array.isArray(data.sessions) ? data.sessions : Array.isArray(data) ? data : []);
+          const allSessions = Array.isArray(data.sessions) ? data.sessions : Array.isArray(data) ? data : [];
+          // Filter out nodelocking profile storage entries (not real training sessions)
+          setSessions(allSessions.filter((s) => (s.game_id || s.gameId) !== 'nodelocking_profile'));
         }
       } catch (e) {
         console.warn('[Dashboard] Fetch failed, using mock data');
@@ -421,7 +423,8 @@ export default function SessionDashboard() {
           });
           if (res.ok) {
             const data = await res.json();
-            setSessions(Array.isArray(data.sessions) ? data.sessions : Array.isArray(data) ? data : []);
+            const allSessions = Array.isArray(data.sessions) ? data.sessions : Array.isArray(data) ? data : [];
+            setSessions(allSessions.filter((s) => (s.game_id || s.gameId) !== 'nodelocking_profile'));
           }
         } catch (e) { /* silent */ }
       };
