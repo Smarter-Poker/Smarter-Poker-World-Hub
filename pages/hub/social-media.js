@@ -4235,8 +4235,8 @@ function SocialMediaPage() {
 
     // Cross-tab Social Feed sync
     useEffect(() => {
-        const cleanupSocialBc = listenBroadcast('smarter_poker_social_sync', (event) => {
-            if (event.data === 'refresh_feed') {
+        const cleanupSocialBc = listenBroadcast('smarter_poker_social_sync', (msg) => {
+            if (msg === 'refresh_feed') {
                 console.log('[Social] Refreshing feed from other tab');
                 loadFeed(0, false);
             }

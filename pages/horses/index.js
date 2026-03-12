@@ -458,8 +458,8 @@ export default function HorsesAdmin() {
     if (!user) return;
 
     // 1. Cross-Tab BroadcastChannel setup
-    const cleanupBc = listenBroadcast(SYNC_CHANNEL, (event) => {
-      if (event.data?.type === 'sync_update') {
+    const cleanupBc = listenBroadcast(SYNC_CHANNEL, (msg) => {
+      if (msg?.type === 'sync_update') {
         console.log('[Horses Sync] Received cross-tab broadcast, refreshing data...');
         loadDataRef.current();
       }

@@ -238,8 +238,8 @@ export default function SettingsPage() {
 
     // Cross-tab Settings sync
     useEffect(() => {
-        const cleanup = listenBroadcast('smarter_poker_settings_sync', (event) => {
-            if (event.data === 'refresh_settings') {
+        const cleanup = listenBroadcast('smarter_poker_settings_sync', (msg) => {
+            if (msg === 'refresh_settings') {
                 console.log('[Settings] 📡 Refreshing settings from other tab');
                 if (user?.id) {
                     supabase
