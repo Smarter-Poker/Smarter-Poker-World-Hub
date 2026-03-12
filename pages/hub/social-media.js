@@ -69,7 +69,7 @@ import PageTransition from '../../src/components/transitions/PageTransition';
 import toast from '../../src/stores/toastStore';
 import { getAccessToken } from '../../src/lib/authUtils';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
-import { broadcastSync, listenBroadcast } from '../../src/lib/broadcastSync';
+import { broadcastSync, listenBroadcast, BROADCAST_TAB_ID } from '../../src/lib/broadcastSync';
 
 // Light Theme Colors (SmarterPoker-style)
 const C = {
@@ -4576,11 +4576,16 @@ function SocialMediaPage() {
         if (showNotifications && notifications.length > 0 && user) {
             const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
             if (unreadIds.length > 0) {
-                // Mark all as read IMMEDIATELY
+                // Mark all as read IMMEDIATELY (with error boundary)
                 (async () => {
-                    await supabase.from('notifications').update({ read: true }).in('id', unreadIds);
-                    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+                    try {
+                        await supabase.from('notifications').update({ read: true }).in('id', unreadIds);
+                        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+                    } catch (e) {
+                        console.error('[Social] Notification mark-read failed:', e);
+                    }
                     // Sync: tell other tabs + header to update badge count
+                    // Fires regardless of DB success — header should re-fetch to get accurate count
                     broadcastSync('smarter_poker_notif_sync', 'refresh_notifications');
                     eventBus.emit(EventType.NOTIFICATIONS_READ, { count: unreadIds.length }, 'SocialNotifDropdown');
                     busEmit.dataMutated('notifications');

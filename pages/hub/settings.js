@@ -24,7 +24,7 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import InviteFriendsModal from '../../src/components/ui/InviteFriendsModal';
 import { getAccessToken } from '../../src/lib/authUtils';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
-import { broadcastSync, listenBroadcast } from '../../src/lib/broadcastSync';
+import { broadcastSync, broadcastSyncDebounced, listenBroadcast, BROADCAST_TAB_ID } from '../../src/lib/broadcastSync';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TOGGLE SWITCH COMPONENT
@@ -226,8 +226,8 @@ export default function SettingsPage() {
             }, async () => {
                 console.log('[Settings] 🔄 Profile updated via realtime');
                 await loadSettings();
-                // Broadcast to other tabs
-                broadcastSync('smarter_poker_settings_sync', 'refresh_settings');
+                // Broadcast to other tabs (debounced to coalesce rapid profile changes)
+                broadcastSyncDebounced('smarter_poker_settings_sync', { action: 'refresh_settings', tabId: BROADCAST_TAB_ID });
             })
             .subscribe();
 
@@ -236,10 +236,13 @@ export default function SettingsPage() {
         };
     }, [user?.id]);
 
-    // Cross-tab Settings sync
+    // Cross-tab Settings sync (with self-tab suppression)
     useEffect(() => {
         const cleanup = listenBroadcast('smarter_poker_settings_sync', (msg) => {
-            if (msg === 'refresh_settings') {
+            // Support both legacy string payloads and new object payloads
+            const isRefresh = msg === 'refresh_settings' || msg?.action === 'refresh_settings';
+            const isSameTab = msg?.tabId === BROADCAST_TAB_ID;
+            if (isRefresh && !isSameTab) {
                 console.log('[Settings] 📡 Refreshing settings from other tab');
                 if (user?.id) {
                     supabase
