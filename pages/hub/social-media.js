@@ -5279,49 +5279,9 @@ function SocialMediaPage() {
 
             console.log('[Social] ✅ Post created successfully:', data.id);
 
-            // Insert mentions if any
-            if (mentions.length > 0 && data?.id) {
-                // Look up user IDs for mentioned usernames
-                const { data: mentionedUsers } = await supabase
-                    .from('profiles')
-                    .select('id, username')
-                    .in('username', mentions);
-
-                if (mentionedUsers?.length > 0) {
-                    const mentionInserts = mentionedUsers.map(u => ({
-                        post_id: data.id,
-                        mentioned_user_id: u.id,
-                        mentioned_by_id: user.id
-                    }));
-                    await supabase.from('mentions').insert(mentionInserts);
-                }
-            }
-
-            // AUTO-SAVE VIDEOS TO REELS 
-            // When a video is posted, automatically create a Reel entry
-            if (type === 'video' && urls.length > 0) {
-                const videoUrl = urls.find(url =>
-                    url.includes('.mp4') || url.includes('.webm') || url.includes('.mov') ||
-                    url.includes('video') || !url.match(/\.(jpg|jpeg|png|gif|webp)$/i)
-                ) || urls[0];
-
-                try {
-                    await supabase.from('social_reels').insert({
-                        author_id: user.id,
-                        video_url: videoUrl,
-                        caption: content || null,
-                        source_post_id: data.id,
-                        is_public: true,
-                        view_count: 0,
-                        like_count: 0
-                    });
-                    console.log(' Video auto-saved to Reels!');
-                } catch (reelError) {
-                    console.error('Failed to auto-save to Reels:', reelError);
-                    // Don't fail the post if Reel creation fails
-                }
-            }
-
+            // ═══ PRIMARY SUCCESS: Add to feed IMMEDIATELY ═══
+            // This must happen before ANY secondary operations (mentions, reels)
+            // so that failures in those don't prevent the post from appearing
             setPosts(prev => [{
                 id: data.id, authorId: user.id, content, contentType: type,
                 mediaUrls: urls, likeCount: 0, commentCount: 0, shareCount: 0,
@@ -5342,6 +5302,50 @@ function SocialMediaPage() {
             // Show success toast
             toast.success('Posted Successfully!', 2000);
             busEmit.dataMutated('social');
+
+            // ═══ SECONDARY OPERATIONS (isolated — failure must NOT affect post UX) ═══
+            try {
+                // Insert mentions if any
+                if (mentions.length > 0 && data?.id) {
+                    // Look up user IDs for mentioned usernames
+                    const { data: mentionedUsers } = await supabase
+                        .from('profiles')
+                        .select('id, username')
+                        .in('username', mentions);
+
+                    if (mentionedUsers?.length > 0) {
+                        const mentionInserts = mentionedUsers.map(u => ({
+                            post_id: data.id,
+                            mentioned_user_id: u.id,
+                            mentioned_by_id: user.id
+                        }));
+                        await supabase.from('mentions').insert(mentionInserts);
+                    }
+                }
+
+                // AUTO-SAVE VIDEOS TO REELS 
+                // When a video is posted, automatically create a Reel entry
+                if (type === 'video' && urls.length > 0) {
+                    const videoUrl = urls.find(url =>
+                        url.includes('.mp4') || url.includes('.webm') || url.includes('.mov') ||
+                        url.includes('video') || !url.match(/\.(jpg|jpeg|png|gif|webp)$/i)
+                    ) || urls[0];
+
+                    await supabase.from('social_reels').insert({
+                        author_id: user.id,
+                        video_url: videoUrl,
+                        caption: content || null,
+                        source_post_id: data.id,
+                        is_public: true,
+                        view_count: 0,
+                        like_count: 0
+                    });
+                    console.log(' Video auto-saved to Reels!');
+                }
+            } catch (secondaryErr) {
+                // Mention/Reel failures are non-critical — post was already saved and displayed
+                console.warn('[Social] Secondary operation failed (post was saved):', secondaryErr.message);
+            }
 
             return true;
         } catch (e) { console.error('Post error:', e); return false; }
