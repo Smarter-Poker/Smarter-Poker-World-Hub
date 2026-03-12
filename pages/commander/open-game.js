@@ -81,14 +81,13 @@ export default function OpenGame() {
   // Fetch waitlist for this game type
   useEffect(() => {
     if (step !== 3 || !selectedGame) return;
+    const controller = new AbortController();
     const fetchWaitlist = async () => {
-        const controller = new AbortController();
-        const { signal } = controller;
       try {
         const token = getToken();
         const venueId = getVenueId();
         const staffSession = localStorage.getItem('commander_staff') || '';
-        const res = await fetch(`/api/commander/waitlist?venue_id=${venueId}`, { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } });
+        const res = await fetch(`/api/commander/waitlist?venue_id=${venueId}`, { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }, signal: controller.signal });
         const json = await res.json();
         if (json.success) {
           const matching = (json.data || []).filter(w =>
@@ -97,9 +96,10 @@ export default function OpenGame() {
           );
           setWaitlistPlayers(matching.slice(0, 10));
         }
-      } catch (err) { console.error(err); }
+      } catch (err) { if (err.name !== 'AbortError') console.error(err); }
     };
     fetchWaitlist();
+    return () => controller.abort();
   }, [step, selectedGame]);
 
   const stakes = selectedStakes || customStakes;

@@ -36,7 +36,7 @@ export function useTrainingRealtime(userId) {
 
     // ── Refs for reconnect / visibility / debounce ──
     const channelRefs = useRef({ achievement: null, leaderboard: null, challenge: null });
-    const debounceTimerRef = useRef(null);
+    const debounceTimersRef = useRef({}); // Per-channel debounce to prevent cross-channel swallowing
     const reconnectCountRef = useRef(0);
     const reconnectTimerRef = useRef(null);
     const pendingWhileHiddenRef = useRef(false);
@@ -52,16 +52,16 @@ export function useTrainingRealtime(userId) {
             return;
         }
 
-        // ── Debounced generic handler ────────────────────────────
-        const debouncedCallback = (cb) => {
+        // ── Debounced generic handler (per-channel to avoid cross-swallowing) ──
+        const debouncedCallback = (channelKey, cb) => {
             // If tab is hidden, queue for when it becomes visible
             if (typeof document !== 'undefined' && document.hidden) {
                 pendingWhileHiddenRef.current = true;
                 return;
             }
-            if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-            debounceTimerRef.current = setTimeout(() => {
-                debounceTimerRef.current = null;
+            if (debounceTimersRef.current[channelKey]) clearTimeout(debounceTimersRef.current[channelKey]);
+            debounceTimersRef.current[channelKey] = setTimeout(() => {
+                debounceTimersRef.current[channelKey] = null;
                 if (mountedRef.current) cb();
             }, DEBOUNCE_MS);
         };
@@ -191,7 +191,7 @@ export function useTrainingRealtime(userId) {
                         table: 'training_user_achievements',
                         filter: `user_id=eq.${userId}`
                     },
-                    (payload) => debouncedCallback(() => handleAchievement(payload))
+                    (payload) => debouncedCallback('achievement', () => handleAchievement(payload))
                 )
                 .subscribe(handleStatus('achievements'));
 
@@ -206,7 +206,7 @@ export function useTrainingRealtime(userId) {
                         table: 'training_leaderboard',
                         filter: `user_id=eq.${userId}`
                     },
-                    (payload) => debouncedCallback(() => handleLeaderboard(payload))
+                    (payload) => debouncedCallback('leaderboard', () => handleLeaderboard(payload))
                 )
                 .subscribe(handleStatus('leaderboard'));
 
@@ -221,7 +221,7 @@ export function useTrainingRealtime(userId) {
                         table: 'training_user_challenges',
                         filter: `user_id=eq.${userId}`
                     },
-                    (payload) => debouncedCallback(() => handleChallenge(payload))
+                    (payload) => debouncedCallback('challenge', () => handleChallenge(payload))
                 )
                 .subscribe(handleStatus('challenges'));
         };
@@ -233,10 +233,8 @@ export function useTrainingRealtime(userId) {
             mountedRef.current = false;
             console.log('[TrainingRealtime] Cleaning up subscriptions');
 
-            if (debounceTimerRef.current) {
-                clearTimeout(debounceTimerRef.current);
-                debounceTimerRef.current = null;
-            }
+            Object.values(debounceTimersRef.current).forEach(t => { if (t) clearTimeout(t); });
+            debounceTimersRef.current = {};
             if (reconnectTimerRef.current) {
                 clearTimeout(reconnectTimerRef.current);
                 reconnectTimerRef.current = null;
