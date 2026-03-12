@@ -138,8 +138,6 @@ export default function DailyPresetsPage() {
   }
 
   const fetchData = useCallback(async () => {
-    const controller = new AbortController();
-    const { signal } = controller;
     try {
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': localStorage.getItem('commander_staff') || '' };
@@ -195,6 +193,8 @@ export default function DailyPresetsPage() {
         setTimeout(() => setSuccess(null), 5000);
         fetchData();
         broadcastChange('tables');
+        broadcastChange('games');
+        broadcastChange('tournaments');
         broadcastChange('settings');
       } else {
         setError(json.error || 'Failed to apply preset');
