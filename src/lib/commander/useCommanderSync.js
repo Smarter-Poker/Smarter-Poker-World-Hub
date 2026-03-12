@@ -72,6 +72,8 @@ const TABLE_TO_ENTITY = {
     commander_tournaments: 'tournaments',
     commander_tournament_entries: 'tournaments',  // Entry changes affect tournaments
     commander_incidents: 'incidents',
+    commander_notifications: 'notifications',
+    commander_club_announcements: 'announcements',
 };
 
 // ─── Entity → Supabase tables reverse map (Optimization 2) ────
@@ -86,6 +88,8 @@ const ENTITY_TO_TABLES = {
     dealers: ['commander_dealers', 'commander_dealer_rotations'],
     tournaments: ['commander_tournaments', 'commander_tournament_entries'],
     incidents: ['commander_incidents'],
+    notifications: ['commander_notifications'],
+    announcements: ['commander_club_announcements'],
 };
 
 // All Supabase tables (used when no entity filter is specified)
