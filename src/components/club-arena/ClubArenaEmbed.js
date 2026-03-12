@@ -342,12 +342,6 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
                     title="Club Arena"
                 />
 
-                <style jsx>{`
-                    @keyframes shimmer {
-                        0% { background-position: -200% 0; }
-                        100% { background-position: 200% 0; }
-                    }
-                `}</style>
             </div>
         </>
     );

@@ -311,7 +311,6 @@ export function AvatarProvider({ children }) {
     useEffect(() => {
         if (!user?.id) return;
         let vipChannel = null;
-        let vipBc = null;
 
         const refreshVipStatus = async () => {
             await fetchVipStatus(user.id);

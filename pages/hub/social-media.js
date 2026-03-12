@@ -4208,6 +4208,18 @@ function SocialMediaPage() {
                     eventBus.emit('SOCIAL_COMMENT_UPDATE', { postId: payload.new.post_id }, 'SocialRealtime');
                 }
             })
+            .on('broadcast', { event: 'typing' }, (payload) => {
+                const p = payload?.payload;
+                if (p) {
+                    eventBus.emit('SOCIAL_TYPING_UPDATE', {
+                        postId: p.post_id,
+                        userId: p.user_id,
+                        name: p.name,
+                        avatar: p.avatar_url || null,
+                        isTyping: p.isTyping
+                    }, 'SocialRealtime');
+                }
+            })
             .subscribe();
 
         return () => {
