@@ -172,6 +172,13 @@ async function processDirectMessages() {
 
         if (!history?.length) continue;
 
+        // HARD LIMIT: Max 3 horse replies per conversation (prevents infinite bot messaging)
+        const horseReplyCount = history.filter(h => h.sender_id === targetHorseId).length;
+        if (horseReplyCount >= 3) {
+            console.log(`   ${horse.name}: conversation capped at ${horseReplyCount} replies, skipping.`);
+            continue;
+        }
+
         // Ensure the LAST message was from the human. If the horse already replied, skip.
         if (history[history.length - 1].sender_id === targetHorseId) continue;
 
