@@ -325,10 +325,21 @@ export default function ThreePillHeader({
 
     // ── VIP status bus listener — updates VIP badge in real time ──
     // Triggered by AvatarContext after successful signup
+    // AbortController prevents redundant concurrent fetches when both
+    // 'profile-updated' and 'vip-status-changed' fire simultaneously
+    const profileFetchControllerRef = useRef(null);
     useEffect(() => {
         const handleProfileUpdate = async () => {
             // Re-fetch header stats to pick up all profile changes
             if (!user?.id) return;
+
+            // Cancel any in-flight profile fetch to prevent races
+            if (profileFetchControllerRef.current) {
+                profileFetchControllerRef.current.abort();
+            }
+            const controller = new AbortController();
+            profileFetchControllerRef.current = controller;
+
             try {
                 // Get access token for JWT auth
                 let accessToken = null;
@@ -344,6 +355,7 @@ export default function ThreePillHeader({
                         ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
                     },
                     body: JSON.stringify({ userId: user.id }),
+                    signal: controller.signal,
                 });
                 const result = await response.json();
                 if (result.success && result.profile) {
@@ -365,6 +377,8 @@ export default function ThreePillHeader({
                     console.log('[ThreePillHeader] 🚌 Profile refreshed via bus event');
                 }
             } catch (e) {
+                // Silently ignore AbortError — expected when superseded by a newer fetch
+                if (e.name === 'AbortError') return;
                 console.warn('[ThreePillHeader] Profile refresh failed:', e.message);
             }
         };
