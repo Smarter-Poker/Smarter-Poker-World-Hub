@@ -6,7 +6,7 @@
 import SEOHead from '../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import toast from '../../src/stores/toastStore';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../src/lib/supabase';
 import { getAuthUser } from '../../src/lib/authUtils';
 import { eventBus, EventType, busEmit } from '../../src/engine/EventBus';
