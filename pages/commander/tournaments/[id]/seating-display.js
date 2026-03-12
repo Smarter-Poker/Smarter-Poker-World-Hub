@@ -30,8 +30,8 @@ export default function SeatingDisplay() {
     if (!id) return;
     try {
       const [tRes, eRes] = await Promise.all([
-        fetch(`/api/commander/tournaments/${id}`).then(r => r.json()),
-        fetch(`/api/commander/tournaments/${id}/entries`).then(r => r.json())
+        fetch(`/api/commander/tournaments/${id}`).then(r => r.json()).catch(() => ({ success: false })),
+        fetch(`/api/commander/tournaments/${id}/entries`).then(r => r.json()).catch(() => ({ success: false }))
       ]);
       if (tRes.success) setTournament(tRes.data);
       if (eRes.success) setEntries(eRes.data || []);

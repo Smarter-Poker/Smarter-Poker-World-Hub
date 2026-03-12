@@ -53,8 +53,8 @@ export default function CloseDay() {
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
       const fetchOpts = signal ? { headers, signal } : { headers };
       const [tablesRes, waitlistRes, sessionsRes, reportRes] = await Promise.all([
-        fetch(`/api/commander/tables?venue_id=${venueId}`, fetchOpts).then(r => r.json()),
-        fetch(`/api/commander/waitlist?venue_id=${venueId}`, fetchOpts).then(r => r.json()),
+        fetch(`/api/commander/tables?venue_id=${venueId}`, fetchOpts).then(r => r.json()).catch(() => ({ data: [] })),
+        fetch(`/api/commander/waitlist?venue_id=${venueId}`, fetchOpts).then(r => r.json()).catch(() => ({ data: [] })),
         fetch(`/api/commander/time-billing/sessions?status=active&venue_id=${venueId}`, fetchOpts).then(r => r.json()).catch(() => ({ data: [] })),
         fetch(`/api/commander/reports/daily?venue_id=${venueId}`, fetchOpts).then(r => r.json()).catch(() => ({ data: {} }))
       ]);

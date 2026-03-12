@@ -74,7 +74,7 @@ export default function TournamentPublic() {
     try {
       const fo = signal ? { signal } : {};
       const [tRes, cRes, eRes] = await Promise.all([
-        fetch(`/api/commander/tournaments/${id}`, fo).then(r => r.json()),
+        fetch(`/api/commander/tournaments/${id}`, fo).then(r => r.json()).catch(() => ({ success: false })),
         fetch(`/api/commander/tournaments/${id}/clock`, fo).then(r => r.json()).catch(() => ({})),
         fetch(`/api/commander/tournaments/${id}/entries`, fo).then(r => r.json()).catch(() => ({ entries: [] }))
       ]);

@@ -31,8 +31,8 @@ export default function StructureDisplay() {
     if (!id) return;
     try {
       const [tRes, cRes] = await Promise.all([
-        fetch(`/api/commander/tournaments/${id}`).then(r => r.json()),
-        fetch(`/api/commander/tournaments/${id}/clock`).then(r => r.json())
+        fetch(`/api/commander/tournaments/${id}`).then(r => r.json()).catch(() => ({ success: false })),
+        fetch(`/api/commander/tournaments/${id}/clock`).then(r => r.json()).catch(() => ({ success: false }))
       ]);
       if (tRes.success) setTournament(tRes.data);
       if (cRes.success) setClockData(cRes.data);
