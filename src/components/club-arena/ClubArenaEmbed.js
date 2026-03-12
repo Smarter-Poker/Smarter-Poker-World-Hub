@@ -111,7 +111,7 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
         authAckedRef.current = false;
         // Force iframe re-mount by appending a cache-busting param
         setIframeSrc(prev => {
-            const clean = prev.replace(/[?&]_retry=\d+/, '');
+            const clean = prev.replace(/[?&]_retry=\d+/g, '');
             const sep = clean.includes('?') ? '&' : '?';
             return `${clean}${sep}_retry=${Date.now()}`;
         });
@@ -277,7 +277,7 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
                         <button onClick={handleRetry} style={retryButtonStyle}>
                             Retry Connection
                         </button>
-                        {retryCountRef.current > 1 && (
+                        {retryCountRef.current >= 1 && (
                             <p style={{
                                 color: '#64748b',
                                 fontSize: '11px',
@@ -309,9 +309,6 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
                 />
 
                 <style jsx>{`
-                    @keyframes spin {
-                        to { transform: rotate(360deg); }
-                    }
                     @keyframes shimmer {
                         0% { background-position: -200% 0; }
                         100% { background-position: 200% 0; }
