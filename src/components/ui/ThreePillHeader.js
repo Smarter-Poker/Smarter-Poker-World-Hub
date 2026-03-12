@@ -396,6 +396,10 @@ export default function ThreePillHeader({
         return () => {
             window.removeEventListener('profile-updated', handleProfileUpdate);
             window.removeEventListener('vip-status-changed', handleVipChange);
+            // Abort any in-flight fetch to prevent state updates after unmount
+            if (profileFetchControllerRef.current) {
+                profileFetchControllerRef.current.abort();
+            }
         };
     }, [user?.id]);
 
