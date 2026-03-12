@@ -215,11 +215,13 @@ export default function AnnouncementsDisplay() {
   const deleteAnnouncement = async (id) => {
     if (!confirm('Delete this announcement?')) return;
     try {
-      await fetch(`/api/commander/announcements?id=${id}`, {
+      const res = await fetch(`/api/commander/announcements?id=${id}`, {
         method: 'DELETE', headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
       });
-      fetchData(); fetchAllAnnouncements();
-      broadcastChange('settings');
+      if (res.ok) {
+        fetchData(); fetchAllAnnouncements();
+        broadcastChange('settings');
+      }
     } catch (err) { console.error(err); }
   };
 

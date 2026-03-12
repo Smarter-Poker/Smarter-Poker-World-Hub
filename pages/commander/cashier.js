@@ -761,30 +761,25 @@ export default function Cashier() {
         } catch { /* search failed — still record the void but can't update balance */ }
       }
 
-      // 4. If time void, subtract the minutes back
       if (type === 'time' && memberId && details.minutes) {
         const newBal = Math.max(0, (memberBalance || 0) - details.minutes);
-        await fetch(`/api/commander/members/${memberId}`, {
-          method: 'PUT', headers,
-          body: JSON.stringify({ time_balance_minutes: newBal })
-        });
-        if (selectedPlayer?.id === memberId) {
+        if (tRes.ok && selectedPlayer?.id === memberId) {
           setSelectedPlayer(prev => ({ ...prev, time_balance_minutes: newBal }));
         }
       }
 
       // 5. If membership void, revert membership to none
       if (type === 'membership' && memberId) {
-        await fetch(`/api/commander/members/${memberId}`, {
+        const mRes = await fetch(`/api/commander/members/${memberId}`, {
           method: 'PUT', headers,
           body: JSON.stringify({ membership_tier: null, membership_status: 'expired', membership_expires: new Date().toISOString() })
         });
-        if (selectedPlayer?.id === memberId) {
+        if (mRes.ok && selectedPlayer?.id === memberId) {
           setSelectedPlayer(prev => ({ ...prev, membership_tier: null, membership_status: 'expired', membership_expires: null }));
         }
       }
 
-      if (res.ok) {
+      if (patchRes.ok) {
         setMessage({ type: 'success', text: `${actionLabel} Processed — $${details.amount}` });
         playSuccessSound();
         showSuccessPopup({ title: `${actionLabel} Processed`, amount: `$${details.amount}`, detail: details.player_name || 'Unknown' });

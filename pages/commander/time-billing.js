@@ -293,7 +293,7 @@ export default function TimeBilling() {
             });
 
             const venueId = getVenueId();
-            await fetch(`/api/commander/cashier`, {
+            const res = await fetch(`/api/commander/cashier`, {
               method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
               body: JSON.stringify({
                 venue_id: venueId,
@@ -308,8 +308,10 @@ export default function TimeBilling() {
                 staff_name: staff?.display_name || 'Staff',
               })
             });
-            await fetchData();
-            broadcastChange('tables');
+            if (res.ok) {
+              await fetchData();
+              broadcastChange('tables');
+            }
           }
         }
       }

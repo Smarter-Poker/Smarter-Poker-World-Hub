@@ -327,13 +327,15 @@ export default function StreamingPage() {
     try {
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       const staffSession = localStorage.getItem('commander_staff') || '';
-      await fetch(`/api/commander/streaming/${tableId}/start`, {
+      const res = await fetch(`/api/commander/streaming/${tableId}/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ venue_id: venueId })
       });
-      fetchStreams();
-      broadcastChange('streaming');
+      if (res.ok) {
+        fetchStreams();
+        broadcastChange('streaming');
+      }
     } catch (err) {
       console.error('Start stream failed:', err);
     }
@@ -343,13 +345,15 @@ export default function StreamingPage() {
     try {
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       const staffSession = localStorage.getItem('commander_staff') || '';
-      await fetch(`/api/commander/streaming/${tableId}/stop`, {
+      const res = await fetch(`/api/commander/streaming/${tableId}/stop`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ venue_id: venueId })
       });
-      fetchStreams();
-      broadcastChange('streaming');
+      if (res.ok) {
+        fetchStreams();
+        broadcastChange('streaming');
+      }
     } catch (err) {
       console.error('Stop stream failed:', err);
     }
@@ -359,14 +363,16 @@ export default function StreamingPage() {
     try {
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       const staffSession = localStorage.getItem('commander_staff') || '';
-      await fetch(`/api/commander/streaming/${tableId}/config`, {
+      const res = await fetch(`/api/commander/streaming/${tableId}/config`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ venue_id: venueId, ...config })
       });
-      setConfiguring(null);
-      fetchStreams();
-      broadcastChange('streaming');
+      if (res.ok) {
+        setConfiguring(null);
+        fetchStreams();
+        broadcastChange('streaming');
+      }
     } catch (err) {
       console.error('Save config failed:', err);
     }

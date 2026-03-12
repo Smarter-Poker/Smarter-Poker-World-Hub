@@ -82,7 +82,7 @@ export default function HighHands() {
         })
       });
       const json = await res.json();
-      if (json.high_hand) {
+      if (res.ok && json.high_hand) {
         setMessage({ type: 'success', text: 'High Hand Recorded!' });
         busEmit.celebration('confetti');
         setShowForm(false);

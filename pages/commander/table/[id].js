@@ -85,13 +85,15 @@ export default function TableSeating() {
   const removePlayer = async (sessionId) => {
     try {
       const token = getToken();
-      await fetch(`/api/commander/dealer/sessions/${sessionId}/end`, {
+      const res = await fetch(`/api/commander/dealer/sessions/${sessionId}/end`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() },
         body: JSON.stringify({ reason: 'removed' })
       });
-      fetchData();
-      broadcastChange('tables');
+      if (res.ok) {
+        fetchData();
+        broadcastChange('tables');
+      }
     } catch (err) { console.error(err); }
   };
 

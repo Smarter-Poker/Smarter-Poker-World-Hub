@@ -214,11 +214,12 @@ export default function RegisterPage() {
       // Redeem promo code if one was validated
       if (promoCode.trim() && promoStatus === 'valid' && data.userId) {
         try {
-          await fetch('/api/promo/redeem-promo-code', {
+          const promoRes = await fetch('/api/promo/redeem-promo-code', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ code: promoCode.trim(), userId: data.userId })
           });
+          if (!promoRes.ok) console.warn('Promo payload failed');
         } catch (e) {
           console.error('Promo redemption error:', e);
         }

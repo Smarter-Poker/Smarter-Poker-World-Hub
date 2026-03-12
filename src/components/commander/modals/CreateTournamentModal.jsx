@@ -183,19 +183,14 @@ function CreateTournamentModal({ isOpen, onClose, onSubmit, venueId }) {
         body: JSON.stringify(payload),
       });
 
+      if (!res.ok) throw new Error('API failure');
       const data = await res.json();
 
       if (data.success) {
         // Sync to Club Page
         if (postToClubPage) {
           try {
-            await fetch('/api/commander/sync-tournament-to-club', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'x-staff-session': staffSession || '',
-              },
-              body: JSON.stringify({
+            const syncPayload = {
                 venue_id: venueId,
                 tournament: {
                   ...(data.data?.tournament || {}),
@@ -208,8 +203,16 @@ function CreateTournamentModal({ isOpen, onClose, onSubmit, venueId }) {
                   guaranteed_pool: guaranteedPool ? parseInt(guaranteedPool) : null,
                   bounty_amount: (tournamentType === 'bounty' || tournamentType === 'pko') ? bountyAmount : null,
                 },
-              }),
+              };
+            const r = await fetch('/api/commander/sync-tournament-to-club', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-staff-session': staffSession || '',
+              },
+              body: JSON.stringify(syncPayload),
             });
+            if (!r.ok) console.warn('Club sync failed');
           } catch (syncErr) {
             console.warn('Club Page sync skipped:', syncErr);
           }

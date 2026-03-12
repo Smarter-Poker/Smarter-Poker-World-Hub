@@ -220,12 +220,16 @@ export default function CommanderLanding() {
     setSubmitting(true);
     try {
       // Store lead email
-      await fetch('/api/commander/leads', {
+      const res = await fetch('/api/commander/leads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, source: 'landing_page' })
       });
-      router.push(`/commander/onboarding?email=${encodeURIComponent(email)}`);
+      if (res.ok) {
+        router.push(`/commander/onboarding?email=${encodeURIComponent(email)}`);
+      } else {
+        router.push('/commander/onboarding');
+      }
     } catch (err) {
       console.error('Submit error:', err);
       router.push('/commander/onboarding');

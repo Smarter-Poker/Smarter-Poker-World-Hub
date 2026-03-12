@@ -83,7 +83,7 @@ export default function ExportsHub() {
         })
       });
       const json = await res.json();
-      if (json.export) {
+      if (res.ok && json.export) {
         setMessage({ type: 'success', text: 'Export Created!' });
         setShowOptions(null);
         fetchData();

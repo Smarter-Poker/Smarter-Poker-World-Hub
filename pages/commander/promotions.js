@@ -78,7 +78,7 @@ function RecordHighHandModal({ isOpen, onClose, onSubmit, venueId, staff }) {
       });
 
       const data = await res.json();
-      if (data.high_hand) {
+      if (res.ok && data.high_hand) {
         onSubmit?.(data.high_hand);
         onClose();
         setFormData({
@@ -350,6 +350,7 @@ export default function PromotionsPage() {
     if (!venueId) return;
     try {
       const res = await fetch(`/api/commander/high-hands?venue_id=${venueId}&limit=20`);
+      if (!res.ok) throw new Error('err');
       const data = await res.json();
       if (data.high_hands) {
         setHighHands(data.high_hands);
@@ -400,12 +401,12 @@ export default function PromotionsPage() {
   const togglePromoCode = async (code) => {
     try {
       const token = getToken();
-      await fetch('/api/promo/admin-promo-codes', {
+      const res = await fetch('/api/promo/admin-promo-codes', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ id: code.id, is_active: !code.is_active })
       });
-      fetchPromoCodes();
+      if (res.ok) fetchPromoCodes();
     } catch (err) { console.error('Toggle promo code error:', err); }
   };
 
@@ -413,11 +414,11 @@ export default function PromotionsPage() {
     if (!confirm(`Deactivate promo code "${code.code}"?`)) return;
     try {
       const token = getToken();
-      await fetch(`/api/promo/admin-promo-codes?id=${code.id}`, {
+      const res = await fetch(`/api/promo/admin-promo-codes?id=${code.id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
-      fetchPromoCodes();
+      if (res.ok) fetchPromoCodes();
     } catch (err) { console.error('Delete promo code error:', err); }
   };
 
@@ -441,7 +442,7 @@ export default function PromotionsPage() {
         })
       });
       const data = await res.json();
-      if (data.success) {
+      if (res.ok && data.success) {
         setEditingPromoCode(null);
         fetchPromoCodes();
       } else {
@@ -501,7 +502,7 @@ export default function PromotionsPage() {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
           body: JSON.stringify({ status: activate ? 'active' : 'draft', is_active: activate })
-        })
+        }).then(r => { if (!r.ok) throw new Error('fail'); return r; })
       ));
       const failed = results.filter(r => r.status === 'rejected').length;
       if (failed > 0) alert(`${failed} of ${selectedIds.size} operations failed`);
@@ -520,6 +521,7 @@ export default function PromotionsPage() {
       const staffSession = localStorage.getItem('commander_staff') || '';
       const results = await Promise.allSettled([...selectedIds].map(id =>
         fetch(`/api/commander/promotions/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } })
+        .then(r => { if (!r.ok) throw new Error('fail'); return r; })
       ));
       const failed = results.filter(r => r.status === 'rejected').length;
       if (failed > 0) alert(`${failed} of ${selectedIds.size} deletions failed`);
@@ -579,7 +581,7 @@ export default function PromotionsPage() {
     try {
       const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
-      await fetch(`/api/commander/high-hands/${highHand.id}`, {
+      const res = await fetch(`/api/commander/high-hands/${highHand.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -588,7 +590,7 @@ export default function PromotionsPage() {
         },
         body: JSON.stringify({ action: 'verify' })
       });
-      fetchHighHands();
+      if (res.ok) fetchHighHands();
     } catch (error) {
       console.error('Verify high hand failed:', error);
     }
@@ -598,13 +600,15 @@ export default function PromotionsPage() {
     try {
       const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
-      await fetch(`/api/commander/promotions/${promo.id}`, {
+      const res = await fetch(`/api/commander/promotions/${promo.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ is_active: !promo.is_active })
       });
-      broadcastChange('settings');
-      fetchPromotions();
+      if (res.ok) {
+        broadcastChange('settings');
+        fetchPromotions();
+      }
     } catch (error) {
       console.error('Toggle failed:', error);
     }
@@ -615,9 +619,11 @@ export default function PromotionsPage() {
     try {
       const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
-      await fetch(`/api/commander/promotions/${promo.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } });
-      broadcastChange('settings');
-      fetchPromotions();
+      const res = await fetch(`/api/commander/promotions/${promo.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } });
+      if (res.ok) {
+        broadcastChange('settings');
+        fetchPromotions();
+      }
     } catch (error) {
       console.error('Delete failed:', error);
     }
@@ -711,7 +717,7 @@ export default function PromotionsPage() {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
           body: JSON.stringify({ settings: { ...(p.settings || {}), display_order: idx } })
-        })
+        }).then(r => { if (!r.ok) throw new Error('revert needed'); })
       ));
       broadcastChange('settings');
     } catch (err) {

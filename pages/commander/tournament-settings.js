@@ -71,66 +71,70 @@ export default function TournamentSettingsPage() {
 
         try {
             const staffSession = localStorage.getItem('commander_staff');
+            const payload = {
+                venue_id: venue.id,
+                name: template.name,
+                tournament_type: template.tournament_type,
+                buyin_amount: template.buyin_amount,
+                buyin_fee: template.buyin_fee,
+                starting_chips: template.starting_chips,
+                scheduled_start: tomorrow.toISOString(),
+                blind_structure: template.blind_structure,
+                late_registration_levels: template.late_registration_levels,
+                allows_rebuys: template.allows_rebuys || false,
+                rebuy_amount: template.rebuy_amount || null,
+                rebuy_chips: template.rebuy_chips || null,
+                max_rebuys: template.max_rebuys || null,
+                rebuy_end_level: template.rebuy_end_level || null,
+                allows_addon: template.allows_addon || false,
+                addon_amount: template.addon_amount || null,
+                addon_chips: template.addon_chips || null,
+                addon_at_break: template.addon_at_break || null,
+                bounty_amount: template.bounty_amount || null,
+                status: 'scheduled',
+                broadcast_to_smarter: true,
+                settings: {
+                    ...(selectedPreset ? { clock_preset_id: selectedPreset } : {}),
+                    ...(shotClockEnabled ? { shot_clock_enabled: true, shot_clock_seconds: shotClockSeconds } : {}),
+                },
+            };
             const res = await fetch('/api/commander/tournaments', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'x-staff-session': staffSession || '',
                 },
-                body: JSON.stringify({
-                    venue_id: venue.id,
-                    name: template.name,
-                    tournament_type: template.tournament_type,
-                    buyin_amount: template.buyin_amount,
-                    buyin_fee: template.buyin_fee,
-                    starting_chips: template.starting_chips,
-                    scheduled_start: tomorrow.toISOString(),
-                    blind_structure: template.blind_structure,
-                    late_registration_levels: template.late_registration_levels,
-                    allows_rebuys: template.allows_rebuys || false,
-                    rebuy_amount: template.rebuy_amount || null,
-                    rebuy_chips: template.rebuy_chips || null,
-                    max_rebuys: template.max_rebuys || null,
-                    rebuy_end_level: template.rebuy_end_level || null,
-                    allows_addon: template.allows_addon || false,
-                    addon_amount: template.addon_amount || null,
-                    addon_chips: template.addon_chips || null,
-                    addon_at_break: template.addon_at_break || null,
-                    bounty_amount: template.bounty_amount || null,
-                    status: 'scheduled',
-                    broadcast_to_smarter: true,
-                    settings: {
-                        ...(selectedPreset ? { clock_preset_id: selectedPreset } : {}),
-                        ...(shotClockEnabled ? { shot_clock_enabled: true, shot_clock_seconds: shotClockSeconds } : {}),
-                    },
-                }),
+                body: JSON.stringify(payload),
             });
 
+            if (!res.ok) throw new Error('Failed to create tournament');
             const data = await res.json();
             if (data.success) {
                 setCreateSuccess(template.name);
                 broadcastChange('tournaments');
                 // Auto-sync to Club Page
                 try {
-                    await fetch('/api/commander/sync-tournament-to-club', {
+                    const syncPayload = {
+                        venue_id: venue.id,
+                        tournament: data.data?.tournament || {
+                            name: template.name,
+                            tournament_type: template.tournament_type,
+                            buyin_amount: template.buyin_amount,
+                            buyin_fee: template.buyin_fee,
+                            scheduled_start: tomorrow.toISOString(),
+                            starting_chips: template.starting_chips,
+                            guaranteed_pool: null,
+                        },
+                    };
+                    const r = await fetch('/api/commander/sync-tournament-to-club', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                             'x-staff-session': staffSession || '',
                         },
-                        body: JSON.stringify({
-                            venue_id: venue.id,
-                            tournament: data.data?.tournament || {
-                                name: template.name,
-                                tournament_type: template.tournament_type,
-                                buyin_amount: template.buyin_amount,
-                                buyin_fee: template.buyin_fee,
-                                scheduled_start: tomorrow.toISOString(),
-                                starting_chips: template.starting_chips,
-                                guaranteed_pool: null,
-                            },
-                        }),
+                        body: JSON.stringify(syncPayload),
                     });
+                    if (!r.ok) console.warn('Club sync failed');
                 } catch (syncErr) {
                 }
 

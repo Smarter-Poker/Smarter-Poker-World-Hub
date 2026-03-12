@@ -157,7 +157,7 @@ export default function ClockSetup() {
                 body: JSON.stringify(body),
             });
             const json = await res.json();
-            if (json.success) {
+            if (res.ok && json.success) {
                 setSaved(true);
                 setTimeout(() => setSaved(false), 2000);
                 setEditing(null);
@@ -171,13 +171,15 @@ export default function ClockSetup() {
     const handleDelete = async (presetId) => {
         if (!confirm('Delete this clock preset?')) return;
         try {
-            await fetch(`/api/commander/clock-presets?id=${presetId}`, {
+            const res = await fetch(`/api/commander/clock-presets?id=${presetId}`, {
                 method: 'DELETE',
                 headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
             });
-            fetchPresets();
-            broadcastChange('tournaments');
-            if (editing?.id === presetId) setEditing(null);
+            if (res.ok) {
+                fetchPresets();
+                broadcastChange('tournaments');
+                if (editing?.id === presetId) setEditing(null);
+            }
         } catch (err) { console.error(err); }
     };
 

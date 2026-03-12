@@ -521,7 +521,7 @@ export default function AdminDashboard() {
         })
       });
       const data = await res.json();
-      if (data.export) {
+      if (res.ok && data.export) {
         setExports([data.export, ...exports]);
         broadcastChange('exports');
       }

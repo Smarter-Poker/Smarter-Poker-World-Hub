@@ -257,13 +257,15 @@ ${receipts.map(r => `<div class="card">
 
   const sendMessage = async () => {
     if (!messageText.trim()) return;
-    await fetch(`/api/commander/tournaments/${tournamentId}/message`, {
+    const res = await fetch(`/api/commander/tournaments/${tournamentId}/message`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken() },
       body: JSON.stringify({ message: messageText, type: 'announcement', duration_seconds: 60 })
     });
-    setMessageText('');
-    setShowMessage(false);
+    if (res.ok) {
+      setMessageText('');
+      setShowMessage(false);
+    }
   };
 
   const toggleFullscreen = () => {

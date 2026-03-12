@@ -186,7 +186,7 @@ export default function TabletDisplay() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ table_number: parseInt(tableNumber), venue_id: venueId, device_type: 'tablet' }),
-            }).catch(() => { });
+            }).then(res => { if (!res.ok) console.warn('Heartbeat failed'); }).catch(() => { });
         };
         sendHeartbeat();
         const hb = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL);

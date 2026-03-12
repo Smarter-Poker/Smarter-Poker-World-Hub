@@ -114,6 +114,7 @@ export default function TDPlayers() {
       headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken() },
       body: JSON.stringify(body)
     });
+    if (!res.ok) return { success: false, error: 'API Error' };
     return res.json();
   };
 

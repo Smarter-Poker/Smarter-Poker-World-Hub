@@ -94,6 +94,7 @@ export default function LeaderboardBuilder() {
                 headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
                 ...(signal ? { signal } : {}),
             });
+            if (!res.ok) throw new Error('err');
             const json = await res.json();
             setMembers(json?.data?.members || json?.members || []);
         } catch { }
@@ -105,6 +106,7 @@ export default function LeaderboardBuilder() {
             const res = await fetch(`/api/commander/leaderboards/${boardId}/entries`, {
                 headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
             });
+            if (!res.ok) throw new Error('Failed');
             const json = await res.json();
             setEntries(prev => ({ ...prev, [boardId]: (json?.entries || json?.data || []).sort((a, b) => (b.score || 0) - (a.score || 0)) }));
         } catch { }

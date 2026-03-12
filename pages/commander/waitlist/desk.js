@@ -162,7 +162,7 @@ export default function WaitlistDesk() {
             fetch(`/api/commander/waitlist/${e.id}`, {
               method: 'DELETE',
               headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
-            }).catch(() => { /* non-critical */ })
+            }).then(r => { if (!r.ok) console.warn('Non-critical cleanup err'); }).catch(() => { /* non-critical */ })
           ));
           // Filter out expired entries from the display
           const expiredIds = new Set(expiredCalled.map(e => e.id));
@@ -412,7 +412,7 @@ export default function WaitlistDesk() {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
           body: JSON.stringify({ game_type: newGameType, stakes: newStakes })
-        })
+        }).then(r => { if (!r.ok) console.warn('err'); })
       ));
       setEditGame(null);
       await fetchData();
@@ -436,11 +436,12 @@ export default function WaitlistDesk() {
         const token = getToken();
         const staffSession = getStaffSession();
         const staffData = JSON.parse(localStorage.getItem('commander_staff') || '{}');
-        await fetch('/api/commander/tables', {
+        const r = await fetch('/api/commander/tables', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
           body: JSON.stringify({ venue_id: staffData.venue_id, table_number: parseInt(tn) || tn, table_name: `Table ${tn}`, max_seats: 9, game_type: gt, stakes: st })
         });
+        if (!r.ok) console.warn('Auto table err');
       } catch { /* table may already exist — ignore */ }
       await fetchData();
     } else {
@@ -469,7 +470,7 @@ export default function WaitlistDesk() {
         fetch(`/api/commander/waitlist/${entry.id}`, {
           method: 'DELETE',
           headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
-        })
+        }).then(r => { if (!r.ok) throw new Error('Delete failed'); })
       ));
       // Remove from custom gameTypes
       const updatedGameTypes = (custom.gameTypes || []).filter(g => g !== gameLabel);

@@ -340,11 +340,13 @@ export default function DealerTablet() {
   const removePlayer = async (sessionId) => {
     try {
       const token = getToken();
-      await fetch(`/api/commander/dealer/sessions/${sessionId}/end`, {
+      const res = await fetch(`/api/commander/dealer/sessions/${sessionId}/end`, {
         method: 'POST', headers: { Authorization: `Bearer ${token}` }
       });
-      await fetchTable();
-      broadcastChange('tables');
+      if (res.ok) {
+        await fetchTable();
+        broadcastChange('tables');
+      }
     } catch (err) { console.error(err); }
   };
 
@@ -353,13 +355,15 @@ export default function DealerTablet() {
     setAddingTime(true);
     try {
       const token = getToken();
-      await fetch(`/api/commander/dealer/sessions/${addTimePlayer.session_id}/add-time`, {
+      const res = await fetch(`/api/commander/dealer/sessions/${addTimePlayer.session_id}/add-time`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ minutes: parseInt(addTimeMinutes) || 60 })
       });
-      setAddTimePlayer(null); await fetchTable();
-      broadcastChange('tables');
+      if (res.ok) {
+        setAddTimePlayer(null); await fetchTable();
+        broadcastChange('tables');
+      }
     } catch (err) { console.error(err); }
     finally { setAddingTime(false); }
   };
@@ -428,16 +432,20 @@ export default function DealerTablet() {
       const token = getToken();
       const headers = { Authorization: `Bearer ${token}` };
       // End all active sessions for this table
-      await Promise.all(
+      const results = await Promise.all(
         seatedPlayers.map(player =>
           fetch(`/api/commander/dealer/sessions/${player.session_id}/end`, {
             method: 'POST', headers
           }).catch(() => { })
         )
       );
-      setConfirmRemoveAll(false);
-      await fetchTable();
-      broadcastChange('tables');
+      if (results.some(r => r && r.ok)) {
+        setConfirmRemoveAll(false);
+        await fetchTable();
+        broadcastChange('tables');
+      } else {
+        setConfirmRemoveAll(false);
+      }
     } catch (err) { console.error(err); }
     finally { setRemovingAll(false); }
   };
@@ -448,13 +456,15 @@ export default function DealerTablet() {
     setClosingTable(true);
     try {
       const token = getToken();
-      await fetch('/api/commander/table-assignments', {
+      const res = await fetch('/api/commander/table-assignments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() },
         body: JSON.stringify({ table_id: table?.id })
       });
-      // Redirect back to poker room — table is now inactive
-      router.push('/commander/poker-room');
+      if (res.ok) {
+        // Redirect back to poker room — table is now inactive
+        router.push('/commander/poker-room');
+      }
     } catch (err) { console.error(err); }
     finally { setClosingTable(false); }
   };
@@ -466,12 +476,12 @@ export default function DealerTablet() {
       const staffSession = getStaffSession();
       let vid = '';
       try { vid = JSON.parse(staffSession).venue_id || ''; } catch (e) { console.error("[[tableNumber].js]", e); }
-      await fetch('/api/commander/floor-calls', {
+      const res = await fetch('/api/commander/floor-calls', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ venue_id: vid, table_number: parseInt(tableNumber), reason: 'floor_assistance', description: `Floor requested at Table ${tableNumber}`, priority: 'normal', called_by: 'dealer' })
       });
-      broadcastChange('floor_calls');
+      if (res.ok) broadcastChange('floor_calls');
     } catch (err) { console.error(err); }
     setTimeout(() => setFloorRequested(false), 30000);
   };
@@ -814,14 +824,14 @@ export default function DealerTablet() {
 
           <div className="flex gap-2">
             <button onClick={async () => {
-              setHandCount(0);
               try {
                 const token = getToken();
-                await fetch('/api/commander/dealer/hand-count', {
+                const res = await fetch('/api/commander/dealer/hand-count', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                   body: JSON.stringify({ table_number: parseInt(tableNumber), action: 'reset' })
                 });
+                if (res.ok) setHandCount(0);
               } catch (err) { console.error('Hand reset error:', err); }
             }} className="flex-1 py-2.5 rounded-lg bg-[#3A3B3C] text-[#B0B3B8] text-xs font-medium flex items-center justify-center gap-1 active:bg-[#4A4B4C]"><RotateCcw className="w-3.5 h-3.5" /> Reset</button>
             <button onClick={() => router.push('/commander/poker-room')} className="flex-1 py-2.5 rounded-lg bg-[#3A3B3C] text-[#B0B3B8] text-xs font-medium active:bg-[#4A4B4C]">Exit</button>

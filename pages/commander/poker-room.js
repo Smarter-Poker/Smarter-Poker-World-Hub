@@ -94,12 +94,12 @@ export default function PokerRoomFunctions() {
           const hasActiveGames = tList.some(t => t.status === 'in_use');
           if (hasActiveGames && !vJson.data?.room_open) {
             try {
-              await fetch('/api/commander/settings', {
+              const res = await fetch('/api/commander/settings', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
                 body: JSON.stringify({ room_open: true })
               });
-              setRoomOpen(true);
+              if (res.ok) setRoomOpen(true);
             } catch { /* non-fatal auto-open */ }
           }
         }
@@ -118,13 +118,15 @@ export default function PokerRoomFunctions() {
     try {
       const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
-      await fetch('/api/commander/settings', {
+      const res = await fetch('/api/commander/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ room_open: !roomOpen })
       });
-      setRoomOpen(!roomOpen);
-      broadcastChange('settings');
+      if (res.ok) {
+        setRoomOpen(!roomOpen);
+        broadcastChange('settings');
+      }
     } catch (err) { console.error(err); }
     finally { setToggling(false); }
   };

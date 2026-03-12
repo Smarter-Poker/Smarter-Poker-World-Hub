@@ -95,13 +95,15 @@ export default function TDPayouts() {
             })).filter(p => p.player_id);
 
             const token = getToken();
-            await fetch(`/api/commander/tournaments/${tournamentId}/payout`, {
+            const res = await fetch(`/api/commander/tournaments/${tournamentId}/payout`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'x-staff-session': token },
                 body: JSON.stringify({ payouts })
             });
 
-            await fetchPayouts();
+            if (res.ok) {
+                await fetchPayouts();
+            }
         } catch (err) {
             console.error('Save payouts error:', err);
         } finally {
