@@ -16,7 +16,12 @@ import React from 'react';
  */
 export default function ClubArenaSkeleton() {
   return (
-    <div className="ca-sk-container">
+    <div
+      className="ca-sk-container"
+      role="status"
+      aria-label="Loading Club Arena..."
+      aria-busy="true"
+    >
       {/* ── STYLES ── */}
       <style dangerouslySetInnerHTML={{ __html: `
         .ca-sk-container {

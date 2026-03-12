@@ -11,11 +11,14 @@
    - Auth token passthrough via postMessage (with retry + ACK)
    - URL synchronization (SPA route → browser address bar)
    - Preconnect hint for faster initial load
+   - Live settings push (theme/sound/deck changes propagate in real-time)
+   - Connection-aware error states (offline vs timeout)
+   - Performance telemetry (time-to-interactive tracking)
 
    Hardening (March 2026):
    - SPA_ORIGIN is env-var overridable via NEXT_PUBLIC_CLUB_ARENA_ORIGIN
    - Skeleton loading state while iframe loads
-   - Error overlay with retry on iframe failure / 15s timeout
+   - Error overlay with retry on iframe failure / 8s timeout
    - Auth handshake retry loop with ACK listener
    - URL sync via history.replaceState on SPA route changes
    - Preconnect link injected into document head
@@ -35,6 +38,25 @@ const AUTH_RETRY_INTERVAL_MS = 2_000; // Retry auth every 2s
 const AUTH_MAX_RETRIES = 5;           // Max 5 auth attempts
 const HEARTBEAT_TIMEOUT_MS = 45_000;  // 45s without heartbeat = dead iframe
 
+/* ── Settings keys that bridge World Hub → Club Arena ─────────────────── */
+const SETTINGS_KEYS = ['smarter-poker-theme', 'poker-sound-enabled', 'poker-4color-deck'];
+
+/**
+ * Reads the current World Hub settings from localStorage.
+ * Returns a structured object safe for postMessage serialization.
+ */
+function readWorldHubSettings() {
+    try {
+        return {
+            theme: localStorage.getItem('smarter-poker-theme') || 'dark',
+            soundEnabled: localStorage.getItem('poker-sound-enabled') !== 'false',
+            fourColorDeck: localStorage.getItem('poker-4color-deck') === 'true',
+        };
+    } catch {
+        return { theme: 'dark', soundEnabled: true, fourColorDeck: false };
+    }
+}
+
 /**
  * @param {Object} props
  * @param {string} [props.spaRoute] — Route path AFTER /hub/club-arena/
@@ -46,12 +68,14 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
     const [iframeSrc, setIframeSrc] = useState(null);
     const [loadState, setLoadState] = useState('loading'); // 'loading' | 'ready' | 'error'
     const [errorMsg, setErrorMsg] = useState('');
+    const [isOffline, setIsOffline] = useState(false);
     const timeoutRef = useRef(null);
     const authRetryRef = useRef(null);
     const authAckedRef = useRef(false);
     const retryCountRef = useRef(0);
     const heartbeatTimerRef = useRef(null);
     const resetHeartbeatTimerRef = useRef(null);
+    const loadStartTimeRef = useRef(null); // Performance telemetry
 
     // Stabilize query object identity to prevent infinite re-renders
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -77,21 +101,30 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
         setIframeSrc(url);
         setLoadState('loading');
         setErrorMsg('');
+        setIsOffline(false);
         authAckedRef.current = false;
+        loadStartTimeRef.current = performance.now(); // Start TTI measurement
     }, [spaRoute, queryKey]);
 
-    /* ── Timeout detection ────────────────────────────────────────────── */
+    /* ── Timeout detection (with offline awareness) ───────────────────── */
     useEffect(() => {
         if (loadState !== 'loading') return;
 
         timeoutRef.current = setTimeout(() => {
-            // No stale-closure check needed — cleanup fn clears timeout if loadState changes
-            console.error('[ClubArenaEmbed] Iframe load timed out after', LOAD_TIMEOUT_MS, 'ms');
+            const offline = typeof navigator !== 'undefined' && !navigator.onLine;
+            setIsOffline(offline);
             setLoadState('error');
-            setErrorMsg(
-                `Club Arena failed to load within ${LOAD_TIMEOUT_MS / 1000}s. ` +
-                'This may be a network issue or a Content-Security-Policy block.'
-            );
+
+            if (offline) {
+                console.warn('[ClubArenaEmbed] Offline detected during load timeout');
+                setErrorMsg('You appear to be offline. Please check your internet connection and try again.');
+            } else {
+                console.error('[ClubArenaEmbed] Iframe load timed out after', LOAD_TIMEOUT_MS, 'ms');
+                setErrorMsg(
+                    `Club Arena failed to load within ${LOAD_TIMEOUT_MS / 1000}s. ` +
+                    'This may be a network issue or a Content-Security-Policy block.'
+                );
+            }
         }, LOAD_TIMEOUT_MS);
 
         return () => clearTimeout(timeoutRef.current);
@@ -102,9 +135,22 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
         clearTimeout(timeoutRef.current);
         setLoadState('ready');
         retryCountRef.current = 0;
-        console.log('[ClubArenaEmbed] ✅ Iframe loaded successfully');
-        // Sentry breadcrumb for production observability
-        try { window.Sentry?.addBreadcrumb?.({ category: 'club-arena', message: 'Iframe loaded successfully', level: 'info' }); } catch (_) {}
+
+        // Performance telemetry: iframe load time
+        if (loadStartTimeRef.current) {
+            const loadMs = Math.round(performance.now() - loadStartTimeRef.current);
+            console.log(`[ClubArenaEmbed] ✅ Iframe loaded in ${loadMs}ms`);
+            try {
+                window.Sentry?.addBreadcrumb?.({
+                    category: 'club-arena',
+                    message: `Iframe loaded in ${loadMs}ms`,
+                    level: 'info',
+                    data: { loadMs },
+                });
+            } catch (_) {}
+        } else {
+            console.log('[ClubArenaEmbed] ✅ Iframe loaded successfully');
+        }
     }, []);
 
     const handleIframeError = useCallback(() => {
@@ -120,7 +166,9 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
         console.log('[ClubArenaEmbed] Retrying... attempt', retryCountRef.current);
         setLoadState('loading');
         setErrorMsg('');
+        setIsOffline(false);
         authAckedRef.current = false;
+        loadStartTimeRef.current = performance.now(); // Reset TTI for retry
         // Force iframe re-mount by appending a cache-busting param
         setIframeSrc(prev => {
             const clean = prev.replace(/[?&]_retry=\d+/g, '');
@@ -146,16 +194,7 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
             try {
                 const { data: { session } } = await supabase.auth.getSession();
                 if (session?.access_token && iframeRef.current?.contentWindow) {
-                    // Extract global settings from the REAL World Hub localStorage keys
-                    // to bridge them across the iframe boundary instantly
-                    let globalSettings = {};
-                    try {
-                        globalSettings = {
-                            theme: localStorage.getItem('smarter-poker-theme') || 'dark',
-                            soundEnabled: localStorage.getItem('poker-sound-enabled') !== 'false',
-                            fourColorDeck: localStorage.getItem('poker-4color-deck') === 'true',
-                        };
-                    } catch (e) { /* ignore — SSR or localStorage disabled */ }
+                    const globalSettings = readWorldHubSettings();
 
                     iframeRef.current.contentWindow.postMessage({
                         type: 'SMARTER_AUTH_TOKEN',
@@ -175,6 +214,61 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
         authRetryRef.current = setInterval(sendAuth, AUTH_RETRY_INTERVAL_MS);
 
         return () => clearInterval(authRetryRef.current);
+    }, [loadState]);
+
+    /* ── Live Settings Push — real-time sync while iframe is open ──────── */
+    useEffect(() => {
+        if (loadState !== 'ready') return;
+
+        const handleStorageChange = (event) => {
+            // Only react to our tracked settings keys
+            if (!SETTINGS_KEYS.includes(event.key)) return;
+            // Only push if the iframe is authenticated and alive
+            if (!authAckedRef.current || !iframeRef.current?.contentWindow) return;
+
+            const updatedSettings = readWorldHubSettings();
+            try {
+                iframeRef.current.contentWindow.postMessage({
+                    type: 'SMARTER_SETTINGS_UPDATE',
+                    settings: updatedSettings,
+                }, window.location.origin);
+                console.log(`[ClubArenaEmbed] Live settings push: ${event.key} changed`);
+            } catch (e) {
+                /* best effort — ignore postMessage errors */
+            }
+        };
+
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
+    }, [loadState]);
+
+    /* ── Performance Telemetry: Track Time-to-Interactive (Auth ACK) ──── */
+    useEffect(() => {
+        if (loadState !== 'ready') return;
+
+        // We listen for AUTH_ACK here specifically for TTI measurement
+        // (The main message handler also catches AUTH_ACK for the retry loop)
+        const measureTTI = (event) => {
+            if (event.origin !== window.location.origin) return;
+            if (event.data?.type !== 'SMARTER_AUTH_ACK') return;
+
+            if (loadStartTimeRef.current) {
+                const ttiMs = Math.round(performance.now() - loadStartTimeRef.current);
+                console.log(`[ClubArenaEmbed] 📊 Time-to-Interactive: ${ttiMs}ms`);
+                try {
+                    window.Sentry?.addBreadcrumb?.({
+                        category: 'club-arena-perf',
+                        message: `TTI: ${ttiMs}ms`,
+                        level: 'info',
+                        data: { ttiMs },
+                    });
+                } catch (_) {}
+                loadStartTimeRef.current = null; // Prevent double-logging
+            }
+        };
+
+        window.addEventListener('message', measureTTI);
+        return () => window.removeEventListener('message', measureTTI);
     }, [loadState]);
 
     /* ── Message listener: ACK, navigation, URL sync, heartbeat ─────── */
@@ -286,16 +380,18 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
                     </div>
                 )}
 
-                {/* ── Error Overlay ────────────────────────────────────── */}
+                {/* ── Error Overlay (connection-aware) ─────────────────── */}
                 {loadState === 'error' && (
                     <div style={overlayStyle}>
-                        <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
+                        <div style={{ fontSize: '48px', marginBottom: '16px' }}>
+                            {isOffline ? '📡' : '⚠️'}
+                        </div>
                         <h3 style={{
                             color: '#f1f5f9',
                             margin: '0 0 8px',
                             fontFamily: 'Inter, system-ui, sans-serif',
                         }}>
-                            Connection Problem
+                            {isOffline ? 'You\'re Offline' : 'Connection Problem'}
                         </h3>
                         <p style={{
                             color: '#94a3b8',
@@ -309,16 +405,25 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
                             {errorMsg}
                         </p>
                         <button onClick={handleRetry} style={retryButtonStyle}>
-                            Retry Connection
+                            {isOffline ? 'Try Again' : 'Retry Connection'}
                         </button>
+
+                        {/* ── Return to Hub Escape Hatch ── */}
+                        <button
+                            onClick={() => { window.location.href = '/hub'; }}
+                            style={returnToHubStyle}
+                        >
+                            ← Return to Hub
+                        </button>
+
                         {retryCountRef.current >= 1 && (
                             <p style={{
                                 color: '#64748b',
                                 fontSize: '11px',
-                                marginTop: '12px',
+                                marginTop: '8px',
                                 fontFamily: 'Inter, system-ui, sans-serif',
                             }}>
-                                Attempt {retryCountRef.current} · Target: {SPA_ORIGIN}
+                                Attempt {retryCountRef.current}
                             </p>
                         )}
                     </div>
@@ -371,4 +476,18 @@ const retryButtonStyle = {
     cursor: 'pointer',
     transition: 'transform 0.15s, box-shadow 0.15s',
     boxShadow: '0 2px 8px rgba(99, 102, 241, 0.3)',
+};
+
+const returnToHubStyle = {
+    background: 'transparent',
+    color: '#94a3b8',
+    border: '1px solid rgba(148, 163, 184, 0.2)',
+    borderRadius: '8px',
+    padding: '8px 20px',
+    fontSize: '13px',
+    fontWeight: 500,
+    fontFamily: 'Inter, system-ui, sans-serif',
+    cursor: 'pointer',
+    marginTop: '12px',
+    transition: 'color 0.15s, border-color 0.15s',
 };
