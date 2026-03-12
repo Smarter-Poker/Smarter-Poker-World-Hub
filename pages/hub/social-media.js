@@ -2131,8 +2131,12 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
 
     const handleApproveFollower = async (followerId, action) => {
         try {
+            const token = getAccessToken();
             await fetch('/api/social/pages/follow', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                method: 'POST', headers: { 
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                },
                 body: JSON.stringify({ page_id: page.id, user_id: userId, action, follower_id: followerId }),
             });
             setPendingFollowers(prev => prev.filter(f => f.user_id !== followerId));
@@ -2143,9 +2147,13 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
     const saveMetadata = async (newMeta, label) => {
         setMetaSaving(true); setMetaSaved('');
         try {
+            const token = getAccessToken();
             const merged = { ...page.metadata, ...newMeta };
             const res = await fetch('/api/social/pages', {
-                method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                method: 'PUT', headers: { 
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                },
                 body: JSON.stringify({ id: page.id, owner_id: userId, metadata: merged }),
             });
             const json = await res.json();
@@ -2171,9 +2179,13 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                     const existing = merged.geocoded_locations || {};
                     const unique = [...new Set(locations)].filter(loc => !existing[loc]);
                     if (unique.length > 0) {
+                        const token = getAccessToken();
                         fetch('/api/social/geocode-locations', {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: { 
+                                'Content-Type': 'application/json',
+                                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                            },
                             body: JSON.stringify({ page_id: page.id, locations: unique }),
                         }).catch(() => { });
                     }
@@ -2203,11 +2215,15 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
         if (!postContent.trim() && postMedia.length === 0) return;
         setPosting(true);
         try {
+            const token = getAccessToken();
             const mediaUrls = postMedia.map(m => m.url);
             const contentType = postMedia.some(m => m.type === 'video') ? 'video' : (postMedia.length > 0 ? 'image' : 'text');
             console.log('[ClubPage] Posting:', { page_id: page.id, author_id: userId, content: postContent.trim().substring(0, 50), contentType, mediaUrls });
             const res = await fetch('/api/social/pages/posts', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                method: 'POST', headers: { 
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                },
                 body: JSON.stringify({ page_id: page.id, author_id: userId, content: postContent.trim(), content_type: contentType, media_urls: mediaUrls }),
             });
             const json = await res.json();
@@ -2227,16 +2243,27 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
     };
 
     const handleDeletePost = async (postId) => {
-        try { await fetch(`/api/social/pages/posts?id=${postId}&author_id=${userId}`, { method: 'DELETE' }); setPosts(prev => prev.filter(p => p.id !== postId)); } catch (e) { console.error('Delete error:', e); }
+        try { 
+            const token = getAccessToken();
+            await fetch(`/api/social/pages/posts?id=${postId}&author_id=${userId}`, { 
+                method: 'DELETE',
+                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+            }); 
+            setPosts(prev => prev.filter(p => p.id !== postId)); 
+        } catch (e) { console.error('Delete error:', e); }
     };
 
     const handleSavePage = async () => {
         setSaving(true);
         try {
+            const token = getAccessToken();
             // Merge address into metadata
             const updatedMetadata = { ...page.metadata, address: editAddress.trim() };
             const res = await fetch('/api/social/pages', {
-                method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                method: 'PUT', headers: { 
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                },
                 body: JSON.stringify({ id: page.id, owner_id: userId, name: editName.trim(), description: editDesc.trim(), website: editWebsite.trim(), phone: editPhone.trim(), avatar_url: editAvatarUrl.trim() || null, location_city: editCity.trim(), location_state: editState.trim(), metadata: updatedMetadata }),
             });
             const json = await res.json();
@@ -2247,7 +2274,14 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
 
     const handleTogglePin = async (post) => {
         try {
-            await fetch('/api/social/pages/posts', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: post.id, author_id: userId, is_pinned: !post.is_pinned }) });
+            const token = getAccessToken();
+            await fetch('/api/social/pages/posts', { 
+                method: 'PUT', headers: { 
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                }, 
+                body: JSON.stringify({ id: post.id, author_id: userId, is_pinned: !post.is_pinned }) 
+            });
             setPosts(prev => prev.map(p => p.id === post.id ? { ...p, is_pinned: !p.is_pinned } : p));
         } catch (e) { console.error('Pin error:', e); }
     };

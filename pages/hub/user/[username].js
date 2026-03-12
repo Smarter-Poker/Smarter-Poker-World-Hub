@@ -21,7 +21,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ArticleCard from '../../../src/components/social/ArticleCard';
 import ArticleReaderModal from '../../../src/components/social/ArticleReaderModal';
 import ProfileSkeleton from '../../../src/components/skeletons/ProfileSkeleton';
-import { getAuthUser } from '../../../src/lib/authUtils';
+import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -223,7 +223,10 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId 
     // Check if already liked on mount
     useEffect(() => {
         if (!currentUserId || !post.id) return;
-        fetch('/api/social/interactions?post_id=' + post.id + '&type=like')
+        const token = getAccessToken();
+        fetch('/api/social/interactions?post_id=' + post.id + '&type=like', {
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        })
             .then(r => r.json())
             .then(json => {
                 const myLike = (json.interactions || []).find(i => i.user_id === currentUserId);
@@ -238,9 +241,13 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId 
         setLiked(!wasLiked);
         setLikeCount(prev => wasLiked ? Math.max(0, prev - 1) : prev + 1);
         try {
+            const token = getAccessToken();
             await fetch('/api/social/interactions', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                },
                 body: JSON.stringify({ post_id: post.id, user_id: currentUserId, interaction_type: 'like' })
             });
         } catch (e) {
@@ -253,7 +260,10 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId 
         setShowComments(!showComments);
         if (!showComments && comments.length === 0) {
             try {
-                const res = await fetch('/api/social/interactions?post_id=' + post.id + '&type=comment');
+                const token = getAccessToken();
+                const res = await fetch('/api/social/interactions?post_id=' + post.id + '&type=comment', {
+                    headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+                });
                 const json = await res.json();
                 setComments(json.comments || []);
             } catch (e) { console.error('Load comments error:', e); }
@@ -264,9 +274,13 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId 
         if (!commentText.trim() || !currentUserId) return;
         setSubmittingComment(true);
         try {
+            const token = getAccessToken();
             const res = await fetch('/api/social/interactions', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                },
                 body: JSON.stringify({ post_id: post.id, user_id: currentUserId, interaction_type: 'comment', content: commentText.trim() })
             });
             const json = await res.json();
@@ -286,9 +300,13 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId 
             setShareMsg('Link copied!');
             setTimeout(() => setShareMsg(''), 2000);
             if (currentUserId) {
+                const token = getAccessToken();
                 fetch('/api/social/interactions', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                    },
                     body: JSON.stringify({ post_id: post.id, user_id: currentUserId, interaction_type: 'share' })
                 }).catch(() => { });
             }
@@ -680,11 +698,13 @@ export default function UserProfilePage() {
                 try { anonUid = localStorage.getItem('sp-anon-uid'); } catch (ex) { /* ignore */ }
                 var pokerUid = data.id || anonUid;
                 if (pokerUid) {
-                    fetch('/api/poker/checkins?user_id=' + encodeURIComponent(pokerUid))
+                    const token = getAccessToken();
+                    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+                    fetch('/api/poker/checkins?user_id=' + encodeURIComponent(pokerUid), { headers })
                         .then(function (r) { return r.json(); })
                         .then(function (j) { if (j.success) setPokerCheckins(j.checkins || j.data || []); })
                         .catch(function () { });
-                    fetch('/api/poker/follow?user_id=' + encodeURIComponent(pokerUid))
+                    fetch('/api/poker/follow?user_id=' + encodeURIComponent(pokerUid), { headers })
                         .then(function (r) { return r.json(); })
                         .then(function (j) { if (j.success) setPokerFollowing(j.data || []); })
                         .catch(function () { });
