@@ -112,7 +112,7 @@ export default function CloseDay() {
         broadcastChange('games');
       }
       await fetchStatus();
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
     finally { setClosing(false); }
   };
 
@@ -127,6 +127,7 @@ export default function CloseDay() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ pin_code: pin, venue_id: venueId })
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success && json.data?.valid && json.data?.staff) {
         // Generate daily report
@@ -136,7 +137,7 @@ export default function CloseDay() {
       } else {
         setPin('');
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
     finally { setVerifying(false); }
   };
 

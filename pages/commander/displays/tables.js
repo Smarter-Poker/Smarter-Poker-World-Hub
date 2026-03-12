@@ -247,6 +247,7 @@ export default function TablesDisplay() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pin_code: pinValue, venue_id: venueId }),
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success && json.data?.staff) {
         const role = json.data.staff.role;
@@ -331,6 +332,7 @@ export default function TablesDisplay() {
           method: 'POST', headers,
           body: JSON.stringify({ venue_id: venueId, qr_code: qrData, table_number: lockedTableNum }),
         });
+        if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const json = await res.json();
         if (json.success) {
           const dealerName = json.data?.dealer?.name || json.data?.dealer_name || 'Dealer';
@@ -371,6 +373,7 @@ export default function TablesDisplay() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ table_number: lockedTableNum, seat_number: seat.number, venue_id: venueId, action, ...extra }),
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       setPlayerActionLoading(false);
       if (json.success) broadcastChange('tables');
@@ -389,6 +392,7 @@ export default function TablesDisplay() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ table_number: lockedTableNum, seat_number: seat.number }),
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
         setToast({ type: 'success', text: `${json.data.player_name} removed · ${json.data.unused_minutes_returned}m returned` });

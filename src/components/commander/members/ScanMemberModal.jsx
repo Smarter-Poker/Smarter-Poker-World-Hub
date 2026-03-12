@@ -58,6 +58,7 @@ export default function ScanMemberModal({ isOpen, onClose, venueId, onMemberFoun
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ qr_code: qrCode, venue_id: venueId }),
             });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const data = await res.json();
             if (!res.ok || !data.success) throw new Error(data.error || 'Member not found');
             setMember(data.data.member);

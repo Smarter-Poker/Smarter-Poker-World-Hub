@@ -328,6 +328,7 @@ export default function ClockDisplay() {
         headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
         body: JSON.stringify({ action })
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
         const res2 = await fetch(`/api/commander/tournaments/${id}/floor-view`, {

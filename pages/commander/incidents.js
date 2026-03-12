@@ -416,7 +416,7 @@ export default function IncidentsPage() {
           busEmit.screenShake('medium');
         }
       }
-    } catch (err) { console.error('Create incident failed:', err); }
+    } catch (err) { console.error('Create incident failed:', err); alert('Action failed: Create incident failed. Please try again.'); }
   }
 
   async function handleResolveIncident(incidentId, resolution) {
@@ -436,7 +436,7 @@ export default function IncidentsPage() {
           broadcastChange('incidents');
         }
       }
-    } catch (err) { console.error('Resolve incident failed:', err); }
+    } catch (err) { console.error('Resolve incident failed:', err); alert('Action failed: Resolve incident failed. Please try again.'); }
   }
 
   const filteredIncidents = incidents

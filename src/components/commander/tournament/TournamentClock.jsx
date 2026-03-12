@@ -80,6 +80,7 @@ export default function TournamentClock({
         body: JSON.stringify({ action, ...extra })
       });
 
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (res.ok && data.success) {
         await fetchClockState();

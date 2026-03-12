@@ -249,6 +249,7 @@ ${receipts.map(r => `<div class="card">
                       assignments: autoBreak.assignments
                     })
                   });
+                  if (!res.ok) throw new Error(`Request failed (${res.status})`);
                   const json = await res.json();
                   if (json.success && json.data.receipts) {
                     // Print SEAT CHANGE CARDs via shared helper
@@ -462,6 +463,7 @@ ${receipts.map(r => `<div class="card">
                               assignments
                             })
                           });
+                          if (!res.ok) throw new Error(`Request failed (${res.status})`);
                           const json = await res.json();
 
                           // Step 3: Print Potawatomi SEAT CHANGE CARDs

@@ -72,6 +72,7 @@ export default function AnalyticsDailyReport() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ manual: true, date: yesterday })
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
         setToast({ type: 'success', msg: `Analytics refreshed for ${yesterday}` });

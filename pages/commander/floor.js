@@ -183,7 +183,7 @@ export default function FloorMap() {
       busEmit.celebration('confetti');
       setTimeout(() => setSaved(false), 2000);
       broadcastChange('tables');
-    } catch (err) { console.error('Save error:', err); }
+    } catch (err) { console.error('Save error:', err); alert('Action failed: Save. Please try again.'); }
     finally { setSaving(false); }
   };
 

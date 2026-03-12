@@ -81,6 +81,7 @@ export default function HighHands() {
           auto_verify: true
         })
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (res.ok && json.high_hand) {
         setMessage({ type: 'success', text: 'High Hand Recorded!' });
@@ -108,7 +109,7 @@ export default function HighHands() {
         broadcastChange('settings');
         fetchData();
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
   };
 
   const handleDelete = async (id) => {
@@ -123,7 +124,7 @@ export default function HighHands() {
         broadcastChange('settings');
         fetchData();
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
   };
 
   useEffect(() => {

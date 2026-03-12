@@ -104,7 +104,7 @@ export default function PokerRoomFunctions() {
           }
         }
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
     finally { setLoading(false); }
   }, [venueId]);
 
@@ -127,7 +127,7 @@ export default function PokerRoomFunctions() {
         setRoomOpen(!roomOpen);
         broadcastChange('settings');
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
     finally { setToggling(false); }
   };
 

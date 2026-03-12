@@ -127,7 +127,7 @@ export default function WaitlistDesk() {
         body: JSON.stringify({ desk_customization: newCustom })
       });
       if (!res.ok) throw new Error('Request failed');
-    } catch (err) { console.error('Failed to save customization:', err); }
+    } catch (err) { console.error('Failed to save customization:', err); alert('Action failed: Failed to save customization. Please try again.'); }
   };
 
   const CALL_EXPIRY_MINUTES = 10; // Auto-delete called entries after 10 minutes
@@ -204,6 +204,7 @@ export default function WaitlistDesk() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession, 'x-idempotency-key': genIdempotencyKey() },
         body: JSON.stringify({ notify_sms: true, notify_push: true })
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (!res.ok || !json.success) {
         console.error('Call API error:', json);
@@ -238,6 +239,7 @@ export default function WaitlistDesk() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession, 'x-idempotency-key': genIdempotencyKey() },
         body: JSON.stringify({ waitlist_id: entry.id, table_number: tableNumber, seat_number: seatNumber })
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (!res.ok || !json.success) {
         console.error('Seat API error:', json);
@@ -269,6 +271,7 @@ export default function WaitlistDesk() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession, 'x-idempotency-key': genIdempotencyKey() }
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (!res.ok || !json.success) {
         console.error('Pass API error:', json);
@@ -285,7 +288,7 @@ export default function WaitlistDesk() {
         await fetchData();
         broadcastChange('waitlist');
       }
-    } catch (err) { console.error('Pass error:', err); await fetchData(); }
+    } catch (err) { console.error('Pass error:', err); alert('Action failed: Pass. Please try again.'); await fetchData(); }
     finally { setActionLock(null); }
   };
 
@@ -300,6 +303,7 @@ export default function WaitlistDesk() {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession, 'x-idempotency-key': genIdempotencyKey() }
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (!res.ok || !json.success) {
         console.error('Remove API error:', json);
@@ -313,7 +317,7 @@ export default function WaitlistDesk() {
         await fetchData();
         broadcastChange('waitlist');
       }
-    } catch (err) { console.error('Remove error:', err); await fetchData(); }
+    } catch (err) { console.error('Remove error:', err); alert('Action failed: Remove. Please try again.'); await fetchData(); }
     finally { setActionLock(null); }
   };
 
@@ -326,6 +330,7 @@ export default function WaitlistDesk() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ checked_in_at: new Date().toISOString() })
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (!res.ok || !json.success) {
         setSmsStatus({ type: 'none', text: 'Check-in failed: ' + (json.error?.message || json.error || 'Unknown error') });
@@ -366,6 +371,7 @@ export default function WaitlistDesk() {
           player_phone: playerData.phone || null, signup_method: 'staff'
         })
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
         setShowAddWalkIn(false);
@@ -418,7 +424,7 @@ export default function WaitlistDesk() {
       setEditGame(null);
       await fetchData();
       broadcastChange('waitlist');
-    } catch (err) { console.error('Rename game error:', err); }
+    } catch (err) { console.error('Rename game error:', err); alert('Action failed: Rename game. Please try again.'); }
   };
 
   // ── ADD GAME: Create a new game column (interest list) ──
@@ -479,7 +485,7 @@ export default function WaitlistDesk() {
       setEditGame(null);
       await fetchData();
       broadcastChange('waitlist');
-    } catch (err) { console.error('Remove game error:', err); }
+    } catch (err) { console.error('Remove game error:', err); alert('Action failed: Remove game. Please try again.'); }
   };
 
   // ── GROUP & SORT ────────────────────────────────────────────────
@@ -925,6 +931,7 @@ export default function WaitlistDesk() {
                                     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
                                     body: JSON.stringify({ must_move_game_id: mmGame.id, target_game_id: targetGame.id })
                                   });
+                                  if (!res.ok) throw new Error(`Request failed (${res.status})`);
                                   const json = await res.json();
                                   if (json.success) {
                                     setSmsStatus({ type: 'sent', text: json.data.message });
@@ -1398,6 +1405,7 @@ function DeskSettingsModal({ custom, onSave, onClose, onUpdate }) {
         headers: _deskSess?.access_token ? { Authorization: `Bearer ${_deskSess.access_token}` } : {},
         body: formData,
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success && json.url) {
         update('logoUrl', json.url);

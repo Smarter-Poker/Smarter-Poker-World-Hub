@@ -199,12 +199,11 @@ export default function TournamentPublic() {
           }
         })
       });
-      if (!res.ok) throw new Error('Request failed');
       if (res.ok) {
         setPosted(true);
         setTimeout(() => setPosted(false), 3000);
       }
-    } catch (err) { console.error('Post error:', err); }
+    } catch (err) { console.error('Post error:', err); alert('Action failed: Post. Please try again.'); }
     finally { setPosting(false); }
   };
 

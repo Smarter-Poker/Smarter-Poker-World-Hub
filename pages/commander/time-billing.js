@@ -196,12 +196,13 @@ export default function TimeBilling() {
           bulk_time_packages: pricing.bulk_time_packages
         })
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
         setPricingDirty(false);
         broadcastChange('settings');
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
     finally { setPricingSaving(false); }
   };
 
@@ -309,7 +310,6 @@ export default function TimeBilling() {
                 staff_name: staff?.display_name || 'Staff',
               })
             });
-            if (!res.ok) throw new Error('Request failed');
             if (res.ok) {
               await fetchData();
               broadcastChange('tables');
@@ -317,7 +317,7 @@ export default function TimeBilling() {
           }
         }
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
     finally { setStopping(null); }
   };
 
@@ -390,7 +390,7 @@ export default function TimeBilling() {
           broadcastChange('tables');
         }
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
   };
 
 
@@ -415,13 +415,14 @@ export default function TimeBilling() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ [field]: parseFloat(value) || 0 })
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
         setMemberPlans(prev => prev.map(p => p.id === plan.id ? { ...p, [field]: parseFloat(value) || 0 } : p));
         setMemberDirty(prev => ({ ...prev, [plan.id]: false }));
         broadcastChange('settings');
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
     finally { setMemberSaving(null); }
   };
 

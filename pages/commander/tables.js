@@ -226,7 +226,7 @@ export default function CommanderTablesPage() {
         broadcastChange('games');
         busEmit.celebration('confetti');
       }
-    } catch (err) { console.error('Start game error:', err); }
+    } catch (err) { console.error('Start game error:', err); alert('Action failed: Start game. Please try again.'); }
     finally { setActionLoading(false); }
   };
 
@@ -251,7 +251,7 @@ export default function CommanderTablesPage() {
       }
       await fetchTables();
       broadcastChange('games');
-    } catch (err) { console.error('Close game error:', err); }
+    } catch (err) { console.error('Close game error:', err); alert('Action failed: Close game. Please try again.'); }
     finally { setActionLoading(false); }
   };
 
@@ -274,7 +274,7 @@ export default function CommanderTablesPage() {
         await fetchTables();
         broadcastChange('tables');
       }
-    } catch (err) { console.error('Set status error:', err); }
+    } catch (err) { console.error('Set status error:', err); alert('Action failed: Set status. Please try again.'); }
     finally { setActionLoading(false); }
   };
 
@@ -293,7 +293,7 @@ export default function CommanderTablesPage() {
         await fetchTables();
         broadcastChange('tables');
       }
-    } catch (err) { console.error('Delete table error:', err); }
+    } catch (err) { console.error('Delete table error:', err); alert('Action failed: Delete table. Please try again.'); }
     finally { setActionLoading(false); }
   };
 
@@ -312,7 +312,7 @@ export default function CommanderTablesPage() {
         await fetchTables();
         broadcastChange('tables');
       }
-    } catch (err) { console.error('Add table error:', err); }
+    } catch (err) { console.error('Add table error:', err); alert('Action failed: Add table. Please try again.'); }
   };
 
   // Set table purpose (cash_game or tournament)
@@ -332,7 +332,7 @@ export default function CommanderTablesPage() {
         await fetchTables();
         broadcastChange('tables');
       }
-    } catch (err) { console.error('Set purpose error:', err); }
+    } catch (err) { console.error('Set purpose error:', err); alert('Action failed: Set purpose. Please try again.'); }
     finally { setActionLoading(false); }
   };
 

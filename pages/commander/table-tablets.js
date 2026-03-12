@@ -331,6 +331,7 @@ export default function TableTabletsPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ pin_code: pinValue, venue_id: venueId }),
             });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success && json.data?.staff) {
                 const role = json.data.staff.role;
@@ -670,6 +671,7 @@ export default function TableTabletsPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ table_number: tableNumber, seat_number: seatNumber, venue_id: venueId, action, ...extra }),
             });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) broadcastChange('tables'); // <== NEW FIX: Sync player actions across floor
             setPlayerActionLoading(false);
@@ -688,6 +690,7 @@ export default function TableTabletsPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ table_number: tableNumber, seat_number: seatNumber }),
             });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) {
                 setToast({ type: 'success', text: `${json.data.player_name} removed · ${json.data.unused_minutes_returned}m returned` });
@@ -712,6 +715,7 @@ export default function TableTabletsPage() {
                 method: 'POST', headers,
                 body: JSON.stringify({ entry_id: entryId }),
             });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.entry || json.success) {
                 const pos = json.finishPosition ? ` — finished ${json.finishPosition}${['st', 'nd', 'rd'][json.finishPosition - 1] || 'th'}` : '';
@@ -751,6 +755,7 @@ export default function TableTabletsPage() {
                 method: 'POST', headers,
                 body: JSON.stringify({ entry_id: entryId, to_table: toTable, to_seat: toSeat }),
             });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) {
                 const move = json.data?.move;
@@ -781,6 +786,7 @@ export default function TableTabletsPage() {
                     venue_id: venueId,
                 }),
             });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) {
                 setToast({ type: 'success', text: `Chip count updated: ${chipCount.toLocaleString()} — ${playerName}` });
@@ -801,6 +807,7 @@ export default function TableTabletsPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ qr_code: qrData, table_number: tableNumber, seat_number: seatNumber, venue_id: venueId }),
             });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) {
                 setToast({ type: 'success', text: `${json.data.player_name} seated at S${seatNumber}` });

@@ -104,6 +104,7 @@ export default function PlayerReputation() {
           ...reviewForm
         })
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
         setShowReviewForm(null);
@@ -112,7 +113,7 @@ export default function PlayerReputation() {
         if (expandedId) fetchReviews(expandedId);
         broadcastChange('reputation');
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
     finally { setSubmitting(false); }
   };
 

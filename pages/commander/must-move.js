@@ -88,6 +88,7 @@ export default function MustMoveManager() {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
         setMessage({ type: 'success', text: 'Must-Move Removed' });
@@ -109,6 +110,7 @@ export default function MustMoveManager() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
         body: JSON.stringify({ must_move_game_id: mustMoveGameId, target_game_id: targetGameId })
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
         setMessage({ type: 'success', text: json.data.message });

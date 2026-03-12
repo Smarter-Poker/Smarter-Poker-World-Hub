@@ -88,6 +88,7 @@ export default function RegisterPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: code.trim() })
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (res.ok && data.valid) {
         setPromoStatus('valid');

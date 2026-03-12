@@ -113,7 +113,7 @@ export default function NotificationCenter() {
         setUnreadCount(prev => Math.max(0, prev - 1));
         broadcastChange('notifications');
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
   };
 
   const markAllRead = async () => {
@@ -128,7 +128,7 @@ export default function NotificationCenter() {
         setUnreadCount(0);
         broadcastChange('notifications');
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
     finally { setMarkingAll(false); }
   };
 
@@ -142,7 +142,7 @@ export default function NotificationCenter() {
         setNotifications(prev => prev.filter(n => n.id !== id));
         broadcastChange('notifications');
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
   };
 
   // ─── Announcements ───
@@ -223,6 +223,7 @@ export default function NotificationCenter() {
             starts_at: formData.starts_at || null,
           })
         });
+        if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const json = await res.json();
         if (!json.success) throw new Error(json.error);
       } else {
@@ -240,6 +241,7 @@ export default function NotificationCenter() {
             starts_at: formData.starts_at || null,
           })
         });
+        if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const json = await res.json();
         if (!json.success) throw new Error(json.error);
       }
@@ -261,12 +263,13 @@ export default function NotificationCenter() {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
         setAnnouncements(prev => prev.filter(a => a.id !== id));
         broadcastChange('announcements');
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
   };
 
   const formatTime = (ts) => {

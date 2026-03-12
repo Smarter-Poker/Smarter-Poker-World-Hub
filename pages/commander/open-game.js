@@ -144,6 +144,7 @@ export default function OpenGame() {
         })
       });
 
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success || gameJson.success) {
         // Broadcast to all other tabs so they update instantly
@@ -153,7 +154,7 @@ export default function OpenGame() {
         // Navigate to dealer view for this table
         router.push(`/commander/dealer/${tNum}`);
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
     finally { setOpening(false); }
   };
 

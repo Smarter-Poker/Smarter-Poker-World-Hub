@@ -180,7 +180,7 @@ export default function ClockSetup() {
                 broadcastChange('tournaments');
                 if (editing?.id === presetId) setEditing(null);
             }
-        } catch (err) { console.error(err); }
+        } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
     };
 
     if (!staff) {

@@ -559,6 +559,7 @@ export default function Cashier() {
       const res = await fetch(`/api/commander/members/${selectedPlayer.id}`, {
         method: 'PUT', headers, body: JSON.stringify({ time_balance_minutes: newBalance })
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (!json.success) { setMessage({ type: 'error', text: json.error || 'Failed To Add Time' }); setActionLoading(false); return; }
 
@@ -631,6 +632,7 @@ export default function Cashier() {
         method: 'PUT', headers,
         body: JSON.stringify({ membership_tier: selectedTier, membership_status: 'active', membership_expires: expires.toISOString() })
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (!json.success) { setMessage({ type: 'error', text: json.error || 'Failed To Update Membership' }); setActionLoading(false); return; }
 

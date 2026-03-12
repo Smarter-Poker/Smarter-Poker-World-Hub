@@ -151,6 +151,7 @@ export default function TDControlCenter() {
         headers: { 'Content-Type': 'application/json', 'x-staff-session': token },
         body: JSON.stringify({ active: !isActive })
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (!json.success) alert(json.error || 'Failed to toggle Hand-for-Hand.');
       await fetchFloor();

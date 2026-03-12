@@ -368,10 +368,9 @@ export default function TournamentSettings() {
           settings: { clock_color: clockColor }
         })
       });
-      if (!res.ok) throw new Error('Request failed');
       const json = await res.json();
       if (json.success) { setSaved(true); setTimeout(() => setSaved(false), 2000); broadcastChange('tournaments'); }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
     finally { setSaving(false); }
   };
 

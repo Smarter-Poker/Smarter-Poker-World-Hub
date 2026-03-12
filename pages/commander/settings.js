@@ -174,7 +174,6 @@ export default function CommanderSettingsPage() {
         })
       });
       if (!res.ok) throw new Error('Request failed');
-      if (!res.ok) throw new Error('Request failed');
 
       const data = await res.json();
       if (data.success) {
@@ -430,6 +429,7 @@ export default function CommanderSettingsPage() {
                                   contentType: file.type
                                 })
                               });
+                              if (!res.ok) throw new Error(`Request failed (${res.status})`);
                               const json = await res.json();
                               if (json.success) {
                                 setLogoUrl(json.data.club_logo_url);
@@ -455,6 +455,7 @@ export default function CommanderSettingsPage() {
                               method: 'DELETE',
                               headers: { 'x-staff-session': staffSession }
                             });
+                            if (!res.ok) throw new Error(`Request failed (${res.status})`);
                             const json = await res.json();
                             if (json.success) {
                               setLogoUrl(null);

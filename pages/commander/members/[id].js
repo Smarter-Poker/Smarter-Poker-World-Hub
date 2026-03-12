@@ -95,7 +95,7 @@ export default function MemberProfile() {
           broadcastChange('members');
         }
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
   };
 
   const toggleStatus = async (newStatus) => {
@@ -113,7 +113,7 @@ export default function MemberProfile() {
           broadcastChange('members');
         }
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
   };
 
   const m = member;

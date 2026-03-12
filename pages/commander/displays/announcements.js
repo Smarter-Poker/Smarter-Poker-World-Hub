@@ -222,7 +222,7 @@ export default function AnnouncementsDisplay() {
         fetchData(); fetchAllAnnouncements();
         broadcastChange('settings');
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
   };
 
   const formatTime = (ts) => {

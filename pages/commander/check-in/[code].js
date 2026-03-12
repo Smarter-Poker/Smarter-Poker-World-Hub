@@ -59,6 +59,7 @@ export default function PlayerCheckIn() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ qr_code: code })
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
 
       if (!json.success) {

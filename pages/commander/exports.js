@@ -82,6 +82,7 @@ export default function ExportsHub() {
           format
         })
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (res.ok && json.export) {
         setMessage({ type: 'success', text: 'Export Created!' });

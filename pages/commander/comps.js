@@ -240,6 +240,7 @@ export default function CompSystem() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ venue_id: venueId, pin_code: pinCode })
       });
+      if (!pinRes.ok) throw new Error(`Request failed (${pinRes.status})`);
       const pinData = await pinRes.json();
 
       // Check both HTTP status and the 'valid' field from the API
@@ -302,6 +303,7 @@ export default function CompSystem() {
         headers,
         body: JSON.stringify(body)
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
         broadcastChange('members');
@@ -504,6 +506,7 @@ export default function CompSystem() {
       })
       .catch(function (err) {
         console.error(err);
+        alert('Action failed. Please check your connection and try again.');
         setVoidPinError('Network error');
         setVoidLoading(false);
       });

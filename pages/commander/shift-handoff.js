@@ -98,6 +98,7 @@ export default function ShiftHandoff() {
           incoming_staff_name: incomingName.trim() || null
         })
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
         setToast({ type: 'success', msg: 'Shift handoff submitted' });
@@ -127,13 +128,14 @@ export default function ShiftHandoff() {
           staff_name: staff.name || staff.display_name || 'Floor Staff'
         })
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
         setToast({ type: 'success', msg: 'Handoff acknowledged' });
         fetchHandoffs();
         broadcastChange('staff');
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
     finally { setTimeout(() => setToast(null), 3000); }
   };
 

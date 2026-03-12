@@ -180,6 +180,7 @@ export default function LeaguesAndFreerollsManagement() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
         body: JSON.stringify(body)
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success || json.data) {
         showToast('success', 'League created');
@@ -236,6 +237,7 @@ export default function LeaguesAndFreerollsManagement() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
         body: JSON.stringify(body)
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success || json.data) {
         showToast('success', 'Freeroll created');
@@ -272,6 +274,7 @@ export default function LeaguesAndFreerollsManagement() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
         body: JSON.stringify(body)
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
         showToast('success', 'Player added');
@@ -298,6 +301,7 @@ export default function LeaguesAndFreerollsManagement() {
         },
         body: JSON.stringify({ freeroll_id: freerollId, manual: true })
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
         const synced = json.results?.[0];
@@ -319,6 +323,7 @@ export default function LeaguesAndFreerollsManagement() {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
         showToast('success', `${playerName || 'Player'} removed`);

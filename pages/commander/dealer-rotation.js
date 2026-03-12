@@ -131,7 +131,7 @@ export default function DealerRotation() {
         broadcastChange('dealers');
         broadcastChange('tables');
       }
-    } catch (err) { console.error(`[DealerRotation] ${action} error:`, err); }
+    } catch (err) { console.error(`[DealerRotation] ${action} error:`, err); alert(`Action failed: ${action}. Please try again.`); }
     finally { setActionLoading(null); }
   };
 

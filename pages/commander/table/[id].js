@@ -94,7 +94,7 @@ export default function TableSeating() {
         fetchData();
         broadcastChange('tables');
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
   };
 
   if (loading) return (

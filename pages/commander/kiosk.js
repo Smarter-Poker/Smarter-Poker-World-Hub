@@ -222,7 +222,7 @@ export default function MembershipKiosk() {
       } else {
         throw new Error('Check-in failed on server');
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
     finally { setSubmitting(false); }
   };
 
@@ -422,6 +422,7 @@ export default function MembershipKiosk() {
         headers: { 'Content-Type': 'application/json', 'x-staff-session': staffHeader },
         body: JSON.stringify({ qr_code: scanQR.trim(), venue_id: venueId })
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (!json.success || !json.data?.member) {
         setScanError('Card not recognized. Please enter your name manually.');
@@ -463,7 +464,6 @@ export default function MembershipKiosk() {
             signup_method: 'kiosk'
           })
         });
-        if (!res.ok) throw new Error('Request failed');
         if (res.ok) successCount++;
       }
       if (successCount > 0) {
@@ -472,7 +472,7 @@ export default function MembershipKiosk() {
         setMode('success');
         broadcastChange('waitlist');
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
     finally { setSubmitting(false); }
   };
 

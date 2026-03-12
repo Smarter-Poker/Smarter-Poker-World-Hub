@@ -113,7 +113,7 @@ export default function DailyPresetsPage() {
           setTimeout(() => setHardStopSuccess(null), 3000);
         }
       }
-    } catch (e) { console.error("[room-presets.js]", e); }
+    } catch (e) { console.error("[room-presets.js]", e); alert('Action failed. Please check your connection and try again.'); }
     finally { setHardStopSaving(false); }
   }
 
@@ -137,7 +137,7 @@ export default function DailyPresetsPage() {
           setTimeout(() => setAutoCompSuccess(null), 3000);
         }
       }
-    } catch (e) { console.error("[room-presets.js]", e); }
+    } catch (e) { console.error("[room-presets.js]", e); alert('Action failed. Please check your connection and try again.'); }
     finally { setAutoCompSaving(false); }
   }
 
@@ -342,7 +342,7 @@ export default function DailyPresetsPage() {
           broadcastChange('settings');
         }
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
   }
 
   function startEdit(preset) {

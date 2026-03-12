@@ -77,7 +77,6 @@ function RecordHighHandModal({ isOpen, onClose, onSubmit, venueId, staff }) {
         })
       });
       if (!res.ok) throw new Error('Request failed');
-      if (!res.ok) throw new Error('Request failed');
 
       const data = await res.json();
       if (res.ok && data.high_hand) {
@@ -410,7 +409,7 @@ export default function PromotionsPage() {
         body: JSON.stringify({ id: code.id, is_active: !code.is_active })
       });
       if (res.ok) fetchPromoCodes();
-    } catch (err) { console.error('Toggle promo code error:', err); }
+    } catch (err) { console.error('Toggle promo code error:', err); alert('Action failed: Toggle promo code. Please try again.'); }
   };
 
   const deletePromoCode = async (code) => {
@@ -422,7 +421,7 @@ export default function PromotionsPage() {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) fetchPromoCodes();
-    } catch (err) { console.error('Delete promo code error:', err); }
+    } catch (err) { console.error('Delete promo code error:', err); alert('Action failed: Delete promo code. Please try again.'); }
   };
 
   const openEditPromoCode = (code) => {
@@ -444,6 +443,7 @@ export default function PromotionsPage() {
           max_uses: editCodeForm.max_uses === '' ? null : parseInt(editCodeForm.max_uses),
         })
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (res.ok && data.success) {
         setEditingPromoCode(null);

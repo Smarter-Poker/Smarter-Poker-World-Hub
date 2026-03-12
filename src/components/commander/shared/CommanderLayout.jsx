@@ -261,6 +261,7 @@ export default function CommanderLayout({ children, title, backHref = '/commande
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ venue_id: venueId, pin_code: pinInput }),
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (!res.ok || !data.data?.staff) {
         const nextAttempts = pinAttempts + 1;

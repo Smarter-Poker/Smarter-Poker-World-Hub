@@ -186,7 +186,7 @@ export default function FloorCalls() {
         broadcastChange('floor_calls');
       }
       if (status === 'resolved') busEmit.celebration('confetti');
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
   };
 
   const createCall = async () => {
@@ -212,7 +212,7 @@ export default function FloorCalls() {
         fetchCalls();
         broadcastChange('floor_calls');
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
     finally { setSubmitting(false); }
   };
 

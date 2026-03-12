@@ -84,6 +84,7 @@ export default function BreakManager() {
           assignments
         })
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
         setExecuted(json.data);

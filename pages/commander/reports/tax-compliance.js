@@ -69,6 +69,7 @@ export default function TaxCompliance() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ tax_event_id: eventId })
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
         setToast({ type: 'success', msg: 'W-2G generated successfully' });
