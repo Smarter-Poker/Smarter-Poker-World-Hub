@@ -5200,9 +5200,13 @@ function SocialMediaPage() {
                 const clubPageId = identityStored.clubPage.id;
                 console.log('[Social] 🏢 Posting as Club Page:', identityStored.clubPage.name, clubPageId);
 
+                const token = getAccessToken();
                 const res = await fetch('/api/social/pages/posts', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                    },
                     body: JSON.stringify({
                         page_id: clubPageId,
                         author_id: user.id,
