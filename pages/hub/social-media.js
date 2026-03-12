@@ -5228,12 +5228,14 @@ function SocialMediaPage() {
                 setPosts(prev => [{
                     id: json.data?.id || Date.now(), authorId: user.id, content, contentType: type,
                     mediaUrls: urls, likeCount: 0, commentCount: 0, shareCount: 0,
+                    reactions: [],
                     timeAgo: 'Just now', isLiked: false, justPosted: true,
                     // Link metadata for ArticleCard rendering
                     link_url: linkPreview?.url || null,
                     link_title: linkPreview?.title || null,
                     link_description: linkPreview?.description || null,
                     link_image: linkPreview?.image || null,
+                    link_site_name: linkPreview?.domain || null,
                     author: {
                         name: identityStored.clubPage.name,
                         username: null,
