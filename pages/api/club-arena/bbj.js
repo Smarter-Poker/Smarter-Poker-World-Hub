@@ -66,7 +66,13 @@ export default async function handler(req, res) {
       let unionAuth = false;
       if (club?.union_id) {
         const { data: ua } = await supabaseAdmin.from('union_admins').select('role').eq('union_id', club.union_id).eq('user_id', user.id).maybeSingle();
-        unionAuth = !!ua;
+        if (ua) {
+            unionAuth = true;
+        } else {
+            // Owner fallback
+            const { data: union } = await supabaseAdmin.from('unions').select('id').eq('id', club.union_id).eq('owner_id', user.id).maybeSingle();
+            if (union) unionAuth = true;
+        }
       }
       if (!unionAuth) return res.status(403).json({ error: 'Not a member of this club' });
     }

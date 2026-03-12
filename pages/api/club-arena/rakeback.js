@@ -148,7 +148,13 @@ export default async function handler(req, res) {
           const { data: ua } = await supabaseAdmin
             .from('union_admins').select('role')
             .eq('union_id', clubInfo.union_id).eq('user_id', user.id).maybeSingle();
-          if (ua) effectiveRole = 'owner'; // union admins get full access
+          if (ua) {
+              effectiveRole = 'owner'; // union admins get full access
+          } else {
+              // Owner fallback
+              const { data: union } = await supabaseAdmin.from('unions').select('id').eq('id', clubInfo.union_id).eq('owner_id', user.id).maybeSingle();
+              if (union) effectiveRole = 'owner';
+          }
         }
       }
 

@@ -72,7 +72,13 @@ export default async function handler(req, res) {
         .eq('union_id', club.union_id)
         .eq('user_id', user.id)
         .maybeSingle();
-      authorized = !!ua;
+      if (ua) {
+          authorized = true;
+      } else {
+          // Owner fallback
+          const { data: union } = await supabaseAdmin.from('unions').select('id').eq('id', club.union_id).eq('owner_id', user.id).maybeSingle();
+          if (union) authorized = true;
+      }
     }
     if (!authorized) return res.status(403).json({ success: false, error: 'Not authorized' });
 

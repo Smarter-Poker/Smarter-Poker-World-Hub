@@ -50,7 +50,13 @@ export default async function handler(req, res) {
         const { data: ua } = await supabaseAdmin
           .from('union_admins').select('role')
           .eq('union_id', clubRow.union_id).eq('user_id', user.id).maybeSingle();
-        if (!ua) return res.status(403).json({ success: false, error: 'Club membership required' });
+        if (ua) {
+            // authorized
+        } else {
+            // Owner fallback
+            const { data: union } = await supabaseAdmin.from('unions').select('id').eq('id', clubRow.union_id).eq('owner_id', user.id).maybeSingle();
+            if (!union) return res.status(403).json({ success: false, error: 'Club membership required' });
+        }
       } else {
         return res.status(403).json({ success: false, error: 'Club membership required' });
       }

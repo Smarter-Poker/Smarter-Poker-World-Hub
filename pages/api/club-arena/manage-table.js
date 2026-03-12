@@ -77,7 +77,13 @@ export default async function handler(req, res) {
       let unionAuth = false;
       if (clubInfo.union_id) {
         const { data: ua, error: uaErr } = await supabaseAdmin.from('union_admins').select('role').eq('union_id', clubInfo.union_id).eq('user_id', user.id).maybeSingle();
-        unionAuth = !!ua && !uaErr;
+        if (ua && !uaErr) {
+            unionAuth = true;
+        } else {
+            // Owner fallback
+            const { data: union } = await supabaseAdmin.from('unions').select('id').eq('id', clubInfo.union_id).eq('owner_id', user.id).maybeSingle();
+            if (union) unionAuth = true;
+        }
       }
       if (!unionAuth) {
         return res.status(403).json({ success: false, error: 'Only owners, admins, or union admins can manage tables' });
@@ -94,8 +100,23 @@ export default async function handler(req, res) {
 
     if (!table) return res.status(404).json({ success: false, error: 'Table not found' });
 
+    const emitUnionEvent = (eventName, tableData) => {
+      try {
+        const { getBus } = require('../../../src/lib/poker-engine/EventBus');
+        const bus = getBus();
+        if (bus) {
+          bus.emit(eventName, { clubId, tableId, ...tableData });
+        }
+      } catch (e) {
+        console.error(`[manage-table] EventBus error (${eventName}):`, e.message);
+      }
+    };
+
     switch (action) {
       case 'close': {
+        // ... (close logic) ... (Wait, I need to inject the emit into each switch case right before returning)
+        // Let's modify the whole switch statement to inject the calls. I will just do it explicitly in each block via multi_replace_file_content. I'll read the ends of each block first. Actually, I can just use a multi_replace for this file if that's safer, but let me check how manage-table is structured first.
+
         // ── E-09: State pre-check — only closeable statuses ──────────
         if (['closed', 'deleted'].includes(table.status)) {
           return res.status(400).json({ success: false, error: `Cannot close table — current status is '${table.status}'` });
@@ -118,6 +139,8 @@ export default async function handler(req, res) {
           const controller = await getController();
           await controller.closeTable(tableId);
         } catch (_) { }
+
+        emitUnionEvent('union:table-closed', {});
 
         const responseBody = { success: true, action: 'close', tableId };
         cacheResponse(req, 200, responseBody);
@@ -160,6 +183,8 @@ export default async function handler(req, res) {
           }
         });
 
+        emitUnionEvent('union:table-closed', {});
+
         const responseBody = { success: true, action: 'delete', tableId };
         cacheResponse(req, 200, responseBody);
         return res.status(200).json(responseBody);
@@ -192,6 +217,8 @@ export default async function handler(req, res) {
             entry.table.emit('table_paused', { by: user.id });
           }
         } catch (_) { /* intentionally silent */ }
+
+        emitUnionEvent('union:table-updated', { status: 'paused' });
 
         const responseBody = { success: true, action: 'pause', tableId };
         cacheResponse(req, 200, responseBody);
@@ -227,6 +254,8 @@ export default async function handler(req, res) {
             entry.table._checkAutoStart?.();
           }
         } catch (_) { /* intentionally silent */ }
+
+        emitUnionEvent('union:table-updated', { status: 'running' });
 
         const responseBody = { success: true, action: 'resume', tableId };
         cacheResponse(req, 200, responseBody);

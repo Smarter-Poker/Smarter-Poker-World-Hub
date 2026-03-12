@@ -202,6 +202,23 @@ export default async function handler(req, res) {
       // Engine not running — settings will apply on next connect
     }
 
+    try {
+        const { getBus } = require('../../../src/lib/poker-engine/EventBus');
+        const bus = getBus();
+        if (bus) {
+            bus.emit('union:table-updated', {
+                clubId,
+                tableId: updated.id,
+                status: updated.status,
+                name: updated.name,
+                smallBlind: updated.small_blind,
+                bigBlind: updated.big_blind
+            });
+        }
+    } catch (e) {
+        console.error('[update-table-settings] EventBus error:', e.message);
+    }
+
     const responseBody = { success: true, table: updated };
     cacheResponse(req, 200, responseBody);
     return res.status(200).json(responseBody);
