@@ -43,6 +43,15 @@ async function verifyUnionLead(token, unionId) {
   // Union admins can view but not move funds
   if (admin) return { user, isLead: false };
 
+  // Owner fallback: check if user is the union owner
+  const { data: ownerCheck } = await supabaseAdmin
+    .from('unions')
+    .select('id')
+    .eq('id', unionId)
+    .eq('owner_id', user.id)
+    .maybeSingle();
+  if (ownerCheck) return { user, isLead: true };
+
   return { error: 'Not a union admin', status: 403 };
 }
 
