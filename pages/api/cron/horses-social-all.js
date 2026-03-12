@@ -4,6 +4,7 @@
 // New schedule: every 15 minutes, drops 530 invocations per day to 96
 
 import { likePosts, commentOnPosts, replyToComments } from '../../../src/content-engine/pipeline/HorseSocialEngine.js';
+import { processDirectMessages } from '../../../src/content-engine/pipeline/HorseMessengerEngine.js';
 
 export const config = {
     maxDuration: 60,
@@ -34,6 +35,9 @@ export default async function handler(req, res) {
         // Step 3: Replies
         const replyResult = await replyToComments(10);
         results.replied = replyResult.replied || 0;
+
+        // Step 4: Grok Direct Messages
+        await processDirectMessages();
 
 
         return res.status(200).json({
