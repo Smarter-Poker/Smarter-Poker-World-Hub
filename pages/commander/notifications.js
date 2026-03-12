@@ -9,7 +9,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { Bell, BellOff, CheckCheck, Loader2, RefreshCw, Trash2, Trophy, Users, DollarSign, AlertTriangle, MessageSquare, Star, Plus, Edit3, X, Megaphone, Send, ChevronDown } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../src/engine/EventBus';
-import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
+import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
 const TYPE_CONFIG = {
   seat_available: { icon: Users, color: '#31A24C', label: 'Seat Available' },
@@ -157,6 +157,13 @@ export default function NotificationCenter() {
   useEffect(() => {
     if (activeTab === 'announcements') fetchAnnouncements();
   }, [activeTab, fetchAnnouncements]);
+
+  // Commander Data Bus — both BroadcastChannel (instant) + Supabase Realtime (cross-device)
+  const refreshAll = useCallback(() => {
+    fetchNotifications();
+    fetchAnnouncements();
+  }, [fetchNotifications, fetchAnnouncements]);
+  useCommanderSync(getVenueId() || '', refreshAll, { entities: ['notifications', 'announcements'] });
 
   const openCreateForm = () => {
     setFormData({ title: '', message: '', priority: 'normal', type: 'general', expires_at: '', starts_at: '' });

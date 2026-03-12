@@ -4,12 +4,12 @@
  * Dark industrial sci-fi gaming theme
  * Per API_REFERENCE.md: /streaming endpoints
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { Video, Play, Square, Settings, Loader2, Clock, Wifi, Youtube, Twitch, Facebook, X } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../src/engine/EventBus';
-import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
+import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
 const PLATFORMS = [
   { id: 'youtube', label: 'YouTube', icon: Youtube, color: '#FF0000' },
@@ -290,15 +290,8 @@ export default function StreamingPage() {
     }
   }, [router]);
 
-  useEffect(() => {
-    if (venueId) {
-      const ctrl = new AbortController();
-      fetchStreams(ctrl.signal);
-      return () => ctrl.abort();
-    }
-  }, [venueId]);
-
-  async function fetchStreams(signal) {
+  // fetchStreams declared first — must precede useEffect/useCommanderSync that reference it
+  const fetchStreams = useCallback(async (signal) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
@@ -317,7 +310,18 @@ export default function StreamingPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [venueId]);
+
+  useEffect(() => {
+    if (venueId) {
+      const ctrl = new AbortController();
+      fetchStreams(ctrl.signal);
+      return () => ctrl.abort();
+    }
+  }, [venueId, fetchStreams]);
+
+  // Commander Data Bus — both BroadcastChannel (instant) + Supabase Realtime (cross-device)
+  useCommanderSync(venueId || '', fetchStreams, { entities: ['streaming'] });
 
   async function handleStartStream(tableId) {
     try {

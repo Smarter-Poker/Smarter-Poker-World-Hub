@@ -13,7 +13,7 @@ import React from 'react';
 import { usePersistedState } from '../../../src/hooks/usePersistedState';
 import { supabase } from '../../../src/lib/supabase';
 import { emitCacheInvalidation, onCacheInvalidation } from '../../../src/lib/cacheSync';
-import { broadcastSyncDebounced, listenBroadcast, BROADCAST_TAB_ID } from '../../../src/lib/broadcastSync';
+import { broadcastSync, broadcastSyncDebounced, listenBroadcast, BROADCAST_TAB_ID } from '../../../src/lib/broadcastSync';
 import { eventBus, busEmit } from '../../../src/engine/EventBus';
 
 // Components
@@ -1039,6 +1039,8 @@ export default function UserProfilePage() {
             setVideos(prev => prev.filter(p => p.id !== postId));
             setStats(prev => ({ ...prev, posts: Math.max(0, prev.posts - 1) }));
             invalidateProfileCache();
+            busEmit.dataMutated('social');
+            broadcastSync('smarter_poker_social_sync', { action: 'refresh_feed', tabId: BROADCAST_TAB_ID });
         } catch (e) {
             console.error('Error deleting post:', e);
             throw e;
@@ -1123,6 +1125,8 @@ export default function UserProfilePage() {
             setStats(prev => ({ ...prev, posts: prev.posts + 1 }));
             setIsPosting(false);
             invalidateProfileCache();
+            busEmit.dataMutated('social');
+            broadcastSync('smarter_poker_social_sync', { action: 'refresh_feed', tabId: BROADCAST_TAB_ID });
             return true;
         } catch (e) {
             console.error('Error creating post:', e);
