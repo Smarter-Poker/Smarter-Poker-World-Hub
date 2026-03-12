@@ -959,7 +959,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
         }
 
         // Extract mentions from content
-        const mentionPattern = /@(\w+)/g;
+        const mentionPattern = /@([\w.]+)/g;
         const mentions = [];
         let match;
         while ((match = mentionPattern.exec(content)) !== null) {
@@ -1334,7 +1334,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
     // Phase 28: Render @mentions as clickable links
     function renderMentions(text) {
         if (!text) return text;
-        const parts = text.split(/(@\w+)/g);
+        const parts = text.split(/(@[\w.]+)/g);
         return parts.map((part, i) => {
             if (part.startsWith('@')) {
                 const username = part.slice(1);
@@ -1631,7 +1631,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                     }
                     
                     // Phase 28 Fix: Trigger mention notifications
-                    const mentions = savedComment.match(/@(\w+)/g);
+                    const mentions = savedComment.match(/@([\w.]+)/g);
                     if (mentions && mentions.length > 0) {
                         const usernames = mentions.map(m => m.slice(1));
                         const { data: mentionedUsers } = await supabase.from('profiles').select('id, username').in('username', usernames);
@@ -1862,6 +1862,8 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                             navigator.clipboard.writeText(shareUrl);
                             toast.success('Link copied to clipboard!');
                         }
+                        // Sync denormalized share_count (fire-and-forget)
+                        supabase.rpc('increment_post_count', { p_post_id: post.id, p_field: 'share_count' }).catch(() => {});
                     }}
                     style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: C.textSec, fontWeight: 500, fontSize: 13 }}
                 >↗️ Share</button>
@@ -4430,9 +4432,10 @@ function SocialMediaPage() {
             .on('postgres_changes', {
                 event: 'INSERT',
                 schema: 'public',
-                table: 'social_posts',
-                filter: `visibility=is.null,visibility=eq.public`
+                table: 'social_posts'
             }, async (payload) => {
+                // Skip self-authored posts — already added optimistically in handlePost
+                if (payload.new.author_id === user.id) return;
                 console.log('[Social] 🔄 New post detected via realtime:', payload.new.id);
                 // Trigger feed reload to pick up new posts
                     broadcastSync('smarter_poker_social_sync', { action: 'refresh_feed', tabId: BROADCAST_TAB_ID });
@@ -4679,10 +4682,6 @@ function SocialMediaPage() {
                         const feedCache = JSON.parse(feedCacheRaw);
                         if (feedCache._cachedAt && (Date.now() - feedCache._cachedAt) < 15 * 60 * 1000 && feedCache.posts?.length) {
                             setPosts(feedCache.posts);
-                            // Delta sync: only fetch posts newer than the newest cached post
-                            if (feedCache._newestPostTime) {
-                                window.__spFeedDeltaSince = feedCache._newestPostTime;
-                            }
                         }
                     }
                 } catch { /* cache miss */ }
@@ -4914,8 +4913,8 @@ function SocialMediaPage() {
 
 
             // Define Supabase credentials for native fetch (needed for both posts and profiles)
-            const supabaseUrl = 'https://kuklfnapbkmacvwxktbh.supabase.co';
-            const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo';
+            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+            const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo';
 
             // Use native fetch directly to Supabase REST API
             try {
@@ -5048,6 +5047,21 @@ function SocialMediaPage() {
                     }
                 }
 
+                // Fetch user's bookmarked post IDs (fire-and-forget if fails)
+                let bookmarkedPostIds = new Set();
+                try {
+                    if (user?.id) {
+                        const bookmarkRes = await fetch(
+                            `${supabaseUrl}/rest/v1/social_interactions?user_id=eq.${user.id}&interaction_type=eq.bookmark&select=post_id`,
+                            { headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` } }
+                        );
+                        if (bookmarkRes.ok) {
+                            const bookmarks = await bookmarkRes.json();
+                            bookmarkedPostIds = new Set(bookmarks.map(b => b.post_id));
+                        }
+                    }
+                } catch { /* bookmark fetch non-critical */ }
+
                 const formattedPosts = mixedFeed.map(p => {
                     const likesArray = p.social_likes || [];
                     const reactions = likesArray.map(l => l.reaction_type || 'like');
@@ -5093,7 +5107,8 @@ function SocialMediaPage() {
                             if (meta?.page_avatar_url) return meta.page_avatar_url;
                             return authorMap[p.author_id]?.avatar_url || null;
                         })()
-                    }
+                    },
+                    isBookmarked: bookmarkedPostIds.has(p.id)
                 };
             });
 
@@ -5107,16 +5122,10 @@ function SocialMediaPage() {
                 } else {
                     setPosts(formattedPosts);
                     // Cache first 20 posts for instant render on next visit
-                    // Store _newestPostTime for delta sync on next visit
                     try {
                         const cacheSlice = formattedPosts.slice(0, 20);
-                        const newestTime = cacheSlice.reduce((max, p) => {
-                            const t = p.created_at || p.timestamp;
-                            return t && t > max ? t : max;
-                        }, '');
                         localStorage.setItem('sp-feed-cache', JSON.stringify({
                             _cachedAt: Date.now(),
-                            _newestPostTime: newestTime || null,
                             posts: cacheSlice,
                         }));
                     } catch { /* quota exceeded */ }
@@ -5443,6 +5452,8 @@ function SocialMediaPage() {
 
             // Remove from local state
             setPosts(prev => prev.filter(p => p.id !== id));
+            // Invalidate feed cache so deleted post doesn't flicker on next visit
+            try { localStorage.removeItem('sp-feed-cache'); } catch {}
             console.log(`[Delete] ✅ Post ${id} deleted successfully (${result.deletedBy})`);
             busEmit.dataMutated('social');
         } catch (e) {
