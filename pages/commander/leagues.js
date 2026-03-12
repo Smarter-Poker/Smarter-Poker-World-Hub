@@ -102,11 +102,12 @@ export default function LeaguesAndFreerollsManagement() {
     setLeaguesLoading(true);
     try {
       const res = await fetch('/api/commander/leagues?limit=50', {
-        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
+        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
+        ...(signal ? { signal } : {}),
       });
       const json = await res.json();
       if (json.success) setLeagues(json.data?.leagues || []);
-    } catch (err) { console.error(err); }
+    } catch (err) { if (err.name !== 'AbortError') console.error(err); }
     finally { setLeaguesLoading(false); }
   }, []);
 
@@ -115,11 +116,12 @@ export default function LeaguesAndFreerollsManagement() {
     setFreerollsLoading(true);
     try {
       const res = await fetch('/api/commander/freerolls?limit=50', {
-        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
+        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
+        ...(signal ? { signal } : {}),
       });
       const json = await res.json();
       if (json.success) setFreerolls(json.data?.freerolls || []);
-    } catch (err) { console.error(err); }
+    } catch (err) { if (err.name !== 'AbortError') console.error(err); }
     finally { setFreerollsLoading(false); }
   }, []);
 
