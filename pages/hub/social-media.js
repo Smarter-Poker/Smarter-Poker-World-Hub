@@ -69,7 +69,7 @@ import PageTransition from '../../src/components/transitions/PageTransition';
 import toast from '../../src/stores/toastStore';
 import { getAccessToken } from '../../src/lib/authUtils';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
-import { broadcastSync, listenBroadcast, BROADCAST_TAB_ID } from '../../src/lib/broadcastSync';
+import { broadcastSync, listenBroadcast } from '../../src/lib/broadcastSync';
 
 // Light Theme Colors (SmarterPoker-style)
 const C = {

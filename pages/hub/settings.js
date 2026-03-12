@@ -24,7 +24,7 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import InviteFriendsModal from '../../src/components/ui/InviteFriendsModal';
 import { getAccessToken } from '../../src/lib/authUtils';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
-import { broadcastSync, broadcastSyncDebounced, listenBroadcast, BROADCAST_TAB_ID } from '../../src/lib/broadcastSync';
+import { broadcastSyncDebounced, listenBroadcast, BROADCAST_TAB_ID } from '../../src/lib/broadcastSync';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TOGGLE SWITCH COMPONENT
