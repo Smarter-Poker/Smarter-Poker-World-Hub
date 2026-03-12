@@ -1425,6 +1425,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
 
     const handleLike = async () => {
         const newLiked = !liked;
+        const prevReactions = [...reactions];
         setLiked(newLiked);
         
         if (newLiked) {
@@ -1440,7 +1441,15 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                 setReactions(updated);
             }
         }
-        await onLike(post.id, newLiked ? 'like' : null);
+        try {
+            await onLike(post.id, newLiked ? 'like' : null);
+        } catch (e) {
+            // Revert optimistic update on failure
+            console.error('[PostCard] Like failed, reverting:', e);
+            setLiked(!newLiked);
+            setLikeCount(prev => newLiked ? Math.max(0, prev - 1) : prev + 1);
+            setReactions(prevReactions);
+        }
     };
 
     const loadComments = async () => {
@@ -5328,7 +5337,7 @@ function SocialMediaPage() {
                 const { error } = await supabase.from('social_likes').delete()
                     .eq('post_id', postId)
                     .eq('user_id', user.id);
-                if (error) console.error('[Social] Unlike error:', error.message);
+                if (error) throw new Error(error.message);
                 
                 // Sync denormalized like_count column (fire-and-forget)
                 supabase.rpc('decrement_post_count', { p_post_id: postId, p_field: 'like_count' }).catch(async () => {
@@ -5351,7 +5360,7 @@ function SocialMediaPage() {
                         user_id: user.id,
                         reaction_type: type || 'like'
                     });
-                    if (error) console.error('[Social] Like error:', error.message);
+                    if (error) throw new Error(error.message);
                     
                     // Sync denormalized like_count column (fire-and-forget)
                     supabase.rpc('increment_post_count', { p_post_id: postId, p_field: 'like_count' }).catch(async () => {
@@ -5362,7 +5371,10 @@ function SocialMediaPage() {
                     });
                 }
             }
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            console.error('[Social] handleLike error:', e.message);
+            throw e; // Re-throw so PostCard can revert optimistic UI
+        }
     };
 
     const handleDelete = async (id) => {
