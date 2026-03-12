@@ -14,6 +14,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
+import Card from '../../../src/components/training/Card';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PRE-COMPUTED 3-WAY SCENARIOS
@@ -163,36 +164,12 @@ const DIFFICULTY_COLORS = {
   Expert: '#ef4444',
 };
 
-// Card rendering
+// Card rendering — uses the custom 52-card PNG deck
 function MiniCard({ card }) {
   if (!card) return null;
-  const rank = card[0];
-  const suit = card.slice(1);
-  const suitSymbol = { s: '♠', h: '♥', d: '♦', c: '♣' }[suit] || suit;
-  const suitColor = { s: '#94a3b8', h: '#ef4444', d: '#3b82f6', c: '#22c55e' }[suit] || '#fff';
-
-  return (
-    <div
-      style={{
-        width: 36,
-        height: 50,
-        borderRadius: 6,
-        background: 'rgba(255,255,255,0.95)',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: 14,
-        fontWeight: 800,
-        color: suitColor,
-        boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-        border: '1px solid rgba(255,255,255,0.2)',
-      }}
-    >
-      <span style={{ lineHeight: 1 }}>{rank}</span>
-      <span style={{ fontSize: 12, lineHeight: 1 }}>{suitSymbol}</span>
-    </div>
-  );
+  const rank = card[0]?.toUpperCase();
+  const suit = card.slice(1)?.toLowerCase();
+  return <Card rank={rank} suit={suit} size="tiny" animate="none" />;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -340,7 +317,7 @@ function EquityPie({ equity, players }) {
 
 export default function MultiwayPostflop() {
   const router = useRouter();
-  useTrainingBus('multiway-postflop');
+  const bus = useTrainingBus('multiway-postflop');
 
   const [selectedScenario, setSelectedScenario] = useState(null);
   

@@ -308,7 +308,7 @@ function NodeTree({ profile }) {
 
 export default function NodelockingPage() {
   const router = useRouter();
-  useTrainingBus('nodelocking');
+  const bus = useTrainingBus('nodelocking');
 
   const [isCheckingVIP, setIsCheckingVIP] = useState(true);
 
