@@ -8,7 +8,8 @@ import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import { supabase } from '../../src/lib/supabase';
 import { getAuthUser } from '../../src/lib/authUtils';
-import { eventBus, EventType } from '../../src/engine/EventBus';
+import { eventBus, EventType, busEmit } from '../../src/engine/EventBus';
+import useTrainingBus from '../../src/hooks/useTrainingBus';
 
 // God-Mode Stack
 import PageTransition from '../../src/components/transitions/PageTransition';
@@ -37,6 +38,8 @@ export default function NotificationsPage() {
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState(null);
+
+    useTrainingBus('notifications');
 
     const menuConfig = getMenuConfig('notifications', user, {}, {});
 
@@ -277,7 +280,8 @@ export default function NotificationsPage() {
                 console.error('Could not find friendship to accept');
             }
 
-            // Sync friends page cross-tab
+            // Sync friends page cross-tab + EventBus
+            busEmit.dataMutated('friends');
             try { const bc = new BroadcastChannel('smarter_poker_friends_sync'); bc.postMessage('refresh'); bc.close(); } catch { /* noop */ }
         } catch (err) {
             console.error('Error accepting friend request:', err);
@@ -331,7 +335,8 @@ export default function NotificationsPage() {
                     : n
             ));
 
-            // Sync friends page cross-tab
+            // Sync friends page cross-tab + EventBus
+            busEmit.dataMutated('friends');
             try { const bc = new BroadcastChannel('smarter_poker_friends_sync'); bc.postMessage('refresh'); bc.close(); } catch { /* noop */ }
         } catch (err) {
             console.error('Error declining friend request:', err);
