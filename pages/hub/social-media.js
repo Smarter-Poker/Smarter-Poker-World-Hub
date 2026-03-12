@@ -47,7 +47,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { usePersistedState } from '../../src/hooks/usePersistedState';
 import { supabase } from '../../src/lib/supabase';
 import { eventBus, EventType } from '../../src/engine/EventBus';
-import { getAuthUser } from '../../src/lib/authUtils';
+import { getAuthUser, ensureAuthReady } from '../../src/lib/authUtils';
 import { useExternalLink } from '../../src/components/ui/ExternalLinkModal';
 import { useUnreadCount } from '../../src/hooks/useUnreadCount';
 import { StoriesBar } from '../../src/components/social/Stories';
@@ -4114,53 +4114,11 @@ export default function SocialMediaPage() {
     useEffect(() => {
         (async () => {
             try {
-                // NEW APPROACH: Read session directly from localStorage to bypass AbortError
-                let authUser = null;
-
-                // PRIMARY: Check explicit smarter-poker-auth key (new auth system)
-                const explicitAuth = localStorage.getItem('smarter-poker-auth');
-                if (explicitAuth) {
-                    try {
-                        const tokenData = JSON.parse(explicitAuth);
-                        if (tokenData?.user) {
-                            authUser = tokenData.user;
-                            console.log('[Social] ✅ Got user from smarter-poker-auth:', authUser.email);
-                        }
-                    } catch (parseError) {
-                        console.error('[Social] Failed to parse smarter-poker-auth:', parseError);
-                    }
-                }
-
-                // FALLBACK: Legacy sb-*-auth-token keys (backwards compatibility)
-                if (!authUser) {
-                    const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-                    console.log('[Social] Looking for legacy auth token, found keys:', sbKeys);
-
-                    if (sbKeys.length > 0) {
-                        try {
-                            const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
-                            if (tokenData?.user) {
-                                authUser = tokenData.user;
-                                console.log('[Social] ✅ Got user from legacy localStorage:', authUser.email);
-                            }
-                        } catch (parseError) {
-                            console.error('[Social] Failed to parse legacy token:', parseError);
-                        }
-                    }
-                }
-
-                // Final fallback: try getSession if localStorage approach failed
-                if (!authUser) {
-                    console.log('[Social] No user from localStorage, trying getAuthUser...');
-                    try {
-                        const fallbackUser = getAuthUser();
-                        if (fallbackUser) {
-                            authUser = fallbackUser;
-                            console.log('[Social] ✅ Got user from getAuthUser:', authUser.email);
-                        }
-                    } catch (e) {
-                        console.warn('[Social] getAuthUser failed:', e.message);
-                    }
+                const authUser = await ensureAuthReady(supabase);
+                if (authUser) {
+                    console.log('[Social] ✅ Auth hydrated via ensureAuthReady:', authUser.email || authUser.id);
+                } else {
+                    console.warn('[Social] ❌ ensureAuthReady could not find valid auth session');
                 }
 
                 if (authUser) {
