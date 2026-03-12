@@ -471,6 +471,36 @@ async function commentOnPosts(maxComments = 20, includeRealUsers = true) {
         let comment = getRandomComment(commentType);
         comment = applyWritingStyle(comment, horse.profile_id);
 
+        // 🟢 DYNAMIC TYPING INDICATOR (Phase 11)
+        // Broadcast a typing payload to all connected clients viewing this post
+        try {
+            await supabase.channel('social-feed').send({
+                type: 'broadcast',
+                event: 'typing',
+                payload: {
+                    post_id: post.id,
+                    user_id: horse.profile_id,
+                    name: horse.name,
+                    avatar_url: horse.avatar_url || null,
+                    isTyping: true
+                }
+            });
+            
+            // Simulate human typing delay (3s - 8s based on comment length)
+            const typingMs = Math.max(3000, Math.min(8000, comment.length * 100));
+            console.log(`   [Live] ${horse.name} is typing on post ${post.id.substring(0,6)}... (${Math.round(typingMs/1000)}s)`);
+            await new Promise(r => setTimeout(r, typingMs));
+            
+            // Send stop typing event
+            await supabase.channel('social-feed').send({
+                type: 'broadcast',
+                event: 'typing',
+                payload: { post_id: post.id, user_id: horse.profile_id, isTyping: false }
+            });
+        } catch (err) {
+            console.warn(`   [Live] Failed to broadcast typing indicator for ${horse.name}`);
+        }
+
         // Insert comment
         const { error } = await supabase
             .from('social_comments')

@@ -8,6 +8,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import supabase from '../lib/supabase.ts';
 import { getUserAvatar, setPresetAvatar, generateCustomAvatar } from '../services/avatar-service';
 import { getAuthUser } from '../lib/authUtils';
+import { listenBroadcast, broadcastSync } from '../lib/broadcastSync';
 
 const AvatarContext = createContext();
 
@@ -334,16 +335,13 @@ export function AvatarProvider({ children }) {
             .subscribe();
 
         // BroadcastChannel: cross-tab sync
-        try {
-            vipBc = new BroadcastChannel('smarter_poker_vip_sync');
-            vipBc.onmessage = () => {
-                refreshVipStatus();
-            };
-        } catch (e) { }
+        const cleanupVipSync = listenBroadcast('smarter_poker_vip_sync', () => {
+            refreshVipStatus();
+        });
 
         return () => {
             if (vipChannel) supabase.removeChannel(vipChannel);
-            try { vipBc?.close(); } catch (e) { }
+            cleanupVipSync();
         };
     }, [user?.id]);
 
@@ -356,7 +354,6 @@ export function AvatarProvider({ children }) {
         if (!user?.id) return;
 
         let avatarChannel = null;
-        let bc = null;
 
         try {
             // Subscribe to user_avatars table changes for this user
@@ -372,26 +369,23 @@ export function AvatarProvider({ children }) {
                     loadAvatar();
                 })
                 .subscribe();
-
-            // Listen for cross-tab avatar sync messages
-            bc = new BroadcastChannel('smarter_poker_avatar_sync');
-            bc.onmessage = (event) => {
-                if (event.data === 'refresh') {
-                    console.log('[AvatarContext] Avatar refresh via BroadcastChannel');
-                    loadAvatar();
-                }
-            };
         } catch (e) {
             console.warn('[AvatarContext] Failed to set up avatar realtime:', e);
         }
+
+        // Listen for cross-tab avatar sync messages
+        const cleanupAvatarSync = listenBroadcast('smarter_poker_avatar_sync', (msg) => {
+            if (msg === 'refresh') {
+                console.log('[AvatarContext] Avatar refresh via BroadcastChannel');
+                loadAvatar();
+            }
+        });
 
         return () => {
             if (avatarChannel) {
                 supabase.removeChannel(avatarChannel);
             }
-            if (bc) {
-                try { bc.close(); } catch (e) { }
-            }
+            cleanupAvatarSync();
         };
     }, [user?.id]);
 
@@ -433,9 +427,7 @@ export function AvatarProvider({ children }) {
         if (result.success) {
             await loadAvatar(); // Refresh avatar
             // Broadcast avatar change to other tabs
-            try {
-                new BroadcastChannel('smarter_poker_avatar_sync').postMessage('refresh');
-            } catch (e) { }
+            broadcastSync('smarter_poker_avatar_sync', 'refresh');
         }
 
         return result;
@@ -477,9 +469,7 @@ export function AvatarProvider({ children }) {
             await loadAvatar(); // Refresh avatar
 
             // Broadcast avatar change to other tabs
-            try {
-                new BroadcastChannel('smarter_poker_avatar_sync').postMessage('refresh');
-            } catch (e) { }
+            broadcastSync('smarter_poker_avatar_sync', 'refresh');
 
             return { success: true };
         } catch (error) {

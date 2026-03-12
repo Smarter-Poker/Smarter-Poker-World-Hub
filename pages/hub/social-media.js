@@ -1334,6 +1334,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
     const [loadingComments, setLoadingComments] = useState(false);
     const [commentCount, setCommentCount] = useState(post.commentCount || 0);
     const [fullScreenVideo, setFullScreenVideo] = useState(null);
+    const [typists, setTypists] = useState({}); // { [userId]: { name, avatar_url, timestamp } }
 
     // 📡 Real-time sync for Likes & Comments (Broadcast from WebSocket)
     useEffect(() => {
@@ -1348,9 +1349,38 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                 setCommentCount(prev => prev + 1);
             }
         });
+        const cleanupTyping = eventBus.on('SOCIAL_TYPING_UPDATE', (payload) => {
+            if (payload?.postId === post.id) {
+                setTypists(prev => {
+                    const next = { ...prev };
+                    if (payload.isTyping) {
+                        next[payload.userId] = { name: payload.name, avatar: payload.avatar, ts: Date.now() };
+                    } else {
+                        delete next[payload.userId];
+                    }
+                    return next;
+                });
+            }
+        });
+        
+        // Auto-clear stale typists after 10s fallback
+        const typeInterval = setInterval(() => {
+            setTypists(prev => {
+                const now = Date.now();
+                let changed = false;
+                const next = { ...prev };
+                for (const uid in next) {
+                    if (now - next[uid].ts > 10000) { delete next[uid]; changed = true; }
+                }
+                return changed ? next : prev;
+            });
+        }, 5000);
+
         return () => {
             if (cleanupLike) cleanupLike();
             if (cleanupComment) cleanupComment();
+            if (cleanupTyping) cleanupTyping();
+            clearInterval(typeInterval);
         };
     }, [post.id]);
 
@@ -1440,6 +1470,15 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
         setShowComments(!showComments);
         if (!showComments) loadComments();
     };
+    
+    // Typing indicator animation component
+    const TypingDot = ({ delay }) => (
+        <span style={{ 
+            display: 'inline-block', width: 6, height: 6, borderRadius: '50%', 
+            background: C.textSec, margin: '0 2px',
+            animation: `sp-bounce 1.4s infinite ease-in-out both`, animationDelay: delay
+        }}></span>
+    );
 
     const handleSubmitComment = async () => {
         if (!newComment.trim() || !currentUserId) return;
