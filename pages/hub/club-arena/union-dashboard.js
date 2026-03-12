@@ -101,10 +101,20 @@ export default function UnionDashboardPage() {
         const { supabase } = await import('../../../src/lib/supabase');
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) { setError('Please log in'); setLoading(false); return; }
+
+        // 1. Check union_admins table first
         const { data: adminRow } = await supabase.from('union_admins').select('union_id').eq('user_id', session.user.id).limit(1).maybeSingle();
-        if (!adminRow) { setError('You are not a union admin. No unions found for your account.'); setLoading(false); return; }
-        setUnionId(adminRow.union_id);
-        const res = await apiGet(`/api/club-arena/union-dashboard?unionId=${adminRow.union_id}`);
+        let discoveredId = adminRow?.union_id || null;
+
+        // 2. Fallback: check if user is the union owner
+        if (!discoveredId) {
+          const { data: ownerRow } = await supabase.from('unions').select('id').eq('owner_id', session.user.id).limit(1).maybeSingle();
+          discoveredId = ownerRow?.id || null;
+        }
+
+        if (!discoveredId) { setError('You are not a union admin or owner. No unions found for your account.'); setLoading(false); return; }
+        setUnionId(discoveredId);
+        const res = await apiGet(`/api/club-arena/union-dashboard?unionId=${discoveredId}`);
         if (mountedRef.current) setData(res);
       } else {
         const res = await apiGet(`/api/club-arena/union-dashboard?unionId=${id}`);

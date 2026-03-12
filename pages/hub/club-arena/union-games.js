@@ -69,9 +69,16 @@ export default function UnionGamesPage() {
         const { supabase } = await import('../../../src/lib/supabase');
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) { setError('Please log in'); setLoading(false); return; }
+
+        // 1. Check union_admins table first
         const { data: adminRow } = await supabase.from('union_admins').select('union_id').eq('user_id', session.user.id).limit(1).maybeSingle();
-        if (!adminRow) { setError('You are not a union admin.'); setLoading(false); return; }
-        setUnionId(adminRow.union_id);
+        if (adminRow?.union_id) { setUnionId(adminRow.union_id); setLoading(false); return; }
+
+        // 2. Fallback: check if user is the union owner
+        const { data: ownerRow } = await supabase.from('unions').select('id').eq('owner_id', session.user.id).limit(1).maybeSingle();
+        if (ownerRow?.id) { setUnionId(ownerRow.id); setLoading(false); return; }
+
+        setError('You are not a union admin or owner.');
       } catch (err) {
         setError(err.message);
       } finally {

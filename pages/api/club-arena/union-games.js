@@ -22,6 +22,7 @@ async function verifyUnionAdmin(token, unionId) {
   const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
   if (error || !user) return { error: 'Not authenticated', status: 401 };
 
+  // 1. Check union_admins table
   const { data: admin } = await supabaseAdmin
     .from('union_admins')
     .select('role, permissions')
@@ -29,9 +30,19 @@ async function verifyUnionAdmin(token, unionId) {
     .eq('user_id', user.id)
     .maybeSingle();
 
-  if (!admin) return { error: 'Not a union admin', status: 403 };
+  if (admin) return { user, admin };
 
-  return { user, admin };
+  // 2. Fallback: check if user is the union owner
+  const { data: union } = await supabaseAdmin
+    .from('unions')
+    .select('id')
+    .eq('id', unionId)
+    .eq('owner_id', user.id)
+    .maybeSingle();
+
+  if (union) return { user, admin: { role: 'owner', permissions: null } };
+
+  return { error: 'Not a union admin', status: 403 };
 }
 
 async function getUnionClubIds(unionId) {
