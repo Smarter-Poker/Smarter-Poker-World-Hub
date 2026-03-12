@@ -334,6 +334,7 @@ export default function PromotionsPage() {
     if (!venueId) return;
     try {
       const res = await fetch(`/api/commander/promotions?venue_id=${venueId}`);
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
         setPromotions(data.data?.promotions || []);
@@ -374,6 +375,7 @@ export default function PromotionsPage() {
       const res = await fetch('/api/promo/admin-promo-codes', {
         headers: { Authorization: `Bearer ${token}` }
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       setPromoCodes(data.codes || []);
     } catch (err) { console.error('Fetch promo codes error:', err); }
@@ -570,6 +572,7 @@ export default function PromotionsPage() {
     setAwardsLoading(true);
     try {
       const res = await fetch(`/api/commander/promotions/${promo.id}/awards?limit=50`);
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       setPromoAwards(data.awards || []);
     } catch (error) {

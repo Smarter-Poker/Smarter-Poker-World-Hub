@@ -89,6 +89,7 @@ export default function TimeBilling() {
 
       // Fetch tables to know which are active
       const tabRes = await fetch(`/api/commander/tables?venue_id=${venueId}`, { headers });
+      if (!tabRes.ok) throw new Error(`Tables fetch failed (${tabRes.status})`);
       const tabJson = await tabRes.json();
       const tablesArr = tabJson.success
         ? (Array.isArray(tabJson.data) ? tabJson.data : tabJson.data?.tables || [])
@@ -103,6 +104,7 @@ export default function TimeBilling() {
         const tNum = t.table_number || t.number;
         try {
           const sRes = await fetch(`/api/commander/dealer/sessions?table=${tNum}`, { headers });
+          if (!sRes.ok) throw new Error(`Sessions fetch failed (${sRes.status})`);
           const sJson = await sRes.json();
           if (sJson.success && sJson.data) {
             sJson.data.forEach(s => allSessions.push({
@@ -120,6 +122,7 @@ export default function TimeBilling() {
       if (filter === 'completed') {
         try {
           const histRes = await fetch(`/api/commander/time-billing/sessions?venue_id=${venueId}`, { headers });
+          if (!histRes.ok) throw new Error(`History fetch failed (${histRes.status})`);
           const histJson = await histRes.json();
           if (histJson.success) {
             const completed = (histJson.data || []).filter(s => s.status === 'completed');
@@ -154,6 +157,7 @@ export default function TimeBilling() {
         const res = await fetch('/api/commander/settings', {
           headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
         });
+        if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const json = await res.json();
         if (json.success && json.data) {
           setPricing(prev => ({
@@ -174,6 +178,7 @@ export default function TimeBilling() {
         const res = await fetch(`/api/commander/membership-plans?venue_id=${venueId}&include_inactive=true`, {
           headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
         });
+        if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const json = await res.json();
         if (json.success) setMemberPlans(json.data.plans || []);
       } catch { /* non-fatal */ }
