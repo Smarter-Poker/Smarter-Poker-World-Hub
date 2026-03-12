@@ -262,8 +262,8 @@ export default function StaffSchedule() {
     try {
       const headers = getHeaders();
       const [shiftsRes, staffRes] = await Promise.all([
-        fetch(`/api/commander/schedule/shifts?venue_id=${venueId}&week_start=${weekStart}`, { headers }).then(r => r.json()),
-        fetch(`/api/commander/staff?venue_id=${venueId}`, { headers }).then(r => r.json())
+        fetch(`/api/commander/schedule/shifts?venue_id=${venueId}&week_start=${weekStart}`, { headers }).then(r => r.json()).catch(() => ({ success: false })),
+        fetch(`/api/commander/staff?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ success: false }))
       ]);
       const realShifts = shiftsRes.success ? (shiftsRes.data || []) : [];
       const rawStaff = staffRes.success

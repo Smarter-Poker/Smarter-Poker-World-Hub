@@ -53,7 +53,7 @@ export default function TableSeating() {
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
       const fo = signal ? { headers, signal } : { headers };
       const [tableRes, sessionsRes, waitlistRes] = await Promise.all([
-        fetch(`/api/commander/tables/${id}`, fo).then(r => r.json()),
+        fetch(`/api/commander/tables/${id}`, fo).then(r => r.json()).catch(() => ({ data: null })),
         fetch(`/api/commander/dealer/sessions?table_id=${id}&status=active`, fo).then(r => r.json()).catch(() => ({ data: [] })),
         fetch(`/api/commander/waitlist?venue_id=${venueId}`, fo).then(r => r.json()).catch(() => ({ data: [] }))
       ]);

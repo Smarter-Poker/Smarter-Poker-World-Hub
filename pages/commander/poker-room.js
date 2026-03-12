@@ -60,7 +60,7 @@ export default function PokerRoomFunctions() {
       // Fetch tables AND games data
       if (vid) {
         const [tabRes, gamesRes] = await Promise.all([
-          fetch(`/api/commander/tables?venue_id=${vid}`, { headers }).then(r => r.json()),
+          fetch(`/api/commander/tables?venue_id=${vid}`, { headers }).then(r => r.json()).catch(() => ({ success: false })),
           fetch(`/api/commander/games/venue/${vid}`, { headers }).then(r => r.json()).catch(() => ({ success: false })),
         ]);
 

@@ -93,7 +93,7 @@ export default function PlayerCheckIn() {
 
 useEffect(() => {
 
-  if (!router.isReady) return null;
+  if (!router.isReady) return;
 
     if (!code) return;
     fetchMember();

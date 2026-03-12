@@ -121,7 +121,7 @@ export default function FloorCalls() {
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
 
       const [activeRes, resolvedRes] = await Promise.all([
-        fetch(`/api/commander/floor-calls?status=pending,acknowledged,en_route&venue_id=${vid}`, { headers }).then(r => r.json()),
+        fetch(`/api/commander/floor-calls?status=pending,acknowledged,en_route&venue_id=${vid}`, { headers }).then(r => r.json()).catch(() => ({ data: [] })),
         fetch(`/api/commander/floor-calls?status=resolved&venue_id=${vid}&limit=30`, { headers }).then(r => r.json()).catch(() => ({ data: [] })),
       ]);
 
