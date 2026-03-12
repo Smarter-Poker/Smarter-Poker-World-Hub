@@ -1328,6 +1328,26 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
     const router = useRouter();
     const [liked, setLiked] = useState(post.isLiked);
     const [likeCount, setLikeCount] = useState(post.likeCount);
+
+    // Phase 24: Reaction emoji mapping
+    const REACTION_EMOJI = { like: '👍', love: '❤️', haha: '😂', fire: '🔥', wow: '😮' };
+
+    // Phase 28: Render @mentions as clickable links
+    function renderMentions(text) {
+        if (!text) return text;
+        const parts = text.split(/(@\w+)/g);
+        return parts.map((part, i) => {
+            if (part.startsWith('@')) {
+                const username = part.slice(1);
+                return React.createElement('a', {
+                    key: i, href: `/hub/user/${username}`,
+                    style: { color: C.blue, fontWeight: 600, textDecoration: 'none' },
+                    onClick: (e) => { e.preventDefault(); router.push(`/hub/user/${username}`); }
+                }, part);
+            }
+            return part;
+        });
+    }
     const [bookmarked, setBookmarked] = useState(post.isBookmarked || false);
     const [showComments, setShowComments] = useState(false);
     const [comments, setComments] = useState([]);
@@ -1664,7 +1684,12 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                 />
             )}
             <div style={{ padding: '8px 12px', display: 'flex', justifyContent: 'space-between', color: C.textSec, fontSize: 13 }}>
-                <span>{likeCount > 0 && `👍 ${likeCount}`}</span>
+                <span>{likeCount > 0 && (() => {
+                    const emojis = post.reactionBreakdown || { like: likeCount };
+                    const sorted = Object.entries(emojis).filter(([,v]) => v > 0).sort((a,b) => b[1] - a[1]).slice(0, 3);
+                    const icons = sorted.map(([type]) => REACTION_EMOJI[type] || '👍').join('');
+                    return `${icons} ${likeCount}`;
+                })()}</span>
                 <span style={{ cursor: 'pointer' }} onClick={handleToggleComments}>{commentCount > 0 && `${commentCount} ${commentCount === 1 ? 'comment' : 'comments'}`}</span>
             </div>
             <div style={{ borderTop: `1px solid ${C.border}`, display: 'flex' }}>
@@ -1724,7 +1749,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                             <Avatar src={c.authorAvatar} name={c.authorName} size={28} />
                             <div style={{ flex: 1, background: C.bg, borderRadius: 12, padding: '6px 10px' }}>
                                 <div style={{ fontWeight: 600, fontSize: 13, color: C.text }}>{c.authorName}</div>
-                                <div style={{ fontSize: 14, color: C.text }}>{c.text}</div>
+                                <div style={{ fontSize: 14, color: C.text }}>{renderMentions(c.text)}</div>
                             </div>
                         </div>
                     ))}

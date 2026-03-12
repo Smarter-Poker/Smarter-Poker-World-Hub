@@ -124,6 +124,27 @@ export function isHorseActiveHour(profileId, currentHour) {
     }
 }
 
+/**
+ * Phase 22: Timezone-aware active hour check
+ * Converts UTC hour to horse's local timezone before checking
+ * @param {string} profileId - Horse profile UUID
+ * @param {number} utcHour - The current UTC hour (0-23)
+ * @param {string} timezone - IANA timezone (e.g., 'America/Los_Angeles')
+ */
+export function isHorseActiveHourTZ(profileId, utcHour, timezone) {
+    if (!timezone) return isHorseActiveHour(profileId, utcHour);
+    try {
+        const now = new Date();
+        now.setUTCHours(utcHour, 0, 0, 0);
+        const localHour = parseInt(
+            new Intl.DateTimeFormat('en-US', { hour: 'numeric', hour12: false, timeZone: timezone }).format(now)
+        );
+        return isHorseActiveHour(profileId, localHour);
+    } catch {
+        return isHorseActiveHour(profileId, utcHour);
+    }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // 100 UNIQUE WRITING STYLES - Every horse gets a deterministically unique voice
 // Based on multiple dimensions that combine to create distinct personalities

@@ -15,7 +15,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { config } from 'dotenv';
-import { shouldHorseBeActive, getHorseActivityRate, isHorseActiveHour, applyWritingStyle } from './HorseScheduler.js';
+import { shouldHorseBeActive, getHorseActivityRate, isHorseActiveHour, isHorseActiveHourTZ, applyWritingStyle } from './HorseScheduler.js';
 config({ path: '../../../.env.local' });
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
@@ -90,38 +90,75 @@ const COMMENT_TEMPLATES = {
     ],
 
     general: [
-        // Agreement
         "facts", "hundred percent", "this is the way", "couldn't agree more", "real talk",
         "same tbh", "underrated take", "big if true", "W post", "based",
-
-        // Casual
         "fr fr", "no cap", "lowkey valid", "kinda true", "honest",
         "vibes", "true", "deadass", "literally me", "i felt this",
-
-        // Hype
         "let's GOOO", "banger post", "needed this today", "saving this",
         "legendary content", "chef's kiss", "immaculate", "perfect"
     ],
-
-    // HCL specific
     hcl: [
         "HCL never disappoints", "hustler games are different",
         "this is why HCL is the best stream", "RIP production budget",
         "dgaf about entertainment value", "peak HCL content"
     ],
-
-    // Tournament specific
     tournament: [
         "ICM nightmare", "bubble factor is wild", "chip leader mentality",
         "final table vibes", "bracelet or bust", "deep run loading",
-        "satellite paid off", "field was tough"
+        "satellite paid off", "field was tough", "that final table was stacked"
     ],
-
-    // PLO specific  
     plo: [
         "PLO is a different beast", "wrap city", "double suited for value",
         "thats so PLO", "aces cracked as usual", "runout was brutal",
         "running it twice saved him"
+    ],
+    // Phase 26: Keyword-based contextual comment categories
+    cash_game: [
+        "what stakes?", "cash game life", "reload button is dangerous",
+        "session was wild", "grinding the live tables", "the action was insane tonight",
+        "miss these stakes", "love a good cash session", "how deep were you?"
+    ],
+    bluff: [
+        "absolute stone cold bluff", "that takes guts", "heart of a lion",
+        "risky but respect it", "he had to fold there", "the balls on this guy",
+        "bluff of the year candidate", "fearless at the table"
+    ],
+    river: [
+        "river card always has something to say", "the river giveth and taketh",
+        "classic one-outer", "river brings the drama every time",
+        "that runout was disgusting", "nothing like a river card to ruin your day",
+        "the river was a movie", "river rat strikes again"
+    ],
+    strategy: [
+        "interesting line here", "the bet sizing tells a story",
+        "think about this from a range perspective", "EV is king",
+        "this is a textbook spot", "solver would approve",
+        "the math checks out", "optimal play right there"
+    ],
+    session_report: [
+        "solid session", "the grind pays off", "congrats on the win",
+        "love seeing positive results", "keep stacking",
+        "nice profit", "good to book a win", "the hours put in show"
+    ],
+    grind: [
+        "grinder mentality", "respect the grind", "putting in volume",
+        "every hand counts", "the work ethic is real",
+        "outwork outgrind outplay", "this is what dedication looks like"
+    ],
+    wsop: [
+        "WSOP dreams", "bracelet hunting season", "the Rio is calling",
+        "one time for the bracelet", "main event vibes",
+        "that WSOP energy is unmatched", "bracelet or nothing"
+    ],
+    variance: [
+        "variance is a beast", "long run will sort it out",
+        "standard deviation in action", "the swings are real",
+        "trust the process", "keep playing your game", "sample size matters"
+    ],
+    bankroll: [
+        "bankroll management is key", "protect the roll",
+        "smart money management", "never risk more than you can afford",
+        "the roll is healthy", "responsible grinding"
     ]
 };
 
@@ -394,7 +431,7 @@ async function commentOnPosts(maxComments = 20, includeRealUsers = true) {
     // Get all horses
     const { data: allHorses } = await supabase
         .from('content_authors')
-        .select('id, name, profile_id, avatar_url')
+        .select('id, name, profile_id, avatar_url, timezone')
         .eq('is_active', true)
         .not('profile_id', 'is', null);
 
@@ -403,8 +440,8 @@ async function commentOnPosts(maxComments = 20, includeRealUsers = true) {
     // FILTER: Only horses in their active time slot
     const activeHorses = allHorses.filter(horse => {
         const isInSlot = shouldHorseBeActive(horse.profile_id, currentMinute, 2);
-        const isActiveHour = isHorseActiveHour(horse.profile_id, currentHour);
-        return isInSlot && isActiveHour;
+        const isActive = isHorseActiveHourTZ(horse.profile_id, currentHour, horse.timezone);
+        return isInSlot && isActive;
     });
 
     console.log(`   Active horses this minute: ${activeHorses.length}/${allHorses.length}`);
@@ -456,13 +493,24 @@ async function commentOnPosts(maxComments = 20, includeRealUsers = true) {
         const withinLimit = await checkDailyLimit(horse.profile_id, 'comments');
         if (!withinLimit) continue;
 
-        // Get appropriate comment type
+        // Phase 26: Keyword-based contextual comment selection
         let commentType = 'general';
+        const lc = (post.content || '').toLowerCase();
         if (post.content_type === 'video') commentType = 'video';
         else if (post.content_type === 'photo') commentType = 'photo';
-        else if (post.content?.toLowerCase().includes('beat') || post.content?.toLowerCase().includes('suck')) {
-            commentType = 'bad_beat';
-        }
+        else if (lc.includes('beat') || lc.includes('suck') || lc.includes('cooler') || lc.includes('one-outer')) commentType = 'bad_beat';
+        else if (lc.includes('wsop') || lc.includes('bracelet') || lc.includes('world series')) commentType = 'wsop';
+        else if (lc.includes('tournament') || lc.includes('mtt') || lc.includes('final table') || lc.includes('bubble')) commentType = 'tournament';
+        else if (lc.includes('plo') || lc.includes('omaha') || lc.includes('pot limit')) commentType = 'plo';
+        else if (lc.includes('hcl') || lc.includes('hustler') || lc.includes('live at the bike')) commentType = 'hcl';
+        else if (lc.includes('bluff') || lc.includes('fold') || lc.includes('hero call')) commentType = 'bluff';
+        else if (lc.includes('river') || lc.includes('runout') || lc.includes('runner')) commentType = 'river';
+        else if (lc.includes('session') || lc.includes('profit') || lc.includes('won') || lc.includes('cashed')) commentType = 'session_report';
+        else if (lc.includes('cash game') || lc.includes('stakes') || lc.includes('1/2') || lc.includes('2/5') || lc.includes('5/10')) commentType = 'cash_game';
+        else if (lc.includes('grind') || lc.includes('volume') || lc.includes('hours')) commentType = 'grind';
+        else if (lc.includes('variance') || lc.includes('downswing') || lc.includes('upswing') || lc.includes('run bad')) commentType = 'variance';
+        else if (lc.includes('bankroll') || lc.includes('roll') || lc.includes('moving up')) commentType = 'bankroll';
+        else if (lc.includes('strategy') || lc.includes('gto') || lc.includes('solver') || lc.includes('range') || lc.includes('ev') || lc.includes('sizing')) commentType = 'strategy';
 
         // Get base comment and apply horse's unique writing style
         let comment = getRandomComment(commentType);
@@ -507,6 +555,24 @@ async function commentOnPosts(maxComments = 20, includeRealUsers = true) {
                 content: comment
             });
 
+        // Phase 28: @Mention — 15% chance to tag a horse friend
+        if (!error && Math.random() < 0.15) {
+            const otherHorses = allHorses.filter(h => h.profile_id !== horse.profile_id);
+            if (otherHorses.length > 0) {
+                const friend = otherHorses[Math.floor(Math.random() * otherHorses.length)];
+                const { data: friendProfile } = await supabase
+                    .from('profiles').select('username').eq('id', friend.profile_id).maybeSingle();
+                if (friendProfile?.username) {
+                    const mentionComment = `@${friendProfile.username} ${comment}`;
+                    await supabase.from('social_comments').update({ content: mentionComment })
+                        .eq('post_id', post.id).eq('author_id', horse.profile_id)
+                        .eq('content', comment);
+                    comment = mentionComment;
+                    console.log(`   ${horse.name} tagged @${friendProfile.username}`);
+                }
+            }
+        }
+
         if (!error) {
             const author = allHorses.find(h => h.profile_id === post.author_id);
             console.log(`   ${horse.name} → ${author?.name || 'User'}'s post: "${comment}"`);
@@ -537,7 +603,7 @@ async function likePosts(maxLikes = 30, includeRealUsers = true) {
     // Get all horses
     const { data: allHorses } = await supabase
         .from('content_authors')
-        .select('id, name, profile_id')
+        .select('id, name, profile_id, timezone')
         .eq('is_active', true)
         .not('profile_id', 'is', null);
 
@@ -546,8 +612,8 @@ async function likePosts(maxLikes = 30, includeRealUsers = true) {
     // FILTER: Only horses whose time slot matches current minute (variance ±2)
     const activeHorses = allHorses.filter(horse => {
         const isInSlot = shouldHorseBeActive(horse.profile_id, currentMinute, 2);
-        const isActiveHour = isHorseActiveHour(horse.profile_id, currentHour);
-        return isInSlot && isActiveHour;
+        const isActive = isHorseActiveHourTZ(horse.profile_id, currentHour, horse.timezone);
+        return isInSlot && isActive;
     });
 
     console.log(`   Active horses this minute: ${activeHorses.length}/${allHorses.length}`);
@@ -654,7 +720,7 @@ async function replyToComments(maxReplies = 15) {
     // Get all horses
     const { data: allHorses } = await supabase
         .from('content_authors')
-        .select('id, name, profile_id, voice')
+        .select('id, name, profile_id, voice, timezone')
         .eq('is_active', true)
         .not('profile_id', 'is', null);
 
@@ -663,8 +729,8 @@ async function replyToComments(maxReplies = 15) {
     // FILTER: Only horses in their active time slot
     const activeHorses = allHorses.filter(horse => {
         const isInSlot = shouldHorseBeActive(horse.profile_id, currentMinute, 2);
-        const isActiveHour = isHorseActiveHour(horse.profile_id, currentHour);
-        return isInSlot && isActiveHour;
+        const isActive = isHorseActiveHourTZ(horse.profile_id, currentHour, horse.timezone);
+        return isInSlot && isActive;
     });
 
     console.log(`   Active horses this minute: ${activeHorses.length}/${allHorses.length}`);
