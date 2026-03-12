@@ -74,6 +74,7 @@ const TABLE_TO_ENTITY = {
     commander_incidents: 'incidents',
     commander_notifications: 'notifications',
     commander_club_announcements: 'announcements',
+    commander_streams: 'streaming',            // Realtime not yet enabled for this table
 };
 
 // ─── Entity → Supabase tables reverse map (Optimization 2) ────
@@ -90,6 +91,8 @@ const ENTITY_TO_TABLES = {
     incidents: ['commander_incidents'],
     notifications: ['commander_notifications'],
     announcements: ['commander_club_announcements'],
+    streaming: ['commander_streams'],              // Realtime not yet enabled
+    // 'marketplace' — no dedicated Supabase table, BroadcastChannel only
 };
 
 // All Supabase tables (used when no entity filter is specified)
