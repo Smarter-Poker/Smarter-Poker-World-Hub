@@ -97,10 +97,10 @@ export default function UnionDashboardPage() {
       setError(null);
       const id = uid || unionId;
       if (!id) {
-        // Discover user's union
+        // Discover user's union — session is guaranteed valid when this path is reached
         const { supabase } = await import('../../../src/lib/supabase');
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session) { setError('Please log in'); setLoading(false); return; }
+        if (!session) { setError('login_required'); setLoading(false); return; }
 
         // 1. Check union_admins table first
         const { data: adminRow } = await supabase.from('union_admins').select('union_id').eq('user_id', session.user.id).limit(1).maybeSingle();
@@ -127,7 +127,41 @@ export default function UnionDashboardPage() {
     }
   }, [unionId]);
 
-  useEffect(() => { loadDashboard(); }, []);
+  // ── Initial Load with Session Hydration Awareness ────────
+  useEffect(() => {
+    let cancelled = false;
+    let authUnsub = null;
+
+    (async () => {
+      const { supabase } = await import('../../../src/lib/supabase');
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (session) {
+        // Session already available — load immediately
+        if (!cancelled) loadDashboard();
+        return;
+      }
+
+      // Session not ready (cold load race) — wait for onAuthStateChange
+      const timeout = setTimeout(() => {
+        if (!cancelled) { setError('login_required'); setLoading(false); }
+      }, 3000);
+
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+        clearTimeout(timeout);
+        if (newSession && !cancelled) {
+          loadDashboard();
+        } else if (!cancelled) {
+          setError('login_required');
+          setLoading(false);
+        }
+        subscription?.unsubscribe();
+      });
+      authUnsub = subscription;
+    })();
+
+    return () => { cancelled = true; authUnsub?.unsubscribe?.(); };
+  }, []);
 
   // ── Load Wallet ───────────────────────────────────────────
   const loadWallet = useCallback(async () => {
@@ -323,7 +357,16 @@ export default function UnionDashboardPage() {
       <div className={s.container}>
         <div className={s.inner}>
           {/* Messages */}
-          {error && <div className={s.error}>{error}</div>}
+          {error === 'login_required' ? (
+            <div className={s.error} style={{ textAlign: 'center', padding: '40px 20px' }}>
+              <div style={{ fontSize: '48px', marginBottom: '12px' }}>🔒</div>
+              <div style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>Session Expired</div>
+              <div style={{ color: '#94a3b8', marginBottom: '16px' }}>Please log in to access the Union Dashboard.</div>
+              <button onClick={() => window.location.href = '/auth/login'} className={s.btnPrimary}>Log In</button>
+            </div>
+          ) : error ? (
+            <div className={s.error}>{error}</div>
+          ) : null}
           {success && <div className={s.successMsg}>{success}</div>}
 
           {/* Header */}

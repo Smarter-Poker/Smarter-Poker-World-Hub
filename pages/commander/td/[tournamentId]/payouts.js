@@ -55,6 +55,7 @@ export default function TDPayouts() {
             const res = await fetch(`/api/commander/tournaments/${tournamentId}/payout?mode=calculate`, {
                 headers: { 'x-staff-session': token }
             });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) {
                 setCalcData(json.data);

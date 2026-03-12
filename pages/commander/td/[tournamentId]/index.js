@@ -84,6 +84,7 @@ export default function TDControlCenter() {
         headers: { 'x-staff-session': token },
         ...(signal ? { signal } : {}),
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
         setFloor(json.data);

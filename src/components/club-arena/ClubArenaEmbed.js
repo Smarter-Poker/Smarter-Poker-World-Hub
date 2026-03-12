@@ -182,18 +182,33 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
         if (loadState !== 'ready') return;
 
         let attempts = 0;
+        let noSessionDetected = false;
 
         const sendAuth = async () => {
             if (authAckedRef.current) return; // Already acknowledged
             if (attempts >= AUTH_MAX_RETRIES) {
                 console.warn('[ClubArenaEmbed] Auth handshake: max retries reached without ACK');
                 clearInterval(authRetryRef.current); // Stop polling
+                // Show user-facing error instead of silent failure
+                if (noSessionDetected) {
+                    setLoadState('error');
+                    setErrorMsg('Your session has expired. Please log in to continue.');
+                } else {
+                    setLoadState('error');
+                    setErrorMsg('Club Arena loaded but is not responding to authentication. Try refreshing.');
+                }
                 return;
             }
             attempts++;
             try {
                 const { data: { session } } = await supabase.auth.getSession();
-                if (session?.access_token && iframeRef.current?.contentWindow) {
+                if (!session) {
+                    noSessionDetected = true;
+                    console.warn(`[ClubArenaEmbed] No session available (attempt ${attempts}/${AUTH_MAX_RETRIES})`);
+                    return; // Continue retrying — session may hydrate
+                }
+                if (session.access_token && iframeRef.current?.contentWindow) {
+                    noSessionDetected = false; // Session recovered
                     const globalSettings = readWorldHubSettings();
 
                     iframeRef.current.contentWindow.postMessage({
@@ -380,18 +395,19 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
                     </div>
                 )}
 
-                {/* ── Error Overlay (connection-aware) ─────────────────── */}
-                {loadState === 'error' && (
+                {loadState === 'error' && (() => {
+                    const isSessionExpired = errorMsg.includes('session') || errorMsg.includes('log in');
+                    return (
                     <div style={overlayStyle}>
                         <div style={{ fontSize: '48px', marginBottom: '16px' }}>
-                            {isOffline ? '📡' : '⚠️'}
+                            {isOffline ? '📡' : isSessionExpired ? '🔒' : '⚠️'}
                         </div>
                         <h3 style={{
                             color: '#f1f5f9',
                             margin: '0 0 8px',
                             fontFamily: 'Inter, system-ui, sans-serif',
                         }}>
-                            {isOffline ? 'You\'re Offline' : 'Connection Problem'}
+                            {isOffline ? 'You\'re Offline' : isSessionExpired ? 'Session Expired' : 'Connection Problem'}
                         </h3>
                         <p style={{
                             color: '#94a3b8',
@@ -404,9 +420,16 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
                         }}>
                             {errorMsg}
                         </p>
-                        <button onClick={handleRetry} style={retryButtonStyle}>
-                            {isOffline ? 'Try Again' : 'Retry Connection'}
-                        </button>
+
+                        {isSessionExpired ? (
+                            <button onClick={() => { window.location.href = '/auth/login'; }} style={retryButtonStyle}>
+                                Log In
+                            </button>
+                        ) : (
+                            <button onClick={handleRetry} style={retryButtonStyle}>
+                                {isOffline ? 'Try Again' : 'Retry Connection'}
+                            </button>
+                        )}
 
                         {/* ── Return to Hub Escape Hatch ── */}
                         <button
@@ -427,7 +450,8 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
                             </p>
                         )}
                     </div>
-                )}
+                    );
+                })()}
 
                 {/* ── Iframe ──────────────────────────────────────────── */}
                 <iframe

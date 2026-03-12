@@ -59,6 +59,7 @@ export default function TDReports() {
             const res = await fetch(`/api/commander/tournaments/${tournamentId}/reports?type=${type}`, {
                 headers: { 'x-staff-session': token }
             });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) setReportData(json.data);
         } catch (err) {

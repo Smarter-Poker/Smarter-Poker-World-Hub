@@ -13,18 +13,27 @@
 import { supabase } from '../supabase';
 
 // ── Auth Token Resolution ────────────────────────────────────────────────
-// Fast path: localStorage cache → Slow path: Supabase session refresh
+// Fast path: localStorage cache (if not expired) → Slow path: Supabase session refresh
 export const getAuthToken = async () => {
     // 1. Fast path: read from localStorage cache (instant, no network round-trip)
     try {
         const cached = localStorage.getItem('smarter-poker-auth');
         if (cached) {
             const parsed = JSON.parse(cached);
-            if (parsed?.access_token) return parsed.access_token;
+            if (parsed?.access_token) {
+                // Validate token expiry — skip stale tokens to trigger Supabase refresh
+                const payload = JSON.parse(atob(parsed.access_token.split('.')[1]));
+                const expiresAt = (payload.exp || 0) * 1000; // JWT exp is in seconds
+                const BUFFER_MS = 60_000; // 60s buffer before expiry
+                if (Date.now() < expiresAt - BUFFER_MS) {
+                    return parsed.access_token; // Token is fresh — use it
+                }
+                // Token expired or expiring — fall through to refresh
+            }
         }
-    } catch (_) { /* localStorage unavailable or corrupted */ }
+    } catch (_) { /* localStorage unavailable, corrupted, or token parse failed */ }
 
-    // 2. Slow path: ask Supabase (handles token refresh)
+    // 2. Slow path: ask Supabase (handles token refresh automatically)
     try {
         const { data: { session } } = await supabase.auth.getSession();
         return session?.access_token || null;

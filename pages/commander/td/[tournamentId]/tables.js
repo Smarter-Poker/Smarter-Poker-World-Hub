@@ -442,6 +442,7 @@ ${receipts.map(r => `<div class="card">
                             `/api/commander/tournaments/${tournamentId}/auto-break?force_table=${selectedTable.table_number}`,
                             { headers: { 'x-staff-session': getToken() } }
                           );
+                          if (!breakSuggestRes.ok) throw new Error(`Request failed (${breakSuggestRes.status})`);
                           const breakSuggestJson = await breakSuggestRes.json();
 
                           // Use assignments if available — these are now specifically for selectedTable.table_number

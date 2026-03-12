@@ -64,27 +64,62 @@ export default function UnionGamesPage() {
 
   // ── Discover Union ────────────────────────────────────────
   useEffect(() => {
+    let cancelled = false;
+    let authUnsub = null;
+
+    const discoverUnion = async (session) => {
+      if (cancelled) return;
+      if (!session) return false; // Signal: no session
+
+      const { supabase } = await import('../../../src/lib/supabase');
+
+      // 1. Check union_admins table first
+      const { data: adminRow } = await supabase.from('union_admins').select('union_id').eq('user_id', session.user.id).limit(1).maybeSingle();
+      if (adminRow?.union_id) { if (!cancelled) { setUnionId(adminRow.union_id); setLoading(false); } return true; }
+
+      // 2. Fallback: check if user is the union owner
+      const { data: ownerRow } = await supabase.from('unions').select('id').eq('owner_id', session.user.id).limit(1).maybeSingle();
+      if (ownerRow?.id) { if (!cancelled) { setUnionId(ownerRow.id); setLoading(false); } return true; }
+
+      if (!cancelled) { setError('You are not a union admin or owner.'); setLoading(false); }
+      return true;
+    };
+
     (async () => {
       try {
         const { supabase } = await import('../../../src/lib/supabase');
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session) { setError('Please log in'); setLoading(false); return; }
 
-        // 1. Check union_admins table first
-        const { data: adminRow } = await supabase.from('union_admins').select('union_id').eq('user_id', session.user.id).limit(1).maybeSingle();
-        if (adminRow?.union_id) { setUnionId(adminRow.union_id); setLoading(false); return; }
+        if (session) {
+          await discoverUnion(session);
+          return;
+        }
 
-        // 2. Fallback: check if user is the union owner
-        const { data: ownerRow } = await supabase.from('unions').select('id').eq('owner_id', session.user.id).limit(1).maybeSingle();
-        if (ownerRow?.id) { setUnionId(ownerRow.id); setLoading(false); return; }
+        // Session not ready yet (cold load race) — wait for onAuthStateChange
+        const timeout = setTimeout(() => {
+          if (!cancelled) {
+            setError('login_required');
+            setLoading(false);
+          }
+        }, 3000); // 3s grace period for session hydration
 
-        setError('You are not a union admin or owner.');
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+          clearTimeout(timeout);
+          if (newSession && !cancelled) {
+            await discoverUnion(newSession);
+          } else if (!cancelled) {
+            setError('login_required');
+            setLoading(false);
+          }
+          subscription?.unsubscribe();
+        });
+        authUnsub = subscription;
       } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
+        if (!cancelled) { setError(err.message); setLoading(false); }
       }
     })();
+
+    return () => { cancelled = true; authUnsub?.unsubscribe?.(); };
   }, []);
 
   // ── Load Tournaments ──────────────────────────────────────
@@ -227,7 +262,16 @@ export default function UnionGamesPage() {
 
       <div className={s.container}>
         <div className={s.inner}>
-          {error && <div className={s.error}>{error}</div>}
+          {error === 'login_required' ? (
+            <div className={s.error} style={{ textAlign: 'center', padding: '40px 20px' }}>
+              <div style={{ fontSize: '48px', marginBottom: '12px' }}>🔒</div>
+              <div style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>Session Expired</div>
+              <div style={{ color: '#94a3b8', marginBottom: '16px' }}>Please log in to access Union Games.</div>
+              <button onClick={() => window.location.href = '/auth/login'} className={s.btnPrimary}>Log In</button>
+            </div>
+          ) : error ? (
+            <div className={s.error}>{error}</div>
+          ) : null}
           {success && <div className={s.successMsg}>{success}</div>}
 
           <div className={s.pageHeader}>

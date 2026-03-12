@@ -107,6 +107,7 @@ export default function WaitlistDesk() {
           headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
           signal: controller.signal,
         });
+        if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const json = await res.json();
         if (json.success && json.data?.desk_customization) {
           setCustom(prev => ({ ...prev, ...json.data.desk_customization }));
@@ -141,8 +142,8 @@ export default function WaitlistDesk() {
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
       const fetchOpts = signal ? { headers, signal } : { headers };
       const [tabRes, wlRes, mmRes] = await Promise.all([
-        fetch(`/api/commander/tables?venue_id=${vid}`, fetchOpts),
-        fetch(`/api/commander/waitlist?venue_id=${vid}`, fetchOpts),
+        fetch(`/api/commander/tables?venue_id=${vid}`, fetchOpts).then(r => { if (!r.ok) throw new Error(`tables ${r.status}`); return r; }).catch(() => ({ json: async () => ({ success: false }) })),
+        fetch(`/api/commander/waitlist?venue_id=${vid}`, fetchOpts).then(r => { if (!r.ok) throw new Error(`waitlist ${r.status}`); return r; }).catch(() => ({ json: async () => ({ success: false }) })),
         fetch(`/api/commander/games/must-move-status?venue_id=${vid}`, fetchOpts).catch(() => ({ json: async () => ({ success: false }) }))
       ]);
       const tabJson = await tabRes.json();
