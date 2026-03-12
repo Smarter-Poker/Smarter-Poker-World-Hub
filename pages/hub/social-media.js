@@ -4208,6 +4208,11 @@ function SocialMediaPage() {
                     eventBus.emit('SOCIAL_COMMENT_UPDATE', { postId: payload.new.post_id }, 'SocialRealtime');
                 }
             })
+            .subscribe();
+
+        // Separate channel matching the backend 'social-feed' for broadcast typing events
+        const typingChannel = supabase
+            .channel('social-feed')
             .on('broadcast', { event: 'typing' }, (payload) => {
                 const p = payload?.payload;
                 if (p) {
@@ -4224,6 +4229,7 @@ function SocialMediaPage() {
 
         return () => {
             supabase.removeChannel(feedChannel);
+            supabase.removeChannel(typingChannel);
         };
     }, [user?.id]);
 
