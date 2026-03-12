@@ -177,6 +177,7 @@ export default function TournamentDetailPage() {
       }
     } catch (error) {
       console.error('Clock action failed:', error);
+      alert('Clock action failed. Please try again.');
     }
   }
 
@@ -198,6 +199,7 @@ export default function TournamentDetailPage() {
       }
     } catch (error) {
       console.error('Status change failed:', error);
+      alert('Status change failed. Please try again.');
     }
   }
 

@@ -72,7 +72,7 @@ export default function MembersPage() {
 
     const { data: membersData, isLoading: loading, mutate: fetchMembers } = useSWR(
         membersKey,
-        (url) => fetch(url).then(r => r.json()),
+        (url) => fetch(url).then(r => r.json()).catch(() => null),
         { revalidateOnFocus: true, dedupingInterval: 5000 }
     );
 

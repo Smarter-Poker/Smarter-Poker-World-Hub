@@ -338,6 +338,7 @@ export default function StreamingPage() {
       }
     } catch (err) {
       console.error('Start stream failed:', err);
+      alert('Failed to start stream. Please try again.');
     }
   }
 
@@ -356,6 +357,7 @@ export default function StreamingPage() {
       }
     } catch (err) {
       console.error('Stop stream failed:', err);
+      alert('Failed to stop stream. Please try again.');
     }
   }
 
@@ -375,6 +377,7 @@ export default function StreamingPage() {
       }
     } catch (err) {
       console.error('Save config failed:', err);
+      alert('Failed to save streaming config. Please try again.');
     }
   }
 

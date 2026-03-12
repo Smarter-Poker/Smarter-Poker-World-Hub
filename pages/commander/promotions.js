@@ -618,6 +618,7 @@ export default function PromotionsPage() {
       }
     } catch (error) {
       console.error('Toggle failed:', error);
+      alert('Failed to toggle promotion. Please try again.');
     }
   }
 
@@ -633,6 +634,7 @@ export default function PromotionsPage() {
       }
     } catch (error) {
       console.error('Delete failed:', error);
+      alert('Failed to delete promotion. Please try again.');
     }
   }
 
@@ -730,6 +732,7 @@ export default function PromotionsPage() {
       broadcastChange('settings');
     } catch (err) {
       console.error('Drag reorder save failed:', err);
+      alert('Failed to save reorder. Reverting...');
       fetchPromotions(); // Revert on failure
     }
   }
@@ -1060,6 +1063,7 @@ export default function PromotionsPage() {
                       }
                     } catch (error) {
                       console.error('Submit high hand failed:', error);
+                      alert('Failed to submit high hand. Please try again.');
                     }
                   }}
                 />
@@ -1539,6 +1543,7 @@ export default function PromotionsPage() {
                 }
               } catch (error) {
                 console.error('Delete failed:', error);
+                alert('Failed to delete promotion. Please try again.');
               }
             }}
             onClose={() => {

@@ -108,6 +108,7 @@ export default function TDPayouts() {
             }
         } catch (err) {
             console.error('Save payouts error:', err);
+            alert('Failed to save payouts. Please try again.');
         } finally {
             setSaving(false);
         }

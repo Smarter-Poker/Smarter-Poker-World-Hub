@@ -424,6 +424,7 @@ export default function DealersPage() {
       }
     } catch (err) {
       console.error('Add dealer failed:', err);
+      alert('Failed to add dealer. Please try again.');
     }
   }
 
@@ -446,6 +447,7 @@ export default function DealersPage() {
       }
     } catch (err) {
       console.error('Edit dealer failed:', err);
+      alert('Failed to update dealer. Please try again.');
     }
   }
 
@@ -468,6 +470,7 @@ export default function DealersPage() {
       }
     } catch (err) {
       console.error('Rotate dealer failed:', err);
+      alert('Failed to rotate dealer. Please try again.');
     }
   }
 

@@ -275,6 +275,7 @@ export default function CommanderStaffPage() {
       }
     } catch (err) {
       console.error('Failed to delete staff:', err);
+      alert('Failed to delete staff member. Please try again.');
     }
   }
 

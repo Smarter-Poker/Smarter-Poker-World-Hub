@@ -142,6 +142,7 @@ export default function TournamentSettingsPage() {
             }
         } catch (err) {
             console.error('Failed to create tournament:', err);
+            alert('Failed to create tournament. Please try again.');
         } finally {
             setCreating(false);
         }

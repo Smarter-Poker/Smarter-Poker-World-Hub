@@ -137,6 +137,7 @@ export default function TDControlCenter() {
       setMessageModal(false);
     } catch (err) {
       console.error('Send message failed:', err);
+      alert('Failed to send tournament message. Please try again.');
     } finally {
       setSendingMessage(false);
     }
