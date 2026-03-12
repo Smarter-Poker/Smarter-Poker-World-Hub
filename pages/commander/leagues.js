@@ -10,7 +10,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { Trophy, Plus, Users, Calendar, DollarSign, Loader2, ChevronDown, ChevronUp, Gift, Target, UserPlus, Trash2, Check, RefreshCw } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
-import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
+import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
 
 /* ───────── Status colors ───────── */
@@ -123,6 +123,11 @@ export default function LeaguesAndFreerollsManagement() {
     finally { setFreerollsLoading(false); }
   }, []);
 
+  const fetchAll = useCallback(() => {
+    fetchLeagues();
+    fetchFreerolls();
+  }, [fetchLeagues, fetchFreerolls]);
+
   useEffect(() => {
     if (staff) {
       const c = new AbortController();
@@ -131,6 +136,9 @@ export default function LeaguesAndFreerollsManagement() {
       return () => c.abort();
     }
   }, [staff, fetchLeagues, fetchFreerolls]);
+
+  // Commander Data Bus — both BroadcastChannel (instant) + Supabase Realtime (cross-device)
+  useCommanderSync(staff?.venue_id || '', fetchAll, { entities: ['settings'] });
 
   /* ── League standings ── */
   const fetchStandings = async (leagueId) => {
