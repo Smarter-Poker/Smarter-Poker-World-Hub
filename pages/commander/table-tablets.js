@@ -363,6 +363,7 @@ export default function TableTabletsPage() {
         // Fetch tables — API already joins commander_games + commander_table_seats
         try {
             const res = await fetch(`/api/commander/tables?venue_id=${venueId}`, { headers, signal });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) {
                 let tablesArr = Array.isArray(json.data) ? json.data
@@ -383,6 +384,7 @@ export default function TableTabletsPage() {
                     if (cashTableNums.length > 0) {
                         try {
                             const batchRes = await fetch(`/api/commander/dealer/sessions-batch?tables=${cashTableNums.join(',')}&venue_id=${venueId}`, { headers });
+                            if (!batchRes.ok) throw new Error(`Request failed (${batchRes.status})`);
                             const batchJson = await batchRes.json();
                             if (batchJson.success && batchJson.data) {
                                 Object.entries(batchJson.data).forEach(([tNum, sessions]) => {
@@ -397,6 +399,7 @@ export default function TableTabletsPage() {
                     await Promise.all(uniqueTournaments.map(async (tid) => {
                         try {
                             const fRes = await fetch(`/api/commander/tournaments/${tid}/floor-view`, { headers });
+                            if (!fRes.ok) throw new Error(`Request failed (${fRes.status})`);
                             const fJson = await fRes.json();
                             if (fJson.success && fJson.data?.tables) {
                                 fJson.data.tables.forEach(ft => {
@@ -471,6 +474,7 @@ export default function TableTabletsPage() {
         // Fetch active dealer rotations — maps table_number to dealer_name
         try {
             const rotRes = await fetch(`/api/commander/dealers/rotations?venue_id=${venueId}`, { headers });
+            if (!rotRes.ok) throw new Error(`Request failed (${rotRes.status})`);
             const rotData = await rotRes.json();
             if (rotData.success) {
                 const rots = rotData.data?.rotations || rotData.data || [];
@@ -502,6 +506,7 @@ export default function TableTabletsPage() {
             const res = await fetch(`/api/commander/displays/status?venue_id=${venueId}`, {
                 headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${token}` },
             });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success && json.data) {
                 const map = {};

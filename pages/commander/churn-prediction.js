@@ -51,6 +51,7 @@ export default function ChurnPrediction() {
       const res = await fetch(`/api/commander/ai/churn-prediction?venue_id=${staff.venue_id}&limit=100`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
         setPredictions(json.data.predictions);

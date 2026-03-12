@@ -61,6 +61,7 @@ export default function MustMoveManager() {
         headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
         ...(signal ? { signal } : {}),
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) setData(json.data);
     } catch (err) { console.error(err); }

@@ -39,6 +39,7 @@ export default function ResponsibleGaming() {
       const res = await fetch(`/api/commander/members?venue_id=${venueId}&limit=200`, {
         headers: { Authorization: `Bearer ${getToken()}` }
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) setMembers(json.data || []);
     } catch (err) { console.error(err); }
@@ -57,6 +58,7 @@ export default function ResponsibleGaming() {
       const res = await fetch(`/api/commander/members/search?q=${encodeURIComponent(query)}&venue_id=${venueId}`, {
         headers: { Authorization: `Bearer ${getToken()}` }
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       const players = json.data || json.members || [];
 
@@ -72,6 +74,7 @@ export default function ResponsibleGaming() {
           const checkRes = await fetch(`/api/commander/responsible-gaming/check/${player.user_id || player.id}?venue_id=${venueId}`, {
             headers: { Authorization: `Bearer ${getToken()}` }
           });
+          if (!checkRes.ok) throw new Error(`Request failed (${checkRes.status})`);
           const checkJson = await checkRes.json();
           results.push({
             ...player,

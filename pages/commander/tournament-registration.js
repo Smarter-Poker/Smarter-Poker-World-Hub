@@ -44,6 +44,7 @@ export default function TournamentRegistration() {
             const staffSession = localStorage.getItem('commander_staff') || '';
             const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
             const res = await fetch(`/api/commander/tournaments?venue_id=${venueId}&status=upcoming,active`, { headers });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             const list = json.data?.tournaments || json.tournaments || json.data || [];
             setTournaments(Array.isArray(list) ? list : []);
@@ -65,6 +66,7 @@ export default function TournamentRegistration() {
             const staffSession = localStorage.getItem('commander_staff') || '';
             const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
             const res = await fetch(`/api/commander/members/search?q=${encodeURIComponent(query)}&venue_id=${venueId}&limit=8`, { headers });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             setSearchResults(json.data || []);
         } catch { setSearchResults([]); }

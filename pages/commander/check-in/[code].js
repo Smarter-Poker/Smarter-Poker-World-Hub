@@ -75,6 +75,7 @@ export default function PlayerCheckIn() {
       // Check for active session
       if (json.data.already_seated) {
         const sessionRes = await fetch(`/api/commander/dealer/sessions?table=${json.data.already_seated.table_number}`);
+        if (!sessionRes.ok) throw new Error(`Session request failed (${sessionRes.status})`);
         const sessionJson = await sessionRes.json();
         if (sessionJson.success) {
           const mySession = (sessionJson.data || []).find(s => s.member_id === json.data.member.id);

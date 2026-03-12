@@ -371,6 +371,7 @@ export default function MembershipKiosk() {
       const res = await fetch(`/api/commander/waitlist?venue_id=${venueId}`, {
         headers: { 'x-staff-session': staffHeader }
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success && json.data) {
         const matches = json.data.filter(entry => {
