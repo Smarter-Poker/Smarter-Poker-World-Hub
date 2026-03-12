@@ -39,7 +39,7 @@ export function listenBroadcast(channelName, handler) {
     let bc = null;
     try {
         bc = new BroadcastChannel(channelName);
-        bc.onmessage = (event) => handler(event.data, event);
+        bc.onmessage = (event) => handler(event);
     } catch {
         // BroadcastChannel not supported — silent no-op
     }
