@@ -1896,11 +1896,16 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                     </div>
                                     
                                     {/* Render its children if it's a top-level comment AND has replies */}
-                                    {!isReply && replies.filter(r => r.parentId === c.id).length > 0 && (
-                                        <div style={{ marginLeft: 36, borderLeft: `2px solid ${C.border}`, paddingLeft: 8, marginTop: 8 }}>
-                                            {replies.filter(r => r.parentId === c.id).map(r => renderCommentBlock(r, true))}
-                                        </div>
-                                    )}
+                                    {(() => {
+                                        if (isReply) return null;
+                                        const childReplies = replies.filter(r => r.parentId === c.id);
+                                        if (childReplies.length === 0) return null;
+                                        return (
+                                            <div style={{ marginLeft: 36, borderLeft: `2px solid ${C.border}`, paddingLeft: 8, marginTop: 8 }}>
+                                                {childReplies.map(r => renderCommentBlock(r, true))}
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
                             </div>
                         );
@@ -5311,9 +5316,10 @@ function SocialMediaPage() {
         try {
             if (!type) {
                 // Unlike: remove from social_likes (matches Horse engine + Phase 24 read path)
-                await supabase.from('social_likes').delete()
+                const { error } = await supabase.from('social_likes').delete()
                     .eq('post_id', postId)
                     .eq('user_id', user.id);
+                if (error) console.error('[Social] Unlike error:', error.message);
             } else {
                 // Like: write to social_likes with reaction_type (matches Horse engine + Phase 24 read path)
                 const { data: existing } = await supabase.from('social_likes')
@@ -5323,11 +5329,12 @@ function SocialMediaPage() {
                     .maybeSingle();
                 
                 if (!existing) {
-                    await supabase.from('social_likes').insert({
+                    const { error } = await supabase.from('social_likes').insert({
                         post_id: postId,
                         user_id: user.id,
                         reaction_type: type || 'like'
                     });
+                    if (error) console.error('[Social] Like error:', error.message);
                 }
             }
         } catch (e) { console.error(e); }
