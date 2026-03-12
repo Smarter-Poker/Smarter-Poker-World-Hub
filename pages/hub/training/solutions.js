@@ -1054,6 +1054,13 @@ function SolutionsBrowserInner({ setError }) {
                     const h = s.scenarioHash || s.scenario_hash;
                     return h && bookmarkedHashes.has(h);
                   })
+                  .filter((s) => {
+                    if (boardTexture === 'All') return true;
+                    const boardCards = s.board || s.boardCards || [];
+                    if (boardCards.length < 3) return true; // can't classify without flop
+                    const tags = classifyBoardTexture(boardCards);
+                    return tags.includes(boardTexture);
+                  })
                   .map((spot) => (
                     <SpotCard
                       key={spot.id}

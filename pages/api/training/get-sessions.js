@@ -27,30 +27,41 @@ export default async function handler(req, res) {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
-    const { gameId, limit = '10' } = req.query;
+    const { gameId, limit = '50' } = req.query;
 
     try {
         // Try training_sessions first (rich data)
-        const { data: sessions, error: sessErr } = await supabase
+        let query = supabase
             .from('training_sessions')
             .select('*')
             .eq('user_id', user.id)
-            .eq('game_id', gameId || '')
             .order('created_at', { ascending: false })
-            .limit(parseInt(limit) || 10);
+            .limit(parseInt(limit) || 50);
+
+        // Only filter by game_id if provided
+        if (gameId) {
+            query = query.eq('game_id', gameId);
+        }
+
+        const { data: sessions, error: sessErr } = await query;
 
         if (!sessErr && sessions && sessions.length > 0) {
             return res.status(200).json({ success: true, sessions });
         }
 
         // Fallback to training_level_history
-        const { data: history, error: histErr } = await supabase
+        let histQuery = supabase
             .from('training_level_history')
             .select('*')
             .eq('user_id', user.id)
-            .eq('game_id', gameId || '')
             .order('created_at', { ascending: false })
-            .limit(parseInt(limit) || 10);
+            .limit(parseInt(limit) || 50);
+
+        if (gameId) {
+            histQuery = histQuery.eq('game_id', gameId);
+        }
+
+        const { data: history, error: histErr } = await histQuery;
 
         if (histErr) {
             console.warn('[GetSessions] History query failed:', histErr.message);

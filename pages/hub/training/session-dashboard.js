@@ -384,7 +384,7 @@ export default function SessionDashboard() {
           return;
         }
 
-        const res = await authedFetch('/api/training/save-session?action=list', {
+        const res = await authedFetch('/api/training/get-sessions?limit=100', {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -416,7 +416,7 @@ export default function SessionDashboard() {
         try {
           const token = await getAccessToken();
           if (!token) return;
-          const res = await authedFetch('/api/training/save-session?action=list', {
+          const res = await authedFetch('/api/training/get-sessions?limit=100', {
             headers: { Authorization: `Bearer ${token}` },
           });
           if (res.ok) {
@@ -430,7 +430,11 @@ export default function SessionDashboard() {
 
     if (eventBus?.on) {
       eventBus.on(EventType?.SESSION_END || 'session:end', handler);
-      return () => eventBus.off?.(EventType?.SESSION_END || 'session:end', handler);
+      eventBus.on('training:session-complete', handler);
+      return () => {
+        eventBus.off?.(EventType?.SESSION_END || 'session:end', handler);
+        eventBus.off?.('training:session-complete', handler);
+      };
     }
   }, []);
 

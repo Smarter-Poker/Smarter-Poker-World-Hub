@@ -350,16 +350,17 @@ export default function NodelockingPage() {
       try {
         const token = await getAccessToken();
         if (!token) return;
-        const res = await authedFetch('/api/training/save-session?action=list&gameId=nodelocking_profile', {
+        const res = await authedFetch('/api/training/get-sessions?gameId=nodelocking_profile&limit=50', {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (res.ok) {
           const data = await res.json();
           const profiles = (Array.isArray(data.sessions) ? data.sessions : Array.isArray(data) ? data : [])
-            .filter((s) => s.game_id === 'nodelocking_profile' || s.gameId === 'nodelocking_profile')
             .map((s) => {
               try {
-                const meta = typeof s.metadata === 'string' ? JSON.parse(s.metadata) : s.metadata;
+                const config = s.trainer_config || s.trainerConfig;
+                const meta = typeof config === 'string' ? JSON.parse(config) : config;
+                if (!meta?.tendencies) return null;
                 return { id: s.id, name: meta?.profileName || 'Unnamed', tendencies: meta?.tendencies || {}, createdAt: s.created_at };
               } catch { return null; }
             })
@@ -388,11 +389,11 @@ export default function NodelockingPage() {
           gameName: 'Nodelocking Custom Profile',
           handsPlayed: 0,
           accuracy: 0,
-          metadata: JSON.stringify({
+          trainerConfig: {
             profileName: newProfileName.trim(),
             tendencies: customTendencies,
             baseProfile: selectedProfile,
-          }),
+          },
         }),
       });
       setSavedProfiles((prev) => [...prev, { name: newProfileName.trim(), tendencies: customTendencies, createdAt: new Date().toISOString() }]);
