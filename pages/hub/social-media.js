@@ -5286,12 +5286,25 @@ function SocialMediaPage() {
         if (!user?.id) return;
         try {
             if (!type) {
-                await supabase.from('social_interactions').delete().eq('post_id', postId).eq('user_id', user.id).eq('interaction_type', 'like');
+                // Unlike: remove from social_likes (matches Horse engine + Phase 24 read path)
+                await supabase.from('social_likes').delete()
+                    .eq('post_id', postId)
+                    .eq('user_id', user.id);
             } else {
-                await supabase.from('social_interactions').upsert(
-                    { post_id: postId, user_id: user.id, interaction_type: 'like' },
-                    { onConflict: 'user_id,post_id,interaction_type' }
-                );
+                // Like: write to social_likes with reaction_type (matches Horse engine + Phase 24 read path)
+                const { data: existing } = await supabase.from('social_likes')
+                    .select('id')
+                    .eq('post_id', postId)
+                    .eq('user_id', user.id)
+                    .maybeSingle();
+                
+                if (!existing) {
+                    await supabase.from('social_likes').insert({
+                        post_id: postId,
+                        user_id: user.id,
+                        reaction_type: type || 'like'
+                    });
+                }
             }
         } catch (e) { console.error(e); }
     };
