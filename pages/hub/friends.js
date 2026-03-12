@@ -612,12 +612,11 @@ export default function FriendsPage() {
 
     // EventBus: Listen for friend-related events from other components (e.g. messenger, profile)
     useEffect(() => {
-        const handler = () => { fetchData(); };
-        eventBus.on(EventType.FRIEND_REQUEST_SENT, handler);
-        eventBus.on(EventType.FRIEND_REQUEST_ACCEPTED, handler);
+        const unsubSent = eventBus.on(EventType.FRIEND_REQUEST_SENT, () => { fetchData(); });
+        const unsubAccepted = eventBus.on(EventType.FRIEND_REQUEST_ACCEPTED, () => { fetchData(); });
         return () => {
-            eventBus.off(EventType.FRIEND_REQUEST_SENT, handler);
-            eventBus.off(EventType.FRIEND_REQUEST_ACCEPTED, handler);
+            unsubSent();
+            unsubAccepted();
         };
     }, []);
 

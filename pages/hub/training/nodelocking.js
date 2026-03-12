@@ -414,10 +414,26 @@ export default function NodelockingPage() {
     setShowMyProfiles(false);
   }, []);
 
-  // Delete a saved profile
-  const deleteCustomProfile = useCallback((index) => {
+  // Delete a saved profile (local + Supabase)
+  const deleteCustomProfile = useCallback(async (index) => {
+    const profile = savedProfiles[index];
     setSavedProfiles((prev) => prev.filter((_, i) => i !== index));
-  }, []);
+    // Persist deletion to Supabase
+    if (profile?.id) {
+      try {
+        const token = await getAccessToken();
+        if (token) {
+          await authedFetch('/api/training/delete-session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ sessionId: profile.id }),
+          });
+        }
+      } catch (e) {
+        console.warn('[Nodelocking] Could not delete profile from DB:', e);
+      }
+    }
+  }, [savedProfiles]);
 
   useEffect(() => {
     try {
