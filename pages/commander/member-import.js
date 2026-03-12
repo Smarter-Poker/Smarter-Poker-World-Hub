@@ -57,6 +57,7 @@ function guessMapping(header) {
 }
 
 export default function MemberImport() {
+  useCommanderSync('member-import');
   useEffect(() => { busEmit.sessionStart('commander-member-import'); }, []);
   const router = useRouter();
   const fileRef = useRef(null);
