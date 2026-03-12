@@ -16,6 +16,7 @@
 import { useEffect, useRef } from 'react';
 import { eventBus, EventType } from '../../engine/EventBus';
 import { broadcastChange } from './useCommanderSync';
+import { listenBroadcast, broadcastSync } from '../broadcastSync';
 
 const CHANNEL_NAME = 'commander_bus_bridge';
 
@@ -24,11 +25,7 @@ export default function useBusBridge() {
     const selfEmitsRef = useRef(new Set());
 
     useEffect(() => {
-        if (typeof window === 'undefined' || typeof BroadcastChannel === 'undefined') return;
-
-        // Create dedicated bridge channel
-        const channel = new BroadcastChannel(CHANNEL_NAME);
-        channelRef.current = channel;
+        if (typeof window === 'undefined') return;
 
         // ── Direction 1: EventBus → BroadcastChannel ──
         // When DATA_MUTATED fires locally, broadcast to other tabs
@@ -41,18 +38,16 @@ export default function useBusBridge() {
             selfEmitsRef.current.add(key);
             setTimeout(() => selfEmitsRef.current.delete(key), 2000);
 
-            // Broadcast via BroadcastChannel to other tabs
-            try {
-                broadcastChange(entity);
-                channel.postMessage({ type: 'bus_bridge', entity, ts: Date.now() });
-            } catch { /* channel closed */ }
+            // Broadcast via our secure bridge utility to other tabs
+            broadcastChange(entity);
+            broadcastSync(CHANNEL_NAME, { type: 'bus_bridge', entity, ts: Date.now() });
         });
 
         // ── Direction 2: BroadcastChannel → EventBus ──
         // When another tab broadcasts, emit DATA_MUTATED on this tab's EventBus
-        channel.onmessage = (event) => {
-            if (event.data?.type !== 'bus_bridge') return;
-            const entity = event.data.entity;
+        const cleanupBridgeListener = listenBroadcast(CHANNEL_NAME, (msg) => {
+            if (msg?.type !== 'bus_bridge') return;
+            const entity = msg.entity;
             if (!entity) return;
 
             // Suppress echo: don't re-emit our own broadcasts
@@ -61,12 +56,11 @@ export default function useBusBridge() {
 
             // Emit on local EventBus so local listeners react
             eventBus.emit(EventType.DATA_MUTATED, { entity, remote: true }, 'BusBridge');
-        };
+        });
 
         return () => {
             unsubMutated();
-            channel.close();
-            channelRef.current = null;
+            cleanupBridgeListener();
         };
     }, []);
 }

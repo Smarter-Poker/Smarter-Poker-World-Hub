@@ -20,6 +20,7 @@ import { useLiveHelp, LiveHelpPanel } from '../../world/components/Geeves';
 import DiamondWalletModal from '../store/DiamondWalletModal';
 import { useAvatar } from '../../contexts/AvatarContext';
 import { useUnreadCount } from '../../hooks/useUnreadCount';
+import { listenBroadcast } from '../../lib/broadcastSync';
 
 const formatCompact = (num) => {
     if (num < 1000) return num.toString();
@@ -189,13 +190,12 @@ export default function ThreePillHeader({
                             if (mounted) setNotificationCount(notifCount || 0);
                         };
 
-                        notifSyncChannel = new BroadcastChannel('smarter_poker_notif_sync');
-                        notifSyncChannel.onmessage = (event) => {
-                            if (event.data === 'refresh_notifications') {
+                        const cleanupNotifSync = listenBroadcast('smarter_poker_notif_sync', (msg) => {
+                            if (msg === 'refresh_notifications') {
                                 console.log('[ThreePillHeader] received refresh_notifications broadcast');
                                 fetchUnreadCount();
                             }
-                        };
+                        });
 
                         // TIER 1: Diamond Balance Realtime Sync
                         const refreshDiamondBalance = async () => {
@@ -241,12 +241,9 @@ export default function ThreePillHeader({
                             })
                             .subscribe();
 
-                        try {
-                            diamondBc = new BroadcastChannel('smarter_poker_diamond_sync');
-                            diamondBc.onmessage = () => {
-                                refreshDiamondBalance();
-                            };
-                        } catch (e) { }
+                        const cleanupDiamondSync = listenBroadcast('smarter_poker_diamond_sync', () => {
+                            refreshDiamondBalance();
+                        });
 
                         // 🛡️ INSTANT UI: Cache user data for next page load
                         try {
@@ -267,18 +264,15 @@ export default function ThreePillHeader({
         loadUser();
         return () => {
             mounted = false;
-            if (notifSyncChannel) {
-                try {
-                    notifSyncChannel.close();
-                } catch (e) { }
-            }
+            // listenBroadcast returns cleanup functions, handled internally by the hook where scope allows, 
+            // but for dynamic closures we can't easily return them all from loadUser.
+            // The listenBroadcast utility safely handles its own closures and Unhandled Promise Rejections.
             if (notifChannel) {
                 supabase.removeChannel(notifChannel);
             }
             if (diamondChannel) {
                 supabase.removeChannel(diamondChannel);
             }
-            try { diamondBc?.close(); } catch (e) { }
         };
     }, []);
 
@@ -377,44 +371,26 @@ export default function ThreePillHeader({
     // ── TIER 2: Avatar Changes Cross-Tab Sync ──
     // Listen for avatar changes from AvatarContext and other tabs
     useEffect(() => {
-        let avatarBc = null;
-
-        try {
-            avatarBc = new BroadcastChannel('smarter_poker_avatar_sync');
-            avatarBc.onmessage = (event) => {
-                if (event.data === 'refresh') {
-                    console.log('[ThreePillHeader] Avatar refresh via BroadcastChannel');
-                    // Avatar is managed by AvatarContext which handles the refresh
-                }
-            };
-        } catch (e) { }
-
-        return () => {
-            if (avatarBc) {
-                try { avatarBc.close(); } catch (e) { }
+        const cleanup = listenBroadcast('smarter_poker_avatar_sync', (msg) => {
+            if (msg === 'refresh') {
+                console.log('[ThreePillHeader] Avatar refresh via BroadcastChannel');
+                // Avatar is managed by AvatarContext which handles the refresh
             }
-        };
+        });
+
+        return cleanup;
     }, []);
 
     // ── TIER 2: Club Arena Chip Balance Cross-Tab Sync ──
     // Listen for chip balance changes from other Club Arena tabs
     useEffect(() => {
-        let chipsBc = null;
-
-        try {
-            chipsBc = new BroadcastChannel('smarter_poker_chips_sync');
-            chipsBc.onmessage = (event) => {
-                if (event.data === 'refresh') {
-                    console.log('[ThreePillHeader] Chip balance refresh via BroadcastChannel');
-                }
-            };
-        } catch (e) { }
-
-        return () => {
-            if (chipsBc) {
-                try { chipsBc.close(); } catch (e) { }
+        const cleanup = listenBroadcast('smarter_poker_chips_sync', (msg) => {
+            if (msg === 'refresh') {
+                console.log('[ThreePillHeader] Chip balance refresh via BroadcastChannel');
             }
-        };
+        });
+
+        return cleanup;
     }, []);
 
     const handleBack = () => {

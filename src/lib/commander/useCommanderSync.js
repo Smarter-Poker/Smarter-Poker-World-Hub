@@ -41,6 +41,7 @@
  */
 import { useEffect, useRef } from 'react';
 import { supabase } from '../supabase';
+import { broadcastSync, listenBroadcast } from '../broadcastSync';
 
 // ─── Constants ─────────────────────────────────────────────────
 const CHANNEL_NAME = 'commander-sync';
@@ -246,19 +247,12 @@ function computeTablesForEntities(entities) {
  * @param {string} entity - What changed: 'tables' | 'games' | 'floor_calls' | 'waitlist' | 'settings' | 'dealers' | 'staff' | 'members' | 'tournaments' | 'incidents'
  */
 export function broadcastChange(entity) {
-    try {
-        if (typeof BroadcastChannel === 'undefined') return;
-        const bc = new BroadcastChannel(CHANNEL_NAME);
-        bc.postMessage({
-            type: 'data-changed',
-            entity,
-            tabId: TAB_ID,
-            ts: Date.now(),
-        });
-        bc.close();
-    } catch {
-        // BroadcastChannel not supported or SecurityError in cross-origin iframe — silent
-    }
+    broadcastSync(CHANNEL_NAME, {
+        type: 'data-changed',
+        entity,
+        tabId: TAB_ID,
+        ts: Date.now(),
+    });
 }
 
 // ─── useCommanderSync ──────────────────────────────────────────
@@ -323,11 +317,7 @@ export function useCommanderSync(venueId, onRefetch, opts = {}) {
 
     // ── Layer 1: BroadcastChannel (same browser, instant) ───────
     useEffect(() => {
-        if (typeof BroadcastChannel === 'undefined') return;
-
-        const bc = new BroadcastChannel(CHANNEL_NAME);
-        bc.onmessage = (event) => {
-            const msg = event.data;
+        const cleanup = listenBroadcast(CHANNEL_NAME, (msg) => {
             if (msg?.type !== 'data-changed') return;
 
             // Suppress self-tab broadcasts — this tab already has fresh data
@@ -337,15 +327,10 @@ export function useCommanderSync(venueId, onRefetch, opts = {}) {
             if (msg.ts && Date.now() - msg.ts > 10000) return;
 
             throttledRefetchRef.current?.(msg.entity);
-        };
-
-        bc.onmessageerror = () => {
-            // Corrupted message — ignore silently
-        };
+        });
 
         return () => {
-            // Clean up BroadcastChannel + any pending throttle timer
-            try { bc.close(); } catch { /* already closed */ }
+            cleanup();
             if (pendingTimerRef.current) {
                 clearTimeout(pendingTimerRef.current);
                 pendingTimerRef.current = null;
