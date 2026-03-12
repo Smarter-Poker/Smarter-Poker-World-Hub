@@ -537,14 +537,15 @@ export default function FriendsPage() {
     useTrainingBus('friends');
 
     useEffect(() => {
-        const unsubMutated = eventBus.on(EventType.DATA_MUTATED, () => {
-            fetchData();
-        });
-        const unsubMsgReceived = eventBus.on(EventType.MESSAGE_RECEIVED, () => {
-            // Refresh to update online status indicators
-            fetchData();
-        });
+        let debounceTimer = null;
+        const debouncedFetch = () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => fetchData(), 500);
+        };
+        const unsubMutated = eventBus.on(EventType.DATA_MUTATED, debouncedFetch);
+        const unsubMsgReceived = eventBus.on(EventType.MESSAGE_RECEIVED, debouncedFetch);
         return () => {
+            clearTimeout(debounceTimer);
             unsubMutated();
             unsubMsgReceived();
         };

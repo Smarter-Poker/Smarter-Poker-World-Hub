@@ -2,6 +2,7 @@
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import ClubArenaEmbed from '../../../../src/components/club-arena/ClubArenaEmbed';
+import HubErrorBoundary from '../../../../src/components/ui/HubErrorBoundary';
 
 export default function ClubArenaTablePage() {
     const router = useRouter();
@@ -10,7 +11,7 @@ export default function ClubArenaTablePage() {
     if (!tableId) return null;
 
     return (
-        <>
+        <HubErrorBoundary name="Club Arena Table">
             <SEOHead title="Poker Table | Smarter.Poker" />
             {/* NO UniversalHeader — table is full-screen immersive */}
             <ClubArenaEmbed
@@ -20,6 +21,6 @@ export default function ClubArenaTablePage() {
                     height: '100vh',
                 }}
             />
-        </>
+        </HubErrorBoundary>
     );
 }

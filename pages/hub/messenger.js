@@ -1031,6 +1031,26 @@ export default function MessengerPage() {
     // 🚌 EventBus session tracking + DATA_MUTATED listener
     useTrainingBus('messenger');
 
+    // Refresh friends sidebar when friendships change on other pages
+    useEffect(() => {
+        let debounceTimer = null;
+        const unsub = eventBus.on(EventType.DATA_MUTATED, (payload) => {
+            if (payload?.entity === 'friends') {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(async () => {
+                    try {
+                        const token = getAccessToken();
+                        const resp = await fetch('/api/friends?action=list', {
+                            headers: { 'Authorization': 'Bearer ' + token }
+                        }).then(r => r.json()).catch(() => ({ data: { friends: [] } }));
+                        if (resp?.data?.friends) setFriends(resp.data.friends);
+                    } catch (e) { /* silent */ }
+                }, 800);
+            }
+        });
+        return () => { clearTimeout(debounceTimer); unsub(); };
+    }, []);
+
     // Identity switching
     const { isClubMode, clubPage, hasClubPage } = useActiveIdentity();
 

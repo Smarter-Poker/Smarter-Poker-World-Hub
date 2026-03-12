@@ -14,6 +14,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaEmbed from '../../../src/components/club-arena/ClubArenaEmbed';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
 
 // Map route segments to page titles for SEO
 const ROUTE_TITLES = {
@@ -59,10 +60,10 @@ export default function ClubArenaCatchAll() {
     delete query.slug;
 
     return (
-        <>
+        <HubErrorBoundary name="Club Arena">
             <SEOHead title={pageTitle} />
             <UniversalHeader />
             <ClubArenaEmbed spaRoute={spaRoute} query={query} />
-        </>
+        </HubErrorBoundary>
     );
 }

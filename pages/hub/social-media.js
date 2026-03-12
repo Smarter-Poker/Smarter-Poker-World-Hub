@@ -171,6 +171,7 @@ function getYouTubeThumbnail(url) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 async function validateYouTubeVideo(url) {
+    if (typeof window === 'undefined') return { valid: false, error: 'SSR environment' };
     const videoId = getYouTubeVideoId(url);
     if (!videoId) return { valid: false, error: 'Invalid YouTube URL' };
 
@@ -4006,12 +4007,13 @@ export default function SocialMediaPage() {
 
     //  INTRO VIDEO STATE - Video plays while page loads in background
     // Only show once per session (not on every reload)
-    const [showIntro, setShowIntro] = useState(() => {
-        if (typeof window !== 'undefined') {
-            return !sessionStorage.getItem('social-intro-seen');
+    // SSR-safe: always start false on server, check sessionStorage on client mount
+    const [showIntro, setShowIntro] = useState(false);
+    useEffect(() => {
+        if (!sessionStorage.getItem('social-intro-seen')) {
+            setShowIntro(true);
         }
-        return false;
-    });
+    }, []);
     const introVideoRef = useRef(null);
 
     // Mark intro as seen when it ends
