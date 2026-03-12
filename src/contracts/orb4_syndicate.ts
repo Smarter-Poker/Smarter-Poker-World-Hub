@@ -11,7 +11,10 @@
 import { z } from 'zod';
 
 // ─── Primitives ────────────────────────────────────────────────
-const UUID = z.string().uuid('Must be a valid UUID');
+const UUID = z.string().regex(
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+    'Must be a valid UUID'
+);
 
 /** Sanitized string — no SQL metacharacters, max 500 chars */
 const SafeString = z.string().max(500).regex(
