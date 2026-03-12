@@ -201,8 +201,9 @@ export default function MembershipKiosk() {
     setSubmitting(true);
     try {
       // Check in all matched waitlist entries
+      let successCount = 0;
       for (const entry of waitlistMatches) {
-        await fetch(`/api/commander/waitlist/${entry.id}`, {
+        const res = await fetch(`/api/commander/waitlist/${entry.id}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -210,12 +211,17 @@ export default function MembershipKiosk() {
           },
           body: JSON.stringify({ checked_in_at: new Date().toISOString() })
         });
+        if (res.ok) successCount++;
       }
-      const playerName = titleCase(waitlistMatches[0]?.player_name || 'Player');
-      const gameList = waitlistMatches.map(e => `${e.stakes} ${e.game_type}`).join(', ');
-      setSuccessMsg(`✅ ${playerName} — Checked In!\n${gameList}`);
-      setMode('success');
-      broadcastChange('waitlist');
+      if (successCount > 0) {
+        const playerName = titleCase(waitlistMatches[0]?.player_name || 'Player');
+        const gameList = waitlistMatches.map(e => `${e.stakes} ${e.game_type}`).join(', ');
+        setSuccessMsg(`✅ ${playerName} — Checked In!\n${gameList}`);
+        setMode('success');
+        broadcastChange('waitlist');
+      } else {
+        throw new Error('Check-in failed on server');
+      }
     } catch (err) { console.error(err); }
     finally { setSubmitting(false); }
   };
@@ -269,18 +275,20 @@ export default function MembershipKiosk() {
             return false;
           });
           if (matchingEntries.length > 0) foundOnWaitlist = true;
+          let successCount = 0;
           for (const entry of matchingEntries) {
-            await fetch(`/api/commander/waitlist/${entry.id}`, {
+            const patchRes = await fetch(`/api/commander/waitlist/${entry.id}`, {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json', 'x-staff-session': staffHeader },
               body: JSON.stringify({ checked_in_at: new Date().toISOString() })
             });
+            if (patchRes.ok) successCount++;
           }
+          if (successCount > 0) broadcastChange('waitlist');
         }
       } catch (e) { console.error("[kiosk.js]", e); }
 
       setCheckinIsWaitlisted(foundOnWaitlist);
-      broadcastChange('waitlist');
       broadcastChange('members'); // Push member check-in to Activity Feed globally
       setSuccessMsg(`✅ ${titleCase(member.first_name || member.name || 'Player')} — Checked In!`);
       setMode('success');
@@ -315,17 +323,20 @@ export default function MembershipKiosk() {
         );
         if (matches.length > 0) {
           // Check in all matching entries
+          let successCount = 0;
           for (const entry of matches) {
-            await fetch(`/api/commander/waitlist/${entry.id}`, {
+            const patchRes = await fetch(`/api/commander/waitlist/${entry.id}`, {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json', 'x-staff-session': staffHeader },
               body: JSON.stringify({ checked_in_at: new Date().toISOString() })
             });
+            if (patchRes.ok) successCount++;
           }
           const gameList = matches.map(e => `${e.stakes} ${e.game_type}`).join(', ');
           setCheckinIsWaitlisted(true);
           setSuccessMsg(`✅ ${titleCase(matches[0]?.player_name || q)} — Checked In!\n${gameList}`);
           setMode('success');
+          if (successCount > 0) broadcastChange('waitlist');
         } else {
           // Not on waitlist — still check in but show non-member popup
           setCheckinIsWaitlisted(false);
@@ -342,7 +353,7 @@ export default function MembershipKiosk() {
       console.error(err);
       setScanError('Search failed. Please try again.');
     }
-    finally { setSubmitting(false); broadcastChange('waitlist'); }
+    finally { setSubmitting(false); }
   };
 
   // ── CHECK IN BY PHONE: Search waitlist by phone and check in ──
@@ -363,17 +374,20 @@ export default function MembershipKiosk() {
             entry.status !== 'seated' && !entry.checked_in_at;
         });
         if (matches.length > 0) {
+          let successCount = 0;
           for (const entry of matches) {
-            await fetch(`/api/commander/waitlist/${entry.id}`, {
+            const patchRes = await fetch(`/api/commander/waitlist/${entry.id}`, {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json', 'x-staff-session': staffHeader },
               body: JSON.stringify({ checked_in_at: new Date().toISOString() })
             });
+            if (patchRes.ok) successCount++;
           }
           const gameList = matches.map(e => `${e.stakes} ${e.game_type}`).join(', ');
           setCheckinIsWaitlisted(true);
           setSuccessMsg(`✅ ${titleCase(matches[0]?.player_name || 'Player')} — Checked In!\n${gameList}`);
           setMode('success');
+          if (successCount > 0) broadcastChange('waitlist');
         } else {
           // Not on waitlist — still check in but show non-member popup
           setCheckinIsWaitlisted(false);
@@ -389,7 +403,7 @@ export default function MembershipKiosk() {
       console.error(err);
       setScanError('Search failed. Please try again.');
     }
-    finally { setSubmitting(false); broadcastChange('waitlist'); }
+    finally { setSubmitting(false); }
   };
 
   // ── SCAN CARD → JOIN WAITLIST: Look up member, pre-fill name/phone, go to game select ──
@@ -427,8 +441,9 @@ export default function MembershipKiosk() {
     if (!joinName.trim() || selectedGames.length === 0 || !venueId) return;
     setSubmitting(true);
     try {
+      let successCount = 0;
       for (const game of selectedGames) {
-        await fetch('/api/commander/waitlist', {
+        const res = await fetch('/api/commander/waitlist', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -443,11 +458,14 @@ export default function MembershipKiosk() {
             signup_method: 'kiosk'
           })
         });
+        if (res.ok) successCount++;
       }
-      const gameList = selectedGames.map(g => g.label).join(', ');
-      setSuccessMsg(`✅ ${titleCase(joinName.trim())} Added To Waitlist!\n${gameList}`);
-      setMode('success');
-      broadcastChange('waitlist');
+      if (successCount > 0) {
+        const gameList = selectedGames.map(g => g.label).join(', ');
+        setSuccessMsg(`✅ ${titleCase(joinName.trim())} Added To Waitlist!\n${gameList}`);
+        setMode('success');
+        broadcastChange('waitlist');
+      }
     } catch (err) { console.error(err); }
     finally { setSubmitting(false); }
   };

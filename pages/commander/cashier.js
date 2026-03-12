@@ -501,23 +501,29 @@ export default function Cashier() {
         })
       });
       const json = await res.json();
-      if (json.success) {
-        setMessage({ type: 'success', text: `Buy-In Receipt — $${parseFloat(buyInAmount).toLocaleString()} — ${selectedPlayer?.player_name || 'Walk-Up'}` });
-        setShowBuyIn(false);
-        printReceipt({
-          player_name: selectedPlayer?.player_name || 'Walk-Up',
-          amount: parseFloat(buyInAmount),
-          payment_method: payMethod,
-          created_at: new Date().toISOString(),
-          staff_name: staff?.display_name || 'Staff'
-        });
-        playSuccessSound();
-        busEmit.celebration('confetti');
-        showSuccessPopup({ title: 'Buy-In Recorded', amount: `$${parseFloat(buyInAmount).toLocaleString()}`, detail: selectedPlayer?.player_name || 'Walk-Up' });
-        setBuyInAmount(''); // Reset for next transaction
-        fetchData();
-        broadcastChange('members');
+      if (res.ok) {
+        const json = await res.json(); // Parse JSON only if response is OK
+        if (json.success) {
+          setMessage({ type: 'success', text: `Buy-In Receipt — $${parseFloat(buyInAmount).toLocaleString()} — ${selectedPlayer?.player_name || 'Walk-Up'}` });
+          setShowBuyIn(false);
+          printReceipt({
+            player_name: selectedPlayer?.player_name || 'Walk-Up',
+            amount: parseFloat(buyInAmount),
+            payment_method: payMethod,
+            created_at: new Date().toISOString(),
+            staff_name: staff?.display_name || 'Staff'
+          });
+          playSuccessSound();
+          busEmit.celebration('confetti');
+          showSuccessPopup({ title: 'Buy-In Recorded', amount: `$${parseFloat(buyInAmount).toLocaleString()}`, detail: selectedPlayer?.player_name || 'Walk-Up' });
+          setBuyInAmount(''); // Reset for next transaction
+          fetchData();
+          broadcastChange('members');
+        } else {
+          setMessage({ type: 'error', text: json.error || 'Transaction Failed' });
+        }
       } else {
+        const json = await res.json(); // Attempt to parse error message from response body
         setMessage({ type: 'error', text: json.error || 'Transaction Failed' });
       }
     } catch (err) { console.error('Buy-in error:', err); setMessage({ type: 'error', text: 'Buy-In Failed — Please Try Again' }); }
@@ -573,29 +579,33 @@ export default function Cashier() {
       if (!txJson.success) console.warn('Time transaction record failed:', txJson.error);
 
       const hours = Math.floor(mins / 60);
-      const remainMins = mins % 60;
-      const timeLabel = hours > 0 ? `${hours}h ${remainMins > 0 ? remainMins + 'm' : ''}` : `${mins}m`;
-      setMessage({ type: txJson.success ? 'success' : 'warning', text: `Added ${timeLabel} — $${price} — ${selectedPlayer.player_name}${!txJson.success ? ' (⚠ receipt not saved)' : ''}` });
-      setSelectedPlayer(prev => ({ ...prev, time_balance_minutes: newBalance }));
-      setShowAddTime(false);
-      playSuccessSound();
-      busEmit.celebration('confetti');
-      const newHrs = Math.floor(newBalance / 60); const newRm = newBalance % 60;
-      showSuccessPopup({ title: 'Time Added', amount: `$${price}`, detail: `${timeLabel} → ${selectedPlayer.player_name}`, balance: `New Balance: ${newHrs}h ${newRm > 0 ? newRm + 'm' : ''}` });
-      fetchData();
-      broadcastChange('members');
+      if (res.ok) {
+        const remainMins = mins % 60;
+        const timeLabel = hours > 0 ? `${hours}h ${remainMins > 0 ? remainMins + 'm' : ''}` : `${mins}m`;
+        setMessage({ type: txJson.success ? 'success' : 'warning', text: `Added ${timeLabel} — $${price} — ${selectedPlayer.player_name}${!txJson.success ? ' (⚠ receipt not saved)' : ''}` });
+        setSelectedPlayer(prev => ({ ...prev, time_balance_minutes: newBalance }));
+        setShowAddTime(false);
+        playSuccessSound();
+        busEmit.celebration('confetti');
+        const newHrs = Math.floor(newBalance / 60); const newRm = newBalance % 60;
+        showSuccessPopup({ title: 'Time Added', amount: `$${price}`, detail: `${timeLabel} → ${selectedPlayer.player_name}`, balance: `New Balance: ${newHrs}h ${newRm > 0 ? newRm + 'm' : ''}` });
+        fetchData();
+        broadcastChange('members');
 
-      // 3. Auto-print receipt
-      printTimeReceipt({
-        player_name: selectedPlayer.player_name,
-        minutes: mins,
-        timeLabel,
-        amount: price,
-        payment_method: timePayMethod,
-        new_balance_minutes: newBalance,
-        staff_name: staff?.display_name || 'Staff',
-        transaction_id: txJson?.data?.id || null,
-      });
+        // 3. Auto-print receipt
+        printTimeReceipt({
+          player_name: selectedPlayer.player_name,
+          minutes: mins,
+          timeLabel,
+          amount: price,
+          payment_method: timePayMethod,
+          new_balance_minutes: newBalance,
+          staff_name: staff?.display_name || 'Staff',
+          transaction_id: txJson?.data?.id || null,
+        });
+      } else {
+        setMessage({ type: 'error', text: 'Failed to update time balance' });
+      }
     } catch (err) { console.error('Add time error:', err); setMessage({ type: 'error', text: 'Add Time Failed — Please Try Again' }); }
     finally { setActionLoading(false); }
   };
@@ -639,25 +649,29 @@ export default function Cashier() {
       const txJson = await txRes.json();
       if (!txJson.success) console.warn('Membership transaction record failed:', txJson.error);
 
-      setMessage({ type: txJson.success ? 'success' : 'warning', text: `${tierInfo?.label} Membership — $${price} — ${selectedPlayer.player_name}${!txJson.success ? ' (⚠ receipt not saved)' : ''}` });
-      setSelectedPlayer(prev => ({ ...prev, membership_tier: selectedTier, membership_status: 'active', membership_expires: expires.toISOString() }));
-      setShowMembership(false);
-      playSuccessSound();
-      busEmit.celebration('confetti');
-      showSuccessPopup({ title: 'Membership Updated', amount: `$${price}`, detail: `${tierInfo?.label} Membership → ${selectedPlayer.player_name}`, balance: `Expires: ${expires.toLocaleDateString()}` });
-      fetchData();
-      broadcastChange('members');
+      if (res.ok) {
+        setMessage({ type: txJson.success ? 'success' : 'warning', text: `${tierInfo?.label} Membership — $${price} — ${selectedPlayer.player_name}${!txJson.success ? ' (⚠ receipt not saved)' : ''}` });
+        setSelectedPlayer(prev => ({ ...prev, membership_tier: selectedTier, membership_status: 'active', membership_expires: expires.toISOString() }));
+        setShowMembership(false);
+        playSuccessSound();
+        busEmit.celebration('confetti');
+        showSuccessPopup({ title: 'Membership Updated', amount: `$${price}`, detail: `${tierInfo?.label} Membership → ${selectedPlayer.player_name}`, balance: `Expires: ${expires.toLocaleDateString()}` });
+        fetchData();
+        broadcastChange('members');
 
-      // 3. Auto-print receipt
-      printMembershipReceipt({
-        player_name: selectedPlayer.player_name,
-        tier: tierInfo?.label,
-        amount: price,
-        payment_method: memberPayMethod,
-        expires: expires.toLocaleDateString(),
-        staff_name: staff?.display_name || 'Staff',
-        transaction_id: txJson?.data?.id || null,
-      });
+        // 3. Auto-print receipt
+        printMembershipReceipt({
+          player_name: selectedPlayer.player_name,
+          tier: tierInfo?.label,
+          amount: price,
+          payment_method: memberPayMethod,
+          expires: expires.toLocaleDateString(),
+          staff_name: staff?.display_name || 'Staff',
+          transaction_id: txJson?.data?.id || null,
+        });
+      } else {
+        setMessage({ type: 'error', text: 'Failed to update membership' });
+      }
     } catch (err) { console.error('Membership update error:', err); setMessage({ type: 'error', text: 'Membership Update Failed — Please Try Again' }); }
     finally { setActionLoading(false); }
   };
@@ -770,11 +784,15 @@ export default function Cashier() {
         }
       }
 
-      setMessage({ type: 'success', text: `${actionLabel} Processed — $${details.amount}` });
-      playSuccessSound();
-      showSuccessPopup({ title: `${actionLabel} Processed`, amount: `$${details.amount}`, detail: details.player_name || 'Unknown' });
-      fetchData();
-      broadcastChange('members');
+      if (res.ok) {
+        setMessage({ type: 'success', text: `${actionLabel} Processed — $${details.amount}` });
+        playSuccessSound();
+        showSuccessPopup({ title: `${actionLabel} Processed`, amount: `$${details.amount}`, detail: details.player_name || 'Unknown' });
+        fetchData();
+        broadcastChange('members');
+      } else {
+        setMessage({ type: 'error', text: `${actionLabel} Failed — Server Error` });
+      }
     } catch (err) { console.error('Void error:', err); setMessage({ type: 'error', text: `${actionLabel} Failed — Please Try Again` }); }
     finally { setActionLoading(false); }
   };

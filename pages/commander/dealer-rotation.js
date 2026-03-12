@@ -115,20 +115,22 @@ export default function DealerRotation() {
     setActionLoading(dealerId);
     try {
       const venueId = getVenueId();
-      await fetch('/api/commander/dealers/rotations', {
+      const res = await fetch('/api/commander/tables/push', {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({
           venue_id: venueId,
-          dealer_id: dealerId,
-          table_id: tableId,
+          dealer_id: dealerId || undefined,
+          table_id: tableId || undefined,
           action
         })
       });
-      setPushTarget(null);
-      await fetchData();
-      broadcastChange('dealers');
-      broadcastChange('tables');
+      if (res.ok) {
+        setPushTarget(null);
+        await fetchData();
+        broadcastChange('dealers');
+        broadcastChange('tables');
+      }
     } catch (err) { console.error(`[DealerRotation] ${action} error:`, err); }
     finally { setActionLoading(null); }
   };

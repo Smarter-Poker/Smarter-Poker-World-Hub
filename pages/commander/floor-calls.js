@@ -176,13 +176,15 @@ export default function FloorCalls() {
       let respondedBy = '';
       try { const s = JSON.parse(staffSession); respondedBy = s.name || s.id || ''; } catch { }
 
-      await fetch('/api/commander/floor-calls', {
-        method: 'PUT',
+      const res = await fetch(`/api/commander/floor-calls/${id}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
-        body: JSON.stringify({ id, status, responded_by: respondedBy, resolution })
+        body: JSON.stringify({ status, responded_by: respondedBy, resolution })
       });
-      fetchCalls();
-      broadcastChange('floor_calls');
+      if (res.ok) {
+        fetchCalls(); // Changed from fetchData() to fetchCalls() to match existing function name
+        broadcastChange('floor_calls');
+      }
       if (status === 'resolved') busEmit.celebration('confetti');
     } catch (err) { console.error(err); }
   };
@@ -192,7 +194,7 @@ export default function FloorCalls() {
     setSubmitting(true);
     try {
       const { token, staffSession, venueId: vid } = getAuth();
-      await fetch('/api/commander/floor-calls', {
+      const res = await fetch('/api/commander/floor-calls', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({
@@ -204,10 +206,12 @@ export default function FloorCalls() {
           called_by: 'staff'
         })
       });
-      setShowNewCall(false);
-      setNewTable(''); setNewReason('dispute'); setNewPriority('normal'); setNewDesc('');
-      fetchCalls();
-      broadcastChange('floor_calls');
+      if (res.ok) {
+        setShowNewCall(false);
+        setNewTable(''); setNewReason('dispute'); setNewPriority('normal'); setNewDesc('');
+        fetchCalls();
+        broadcastChange('floor_calls');
+      }
     } catch (err) { console.error(err); }
     finally { setSubmitting(false); }
   };

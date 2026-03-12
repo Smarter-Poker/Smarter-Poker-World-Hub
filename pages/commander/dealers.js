@@ -429,14 +429,16 @@ export default function DealersPage() {
     try {
       const staffSession = localStorage.getItem('commander_staff') || '';
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
-      await fetch(`/api/commander/dealers/${editingDealer.id}`, {
+      const res = await fetch(`/api/commander/dealers/${editingDealer.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify(data)
       });
-      setEditingDealer(null);
-      fetchDealers();
-      broadcastChange('dealers');
+      if (res.ok) {
+        setEditingDealer(null);
+        fetchDealers();
+        broadcastChange('dealers');
+      }
     } catch (err) {
       console.error('Edit dealer failed:', err);
     }
@@ -446,14 +448,16 @@ export default function DealersPage() {
     try {
       const staffSession = localStorage.getItem('commander_staff') || '';
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
-      await fetch('/api/commander/dealers/rotations', {
+      const res = await fetch('/api/commander/dealers/rotations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ dealer_id: dealerId, table_id: tableId, venue_id: venueId })
       });
-      setRotatingDealer(null);
-      fetchDealers();
-      broadcastChange('dealers');
+      if (res.ok) {
+        setRotatingDealer(null);
+        fetchDealers();
+        broadcastChange('dealers');
+      }
     } catch (err) {
       console.error('Rotate dealer failed:', err);
     }

@@ -136,29 +136,33 @@ export default function GameTypesPage() {
 
   async function handleToggleActive(gt) {
     try {
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       const staffSession = localStorage.getItem('commander_staff') || '';
-      await fetch(`/api/commander/game-types?id=${gt.id}`, {
+      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const res = await fetch(`/api/commander/game-types/${gt.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
-        body: JSON.stringify({ is_active: !gt.is_active })
+        body: JSON.stringify({ venue_id: venueId, is_active: !gt.is_active })
       });
-      broadcastChange('games');
-      fetchGameTypes();
+      if (res.ok) {
+        fetchGameTypes();
+        broadcastChange('games');
+      }
     } catch (err) { console.error(err); }
   }
 
   async function handleDelete(gt) {
     if (!confirm(`Remove "${gt.name} ${gt.stakes}" permanently?`)) return;
     try {
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       const staffSession = localStorage.getItem('commander_staff') || '';
-      await fetch(`/api/commander/game-types?id=${gt.id}`, {
+      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const res = await fetch(`/api/commander/game-types/${gt.id}?venue_id=${venueId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
-      broadcastChange('games');
-      fetchGameTypes();
+      if (res.ok) {
+        fetchGameTypes();
+        broadcastChange('games');
+      }
     } catch (err) { console.error(err); }
   }
 

@@ -421,14 +421,16 @@ export default function IncidentsPage() {
     try {
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       const staffSession = localStorage.getItem('commander_staff') || '';
-      await fetch(`/api/commander/incidents/${incidentId}/resolve`, {
+      const res = await fetch(`/api/commander/incidents/${incidentId}/resolve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ resolution })
       });
-      setSelectedIncident(null);
-      fetchIncidents();
-      broadcastChange('incidents');
+      if (res.ok) {
+        setSelectedIncident(null);
+        fetchIncidents();
+        broadcastChange('incidents');
+      }
     } catch (err) { console.error('Resolve incident failed:', err); }
   }
 

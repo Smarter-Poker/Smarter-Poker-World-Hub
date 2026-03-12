@@ -99,13 +99,15 @@ export default function HighHands() {
   const handleVerify = async (id) => {
     try {
       const staffSession = localStorage.getItem('commander_staff') || '';
-      await fetch(`/api/commander/high-hands/${id}`, {
+      const res = await fetch(`/api/commander/high-hands/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ action: 'verify' })
       });
-      broadcastChange('settings');
-      fetchData();
+      if (res.ok) {
+        broadcastChange('settings');
+        fetchData();
+      }
     } catch (err) { console.error(err); }
   };
 
@@ -113,12 +115,14 @@ export default function HighHands() {
     if (!confirm('Delete this high hand?')) return;
     try {
       const staffSession = localStorage.getItem('commander_staff') || '';
-      await fetch(`/api/commander/high-hands/${id}`, {
+      const res = await fetch(`/api/commander/high-hands/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession }
       });
-      broadcastChange('settings');
-      fetchData();
+      if (res.ok) {
+        broadcastChange('settings');
+        fetchData();
+      }
     } catch (err) { console.error(err); }
   };
 
