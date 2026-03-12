@@ -102,7 +102,7 @@ export default async function handler(req, res) {
 
     const emitUnionEvent = (eventName, tableData) => {
       try {
-        const { getBus } = require('../../../src/lib/poker-engine/EventBus');
+        const { getBus } = require('../../../src/engine/EventBus');
         const bus = getBus();
         if (bus) {
           bus.emit(eventName, { clubId, tableId, ...tableData });

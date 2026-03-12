@@ -203,7 +203,7 @@ export default async function handler(req, res) {
     }
 
     try {
-        const { getBus } = require('../../../src/lib/poker-engine/EventBus');
+        const { getBus } = require('../../../src/engine/EventBus');
         const bus = getBus();
         if (bus) {
             bus.emit('union:table-updated', {

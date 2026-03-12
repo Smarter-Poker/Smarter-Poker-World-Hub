@@ -17,6 +17,7 @@ export default function TournamentRegistration() {
     const router = useRouter();
     useEffect(() => { busEmit.sessionStart('commander-tournament-registration'); }, []);
     const [loading, setLoading] = useState(true);
+    const [registering, setRegistering] = useState(false);
     const [tournaments, setTournaments] = useState([]);
     const [venueId, setVenueId] = useState(null);
     const [message, setMessage] = useState(null);
@@ -274,6 +275,7 @@ ${total > 0 ? `<div class="fin-total-row"><span class="fin-total-label">Total Bu
             setMessage({ type: 'error', text: 'Select a player and tournament' });
             return;
         }
+        setRegistering(true);
         try {
             const token = getToken();
             const staffSession = localStorage.getItem('commander_staff') || '';
@@ -327,6 +329,8 @@ ${total > 0 ? `<div class="fin-total-row"><span class="fin-total-label">Total Bu
         } catch (err) {
             console.error('Registration error:', err);
             setMessage({ type: 'error', text: 'Network error — try again' });
+        } finally {
+            setRegistering(false);
         }
     };
 
@@ -453,17 +457,17 @@ ${total > 0 ? `<div class="fin-total-row"><span class="fin-total-label">Total Bu
                 {/* Step 3: Register */}
                 <button
                     onClick={registerPlayer}
-                    disabled={!selectedPlayer || !selectedTournament}
+                    disabled={!selectedPlayer || !selectedTournament || registering}
                     style={{
                         width: '100%', padding: '14px 0', borderRadius: 12, border: 'none', cursor: 'pointer',
                         background: selectedPlayer && selectedTournament ? '#31A24C' : '#3A3B3C',
                         color: '#fff', fontSize: 15, fontWeight: 700,
-                        opacity: selectedPlayer && selectedTournament ? 1 : 0.5,
+                        opacity: selectedPlayer && selectedTournament && !registering ? 1 : 0.5,
                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                     }}
                 >
-                    <Trophy size={18} />
-                    Register Player
+                    {registering ? <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> : <Trophy size={18} />}
+                    {registering ? 'Registering...' : 'Register Player'}
                 </button>
             </div>
 

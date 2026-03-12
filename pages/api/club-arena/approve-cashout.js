@@ -3,7 +3,7 @@
  * 
  * Agent (or owner) approves or cancels a player's cashout request.
  * 
- * On APPROVE: completes the cashout (held chips => diamonds to player).
+ * On APPROVE: completes the cashout (held chips => club treasury; agent settles fiat off-platform).
  * On CANCEL:  returns held/escrowed chips back to player's balance.
  * 
  * Agents can ONLY remove chips from a player account via:
@@ -123,7 +123,7 @@ export default async function handler(req, res) {
     const agentName = agentProfile?.display_name || agentProfile?.username || 'Your agent';
 
     // ═════════════════════════════════════════════════════════════
-    // APPROVE: Held chips => diamonds
+    // APPROVE: Held chips → treasury (agent settles fiat off-platform)
     // ═════════════════════════════════════════════════════════════
     if (action === 'approve') {
       // Step 2: Atomic approval (updates request status + credits treasury + logs transaction)
