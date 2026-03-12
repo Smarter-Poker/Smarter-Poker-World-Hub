@@ -12,7 +12,7 @@ import { useState, useEffect } from 'react';
 import { usePersistedState } from '../../../src/hooks/usePersistedState';
 import { supabase } from '../../../src/lib/supabase';
 import { emitCacheInvalidation, onCacheInvalidation } from '../../../src/lib/cacheSync';
-import { broadcastSync } from '../../../src/lib/broadcastSync';
+import { broadcastSync, listenBroadcast } from '../../../src/lib/broadcastSync';
 
 // Components
 import PageTransition from '../../../src/components/transitions/PageTransition';
@@ -470,6 +470,20 @@ export default function UserProfilePage() {
     // Profile menu state
     const [showProfileMenu, setShowProfileMenu] = useState(false);
     const [profileMenuMsg, setProfileMenuMsg] = useState('');
+
+    // Cross-tab avatar/cache sync — re-fetch when profile is edited in another tab
+    useEffect(() => {
+        if (!username) return;
+        const cleanupAvatar = listenBroadcast('smarter_poker_avatar_sync', () => {
+            // Avatar changed — refresh profile to get new avatar
+            supabase.from('profiles').select('avatar_url, full_name, bio, username')
+                .eq('username', username).maybeSingle()
+                .then(({ data }) => {
+                    if (data) setProfile(prev => prev ? { ...prev, ...data } : prev);
+                });
+        });
+        return cleanupAvatar;
+    }, [username]);
 
     useEffect(() => {
         if (!username) return;

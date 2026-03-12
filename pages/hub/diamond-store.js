@@ -22,7 +22,7 @@ import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import useCartStore from '../../src/stores/cartStore';
 import supabase from '../../src/lib/supabase';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
-import { broadcastSync } from '../../src/lib/broadcastSync';
+import { broadcastSync, listenBroadcast } from '../../src/lib/broadcastSync';
 import { getAccessToken, getAuthUser } from '../../src/lib/authUtils';
 
 
@@ -712,6 +712,20 @@ export default function DiamondStorePage() {
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user?.id}` }, () => { setIsVip(false); })
             .subscribe();
         return () => { supabase.removeChannel(_ch); };
+    }, [user?.id]);
+
+    // Cross-tab diamond purchase sync — refresh balance when another tab purchases
+    useEffect(() => {
+        const cleanup = listenBroadcast('smarter_poker_diamond_sync', () => {
+            // Another tab purchased diamonds — refresh VIP status
+            if (user?.id) {
+                supabase.from('profiles').select('is_vip, diamond_balance').eq('id', user.id).maybeSingle()
+                    .then(({ data }) => {
+                        if (data) setIsVip(!!data.is_vip);
+                    });
+            }
+        });
+        return cleanup;
     }, [user?.id]);
 
     // 🎬 INTRO VIDEO STATE - Video plays while page loads in background

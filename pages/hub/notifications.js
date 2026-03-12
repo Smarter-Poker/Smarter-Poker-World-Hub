@@ -217,6 +217,7 @@ function NotificationsPage() {
         }
         broadcastSync('smarter_poker_notif_sync', 'refresh_notifications');
         eventBus.emit(EventType.NOTIFICATIONS_READ, { count: 1 }, 'NotificationsPage');
+        busEmit.dataMutated('notifications');
     };
 
     const markAllAsRead = async () => {
@@ -228,6 +229,7 @@ function NotificationsPage() {
         }
         broadcastSync('smarter_poker_notif_sync', 'refresh_notifications');
         eventBus.emit(EventType.NOTIFICATIONS_READ, { count: unreadCount }, 'NotificationsPage');
+        busEmit.dataMutated('notifications');
     };
 
     // ═══════════════════════════════════════════════════════════════════════════

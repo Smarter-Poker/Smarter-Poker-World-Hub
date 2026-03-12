@@ -2,13 +2,14 @@
    Union Dashboard — Native Hub Page (replaces iframe shell)
    6 Tabs: Overview | Clubs | Agents | Wallet | Applications | Settings
    ═══════════════════════════════════════════════════════════════ */
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { apiCall, apiGet } from '../../../src/lib/club-arena/apiClient';
 import { busEmit } from '../../../src/engine/EventBus';
+import { eventBus } from '../../../src/engine/EventBus';
 import s from '../../../src/styles/UnionDashboard.module.css';
 
 // ── Helpers ─────────────────────────────────────────────────
@@ -69,6 +70,14 @@ export default function UnionDashboardPage() {
   // Commission history (lazy)
   const [commHistory, setCommHistory] = useState(null);
   const commHistoryLoaded = useRef(false);
+
+  // Search / Filter
+  const [clubSearch, setClubSearch] = useState('');
+  const [agentSearch, setAgentSearch] = useState('');
+
+  // Transaction pagination
+  const [txPage, setTxPage] = useState(1);
+  const TX_PER_PAGE = 25;
 
   const mountedRef = useRef(true);
   useEffect(() => () => { mountedRef.current = false; }, []);
@@ -166,14 +175,95 @@ export default function UnionDashboardPage() {
     if (tab === 'applications' && !appsLoaded) { loadApps(); loadLeave(); }
   }, [tab, unionId]);
 
+  // ── Auto-Refresh Polling (45s on Overview tab) ────────────
+  useEffect(() => {
+    if (!unionId || tab !== 'overview') return;
+    const interval = setInterval(() => {
+      if (!document.hidden) loadDashboard(unionId);
+    }, 45000);
+    return () => clearInterval(interval);
+  }, [unionId, tab, loadDashboard]);
+
+  // ── EventBus LISTENERS — auto-refresh on incoming events ──
+  useEffect(() => {
+    if (!unionId || typeof eventBus?.on !== 'function') return;
+    const refresh = () => { if (mountedRef.current) loadDashboard(unionId); };
+    const refreshWallet = () => { if (mountedRef.current) { setWalletData(null); loadWallet(); } };
+    const refreshApps = () => { if (mountedRef.current) { setAppsLoaded(false); loadApps(); } };
+    const unsubs = [
+      ...['union:club-removed', 'union:commission-updated', 'union:admin-changed',
+          'union:tournament-created', 'union:table-created'].map(e => eventBus.on(e, refresh)),
+      eventBus.on('union:wallet-transfer', refreshWallet),
+      eventBus.on('union:application-reviewed', refreshApps),
+    ];
+    return () => unsubs.forEach(fn => fn?.());
+  }, [unionId, loadDashboard, loadWallet, loadApps]);
+
+  // ── Filtered Lists (search/filter) ────────────────────────
+  const filteredClubs = useMemo(() => {
+    if (!clubSearch.trim()) return data?.clubs || [];
+    const q = clubSearch.toLowerCase();
+    return (data?.clubs || []).filter(c => c.name?.toLowerCase().includes(q) || String(c.club_id).includes(q));
+  }, [data?.clubs, clubSearch]);
+
+  const filteredAgents = useMemo(() => {
+    const agents = data?.agents || [];
+    if (!agentSearch.trim()) return agents;
+    const q = agentSearch.toLowerCase();
+    return agents.filter(a =>
+      a.profile?.display_name?.toLowerCase().includes(q) ||
+      a.profile?.username?.toLowerCase().includes(q) ||
+      a.role?.toLowerCase().includes(q)
+    );
+  }, [data?.agents, agentSearch]);
+
+  // ── CSV Export Helpers ────────────────────────────────────
+  const downloadCSV = (filename, headers, rows) => {
+    const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportAgents = () => {
+    const agents = data?.agents || [];
+    const clubs = data?.clubs || [];
+    const headers = ['Agent', 'Club', 'Role', 'Commission', 'Players', 'Earnings', 'Credit', 'Status'];
+    const rows = agents.map(a => {
+      const club = clubs.find(c => c.id === a.club_id);
+      return [a.profile?.display_name || a.profile?.username || a.user_id, club?.name || 'Unknown', a.role, ((a.commission_rate || 0) * 100).toFixed(1) + '%', a.active_player_count || 0, a.lifetime_earnings || 0, a.is_prepaid ? 'Prepaid' : (a.credit_used || 0), a.status];
+    });
+    downloadCSV(`union_agents_${new Date().toISOString().slice(0, 10)}.csv`, headers, rows);
+  };
+
+  const exportTransactions = () => {
+    const txns = walletData?.recentTransactions || [];
+    const headers = ['Type', 'Wallet', 'Direction', 'Amount', 'Club', 'Notes', 'Date'];
+    const rows = txns.map(tx => [tx.tx_type, tx.wallet, tx.direction, tx.amount, tx.clubs?.name || '-', tx.notes || '-', tx.created_at]);
+    downloadCSV(`union_transactions_${new Date().toISOString().slice(0, 10)}.csv`, headers, rows);
+  };
+
+  const exportSettlements = () => {
+    const periods = data?.recentPeriods || [];
+    const clubs = data?.clubs || [];
+    const headers = ['Club', 'Period', 'Rake', 'Hands', 'Status', 'Date'];
+    const rows = periods.map(p => {
+      const club = clubs.find(c => c.id === p.club_id);
+      return [club?.name || 'Unknown', p.period_number, p.total_rake_collected, p.total_hands_dealt, p.status, p.created_at];
+    });
+    downloadCSV(`union_settlements_${new Date().toISOString().slice(0, 10)}.csv`, headers, rows);
+  };
+
   // ── Mutation Helpers ──────────────────────────────────────
-  const doAction = async (endpoint, body, successMsg, { silent = false, busEvent = null } = {}) => {
+  const doAction = async (endpoint, body, successMsg, { silent = false, busEvent = null, invalidateWallet = false } = {}) => {
     setProcessing(true);
     setError(null);
     try {
       const res = await apiCall(endpoint, body);
       if (!silent) setSuccess(successMsg || res.message || 'Done');
       if (busEvent) busEmit(busEvent, { unionId, action: body?.action, ...res });
+      if (invalidateWallet) setWalletData(null);
       return res;
     } catch (err) {
       setError(err.message);
@@ -343,8 +433,15 @@ export default function UnionDashboardPage() {
           {/* ══════════════════ CLUBS TAB ═════════════════════ */}
           {tab === 'clubs' && (
             <>
+              {/* Search */}
+              <div className={s.formRow} style={{ marginBottom: 12 }}>
+                <div className={s.formGroup} style={{ maxWidth: 300 }}>
+                  <input className={s.formInput} value={clubSearch} onChange={e => setClubSearch(e.target.value)} placeholder="Search clubs by name or ID..." />
+                </div>
+                <span style={{ fontSize: 13, color: '#B0B3B8', alignSelf: 'center' }}>{filteredClubs.length} club{filteredClubs.length !== 1 ? 's' : ''}</span>
+              </div>
               <div className={s.cardGrid}>
-                {clubs.map(club => (
+                {filteredClubs.map(club => (
                   <div key={club.id} className={s.card}>
                     <div className={s.cardHeader}>
                       <div>
@@ -373,8 +470,8 @@ export default function UnionDashboardPage() {
                 ))}
               </div>
 
-              {clubs.length === 0 && (
-                <div className={s.emptyState}><span className={s.emptyIcon}>🏢</span><div className={s.emptyText}>No clubs in this union yet</div></div>
+              {filteredClubs.length === 0 && (
+                <div className={s.emptyState}><span className={s.emptyIcon}>🏢</span><div className={s.emptyText}>{clubSearch ? 'No clubs match your search' : 'No clubs in this union yet'}</div></div>
               )}
 
               {/* Edit Commission Modal */}
@@ -415,8 +512,17 @@ export default function UnionDashboardPage() {
 
               <div className={s.section}>
                 <div className={s.sectionTitle}>
-                  All Agents
-                  {!commHistory && <button className={`${s.btnGhost} ${s.btnSmall}`} style={{ marginLeft: 'auto' }} onClick={loadCommHistory}>Load Commission History</button>}
+                  All Agents ({filteredAgents.length})
+                  <div style={{ display: 'flex', gap: 8, marginLeft: 'auto' }}>
+                    {!commHistory && <button className={`${s.btnGhost} ${s.btnSmall}`} onClick={loadCommHistory}>Commission History</button>}
+                    <button className={`${s.btnGhost} ${s.btnSmall}`} onClick={exportAgents}>📥 Export CSV</button>
+                  </div>
+                </div>
+                {/* Agent Search */}
+                <div className={s.formRow} style={{ marginBottom: 8 }}>
+                  <div className={s.formGroup} style={{ maxWidth: 300 }}>
+                    <input className={s.formInput} value={agentSearch} onChange={e => setAgentSearch(e.target.value)} placeholder="Search agents by name or role..." />
+                  </div>
                 </div>
                 <div className={s.tableScroll}>
                   <table className={s.dataTable}>
@@ -424,7 +530,7 @@ export default function UnionDashboardPage() {
                       <th>Agent</th><th>Club</th><th>Role</th><th>Commission</th><th>Players</th><th>Earnings</th><th>Credit</th><th>Status</th>
                     </tr></thead>
                     <tbody>
-                      {agents.map(agent => {
+                      {filteredAgents.map(agent => {
                         const club = clubs.find(c => c.id === agent.club_id);
                         return (
                           <tr key={agent.id}>
@@ -442,7 +548,7 @@ export default function UnionDashboardPage() {
                     </tbody>
                   </table>
                 </div>
-                {agents.length === 0 && <div className={s.emptyState}><span className={s.emptyIcon}>👤</span><div className={s.emptyText}>No agents found</div></div>}
+                {filteredAgents.length === 0 && <div className={s.emptyState}><span className={s.emptyIcon}>👤</span><div className={s.emptyText}>{agentSearch ? 'No agents match your search' : 'No agents found'}</div></div>}
               </div>
 
               {/* Commission History */}
@@ -511,7 +617,7 @@ export default function UnionDashboardPage() {
                         <button className={s.btnPrimary} disabled={processing || !transferForm.clubId || !transferForm.amount} onClick={async () => {
                           const res = await doAction('/api/club-arena/union-wallet', {
                             action: 'send_to_club', unionId, clubId: transferForm.clubId, amount: parseInt(transferForm.amount), notes: transferForm.notes || undefined
-                          }, undefined, { busEvent: 'union:wallet-transfer' });
+                          }, undefined, { busEvent: 'union:wallet-transfer', invalidateWallet: true });
                           if (res) { setTransferForm({ clubId: '', amount: '', notes: '' }); loadWallet(); }
                         }}>Send</button>
                       </div>
@@ -528,7 +634,7 @@ export default function UnionDashboardPage() {
                           <input className={s.formInput} type="number" min="1" max={walletData.wallets?.rake_wallet} value={rakeAmount} onChange={e => setRakeAmount(e.target.value)} placeholder="Amount" />
                         </div>
                         <button className={s.btnSuccess} disabled={processing || !rakeAmount} onClick={async () => {
-                          const res = await doAction('/api/club-arena/union-wallet', { action: 'move_rake_to_chips', unionId, amount: parseInt(rakeAmount) }, undefined, { busEvent: 'union:wallet-transfer' });
+                          const res = await doAction('/api/club-arena/union-wallet', { action: 'move_rake_to_chips', unionId, amount: parseInt(rakeAmount) }, undefined, { busEvent: 'union:wallet-transfer', invalidateWallet: true });
                           if (res) { setRakeAmount(''); loadWallet(); }
                         }}>Convert</button>
                       </div>
@@ -537,12 +643,15 @@ export default function UnionDashboardPage() {
 
                   {/* Transaction History */}
                   <div className={s.section}>
-                    <div className={s.sectionTitle}>Transaction History</div>
+                    <div className={s.sectionTitle}>
+                      Transaction History
+                      {(walletData.recentTransactions || []).length > 0 && <button className={`${s.btnGhost} ${s.btnSmall}`} style={{ marginLeft: 'auto' }} onClick={exportTransactions}>📥 Export CSV</button>}
+                    </div>
                     <div className={s.tableScroll}>
                       <table className={s.dataTable}>
                         <thead><tr><th>Type</th><th>Wallet</th><th>Dir</th><th>Amount</th><th>Club</th><th>Notes</th><th>When</th></tr></thead>
                         <tbody>
-                          {(walletData.recentTransactions || []).slice(0, 50).map(tx => (
+                          {(walletData.recentTransactions || []).slice(0, txPage * TX_PER_PAGE).map(tx => (
                             <tr key={tx.id}>
                               <td>{tx.tx_type}</td>
                               <td>{tx.wallet}</td>
@@ -556,6 +665,9 @@ export default function UnionDashboardPage() {
                         </tbody>
                       </table>
                     </div>
+                    {(walletData.recentTransactions || []).length > txPage * TX_PER_PAGE && (
+                      <button className={s.btnGhost} style={{ marginTop: 8, width: '100%' }} onClick={() => setTxPage(p => p + 1)}>Load More ({(walletData.recentTransactions || []).length - txPage * TX_PER_PAGE} remaining)</button>
+                    )}
                     {(!walletData.recentTransactions || walletData.recentTransactions.length === 0) && (
                       <div className={s.emptyState}><span className={s.emptyIcon}>📋</span><div className={s.emptyText}>No transactions yet</div></div>
                     )}
@@ -720,7 +832,16 @@ export default function UnionDashboardPage() {
                       if (settingsForm.bbj_backup_pct !== undefined) settings.bbj_backup_pct = parseInt(settingsForm.bbj_backup_pct);
                       if (settingsForm.bbj_promo_pct !== undefined) settings.bbj_promo_pct = parseInt(settingsForm.bbj_promo_pct);
                       if (Object.keys(settings).length > 0) updates.settings = settings;
-                      const res = await doAction('/api/club-arena/manage-union', { action: 'update_settings', unionId, ...updates }, 'Settings saved');
+                      // Confirmation dialog for financial settings changes
+                      const hasFinancialChanges = settings.union_rake_hold !== undefined || settings.default_agent_commission !== undefined || settings.default_club_commission_rate !== undefined;
+                      if (hasFinancialChanges) {
+                        const summary = [];
+                        if (settings.union_rake_hold !== undefined) summary.push(`Rake Hold: ${(settings.union_rake_hold * 100).toFixed(1)}%`);
+                        if (settings.default_agent_commission !== undefined) summary.push(`Agent Comm: ${(settings.default_agent_commission * 100).toFixed(1)}%`);
+                        if (settings.default_club_commission_rate !== undefined) summary.push(`Club Comm: ${(settings.default_club_commission_rate * 100).toFixed(1)}%`);
+                        if (!confirm(`Confirm financial settings changes?\n\n${summary.join('\n')}\n\nThese changes affect all clubs and agents in the union.`)) return;
+                      }
+                      const res = await doAction('/api/club-arena/manage-union', { action: 'update_settings', unionId, ...updates }, 'Settings saved', { busEvent: 'union:settings-updated' });
                       if (res) loadDashboard(unionId);
                     }}>Save Settings</button>
                   </>
@@ -802,7 +923,10 @@ export default function UnionDashboardPage() {
               {/* Settlement Periods */}
               {recentPeriods.length > 0 && (
                 <div className={s.section}>
-                  <div className={s.sectionTitle}>Recent Settlement Periods</div>
+                  <div className={s.sectionTitle}>
+                    Recent Settlement Periods
+                    <button className={`${s.btnGhost} ${s.btnSmall}`} style={{ marginLeft: 'auto' }} onClick={exportSettlements}>📥 Export CSV</button>
+                  </div>
                   <div className={s.tableScroll}>
                     <table className={s.dataTable}>
                       <thead><tr><th>Club</th><th>Period</th><th>Rake</th><th>Hands</th><th>Status</th><th>Date</th></tr></thead>

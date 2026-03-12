@@ -46,7 +46,7 @@ import { useRouter } from 'next/router';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { usePersistedState } from '../../src/hooks/usePersistedState';
 import { supabase } from '../../src/lib/supabase';
-import { eventBus, EventType } from '../../src/engine/EventBus';
+import { eventBus, EventType, busEmit } from '../../src/engine/EventBus';
 import { getAuthUser, ensureAuthReady } from '../../src/lib/authUtils';
 import { useExternalLink } from '../../src/components/ui/ExternalLinkModal';
 import { useUnreadCount } from '../../src/hooks/useUnreadCount';
@@ -4896,6 +4896,7 @@ function SocialMediaPage() {
 
             // Show success toast
             toast.success('Posted Successfully!', 2000);
+            busEmit.dataMutated('social');
 
             return true;
         } catch (e) { console.error('Post error:', e); return false; }
@@ -4949,6 +4950,7 @@ function SocialMediaPage() {
             // Remove from local state
             setPosts(prev => prev.filter(p => p.id !== id));
             console.log(`[Delete] ✅ Post ${id} deleted successfully (${result.deletedBy})`);
+            busEmit.dataMutated('social');
         } catch (e) {
             console.error('[Delete] Error:', e);
             toast.error('Error deleting post');
