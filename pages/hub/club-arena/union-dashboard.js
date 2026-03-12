@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
+import Link from 'next/link';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { apiCall, apiGet } from '../../../src/lib/club-arena/apiClient';
 import { busEmit } from '../../../src/engine/EventBus';
@@ -318,6 +319,8 @@ export default function UnionDashboardPage() {
               {union?.code && <span className={s.unionCode}>{union.code}</span>}
             </div>
             <div className={s.headerActions}>
+              <Link href="/hub/club-arena/union-games" style={{ textDecoration: 'none' }}><button className={s.btnPrimary}>🎮 Games</button></Link>
+              <Link href="/hub/club-arena/lobby" style={{ textDecoration: 'none' }}><button className={s.btnGhost}>🏠 Lobby</button></Link>
               <button className={s.btnGhost} onClick={() => loadDashboard(unionId)} disabled={processing}>Refresh</button>
             </div>
           </div>

@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
+import Link from 'next/link';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { apiCall } from '../../../src/lib/club-arena/apiClient';
 import { busEmit, eventBus } from '../../../src/engine/EventBus';
@@ -222,6 +223,10 @@ export default function UnionGamesPage() {
 
           <div className={s.pageHeader}>
             <div className={s.pageTitle}>Union Games</div>
+            <div className={s.headerActions}>
+              <Link href="/hub/club-arena/union-dashboard" style={{ textDecoration: 'none' }}><button className={s.btnPrimary}>📊 Dashboard</button></Link>
+              <Link href="/hub/club-arena/lobby" style={{ textDecoration: 'none' }}><button className={s.btnGhost}>🏠 Lobby</button></Link>
+            </div>
           </div>
 
           {/* Tabs */}
