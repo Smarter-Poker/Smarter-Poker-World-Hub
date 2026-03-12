@@ -56,23 +56,24 @@ export default function ShiftHandoff() {
       const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/shift-handoff?venue_id=${staff.venue_id}&limit=30`, {
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
+        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        ...(signal ? { signal } : {}),
       });
       const json = await res.json();
       if (json.success) setHandoffs(json.data.handoffs);
-    } catch (err) { console.error(err); }
+    } catch (err) { if (err.name !== 'AbortError') console.error(err); }
     finally { setLoading(false); }
   };
 
   useEffect(() => {
     const _c = new AbortController();
 
-    if (staff?.venue_id) fetchHandoffs();
+    if (staff?.venue_id) fetchHandoffs(_c.signal);
     return () => _c.abort();
   }, [staff]);
 
   // Commander Data Bus — sync handoffs across tabs
-  useCommanderSync(staff?.venue_id || '', fetchHandoffs, { entities: ['staff'] });;
+  useCommanderSync(staff?.venue_id || '', fetchHandoffs, { entities: ['staff'] });
 
   const handleSubmit = async () => {
     if (!notes.trim() && !issues.trim()) {

@@ -502,7 +502,7 @@ export default function MarketplacePage() {
   }, [venueId, fetchAll]);
 
   // Commander Data Bus — both BroadcastChannel (instant) + Supabase Realtime (cross-device)
-  useCommanderSync(venueId || '', fetchAll, { entities: ['settings'] });
+  useCommanderSync(venueId || '', fetchAll, { entities: ['settings', 'marketplace'] });
 
   function handleBookDealer(dealer) {
     setSelectedDealer(dealer);
