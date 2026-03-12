@@ -288,8 +288,8 @@ function VideoPostWrapper({ url, onValidVideoClick, children }) {
 
     const handleClick = () => {
         if (isVideoValid === false) {
-            // Video is broken - show alert instead of opening player
-            alert('This video is no longer available on YouTube.');
+            // Video is broken - show toast instead of opening player
+            toast.error('This video is no longer available on YouTube.');
             return;
         }
         // Video is valid or still loading - proceed with click
@@ -1616,7 +1616,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                             }).catch(() => { });
                         } else {
                             navigator.clipboard.writeText(shareUrl);
-                            alert('Link copied to clipboard!');
+                            toast.success('Link copied to clipboard!');
                         }
                     }}
                     style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: C.textSec, fontWeight: 500, fontSize: 13 }}
@@ -1959,9 +1959,9 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                 } catch (saveErr) { console.error('Cover save error:', saveErr); }
                 setMetaSaving(false);
             } else {
-                alert('Cover upload failed: ' + (uploadJson.error || 'Unknown error'));
+                toast.error('Cover upload failed: ' + (uploadJson.error || 'Unknown error'));
             }
-        } catch (err) { console.error('Cover upload error:', err); alert('Cover upload error: ' + err.message); }
+        } catch (err) { console.error('Cover upload error:', err); toast.error('Cover upload error: ' + err.message); }
         setCoverUploading(false);
     };
 
@@ -2001,9 +2001,9 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                 } catch (saveErr) { console.error('Logo save error:', saveErr); }
                 setMetaSaving(false);
             } else {
-                alert('Logo upload failed: ' + (uploadJson.error || 'Unknown error'));
+                toast.error('Logo upload failed: ' + (uploadJson.error || 'Unknown error'));
             }
-        } catch (err) { console.error('Logo upload error:', err); alert('Logo upload error: ' + err.message); }
+        } catch (err) { console.error('Logo upload error:', err); toast.error('Logo upload error: ' + err.message); }
         setLogoUploading(false);
         if (logoInputRef.current) logoInputRef.current.value = '';
     };
@@ -2038,7 +2038,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                     });
                     const meta = await metaRes.json();
                     if (!meta.success) {
-                        alert('Upload failed: ' + (meta.error || 'Unknown error'));
+                        toast.error('Upload failed: ' + (meta.error || 'Unknown error'));
                         continue;
                     }
                     const uploadRes = await fetch(meta.signedUrl, {
@@ -2047,7 +2047,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                         body: file,
                     });
                     if (!uploadRes.ok) {
-                        alert('Video upload failed — please try again');
+                        toast.error('Video upload failed — please try again');
                         continue;
                     }
                     uploaded.push({ type: 'video', url: meta.publicUrl });
@@ -2068,12 +2068,12 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                         uploaded.push({ type: json.type || 'photo', url: json.url });
                     } else {
                         console.error('[ClubPage] Upload failed:', json.error);
-                        alert('Upload failed: ' + (json.error || 'Unknown error'));
+                        toast.error('Upload failed: ' + (json.error || 'Unknown error'));
                     }
                 }
             } catch (err) {
                 console.error('[ClubPage] Upload error:', err);
-                alert('Upload failed: ' + err.message);
+                toast.error('Upload failed: ' + err.message);
             }
         }
         setPostMedia(prev => [...prev, ...uploaded]);
@@ -2195,11 +2195,11 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                 setPostContent('');
                 setPostMedia([]);
             } else if (json.error) {
-                alert('Post failed: ' + json.error);
+                toast.error('Post failed: ' + json.error);
             }
         } catch (e) {
             console.error('Post error:', e);
-            alert('Post failed: ' + e.message);
+            toast.error('Post failed: ' + e.message);
         }
         setPosting(false);
     };
@@ -4968,7 +4968,7 @@ export default function SocialMediaPage() {
 
             if (!token) {
                 console.error('[Delete] No auth token available');
-                alert('Please log in again to delete posts');
+                toast.error('Please log in again to delete posts');
                 return;
             }
 
@@ -4986,7 +4986,7 @@ export default function SocialMediaPage() {
 
             if (!response.ok) {
                 console.error('[Delete] Server error:', result);
-                alert(result.error || 'Failed to delete post');
+                toast.error(result.error || 'Failed to delete post');
                 return;
             }
 
@@ -4995,7 +4995,7 @@ export default function SocialMediaPage() {
             console.log(`[Delete] ✅ Post ${id} deleted successfully (${result.deletedBy})`);
         } catch (e) {
             console.error('[Delete] Error:', e);
-            alert('Error deleting post');
+            toast.error('Error deleting post');
         }
     };
 
@@ -5493,7 +5493,7 @@ export default function SocialMediaPage() {
                         </div>
                         {/* Invite Friends Card */}
                         <div onClick={() => {
-                            if (!user) { alert('Please log in to invite friends.'); return; }
+                            if (!user) { toast.error('Please log in to invite friends.'); return; }
                             setShowInviteModal(true);
                         }} style={{
                             display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',

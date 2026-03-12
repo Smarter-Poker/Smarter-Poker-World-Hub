@@ -8,6 +8,7 @@ import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import { supabase } from '../../src/lib/supabase';
 import { getAuthUser } from '../../src/lib/authUtils';
+import { eventBus, EventType } from '../../src/engine/EventBus';
 
 // God-Mode Stack
 import PageTransition from '../../src/components/transitions/PageTransition';
@@ -196,17 +197,24 @@ export default function NotificationsPage() {
         await supabase.from('notifications').update({ read: true }).eq('id', id);
         setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
         try {
-            new BroadcastChannel('smarter_poker_notif_sync').postMessage('refresh_notifications');
+            const bc = new BroadcastChannel('smarter_poker_notif_sync');
+            bc.postMessage('refresh_notifications');
+            bc.close();
         } catch (e) { }
+        eventBus.emit(EventType.NOTIFICATIONS_READ, { count: 1 }, 'NotificationsPage');
     };
 
     const markAllAsRead = async () => {
         if (!user) return;
+        const unreadCount = notifications.filter(n => !n.read).length;
         await supabase.from('notifications').update({ read: true }).eq('user_id', user.id).eq('read', false);
         setNotifications(prev => prev.map(n => ({ ...n, read: true })));
         try {
-            new BroadcastChannel('smarter_poker_notif_sync').postMessage('refresh_notifications');
+            const bc = new BroadcastChannel('smarter_poker_notif_sync');
+            bc.postMessage('refresh_notifications');
+            bc.close();
         } catch (e) { }
+        eventBus.emit(EventType.NOTIFICATIONS_READ, { count: unreadCount }, 'NotificationsPage');
     };
 
     // ═══════════════════════════════════════════════════════════════════════════

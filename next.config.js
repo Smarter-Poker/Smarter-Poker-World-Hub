@@ -94,14 +94,12 @@ const nextConfig = {
         aggregateTimeout: 300, // Debounce rapid file saves
       };
 
-      // Enforce bulletproof filesystem cache logic intentionally without 'memory' fallback
+      // FIXED: Use memory-only cache in dev mode. Filesystem cache causes a race
+      // condition where stale .pack.gz entries corrupt vendor-chunks, producing
+      // "Cannot find module './chunks/vendor-chunks/next.js'" 500 errors.
+      // Memory cache is fast enough for dev and immune to on-disk corruption.
       config.cache = {
-        type: 'filesystem',
-        maxMemoryGenerations: 1,      // aggressive disk-flushing
-        memoryCacheUnaffected: true,  // reduce memory bloat
-        buildDependencies: {
-          config: [__filename],
-        },
+        type: 'memory',
       };
     }
     return config;

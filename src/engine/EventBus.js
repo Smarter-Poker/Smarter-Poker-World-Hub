@@ -71,6 +71,11 @@ export const EventType = {
     MESSAGE_EDITED: 'MESSAGE_EDITED',
     VOICE_MESSAGE_SENT: 'VOICE_MESSAGE_SENT',
     MESSENGER_SEARCH: 'MESSENGER_SEARCH',
+
+    // ── Social & Friends ──
+    FRIEND_REQUEST_SENT: 'FRIEND_REQUEST_SENT',
+    FRIEND_REQUEST_ACCEPTED: 'FRIEND_REQUEST_ACCEPTED',
+    NOTIFICATIONS_READ: 'NOTIFICATIONS_READ',
 };
 
 // ─── SSR Safety Check ──────────────────────────────────────────
@@ -286,6 +291,16 @@ const _busEmitMethods = {
 
     messengerSearch: (query) =>
         eventBus.emit(EventType.MESSENGER_SEARCH, { query }, 'Messenger'),
+
+    // ── Social & Friends ──
+    friendRequestSent: (friendId) =>
+        eventBus.emit(EventType.FRIEND_REQUEST_SENT, { friendId }, 'FriendsPage'),
+
+    friendRequestAccepted: (friendId) =>
+        eventBus.emit(EventType.FRIEND_REQUEST_ACCEPTED, { friendId }, 'FriendsPage'),
+
+    notificationsRead: (count) =>
+        eventBus.emit(EventType.NOTIFICATIONS_READ, { count }, 'NotificationsPage'),
 };
 
 // ═══════════════════════════════════════════════════════════════════════════

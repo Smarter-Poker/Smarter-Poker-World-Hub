@@ -8,6 +8,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { supabase } from '../../src/lib/supabase';
+import toast from '../../src/stores/toastStore';
 
 // God-Mode Stack
 import PageTransition from '../../src/components/transitions/PageTransition';
@@ -18,6 +19,8 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { friendPreferences } from '../../src/services/preferences-service';
 import { usePersistedState } from '../../src/hooks/usePersistedState';
 import { getAccessToken } from '../../src/lib/authUtils';
+import { eventBus, EventType } from '../../src/engine/EventBus';
+import useTrainingBus from '../../src/hooks/useTrainingBus';
 
 const C = {
     bg: '#0a0a0a', card: '#1a1a1a', cardHover: '#252525', text: '#FFFFFF', textSec: '#9ca3af',
@@ -32,8 +35,8 @@ const C = {
 function timeAgo(date) {
     if (!date) return null;
     const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
-    if (seconds < 300) return 'online'; // Within 5 minutes = online
     if (seconds < 60) return 'Just now';
+    if (seconds < 300) return 'online'; // Within 5 minutes = online
     if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
     if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
     if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
@@ -529,6 +532,25 @@ export default function FriendsPage() {
     }, []);
 
     // ═══════════════════════════════════════════════════════════════════════
+    // EventBus: Session tracking + DATA_MUTATED listener
+    // ═══════════════════════════════════════════════════════════════════════
+    useTrainingBus('friends');
+
+    useEffect(() => {
+        const unsubMutated = eventBus.on(EventType.DATA_MUTATED, () => {
+            fetchData();
+        });
+        const unsubMsgReceived = eventBus.on(EventType.MESSAGE_RECEIVED, () => {
+            // Refresh to update online status indicators
+            fetchData();
+        });
+        return () => {
+            unsubMutated();
+            unsubMsgReceived();
+        };
+    }, []);
+
+    // ═══════════════════════════════════════════════════════════════════════
     // SEARCH FUNCTIONALITY
     // ═══════════════════════════════════════════════════════════════════════
 
@@ -588,6 +610,17 @@ export default function FriendsPage() {
         };
     }, [user?.id]);
 
+    // EventBus: Listen for friend-related events from other components (e.g. messenger, profile)
+    useEffect(() => {
+        const handler = () => { fetchData(); };
+        eventBus.on(EventType.FRIEND_REQUEST_SENT, handler);
+        eventBus.on(EventType.FRIEND_REQUEST_ACCEPTED, handler);
+        return () => {
+            eventBus.off(EventType.FRIEND_REQUEST_SENT, handler);
+            eventBus.off(EventType.FRIEND_REQUEST_ACCEPTED, handler);
+        };
+    }, []);
+
     // ═══════════════════════════════════════════════════════════════════════
     // HANDLERS
     // ═══════════════════════════════════════════════════════════════════════
@@ -609,8 +642,9 @@ export default function FriendsPage() {
             // Rollback on failure
             setFollowing(prev => prev.filter(f => f.id !== userId));
             setFollowingIds(prev => { const s = new Set(prev); s.delete(userId); return s; });
+            toast.error('Could not follow user. Please try again.');
         } else {
-            try { new BroadcastChannel('smarter_poker_friends_sync').postMessage('refresh'); } catch (e) { }
+            try { const bc = new BroadcastChannel('smarter_poker_friends_sync'); bc.postMessage('refresh'); bc.close(); } catch (e) { }
         }
     };
 
@@ -632,8 +666,9 @@ export default function FriendsPage() {
             // Rollback on failure
             if (removed) setFollowing(prev => [...prev, removed]);
             setFollowingIds(prev => new Set([...prev, userId]));
+            toast.error('Could not unfollow user. Please try again.');
         } else {
-            try { new BroadcastChannel('smarter_poker_friends_sync').postMessage('refresh'); } catch (e) { }
+            try { const bc = new BroadcastChannel('smarter_poker_friends_sync'); bc.postMessage('refresh'); bc.close(); } catch (e) { }
         }
     };
 
@@ -646,7 +681,10 @@ export default function FriendsPage() {
 
         if (!error) {
             setPendingIds(prev => new Set([...prev, friendId]));
-            try { new BroadcastChannel('smarter_poker_friends_sync').postMessage('refresh'); } catch (e) { }
+            toast.success('Friend request sent!');
+            try { const bc = new BroadcastChannel('smarter_poker_friends_sync'); bc.postMessage('refresh'); bc.close(); } catch (e) { }
+        } else {
+            toast.error('Could not send friend request. Please try again.');
         }
     };
 
@@ -671,8 +709,10 @@ export default function FriendsPage() {
         setFriends(prev => [...prev, newFriend]);
         setFriendIds(prev => new Set([...prev, request.user_id]));
         setFriendRequests(prev => prev.filter(r => r.id !== request.id));
+        toast.success('Friend request accepted!');
+        eventBus.emit(EventType.FRIEND_REQUEST_ACCEPTED, { friendId: request.user_id }, 'FriendsPage');
 
-        try { new BroadcastChannel('smarter_poker_friends_sync').postMessage('refresh'); } catch (e) { }
+        try { const bc = new BroadcastChannel('smarter_poker_friends_sync'); bc.postMessage('refresh'); bc.close(); } catch (e) { }
     };
 
     //  DECLINE = AUTO-FOLLOW (SmarterPoker style)
@@ -705,7 +745,7 @@ export default function FriendsPage() {
         // Remove from requests
         setFriendRequests(prev => prev.filter(r => r.id !== request.id));
 
-        try { new BroadcastChannel('smarter_poker_friends_sync').postMessage('refresh'); } catch (e) { }
+        try { const bc = new BroadcastChannel('smarter_poker_friends_sync'); bc.postMessage('refresh'); bc.close(); } catch (e) { }
     };
 
     const handleRemoveFriend = async (friendId) => {
@@ -735,7 +775,7 @@ export default function FriendsPage() {
             });
         }
 
-        try { new BroadcastChannel('smarter_poker_friends_sync').postMessage('refresh'); } catch (e) { }
+        try { const bc = new BroadcastChannel('smarter_poker_friends_sync'); bc.postMessage('refresh'); bc.close(); } catch (e) { }
     };
 
     // ═══════════════════════════════════════════════════════════════════════

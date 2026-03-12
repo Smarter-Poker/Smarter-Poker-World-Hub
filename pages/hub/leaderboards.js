@@ -16,6 +16,7 @@ import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
+import { supabase } from '../../src/lib/supabase';
 
 const C = {
     bg: '#0a0a0a',

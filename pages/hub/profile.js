@@ -97,7 +97,7 @@ export default function ProfileRedirect() {
         };
 
         redirectToProfile();
-    }, [router]);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Show Smarter.Poker logo while redirecting
     return (

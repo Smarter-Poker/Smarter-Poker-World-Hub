@@ -18,6 +18,7 @@ import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { messengerPreferences } from '../../src/services/preferences-service';
 import { eventBus, EventType } from '../../src/engine/EventBus';
+import useTrainingBus from '../../src/hooks/useTrainingBus';
 
 // Dynamic import for LiveKit (client-side only)
 const LiveKitCall = dynamic(
@@ -521,13 +522,9 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
         }
     };
 
-    const handleDelete = async () => {
-        if (!confirm('Delete this message?')) return;
-        setShowMenu(false);
-        if (onDelete) {
-            await onDelete(message.id);
-        }
-    };
+
+    // Note: Delete is handled inline via the context menu buttons below,
+    // which call onDelete(message.id, 'for_me'|'for_everyone') directly.
 
     // Group reactions by emoji
     const groupedReactions = reactions.reduce((acc, r) => {
@@ -1030,6 +1027,9 @@ export default function MessengerPage() {
     const setShowNewChat = useMessengerStore((s) => s.setShowNewChat);
     const showSearch = useMessengerStore((s) => s.showSearch);
     const setShowSearch = useMessengerStore((s) => s.setShowSearch);
+
+    // 🚌 EventBus session tracking + DATA_MUTATED listener
+    useTrainingBus('messenger');
 
     // Identity switching
     const { isClubMode, clubPage, hasClubPage } = useActiveIdentity();
