@@ -117,10 +117,10 @@ export function isHorseActiveHour(profileId, currentHour) {
     const { start, end } = getHorseActiveHours(profileId);
 
     if (start <= end) {
-        return currentHour >= Start && CurrentHour <= end;
+        return currentHour >= start && currentHour <= end;
     } else {
         // Wraps around midnight
-        return currentHour >= Start || CurrentHour <= end;
+        return currentHour >= start || currentHour <= end;
     }
 }
 
