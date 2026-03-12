@@ -24,7 +24,7 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import InviteFriendsModal from '../../src/components/ui/InviteFriendsModal';
 import { getAccessToken } from '../../src/lib/authUtils';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
-import { broadcastSync } from '../../src/lib/broadcastSync';
+import { broadcastSync, listenBroadcast } from '../../src/lib/broadcastSync';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TOGGLE SWITCH COMPONENT
@@ -238,30 +238,27 @@ export default function SettingsPage() {
 
     // Cross-tab Settings sync
     useEffect(() => {
-        try {
-            const bc = new BroadcastChannel('smarter_poker_settings_sync');
-            bc.onmessage = (event) => {
-                if (event.data === 'refresh_settings') {
-                    console.log('[Settings] 📡 Refreshing settings from other tab');
-                    if (user?.id) {
-                        supabase
-                            .from('profiles')
-                            .select('display_name_preference')
-                            .eq('id', user.id)
-                            .maybeSingle()
-                            .then(({ data: profile }) => {
-                                if (profile) {
-                                    setSettings(prev => ({
-                                        ...prev,
-                                        display_name_preference: profile.display_name_preference || 'full_name'
-                                    }));
-                                }
-                            });
-                    }
+        const cleanup = listenBroadcast('smarter_poker_settings_sync', (event) => {
+            if (event.data === 'refresh_settings') {
+                console.log('[Settings] 📡 Refreshing settings from other tab');
+                if (user?.id) {
+                    supabase
+                        .from('profiles')
+                        .select('display_name_preference')
+                        .eq('id', user.id)
+                        .maybeSingle()
+                        .then(({ data: profile }) => {
+                            if (profile) {
+                                setSettings(prev => ({
+                                    ...prev,
+                                    display_name_preference: profile.display_name_preference || 'full_name'
+                                }));
+                            }
+                        });
                 }
-            };
-            return () => bc.close();
-        } catch (e) { }
+            }
+        });
+        return cleanup;
     }, [user?.id]);
 
     // Load user settings when user is available

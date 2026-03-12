@@ -8,6 +8,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { apiCall, apiGet } from '../../../src/lib/club-arena/apiClient';
+import { busEmit } from '../../../src/engine/EventBus';
 import s from '../../../src/styles/UnionDashboard.module.css';
 
 // ── Helpers ─────────────────────────────────────────────────
@@ -49,6 +50,7 @@ export default function UnionDashboardPage() {
   const [apps, setApps] = useState([]);
   const [appsFilter, setAppsFilter] = useState('pending');
   const [appsLoading, setAppsLoading] = useState(false);
+  const [appsLoaded, setAppsLoaded] = useState(false);
   const [leaveRequests, setLeaveRequests] = useState([]);
 
   // Settings state
@@ -87,9 +89,9 @@ export default function UnionDashboardPage() {
       const id = uid || unionId;
       if (!id) {
         // Discover user's union
-        const { data: { session } } = await (await import('../../../src/lib/supabase')).supabase.auth.getSession();
-        if (!session) { setError('Please log in'); setLoading(false); return; }
         const { supabase } = await import('../../../src/lib/supabase');
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) { setError('Please log in'); setLoading(false); return; }
         const { data: adminRow } = await supabase.from('union_admins').select('union_id').eq('user_id', session.user.id).limit(1).maybeSingle();
         if (!adminRow) { setError('You are not a union admin. No unions found for your account.'); setLoading(false); return; }
         setUnionId(adminRow.union_id);
@@ -128,7 +130,7 @@ export default function UnionDashboardPage() {
     setAppsLoading(true);
     try {
       const res = await apiCall('/api/club-arena/union-application', { action: 'list', unionId, statusFilter: filter || appsFilter });
-      if (mountedRef.current) setApps(res.applications || []);
+      if (mountedRef.current) { setApps(res.applications || []); setAppsLoaded(true); }
     } catch (err) {
       if (mountedRef.current) setError(err.message);
     } finally {
@@ -161,16 +163,17 @@ export default function UnionDashboardPage() {
   useEffect(() => {
     if (!unionId) return;
     if (tab === 'wallet' && !walletData) loadWallet();
-    if (tab === 'applications') { loadApps(); loadLeave(); }
+    if (tab === 'applications' && !appsLoaded) { loadApps(); loadLeave(); }
   }, [tab, unionId]);
 
   // ── Mutation Helpers ──────────────────────────────────────
-  const doAction = async (endpoint, body, successMsg) => {
+  const doAction = async (endpoint, body, successMsg, { silent = false, busEvent = null } = {}) => {
     setProcessing(true);
     setError(null);
     try {
       const res = await apiCall(endpoint, body);
-      setSuccess(successMsg || res.message || 'Done');
+      if (!silent) setSuccess(successMsg || res.message || 'Done');
+      if (busEvent) busEmit(busEvent, { unionId, action: body?.action, ...res });
       return res;
     } catch (err) {
       setError(err.message);
@@ -361,7 +364,7 @@ export default function UnionDashboardPage() {
                         <button className={`${s.btnGhost} ${s.btnSmall}`} onClick={() => { setEditCommClub(club); setEditCommRate(String((club.club_commission_rate || 0.9) * 100)); }}>Edit Rate</button>
                         <button className={`${s.btnDanger} ${s.btnSmall}`} disabled={processing} onClick={async () => {
                           if (!confirm(`Remove ${club.name} from the union?`)) return;
-                          const res = await doAction('/api/club-arena/manage-union', { action: 'remove_club', unionId, clubId: club.id }, `${club.name} removed`);
+                          const res = await doAction('/api/club-arena/manage-union', { action: 'remove_club', unionId, clubId: club.id }, `${club.name} removed`, { busEvent: 'union:club-removed' });
                           if (res) loadDashboard(unionId);
                         }}>Remove</button>
                       </div>
@@ -389,7 +392,7 @@ export default function UnionDashboardPage() {
                       <button className={s.btnPrimary} disabled={processing} onClick={async () => {
                         const rate = parseFloat(editCommRate) / 100;
                         if (rate < 0.01 || rate > 1) { setError('Rate must be 1-100%'); return; }
-                        const res = await doAction('/api/club-arena/manage-union', { action: 'update_club_commission', unionId, clubId: editCommClub.id, commissionRate: rate }, 'Commission updated');
+                        const res = await doAction('/api/club-arena/manage-union', { action: 'update_club_commission', unionId, clubId: editCommClub.id, commissionRate: rate }, 'Commission updated', { busEvent: 'union:commission-updated' });
                         if (res) { setEditCommClub(null); loadDashboard(unionId); }
                       }}>Save</button>
                       <button className={s.btnGhost} onClick={() => setEditCommClub(null)}>Cancel</button>
@@ -508,7 +511,7 @@ export default function UnionDashboardPage() {
                         <button className={s.btnPrimary} disabled={processing || !transferForm.clubId || !transferForm.amount} onClick={async () => {
                           const res = await doAction('/api/club-arena/union-wallet', {
                             action: 'send_to_club', unionId, clubId: transferForm.clubId, amount: parseInt(transferForm.amount), notes: transferForm.notes || undefined
-                          });
+                          }, undefined, { busEvent: 'union:wallet-transfer' });
                           if (res) { setTransferForm({ clubId: '', amount: '', notes: '' }); loadWallet(); }
                         }}>Send</button>
                       </div>
@@ -525,7 +528,7 @@ export default function UnionDashboardPage() {
                           <input className={s.formInput} type="number" min="1" max={walletData.wallets?.rake_wallet} value={rakeAmount} onChange={e => setRakeAmount(e.target.value)} placeholder="Amount" />
                         </div>
                         <button className={s.btnSuccess} disabled={processing || !rakeAmount} onClick={async () => {
-                          const res = await doAction('/api/club-arena/union-wallet', { action: 'move_rake_to_chips', unionId, amount: parseInt(rakeAmount) });
+                          const res = await doAction('/api/club-arena/union-wallet', { action: 'move_rake_to_chips', unionId, amount: parseInt(rakeAmount) }, undefined, { busEvent: 'union:wallet-transfer' });
                           if (res) { setRakeAmount(''); loadWallet(); }
                         }}>Convert</button>
                       </div>
@@ -596,13 +599,13 @@ export default function UnionDashboardPage() {
                       {app.status === 'pending' && isLead && (
                         <div className={s.cardActions}>
                           <button className={`${s.btnSuccess} ${s.btnSmall}`} disabled={processing} onClick={async () => {
-                            const res = await doAction('/api/club-arena/union-application', { action: 'approve', applicationId: app.id }, `${app.club_name} approved`);
-                            if (res) loadApps();
+                            const res = await doAction('/api/club-arena/union-application', { action: 'approve', applicationId: app.id }, `${app.club_name} approved`, { busEvent: 'union:application-reviewed' });
+                            if (res) { setAppsLoaded(false); loadApps(); }
                           }}>Approve</button>
                           <button className={`${s.btnDanger} ${s.btnSmall}`} disabled={processing} onClick={async () => {
                             if (!confirm(`Reject ${app.club_name}'s application?`)) return;
-                            const res = await doAction('/api/club-arena/union-application', { action: 'reject', applicationId: app.id }, `${app.club_name} rejected`);
-                            if (res) loadApps();
+                            const res = await doAction('/api/club-arena/union-application', { action: 'reject', applicationId: app.id }, `${app.club_name} rejected`, { busEvent: 'union:application-reviewed' });
+                            if (res) { setAppsLoaded(false); loadApps(); }
                           }}>Reject</button>
                         </div>
                       )}
@@ -771,8 +774,12 @@ export default function UnionDashboardPage() {
                         <input className={s.formInput} value={adminSearch} onChange={e => setAdminSearch(e.target.value)} placeholder="Search by username..." />
                       </div>
                       <button className={s.btnGhost} disabled={processing || adminSearch.length < 2} onClick={async () => {
-                        const res = await doAction('/api/club-arena/manage-union', { action: 'search_user', unionId, query: adminSearch });
-                        if (res?.users) setAdminResults(res.users);
+                        setProcessing(true); setError(null);
+                        try {
+                          const res = await apiCall('/api/club-arena/manage-union', { action: 'search_user', unionId, query: adminSearch });
+                          if (res?.users) setAdminResults(res.users);
+                        } catch (err) { setError(err.message); }
+                        finally { setProcessing(false); }
                       }}>Search</button>
                     </div>
                     {adminResults.length > 0 && (
@@ -781,7 +788,7 @@ export default function UnionDashboardPage() {
                           <div key={u.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: '#18191A', borderRadius: 8 }}>
                             <span>{u.display_name || u.username || u.id.slice(0, 8)}</span>
                             <button className={`${s.btnSuccess} ${s.btnSmall}`} disabled={processing} onClick={async () => {
-                              const res = await doAction('/api/club-arena/manage-union', { action: 'add_admin', unionId, adminUserId: u.id }, `${u.display_name || u.username} added as admin`);
+                              const res = await doAction('/api/club-arena/manage-union', { action: 'add_admin', unionId, adminUserId: u.id }, `${u.display_name || u.username} added as admin`, { busEvent: 'union:admin-changed' });
                               if (res) { setAdminResults([]); setAdminSearch(''); loadDashboard(unionId); }
                             }}>Add Admin</button>
                           </div>

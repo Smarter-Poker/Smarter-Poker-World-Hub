@@ -9,7 +9,7 @@ import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../src/lib/supabase';
 import toast from '../../src/stores/toastStore';
-import { broadcastSync } from '../../src/lib/broadcastSync';
+import { broadcastSync, listenBroadcast } from '../../src/lib/broadcastSync';
 
 // God-Mode Stack
 import PageTransition from '../../src/components/transitions/PageTransition';
@@ -609,16 +609,13 @@ function FriendsPage() {
 
         // TIER 1: Friend Request Realtime Sync
         // Cross-tab sync when friend requests are sent/accepted/declined
-        try {
-            friendsBc = new BroadcastChannel('smarter_poker_friends_sync');
-            friendsBc.onmessage = () => {
-                fetchData();
-            };
-        } catch (e) { }
+        const cleanupFriendsBc = listenBroadcast('smarter_poker_friends_sync', () => {
+            fetchData();
+        });
 
         return () => {
             supabase.removeChannel(friendsChannel);
-            try { friendsBc?.close(); } catch (e) { }
+            cleanupFriendsBc();
         };
     }, [user?.id]);
 
@@ -658,7 +655,7 @@ function FriendsPage() {
             toast.error('Could not follow user. Please try again.');
         } else {
             busEmit.dataMutated('friends');
-            try { const bc = new BroadcastChannel('smarter_poker_friends_sync'); bc.postMessage('refresh'); bc.close(); } catch (e) { }
+            broadcastSync('smarter_poker_friends_sync', 'refresh');
         }
         } finally { actionInProgress.current = false; }
     };
@@ -686,7 +683,7 @@ function FriendsPage() {
             toast.error('Could not unfollow user. Please try again.');
         } else {
             busEmit.dataMutated('friends');
-            try { const bc = new BroadcastChannel('smarter_poker_friends_sync'); bc.postMessage('refresh'); bc.close(); } catch (e) { }
+            broadcastSync('smarter_poker_friends_sync', 'refresh');
         }
         } finally { actionInProgress.current = false; }
     };
@@ -753,7 +750,7 @@ function FriendsPage() {
         toast.success('Friend request accepted!');
         eventBus.emit(EventType.FRIEND_REQUEST_ACCEPTED, { friendId: request.user_id }, 'FriendsPage');
 
-        try { const bc = new BroadcastChannel('smarter_poker_friends_sync'); bc.postMessage('refresh'); bc.close(); } catch (e) { }
+        broadcastSync('smarter_poker_friends_sync', 'refresh');
         } finally { actionInProgress.current = false; }
     };
 
@@ -790,7 +787,7 @@ function FriendsPage() {
         setFriendRequests(prev => prev.filter(r => r.id !== request.id));
 
         busEmit.dataMutated('friends');
-        try { const bc = new BroadcastChannel('smarter_poker_friends_sync'); bc.postMessage('refresh'); bc.close(); } catch (e) { }
+        broadcastSync('smarter_poker_friends_sync', 'refresh');
         } finally { actionInProgress.current = false; }
     };
 
@@ -824,7 +821,7 @@ function FriendsPage() {
         }
 
         busEmit.dataMutated('friends');
-        try { const bc = new BroadcastChannel('smarter_poker_friends_sync'); bc.postMessage('refresh'); bc.close(); } catch (e) { }
+        broadcastSync('smarter_poker_friends_sync', 'refresh');
         } finally { actionInProgress.current = false; }
     };
 

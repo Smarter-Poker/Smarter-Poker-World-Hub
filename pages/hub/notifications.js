@@ -11,6 +11,7 @@ import { supabase } from '../../src/lib/supabase';
 import { getAuthUser } from '../../src/lib/authUtils';
 import { eventBus, EventType, busEmit } from '../../src/engine/EventBus';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
+import { broadcastSync, listenBroadcast } from '../../src/lib/broadcastSync';
 
 // God-Mode Stack
 import PageTransition from '../../src/components/transitions/PageTransition';
@@ -196,20 +197,16 @@ function NotificationsPage() {
             .subscribe();
 
         // BroadcastChannel: listen for cross-tab notif sync
-        let notifBc;
-        try {
-            notifBc = new BroadcastChannel('smarter_poker_notif_sync');
-            notifBc.onmessage = () => {
-                // Another tab marked notifications as read — refresh local state
-                if (mounted.current) {
-                    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-                }
-            };
-        } catch { /* noop */ }
+        const cleanupNotifBc = listenBroadcast('smarter_poker_notif_sync', () => {
+            // Another tab marked notifications as read — refresh local state
+            if (mounted.current) {
+                setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+            }
+        });
 
         return () => {
             supabase.removeChannel(_ch);
-            try { notifBc?.close(); } catch { /* noop */ }
+            cleanupNotifBc();
         };
     }, [user?.id]);
 
@@ -218,11 +215,7 @@ function NotificationsPage() {
         if (mounted.current) {
             setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
         }
-        try {
-            const bc = new BroadcastChannel('smarter_poker_notif_sync');
-            bc.postMessage('refresh_notifications');
-            bc.close();
-        } catch (e) { }
+        broadcastSync('smarter_poker_notif_sync', 'refresh_notifications');
         eventBus.emit(EventType.NOTIFICATIONS_READ, { count: 1 }, 'NotificationsPage');
     };
 
@@ -233,11 +226,7 @@ function NotificationsPage() {
         if (mounted.current) {
             setNotifications(prev => prev.map(n => ({ ...n, read: true })));
         }
-        try {
-            const bc = new BroadcastChannel('smarter_poker_notif_sync');
-            bc.postMessage('refresh_notifications');
-            bc.close();
-        } catch (e) { }
+        broadcastSync('smarter_poker_notif_sync', 'refresh_notifications');
         eventBus.emit(EventType.NOTIFICATIONS_READ, { count: unreadCount }, 'NotificationsPage');
     };
 
@@ -306,7 +295,7 @@ function NotificationsPage() {
 
             // Sync friends page cross-tab + EventBus
             busEmit.dataMutated('friends');
-            try { const bc = new BroadcastChannel('smarter_poker_friends_sync'); bc.postMessage('refresh'); bc.close(); } catch { /* noop */ }
+            broadcastSync('smarter_poker_friends_sync', 'refresh');
         } catch (err) {
             console.error('Error accepting friend request:', err);
             toast.error('Failed to accept friend request. Try again.');
@@ -365,7 +354,7 @@ function NotificationsPage() {
 
             // Sync friends page cross-tab + EventBus
             busEmit.dataMutated('friends');
-            try { const bc = new BroadcastChannel('smarter_poker_friends_sync'); bc.postMessage('refresh'); bc.close(); } catch { /* noop */ }
+            broadcastSync('smarter_poker_friends_sync', 'refresh');
         } catch (err) {
             console.error('Error declining friend request:', err);
             toast.error('Failed to decline request. Try again.');

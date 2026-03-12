@@ -18,7 +18,7 @@ import { HubErrorBoundary } from '../../src/components/ui/HubErrorBoundary';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { messengerPreferences } from '../../src/services/preferences-service';
-import { eventBus, EventType } from '../../src/engine/EventBus';
+import { eventBus, EventType, busEmit } from '../../src/engine/EventBus';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 
 // Dynamic import for LiveKit (client-side only)
@@ -1966,6 +1966,9 @@ function MessengerPage() {
                     ? { ...m, id: data, status: 'sent' }
                     : m
             ));
+
+            // Notify header to refresh unread badges
+            busEmit.dataMutated('messenger');
         } catch (e) {
             console.error('Send message error:', e);
             // Mark message as failed

@@ -68,6 +68,7 @@ import PageTransition from '../../src/components/transitions/PageTransition';
 import toast from '../../src/stores/toastStore';
 import { getAccessToken } from '../../src/lib/authUtils';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
+import { broadcastSync, listenBroadcast } from '../../src/lib/broadcastSync';
 
 // Light Theme Colors (SmarterPoker-style)
 const C = {
@@ -4071,9 +4072,7 @@ function SocialMediaPage() {
             }, async (payload) => {
                 console.log('[Social] 🔄 New post detected via realtime:', payload.new.id);
                 // Trigger feed reload to pick up new posts
-                try {
-                    const bc = new BroadcastChannel('smarter_poker_social_sync'); bc.postMessage('refresh_feed'); bc.close();
-                } catch (e) { }
+                    broadcastSync('smarter_poker_social_sync', 'refresh_feed');
                 // Also refresh local feed
                 await loadFeed(0, false);
             })
@@ -4086,29 +4085,22 @@ function SocialMediaPage() {
 
     // Cross-tab Social Feed sync
     useEffect(() => {
-        let socialBc, friendsBc;
-        try {
-            socialBc = new BroadcastChannel('smarter_poker_social_sync');
-            socialBc.onmessage = (event) => {
-                if (event.data === 'refresh_feed') {
-                    console.log('[Social] Refreshing feed from other tab');
-                    loadFeed(0, false);
-                }
-            };
-        } catch { /* noop */ }
+        const cleanupSocialBc = listenBroadcast('smarter_poker_social_sync', (event) => {
+            if (event.data === 'refresh_feed') {
+                console.log('[Social] Refreshing feed from other tab');
+                loadFeed(0, false);
+            }
+        });
 
         // Friends sync: refresh feed when friend list changes (updates "friend" badges)
-        try {
-            friendsBc = new BroadcastChannel('smarter_poker_friends_sync');
-            friendsBc.onmessage = () => {
-                console.log('[Social] Friends changed — refreshing feed');
-                loadFeed(0, false);
-            };
-        } catch { /* noop */ }
+        const cleanupFriendsBc = listenBroadcast('smarter_poker_friends_sync', () => {
+            console.log('[Social] Friends changed — refreshing feed');
+            loadFeed(0, false);
+        });
 
         return () => {
-            try { socialBc?.close(); } catch { /* noop */ }
-            try { friendsBc?.close(); } catch { /* noop */ }
+            cleanupSocialBc();
+            cleanupFriendsBc();
         };
     }, []);
 
