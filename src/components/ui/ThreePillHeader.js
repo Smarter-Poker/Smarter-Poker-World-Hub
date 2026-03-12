@@ -21,6 +21,7 @@ import DiamondWalletModal from '../store/DiamondWalletModal';
 import { useAvatar } from '../../contexts/AvatarContext';
 import { useUnreadCount } from '../../hooks/useUnreadCount';
 import { listenBroadcast } from '../../lib/broadcastSync';
+import { eventBus, EventType } from '../../engine/EventBus';
 
 const formatCompact = (num) => {
     if (num < 1000) return num.toString();
@@ -310,6 +311,15 @@ export default function ThreePillHeader({
         window.addEventListener('diamond-balance-refresh', refreshBalance);
         return () => window.removeEventListener('diamond-balance-refresh', refreshBalance);
     }, [user?.id]);
+
+    // ── EventBus: Instant badge update when notifications are read (same-tab) ──
+    useEffect(() => {
+        const unsub = eventBus.on(EventType.NOTIFICATIONS_READ, (payload) => {
+            const count = payload?.count || 1;
+            setNotificationCount(prev => Math.max(0, prev - count));
+        });
+        return () => unsub();
+    }, []);
 
     // ── VIP status bus listener — updates VIP badge in real time ──
     // Triggered by AvatarContext after successful signup
