@@ -319,12 +319,14 @@ export default function DailyPresetsPage() {
     try {
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       const staffSession = localStorage.getItem('commander_staff') || '';
-      await fetch(`/api/commander/room-presets?id=${preset.id}`, {
+      const res = await fetch(`/api/commander/room-presets?id=${preset.id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
-      fetchData();
-      broadcastChange('settings');
+      if (res.ok) {
+        fetchData();
+        broadcastChange('settings');
+      }
     } catch (err) { console.error(err); }
   }
 

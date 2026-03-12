@@ -88,24 +88,29 @@ export default function CloseDay() {
       const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
 
       // Close all open tables
+      let successCount = 0;
       for (const table of openTables) {
-        await fetch(`/api/commander/tables/${table.id}`, {
+        const res = await fetch(`/api/commander/tables/${table.id}`, {
           method: 'PUT', headers,
           body: JSON.stringify({ status: 'closed' })
         });
+        if (res.ok) successCount++;
       }
 
       // End all active sessions
       for (const session of activeSessions) {
-        await fetch(`/api/commander/dealer/sessions/${session.id}/end`, {
+        const res = await fetch(`/api/commander/dealer/sessions/${session.id}/end`, {
           method: 'POST', headers,
           body: JSON.stringify({ reason: 'end_of_day' })
         });
+        if (res.ok) successCount++;
       }
 
-      // Broadcast to all other tabs
-      broadcastChange('tables');
-      broadcastChange('games');
+      // Broadcast to all other tabs only if actual changes happened
+      if (successCount > 0) {
+        broadcastChange('tables');
+        broadcastChange('games');
+      }
       await fetchStatus();
     } catch (err) { console.error(err); }
     finally { setClosing(false); }

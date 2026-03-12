@@ -233,17 +233,19 @@ export default function CommanderTablesPage() {
     setActionLoading(true);
     try {
       const staffSession = localStorage.getItem('commander_staff') || '';
-      await fetch(`/api/commander/games/${gameId}`, {
+      const res1 = await fetch(`/api/commander/games/${gameId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
         body: JSON.stringify({ status: 'closed' })
       });
+      if (!res1.ok) throw new Error('Failed to close game');
       if (selectedTable) {
-        await fetch(`/api/commander/tables/${selectedTable.id}`, {
+        const res2 = await fetch(`/api/commander/tables/${selectedTable.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
           body: JSON.stringify({ status: 'available', game_type: null, stakes: null, mode: 'inactive' })
         });
+        if (!res2.ok) throw new Error('Failed to update table status');
       }
       await fetchTables();
       broadcastChange('games');
@@ -261,13 +263,15 @@ export default function CommanderTablesPage() {
         updates.game_type = null;
         updates.stakes = null;
       }
-      await fetch(`/api/commander/tables/${selectedTable.id}`, {
+      const res = await fetch(`/api/commander/tables/${selectedTable.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
         body: JSON.stringify(updates)
       });
-      await fetchTables();
-      broadcastChange('tables');
+      if (res.ok) {
+        await fetchTables();
+        broadcastChange('tables');
+      }
     } catch (err) { console.error('Set status error:', err); }
     finally { setActionLoading(false); }
   };
@@ -278,13 +282,15 @@ export default function CommanderTablesPage() {
     setActionLoading(true);
     try {
       const staffSession = localStorage.getItem('commander_staff') || '';
-      await fetch(`/api/commander/tables/${selectedTable.id}`, {
+      const res = await fetch(`/api/commander/tables/${selectedTable.id}`, {
         method: 'DELETE',
         headers: { 'x-staff-session': staffSession }
       });
-      setSelectedTableId(null);
-      await fetchTables();
-      broadcastChange('tables');
+      if (res.ok) {
+        setSelectedTableId(null);
+        await fetchTables();
+        broadcastChange('tables');
+      }
     } catch (err) { console.error('Delete table error:', err); }
     finally { setActionLoading(false); }
   };
@@ -314,13 +320,15 @@ export default function CommanderTablesPage() {
       const staffSession = localStorage.getItem('commander_staff') || '';
       // Sync both table_purpose and mode columns
       const mode = purpose === 'tournament' ? 'tournament' : 'cash';
-      await fetch(`/api/commander/tables/${selectedTable.id}`, {
+      const res = await fetch(`/api/commander/tables/${selectedTable.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
         body: JSON.stringify({ table_purpose: purpose, mode })
       });
-      await fetchTables();
-      broadcastChange('tables');
+      if (res.ok) {
+        await fetchTables();
+        broadcastChange('tables');
+      }
     } catch (err) { console.error('Set purpose error:', err); }
     finally { setActionLoading(false); }
   };

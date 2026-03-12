@@ -103,39 +103,45 @@ export default function NotificationCenter() {
 
   const markAsRead = async (id) => {
     try {
-      await fetch(`/api/commander/notifications/${id}`, {
+      const res = await fetch(`/api/commander/notifications/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
         body: JSON.stringify({ read_at: new Date().toISOString() })
       });
-      setNotifications(prev => prev.map(n => n.id === id ? { ...n, read_at: new Date().toISOString() } : n));
-      setUnreadCount(prev => Math.max(0, prev - 1));
-      broadcastChange('notifications');
+      if (res.ok) {
+        setNotifications(prev => prev.map(n => n.id === id ? { ...n, read_at: new Date().toISOString() } : n));
+        setUnreadCount(prev => Math.max(0, prev - 1));
+        broadcastChange('notifications');
+      }
     } catch (err) { console.error(err); }
   };
 
   const markAllRead = async () => {
     setMarkingAll(true);
     try {
-      await fetch('/api/commander/notifications/mark-all-read', {
+      const res = await fetch('/api/commander/notifications/mark-all-read', {
         method: 'POST',
         headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
       });
-      setNotifications(prev => prev.map(n => ({ ...n, read_at: n.read_at || new Date().toISOString() })));
-      setUnreadCount(0);
-      broadcastChange('notifications');
+      if (res.ok) {
+        setNotifications(prev => prev.map(n => ({ ...n, read_at: n.read_at || new Date().toISOString() })));
+        setUnreadCount(0);
+        broadcastChange('notifications');
+      }
     } catch (err) { console.error(err); }
     finally { setMarkingAll(false); }
   };
 
   const deleteNotification = async (id) => {
     try {
-      await fetch(`/api/commander/notifications/${id}`, {
+      const res = await fetch(`/api/commander/notifications/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
       });
-      setNotifications(prev => prev.filter(n => n.id !== id));
-      broadcastChange('notifications');
+      if (res.ok) {
+        setNotifications(prev => prev.filter(n => n.id !== id));
+        broadcastChange('notifications');
+      }
     } catch (err) { console.error(err); }
   };
 

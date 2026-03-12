@@ -289,9 +289,9 @@ export default function TimeBilling() {
           total_charge: calculateCharge(session.started_at, session.rate_per_hour || pricing.time_billing_rate || 0),
           staff_name: staff?.display_name || 'Staff',
         });
+        await fetchData();
+        broadcastChange('tables');
       }
-      await fetchData();
-      broadcastChange('tables');
     } catch (err) { console.error(err); }
     finally { setStopping(null); }
   };
@@ -341,25 +341,27 @@ export default function TimeBilling() {
     try {
       const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
-      await fetch(`/api/commander/time-billing/sessions/${payModal.id}/payment`, {
+      const res = await fetch(`/api/commander/time-billing/sessions/${payModal.id}/payment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ amount: parseFloat(payAmount), staff_name: staff?.display_name })
       });
 
-      // Auto-print receipt
-      printTimeBillingReceipt({
-        player_name: payModal.player_name,
-        table_number: payModal.table_number,
-        seat_number: payModal.seat_number,
-        total_charge: parseFloat(payAmount), // Use payAmount as total_charge for receipt
-        type: 'time_payment',
-        staff_name: staff?.display_name || 'Staff'
-      });
+      if (res.ok) {
+        // Auto-print receipt
+        printTimeBillingReceipt({
+          player_name: payModal.player_name,
+          table_number: payModal.table_number,
+          seat_number: payModal.seat_number,
+          total_charge: parseFloat(payAmount), // Use payAmount as total_charge for receipt
+          type: 'time_payment',
+          staff_name: staff?.display_name || 'Staff'
+        });
 
-      setPayModal(null); setPayAmount('');
-      await fetchData();
-      broadcastChange('tables');
+        setPayModal(null); setPayAmount('');
+        await fetchData();
+        broadcastChange('tables');
+      }
     } catch (err) { console.error(err); }
   };
 
