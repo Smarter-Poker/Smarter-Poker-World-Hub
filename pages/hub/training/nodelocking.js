@@ -420,6 +420,18 @@ export default function NodelockingPage() {
     setShowMyProfiles(false);
   }, []);
 
+  // Toast notification system (MUST be declared before deleteCustomProfile which uses addToast)
+  const [toasts, setToasts] = useState([]);
+  const addToast = useCallback((toast) => {
+    const id = Date.now();
+    setToasts((prev) => [...prev, { ...toast, id }]);
+    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 4000);
+  }, []);
+
+  // Save profile analysis to Supabase
+  const [saveStatus, setSaveStatus] = useState(null); // null | 'saving' | 'saved' | 'error'
+  const [profileToDelete, setProfileToDelete] = useState(null);
+
   // Delete a saved profile (local + Supabase)
   const deleteCustomProfile = useCallback(async (index) => {
     const profile = savedProfiles[index];
@@ -491,17 +503,7 @@ export default function NodelockingPage() {
     return exploits.reduce((sum, e) => sum + (parseFloat(e.ev) || 0), 0).toFixed(2);
   }, [exploits]);
 
-  // Save profile analysis to Supabase
-  const [saveStatus, setSaveStatus] = useState(null); // null | 'saving' | 'saved' | 'error'
-  const [profileToDelete, setProfileToDelete] = useState(null);
-
-  // Toast notification system
-  const [toasts, setToasts] = useState([]);
-  const addToast = useCallback((toast) => {
-    const id = Date.now();
-    setToasts((prev) => [...prev, { ...toast, id }]);
-    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 4000);
-  }, []);
+  // NOTE: saveStatus, profileToDelete, toasts, and addToast are now declared earlier (before deleteCustomProfile)
   const saveAnalysis = useCallback(async () => {
     setSaveStatus('saving');
     try {

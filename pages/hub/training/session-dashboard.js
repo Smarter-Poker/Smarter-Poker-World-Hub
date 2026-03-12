@@ -362,6 +362,32 @@ function StreakTracker({ sessions }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// LOADING SKELETON
+// ═══════════════════════════════════════════════════════════════════════════
+
+function DashboardSkeleton() {
+  const shimmer = {
+    background: 'linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.03) 75%)',
+    backgroundSize: '200% 100%',
+    animation: 'shimmer 1.5s ease-in-out infinite',
+    borderRadius: 12,
+  };
+  return (
+    <>
+      <style>{`@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }`}</style>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 16 }}>
+        {[1,2,3,4,5].map(i => <div key={i} style={{ ...shimmer, height: 90 }} />)}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14, marginBottom: 16 }}>
+        <div style={{ ...shimmer, height: 200 }} />
+        <div style={{ ...shimmer, height: 200 }} />
+      </div>
+      <div style={{ ...shimmer, height: 160 }} />
+    </>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // MAIN PAGE
 // ═══════════════════════════════════════════════════════════════════════════
 
