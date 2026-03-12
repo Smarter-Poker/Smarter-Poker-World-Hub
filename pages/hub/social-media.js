@@ -1410,15 +1410,17 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
         setBookmarked(newBookmarked);
         try {
             if (newBookmarked) {
-                await supabase.from('social_interactions').upsert(
+                const { error } = await supabase.from('social_interactions').upsert(
                     { post_id: post.id, user_id: currentUserId, interaction_type: 'bookmark' },
                     { onConflict: 'post_id,user_id' }
                 );
+                if (error) throw error;
             } else {
-                await supabase.from('social_interactions').delete()
+                const { error } = await supabase.from('social_interactions').delete()
                     .eq('post_id', post.id)
                     .eq('user_id', currentUserId)
                     .eq('interaction_type', 'bookmark');
+                if (error) throw error;
             }
         } catch (e) { console.error('Bookmark error:', e); setBookmarked(!newBookmarked); }
     };
