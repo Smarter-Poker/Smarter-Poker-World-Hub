@@ -290,14 +290,14 @@ function NotificationsPage() {
                     ));
                     toast.success('Friend request accepted!');
                 }
+
+                // Sync friends page cross-tab + EventBus
+                busEmit.dataMutated('friends');
+                broadcastSync('smarter_poker_friends_sync', 'refresh');
             } else {
                 console.error('Could not find friendship to accept');
                 toast.error('Could not find friend request.');
             }
-
-            // Sync friends page cross-tab + EventBus
-            busEmit.dataMutated('friends');
-            broadcastSync('smarter_poker_friends_sync', 'refresh');
         } catch (err) {
             console.error('Error accepting friend request:', err);
             toast.error('Failed to accept friend request. Try again.');

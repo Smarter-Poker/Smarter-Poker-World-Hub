@@ -13,7 +13,7 @@ import { usePersistedState } from '../../../src/hooks/usePersistedState';
 import { supabase } from '../../../src/lib/supabase';
 import { emitCacheInvalidation, onCacheInvalidation } from '../../../src/lib/cacheSync';
 import { broadcastSync, listenBroadcast } from '../../../src/lib/broadcastSync';
-import { eventBus } from '../../../src/engine/EventBus';
+import { eventBus, busEmit } from '../../../src/engine/EventBus';
 
 // Components
 import PageTransition from '../../../src/components/transitions/PageTransition';
@@ -823,6 +823,7 @@ export default function UserProfilePage() {
         } catch { /* quota exceeded */ }
     };
     const notifyFriendsSync = () => {
+        busEmit.dataMutated('friends');
         broadcastSync('smarter_poker_friends_sync', 'refresh');
     };
 
@@ -836,6 +837,7 @@ export default function UserProfilePage() {
             });
             setFriendRequestSent(true);
             invalidateProfileCache();
+            busEmit.friendRequestSent(profile.id);
             notifyFriendsSync();
         } catch (e) {
             console.error('Error sending friend request:', e);
