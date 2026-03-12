@@ -1147,6 +1147,7 @@ export default function ProfilePage() {
                                         headers: { 'Content-Type': 'application/json' },
                                         body: JSON.stringify({ userId: user.id, hendonUrl: profile.hendon_url })
                                     });
+                                    if (!res.ok) throw new Error(`Request failed (${res.status})`);
                                     const data = await res.json();
                                     if (res.ok && data.success) {
                                         setProfile(prev => ({

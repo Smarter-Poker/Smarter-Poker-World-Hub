@@ -83,6 +83,7 @@ export default function ShoppingCart() {
                     const res = await fetch('/api/store/diamond-transactions?limit=1', {
                         headers: { Authorization: `Bearer ${token}` }
                     });
+                    if (!res.ok) throw new Error(`Request failed (${res.status})`);
                     const data = await res.json();
                     if (data.success) {
                         setDiamondBalance(data.balance || 0);
@@ -162,6 +163,7 @@ export default function ShoppingCart() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ items: cart }),
             });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const data = await res.json();
             if (data.url) {
                 window.location.href = data.url;
@@ -194,6 +196,7 @@ export default function ShoppingCart() {
                 body: JSON.stringify({ items: cart })
             });
 
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const data = await res.json();
 
             if (data.success) {

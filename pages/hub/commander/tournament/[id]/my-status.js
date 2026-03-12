@@ -166,6 +166,7 @@ export default function MyTournamentStatus() {
                     payout_amount: myEntry?.payout_amount
                 })
             });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) {
                 busEmit.dataMutated('tournaments');
@@ -193,6 +194,7 @@ export default function MyTournamentStatus() {
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify({ chips: parseInt(chipValue) || 0 })
             });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) {
                 busEmit.dataMutated('tournaments');

@@ -886,6 +886,7 @@ export default function VirtualSandbox() {
       const r = await fetch('/api/assistant/sandbox/sandbox-templates', {
         headers: { 'Authorization': `Bearer ${session?.access_token}` },
       });
+      if (!r.ok) throw new Error(`Request failed (${r.status})`);
       const json = await r.json();
       setTemplates(json.templates || []);
     } catch (e) { console.warn('[Templates] Load error:', e); }
@@ -954,6 +955,7 @@ export default function VirtualSandbox() {
         headers.Authorization = `Bearer ${token}`;
       }
       const res = await fetch('/api/sandbox/sessions', { headers });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
         setSessionLog(json.sessions);
@@ -978,6 +980,7 @@ export default function VirtualSandbox() {
       const r = await fetch('/api/assistant/sandbox/sandbox-analytics', {
         headers: { 'Authorization': `Bearer ${session?.access_token}` },
       });
+      if (!r.ok) throw new Error(`Request failed (${r.status})`);
       const json = await r.json();
       setLeakStats(json);
     } catch (e) { console.warn('[LeakStats] Load error:', e); }

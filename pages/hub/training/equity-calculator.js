@@ -715,6 +715,7 @@ export default function EquityCalculatorPage() {
           iterations: 5000,
         }),
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
         setResults(data.results);

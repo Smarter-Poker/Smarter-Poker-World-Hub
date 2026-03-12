@@ -385,6 +385,7 @@ export default function SettingsPage() {
                 setVerificationCode('');
                 alert('2FA successfully enabled! Save your backup codes in a safe place.');
             } else {
+                if (!response.ok) throw new Error(`Request failed (${response.status})`);
                 const error = await response.json();
                 alert(error.error || 'Invalid verification code');
             }
@@ -630,6 +631,7 @@ export default function SettingsPage() {
                 },
                 body: JSON.stringify({ code: promoCode.trim() })
             });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const data = await res.json();
             if (res.ok && data.success) {
                 setPromoResult({ success: true, message: data.reward.message, reward: data.reward });

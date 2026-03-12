@@ -107,6 +107,7 @@ export default function PlayerRewardsPage() {
       fetch('/api/commander/comps/transactions?limit=20', { headers: h }),
       fetch('/api/commander/comps/rates', { headers: h })
     ]);
+    if (!balRes.ok) throw new Error(`Request failed (${balRes.status})`);
     const [bal, tx, rates] = await Promise.all([balRes.json(), txRes.json(), rateRes.json()]);
     return {
       balance: bal.success ? (bal.data?.balance || 0) : 0,
@@ -162,6 +163,7 @@ export default function PlayerRewardsPage() {
         })
       });
 
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
         busEmit.dataMutated('rewards');

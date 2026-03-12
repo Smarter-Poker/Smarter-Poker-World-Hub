@@ -31,6 +31,7 @@ export default function TournamentClockDisplay() {
     if (!id) return;
     try {
       const res = await fetch(`/api/commander/tournaments/${id}`, signal ? { signal } : {});
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
         setTournament(data.data.tournament);

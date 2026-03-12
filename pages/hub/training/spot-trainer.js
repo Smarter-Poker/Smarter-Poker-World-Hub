@@ -121,6 +121,7 @@ export default function SpotTrainerPage() {
       const res = await fetch(`/api/training/spot-drill?${params.toString()}`, {
         headers: { ...getAuthHeaders() },
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
 
       if (data.success) {

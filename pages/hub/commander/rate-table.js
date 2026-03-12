@@ -52,6 +52,7 @@ export default function RateTable() {
           comment: comment.trim() || null
         })
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) setDone(true);
     } catch (err) { console.error(err); }

@@ -120,6 +120,7 @@ export default function VenueDiscoveryPage() {
         url += `&lat=${location.lat}&lng=${location.lng}&radius=100`;
       }
       const res = await fetch(url);
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
 
       if (data.success) {

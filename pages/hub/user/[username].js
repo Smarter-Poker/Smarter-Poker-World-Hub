@@ -312,6 +312,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId,
                 const res = await fetch('/api/social/interactions?post_id=' + post.id + '&type=comment', {
                     headers: token ? { 'Authorization': `Bearer ${token}` } : {}
                 });
+                if (!res.ok) throw new Error(`Request failed (${res.status})`);
                 const json = await res.json();
                 setComments(json.comments || []);
             } catch (e) { console.error('Load comments error:', e); }
@@ -331,6 +332,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId,
                 },
                 body: JSON.stringify({ post_id: post.id, user_id: currentUserId, interaction_type: 'comment', content: commentText.trim() })
             });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.comment) {
                 setComments(prev => [...prev, { ...json.comment, author: { username: 'You' } }]);

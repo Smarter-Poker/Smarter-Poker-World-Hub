@@ -31,6 +31,7 @@ export default function SquadJoinPage() {
       const res = await fetch(`/api/commander/home-games/join/${code}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success && data.group) {
         setSquad(data.group);
@@ -56,6 +57,7 @@ export default function SquadJoinPage() {
           Authorization: `Bearer ${token}`
         }
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
         busEmit.dataMutated('squads');

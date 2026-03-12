@@ -442,6 +442,7 @@ export default function DiamondArcade() {
                 headers: authHeaders,
                 body: JSON.stringify({ duel_type: duelType, entry_fee: costs[duelType] })
             });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.error) {
                 setDuelResult({ error: json.error });
@@ -489,6 +490,7 @@ export default function DiamondArcade() {
                 duelPollRef.current = setInterval(async () => {
                     try {
                         const pollRes = await fetch(`/api/arcade/check-duel?queue_id=${queueId}`);
+                        if (!pollRes.ok) throw new Error(`Request failed (${pollRes.status})`);
                         const pollJson = await pollRes.json();
                         if (pollJson.status === 'matched') {
                             clearInterval(duelPollRef.current);

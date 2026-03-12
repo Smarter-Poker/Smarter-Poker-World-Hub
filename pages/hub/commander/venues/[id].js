@@ -69,10 +69,15 @@ export default function VenueDetailPage() {
         fetch(`/api/commander/games/live?venue_id=${id}`)
       ]);
 
+      if (!venueRes.ok) throw new Error(`Request failed (${venueRes.status})`);
       const venueData = await venueRes.json();
+      if (!gamesRes.ok) throw new Error(`Request failed (${gamesRes.status})`);
       const gamesData = await gamesRes.json();
+      if (!promosRes.ok) throw new Error(`Request failed (${promosRes.status})`);
       const promosData = await promosRes.json();
+      if (!reviewsRes.ok) throw new Error(`Request failed (${reviewsRes.status})`);
       const reviewsData = await reviewsRes.json();
+      if (!liveGamesRes.ok) throw new Error(`Request failed (${liveGamesRes.status})`);
       const liveGamesData = await liveGamesRes.json();
 
       if (venueData.success || venueData.venue) {

@@ -118,6 +118,7 @@ export default function WeaknessScannerPage() {
     try {
       const res = await fetch(`/api/training/get-sessions?limit=50`, {
         });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const d = await res.json();
       if (d.success && d.sessions) setData(analyzeData(d.sessions));
     } catch (e) {

@@ -159,6 +159,7 @@ export default function SeriesDetailPage() {
       fetch('/api/poker/follow?page_type=series&page_id=' + id),
       fetch('/api/poker/activity?page_type=series&page_id=' + id + '&limit=10')
     ]);
+    if (!seriesRes.ok) throw new Error(`Request failed (${seriesRes.status})`);
     const [sj, rj, fj, aj] = await Promise.all([seriesRes.json(), resultsRes.json(), followRes.json(), activityRes.json()]);
     const seriesObj = sj.success && sj.data ? (Array.isArray(sj.data) ? sj.data[0] : sj.data) : null;
     const payload = rj.success ? (rj.data || {}) : {};

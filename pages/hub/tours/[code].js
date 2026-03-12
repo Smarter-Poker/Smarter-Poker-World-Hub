@@ -140,6 +140,7 @@ export default function TourDetailPage() {
       fetch('/api/poker/results?tour_code=' + encodeURIComponent(code) + '&limit=10'),
       fetch('/api/poker/follow?page_type=tour&page_id=' + encodeURIComponent(code))
     ]);
+    if (!tourRes.ok) throw new Error(`Request failed (${tourRes.status})`);
     const [tj, aj, rj, fj] = await Promise.all([tourRes.json(), activityRes.json(), resultsRes.json(), followRes.json()]);
     return {
       tour: tj.data && tj.data.length > 0 ? tj.data[0] : null,

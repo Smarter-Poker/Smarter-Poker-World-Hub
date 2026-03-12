@@ -141,6 +141,7 @@ function ScheduleTab({ staffId, venueId, token }) {
             const res = await fetch(`/api/employee/schedule?staff_id=${staffId}&venue_id=${venueId}&week=${weekParam}`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) {
                 setShifts(json.data.shifts || []);
@@ -230,6 +231,7 @@ function DownsTab({ staffId, venueId, token }) {
                 const res = await fetch(`/api/employee/downs?staff_id=${staffId}&venue_id=${venueId}`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
+                if (!res.ok) throw new Error(`Request failed (${res.status})`);
                 const json = await res.json();
                 if (json.success) setData(json.data);
             } catch (e) { console.error("[my-venues.js]", e); }
@@ -312,6 +314,7 @@ function TimeClockTab({ staffId, venueId, token }) {
                 const res = await fetch(`/api/employee/time-entries?staff_id=${staffId}&venue_id=${venueId}`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
+                if (!res.ok) throw new Error(`Request failed (${res.status})`);
                 const json = await res.json();
                 if (json.success) setData(json.data);
             } catch (e) { console.error("[my-venues.js]", e); }
@@ -390,6 +393,7 @@ function ClaimCodeInput({ token, onLinked }) {
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify({ code: code.trim() }),
             });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const data = await res.json();
             if (!res.ok || !data.success) {
                 setError(data.error || 'Failed to claim');
@@ -452,6 +456,7 @@ function EmailMatchBanner({ matches, token, onLinked }) {
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify({ staff_id: staffId }),
             });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const data = await res.json();
             if (data.success) {
                 setTimeout(() => onLinked(), 1000);

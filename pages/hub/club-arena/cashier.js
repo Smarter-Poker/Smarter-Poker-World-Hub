@@ -162,7 +162,8 @@ export default function ClubArenaCashierPage() {
   const requestCashout = async () => {
     const amount = parseInt(cashoutAmount, 10);
     if (!amount || amount <= 0) { setError('Enter a valid amount.'); return; }
-    if (amount > balance) { setError('Insufficient balance.'); return; }
+    const available = balance - totalPending;
+    if (amount > available) { setError(`Insufficient balance. Available: ${fmtChips(available)} chips.`); return; }
     setProcessing(true);
     try {
       await apiCall('/api/club-arena/request-cashout', { clubId, amount, note: cashoutNote || undefined });

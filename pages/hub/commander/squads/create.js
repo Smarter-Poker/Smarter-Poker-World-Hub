@@ -60,6 +60,7 @@ export default function CreateSquadPage() {
   async function fetchVenues(signal) {
     try {
       const res = await fetch('/api/commander/venues?commander_enabled=true');
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
         setVenues(data.data?.venues || []);
@@ -76,6 +77,7 @@ export default function CreateSquadPage() {
       const res = await fetch('/api/friends', {
         headers: { Authorization: `Bearer ${token}` }
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
         setFriends(data.data?.friends || []);
@@ -122,6 +124,7 @@ export default function CreateSquadPage() {
         })
       });
 
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
         busEmit.dataMutated('squads');

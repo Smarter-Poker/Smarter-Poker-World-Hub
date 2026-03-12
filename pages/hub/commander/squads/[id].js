@@ -104,6 +104,7 @@ export default function SquadDetailPage() {
     setLoading(true);
     try {
       const res = await fetch(`/api/commander/squads/${id}`, signal ? { signal } : {});
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
 
       if (data.success) {
@@ -168,6 +169,7 @@ export default function SquadDetailPage() {
         }
       });
 
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
         busEmit.dataMutated('squads');
@@ -196,6 +198,7 @@ export default function SquadDetailPage() {
         headers: { Authorization: `Bearer ${token}` }
       });
 
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
         busEmit.dataMutated('squads');
@@ -223,6 +226,7 @@ export default function SquadDetailPage() {
         body: JSON.stringify({ player_id: userId })
       });
 
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
         busEmit.dataMutated('squads');
@@ -246,6 +250,7 @@ export default function SquadDetailPage() {
         headers: { Authorization: `Bearer ${token}` }
       });
 
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
         busEmit.dataMutated('squads');

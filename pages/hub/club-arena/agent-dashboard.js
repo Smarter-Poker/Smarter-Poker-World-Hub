@@ -15,7 +15,6 @@ import s from '../../../src/styles/UnionDashboard.module.css';
 
 // ── Helpers ─────────────────────────────────────────────────
 const fmt = (n) => Number(n || 0).toLocaleString();
-const pct = (n) => `${((n || 0) * 100).toFixed(1)}%`;
 const fmtChips = (n) => {
   const v = Number(n || 0);
   if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
@@ -58,7 +57,7 @@ export default function AgentDashboardPage() {
 
   // Search / Filter
   const [playerSearch, setPlayerSearch] = useState('');
-  const [cashoutFilter, setCashoutFilter] = useState('pending');
+
 
   // Transaction pagination
   const [txPage, setTxPage] = useState(1);
@@ -207,7 +206,7 @@ export default function AgentDashboardPage() {
   // ── EventBus Listeners ─────────────────────────────────────
   useEffect(() => {
     const refresh = () => { if (clubId) loadDashboard(clubId); };
-    const events = ['CASHOUT_APPROVED', 'CASHOUT_CANCELLED', 'CHIPS_DISTRIBUTED', 'AGENT_UPDATED'];
+    const events = ['CASHOUT_APPROVED', 'CASHOUT_CANCELLED', 'CASHOUT_REQUESTED', 'CHIPS_DISTRIBUTED', 'AGENT_UPDATED'];
     events.forEach(ev => eventBus.on(ev, refresh));
     return () => events.forEach(ev => eventBus.off(ev, refresh));
   }, [clubId, loadDashboard]);
@@ -314,7 +313,7 @@ export default function AgentDashboardPage() {
           {pendingCashouts.length > 0 && tab !== 'cashouts' && (
             <div className={s.alertBanner} onClick={() => setTab('cashouts')}>
               <span className={s.alertCount}>{pendingCashouts.length}</span>
-              <span>pending cashout request{pendingCashouts.length !== 1 ? 's' : ''} — {fmt(pendingCashouts.reduce((s, c) => s + (c.amount || 0), 0))} chips waiting for approval</span>
+              <span>pending cashout request{pendingCashouts.length !== 1 ? 's' : ''} — {fmt(pendingCashouts.reduce((sum, c) => sum + (c.amount || 0), 0))} chips waiting for approval</span>
             </div>
           )}
 

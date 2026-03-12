@@ -71,6 +71,7 @@ export default function MentalJournalPage() {
       const res = await fetch('/api/training/get-sessions?gameId=mental-journal&limit=50', {
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success && data.sessions) {
         // Map the JSONB trainer_config into our UI entries

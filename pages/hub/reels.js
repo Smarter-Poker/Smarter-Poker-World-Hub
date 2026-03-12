@@ -289,6 +289,7 @@ export default function ReelsPage() {
         if (!showCommentPanel && comments.length === 0) {
             try {
                 const res = await fetch('/api/social/interactions?post_id=' + currentReel.id + '&type=comment');
+                if (!res.ok) throw new Error(`Request failed (${res.status})`);
                 const json = await res.json();
                 setComments(json.comments || []);
             } catch (e) { console.error('Load comments:', e); }
@@ -305,6 +306,7 @@ export default function ReelsPage() {
                 method: 'POST',
                 body: JSON.stringify({ post_id: currentReel.id, user_id: userId, interaction_type: 'comment', content: commentText.trim() })
             });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.comment) {
                 setComments(prev => [...prev, { ...json.comment, author: { username: 'You' } }]);

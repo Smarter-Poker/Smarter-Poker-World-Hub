@@ -72,6 +72,7 @@ export default function CreateSocialPage() {
                 },
                 body: JSON.stringify({ ...form, owner_id: user.id }),
             });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
 
             if (json.success) {

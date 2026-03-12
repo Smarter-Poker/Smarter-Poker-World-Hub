@@ -31,6 +31,7 @@ export default function CommanderHub() {
         url += `&lat=${userLocation.lat}&lng=${userLocation.lng}&radius=100`;
       }
       const res = await fetch(url);
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
         setVenues(data.data.venues || []);
@@ -46,6 +47,7 @@ export default function CommanderHub() {
   async function fetchMyWaitlists() {
     try {
       const res = await fetch('/api/commander/waitlist/my');
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
         setMyWaitlists(data.data.entries || []);
@@ -58,6 +60,7 @@ export default function CommanderHub() {
   async function fetchLiveGames() {
     try {
       const res = await fetch('/api/commander/games/live?limit=10');
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
         setLiveGames(data.data?.games || []);
@@ -93,6 +96,7 @@ export default function CommanderHub() {
         const user = getAuthUser();
         if (user) {
           const res = await fetch(`/api/social/pages?owner_id=${user.id}`);
+          if (!res.ok) throw new Error(`Request failed (${res.status})`);
           const json = await res.json();
           if (json.success && json.data && json.data.length > 0) {
             setHasClubPage(json.data[0].id);
@@ -126,6 +130,7 @@ export default function CommanderHub() {
     setConfirmLeaveId(null);
     try {
       const res = await fetch(`/api/commander/waitlist/${entryId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) fetchMyWaitlists();
     } catch (err) {

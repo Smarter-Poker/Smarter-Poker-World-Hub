@@ -149,6 +149,7 @@ export default function DailyChallengePage() {
       const res = await fetch('/api/training/hand-of-the-day', {
         headers: getAuthHeaders(),
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
         setChallenge(data.question);

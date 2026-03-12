@@ -161,6 +161,7 @@ export default function LivesPage() {
         if (!showChat && chatMessages.length === 0) {
             try {
                 const res = await fetch('/api/social/interactions?post_id=' + currentStream.id + '&type=comment');
+                if (!res.ok) throw new Error(`Request failed (${res.status})`);
                 const json = await res.json();
                 setChatMessages(json.comments || []);
             } catch (e) { console.error('Load chat:', e); }
@@ -177,6 +178,7 @@ export default function LivesPage() {
                 method: 'POST',
                 body: JSON.stringify({ post_id: currentStream.id, user_id: userId, interaction_type: 'comment', content: chatText.trim() })
             });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.comment) {
                 setChatMessages(prev => [...prev, { ...json.comment, author: { username: 'You' } }]);

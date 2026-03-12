@@ -313,6 +313,7 @@ export default function ServicesPage() {
       fetch('/api/commander/sessions/current', { headers: h }),
       fetch('/api/commander/services/my', { headers: h })
     ]);
+    if (!sessRes.ok) throw new Error(`Request failed (${sessRes.status})`);
     const [sd, rd] = await Promise.all([sessRes.json(), reqRes.json()]);
     return {
       session: sd.success ? sd.data?.session : null,
@@ -337,6 +338,7 @@ export default function ServicesPage() {
         })
       });
 
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
         busEmit.dataMutated('services');

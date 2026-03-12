@@ -102,6 +102,7 @@ export default function ResponsibleGamingPage() {
         fetch(url, { headers: h }),
         fetch('/api/commander/responsible-gaming/exclusion', { headers: h })
       ]);
+      if (!limRes.ok) throw new Error(`Request failed (${limRes.status})`);
       const [limData, exData] = await Promise.all([limRes.json(), exRes.json()]);
       if (limData.success && limData.data?.limits) setLimits(limData.data.limits);
       if (exData.success && exData.data?.exclusion) setActiveExclusion(exData.data.exclusion);
@@ -128,6 +129,7 @@ export default function ResponsibleGamingPage() {
         body: JSON.stringify(limits)
       });
 
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
         busEmit.dataMutated('responsible-gaming');
@@ -163,6 +165,7 @@ export default function ResponsibleGamingPage() {
         })
       });
 
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
         busEmit.dataMutated('responsible-gaming');

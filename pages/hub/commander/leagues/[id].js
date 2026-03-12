@@ -101,6 +101,7 @@ export default function LeagueDetailPage() {
       fetch(`/api/commander/leagues/${id}`, { headers }),
       fetch(`/api/commander/leagues/${id}/standings`, { headers })
     ]);
+    if (!leagueRes.ok) throw new Error(`Request failed (${leagueRes.status})`);
     const [leagueData, standingsData] = await Promise.all([leagueRes.json(), standingsRes.json()]);
     if (leagueData.success) setIsJoined(leagueData.data?.is_joined || false);
     return {
@@ -137,6 +138,7 @@ export default function LeagueDetailPage() {
         headers: { Authorization: `Bearer ${token}` }
       });
 
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
         setIsJoined(true);

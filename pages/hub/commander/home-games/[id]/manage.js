@@ -49,6 +49,7 @@ function ScheduleEventModal({ isOpen, onClose, onSubmit, group }) {
         })
       });
 
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success || data.event) {
         onSubmit?.(data.event);
@@ -341,6 +342,7 @@ export default function ManageHomeGamePage() {
       const res = await fetch(`/api/commander/home-games/events/${eventId}/rsvp`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       setEventRsvps(data.rsvps || data.data?.rsvps || []);
     } catch (err) {
@@ -397,6 +399,7 @@ export default function ManageHomeGamePage() {
         }
       });
 
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
         busEmit.dataMutated('home-games');
@@ -424,6 +427,7 @@ export default function ManageHomeGamePage() {
         body: JSON.stringify({ reason: 'Host initiated refund' })
       });
 
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
         busEmit.dataMutated('home-games');
@@ -447,6 +451,7 @@ export default function ManageHomeGamePage() {
         headers: { Authorization: `Bearer ${token}` }
       });
 
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
         busEmit.dataMutated('home-games');
@@ -472,6 +477,7 @@ export default function ManageHomeGamePage() {
         body: JSON.stringify(newSettings)
       });
 
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success || data.group) {
         setGroup(prev => ({ ...prev, ...newSettings }));

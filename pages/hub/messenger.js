@@ -1235,6 +1235,7 @@ function MessengerPage() {
                 const res = await fetch(`/api/calls/pending?userId=${user.id}`, {
                     headers: pendingToken ? { Authorization: `Bearer ${pendingToken}` } : {},
                 });
+                if (!res.ok) throw new Error(`Request failed (${res.status})`);
                 const result = await res.json();
 
                 if (result.success && result.pendingCall) {
@@ -1734,6 +1735,7 @@ function MessengerPage() {
                 body: JSON.stringify({ conversationId, userId: user.id }),
             });
 
+            if (!response.ok) throw new Error(`Request failed (${response.status})`);
             const result = await response.json();
 
             if (result.success && result.messages) {
@@ -1885,6 +1887,7 @@ function MessengerPage() {
                     })
                 });
 
+                if (!response.ok) throw new Error(`Request failed (${response.status})`);
                 const data = await response.json();
 
                 // Remove typing indicator and add response
@@ -2382,6 +2385,7 @@ function MessengerPage() {
                         callerId: user.id,
                     }),
                 });
+                if (!pushRes.ok) throw new Error(`Request failed (${pushRes.status})`);
                 const pushResult = await pushRes.json();
                 if (!pushRes.ok || pushResult.error) {
                 }

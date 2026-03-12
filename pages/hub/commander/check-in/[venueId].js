@@ -57,8 +57,11 @@ export default function PlayerCheckInPage() {
         fetch(`/api/commander/promotions?venue_id=${venueId}&active=true`)
       ]);
 
+      if (!venueRes.ok) throw new Error(`Request failed (${venueRes.status})`);
       const venueData = await venueRes.json();
+      if (!gamesRes.ok) throw new Error(`Request failed (${gamesRes.status})`);
       const gamesData = await gamesRes.json();
+      if (!promosRes.ok) throw new Error(`Request failed (${promosRes.status})`);
       const promosData = await promosRes.json();
 
       if (venueData.success || venueData.venue) {
@@ -101,6 +104,7 @@ export default function PlayerCheckInPage() {
         })
       });
 
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
 
       if (data.success) {

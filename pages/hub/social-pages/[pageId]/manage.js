@@ -45,6 +45,7 @@ export default function ManageSocialPage() {
         setLoading(true);
         try {
             const res = await fetch(`/api/social/pages?id=${pageId}&user_id=${user.id}`);
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success && json.data) {
                 if (json.data.owner_id !== user.id) {
@@ -101,6 +102,7 @@ export default function ManageSocialPage() {
         try {
             const reqParam = user?.id ? `&requester_id=${user.id}` : '';
             const res = await fetch(`/api/social/pages/follow?page_id=${page.id}${reqParam}`);
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) setMembers(json.data || []);
         } catch (e) { console.error("[manage.js]", e); }
@@ -109,6 +111,7 @@ export default function ManageSocialPage() {
     const fetchPosts = async () => {
         try {
             const res = await fetch(`/api/social/pages/posts?page_id=${page.id}&limit=50`);
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) setPosts(json.data || []);
         } catch (e) { console.error("[manage.js]", e); }
@@ -127,6 +130,7 @@ export default function ManageSocialPage() {
                 },
                 body: JSON.stringify({ id: page.id, owner_id: user.id, ...form }),
             });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) {
                 busEmit.dataMutated('social-pages');

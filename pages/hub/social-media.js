@@ -731,6 +731,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
                             prefix: user.id,
                         }),
                     });
+                    if (!metaRes.ok) throw new Error(`Request failed (${metaRes.status})`);
                     const meta = await metaRes.json();
                     if (!meta.success) {
                         setError('Upload failed: ' + (meta.error || 'Unknown error'));
@@ -759,6 +760,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
                         headers: _imgToken ? { Authorization: `Bearer ${_imgToken}` } : {},
                         body: formData,
                     });
+                    if (!res.ok) throw new Error(`Request failed (${res.status})`);
                     const json = await res.json();
                     if (json.success && json.url) {
                         uploaded.push({ type: json.type || 'photo', url: json.url });
@@ -833,6 +835,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
                         // For non-YouTube links, fetch real metadata via API
                         try {
                             const response = await fetch(`/api/link-preview?url=${encodeURIComponent(detectedUrl)}`);
+                            if (!response.ok) throw new Error(`Request failed (${response.status})`);
                             const metadata = await response.json();
 
                             setLinkPreview({
@@ -2066,6 +2069,7 @@ function ClubPageCreateModal({ C, commanderData, userId, onCreated, onClose }) {
                     allow_member_posts: false,
                 }),
             });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success && json.data) {
                 onCreated(json.data);
@@ -2213,6 +2217,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
         (async () => {
             try {
                 const res = await fetch(`/api/public/venue/${page.id}`);
+                if (!res.ok) throw new Error(`Request failed (${res.status})`);
                 const data = await res.json();
                 if (!cancelled && data.success) {
                     setTournaments(data.data.upcoming_tournaments || []);
@@ -2263,6 +2268,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                 headers: _coverToken ? { Authorization: `Bearer ${_coverToken}` } : {},
                 body: formData,
             });
+            if (!uploadRes.ok) throw new Error(`Request failed (${uploadRes.status})`);
             const uploadJson = await uploadRes.json();
             if (uploadJson.success && uploadJson.url) {
                 const url = uploadJson.url;
@@ -2275,6 +2281,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                         method: 'PUT', headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ id: page.id, owner_id: userId, cover_url: url, metadata: merged }),
                     });
+                    if (!res.ok) throw new Error(`Request failed (${res.status})`);
                     const json = await res.json();
                     if (json.success && json.data) {
                         onPageUpdated(json.data);
@@ -2305,6 +2312,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                 headers: _logoToken ? { Authorization: `Bearer ${_logoToken}` } : {},
                 body: formData,
             });
+            if (!uploadRes.ok) throw new Error(`Request failed (${uploadRes.status})`);
             const uploadJson = await uploadRes.json();
             if (uploadJson.success && uploadJson.url) {
                 const url = uploadJson.url;
@@ -2317,6 +2325,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                         method: 'PUT', headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ id: page.id, owner_id: userId, avatar_url: url, metadata: merged }),
                     });
+                    if (!res.ok) throw new Error(`Request failed (${res.status})`);
                     const json = await res.json();
                     if (json.success && json.data) {
                         onPageUpdated(json.data);
@@ -2361,6 +2370,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                             prefix: page.id,
                         }),
                     });
+                    if (!metaRes.ok) throw new Error(`Request failed (${metaRes.status})`);
                     const meta = await metaRes.json();
                     if (!meta.success) {
                         toast.error('Upload failed: ' + (meta.error || 'Unknown error'));
@@ -2388,6 +2398,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                         headers: _clubImgToken ? { Authorization: `Bearer ${_clubImgToken}` } : {},
                         body: formData,
                     });
+                    if (!res.ok) throw new Error(`Request failed (${res.status})`);
                     const json = await res.json();
                     if (json.success && json.url) {
                         uploaded.push({ type: json.type || 'photo', url: json.url });
@@ -2413,6 +2424,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                 setLoadingGames(true);
                 try {
                     const res = await fetch(`/api/social/pages/games?page_id=${page.id}`);
+                    if (!res.ok) throw new Error(`Request failed (${res.status})`);
                     const json = await res.json();
                     if (json.success) { setLiveGames(json.data || []); setTimerTick(0); }
                 } catch (e) { console.error('Games fetch error:', e); }
@@ -2421,6 +2433,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
             const fetchPending = async () => {
                 try {
                     const res = await fetch(`/api/social/pages/follow?page_id=${page.id}&requester_id=${userId}`);
+                    if (!res.ok) throw new Error(`Request failed (${res.status})`);
                     const json = await res.json();
                     if (json.success) setPendingFollowers((json.data || []).filter(f => f.status === 'pending'));
                 } catch (e) { console.error('Pending fetch error:', e); }
@@ -2459,6 +2472,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                 },
                 body: JSON.stringify({ id: page.id, owner_id: userId, metadata: merged }),
             });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success && json.data) {
                 onPageUpdated(json.data);
@@ -2506,6 +2520,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
             setLoadingPosts(true);
             try {
                 const res = await fetch(`/api/social/pages/posts?page_id=${page.id}&user_id=${userId}`);
+                if (!res.ok) throw new Error(`Request failed (${res.status})`);
                 const json = await res.json();
                 if (json.success) setPosts(json.data || []);
             } catch (e) { console.error('Club page posts fetch error:', e); }
@@ -2529,6 +2544,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                 },
                 body: JSON.stringify({ page_id: page.id, author_id: userId, content: postContent.trim(), content_type: contentType, media_urls: mediaUrls }),
             });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             console.log('[ClubPage] Post response:', json);
             if (json.success && json.data) {
@@ -2569,6 +2585,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                 },
                 body: JSON.stringify({ id: page.id, owner_id: userId, name: editName.trim(), description: editDesc.trim(), website: editWebsite.trim(), phone: editPhone.trim(), avatar_url: editAvatarUrl.trim() || null, location_city: editCity.trim(), location_state: editState.trim(), metadata: updatedMetadata }),
             });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success && json.data) { onPageUpdated(json.data); setEditingPage(false); }
         } catch (e) { console.error('Save error:', e); }
@@ -3461,6 +3478,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
         if (!userId) { setFollowStatus('none'); setFollowLoading(false); return; }
         try {
             const res = await fetch(`/api/social/pages/follow?page_id=${pageId}&requester_id=${userId}`);
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) {
                 setFollowStatus(json.my_status || (json.is_following ? 'approved' : 'none'));
@@ -3472,6 +3490,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
     const fetchGames = async () => {
         try {
             const res = await fetch(`/api/social/pages/games?page_id=${pageId}`);
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) {
                 setGames(json.data || []);
@@ -3502,6 +3521,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ page_id: pageId, user_id: userId, action: 'follow' }),
             });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) {
                 const newStatus = json.status || 'approved';
@@ -3520,6 +3540,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'take_seat', game_id: gameId, seat_number: seatNumber, player_id: userId || null, player_name: playerName.trim() }),
             });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) { showMsg(`Seat ${seatNumber} reserved!`); fetchGames(); }
             else { showMsg(json.error || 'Could not take seat'); }
@@ -3538,6 +3559,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'join_waitlist', game_id: gameId, player_id: userId || null, player_name: playerName.trim() }),
             });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) { showMsg(`Added to waitlist (position #${json.position})`); fetchGames(); }
             else { showMsg(json.error || 'Could not join waitlist'); }
@@ -3986,6 +4008,7 @@ function ClubPagesView({ C, pages, setPages, loading, setLoading, category, setC
                     if (clubRes.success) allPages.push(...(clubRes.data || []));
                 } else {
                     const res = await fetch(`/api/poker/pages?${new URLSearchParams({ ...baseParams, category })}`);
+                    if (!res.ok) throw new Error(`Request failed (${res.status})`);
                     const json = await res.json();
                     if (json.success) allPages = json.data || [];
                 }
@@ -4556,6 +4579,7 @@ function SocialMediaPage() {
                         }
                     });
 
+                    if (!profileRes.ok) throw new Error(`Request failed (${profileRes.status})`);
                     let profiles = await profileRes.json();
                     let p = profiles?.[0] || null;
                     if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] Profile loaded:', p ? `${p.username} (avatar: ${p.avatar_url ? 'YES' : 'NO'})` : 'NOT FOUND');
@@ -4568,6 +4592,7 @@ function SocialMediaPage() {
                                 'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo'
                             }
                         });
+                        if (!ownedProfileRes.ok) throw new Error(`Request failed (${ownedProfileRes.status})`);
                         const ownedProfiles = await ownedProfileRes.json();
                         if (ownedProfiles?.[0]) p = ownedProfiles[0];
                     }
@@ -4754,6 +4779,7 @@ function SocialMediaPage() {
             (async () => {
                 try {
                     const res = await fetch(`/api/social/pages?id=${pageId}`);
+                    if (!res.ok) throw new Error(`Request failed (${res.status})`);
                     const json = await res.json();
                     if (json.success && json.data) {
                         const pageData = Array.isArray(json.data) ? json.data[0] : json.data;
@@ -4776,6 +4802,7 @@ function SocialMediaPage() {
                 try {
                     // Look up the page by referral code
                     const res = await fetch(`/api/social/pages/qrcode?ref=${refCode}`);
+                    if (!res.ok) throw new Error(`Request failed (${res.status})`);
                     const json = await res.json();
                     if (json.success && json.data) {
                         const refPage = json.data;
@@ -5237,6 +5264,7 @@ function SocialMediaPage() {
                         } : {})
                     }),
                 });
+                if (!res.ok) throw new Error(`Request failed (${res.status})`);
                 const json = await res.json();
                 if (!json.success) throw new Error(json.error || 'Failed to post as club');
 
@@ -5442,6 +5470,7 @@ function SocialMediaPage() {
                 body: JSON.stringify({ postId: id })
             });
 
+            if (!response.ok) throw new Error(`Request failed (${response.status})`);
             const result = await response.json();
 
             if (!response.ok) {

@@ -1183,6 +1183,7 @@ export default function NewsHub() {
                 body: JSON.stringify({ email })
             });
 
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const { success, error } = await res.json();
 
             if (success) {

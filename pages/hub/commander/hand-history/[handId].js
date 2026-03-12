@@ -148,6 +148,7 @@ export default function HandDetailPage() {
       const res = await fetch(`/api/commander/hands/${handId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
         setHand(data.data?.hand);
@@ -171,6 +172,7 @@ export default function HandDetailPage() {
           Authorization: `Bearer ${token}`
         }
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success && data.data?.redirect_url) {
         router.push(data.data.redirect_url);

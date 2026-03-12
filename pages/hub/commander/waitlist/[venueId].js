@@ -94,6 +94,7 @@ export default function PlayerWaitlistPage() {
           headers: { Authorization: `Bearer ${token}` },
           ...(signal ? { signal } : {}),
         });
+        if (!myRes.ok) throw new Error(`Request failed (${myRes.status})`);
         const myData = await myRes.json();
         if (myData.success) {
           const flat = (myData.data.entries || []).map(e => ({
@@ -188,6 +189,7 @@ export default function PlayerWaitlistPage() {
           stakes: stakes,
         })
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
         setSuccess(`Added to ${GAME_LABELS[gameType] || gameType} ${stakes}!`);
@@ -216,6 +218,7 @@ export default function PlayerWaitlistPage() {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) fetchData();
     } catch (err) {

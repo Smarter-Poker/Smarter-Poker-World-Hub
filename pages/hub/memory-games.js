@@ -1919,6 +1919,7 @@ export default function MemoryGamesPage() {
                     body: JSON.stringify(requestBody)
                 });
 
+                if (!response.ok) throw new Error(`Request failed (${response.status})`);
                 const result = await response.json();
 
                 if (result.success && result.scenario) {
@@ -2362,6 +2363,7 @@ export default function MemoryGamesPage() {
                 })
             });
 
+            if (!response.ok) throw new Error(`Request failed (${response.status})`);
             const result = await response.json();
 
             setCoachAnalysis({
@@ -2391,6 +2393,7 @@ export default function MemoryGamesPage() {
 
         try {
             const response = await fetch(`/api/gto/get-weak-spots?userId=${userId}`);
+            if (!response.ok) throw new Error(`Request failed (${response.status})`);
             const result = await response.json();
 
             if (result.success && result.weakSpots) {
@@ -2416,6 +2419,7 @@ export default function MemoryGamesPage() {
                 body: JSON.stringify({ userId })
             });
 
+            if (!response.ok) throw new Error(`Request failed (${response.status})`);
             const result = await response.json();
 
             if (result.success && result.scenario) {
@@ -2441,6 +2445,7 @@ export default function MemoryGamesPage() {
 
         try {
             const response = await fetch(`/api/gto/lobby-suggestions?userId=${userId}`);
+            if (!response.ok) throw new Error(`Request failed (${response.status})`);
             const result = await response.json();
 
             if (result.success && result.suggestions) {
@@ -2607,6 +2612,7 @@ export default function MemoryGamesPage() {
                 })
             });
 
+            if (!response.ok) throw new Error(`Request failed (${response.status})`);
             const result = await response.json();
 
             if (result.success && result.data?.url) {

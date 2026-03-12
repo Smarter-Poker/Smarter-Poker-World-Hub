@@ -128,6 +128,7 @@ export default function PlayerHomeGamesHub() {
       const res = await fetch('/api/commander/home-games/groups?visibility=public,friends', {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.groups) {
         setGames(data.groups);
@@ -154,6 +155,7 @@ export default function PlayerHomeGamesHub() {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
 
       if (data.membership) {
@@ -178,6 +180,7 @@ export default function PlayerHomeGamesHub() {
       const res = await fetch('/api/commander/home-games/discover?type=groups&limit=20', {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.groups) {
         setDiscoverGames(data.groups);
@@ -196,6 +199,7 @@ export default function PlayerHomeGamesHub() {
       const res = await fetch('/api/commander/home-games/events?limit=100', {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.events || data.data?.events) {
         setCalendarEvents(data.events || data.data?.events || []);

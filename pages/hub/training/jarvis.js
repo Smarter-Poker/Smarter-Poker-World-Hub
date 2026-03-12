@@ -40,6 +40,7 @@ export default function JarvisDashboard() {
         const response = await fetch(`/api/jarvis/user-insights`, {
           headers: { Authorization: `Bearer ${token}` },
         });
+        if (!response.ok) throw new Error(`Request failed (${response.status})`);
         const data = await response.json();
 
         if (data.success) {

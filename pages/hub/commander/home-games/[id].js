@@ -248,6 +248,7 @@ export default function HomeGameDetailPage() {
         const recentPast = pastEvents.slice(0, 5);
         for (const event of recentPast) {
           const res = await fetch(`/api/commander/home-games/events/${event.id}/reviews`);
+          if (!res.ok) throw new Error(`Request failed (${res.status})`);
           const data = await res.json();
           if (data.success && data.data?.reviews) {
             allReviews.push(...data.data.reviews);
@@ -284,6 +285,7 @@ export default function HomeGameDetailPage() {
         }
       });
 
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success || data.membership) {
         fetchGroup();
@@ -313,6 +315,7 @@ export default function HomeGameDetailPage() {
         body: JSON.stringify({ status })
       });
 
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
         setRsvps(prev => ({ ...prev, [event.id]: status }));
@@ -603,6 +606,7 @@ export default function HomeGameDetailPage() {
                       },
                       body: JSON.stringify(reviewData)
                     });
+                    if (!res.ok) throw new Error(`Request failed (${res.status})`);
                     const data = await res.json();
                     if (data.success) {
                       setUserReview(reviewData);

@@ -294,6 +294,7 @@ export default function VenueDetailPage() {
       fetch('/api/poker/follow?page_type=venue&page_id=' + id),
       fetch('/api/social/pages?linked_venue_id=' + String(id) + '&limit=1')
     ]);
+    if (!venueRes.ok) throw new Error(`Request failed (${venueRes.status})`);
     const [vj, fj, sj] = await Promise.all([venueRes.json(), followRes.json(), socialRes.json()]);
     const venueData = vj.success && vj.data
       ? (Array.isArray(vj.data) ? (vj.data.find(function (v) { return String(v.id) === String(id); }) || vj.data[0]) : vj.data)
@@ -313,6 +314,7 @@ export default function VenueDetailPage() {
   var fetchLiveGames = async function () {
     try {
       var res = await fetch('/api/poker/live-games?venue_id=' + id);
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       var json = await res.json();
       if (json.success) {
         var games = json.games || json.data || [];
@@ -330,6 +332,7 @@ export default function VenueDetailPage() {
   var fetchWaitlist = async function () {
     try {
       var wlRes = await fetch('/api/commander/waitlist/venue/' + id);
+      if (!wlRes.ok) throw new Error(`Request failed (${wlRes.status})`);
       var wlJson = await wlRes.json();
       if (wlJson.success && wlJson.data && wlJson.data.waitlists) {
         setWaitlistData(wlJson.data.waitlists);
@@ -348,6 +351,7 @@ export default function VenueDetailPage() {
   var fetchCheckins = async function () {
     try {
       var res = await fetch('/api/poker/checkins?venue_id=' + id);
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       var json = await res.json();
       if (json.success) {
         var data = json.checkins || json.data || [];
@@ -373,6 +377,7 @@ export default function VenueDetailPage() {
   var fetchReviews = async function () {
     try {
       var res = await fetch('/api/poker/reviews?venue_id=' + id);
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       var json = await res.json();
       if (json.success) {
         var reviewData = json.reviews || json.data || [];
@@ -395,6 +400,7 @@ export default function VenueDetailPage() {
   var fetchActivities = async function () {
     try {
       var res = await fetch('/api/poker/activity?page_type=venue&page_id=' + id + '&limit=10');
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       var json = await res.json();
       if (json.success) {
         var items = json.activities || json.data || [];
@@ -412,6 +418,7 @@ export default function VenueDetailPage() {
   var fetchClaimStatus = async function () {
     try {
       var res = await fetch('/api/poker/claim-page?page_type=venue&page_id=' + id);
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       var json = await res.json();
       if (json.success) {
         if (json.claimed && json.claim) {
@@ -624,6 +631,7 @@ export default function VenueDetailPage() {
           user_id: getAnonymousUserId(),
         }),
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       var json = await res.json();
       if (json.success) {
         setShowReportGame(false);
@@ -648,6 +656,7 @@ export default function VenueDetailPage() {
           message: checkinMessage.trim() || null,
         }),
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       var json = await res.json();
       if (json.success) {
         setHasCheckedIn(true);
@@ -679,6 +688,7 @@ export default function VenueDetailPage() {
           user_id: getAnonymousUserId(),
         }),
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       var json = await res.json();
       if (json.success) {
         setShowReviewForm(false);
@@ -726,6 +736,7 @@ export default function VenueDetailPage() {
           user_id: getAnonymousUserId(),
         }),
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       var json = await res.json();
       if (json.success) {
         setShowPostForm(false);
@@ -755,6 +766,7 @@ export default function VenueDetailPage() {
           user_id: getAnonymousUserId(),
         }),
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       var json = await res.json();
       if (json.success) {
         setClaimStatus('pending');

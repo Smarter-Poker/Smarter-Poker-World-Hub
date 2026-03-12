@@ -33,6 +33,7 @@ export default function BankrollExport() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ userId })
                 });
+                if (!res.ok) throw new Error(`Request failed (${res.status})`);
                 const data = await res.json();
                 if (data.success && data.url) {
                     window.open(data.url, '_blank');
@@ -49,6 +50,7 @@ export default function BankrollExport() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId, format })
             });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const data = await res.json();
 
             if (format === 'csv') {

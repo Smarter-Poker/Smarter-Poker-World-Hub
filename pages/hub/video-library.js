@@ -639,6 +639,7 @@ export default function VideoLibraryPage() {
                 signal,
                 headers: token ? { Authorization: `Bearer ${token}` } : {},
             });
+            if (!response.ok) throw new Error(`Request failed (${response.status})`);
             const data = await response.json();
             if (data.success && data.analysis) {
                 setAiAnalysis(data.analysis);

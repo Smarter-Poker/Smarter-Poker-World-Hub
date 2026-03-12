@@ -95,6 +95,7 @@ export default function SessionNotesPage() {
     try {
       const res = await fetch('/api/training/get-sessions?limit=1', {
         });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success && data.sessions?.[0]) {
         const s = data.sessions[0];

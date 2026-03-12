@@ -551,6 +551,7 @@ export default function BankrollManagerPage() {
     (async () => {
       try {
         const res = await fetch(`/api/bankroll/linked-venues?userId=${userId}`);
+        if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const data = await res.json();
         if (data.success && data.venues?.length > 0) {
           gf.start(data.venues, async (venue) => {
@@ -1556,6 +1557,7 @@ export default function BankrollManagerPage() {
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ userId, format: 'csv' })
                           });
+                          if (!res.ok) throw new Error(`Request failed (${res.status})`);
                           const data = await res.json();
                           if (data.success && data.content) {
                             const blob = new Blob([data.content], { type: 'text/csv' });
@@ -1598,6 +1600,7 @@ export default function BankrollManagerPage() {
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ userId, format: 'json' })
                           });
+                          if (!res.ok) throw new Error(`Request failed (${res.status})`);
                           const data = await res.json();
                           if (data.success && data.data) {
                             const exportPayload = { entries: data.data, summary: data.summary };

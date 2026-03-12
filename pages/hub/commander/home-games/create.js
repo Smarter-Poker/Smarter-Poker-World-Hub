@@ -104,6 +104,7 @@ export default function CreateHomeGamePage() {
         body: JSON.stringify(payload)
       });
 
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
 
       if (data.success || data.group) {
@@ -558,6 +559,7 @@ export default function CreateHomeGamePage() {
                       },
                       body: JSON.stringify(eventData)
                     });
+                    if (!res.ok) throw new Error(`Request failed (${res.status})`);
                     const data = await res.json();
                     if (data.success || data.event) {
                       router.push(`/hub/commander/home-games/${createdGroup.id}`);

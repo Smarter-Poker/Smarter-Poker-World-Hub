@@ -73,6 +73,7 @@ export default function LeaderboardPage() {
       fetch(`/api/commander/venues/${venueId}`),
       fetch(`/api/commander/leaderboards?venue_id=${venueId}&status=active`)
     ]);
+    if (!leaderboardRes.ok) throw new Error(`Request failed (${leaderboardRes.status})`);
     const [lb, pr, vn, ls] = await Promise.all([leaderboardRes.json(), promosRes.json(), venueRes.json(), listRes.json()]);
     return {
       leaderboard: lb.success ? (lb.data?.entries || []) : [],

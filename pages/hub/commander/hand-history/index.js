@@ -168,6 +168,7 @@ export default function HandHistoryPage() {
       const res = await fetch('/api/commander/hands/sessions', {
         headers: { Authorization: `Bearer ${token}` }
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
         setSessions(data.data?.sessions || []);
@@ -187,6 +188,7 @@ export default function HandHistoryPage() {
       const res = await fetch(`/api/commander/hands/game/${gameId}?limit=50`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
         setHands(data.data?.hands || []);

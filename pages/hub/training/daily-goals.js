@@ -124,6 +124,7 @@ export default function DailyGoalsPage() {
     try {
       const res = await fetch(`/api/training/get-sessions?limit=50`, {
         });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const d = await res.json();
       if (d.success && d.sessions) {
         const result = generateGoals(d.sessions);

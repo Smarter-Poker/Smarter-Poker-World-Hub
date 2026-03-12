@@ -75,6 +75,7 @@ export default function ProfileSettingsPage() {
         },
         body: JSON.stringify({ settings })
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
         busEmit.dataMutated('profile');

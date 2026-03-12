@@ -92,6 +92,7 @@ export default function TournamentRegisterPage() {
         })
       });
 
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
 
       if (data.success) {
@@ -125,6 +126,7 @@ export default function TournamentRegisterPage() {
         headers: { Authorization: `Bearer ${token}` }
       });
 
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
 
       if (data.success) {

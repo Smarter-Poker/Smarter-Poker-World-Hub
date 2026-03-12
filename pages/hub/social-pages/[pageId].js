@@ -52,6 +52,7 @@ function PostCard({ post, user, onLike, onComment }) {
         setLoadingComments(true);
         try {
             const res = await fetch(`/api/social/pages/engage?post_id=${post.id}`);
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) setComments(json.data || []);
         } catch (e) { console.error("[[pageId].js]", e); }
@@ -74,6 +75,7 @@ function PostCard({ post, user, onLike, onComment }) {
                     user_id: user.id, content: commentText.trim(),
                 }),
             });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) {
                 setComments(prev => [...prev, json.data]);
@@ -241,9 +243,11 @@ export default function SocialPageDetail() {
             let json;
             if (isUUID) {
                 const res = await fetch(`/api/social/pages?id=${pageId}${userParam}`, { signal });
+                if (!res.ok) throw new Error(`Request failed (${res.status})`);
                 json = await res.json();
             } else {
                 const res = await fetch(`/api/social/pages?slug=${pageId}${userParam}`, { signal });
+                if (!res.ok) throw new Error(`Request failed (${res.status})`);
                 json = await res.json();
             }
 
@@ -264,6 +268,7 @@ export default function SocialPageDetail() {
             const params = new URLSearchParams({ page_id: page.id, limit: '30' });
             if (user?.id) params.set('user_id', user.id);
             const res = await fetch(`/api/social/pages/posts?${params}`, { signal });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) setPosts(json.data || []);
         } catch (e) { console.error("[[pageId].js]", e); }
@@ -274,6 +279,7 @@ export default function SocialPageDetail() {
         try {
             const reqParam = user?.id ? `&requester_id=${user.id}` : '';
             const res = await fetch(`/api/social/pages/follow?page_id=${page.id}${reqParam}`);
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) setFollowers(json.data || []);
         } catch (e) { console.error("[[pageId].js]", e); }
@@ -351,6 +357,7 @@ export default function SocialPageDetail() {
                     content: newPost.trim(), content_type: 'text',
                 }),
             });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) {
                 busEmit.dataMutated('social-pages');

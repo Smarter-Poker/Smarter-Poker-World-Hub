@@ -115,6 +115,7 @@ export default function LeaguesPage() {
       token ? fetch('/api/commander/leagues/my', { headers: { Authorization: `Bearer ${token}` } })
         : Promise.resolve({ json: () => ({ success: false }) })
     ]);
+    if (!allRes.ok) throw new Error(`Request failed (${allRes.status})`);
     const [all, my] = await Promise.all([allRes.json(), myRes.json()]);
     return {
       leagues: all.success ? (all.data?.leagues || []) : [],

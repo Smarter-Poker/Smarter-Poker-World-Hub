@@ -199,6 +199,7 @@ export default function GTOReports() {
     try {
       const res = await fetch(`/api/training/gto-reports?userId=${userId}&period=${period}`, {
         });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) setReport(data.report);
     } catch (err) {

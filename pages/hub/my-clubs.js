@@ -485,6 +485,7 @@ export default function MyClubsPage() {
             if (userId) {
                 try {
                     const res = await fetch(`/api/poker/follow?user_id=${userId}`, signal ? { signal } : {});
+                    if (!res.ok) throw new Error(`Request failed (${res.status})`);
                     const json = await res.json();
                     if (json.success && json.data) {
                         json.data.forEach(f => {
@@ -508,6 +509,7 @@ export default function MyClubsPage() {
                     const results = await Promise.allSettled(
                         venueIds.slice(0, 30).map(async (vid) => {
                             const res = await fetch(`/api/poker/venues?id=${vid}`, signal ? { signal } : {});
+                            if (!res.ok) throw new Error(`Request failed (${res.status})`);
                             const json = await res.json();
                             if (json.success && json.data) {
                                 return Array.isArray(json.data) ? json.data[0] : json.data;
@@ -529,6 +531,7 @@ export default function MyClubsPage() {
                 await Promise.allSettled(venueIds.map(async (vid) => {
                     try {
                         const res = await fetch(`/api/poker/live-games?venue_id=${vid}`, signal ? { signal } : {});
+                        if (!res.ok) throw new Error(`Request failed (${res.status})`);
                         const json = await res.json();
                         if (json.success) {
                             const games = json.games || json.data || [];
@@ -537,6 +540,7 @@ export default function MyClubsPage() {
                     } catch (e) { console.error("[my-clubs.js]", e); }
                     try {
                         const res = await fetch(`/api/commander/waitlist/venue/${vid}`, signal ? { signal } : {});
+                        if (!res.ok) throw new Error(`Request failed (${res.status})`);
                         const json = await res.json();
                         if (json.success && json.data && json.data.waitlists) {
                             const totalPlayers = json.data.waitlists.reduce((sum, wl) =>
@@ -593,6 +597,7 @@ export default function MyClubsPage() {
         const timer = setTimeout(async () => {
             try {
                 const res = await fetch(`/api/poker/venues?search=${encodeURIComponent(searchQuery)}&limit=20`, { signal: controller.signal });
+                if (!res.ok) throw new Error(`Request failed (${res.status})`);
                 const json = await res.json();
                 if (json.success && json.data) {
                     setSearchResults(Array.isArray(json.data) ? json.data : [json.data]);

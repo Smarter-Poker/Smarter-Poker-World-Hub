@@ -86,6 +86,7 @@ export default function PlayerProfilePage() {
       fetch('/api/commander/profile', { headers: h }),
       fetch('/api/commander/profile/stats', { headers: h })
     ]);
+    if (!profileRes.ok) throw new Error(`Request failed (${profileRes.status})`);
     const [profileData, statsData] = await Promise.all([profileRes.json(), statsRes.json()]);
     // Fire AI recommendations in background
     if (profileData.success && profileData.data?.profile?.id) {
@@ -117,6 +118,7 @@ export default function PlayerProfilePage() {
         const user = getAuthUser();
         if (user) {
           const res = await fetch(`/api/social/pages?owner_id=${user.id}`);
+          if (!res.ok) throw new Error(`Request failed (${res.status})`);
           const json = await res.json();
           setHasClubPage(json.success && json.data && json.data.length > 0 ? json.data[0].id : false);
         }

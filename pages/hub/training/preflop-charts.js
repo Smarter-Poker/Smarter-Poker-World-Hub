@@ -138,6 +138,7 @@ export default function PreflopCharts() {
         }
         let data;
         try {
+          if (!res.ok) throw new Error(`Request failed (${res.status})`);
           data = await res.json();
         } catch {
           console.warn('[PreflopCharts] Malformed JSON');

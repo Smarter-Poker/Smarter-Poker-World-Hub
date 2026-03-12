@@ -807,6 +807,7 @@ export default function DiamondStorePage() {
                 })
             });
 
+            if (!response.ok) throw new Error(`Request failed (${response.status})`);
             const data = await response.json();
 
             if (!data.success) {
@@ -846,6 +847,7 @@ export default function DiamondStorePage() {
                         method: 'POST',
                         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
                     });
+                    if (!res.ok) throw new Error(`Request failed (${res.status})`);
                     const data = await res.json();
                     if (data.success) {
                         alert('VIP Daily Pass Activated! 💎');

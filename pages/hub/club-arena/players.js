@@ -96,8 +96,9 @@ export default function ClubArenaPlayersPage() {
   }, [clubId]);
 
   // ── Load Retention (Lazy) ─────────────────────────────────
-  const loadRetention = useCallback(async () => {
-    if (retentionLoaded || !clubId) return;
+  const loadRetention = useCallback(async (force) => {
+    if (!force && retentionLoaded) return;
+    if (!clubId) return;
     try {
       const res = await apiCall('/api/club-arena/player-retention', { clubId, action: 'scan' });
       if (mountedRef.current) { setRetention(res); setRetentionLoaded(true); }
@@ -162,7 +163,7 @@ export default function ClubArenaPlayersPage() {
   // ── EventBus Listeners ─────────────────────────────────────
   useEffect(() => {
     const refresh = () => { if (clubId) loadSessions(clubId); };
-    const events = ['CHIPS_DISTRIBUTED', 'MEMBER_UPDATED', 'PLAYER_JOINED', 'PLAYER_LEFT'];
+    const events = ['CHIPS_DISTRIBUTED', 'MEMBER_UPDATED', 'PLAYER_JOINED', 'PLAYER_LEFT', 'CASHOUT_APPROVED', 'CASHOUT_REQUESTED'];
     events.forEach(ev => eventBus.on(ev, refresh));
     return () => events.forEach(ev => eventBus.off(ev, refresh));
   }, [clubId, loadSessions]);
@@ -177,8 +178,7 @@ export default function ClubArenaPlayersPage() {
       setSuccess(`${fmtChips(amt)} welcome-back chips sent to ${wbTarget.name}!`);
       busEmit('CHIPS_DISTRIBUTED', { clubId });
       setWbTarget(null); setWbAmount('');
-      setRetentionLoaded(false); // force re-scan
-      loadRetention();
+      loadRetention(true); // force re-scan after welcome-back
     } catch (err) { setError(err.message); }
     finally { setProcessing(false); }
   };

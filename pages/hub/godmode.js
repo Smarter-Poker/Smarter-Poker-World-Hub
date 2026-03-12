@@ -36,6 +36,7 @@ export default function GodModePage() {
       const res = await fetch(`/api/commander/hands/${handId}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success || data.hand) {
         setHandData(data.hand || data.data?.hand);

@@ -132,6 +132,7 @@ export default function PlayerTournamentsHub() {
       token ? fetch('/api/commander/tournaments/my', { headers: { Authorization: `Bearer ${token}` } })
              : Promise.resolve({ json: () => ({ registrations: [] }) })
     ]);
+    if (!tourRes.ok) throw new Error(`Request failed (${tourRes.status})`);
     const [tourData, myData] = await Promise.all([tourRes.json(), myRes.json()]);
     setMyRegistrations((myData.registrations || []).map(r => r.tournament_id));
     return tourData.tournaments || [];
@@ -157,6 +158,7 @@ export default function PlayerTournamentsHub() {
         },
         body: JSON.stringify({})
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.entry) {
         setMyRegistrations([...myRegistrations, tournament.id]);

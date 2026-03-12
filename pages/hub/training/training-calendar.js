@@ -105,6 +105,7 @@ export default function TrainingCalendarPage() {
     try {
       const res = await fetch('/api/training/get-sessions?limit=500', {
         });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success && data.sessions) setDayMap(buildHeatmap(data.sessions));
     } catch (e) {
