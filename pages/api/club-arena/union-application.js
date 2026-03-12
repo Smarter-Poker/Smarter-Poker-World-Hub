@@ -45,7 +45,7 @@ async function isPlatformAdmin(userId) {
   return ['admin', 'superadmin', 'god'].includes(data?.role);
 }
 
-// Check if caller is union_lead for the given unionId
+// Check if caller is union_lead for the given unionId (or the union owner)
 async function isUnionLead(userId, unionId) {
   const { data } = await supabaseAdmin
     .from('union_admins')
@@ -53,7 +53,18 @@ async function isUnionLead(userId, unionId) {
     .eq('union_id', unionId)
     .eq('user_id', userId)
     .maybeSingle();
-  return data?.role === 'union_lead';
+  
+  if (data?.role === 'union_lead') return true;
+
+  // Owner fallback
+  const { data: owner } = await supabaseAdmin
+    .from('unions')
+    .select('id')
+    .eq('id', unionId)
+    .eq('owner_id', userId)
+    .maybeSingle();
+  
+  return !!owner;
 }
 
 // Check if caller can administer this union (platform admin OR union_lead)

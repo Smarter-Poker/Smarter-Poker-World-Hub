@@ -442,7 +442,7 @@ export default async function handler(req, res) {
 
       const { data: table } = await supabaseAdmin
         .from('tables')
-        .select('id, club_id, status')
+        .select('id, club_id, status, current_players')
         .eq('id', tableId)
         .maybeSingle();
 

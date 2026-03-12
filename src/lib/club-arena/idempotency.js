@@ -66,6 +66,15 @@ function checkIdempotency(req, res) {
 
   // Eagerly lock this key synchronously to prevent same-millisecond race conditions
   cache.set(key, { status: 'processing', body: null, expiresAt: Date.now() + TTL_MS });
+
+  // Auto-cache the response when the route completes successfully
+  const originalJson = res.json;
+  res.json = function (body) {
+    const status = res.statusCode || 200;
+    cacheResponse(req, status, body);
+    return originalJson.call(this, body);
+  };
+
   return false; // new request — proceed
 }
 
