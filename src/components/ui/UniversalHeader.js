@@ -144,8 +144,6 @@ export default function UniversalHeader({
         let mounted = true; // Prevent state updates after unmount
         let notifChannel;
         let cleanupNotifSync = null;
-        let messageChannel;
-        let notifSyncChannel;
 
         const loadUser = async () => {
             try {

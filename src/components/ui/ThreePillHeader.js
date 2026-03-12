@@ -84,12 +84,10 @@ export default function ThreePillHeader({
 
     useEffect(() => {
         let mounted = true;
-        let notifSyncChannel = null;
         let notifChannel = null;
         let diamondChannel = null;
         let cleanupNotifSync = null;
         let cleanupDiamondSync = null;
-        let diamondBc = null;
 
         const loadUser = async () => {
             try {
