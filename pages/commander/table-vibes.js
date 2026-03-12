@@ -42,6 +42,7 @@ export default function TableVibes() {
       const res = await fetch(`/api/commander/table-ratings?venue_id=${staff.venue_id}&days=${days}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
         setVibes(json.data.vibes);

@@ -135,6 +135,7 @@ export default function TablesDisplay() {
       const headers = { 'x-staff-session': staffSession, Authorization: `Bearer ${token}` };
 
       const res = await fetch(`/api/commander/tables?venue_id=${venueId}`, { headers });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
         let tablesArr = Array.isArray(json.data) ? json.data
@@ -148,6 +149,7 @@ export default function TablesDisplay() {
             const tNum = t.table_number || t.number;
             try {
               const sRes = await fetch(`/api/commander/dealer/sessions?table=${tNum}`, { headers });
+              if (!sRes.ok) throw new Error(`Request failed (${sRes.status})`);
               const sJson = await sRes.json();
               if (sJson.success) sessionsByTable[tNum] = sJson.data || [];
             } catch { /* non-fatal */ }
@@ -191,6 +193,7 @@ export default function TablesDisplay() {
       const res = await fetch(`/api/commander/dealers/rotations?venue_id=${venueId}`, {
         headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${token}` },
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
         const rots = json.data?.rotations || json.data || [];

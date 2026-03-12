@@ -103,7 +103,9 @@ export default function TournamentDetailPage() {
         fetch(`/api/commander/tournaments/${id}/entries`, fo)
       ]);
 
+      if (!tournamentRes.ok) throw new Error(`Request failed (${tournamentRes.status})`);
       const tournamentData = await tournamentRes.json();
+      if (!entriesRes.ok) throw new Error(`Request failed (${entriesRes.status})`);
       const entriesData = await entriesRes.json();
 
       if (tournamentData.success) {

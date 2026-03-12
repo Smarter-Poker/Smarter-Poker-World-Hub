@@ -274,6 +274,7 @@ export default function TournamentSettings() {
         const res = await fetch(`/api/commander/tournaments/${id}`, {
           headers: { 'x-staff-session': staffSession }
         });
+        if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const json = await res.json();
         if (json.success) {
           const t = json.data;
@@ -368,6 +369,7 @@ export default function TournamentSettings() {
           settings: { clock_color: clockColor }
         })
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) { setSaved(true); setTimeout(() => setSaved(false), 2000); broadcastChange('tournaments'); }
     } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }

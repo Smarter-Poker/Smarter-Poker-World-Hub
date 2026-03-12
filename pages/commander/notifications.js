@@ -88,6 +88,7 @@ export default function NotificationCenter() {
         headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
         ...(signal ? { signal } : {}),
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
         setNotifications(json.data?.notifications || []);
@@ -154,6 +155,7 @@ export default function NotificationCenter() {
       const res = await fetch(`/api/commander/announcements?venue_id=${venueId}&include_scheduled=1`, {
         headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) setAnnouncements(json.data || []);
     } catch (err) { console.error(err); }

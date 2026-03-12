@@ -59,6 +59,7 @@ export default function TableAssignments() {
   const fetchData = useCallback(async(signal) => {
     try {
       const res = await fetch('/api/commander/table-assignments', { headers: getHeaders() });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
         setTables(json.data.tables || []);

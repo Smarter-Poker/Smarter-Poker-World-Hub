@@ -761,6 +761,7 @@ export default function Cashier() {
         // Lookup member by name for balance correction
         try {
           const searchRes = await fetch(`/api/commander/members/search?q=${encodeURIComponent(details.player_name)}&venue_id=${venueId}&limit=1`, { headers });
+          if (!searchRes.ok) throw new Error(`Request failed (${searchRes.status})`);
           const searchJson = await searchRes.json();
           const match = (searchJson.data || []).find(m => {
             const mName = m.name || `${m.first_name || ''} ${m.last_name || ''}`.trim();
@@ -854,6 +855,7 @@ export default function Cashier() {
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
       // Use server-side player_name filter for efficiency
       const res = await fetch(`/api/commander/cashier?venue_id=${venueId}&player_name=${encodeURIComponent(selectedPlayer.player_name)}&limit=100`, { headers });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       setPlayerHistory(json.data || []);
     } catch { setPlayerHistory([]); }

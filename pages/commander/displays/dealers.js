@@ -26,7 +26,9 @@ export default function DealerRotationDisplay() {
         fetch('/api/commander/dealers'),
         fetch('/api/commander/dealers/rotations')
       ]);
+      if (!dealerRes.ok) throw new Error(`Request failed (${dealerRes.status})`);
       const dealerJson = await dealerRes.json();
+      if (!rotRes.ok) throw new Error(`Request failed (${rotRes.status})`);
       const rotJson = await rotRes.json();
       if (dealerJson.success) setDealers(dealerJson.data || []);
       if (rotJson.success) setRotations(rotJson.data || []);

@@ -29,6 +29,7 @@ export default function TournamentResultsReport() {
         const res = await fetch('/api/commander/tournaments?status=completed&limit=50', {
           headers: { 'x-staff-session': staffSession }
         });
+        if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const json = await res.json();
         if (json.success) {
           const list = json.data?.tournaments || (Array.isArray(json.data) ? json.data : []);
@@ -48,6 +49,7 @@ export default function TournamentResultsReport() {
       const res = await fetch(`/api/commander/tournaments/${tournamentId}/entries?status=all`, {
         headers: { 'x-staff-session': staffSession }
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
         setTournaments(prev => prev.map(t =>

@@ -71,6 +71,7 @@ export default function WaitlistDisplay() {
       const opts = signal ? { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }, signal }
         : { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } };
       const res = await fetch('/api/commander/settings', opts);
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success && json.data?.desk_customization) {
         setCustom(prev => ({ ...prev, ...json.data.desk_customization }));
@@ -97,7 +98,9 @@ export default function WaitlistDisplay() {
         fetch(`/api/commander/tables?venue_id=${vid}`, opts),
         fetch(`/api/commander/waitlist?venue_id=${vid}`, opts)
       ]);
+      if (!tabRes.ok) throw new Error(`Request failed (${tabRes.status})`);
       const tabJson = await tabRes.json();
+      if (!wlRes.ok) throw new Error(`Request failed (${wlRes.status})`);
       const wlJson = await wlRes.json();
       if (tabJson.success) setTables(tabJson.data?.tables || tabJson.data || []);
       if (wlJson.success) {

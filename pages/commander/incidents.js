@@ -390,6 +390,7 @@ export default function IncidentsPage() {
       const res = await fetch(`/api/commander/incidents?venue_id=${venueId}`, {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) setIncidents(data.data?.incidents || []);
     } catch (err) {

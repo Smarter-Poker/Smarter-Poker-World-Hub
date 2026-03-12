@@ -49,6 +49,7 @@ export default function AnalyticsDailyReport() {
       const res = await fetch(`/api/commander/analytics/daily?venue_id=${staff.venue_id}&start_date=${startDate}&end_date=${endDate}&days=${range}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.analytics) {
         setData(Array.isArray(json.analytics) ? json.analytics : [json.analytics]);

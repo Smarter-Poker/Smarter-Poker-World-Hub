@@ -40,6 +40,7 @@ export default function RevenueReport() {
       const res = await fetch(`/api/commander/reports/revenue?venue_id=${venueId}&range=${range}`, {
         headers: { Authorization: `Bearer ${getToken()}` }
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) setData(json.data);
     } catch (err) { console.error(err); }

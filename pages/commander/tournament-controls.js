@@ -39,6 +39,7 @@ export default function TournamentDirector() {
             const res = await fetch('/api/commander/tournaments', {
                 headers: { 'x-staff-session': staffSession },
             });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const data = await res.json();
             if (data.success) {
                 const active = (data.data?.tournaments || [])

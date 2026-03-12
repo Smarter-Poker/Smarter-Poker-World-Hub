@@ -91,6 +91,7 @@ export default function AnnouncementsDisplay() {
       const res = await fetch(`/api/commander/announcements?venue_id=${venueId}`, {
         headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) setAnnouncements(json.data || []);
     } catch (err) { console.error(err); }
@@ -99,6 +100,7 @@ export default function AnnouncementsDisplay() {
       const settingsRes = await fetch(`/api/commander/settings?venue_id=${venueId}`, {
         headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
       });
+      if (!settingsRes.ok) throw new Error(`Request failed (${settingsRes.status})`);
       const sj = await settingsRes.json();
       if (sj.success) setRoomOpen(sj.data?.room_open ?? true);
     } catch (err) { }
@@ -113,6 +115,7 @@ export default function AnnouncementsDisplay() {
       const res = await fetch(`/api/commander/announcements?venue_id=${venueId}&include_scheduled=1`, {
         headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) setAllAnnouncements(json.data || []);
     } catch (err) { console.error(err); }
@@ -202,6 +205,7 @@ export default function AnnouncementsDisplay() {
       const res = await fetch('/api/commander/announcements', {
         method: editingAnnouncement ? 'PATCH' : 'POST', headers: hdrs, body: JSON.stringify(body),
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (!json.success) throw new Error(json.error);
       setShowForm(false);

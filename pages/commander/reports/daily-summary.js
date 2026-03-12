@@ -40,9 +40,11 @@ export default function DailySummaryReport() {
           fetch(`/api/commander/cashier?venue_id=${venueId}&date=${date}&limit=100`, { headers }),
         ]);
 
+        if (!summaryRes.ok) throw new Error(`Request failed (${summaryRes.status})`);
         const summaryJson = await summaryRes.json();
         if (summaryJson.success) setData(summaryJson.data);
 
+        if (!cashierRes.ok) throw new Error(`Request failed (${cashierRes.status})`);
         const cashierJson = await cashierRes.json();
         if (cashierJson.success) {
           const txns = cashierJson.data || [];

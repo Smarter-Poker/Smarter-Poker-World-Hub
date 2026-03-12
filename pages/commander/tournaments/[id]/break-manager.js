@@ -50,6 +50,7 @@ export default function BreakManager() {
       const res = await fetch(`/api/commander/tournaments/${tournamentId}/auto-break`, {
         headers: { 'x-staff-session': getStaffSession() }
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
         setBreakData(json.data);

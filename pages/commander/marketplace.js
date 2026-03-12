@@ -471,6 +471,7 @@ export default function MarketplacePage() {
       const res = await fetch('/api/commander/marketplace/dealers?limit=50', {
         headers: { Authorization: `Bearer ${token}` }
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
         setDealers(data.data?.dealers || []);
@@ -486,6 +487,7 @@ export default function MarketplacePage() {
       const res = await fetch('/api/commander/marketplace/equipment?limit=50', {
         headers: { Authorization: `Bearer ${token}` }
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
         setEquipment(data.data?.equipment || []);

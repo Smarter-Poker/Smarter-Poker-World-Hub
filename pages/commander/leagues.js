@@ -105,6 +105,7 @@ export default function LeaguesAndFreerollsManagement() {
         headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
         ...(signal ? { signal } : {}),
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) setLeagues(json.data?.leagues || []);
     } catch (err) { if (err.name !== 'AbortError') console.error(err); }
@@ -119,6 +120,7 @@ export default function LeaguesAndFreerollsManagement() {
         headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
         ...(signal ? { signal } : {}),
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) setFreerolls(json.data?.freerolls || []);
     } catch (err) { if (err.name !== 'AbortError') console.error(err); }
@@ -148,6 +150,7 @@ export default function LeaguesAndFreerollsManagement() {
       const res = await fetch(`/api/commander/leagues/${leagueId}/standings`, {
         headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
         setStandings(prev => ({ ...prev, [leagueId]: json.data?.standings || [] }));
@@ -201,6 +204,7 @@ export default function LeaguesAndFreerollsManagement() {
       const res = await fetch(`/api/commander/freerolls/${freerollId}/qualifications`, {
         headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
         setQualifications(prev => ({ ...prev, [freerollId]: json.data?.qualifications || [] }));

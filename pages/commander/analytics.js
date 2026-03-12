@@ -152,7 +152,9 @@ export default function AnalyticsPage() {
         fetch(`/api/commander/analytics/players?venue_id=${venueId}&limit=10`, { headers })
       ]);
 
+      if (!dailyRes.ok) throw new Error(`Request failed (${dailyRes.status})`);
       const dailyData = await dailyRes.json();
+      if (!playersRes.ok) throw new Error(`Request failed (${playersRes.status})`);
       const playersData = await playersRes.json();
 
       // API returns { analytics: [...], summary, period } and { players: [...], total, ... }

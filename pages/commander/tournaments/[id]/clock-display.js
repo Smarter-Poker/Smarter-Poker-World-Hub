@@ -173,6 +173,7 @@ export default function ClockDisplay() {
       const res = await fetch('/api/commander/clock-presets', {
         headers: { 'x-staff-session': staffSession },
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
         const found = (json.data || []).find(p => p.id === presetId);
@@ -190,6 +191,7 @@ export default function ClockDisplay() {
         headers: { 'x-staff-session': staffSession },
         ...(signal ? { signal } : {}),
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
         setData(json.data);
@@ -334,6 +336,7 @@ export default function ClockDisplay() {
         const res2 = await fetch(`/api/commander/tournaments/${id}/floor-view`, {
           headers: { 'x-staff-session': staffSession },
         });
+        if (!res2.ok) throw new Error(`Request failed (${res2.status})`);
         const json2 = await res2.json();
         if (json2.success) {
           setData(json2.data);

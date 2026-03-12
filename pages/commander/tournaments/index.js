@@ -100,6 +100,7 @@ export default function CommanderTournamentsPage() {
       if (filter !== 'all') params.set('status', filter);
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/tournaments?${params}`, { headers: { 'x-staff-session': staffSession } });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) setTournaments(data.data.tournaments || []);
     } catch (err) { console.error('Fetch tournaments:', err); }

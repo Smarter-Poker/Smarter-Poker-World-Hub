@@ -51,6 +51,7 @@ export default function TaxCompliance() {
       if (filter === 'pending') url += '&w2g_generated=false';
       if (filter === 'generated') url += '&w2g_generated=true';
       const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
         setEvents(json.data.events);

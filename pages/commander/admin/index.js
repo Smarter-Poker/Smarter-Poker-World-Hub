@@ -476,6 +476,7 @@ export default function AdminDashboard() {
 
       // Load exports
       const exportsRes = await fetch('/api/commander/exports', fetchOpts({ Authorization: `Bearer ${token}` }));
+      if (!exportsRes.ok) throw new Error(`Request failed (${exportsRes.status})`);
       const exportsData = await exportsRes.json();
       if (exportsData.exports) {
         setExports(exportsData.exports);

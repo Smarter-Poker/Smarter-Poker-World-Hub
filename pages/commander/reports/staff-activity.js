@@ -28,6 +28,7 @@ export default function StaffActivity() {
         const res = await fetch('/api/commander/incidents?status=all&limit=50', {
           headers: { Authorization: `Bearer ${token}` }
         });
+        if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const json = await res.json();
         if (json.success) setActivities(json.data || []);
       } catch (err) { console.error(err); }
@@ -48,6 +49,7 @@ export default function StaffActivity() {
       const res = await fetch(`/api/commander/admin/audit-logs?${params}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.logs) {
         setAuditLogs(data.logs);

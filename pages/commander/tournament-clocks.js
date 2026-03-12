@@ -38,6 +38,7 @@ export default function TournamentClocks() {
             const res = await fetch('/api/commander/tournaments?limit=50', {
                 headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
             });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success || json.data) {
                 const all = json.data?.tournaments || json.data || [];

@@ -84,6 +84,7 @@ export default function LeaderboardDisplay() {
     try {
       // ── Fetch members ──
       const mRes = await fetch(`/api/commander/members?venue_id=${venueId}&limit=200`, fetchOpts);
+      if (!mRes.ok) throw new Error(`Request failed (${mRes.status})`);
       const mJson = await mRes.json();
       const members = (mJson?.data?.members || mJson?.members || []).filter(m => m.membership_status === 'active');
       setTotalMembers(members.length);
@@ -96,6 +97,7 @@ export default function LeaderboardDisplay() {
       // ════════════════════════════════════════════════════════════
       try {
         const lbRes = await fetch(`/api/commander/leaderboards?venue_id=${venueId}&status=active`);
+        if (!lbRes.ok) throw new Error(`Request failed (${lbRes.status})`);
         const lbJson = await lbRes.json();
         const customs = lbJson?.leaderboards || lbJson?.data || [];
         if (Array.isArray(customs)) {
@@ -134,12 +136,14 @@ export default function LeaderboardDisplay() {
       // ════════════════════════════════════════════════════════════
       try {
         const lgRes = await fetch('/api/commander/leagues?status=active');
+        if (!lgRes.ok) throw new Error(`Request failed (${lgRes.status})`);
         const lgJson = await lgRes.json();
         const leagues = lgJson?.data?.leagues || lgJson?.leagues || [];
         if (Array.isArray(leagues)) {
           for (const lg of leagues.slice(0, 3)) {
             try {
               const stRes = await fetch(`/api/commander/leagues/${lg.id}/standings`);
+              if (!stRes.ok) throw new Error(`Request failed (${stRes.status})`);
               const stJson = await stRes.json();
               const standings = stJson?.data?.standings || stJson?.standings || [];
               if (standings.length > 0) {
@@ -168,6 +172,7 @@ export default function LeaderboardDisplay() {
       // ── C1: Hours Played ──
       try {
         const hRes = await fetch(`/api/commander/members/hours?venue_id=${venueId}&period=all&limit=15`);
+        if (!hRes.ok) throw new Error(`Request failed (${hRes.status})`);
         const hJson = await hRes.json();
         const players = hJson?.data?.players || [];
         if (players.length > 0 && players.some(p => p.total_hours > 0)) {

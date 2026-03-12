@@ -96,6 +96,7 @@ export default function ReportsPage() {
         const res = await fetch(`/api/commander/reports/summary?range=${dateRange}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
+        if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const json = await res.json();
         if (json.success) setSummary(json.data);
       } catch (err) { console.error(err); }

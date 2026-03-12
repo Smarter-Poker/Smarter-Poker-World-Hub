@@ -59,6 +59,7 @@ export default function ShiftHandoff() {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         ...(signal ? { signal } : {}),
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) setHandoffs(json.data.handoffs);
     } catch (err) { if (err.name !== 'AbortError') console.error(err); }

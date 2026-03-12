@@ -49,6 +49,7 @@ export default function PokerRoomFunctions() {
 
       // Get settings (room open/close state + venue_id)
       const vRes = await fetch('/api/commander/settings', { headers });
+      if (!vRes.ok) throw new Error(`Request failed (${vRes.status})`);
       const vJson = await vRes.json();
       let vid = venueId;
       if (vJson.success && vJson.data) {

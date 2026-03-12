@@ -32,6 +32,7 @@ export default function PlayerActivityReport() {
         fetch(`/api/commander/members?sort=${sortBy}&limit=100`, { headers }),
         fetch('/api/commander/time-billing/sessions?limit=200&status=all', { headers })
       ]);
+      if (!membersRes.ok) throw new Error(`Request failed (${membersRes.status})`);
       const [membersJson, sessionsJson] = await Promise.all([membersRes.json(), sessionsRes.json()]);
       if (membersJson.success) setPlayers(membersJson.data || []);
       if (sessionsJson.success) setSessions(sessionsJson.data || []);

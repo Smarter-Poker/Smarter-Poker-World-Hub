@@ -35,6 +35,7 @@ export default function DisplayManagement() {
       const res = await fetch('/api/commander/tournaments', {
         headers: { Authorization: `Bearer ${token}` }
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
         const list = json.data?.tournaments || (Array.isArray(json.data) ? json.data : []);

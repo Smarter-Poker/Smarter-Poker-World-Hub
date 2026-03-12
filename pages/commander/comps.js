@@ -154,7 +154,9 @@ export default function CompSystem() {
           fetch(`/api/commander/members?venue_id=${venueId}&has_comps=true&limit=100`, { headers }),
           fetch(`/api/commander/comps/balances?venue_id=${venueId}&history=true`, { headers })
         ]);
+        if (!membersRes.ok) throw new Error(`Request failed (${membersRes.status})`);
         const membersJson = await membersRes.json();
+        if (!logRes.ok) throw new Error(`Request failed (${logRes.status})`);
         const logJson = await logRes.json();
 
         const members = membersJson.data?.members || membersJson.data || [];
@@ -184,6 +186,7 @@ export default function CompSystem() {
 
       } else if (tab === 'log') {
         const res = await fetch(`/api/commander/comps/balances?venue_id=${venueId}&history=true`, { headers });
+        if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const json = await res.json();
         setCompLog(json.data?.transactions || []);
       }
@@ -205,6 +208,7 @@ export default function CompSystem() {
       const staffSession = getStaffSession();
       if (staffSession) headers['x-staff-session'] = staffSession;
       const res = await fetch(`/api/commander/members/search?q=${encodeURIComponent(q)}&limit=10${venueId ? `&venue_id=${venueId}` : ''}`, { headers });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) setSearchResults(json.data || []);
     } catch (err) { console.error(err); }
