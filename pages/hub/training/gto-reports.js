@@ -288,14 +288,14 @@ export default function GTOReportsPage() {
         setLoading(false);
         return;
       }
-      const user = getAuthUser();
-      if (!user?.session?.access_token) {
+      const token = await getAccessToken();
+      if (!token) {
         setLoading(false);
         return;
       }
 
-      const res = await fetch('/api/training/get-sessions?limit=500', {
-        headers: { Authorization: `Bearer ${getAccessToken()}` },
+      const res = await authedFetch('/api/training/get-sessions?limit=500', {
+        headers: { Authorization: `Bearer ${token}` },
       });
       // HARDENED: Guard against non-OK responses and malformed JSON
       if (!res.ok) {
@@ -312,7 +312,8 @@ export default function GTOReportsPage() {
         return;
       }
       if (Array.isArray(data.sessions)) {
-        setSessions(data.sessions);
+        // Filter out nodelocking profile entries
+        setSessions(data.sessions.filter((s) => (s.game_id || s.gameId) !== 'nodelocking_profile'));
       }
     } catch (err) {
       console.error('[GTOReports] Fetch error:', err);
@@ -326,8 +327,15 @@ export default function GTOReportsPage() {
 
   // Bus listener — auto-refresh when a training session completes
   useEffect(() => {
-    const unsub = eventBus.on(EventType?.SESSION_END || 'session:end', () => fetchSessions());
-    return typeof unsub === 'function' ? unsub : () => {}; // HARDENED: Guard unsub type
+    if (eventBus?.on) {
+      const handler = () => fetchSessions();
+      eventBus.on(EventType?.SESSION_END || 'session:end', handler);
+      eventBus.on('training:session-complete', handler);
+      return () => {
+        eventBus.off?.(EventType?.SESSION_END || 'session:end', handler);
+        eventBus.off?.('training:session-complete', handler);
+      };
+    }
   }, [fetchSessions]);
 
   // Compute aggregate user stats from sessions

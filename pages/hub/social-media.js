@@ -4066,7 +4066,7 @@ export default function SocialMediaPage() {
                 console.log('[Social] 🔄 New post detected via realtime:', payload.new.id);
                 // Trigger feed reload to pick up new posts
                 try {
-                    new BroadcastChannel('smarter_poker_social_sync').postMessage('refresh_feed');
+                    const bc = new BroadcastChannel('smarter_poker_social_sync'); bc.postMessage('refresh_feed'); bc.close();
                 } catch (e) { }
                 // Also refresh local feed
                 await loadFeed(0, false);
