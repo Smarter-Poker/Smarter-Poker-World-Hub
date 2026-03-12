@@ -29,9 +29,10 @@ import { supabase } from '../../lib/supabase';
 // Enforce relative paths so the Next.js same-origin proxy (rewrites) takes over.
 const SPA_ORIGIN = '';
 const SPA_BASE = '/hub/club-arena';
-const LOAD_TIMEOUT_MS = 15_000;       // 15s before showing error
+const LOAD_TIMEOUT_MS = 8_000;        // 8s before showing error (same-origin proxy loads fast)
 const AUTH_RETRY_INTERVAL_MS = 2_000; // Retry auth every 2s
 const AUTH_MAX_RETRIES = 5;           // Max 5 auth attempts
+const HEARTBEAT_TIMEOUT_MS = 45_000;  // 45s without heartbeat = dead iframe
 
 /**
  * @param {Object} props
@@ -48,6 +49,8 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
     const authRetryRef = useRef(null);
     const authAckedRef = useRef(false);
     const retryCountRef = useRef(0);
+    const heartbeatRef = useRef(null);
+    const heartbeatTimerRef = useRef(null);
 
     // Stabilize query object identity to prevent infinite re-renders
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -99,6 +102,8 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
         setLoadState('ready');
         retryCountRef.current = 0;
         console.log('[ClubArenaEmbed] ✅ Iframe loaded successfully');
+        // Sentry breadcrumb for production observability
+        try { window.Sentry?.addBreadcrumb?.({ category: 'club-arena', message: 'Iframe loaded successfully', level: 'info' }); } catch (_) {}
     }, []);
 
     const handleIframeError = useCallback(() => {
@@ -159,7 +164,7 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
         return () => clearInterval(authRetryRef.current);
     }, [loadState]);
 
-    /* ── Message listener: ACK, navigation, URL sync ──────────────────── */
+    /* ── Message listener: ACK, navigation, URL sync, heartbeat ─────── */
     useEffect(() => {
         const handleMessage = (event) => {
             // Must be strictly from this origin to prevent cross-site scripting
@@ -172,12 +177,17 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
                 case 'SMARTER_AUTH_ACK':
                     authAckedRef.current = true;
                     clearInterval(authRetryRef.current);
+                    // Sentry breadcrumb for observability
+                    try { window.Sentry?.addBreadcrumb?.({ category: 'club-arena', message: 'Auth ACK received', level: 'info' }); } catch (_) {}
                     console.log('[ClubArenaEmbed] ✅ Auth ACK received from SPA');
                     break;
 
                 /* Navigation — SPA wants to break out of iframe */
+                /* Handles both the legacy 'NAVIGATE' and canonical 'CLUB_ARENA_NAVIGATE' types */
+                case 'NAVIGATE':
                 case 'CLUB_ARENA_NAVIGATE':
                     if (data.url) window.location.href = data.url;
+                    if (data.path) window.location.href = data.path;
                     break;
 
                 /* URL Sync — SPA reports its current route */
@@ -191,12 +201,39 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
                         }
                     }
                     break;
+
+                /* Heartbeat — SPA is alive, reset the dead-iframe timer */
+                case 'CLUB_ARENA_HEARTBEAT':
+                    resetHeartbeatTimer();
+                    break;
             }
         };
 
         window.addEventListener('message', handleMessage);
         return () => window.removeEventListener('message', handleMessage);
     }, []);
+
+    /* ── Heartbeat dead-iframe detection ──────────────────────────────── */
+    const resetHeartbeatTimer = useCallback(() => {
+        clearTimeout(heartbeatTimerRef.current);
+        heartbeatTimerRef.current = setTimeout(() => {
+            // Only trigger if the iframe was previously healthy
+            if (loadState === 'ready' && authAckedRef.current) {
+                console.warn('[ClubArenaEmbed] Heartbeat timeout — SPA may be unresponsive');
+                try { window.Sentry?.addBreadcrumb?.({ category: 'club-arena', message: 'Heartbeat timeout — iframe unresponsive', level: 'warning' }); } catch (_) {}
+                setLoadState('error');
+                setErrorMsg('Club Arena appears to be unresponsive. Click Retry to reconnect.');
+            }
+        }, HEARTBEAT_TIMEOUT_MS);
+    }, [loadState]);
+
+    // Start heartbeat monitoring once the iframe is ready and auth is complete
+    useEffect(() => {
+        if (loadState === 'ready' && authAckedRef.current) {
+            resetHeartbeatTimer();
+        }
+        return () => clearTimeout(heartbeatTimerRef.current);
+    }, [loadState, resetHeartbeatTimer]);
 
     if (!iframeSrc) return null;
 

@@ -8,6 +8,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { apiCall } from '../../../src/lib/club-arena/apiClient';
+import { busEmit } from '../../../src/engine/EventBus';
 import s from '../../../src/styles/UnionDashboard.module.css';
 
 const fmt = (n) => Number(n || 0).toLocaleString();
@@ -130,11 +131,12 @@ export default function UnionGamesPage() {
   }, [tab, unionId]);
 
   // ── Mutation Helper ───────────────────────────────────────
-  const doAction = async (body, successMsg) => {
+  const doAction = async (body, successMsg, { busEvent = null } = {}) => {
     setProcessing(true); setError(null);
     try {
       const res = await apiCall('/api/club-arena/union-games', { ...body, unionId });
       setSuccess(successMsg || res.message || 'Done');
+      if (busEvent) busEmit(busEvent, { unionId, action: body?.action, ...res });
       return res;
     } catch (err) { setError(err.message); return null; }
     finally { setProcessing(false); }
@@ -311,7 +313,7 @@ export default function UnionGamesPage() {
                       guaranteedPrize: parseInt(tournForm.guaranteedPrize) || 0,
                       scheduledStart: start,
                       participatingClubIds: tournForm.type === 'xmtt' ? tournForm.participatingClubIds : undefined,
-                    }, 'Tournament created');
+                    }, 'Tournament created', { busEvent: 'union:tournament-created' });
                     if (res) { setShowCreate(false); loadTournaments(); }
                   }}>Create Tournament</button>
                 </div>
@@ -493,7 +495,7 @@ export default function UnionGamesPage() {
                       maxPlayers: parseInt(tableForm.maxPlayers) || 9,
                       minBuyIn: tableForm.minBuyIn ? parseInt(tableForm.minBuyIn) : undefined,
                       maxBuyIn: tableForm.maxBuyIn ? parseInt(tableForm.maxBuyIn) : undefined,
-                    }, 'Table created');
+                    }, 'Table created', { busEvent: 'union:table-created' });
                     if (res) { setShowCreateTable(false); loadTables(); }
                   }}>Create Table</button>
                 </div>
