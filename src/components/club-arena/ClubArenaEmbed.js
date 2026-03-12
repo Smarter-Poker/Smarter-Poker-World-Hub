@@ -146,12 +146,16 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
             try {
                 const { data: { session } } = await supabase.auth.getSession();
                 if (session?.access_token && iframeRef.current?.contentWindow) {
-                    // Extract global settings to bridge across the iframe boundary instantly
+                    // Extract global settings from the REAL World Hub localStorage keys
+                    // to bridge them across the iframe boundary instantly
                     let globalSettings = {};
                     try {
-                        const stored = localStorage.getItem('smarter-poker-settings');
-                        if (stored) globalSettings = JSON.parse(stored);
-                    } catch (e) { /* ignore */ }
+                        globalSettings = {
+                            theme: localStorage.getItem('smarter-poker-theme') || 'dark',
+                            soundEnabled: localStorage.getItem('poker-sound-enabled') !== 'false',
+                            fourColorDeck: localStorage.getItem('poker-4color-deck') === 'true',
+                        };
+                    } catch (e) { /* ignore — SSR or localStorage disabled */ }
 
                     iframeRef.current.contentWindow.postMessage({
                         type: 'SMARTER_AUTH_TOKEN',

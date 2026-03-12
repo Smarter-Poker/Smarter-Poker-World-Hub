@@ -195,6 +195,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId 
     const [likeCount, setLikeCount] = useState(post.like_count || 0);
     const [commentCount, setCommentCount] = useState(post.comment_count || 0);
     const [showComments, setShowComments] = useState(false);
+    const [typists, setTypists] = useState({}); // { [userId]: { name, avatar_url, timestamp } }
 
     // 📡 Real-time sync for Likes & Comments (Broadcast from WebSocket)
     useEffect(() => {
@@ -209,9 +210,38 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId 
                 setCommentCount(prev => prev + 1);
             }
         });
+        const cleanupTyping = eventBus.on('SOCIAL_TYPING_UPDATE', (payload) => {
+            if (payload?.postId === post.id) {
+                setTypists(prev => {
+                    const next = { ...prev };
+                    if (payload.isTyping) {
+                        next[payload.userId] = { name: payload.name, avatar: payload.avatar, ts: Date.now() };
+                    } else {
+                        delete next[payload.userId];
+                    }
+                    return next;
+                });
+            }
+        });
+        
+        // Auto-clear stale typists after 10s fallback
+        const typeInterval = setInterval(() => {
+            setTypists(prev => {
+                const now = Date.now();
+                let changed = false;
+                const next = { ...prev };
+                for (const uid in next) {
+                    if (now - next[uid].ts > 10000) { delete next[uid]; changed = true; }
+                }
+                return changed ? next : prev;
+            });
+        }, 5000);
+
         return () => {
             if (cleanupLike) cleanupLike();
             if (cleanupComment) cleanupComment();
+            if (cleanupTyping) cleanupTyping();
+            clearInterval(typeInterval);
         };
     }, [post.id]);
     const [comments, setComments] = useState([]);
@@ -292,6 +322,15 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId 
         } catch (e) { console.error('Submit comment error:', e); }
         setSubmittingComment(false);
     };
+
+    // Typing indicator animation component
+    const TypingDot = ({ delay }) => (
+        <span style={{ 
+            display: 'inline-block', width: 6, height: 6, borderRadius: '50%', 
+            background: C.textSec, margin: '0 2px',
+            animation: `sp-bounce 1.4s infinite ease-in-out both`, animationDelay: delay
+        }}></span>
+    );
 
     const handleShare = async () => {
         const url = window.location.origin + '/hub/user/' + (author?.username || '') + '?post=' + post.id;
@@ -423,6 +462,31 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId 
                 <button onClick={handleComment} style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: showComments ? C.blue : C.textSec, fontWeight: 500, fontSize: 13 }}> Comment</button>
                 <button onClick={handleShare} style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: C.textSec, fontWeight: 500, fontSize: 13 }}>↗️ Share</button>
             </div>
+            
+            {/* Display Animated Typing Indicators (Phase 11) */}
+            {Object.values(typists).length > 0 && (
+                <div style={{ display: 'flex', gap: 8, marginTop: 12, padding: '0 12px', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', position: 'relative', width: 24, height: 24 }}>
+                        {Object.values(typists).slice(0, 3).map((t, i) => (
+                            <img key={i} src={t.avatar || '/default-avatar.png'} alt="typing" 
+                                style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover', border: '2px solid white', position: 'absolute', left: i * 12, zIndex: 3 - i }} />
+                        ))}
+                    </div>
+                    <div style={{ 
+                        background: '#f0f2f5', borderRadius: 16, padding: '8px 12px', fontSize: 12,
+                        color: C.textSec, display: 'flex', alignItems: 'center', gap: 6, marginLeft: Object.values(typists).length > 2 ? 30 : (Object.values(typists).length - 1) * 12
+                    }}>
+                        <span>{Object.values(typists)[0].name.split(' ')[0]} is typing</span>
+                        <div style={{ display: 'flex' }}>
+                            <TypingDot delay="-0.32s" />
+                            <TypingDot delay="-0.16s" />
+                            <TypingDot delay="0s" />
+                        </div>
+                        <style>{`@keyframes sp-bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }`}</style>
+                    </div>
+                </div>
+            )}
+            
             {/* Comment Section */}
             {showComments && (
                 <div style={{ borderTop: `1px solid ${C.border}`, padding: 12 }}>

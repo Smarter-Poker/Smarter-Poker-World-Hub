@@ -423,10 +423,7 @@ async function commentOnPosts(maxComments = 20, includeRealUsers = true) {
         .order('created_at', { ascending: false })
         .limit(50);
 
-    if (!includeRealUsers) {
-        postsQuery = postsQuery.in('author_id', horseIds);
-    }
-
+    // Phase 12 - Inter-Bot Drama: Allow horses to also see all horse posts
     const { data: posts } = await postsQuery;
 
     if (!posts?.length) {
@@ -569,10 +566,7 @@ async function likePosts(maxLikes = 30, includeRealUsers = true) {
         .order('created_at', { ascending: false })
         .limit(100);
 
-    if (!includeRealUsers) {
-        postsQuery = postsQuery.in('author_id', horseIds);
-    }
-
+    // Phase 12 - Inter-Bot Drama: Allow horses to also like all horse posts
     const { data: posts } = await postsQuery;
 
     if (!posts?.length) return { liked: 0, activeHorses: activeHorses.length };

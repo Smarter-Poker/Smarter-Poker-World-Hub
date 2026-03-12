@@ -1687,6 +1687,31 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                     style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: bookmarked ? '#FFB800' : C.textSec, fontWeight: 500, fontSize: 13 }}
                 >{bookmarked ? '' : ''} Save</button>
             </div>
+            
+            {/* Display Animated Typing Indicators (Phase 11) */}
+            {Object.values(typists).length > 0 && (
+                <div style={{ display: 'flex', gap: 8, marginTop: 12, padding: '0 12px', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', position: 'relative', width: 24, height: 24 }}>
+                        {Object.values(typists).slice(0, 3).map((t, i) => (
+                            <img key={i} src={t.avatar || '/default-avatar.png'} alt="typing" 
+                                style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover', border: '2px solid white', position: 'absolute', left: i * 12, zIndex: 3 - i }} />
+                        ))}
+                    </div>
+                    <div style={{ 
+                        background: '#f0f2f5', borderRadius: 16, padding: '8px 12px', fontSize: 12,
+                        color: C.textSec, display: 'flex', alignItems: 'center', gap: 6, marginLeft: Object.values(typists).length > 2 ? 30 : (Object.values(typists).length - 1) * 12
+                    }}>
+                        <span>{Object.values(typists)[0].name.split(' ')[0]} is typing</span>
+                        <div style={{ display: 'flex' }}>
+                            <TypingDot delay="-0.32s" />
+                            <TypingDot delay="-0.16s" />
+                            <TypingDot delay="0s" />
+                        </div>
+                        <style>{`@keyframes sp-bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }`}</style>
+                    </div>
+                </div>
+            )}
+
             {showComments && (
                 <div style={{ borderTop: `1px solid ${C.border}`, padding: 12 }}>
                     {loadingComments && <div style={{ color: C.textSec, fontSize: 13 }}>Loading Comments...</div>}
