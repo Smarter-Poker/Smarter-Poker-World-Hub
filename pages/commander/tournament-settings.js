@@ -51,6 +51,7 @@ export default function TournamentSettingsPage() {
             const res = await fetch('/api/commander/clock-presets', {
                 headers: { 'x-staff-session': staffSession || '' },
             });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) {
                 setClockPresets(json.data || []);

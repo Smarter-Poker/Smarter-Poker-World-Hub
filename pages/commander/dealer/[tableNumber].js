@@ -98,6 +98,7 @@ export default function DealerTablet() {
       const headers = { Authorization: `Bearer ${token}` };
       // Fetch table by number (includes mode, tournament_id from assignment system)
       const tableRes = await fetch(`/api/commander/tables/by-number?tableNumber=${tableNumber}`, { headers, signal });
+      if (!tableRes.ok) throw new Error(`Table fetch failed (${tableRes.status})`);
       const tableJson = await tableRes.json();
 
       if (!tableJson.success) { setLoading(false); return; }
@@ -109,6 +110,7 @@ export default function DealerTablet() {
       // Fetch current dealer for this table
       try {
         const dealerRes = await fetch(`/api/commander/dealer/current?table=${tableNumber}`, { headers });
+        if (!dealerRes.ok) throw new Error(`Dealer fetch failed (${dealerRes.status})`);
         const dealerJson = await dealerRes.json();
         if (dealerJson.success && dealerJson.data?.dealer) {
           setCurrentDealer(dealerJson.data.dealer);
@@ -122,6 +124,7 @@ export default function DealerTablet() {
         // TOURNAMENT MODE — get players from tournament floor-view
         try {
           const tRes = await fetch(`/api/commander/tournaments/${tbl.tournament_id}/floor-view`, { headers });
+          if (!tRes.ok) throw new Error(`Tournament fetch failed (${tRes.status})`);
           const tJson = await tRes.json();
           if (tJson.success) {
             const tData = tJson.data;
@@ -152,6 +155,7 @@ export default function DealerTablet() {
         setTournamentMode(null);
         try {
           const sessionsRes = await fetch(`/api/commander/dealer/sessions?table=${tableNumber}`, { headers });
+          if (!sessionsRes.ok) throw new Error(`Sessions fetch failed (${sessionsRes.status})`);
           const sessionsJson = await sessionsRes.json();
           if (sessionsJson.success) setSeatedPlayers(sessionsJson.data || []);
         } catch (e) { console.error('Sessions fetch error:', e); }

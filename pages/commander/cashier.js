@@ -135,6 +135,7 @@ export default function Cashier() {
 
       const today = new Date().toISOString().split('T')[0];
       const txRes = await fetch(`/api/commander/cashier?venue_id=${venueId}&date=${today}&limit=50`, { headers });
+      if (!txRes.ok) throw new Error(`Transactions fetch failed (${txRes.status})`);
       const txJson = await txRes.json();
       setTransactions(txJson.data || []);
 
@@ -188,6 +189,7 @@ export default function Cashier() {
         const staffSession = localStorage.getItem('commander_staff') || '';
         const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
         const res = await fetch(`/api/commander/members/${member_id}?venue_id=${venueId}`, { headers });
+        if (!res.ok) throw new Error(`Member fetch failed (${res.status})`);
         const json = await res.json();
         if (json.success && (json.data?.member || json.data)) {
           const m = json.data?.member || json.data;
@@ -234,6 +236,7 @@ export default function Cashier() {
 
         // Time billing settings
         const settingsRes = await fetch('/api/commander/settings', { headers });
+        if (!settingsRes.ok) throw new Error(`Settings fetch failed (${settingsRes.status})`);
         const settingsJson = await settingsRes.json();
         if (settingsJson.success && settingsJson.data) {
           setTimeBillingRate(settingsJson.data.time_billing_rate || 0);
@@ -242,6 +245,7 @@ export default function Cashier() {
 
         // Membership plans
         const plansRes = await fetch(`/api/commander/membership-plans?venue_id=${venueId}`, { headers });
+        if (!plansRes.ok) throw new Error(`Plans fetch failed (${plansRes.status})`);
         const plansJson = await plansRes.json();
         if (plansJson.success && plansJson.data?.plans) {
           setMembershipPlans(plansJson.data.plans.filter(p => p.is_active !== false));
@@ -336,6 +340,7 @@ export default function Cashier() {
       const staffSession = localStorage.getItem('commander_staff') || '';
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
       const res = await fetch(`/api/commander/members?search=${encodeURIComponent(qrData)}&venue_id=${venueId}`, { headers });
+      if (!res.ok) throw new Error(`Search failed (${res.status})`);
       const json = await res.json();
       const members = json.data?.members || json.data || [];
       if (json.success && members.length > 0) {
@@ -387,6 +392,7 @@ export default function Cashier() {
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
       const params = query ? `q=${encodeURIComponent(query)}&` : '';
       const res = await fetch(`/api/commander/members/search?${params}venue_id=${venueId}&limit=15`, { headers });
+      if (!res.ok) throw new Error(`Search failed (${res.status})`);
       const json = await res.json();
       setSearchResults(json.data || []);
     } catch { setSearchResults([]); }

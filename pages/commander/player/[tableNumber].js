@@ -324,6 +324,7 @@ export default function PlayerTableDisplay() {
     try {
       const venueParam = table?.venue_id ? `&venue_id=${table.venue_id}` : '';
       const res = await fetch(`/api/commander/dealer/tablet-data?table=${tableNumber}${venueParam}`);
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
         setPlayers(json.data.players || []);

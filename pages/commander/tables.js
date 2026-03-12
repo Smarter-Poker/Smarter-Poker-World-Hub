@@ -114,6 +114,7 @@ export default function CommanderTablesPage() {
     let tablesArr = [];
     try {
       const tablesRes = await fetch(`/api/commander/tables?venue_id=${venueId}`, { headers, signal });
+      if (!tablesRes.ok) throw new Error(`Tables fetch failed (${tablesRes.status})`);
       const tablesData = await tablesRes.json();
       if (tablesData.success) {
         tablesArr = Array.isArray(tablesData.data) ? tablesData.data
@@ -126,6 +127,7 @@ export default function CommanderTablesPage() {
     // Fetch games
     try {
       const gamesRes = await fetch(`/api/commander/games/venue/${venueId}`, { headers, signal });
+      if (!gamesRes.ok) throw new Error(`Games fetch failed (${gamesRes.status})`);
       const gamesData = await gamesRes.json();
       if (gamesData.success) {
         const gamesArr = Array.isArray(gamesData.data?.games) ? gamesData.data.games
@@ -143,6 +145,7 @@ export default function CommanderTablesPage() {
         try {
           const tNum = t.table_number || t.number;
           const res = await fetch(`/api/commander/dealer/sessions?table=${tNum}`, { headers });
+          if (!res.ok) throw new Error(`Sessions fetch failed (${res.status})`);
           const json = await res.json();
           if (json.success) sessionData[tNum] = json.data || [];
         } catch (e) { console.error("[tables.js]", e); }
@@ -155,6 +158,7 @@ export default function CommanderTablesPage() {
     // Fetch active dealer rotations — maps table_number to dealer_name
     try {
       const rotRes = await fetch(`/api/commander/dealers/rotations?venue_id=${venueId}`, { headers });
+      if (!rotRes.ok) throw new Error(`Rotation fetch failed (${rotRes.status})`);
       const rotData = await rotRes.json();
       if (rotData.success) {
         const rots = rotData.data?.rotations || rotData.data || [];
