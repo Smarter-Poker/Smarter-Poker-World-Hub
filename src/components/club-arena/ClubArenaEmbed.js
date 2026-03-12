@@ -63,6 +63,8 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
         const parsedQuery = queryKey ? JSON.parse(queryKey) : {};
         // Add the proxy-trigger flag so Next.js rewrites catch the iframe request instead of rendering the Hub page loop
         parsedQuery._embed = '1';
+        // Add a cache buster so Vercel Edge Cache doesn't serve a stale index.html via the proxy
+        parsedQuery._bust = Date.now().toString();
         
         const params = new URLSearchParams(parsedQuery);
         const qs = params.toString();
@@ -160,8 +162,13 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
     /* ── Message listener: ACK, navigation, URL sync ──────────────────── */
     useEffect(() => {
         const handleMessage = (event) => {
+            console.log(`[World Hub Proxy Listener] Received message from origin:`, event.origin, event.data);
+            
             // Must be strictly from this origin to prevent cross-site scripting
-            if (event.origin !== window.location.origin) return;
+            if (event.origin !== window.location.origin) {
+                console.warn(`[World Hub Proxy Listener] Ignored message from illegitimate origin: ${event.origin}`);
+                return;
+            }
             const data = event.data;
             if (!data || typeof data !== 'object') return;
 
