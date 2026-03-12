@@ -59,6 +59,7 @@ import LiveStreamService from '../../src/services/LiveStreamService';
 import ArticleCard from '../../src/components/social/ArticleCard';
 import ArticleReaderModal from '../../src/components/social/ArticleReaderModal';
 import InviteFriendsModal from '../../src/components/ui/InviteFriendsModal';
+import { HubErrorBoundary } from '../../src/components/ui/HubErrorBoundary';
 import { useActiveIdentity } from '../../src/contexts/ActiveIdentityContext';
 
 // God-Mode Stack
@@ -3923,7 +3924,7 @@ function ClubPagesView({ C, pages, setPages, loading, setLoading, category, setC
     );
 }
 
-export default function SocialMediaPage() {
+function SocialMediaPage() {
     const router = useRouter();
     useTrainingBus('social-media');
 
@@ -6111,5 +6112,13 @@ export default function SocialMediaPage() {
                 searchResults={searchResults}
             />
         </PageTransition>
+    );
+}
+
+export default function SocialMediaPageWithBoundary() {
+    return (
+        <HubErrorBoundary name="SocialMedia">
+            <SocialMediaPage />
+        </HubErrorBoundary>
     );
 }

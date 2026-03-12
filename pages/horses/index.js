@@ -1185,7 +1185,7 @@ export default function HorsesAdmin() {
             </div>
             <span className={styles.userInfo}>{user?.email}</span>
             <button
-              onClick={() => window.dispatchEvent(new CustomEvent('geeves-open'))}
+              onClick={() => { setActiveTab('geeves'); if (!geevesAnalyticsLoaded) loadGeevesAnalytics(); }}
               style={{ marginRight: 8, background: 'rgba(0,180,255,0.12)', border: '1px solid rgba(0,212,255,0.3)', color: '#00d4ff', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
             >
               Ask Geeves

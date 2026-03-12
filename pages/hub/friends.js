@@ -9,10 +9,12 @@ import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../src/lib/supabase';
 import toast from '../../src/stores/toastStore';
+import { broadcastSync } from '../../src/lib/broadcastSync';
 
 // God-Mode Stack
 import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import { HubErrorBoundary } from '../../src/components/ui/HubErrorBoundary';
 import { getAuthUser } from '../../src/lib/authUtils';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
@@ -386,7 +388,7 @@ function TabButton({ active, onClick, icon, label, count }) {
 // ═══════════════════════════════════════════════════════════════════════════
 // MAIN PAGE
 // ═══════════════════════════════════════════════════════════════════════════
-export default function FriendsPage() {
+function FriendsPage() {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = usePersistedState('sp-filters-friends-tab', 'discover'); // requests, friends, following, followers, discover
@@ -692,20 +694,36 @@ export default function FriendsPage() {
     const handleAddFriend = async (friendId) => {
         if (!user || actionInProgress.current) return;
         actionInProgress.current = true;
+
+        // Optimistic UI update
+        setPendingIds(prev => new Set([...prev, friendId]));
+
         try {
+            const { error } = await supabase
+                .from('friendships')
+                .insert({ user_id: user.id, friend_id: friendId, status: 'pending' });
 
-        const { error } = await supabase
-            .from('friendships')
-            .insert({ user_id: user.id, friend_id: friendId, status: 'pending' })
-
-        if (!error) {
-            setPendingIds(prev => new Set([...prev, friendId]));
-            toast.success('Friend request sent!');
-            busEmit.friendRequestSent(friendId);
-            try { const bc = new BroadcastChannel('smarter_poker_friends_sync'); bc.postMessage('refresh'); bc.close(); } catch (e) { }
-        } else {
-            toast.error('Could not send friend request. Please try again.');
-        }
+            if (!error) {
+                toast.success('Friend request sent!');
+                busEmit.friendRequestSent(friendId);
+                broadcastSync('smarter_poker_friends_sync', 'refresh');
+            } else {
+                // Rollback optimistic update
+                setPendingIds(prev => {
+                    const next = new Set(prev);
+                    next.delete(friendId);
+                    return next;
+                });
+                toast.error('Could not send friend request. Please try again.');
+            }
+        } catch (e) {
+            // Rollback optimistic update on network failure
+            setPendingIds(prev => {
+                const next = new Set(prev);
+                next.delete(friendId);
+                return next;
+            });
+            toast.error('Network error. Please try again.');
         } finally { actionInProgress.current = false; }
     };
 
@@ -1173,5 +1191,13 @@ function EmptyState({ icon, message }) {
             <div style={{ fontSize: 48, marginBottom: 16 }}>{icon}</div>
             <div>{message}</div>
         </div>
+    );
+}
+
+export default function FriendsPageWithBoundary() {
+    return (
+        <HubErrorBoundary name="Friends">
+            <FriendsPage />
+        </HubErrorBoundary>
     );
 }

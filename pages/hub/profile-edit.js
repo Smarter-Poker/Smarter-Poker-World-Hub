@@ -20,6 +20,7 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { useProfileStore } from '../../src/stores/profileStore';
 import { getAccessToken, getAuthUser } from '../../src/lib/authUtils';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
+import { broadcastSync } from '../../src/lib/broadcastSync';
 
 // Light Theme Colors
 const C = {
@@ -517,8 +518,8 @@ export default function ProfilePage() {
         try {
             const cacheKey = `sp-profile-cache-${profile.username}`;
             localStorage.removeItem(cacheKey);
-            new BroadcastChannel('smarter_poker_cache_sync').postMessage({ type: 'cache_sync', cacheKey, action: 'invalidate', ts: Date.now() });
-            new BroadcastChannel('smarter_poker_avatar_sync').postMessage('refresh');
+            broadcastSync('smarter_poker_cache_sync', { type: 'cache_sync', cacheKey, action: 'invalidate', ts: Date.now() });
+            broadcastSync('smarter_poker_avatar_sync', 'refresh');
         } catch { /* noop */ }
 
         // Award profile pic diamonds (fire-and-forget, 10 one-time)
@@ -578,7 +579,7 @@ export default function ProfilePage() {
             try {
                 const cacheKey = `sp-profile-cache-${profile.username}`;
                 localStorage.removeItem(cacheKey);
-                new BroadcastChannel('smarter_poker_cache_sync').postMessage({ type: 'cache_sync', cacheKey, action: 'invalidate', ts: Date.now() });
+                broadcastSync('smarter_poker_cache_sync', { type: 'cache_sync', cacheKey, action: 'invalidate', ts: Date.now() });
             } catch { /* noop */ }
         } catch (error) {
             setMessage('Error uploading cover photo: ' + error.message);
@@ -635,7 +636,7 @@ export default function ProfilePage() {
         try {
             const cacheKey = `sp-profile-cache-${profile.username}`;
             localStorage.removeItem(cacheKey);
-            new BroadcastChannel('smarter_poker_cache_sync').postMessage({ type: 'cache_sync', cacheKey, action: 'invalidate', ts: Date.now() });
+            broadcastSync('smarter_poker_cache_sync', { type: 'cache_sync', cacheKey, action: 'invalidate', ts: Date.now() });
         } catch { /* noop */ }
     };
 
@@ -707,8 +708,8 @@ export default function ProfilePage() {
             try {
                 const cacheKey = `sp-profile-cache-${profile.username}`;
                 localStorage.removeItem(cacheKey);
-                new BroadcastChannel('smarter_poker_cache_sync').postMessage({ type: 'cache_sync', cacheKey, action: 'invalidate', ts: Date.now() });
-                new BroadcastChannel('smarter_poker_avatar_sync').postMessage('refresh');
+                broadcastSync('smarter_poker_cache_sync', { type: 'cache_sync', cacheKey, action: 'invalidate', ts: Date.now() });
+                broadcastSync('smarter_poker_avatar_sync', 'refresh');
             } catch { /* noop */ }
 
             // Redirect to profile view

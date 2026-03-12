@@ -24,6 +24,7 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import InviteFriendsModal from '../../src/components/ui/InviteFriendsModal';
 import { getAccessToken } from '../../src/lib/authUtils';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
+import { broadcastSync } from '../../src/lib/broadcastSync';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TOGGLE SWITCH COMPONENT
@@ -226,9 +227,7 @@ export default function SettingsPage() {
                 console.log('[Settings] 🔄 Profile updated via realtime');
                 await loadSettings();
                 // Broadcast to other tabs
-                try {
-                    new BroadcastChannel('smarter_poker_settings_sync').postMessage('refresh_settings');
-                } catch (e) { }
+                broadcastSync('smarter_poker_settings_sync', 'refresh_settings');
             })
             .subscribe();
 

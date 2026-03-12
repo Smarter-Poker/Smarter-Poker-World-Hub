@@ -14,6 +14,7 @@ import Image from 'next/image';
 import { supabase } from '../../src/lib/supabase';
 import { getAuthUser, getAccessToken } from '../../src/lib/authUtils';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import { HubErrorBoundary } from '../../src/components/ui/HubErrorBoundary';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { messengerPreferences } from '../../src/services/preferences-service';
@@ -1019,7 +1020,7 @@ function SearchBar({ value, onChange, onSearchUser, searchResults, onSelectUser,
 // 📱 MAIN MESSENGER PAGE
 // ═══════════════════════════════════════════════════════════════════════════
 
-export default function MessengerPage() {
+function MessengerPage() {
     // Zustand Global State (replaces UI-related useState)
     const selectedConversation = useMessengerStore((s) => s.selectedConversation);
     const setSelectedConversation = useMessengerStore((s) => s.setSelectedConversation);
@@ -3340,5 +3341,13 @@ export default function MessengerPage() {
                 {/* Jarvis is now integrated as a conversation in the list */}
             </div >
         </>
+    );
+}
+
+export default function MessengerPageWithBoundary() {
+    return (
+        <HubErrorBoundary name="Messenger">
+            <MessengerPage />
+        </HubErrorBoundary>
     );
 }

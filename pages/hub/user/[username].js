@@ -12,6 +12,7 @@ import { useState, useEffect } from 'react';
 import { usePersistedState } from '../../../src/hooks/usePersistedState';
 import { supabase } from '../../../src/lib/supabase';
 import { emitCacheInvalidation, onCacheInvalidation } from '../../../src/lib/cacheSync';
+import { broadcastSync } from '../../../src/lib/broadcastSync';
 
 // Components
 import PageTransition from '../../../src/components/transitions/PageTransition';
@@ -773,7 +774,7 @@ export default function UserProfilePage() {
         } catch { /* quota exceeded */ }
     };
     const notifyFriendsSync = () => {
-        try { new BroadcastChannel('smarter_poker_friends_sync').postMessage('refresh'); } catch { /* noop */ }
+        broadcastSync('smarter_poker_friends_sync', 'refresh');
     };
 
     const handleAddFriend = async () => {

@@ -1,0 +1,134 @@
+/* Union Dashboard & Games — Facebook Dark Theme */
+
+/* ── Layout ─────────────────────────────────────────────── */
+.container { min-height: 100vh; background: #18191A; color: #E4E6EB; font-family: 'Inter', -apple-system, sans-serif; padding-bottom: 80px; }
+.inner { max-width: 1200px; margin: 0 auto; padding: 16px; }
+.loading { display: flex; align-items: center; justify-content: center; min-height: 60vh; color: #B0B3B8; font-size: 16px; }
+.error { background: rgba(220,38,38,0.12); border: 1px solid rgba(220,38,38,0.3); color: #FCA5A5; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; }
+.successMsg { background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.3); color: #86EFAC; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; }
+
+/* ── Page Header ────────────────────────────────────────── */
+.pageHeader { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+.pageTitle { font-size: 24px; font-weight: 700; color: #E4E6EB; display: flex; align-items: center; gap: 10px; }
+.unionCode { font-size: 13px; font-weight: 500; background: rgba(35,116,225,0.15); color: #4599FF; padding: 4px 10px; border-radius: 6px; letter-spacing: 0.5px; }
+.headerActions { display: flex; gap: 8px; }
+
+/* ── Tabs ────────────────────────────────────────────────── */
+.tabs { display: flex; gap: 4px; background: #242526; border-radius: 10px; padding: 4px; margin-bottom: 20px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.tab { padding: 10px 16px; border-radius: 8px; background: transparent; border: none; color: #B0B3B8; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: all 0.2s; position: relative; }
+.tab:hover { color: #E4E6EB; background: rgba(255,255,255,0.05); }
+.tabActive { background: #3A3B3C !important; color: #E4E6EB !important; }
+.tabBadge { position: absolute; top: 4px; right: 4px; min-width: 18px; height: 18px; border-radius: 9px; background: #E41E3F; color: #fff; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; padding: 0 4px; }
+
+/* ── Alert Banners ──────────────────────────────────────── */
+.alertBanner { display: flex; align-items: center; gap: 10px; background: rgba(247,197,42,0.1); border: 1px solid rgba(247,197,42,0.25); padding: 10px 16px; border-radius: 8px; margin-bottom: 12px; font-size: 13px; color: #F7C52A; cursor: pointer; transition: background 0.2s; }
+.alertBanner:hover { background: rgba(247,197,42,0.18); }
+.alertCount { font-weight: 700; font-size: 15px; }
+
+/* ── Stat Cards ─────────────────────────────────────────── */
+.statsGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.statCard { background: #242526; border: 1px solid #3A3B3C; border-radius: 10px; padding: 16px; text-align: center; }
+.statValue { font-size: 24px; font-weight: 700; color: #E4E6EB; margin-bottom: 4px; }
+.statLabel { font-size: 12px; color: #B0B3B8; text-transform: uppercase; letter-spacing: 0.5px; }
+.statValueGreen { composes: statValue; color: #31A24C; }
+.statValueBlue { composes: statValue; color: #2374E1; }
+.statValueGold { composes: statValue; color: #F7C52A; }
+.statValueRed { composes: statValue; color: #E41E3F; }
+
+/* ── Wallet Cards ───────────────────────────────────────── */
+.walletGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.walletCard { background: #242526; border: 1px solid #3A3B3C; border-radius: 12px; padding: 20px; }
+.walletLabel { font-size: 12px; color: #B0B3B8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.walletAmount { font-size: 28px; font-weight: 700; color: #E4E6EB; }
+.walletChips { composes: walletCard; border-color: rgba(35,116,225,0.3); }
+.walletRake { composes: walletCard; border-color: rgba(49,162,76,0.3); }
+.walletBBJ { composes: walletCard; border-color: rgba(228,30,63,0.3); }
+.walletPromo { composes: walletCard; border-color: rgba(247,197,42,0.3); }
+
+/* ── Section ────────────────────────────────────────────── */
+.section { background: #242526; border: 1px solid #3A3B3C; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+.sectionTitle { font-size: 16px; font-weight: 700; color: #E4E6EB; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+.sectionSubtitle { font-size: 13px; color: #B0B3B8; margin-bottom: 12px; }
+
+/* ── Club / Agent Cards ─────────────────────────────────── */
+.cardGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.card { background: #18191A; border: 1px solid #3A3B3C; border-radius: 10px; padding: 16px; transition: border-color 0.2s; }
+.card:hover { border-color: #4599FF; }
+.cardHeader { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.cardName { font-size: 15px; font-weight: 600; color: #E4E6EB; }
+.cardBadge { font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
+.badgeActive { background: rgba(49,162,76,0.15); color: #31A24C; }
+.badgeSuspended { background: rgba(228,30,63,0.15); color: #E41E3F; }
+.cardMeta { display: flex; flex-wrap: wrap; gap: 8px; font-size: 12px; color: #B0B3B8; }
+.cardMetaItem { display: flex; align-items: center; gap: 4px; }
+.cardActions { display: flex; gap: 6px; margin-top: 10px; }
+
+/* ── Tables ──────────────────────────────────────────────── */
+.dataTable { width: 100%; border-collapse: collapse; font-size: 13px; }
+.dataTable th { text-align: left; padding: 10px 12px; color: #B0B3B8; font-weight: 600; border-bottom: 1px solid #3A3B3C; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; }
+.dataTable td { padding: 10px 12px; border-bottom: 1px solid rgba(58,59,60,0.5); color: #E4E6EB; }
+.dataTable tr:hover td { background: rgba(255,255,255,0.03); }
+.tableScroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+/* ── Forms ───────────────────────────────────────────────── */
+.formRow { display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; align-items: flex-end; }
+.formGroup { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 150px; }
+.formLabel { font-size: 12px; color: #B0B3B8; font-weight: 500; }
+.formInput { background: #18191A; border: 1px solid #3A3B3C; border-radius: 8px; padding: 10px 12px; color: #E4E6EB; font-size: 14px; outline: none; transition: border-color 0.2s; }
+.formInput:focus { border-color: #4599FF; }
+.formSelect { composes: formInput; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23B0B3B8' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; cursor: pointer; }
+.formTextarea { composes: formInput; resize: vertical; min-height: 80px; }
+
+/* ── Buttons ─────────────────────────────────────────────── */
+.btn { padding: 8px 16px; border-radius: 8px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btnPrimary { composes: btn; background: #2374E1; color: #fff; }
+.btnPrimary:hover:not(:disabled) { background: #1A5EC0; }
+.btnSuccess { composes: btn; background: rgba(49,162,76,0.15); color: #31A24C; border: 1px solid rgba(49,162,76,0.3); }
+.btnSuccess:hover:not(:disabled) { background: rgba(49,162,76,0.25); }
+.btnDanger { composes: btn; background: rgba(228,30,63,0.15); color: #E41E3F; border: 1px solid rgba(228,30,63,0.3); }
+.btnDanger:hover:not(:disabled) { background: rgba(228,30,63,0.25); }
+.btnGhost { composes: btn; background: transparent; color: #B0B3B8; border: 1px solid #3A3B3C; }
+.btnGhost:hover:not(:disabled) { background: rgba(255,255,255,0.05); color: #E4E6EB; }
+.btnSmall { padding: 5px 10px; font-size: 12px; }
+.btnGold { composes: btn; background: rgba(247,197,42,0.15); color: #F7C52A; border: 1px solid rgba(247,197,42,0.3); }
+.btnGold:hover:not(:disabled) { background: rgba(247,197,42,0.25); }
+
+/* ── Status Badges ──────────────────────────────────────── */
+.statusBadge { font-size: 11px; padding: 3px 8px; border-radius: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
+.statusPending { background: rgba(247,197,42,0.15); color: #F7C52A; }
+.statusApproved { background: rgba(49,162,76,0.15); color: #31A24C; }
+.statusRejected { background: rgba(228,30,63,0.15); color: #E41E3F; }
+.statusRunning { background: rgba(35,116,225,0.15); color: #4599FF; }
+.statusScheduled { background: rgba(168,85,247,0.15); color: #C084FC; }
+.statusWaiting { background: rgba(247,197,42,0.15); color: #F7C52A; }
+.statusClosed { background: rgba(107,114,128,0.15); color: #9CA3AF; }
+.statusPaused { background: rgba(249,115,22,0.15); color: #FB923C; }
+
+/* ── Activity Feed ──────────────────────────────────────── */
+.feedList { display: flex; flex-direction: column; gap: 8px; }
+.feedItem { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(58,59,60,0.3); font-size: 13px; }
+.feedDot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.feedText { flex: 1; color: #E4E6EB; }
+.feedTime { font-size: 11px; color: #B0B3B8; white-space: nowrap; }
+
+/* ── Empty State ────────────────────────────────────────── */
+.emptyState { text-align: center; padding: 40px 20px; color: #B0B3B8; }
+.emptyIcon { font-size: 32px; margin-bottom: 12px; display: block; }
+.emptyText { font-size: 14px; }
+
+/* ── Modal Overlay ──────────────────────────────────────── */
+.modalOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.modal { background: #242526; border: 1px solid #3A3B3C; border-radius: 12px; padding: 24px; max-width: 500px; width: 100%; max-height: 80vh; overflow-y: auto; }
+.modalTitle { font-size: 18px; font-weight: 700; color: #E4E6EB; margin-bottom: 16px; }
+
+/* ── Responsive ─────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .statsGrid { grid-template-columns: repeat(2, 1fr); }
+  .walletGrid { grid-template-columns: repeat(2, 1fr); }
+  .cardGrid { grid-template-columns: 1fr; }
+  .tabs { gap: 2px; }
+  .tab { padding: 8px 12px; font-size: 12px; }
+  .pageTitle { font-size: 20px; }
+  .formRow { flex-direction: column; }
+}

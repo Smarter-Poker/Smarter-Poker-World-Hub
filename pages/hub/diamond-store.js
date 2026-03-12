@@ -22,6 +22,7 @@ import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import useCartStore from '../../src/stores/cartStore';
 import supabase from '../../src/lib/supabase';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
+import { broadcastSync } from '../../src/lib/broadcastSync';
 import { getAccessToken, getAuthUser } from '../../src/lib/authUtils';
 
 
@@ -912,9 +913,7 @@ export default function DiamondStorePage() {
             window.dispatchEvent(new CustomEvent('diamond-balance-refresh'));
 
             // Broadcast across tabs
-            try {
-                new BroadcastChannel('smarter_poker_diamond_sync').postMessage('refresh');
-            } catch { /* noop */ }
+            broadcastSync('smarter_poker_diamond_sync', 'refresh');
 
         } catch (error) {
             console.error('Diamond payment error:', error);

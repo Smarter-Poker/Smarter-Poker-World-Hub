@@ -15,6 +15,7 @@ import useTrainingBus from '../../src/hooks/useTrainingBus';
 // God-Mode Stack
 import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import { HubErrorBoundary } from '../../src/components/ui/HubErrorBoundary';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getAccessToken } from '../../src/lib/authUtils';
@@ -33,7 +34,7 @@ const timeAgo = (date) => {
     return `${Math.floor(s / 86400)}d`;
 };
 
-export default function NotificationsPage() {
+function NotificationsPage() {
     const router = useRouter();
     const [menuOpen, setMenuOpen] = useState(false);
     const [notifications, setNotifications] = useState([]);
@@ -556,5 +557,13 @@ export default function NotificationsPage() {
                 <div style={{ height: 80 }} />
             </div>
         </PageTransition>
+    );
+}
+
+export default function NotificationsPageWithBoundary() {
+    return (
+        <HubErrorBoundary name="Notifications">
+            <NotificationsPage />
+        </HubErrorBoundary>
     );
 }
