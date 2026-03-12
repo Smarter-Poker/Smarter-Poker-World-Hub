@@ -890,6 +890,84 @@ async function runSocialInteractions(options = {}) {
     }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// Phase 27: HORSE-TO-HORSE COMMENT REACTIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function reactToComments(maxReactions = 15) {
+    const now = new Date();
+    const currentMinute = now.getMinutes();
+    const currentHour = now.getHours();
+
+    console.log(`\n🔥 HORSES REACTING TO COMMENTS... (minute ${currentMinute})`);
+
+    const { data: allHorses } = await supabase
+        .from('content_authors')
+        .select('id, name, profile_id, timezone')
+        .eq('is_active', true)
+        .not('profile_id', 'is', null);
+
+    if (!allHorses) return { reacted: 0 };
+
+    const activeHorses = allHorses.filter(horse => {
+        const isInSlot = shouldHorseBeActive(horse.profile_id, currentMinute, 2);
+        const isActive = isHorseActiveHourTZ(horse.profile_id, currentHour, horse.timezone);
+        return isInSlot && isActive;
+    });
+
+    if (activeHorses.length === 0) return { reacted: 0 };
+
+    const horseIds = allHorses.map(h => h.profile_id);
+
+    // Get recent comments from other horses
+    const { data: recentComments } = await supabase
+        .from('social_comments')
+        .select('id, author_id')
+        .in('author_id', horseIds)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+    if (!recentComments?.length) return { reacted: 0 };
+
+    let reacted = 0;
+
+    for (const horse of activeHorses) {
+        if (Math.random() > 0.3) continue; // 30% chance to react
+
+        const eligibleComments = recentComments.filter(c => c.author_id !== horse.profile_id);
+        if (eligibleComments.length === 0) continue;
+
+        const comment = eligibleComments[Math.floor(Math.random() * eligibleComments.length)];
+
+        // Weighted reaction type
+        const roll = Math.random();
+        let reaction = 'like';
+        if (roll > 0.85) reaction = 'wow';
+        else if (roll > 0.70) reaction = 'fire';
+        else if (roll > 0.50) reaction = 'haha';
+        else if (roll > 0.30) reaction = 'love';
+
+        const { error } = await supabase
+            .from('social_comment_likes')
+            .upsert({
+                comment_id: comment.id,
+                user_id: horse.profile_id,
+                reaction_type: reaction
+            }, { onConflict: 'comment_id,user_id' });
+
+        if (!error) {
+            reacted++;
+            console.log(`   ${horse.name} reacted ${reaction} to a comment`);
+        }
+
+        if (reacted >= maxReactions) break;
+        await new Promise(r => setTimeout(r, 500));
+    }
+
+    console.log(`   Reacted to ${reacted} comments`);
+    return { reacted };
+}
+
 // Run if called directly
 if (typeof window === 'undefined' && process.argv[1]?.includes('HorseSocialEngine')) {
     runSocialInteractions();
@@ -901,5 +979,6 @@ export {
     acceptFriendRequests,
     commentOnPosts,
     likePosts,
-    replyToComments
+    replyToComments,
+    reactToComments
 };

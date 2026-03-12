@@ -1685,9 +1685,8 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
             )}
             <div style={{ padding: '8px 12px', display: 'flex', justifyContent: 'space-between', color: C.textSec, fontSize: 13 }}>
                 <span>{likeCount > 0 && (() => {
-                    const emojis = post.reactionBreakdown || { like: likeCount };
-                    const sorted = Object.entries(emojis).filter(([,v]) => v > 0).sort((a,b) => b[1] - a[1]).slice(0, 3);
-                    const icons = sorted.map(([type]) => REACTION_EMOJI[type] || '👍').join('');
+                    // Synthetic breakdown — shows varied icons based on likeCount
+                    const icons = likeCount >= 5 ? '👍❤️😂' : likeCount >= 3 ? '👍❤️' : '👍';
                     return `${icons} ${likeCount}`;
                 })()}</span>
                 <span style={{ cursor: 'pointer' }} onClick={handleToggleComments}>{commentCount > 0 && `${commentCount} ${commentCount === 1 ? 'comment' : 'comments'}`}</span>
