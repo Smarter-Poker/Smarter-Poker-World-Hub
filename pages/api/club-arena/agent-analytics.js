@@ -46,7 +46,8 @@ export default async function handler(req, res) {
                 .select('amount, created_at, status')
                 .eq('agent_id', targetAgent)
                 .eq('club_id', clubId)
-                .gte('created_at', daysAgo);
+                .gte('created_at', daysAgo)
+                .limit(10000);
 
             const totalCommissions = (commissions || []).reduce((s, c) => s + (c.amount || 0), 0);
             const paidCommissions = (commissions || []).filter(c => c.status === 'paid')
@@ -58,7 +59,8 @@ export default async function handler(req, res) {
                 .from('club_members')
                 .select('user_id, chip_balance, last_active, role')
                 .eq('club_id', clubId)
-                .eq('agent_id', targetAgent);
+                .eq('agent_id', targetAgent)
+                .limit(10000);
 
             const now = new Date();
             let activeCount = 0, atRiskCount = 0, churnedCount = 0;
@@ -76,7 +78,8 @@ export default async function handler(req, res) {
                 .select('amount')
                 .eq('user_id', targetAgent)
                 .eq('club_id', clubId)
-                .gte('created_at', daysAgo);
+                .gte('created_at', daysAgo)
+                .limit(10000);
 
             const totalVolume = (txns || []).reduce((s, t) => s + Math.abs(t.amount || 0), 0);
 
@@ -106,7 +109,8 @@ export default async function handler(req, res) {
                 .from('club_members')
                 .select('user_id, chip_balance, last_active, role')
                 .eq('club_id', clubId)
-                .eq('agent_id', targetAgent);
+                .eq('agent_id', targetAgent)
+                .limit(10000);
 
             const userIds = (players || []).map(p => p.user_id);
             const { data: profiles } = await supabaseAdmin
@@ -150,7 +154,8 @@ export default async function handler(req, res) {
                 .from('agents')
                 .select('user_id, commission_rate, parent_agent_id')
                 .eq('club_id', clubId)
-                .eq('status', 'active');
+                .eq('status', 'active')
+                .limit(5000);
 
             const agentIds = (agents || []).map(a => a.user_id);
 
@@ -160,7 +165,8 @@ export default async function handler(req, res) {
                 .select('agent_id, amount')
                 .eq('club_id', clubId)
                 .in('agent_id', agentIds)
-                .gte('created_at', daysAgo);
+                .gte('created_at', daysAgo)
+                .limit(50000);
 
             const earningsMap = {};
             for (const c of (commissions || [])) {
@@ -172,7 +178,8 @@ export default async function handler(req, res) {
                 .from('club_members')
                 .select('agent_id')
                 .eq('club_id', clubId)
-                .in('agent_id', agentIds);
+                .in('agent_id', agentIds)
+                .limit(50000);
 
             const playerCountMap = {};
             for (const m of (members || [])) {
@@ -212,7 +219,8 @@ export default async function handler(req, res) {
                 .eq('agent_id', targetAgent)
                 .eq('club_id', clubId)
                 .gte('created_at', daysAgo)
-                .order('created_at', { ascending: true });
+                .order('created_at', { ascending: true })
+                .limit(10000);
 
             // Bucket by day
             const dailyBuckets = {};

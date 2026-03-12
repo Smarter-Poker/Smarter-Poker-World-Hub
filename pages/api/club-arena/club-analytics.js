@@ -132,12 +132,14 @@ export default async function handler(req, res) {
             // Today's rake
             supabaseAdmin.from('chip_transactions').select('amount')
                 .eq('club_id', clubId).eq('transaction_type', 'rake')
-                .gte('created_at', `${today}T00:00:00Z`),
+                .gte('created_at', `${today}T00:00:00Z`)
+                .limit(50000),
             // Yesterday's rake
             supabaseAdmin.from('chip_transactions').select('amount')
                 .eq('club_id', clubId).eq('transaction_type', 'rake')
                 .gte('created_at', `${yesterday}T00:00:00Z`)
-                .lt('created_at', `${today}T00:00:00Z`),
+                .lt('created_at', `${today}T00:00:00Z`)
+                .limit(50000),
             // Last 7 days rake (for sparkline)
             supabaseAdmin.from('chip_transactions').select('amount, created_at')
                 .eq('club_id', clubId).eq('transaction_type', 'rake')

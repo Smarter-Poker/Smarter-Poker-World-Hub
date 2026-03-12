@@ -170,6 +170,9 @@ export default async function handler(req, res) {
         if (!parentAgent) {
           return res.status(404).json({ success: false, error: 'Parent agent not found or not active in this club' });
         }
+        if (parentAgent.role !== 'super_agent') {
+          return res.status(403).json({ success: false, error: 'Only Super Agents can have sub-agents. Have the club owner promote them first.' });
+        }
 
         // Store the agent RECORD id (not user_id) — all queries use agent.id
         params._parentAgentRecordId = parentAgent.id;
@@ -771,12 +774,15 @@ export default async function handler(req, res) {
       if (parentAgentId) {
         const { data: parentAgent } = await supabaseAdmin
           .from('agents')
-          .select('id')
+          .select('id, role')
           .eq('user_id', parentAgentId)
           .eq('club_id', clubId)
           .eq('status', 'active')
           .maybeSingle();
         if (!parentAgent) return res.status(404).json({ success: false, error: 'Parent agent not found' });
+        if (parentAgent.role !== 'super_agent') {
+          return res.status(403).json({ success: false, error: 'Only Super Agents can have sub-agents. Have the club owner promote them first.' });
+        }
         parentRecordId = parentAgent.id;
 
         // ── MLM LOOP PREVENTION: Walk ancestor chain up to 10 levels ──
@@ -1056,7 +1062,7 @@ export default async function handler(req, res) {
       // Verify caller is an active agent
       const { data: parentAgent } = await supabaseAdmin
         .from('agents')
-        .select('id, user_id, commission_rate, status, agent_tier')
+        .select('id, user_id, commission_rate, status, agent_tier, role')
         .eq('user_id', user.id)
         .eq('club_id', clubId)
         .eq('status', 'active')
@@ -1064,6 +1070,9 @@ export default async function handler(req, res) {
 
       if (!parentAgent) {
         return res.status(403).json({ success: false, error: 'You are not an active agent in this club' });
+      }
+      if (parentAgent.role !== 'super_agent' && parentAgent.agent_tier !== 'super_agent') {
+        return res.status(403).json({ success: false, error: 'Only Super Agents can create sub-agents. Contact a club owner to be promoted first.' });
       }
 
       // Sub-agent commission must be lower than parent's
@@ -1106,7 +1115,7 @@ export default async function handler(req, res) {
           club_id: clubId,
           status: 'active',
           commission_rate: commissionRate,
-          agent_tier: 'sub_agent',
+          role: 'sub_agent',
           parent_agent_id: parentAgent.id,
           is_prepaid: false,
           credit_limit: 0,

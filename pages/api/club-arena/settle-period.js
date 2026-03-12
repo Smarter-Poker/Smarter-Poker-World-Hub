@@ -200,12 +200,11 @@ export default async function handler(req, res) {
 
       const pid = period.id;
 
-      // Get all agents for this club
+      // Get all agents for this club (including inactive ones to prevent union tax evasion + wage theft)
       const { data: agents } = await supabaseAdmin
         .from('agents')
         .select('id, user_id, commission_rate, weekly_rake_generated, is_prepaid, parent_agent_id')
-        .eq('club_id', clubId)
-        .eq('status', 'active')
+        .eq('club_id', clubId);
 
       // ═══════════════════════════════════════════════════════════
       // PROMO CHIPS ARE EXCLUDED FROM SETTLEMENT
