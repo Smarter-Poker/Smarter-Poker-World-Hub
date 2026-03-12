@@ -1041,6 +1041,7 @@ export default function PromotionsPage() {
                         })
                       });
                       fetchHighHands();
+                      broadcastChange('settings');
                     } catch (error) {
                       console.error('Submit high hand failed:', error);
                     }
@@ -1494,6 +1495,7 @@ export default function PromotionsPage() {
                 const result = await res.json();
                 if (result.success || result.promotion) {
                   fetchPromotions();
+                  broadcastChange('settings');
                   setShowEditModal(false);
                   setEditingPromo(null);
                 } else {
@@ -1511,6 +1513,7 @@ export default function PromotionsPage() {
                 const staffSession = localStorage.getItem('commander_staff') || '';
                 await fetch(`/api/commander/promotions/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } });
                 fetchPromotions();
+                broadcastChange('settings');
                 setShowEditModal(false);
                 setEditingPromo(null);
               } catch (error) {

@@ -1410,9 +1410,14 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
         setBookmarked(newBookmarked);
         try {
             if (newBookmarked) {
-                const { error } = await supabase.from('social_interactions').upsert(
-                    { post_id: post.id, user_id: currentUserId, interaction_type: 'bookmark' },
-                    { onConflict: 'post_id,user_id' }
+                // social_interactions has no UNIQUE constraint, so upsert fails.
+                // Delete-then-insert pattern: idempotent without needing a DB migration.
+                await supabase.from('social_interactions').delete()
+                    .eq('post_id', post.id)
+                    .eq('user_id', currentUserId)
+                    .eq('interaction_type', 'bookmark');
+                const { error } = await supabase.from('social_interactions').insert(
+                    { post_id: post.id, user_id: currentUserId, interaction_type: 'bookmark' }
                 );
                 if (error) throw error;
             } else {
