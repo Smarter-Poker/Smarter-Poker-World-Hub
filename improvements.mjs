@@ -98,7 +98,7 @@ async function seedFriendships() {
             seenPairs.add(pairKey);
 
             // Insert friendship (bidirectional = accepted)
-            const { error } = await supabase.from('friends')
+            const { error } = await supabase.from('friendships')
                 .upsert({
                     user_id: horse.profile_id,
                     friend_id: friend.profile_id,
