@@ -200,15 +200,17 @@ export default function UnionDashboardPage() {
     const refresh = () => { if (mountedRef.current) loadDashboard(unionId); };
     const refreshWallet = () => { if (mountedRef.current) { setWalletData(null); loadWallet(); } };
     const refreshApps = () => { if (mountedRef.current) { setAppsLoaded(false); loadApps(); } };
+    const refreshLeave = () => { if (mountedRef.current) loadLeave(); };
     const unsubs = [
       ...['union:club-removed', 'union:commission-updated', 'union:admin-changed',
           'union:tournament-created', 'union:table-created',
           'union:tournament-updated', 'union:table-closed'].map(e => eventBus.on(e, refresh)),
       eventBus.on('union:wallet-transfer', refreshWallet),
       eventBus.on('union:application-reviewed', refreshApps),
+      eventBus.on('union:leave-reviewed', refreshLeave),
     ];
     return () => unsubs.forEach(fn => fn?.());
-  }, [unionId, loadDashboard, loadWallet, loadApps]);
+  }, [unionId, loadDashboard, loadWallet, loadApps, loadLeave]);
 
   // ── Filtered Lists (search/filter) ────────────────────────
   const filteredClubs = useMemo(() => {
@@ -758,11 +760,11 @@ export default function UnionDashboardPage() {
                         {isLead && (
                           <div className={s.cardActions}>
                             <button className={`${s.btnSuccess} ${s.btnSmall}`} disabled={processing} onClick={async () => {
-                              const res = await doAction('/api/club-arena/manage-union', { action: 'approve_leave', unionId, leaveRequestId: lr.id }, `${lr.club_name} leave approved`);
+                              const res = await doAction('/api/club-arena/manage-union', { action: 'approve_leave', unionId, leaveRequestId: lr.id }, `${lr.club_name} leave approved`, { busEvent: 'union:leave-reviewed' });
                               if (res) { loadLeave(); loadDashboard(unionId); }
                             }}>Approve Leave</button>
                             <button className={`${s.btnDanger} ${s.btnSmall}`} disabled={processing} onClick={async () => {
-                              const res = await doAction('/api/club-arena/manage-union', { action: 'deny_leave', unionId, leaveRequestId: lr.id }, `${lr.club_name} leave denied`);
+                              const res = await doAction('/api/club-arena/manage-union', { action: 'deny_leave', unionId, leaveRequestId: lr.id }, `${lr.club_name} leave denied`, { busEvent: 'union:leave-reviewed' });
                               if (res) loadLeave();
                             }}>Deny</button>
                           </div>
@@ -889,7 +891,7 @@ export default function UnionDashboardPage() {
                               {admin.role !== 'union_lead' && (
                                 <button className={`${s.btnDanger} ${s.btnSmall}`} disabled={processing} onClick={async () => {
                                   if (!confirm('Remove this admin?')) return;
-                                  const res = await doAction('/api/club-arena/manage-union', { action: 'remove_admin', unionId, adminUserId: admin.user_id }, 'Admin removed');
+                                  const res = await doAction('/api/club-arena/manage-union', { action: 'remove_admin', unionId, adminUserId: admin.user_id }, 'Admin removed', { busEvent: 'union:admin-changed' });
                                   if (res) loadDashboard(unionId);
                                 }}>Remove</button>
                               )}

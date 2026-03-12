@@ -174,8 +174,7 @@ export default async function handler(req, res) {
     const { count } = await supabaseAdmin
       .from('club_members')
       .select('*', { count: 'exact', head: true })
-      .eq('club_id', clubId)
-      .limit(500);
+      .eq('club_id', clubId);
 
     await supabaseAdmin
       .from('clubs')

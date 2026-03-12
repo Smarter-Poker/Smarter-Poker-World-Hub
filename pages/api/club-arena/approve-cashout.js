@@ -126,23 +126,6 @@ export default async function handler(req, res) {
     // APPROVE: Held chips => diamonds
     // ═════════════════════════════════════════════════════════════
     if (action === 'approve') {
-      // Rate: 100 chips = 38 diamonds
-      // BUG-06 FIX: Math.round for fairness (was Math.floor — systematically shortchanged players)
-      const diamondsReturned = Math.round((cashout.amount / 100) * 38);
-
-      // Atomic diamond credit via RPC
-      const { error: creditErr } = await supabaseAdmin.rpc('fn_credit_diamonds', {
-        p_user_id: cashout.player_id,
-        p_amount: diamondsReturned,
-      });
-
-      if (creditErr) {
-        // Revert status claim
-        await supabaseAdmin.from('cashout_requests')
-          .update({ status: 'pending' }).eq('id', cashoutId);
-        throw creditErr;
-      }
-
       // Step 2: Atomic approval (updates request status + credits treasury + logs transaction)
       const { data: rpcResult, error: rpcErr } = await supabaseAdmin.rpc('fn_approve_cashout_atomic', {
         p_cashout_id: cashoutId,
@@ -158,17 +141,15 @@ export default async function handler(req, res) {
       await notifyPlayer(cashout, playerName, agentName,
         `[CASHOUT APPROVED]
 
-${agentName} approved your cashout of ${cashout.amount.toLocaleString()} chips.
-You received ${diamondsReturned} diamonds.`,
-        `[OK] Cashout approved! ${cashout.amount.toLocaleString()} chips => ${diamondsReturned} diamonds`
+${agentName} approved your cashout of ${cashout.amount.toLocaleString()} chips.`,
+        `[OK] Cashout approved! ${cashout.amount.toLocaleString()} chips`
       );
 
-      logAudit(supabaseAdmin, { actionType: 'cashout_approved', userId: user.id, targetUserId: cashout.player_id, clubId: cashout.club_id, amount: cashout.amount, ip: extractIP(req), details: { cashoutId, diamondsReturned, agentNote: note || 'Approved' } });
+      logAudit(supabaseAdmin, { actionType: 'cashout_approved', userId: user.id, targetUserId: cashout.player_id, clubId: cashout.club_id, amount: cashout.amount, ip: extractIP(req), details: { cashoutId, agentNote: note || 'Approved' } });
       return res.status(200).json({
         success: true,
         action: 'approved',
         amount: cashout.amount,
-        diamondsReturned,
         playerId: cashout.player_id,
       });
     }
