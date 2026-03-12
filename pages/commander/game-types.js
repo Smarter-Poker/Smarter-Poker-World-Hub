@@ -63,6 +63,7 @@ export default function GameTypesPage() {
       const res = await fetch('/api/commander/game-types?include_inactive=true', {
         headers: { Authorization: `Bearer ${token}` }
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) setGameTypes(json.data || []);
     } catch (err) { console.error(err); }
@@ -120,6 +121,7 @@ export default function GameTypesPage() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify(form)
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
         broadcastChange('games');

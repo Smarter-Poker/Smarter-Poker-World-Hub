@@ -357,6 +357,7 @@ export default function DealersPage() {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         ...(signal ? { signal } : {}),
       });
+      if (!res.ok) throw new Error(`Dealers fetch failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
         setDealers(Array.isArray(data.data) ? data.data : data.data?.dealers || []);
@@ -377,6 +378,7 @@ export default function DealersPage() {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         ...(signal ? { signal } : {}),
       });
+      if (!res.ok) throw new Error(`Tables fetch failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
         setTables(Array.isArray(data.data) ? data.data : data.data?.tables || []);
@@ -395,6 +397,7 @@ export default function DealersPage() {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         ...(signal ? { signal } : {}),
       });
+      if (!res.ok) throw new Error(`Rotations fetch failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
         setRotations(Array.isArray(data.data) ? data.data : data.data?.rotations || []);

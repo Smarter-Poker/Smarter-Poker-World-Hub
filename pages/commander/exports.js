@@ -57,8 +57,8 @@ export default function ExportsHub() {
         fetch(`/api/commander/exports?venue_id=${venueId}`, { headers }),
         fetch(`/api/commander/tournaments?venue_id=${venueId}&status=completed&limit=20`, { headers }),
       ]);
-      const expJson = await expRes.json();
-      const tJson = await tRes.json();
+      const expJson = await expRes.json().catch(() => ({ exports: [] }));
+      const tJson = await tRes.json().catch(() => ({ data: [] }));
       setExports(expJson.exports || []);
       setTournaments(tJson.data || []);
     } catch (err) { console.error(err); }

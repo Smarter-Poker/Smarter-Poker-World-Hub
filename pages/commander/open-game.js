@@ -59,6 +59,7 @@ export default function OpenGame() {
       const venueId = getVenueId();
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/tables?venue_id=${venueId}`, { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } });
+      if (!res.ok) throw new Error(`Tables fetch failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
         const tablesArr = Array.isArray(json.data) ? json.data
@@ -88,6 +89,7 @@ export default function OpenGame() {
         const venueId = getVenueId();
         const staffSession = localStorage.getItem('commander_staff') || '';
         const res = await fetch(`/api/commander/waitlist?venue_id=${venueId}`, { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }, signal: controller.signal });
+        if (!res.ok) throw new Error(`Waitlist fetch failed (${res.status})`);
         const json = await res.json();
         if (json.success) {
           const matching = (json.data || []).filter(w =>

@@ -80,6 +80,7 @@ export default function LeaderboardBuilder() {
                 headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
                 ...(signal ? { signal } : {}),
             });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             setBoards(json?.leaderboards || json?.data || []);
         } catch (err) { console.error(err); }
@@ -138,6 +139,7 @@ export default function LeaderboardBuilder() {
                     status: newBoard.status,
                 }),
             });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (res.ok) {
                 flash('success', `Board "${newBoard.name}" created!`);

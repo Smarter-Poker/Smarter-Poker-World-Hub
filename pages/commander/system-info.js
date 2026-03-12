@@ -40,6 +40,7 @@ export default function SystemInfoPage() {
       const res = await fetch('/api/commander/system-info', {
         headers: { Authorization: `Bearer ${token}` }
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) setInfo(json.data);
     } catch (err) { console.error(err); }
