@@ -11,7 +11,7 @@ import { supabase } from '../../src/lib/supabase';
 import { getAuthUser } from '../../src/lib/authUtils';
 import { eventBus, EventType, busEmit } from '../../src/engine/EventBus';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
-import { broadcastSync, listenBroadcast } from '../../src/lib/broadcastSync';
+import { broadcastSync, listenBroadcast, BROADCAST_TAB_ID } from '../../src/lib/broadcastSync';
 
 // God-Mode Stack
 import PageTransition from '../../src/components/transitions/PageTransition';
@@ -196,8 +196,10 @@ function NotificationsPage() {
             })
             .subscribe();
 
-        // BroadcastChannel: listen for cross-tab notif sync
-        const cleanupNotifBc = listenBroadcast('smarter_poker_notif_sync', () => {
+        // BroadcastChannel: listen for cross-tab notif sync (with self-tab suppression)
+        const cleanupNotifBc = listenBroadcast('smarter_poker_notif_sync', (msg) => {
+            // Skip if this tab sent the broadcast (local state already updated)
+            if (msg?.tabId === BROADCAST_TAB_ID) return;
             // Another tab marked notifications as read — refresh local state
             if (mounted.current) {
                 setNotifications(prev => prev.map(n => ({ ...n, read: true })));
@@ -215,7 +217,7 @@ function NotificationsPage() {
         if (mounted.current) {
             setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
         }
-        broadcastSync('smarter_poker_notif_sync', 'refresh_notifications');
+        broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications', tabId: BROADCAST_TAB_ID });
         eventBus.emit(EventType.NOTIFICATIONS_READ, { count: 1 }, 'NotificationsPage');
         busEmit.dataMutated('notifications');
     };
@@ -227,7 +229,7 @@ function NotificationsPage() {
         if (mounted.current) {
             setNotifications(prev => prev.map(n => ({ ...n, read: true })));
         }
-        broadcastSync('smarter_poker_notif_sync', 'refresh_notifications');
+        broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications', tabId: BROADCAST_TAB_ID });
         eventBus.emit(EventType.NOTIFICATIONS_READ, { count: unreadCount }, 'NotificationsPage');
         busEmit.dataMutated('notifications');
     };
