@@ -9,8 +9,7 @@ import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
 import Link from 'next/link';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { apiCall, apiGet } from '../../../src/lib/club-arena/apiClient';
-import { busEmit } from '../../../src/engine/EventBus';
-import { eventBus } from '../../../src/engine/EventBus';
+import { busEmit, eventBus } from '../../../src/engine/EventBus';
 import s from '../../../src/styles/UnionDashboard.module.css';
 
 // ── Helpers ─────────────────────────────────────────────────

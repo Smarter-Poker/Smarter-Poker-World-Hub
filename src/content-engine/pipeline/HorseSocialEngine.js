@@ -29,12 +29,12 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 const COMMENT_TEMPLATES = {
     video: [
         // Fire reactions
-        "🔥🔥🔥", "this is SICK", "bro this hand is insane", "absolute madness",
+        "insane", "this is SICK", "bro this hand is insane", "absolute madness",
         "ice cold", "legendary play", "unreal", "that was beautiful",
 
         // Strategic observations
-        "need to study this spot more", "the read tho 👀", "exploitative poker at its finest",
-        "GTO says fold but soul says call 😂", "this is a solved spot actually",
+        "need to study this spot more", "the read tho", "exploitative poker at its finest",
+        "GTO says fold but soul says call", "this is a solved spot actually",
         "the sizing tells the story", "perfect bet sizing", "range advantage is real",
 
         // Personal reactions
@@ -59,12 +59,12 @@ const COMMENT_TEMPLATES = {
 
     photo: [
         // Stack pics
-        "nice hit! 🔥", "stack looking good 💰", "get that bread 🍞",
+        "nice hit", "stack looking good", "get that bread",
         "that's a nice tower", "love to see it", "congrats on the session!",
         "jeez thats a lot of chips", "rack em up!", "casino hates this guy",
 
         // Grind culture
-        "grind never stops", "LFG 💪", "lets gooo", "back at it 💯",
+        "grind never stops", "LFG", "lets gooo", "back at it",
         "the commitment is real", "outwork everyone", "session god",
 
         // Curiosity
@@ -74,7 +74,7 @@ const COMMENT_TEMPLATES = {
 
     bad_beat: [
         // Sympathy
-        "brutal 💀", "pain.", "been there way too many times", "variance is cruel",
+        "brutal", "pain.", "been there way too many times", "variance is cruel",
         "you got coolered so hard", "thats poker unfortunately", "i felt that in my soul",
         "RIP bankroll", "F in chat", "happens to the best of us",
 
@@ -84,14 +84,14 @@ const COMMENT_TEMPLATES = {
         "one outer strikes again", "runner runner gods were angry",
 
         // Encouragement
-        "recovery session incoming?", "bouncing back soon 🙏", "next session different",
+        "recovery session incoming?", "bouncing back soon", "next session different",
         "variance evens out", "you played it right tho", "long run will be kind",
         "shake it off king/queen", "book says you won that pot"
     ],
 
     general: [
         // Agreement
-        "facts", "💯", "this is the way", "couldn't agree more", "real talk",
+        "facts", "hundred percent", "this is the way", "couldn't agree more", "real talk",
         "same tbh", "underrated take", "big if true", "W post", "based",
 
         // Casual
@@ -130,8 +130,8 @@ const PERSONALITY_MODIFIERS = {
     aggressive: ["fr fr", "no cap", "straight up", "period", "on god", "deadass"],
     chill: ["honestly", "ngl", "lowkey", "vibes", "kinda", "maybe"],
     analytical: ["mathematically", "from a GTO perspective", "if we think about ranges", "+EV move", "solver approved"],
-    funny: ["😂", "lmaooo", "bro", "dead 💀", "crying", "i cant 😭"],
-    supportive: ["king 👑", "legend", "goated", "built different", "respect"],
+    funny: ["haha", "lmaooo", "bro", "dead", "crying", "i cant"],
+    supportive: ["king", "legend", "goated", "built different", "respect"],
     skeptical: ["idk about this one", "sus play ngl", "questionable", "risky but ok"]
 };
 
@@ -694,7 +694,7 @@ async function replyToComments(maxReplies = 15) {
 
         // Sometimes reference the original comment
         if (Math.random() > 0.6) {
-            const prefixes = ['fr 👆', 'this ^^', '100% agree', 'exactly', 'real talk'];
+            const prefixes = ['fr tho', 'this ^^', '100% agree', 'exactly', 'real talk'];
             replyText = prefixes[Math.floor(Math.random() * prefixes.length)];
         }
 
