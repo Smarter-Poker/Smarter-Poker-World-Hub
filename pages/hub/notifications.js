@@ -5,6 +5,7 @@
 
 import SEOHead from '../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
+import toast from '../../src/stores/toastStore';
 import { useState, useEffect } from 'react';
 import { supabase } from '../../src/lib/supabase';
 import { getAuthUser } from '../../src/lib/authUtils';
@@ -276,8 +277,10 @@ export default function NotificationsPage() {
                         : n
                 ));
 
+                toast.success('Friend request accepted!');
             } else {
                 console.error('Could not find friendship to accept');
+                toast.error('Could not find friend request.');
             }
 
             // Sync friends page cross-tab + EventBus
@@ -285,6 +288,7 @@ export default function NotificationsPage() {
             try { const bc = new BroadcastChannel('smarter_poker_friends_sync'); bc.postMessage('refresh'); bc.close(); } catch { /* noop */ }
         } catch (err) {
             console.error('Error accepting friend request:', err);
+            toast.error('Failed to accept friend request. Try again.');
         }
     };
 
@@ -335,11 +339,14 @@ export default function NotificationsPage() {
                     : n
             ));
 
+            toast.success('Request declined \u2014 they now follow you.');
+
             // Sync friends page cross-tab + EventBus
             busEmit.dataMutated('friends');
             try { const bc = new BroadcastChannel('smarter_poker_friends_sync'); bc.postMessage('refresh'); bc.close(); } catch { /* noop */ }
         } catch (err) {
             console.error('Error declining friend request:', err);
+            toast.error('Failed to decline request. Try again.');
         }
     };
 
@@ -347,9 +354,26 @@ export default function NotificationsPage() {
 
     if (loading) {
         return (
-            <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                Loading...
-            </div>
+            <PageTransition>
+                <SEOHead title="Notifications" description="Loading notifications..." canonical="/hub/notifications" noindex={true} />
+                <div style={{ minHeight: '100vh', background: C.bg, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }}>
+                    <UniversalHeader pageDepth={2} onMenuClick={() => {}} />
+                    <div style={{ maxWidth: 680, margin: '0 auto', padding: 16 }}>
+                        {[1,2,3,4,5].map(i => (
+                            <div key={i} style={{ display: 'flex', gap: 12, padding: 16, background: C.card, borderBottom: `1px solid ${C.border}` }}>
+                                <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#E4E6EB', animation: 'shimmer 1.5s infinite' }} />
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ width: '70%', height: 14, borderRadius: 7, background: '#E4E6EB', marginBottom: 8, animation: 'shimmer 1.5s infinite' }} />
+                                    <div style={{ width: '40%', height: 10, borderRadius: 5, background: '#E4E6EB', animation: 'shimmer 1.5s infinite' }} />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    <style jsx>{`
+                        @keyframes shimmer { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+                    `}</style>
+                </div>
+            </PageTransition>
         );
     }
 

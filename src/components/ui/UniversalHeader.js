@@ -24,6 +24,7 @@ import { useLiveHelp, LiveHelpPanel } from '../../world/components/Geeves';
 import DiamondWalletModal from '../store/DiamondWalletModal';
 import { useAvatar } from '../../contexts/AvatarContext';
 import { useUnreadCount } from '../../hooks/useUnreadCount';
+import { eventBus, EventType } from '../../engine/EventBus';
 
 // Dark theme colors matching hub
 const C = {
@@ -356,6 +357,15 @@ export default function UniversalHeader({
                 try { notifSyncChannel.close(); } catch (e) { }
             }
         };
+    }, []);
+
+    // ── EventBus: Instant badge update when notifications are read (same-tab) ──
+    useEffect(() => {
+        const unsub = eventBus.on(EventType.NOTIFICATIONS_READ, (payload) => {
+            const count = payload?.count || 1;
+            setNotificationCount(prev => Math.max(0, prev - count));
+        });
+        return () => unsub();
     }, []);
 
     // ── Diamond balance auto-refresh when rewards are earned ──

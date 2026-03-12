@@ -6,7 +6,7 @@
 
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../src/lib/supabase';
 import toast from '../../src/stores/toastStore';
 
@@ -441,6 +441,7 @@ export default function FriendsPage() {
 
     const FRIENDS_CACHE_KEY = 'sp-friends-cache';
     const FRIENDS_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+    const actionInProgress = useRef(false); // Prevent double-click spam
 
     const fetchData = async () => {
         //  BULLETPROOF: Use authUtils to avoid AbortError
@@ -626,7 +627,9 @@ export default function FriendsPage() {
     // ═══════════════════════════════════════════════════════════════════════
 
     const handleFollow = async (userId) => {
-        if (!user) return;
+        if (!user || actionInProgress.current) return;
+        actionInProgress.current = true;
+        try {
 
         // Optimistic update — apply immediately, rollback on error
         const targetUser = suggestions.find(u => u.id === userId) ||
@@ -647,10 +650,13 @@ export default function FriendsPage() {
             busEmit.dataMutated('friends');
             try { const bc = new BroadcastChannel('smarter_poker_friends_sync'); bc.postMessage('refresh'); bc.close(); } catch (e) { }
         }
+        } finally { actionInProgress.current = false; }
     };
 
     const handleUnfollow = async (userId) => {
-        if (!user) return;
+        if (!user || actionInProgress.current) return;
+        actionInProgress.current = true;
+        try {
 
         // Optimistic update — remove immediately, restore on error
         const removed = following.find(f => f.id === userId);
@@ -672,10 +678,13 @@ export default function FriendsPage() {
             busEmit.dataMutated('friends');
             try { const bc = new BroadcastChannel('smarter_poker_friends_sync'); bc.postMessage('refresh'); bc.close(); } catch (e) { }
         }
+        } finally { actionInProgress.current = false; }
     };
 
     const handleAddFriend = async (friendId) => {
-        if (!user) return;
+        if (!user || actionInProgress.current) return;
+        actionInProgress.current = true;
+        try {
 
         const { error } = await supabase
             .from('friendships')
@@ -689,10 +698,13 @@ export default function FriendsPage() {
         } else {
             toast.error('Could not send friend request. Please try again.');
         }
+        } finally { actionInProgress.current = false; }
     };
 
     const handleAcceptRequest = async (request) => {
-        if (!user) return;
+        if (!user || actionInProgress.current) return;
+        actionInProgress.current = true;
+        try {
 
         // Update the original request to accepted
         const { error: updateError } = await supabase
@@ -716,11 +728,14 @@ export default function FriendsPage() {
         eventBus.emit(EventType.FRIEND_REQUEST_ACCEPTED, { friendId: request.user_id }, 'FriendsPage');
 
         try { const bc = new BroadcastChannel('smarter_poker_friends_sync'); bc.postMessage('refresh'); bc.close(); } catch (e) { }
+        } finally { actionInProgress.current = false; }
     };
 
     //  DECLINE = AUTO-FOLLOW (SmarterPoker style)
     const handleDeclineRequest = async (request) => {
-        if (!user) return;
+        if (!user || actionInProgress.current) return;
+        actionInProgress.current = true;
+        try {
 
         // Delete the friend request
         await supabase
@@ -750,10 +765,13 @@ export default function FriendsPage() {
 
         busEmit.dataMutated('friends');
         try { const bc = new BroadcastChannel('smarter_poker_friends_sync'); bc.postMessage('refresh'); bc.close(); } catch (e) { }
+        } finally { actionInProgress.current = false; }
     };
 
     const handleRemoveFriend = async (friendId) => {
-        if (!user) return;
+        if (!user || actionInProgress.current) return;
+        actionInProgress.current = true;
+        try {
 
         // Remove both directions
         await supabase
@@ -781,6 +799,7 @@ export default function FriendsPage() {
 
         busEmit.dataMutated('friends');
         try { const bc = new BroadcastChannel('smarter_poker_friends_sync'); bc.postMessage('refresh'); bc.close(); } catch (e) { }
+        } finally { actionInProgress.current = false; }
     };
 
     // ═══════════════════════════════════════════════════════════════════════
