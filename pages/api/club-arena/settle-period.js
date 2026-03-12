@@ -617,6 +617,8 @@ export default async function handler(req, res) {
       // BUG FIX: Distribute chips FIRST, THEN mark as paid (was reversed — paid before chips delivered)
       // This prevents commissions being marked paid when chip transfer fails.
       const paidIds = [];
+      const paidAgentIds = [];
+      const paidAgentUserIds = [];
 
       // ── Pre-fetch all agent user_ids in ONE query (was N+1: 1 lookup per commission) ──
       const allAgentIds = [...new Set(pending.map(c => c.agent_id))];
@@ -643,33 +645,16 @@ export default async function handler(req, res) {
           if (!rpcErr) {
             // Only track as paid after atomic transfer succeeds
             paidIds.push(cr.id);
+            paidAgentIds.push(cr.agent_id);
+            paidAgentUserIds.push(String(agentUserId));
           } else {
              console.error(`[settle-period] Failed to pay commission ${cr.id}:`, rpcErr.message);
           }
         } else {
           // No chip transfer needed (amount is 0) — still mark as paid
           paidIds.push(cr.id);
-        }
-
-        // Update commission_history
-        await supabaseAdmin
-          .from('commission_history')
-          .update({ status: 'paid', paid_at: now })
-          .eq('agent_id', cr.agent_id)
-          .eq('club_id', clubId)
-          .eq('period_start', verifyPeriod.start_at)
-          .eq('status', 'pending');
-
-        // Update settlement invoice for this agent
-        if (agentUserId) {
-          await supabaseAdmin
-            .from('settlement_invoices')
-            .update({ status: 'paid', chips_transferred: true, transferred_at: now })
-            .eq('club_id', clubId)
-            .eq('period_id', periodId)
-            .eq('invoice_type', 'club_to_agent')
-            .eq('to_entity_id', String(agentUserId))
-            .eq('status', 'generated');
+          paidAgentIds.push(cr.agent_id);
+          if (agentUserId) paidAgentUserIds.push(String(agentUserId));
         }
 
         // NOTE: lifetime_earnings is already credited per-hand in real-time by the
@@ -678,13 +663,37 @@ export default async function handler(req, res) {
         // not "earned" (already happened at the table).
       }
 
-      // Now mark ONLY successfully-distributed commissions as paid
+      // ── BATCH UPDATES: Eliminate N+1 queries by updating history/invoices after the loop ──
       if (paidIds.length > 0) {
+        // 1. Commission Records
         await supabaseAdmin
           .from('commission_records')
           .update({ status: 'paid', paid_at: now })
           .in('id', paidIds)
           .eq('status', 'pending'); // Guard: only update still-pending ones
+
+        // 2. Commission History
+        if (paidAgentIds.length > 0) {
+          await supabaseAdmin
+            .from('commission_history')
+            .update({ status: 'paid', paid_at: now })
+            .in('agent_id', paidAgentIds)
+            .eq('club_id', clubId)
+            .eq('period_start', verifyPeriod.start_at)
+            .eq('status', 'pending');
+        }
+
+        // 3. Settlement Invoices
+        if (paidAgentUserIds.length > 0) {
+          await supabaseAdmin
+            .from('settlement_invoices')
+            .update({ status: 'paid', chips_transferred: true, transferred_at: now })
+            .eq('club_id', clubId)
+            .eq('period_id', periodId)
+            .eq('invoice_type', 'club_to_agent')
+            .in('to_entity_id', paidAgentUserIds)
+            .eq('status', 'generated');
+        }
       }
 
       const totalPaid = pending
