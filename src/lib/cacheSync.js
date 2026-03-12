@@ -12,20 +12,9 @@
  *   unsub(); // cleanup
  */
 
-const CHANNEL_NAME = 'smarter_poker_cache_sync';
+import { broadcastSync, listenBroadcast } from './broadcastSync';
 
-let _bc = null;
-function getChannel() {
-    if (typeof window === 'undefined') return null;
-    if (_bc) return _bc;
-    try {
-        _bc = new BroadcastChannel(CHANNEL_NAME);
-    } catch {
-        // BroadcastChannel not supported (e.g., some older browsers)
-        return null;
-    }
-    return _bc;
-}
+const CHANNEL_NAME = 'smarter_poker_cache_sync';
 
 /**
  * Emit a cache invalidation event to all other tabs.
@@ -33,11 +22,7 @@ function getChannel() {
  * @param {'invalidate'|'update'} action — What happened
  */
 export function emitCacheInvalidation(cacheKey, action = 'invalidate') {
-    const bc = getChannel();
-    if (!bc) return;
-    try {
-        bc.postMessage({ type: 'cache_sync', cacheKey, action, ts: Date.now() });
-    } catch { /* noop */ }
+    broadcastSync(CHANNEL_NAME, { type: 'cache_sync', cacheKey, action, ts: Date.now() });
 }
 
 /**
@@ -46,13 +31,11 @@ export function emitCacheInvalidation(cacheKey, action = 'invalidate') {
  * @returns {Function} Unsubscribe function
  */
 export function onCacheInvalidation(callback) {
-    const bc = getChannel();
-    if (!bc) return () => { };
-    const handler = (event) => {
-        if (event.data?.type === 'cache_sync') {
-            callback(event.data.cacheKey, event.data.action);
+    return listenBroadcast(CHANNEL_NAME, (msg) => {
+        // msg is event.data — could be raw object or JSON-wrapped
+        const data = typeof msg === 'object' ? msg : {};
+        if (data?.type === 'cache_sync') {
+            callback(data.cacheKey, data.action);
         }
-    };
-    bc.addEventListener('message', handler);
-    return () => bc.removeEventListener('message', handler);
+    });
 }

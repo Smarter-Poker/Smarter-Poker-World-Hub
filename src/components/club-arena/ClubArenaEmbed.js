@@ -24,6 +24,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import Head from 'next/head';
 import { supabase } from '../../lib/supabase';
+import ClubArenaSkeleton from './ClubArenaSkeleton';
 
 /* ── Origin Configuration ─────────────────────────────────────────────── */
 // Enforce relative paths so the Next.js same-origin proxy (rewrites) takes over.
@@ -145,12 +146,20 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
             try {
                 const { data: { session } } = await supabase.auth.getSession();
                 if (session?.access_token && iframeRef.current?.contentWindow) {
+                    // Extract global settings to bridge across the iframe boundary instantly
+                    let globalSettings = {};
+                    try {
+                        const stored = localStorage.getItem('smarter-poker-settings');
+                        if (stored) globalSettings = JSON.parse(stored);
+                    } catch (e) { /* ignore */ }
+
                     iframeRef.current.contentWindow.postMessage({
                         type: 'SMARTER_AUTH_TOKEN',
                         token: session.access_token,
                         refreshToken: session.refresh_token,
+                        settings: globalSettings,
                     }, window.location.origin);
-                    console.log(`[ClubArenaEmbed] Auth token sent (attempt ${attempts}/${AUTH_MAX_RETRIES})`);
+                    console.log(`[ClubArenaEmbed] Auth token and settings sent (attempt ${attempts}/${AUTH_MAX_RETRIES})`);
                 }
             } catch (e) {
                 console.error('[ClubArenaEmbed] Failed to send auth:', e);
@@ -266,44 +275,10 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
                 background: '#0f172a',
                 ...style,
             }}>
-                {/* ── Loading Skeleton ─────────────────────────────────── */}
+                {/* ── High-Fidelity Loading Skeleton ─────────────────────────────────── */}
                 {loadState === 'loading' && (
-                    <div style={overlayStyle}>
-                        {/* Skeleton mimicking Club Arena layout */}
-                        <div style={skeletonContainer}>
-                            {/* Top nav skeleton */}
-                            <div style={{ ...skeletonBar, width: '100%', height: '48px', borderRadius: '0' }} />
-                            {/* Content area */}
-                            <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                {/* Hero card skeleton */}
-                                <div style={{ ...skeletonBar, width: '100%', height: '140px', borderRadius: '12px' }} />
-                                {/* Row of cards */}
-                                <div style={{ display: 'flex', gap: '12px' }}>
-                                    <div style={{ ...skeletonBar, flex: 1, height: '80px', borderRadius: '8px' }} />
-                                    <div style={{ ...skeletonBar, flex: 1, height: '80px', borderRadius: '8px' }} />
-                                    <div style={{ ...skeletonBar, flex: 1, height: '80px', borderRadius: '8px' }} />
-                                </div>
-                                {/* List items */}
-                                {[1, 2, 3, 4].map(i => (
-                                    <div key={i} style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                                        <div style={{ ...skeletonBar, width: '44px', height: '44px', borderRadius: '50%', flexShrink: 0 }} />
-                                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                            <div style={{ ...skeletonBar, width: `${60 + i * 8}%`, height: '14px', borderRadius: '4px' }} />
-                                            <div style={{ ...skeletonBar, width: `${40 + i * 5}%`, height: '10px', borderRadius: '4px' }} />
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                        <p style={{
-                            color: '#64748b',
-                            marginTop: '20px',
-                            fontSize: '13px',
-                            fontFamily: 'Inter, system-ui, sans-serif',
-                            letterSpacing: '0.02em',
-                        }}>
-                            Loading Club Arena...
-                        </p>
+                    <div style={{...overlayStyle, padding: 0}}>
+                        <ClubArenaSkeleton />
                     </div>
                 )}
 
@@ -384,18 +359,6 @@ const overlayStyle = {
     justifyContent: 'center',
     background: '#0f172a',
     zIndex: 2,
-};
-
-const skeletonContainer = {
-    width: '100%',
-    maxWidth: '480px',
-    overflow: 'hidden',
-};
-
-const skeletonBar = {
-    background: 'linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%)',
-    backgroundSize: '200% 100%',
-    animation: 'shimmer 1.5s ease-in-out infinite',
 };
 
 const retryButtonStyle = {

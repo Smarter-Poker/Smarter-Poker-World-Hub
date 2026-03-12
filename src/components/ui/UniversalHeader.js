@@ -17,6 +17,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { supabase } from '../../lib/supabase';
 
@@ -574,6 +575,11 @@ export default function UniversalHeader({
 
     return (
         <>
+            <Head>
+                {/* Aggressive background cache of the Club Arena integration. This downloads the HTML document and triggers sub-resource fetching before the user clicks. */}
+                <link rel="prefetch" href="/hub/club-arena" as="document" />
+            </Head>
+
             {/* Mobile-responsive CSS */}
             <style jsx global>{`
                 .universal-header {

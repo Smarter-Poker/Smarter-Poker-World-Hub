@@ -7,6 +7,7 @@ import { useState, useEffect, createContext, useContext } from 'react';
 import { supabase } from '../lib/supabase';
 import { getAuthUser } from '../lib/authUtils';
 import { eventBus, EventType } from '../engine/EventBus';
+import { listenBroadcast, broadcastSync } from '../lib/broadcastSync';
 
 const UnreadContext = createContext({
     unreadCount: 0,
@@ -122,12 +123,11 @@ export function UnreadProvider({ children }) {
             }
 
             // BroadcastChannel for cross-tab sync (instantly updates other tabs when read)
-            const bc = new BroadcastChannel('smarter_poker_unread_sync');
-            bc.onmessage = (event) => {
-                if (event.data === 'refresh_unread') {
+            const cleanupUnreadSync = listenBroadcast('smarter_poker_unread_sync', (msg) => {
+                if (msg === 'refresh_unread') {
                     refreshUnread();
                 }
-            };
+            });
 
             // Refresh periodically as backup (corrects any drift)
             const interval = setInterval(refreshUnread, 30000);
@@ -135,7 +135,7 @@ export function UnreadProvider({ children }) {
             return () => {
                 supabase.removeChannel(channel);
                 clearInterval(interval);
-                bc.close();
+                cleanupUnreadSync();
                 if (offMsgReceived) offMsgReceived();
             };
         }
@@ -145,11 +145,7 @@ export function UnreadProvider({ children }) {
     const setAndBroadcastUnreadCount = (count) => {
         setUnreadCount(count);
         // Only broadcast if we are specifically clearing/changing it
-        try {
-            const bc = new BroadcastChannel('smarter_poker_unread_sync');
-            bc.postMessage('refresh_unread');
-            setTimeout(() => bc.close(), 100);
-        } catch (e) { }
+        broadcastSync('smarter_poker_unread_sync', 'refresh_unread');
     };
 
     return (
