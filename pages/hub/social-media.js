@@ -1525,18 +1525,31 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
 
         try {
             if (!isCurrentlyLiked) {
-                await supabase.from('social_comment_likes').insert({
+                const { error } = await supabase.from('social_comment_likes').insert({
                     comment_id: commentId,
                     user_id: currentUserId,
                     post_id: post.id
                 });
+                if (error) throw error;
             } else {
-                await supabase.from('social_comment_likes').delete()
+                const { error } = await supabase.from('social_comment_likes').delete()
                     .eq('comment_id', commentId)
                     .eq('user_id', currentUserId);
+                if (error) throw error;
             }
         } catch (e) {
             console.error('[Comments] Error liking comment:', e);
+            // Revert optimistic update on failure
+            setComments(prev => prev.map(c => {
+                if (c.id === commentId) {
+                    return {
+                        ...c,
+                        isLikedByMe: isCurrentlyLiked,
+                        likeCount: isCurrentlyLiked ? c.likeCount + 1 : Math.max(0, c.likeCount - 1)
+                    };
+                }
+                return c;
+            }));
         }
     };
     
@@ -1588,14 +1601,19 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                     const usernames = mentions.map(m => m.slice(1));
                     const { data: mentionedUsers } = await supabase.from('profiles').select('id, username').in('username', usernames);
                     if (mentionedUsers && mentionedUsers.length > 0) {
-                        const notifications = mentionedUsers.map(u => ({
-                            user_id: u.id,
-                            actor_id: currentUserId,
-                            type: 'mention',
-                            reference_id: post.id,
-                            message: `mentioned you in a comment`
-                        }));
-                        await supabase.from('notifications').insert(notifications);
+                        // Filter out self-mentions — don't notify yourself
+                        const notifications = mentionedUsers
+                            .filter(u => u.id !== currentUserId)
+                            .map(u => ({
+                                user_id: u.id,
+                                actor_id: currentUserId,
+                                type: 'mention',
+                                reference_id: post.id,
+                                message: `mentioned you in a comment`
+                            }));
+                        if (notifications.length > 0) {
+                            await supabase.from('notifications').insert(notifications);
+                        }
                     }
                 }
 
@@ -1877,8 +1895,8 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                         {c.likeCount > 0 && <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>👍 {c.likeCount}</span>}
                                     </div>
                                     
-                                    {/* Render its children if it's a top-level comment */}
-                                    {!isReply && (
+                                    {/* Render its children if it's a top-level comment AND has replies */}
+                                    {!isReply && replies.filter(r => r.parentId === c.id).length > 0 && (
                                         <div style={{ marginLeft: 36, borderLeft: `2px solid ${C.border}`, paddingLeft: 8, marginTop: 8 }}>
                                             {replies.filter(r => r.parentId === c.id).map(r => renderCommentBlock(r, true))}
                                         </div>
@@ -4383,16 +4401,22 @@ function SocialMediaPage() {
             })
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_likes' }, (payload) => {
                 if (payload.new && payload.new.post_id) {
+                    // Skip self-like events — handled optimistically in PostCard.handleLike
+                    if (payload.new.user_id === user.id) return;
                     eventBus.emit('SOCIAL_LIKE_UPDATE', { postId: payload.new.post_id, delta: 1 }, 'SocialRealtime');
                 }
             })
             .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'social_likes' }, (payload) => {
                 if (payload.old && payload.old.post_id) {
+                    // Skip self-unlike events — handled optimistically in PostCard.handleLike
+                    if (payload.old.user_id === user.id) return;
                     eventBus.emit('SOCIAL_LIKE_UPDATE', { postId: payload.old.post_id, delta: -1 }, 'SocialRealtime');
                 }
             })
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_comments' }, (payload) => {
                 if (payload.new && payload.new.post_id) {
+                    // Skip self-comment events — handled optimistically in PostCard.handleSubmitComment
+                    if (payload.new.author_id === user.id) return;
                     eventBus.emit('SOCIAL_COMMENT_UPDATE', { postId: payload.new.post_id }, 'SocialRealtime');
                 }
             })
