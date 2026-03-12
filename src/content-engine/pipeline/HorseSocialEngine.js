@@ -569,6 +569,15 @@ async function commentOnPosts(maxComments = 20, includeRealUsers = true) {
                         .eq('content', comment);
                     comment = mentionComment;
                     console.log(`   ${horse.name} tagged @${friendProfile.username}`);
+                    
+                    // Phase 28 Fix: Insert notification for the mentioned friend
+                    await supabase.from('notifications').insert({
+                        user_id: friend.profile_id,
+                        actor_id: horse.profile_id,
+                        type: 'mention',
+                        reference_id: post.id,
+                        message: `mentioned you in a comment`
+                    });
                 }
             }
         }

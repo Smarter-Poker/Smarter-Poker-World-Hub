@@ -1432,9 +1432,9 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
         if (comments.length > 0) return;
         setLoadingComments(true);
         try {
-            // Step 1: Fetch comments
+            // Step 1: Fetch comments and embedded likes
             const { data: commentsData, error: commentsError } = await supabase.from('social_comments')
-                .select('id, content, created_at, author_id')
+                .select('id, content, created_at, author_id, social_comment_likes(id, user_id)')
                 .eq('post_id', post.id)
                 .order('created_at', { ascending: true })
                 .limit(50);
@@ -1465,9 +1465,10 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                 }
             }
 
-            // Step 3: Combine comments with author profiles
+            // Step 3: Combine comments with author profiles and likes
             setComments(commentsData.map(c => {
                 const author = profilesMap[c.author_id] || {};
+                const likes = c.social_comment_likes || [];
                 return {
                     id: c.id,
                     text: c.content,
@@ -1475,7 +1476,9 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                     authorName: author.full_name || author.username || 'Player',
                     authorAvatar: author.avatar_url || null,
                     authorUsername: author.username || null,
-                    time: timeAgo(c.created_at)
+                    time: timeAgo(c.created_at),
+                    likeCount: likes.length,
+                    isLikedByMe: likes.some(like => like.user_id === currentUserId)
                 };
             }));
         } catch (e) {
@@ -1487,6 +1490,38 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
     const handleToggleComments = () => {
         setShowComments(!showComments);
         if (!showComments) loadComments();
+    };
+
+    const handleLikeComment = async (commentId, isCurrentlyLiked) => {
+        if (!currentUserId) return;
+        
+        // Optimistic update
+        setComments(prev => prev.map(c => {
+            if (c.id === commentId) {
+                return {
+                    ...c,
+                    isLikedByMe: !isCurrentlyLiked,
+                    likeCount: isCurrentlyLiked ? Math.max(0, c.likeCount - 1) : c.likeCount + 1
+                };
+            }
+            return c;
+        }));
+
+        try {
+            if (!isCurrentlyLiked) {
+                await supabase.from('social_comment_likes').insert({
+                    comment_id: commentId,
+                    user_id: currentUserId,
+                    post_id: post.id
+                });
+            } else {
+                await supabase.from('social_comment_likes').delete()
+                    .eq('comment_id', commentId)
+                    .eq('user_id', currentUserId);
+            }
+        } catch (e) {
+            console.error('[Comments] Error liking comment:', e);
+        }
     };
     
     // Typing indicator animation component
@@ -1509,9 +1544,29 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                     authorName: currentUserName || 'You',
                     authorId: currentUserId,
                     authorAvatar: currentUserAvatar,
-                    time: 'Just now'
+                    time: 'Just now',
+                    likeCount: 0,
+                    isLikedByMe: false
                 }]);
                 setCommentCount(prev => prev + 1);
+                
+                // Phase 28 Fix: Trigger mention notifications
+                const mentions = newComment.match(/@(\w+)/g);
+                if (mentions && mentions.length > 0) {
+                    const usernames = mentions.map(m => m.slice(1));
+                    const { data: mentionedUsers } = await supabase.from('profiles').select('id, username').in('username', usernames);
+                    if (mentionedUsers && mentionedUsers.length > 0) {
+                        const notifications = mentionedUsers.map(u => ({
+                            user_id: u.id,
+                            actor_id: currentUserId,
+                            type: 'mention',
+                            reference_id: post.id,
+                            message: `mentioned you in a comment`
+                        }));
+                        await supabase.from('notifications').insert(notifications);
+                    }
+                }
+
                 setNewComment('');
                 if (onComment) onComment(post.id);
             }
@@ -1741,11 +1796,24 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                 <div style={{ borderTop: `1px solid ${C.border}`, padding: 12 }}>
                     {loadingComments && <div style={{ color: C.textSec, fontSize: 13 }}>Loading Comments...</div>}
                     {comments.map(c => (
-                        <div key={c.id} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                        <div key={c.id} style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
                             <Avatar src={c.authorAvatar} name={c.authorName} size={28} />
-                            <div style={{ flex: 1, background: C.bg, borderRadius: 12, padding: '6px 10px' }}>
-                                <div style={{ fontWeight: 600, fontSize: 13, color: C.text }}>{c.authorName}</div>
-                                <div style={{ fontSize: 14, color: C.text }}>{renderMentions(c.text)}</div>
+                            <div style={{ flex: 1 }}>
+                                <div style={{ background: C.bg, borderRadius: 12, padding: '6px 10px', display: 'inline-block', minWidth: '80%' }}>
+                                    <div style={{ fontWeight: 600, fontSize: 13, color: C.text }}>{c.authorName}</div>
+                                    <div style={{ fontSize: 14, color: C.text }}>{renderMentions(c.text)}</div>
+                                </div>
+                                {/* Comment Meta row: Time, Like, Count */}
+                                <div style={{ display: 'flex', gap: 12, paddingLeft: 10, marginTop: 4, fontSize: 12, color: C.textSec, fontWeight: 600 }}>
+                                    <span>{c.time}</span>
+                                    <span 
+                                        style={{ cursor: 'pointer', color: c.isLikedByMe ? C.blue : C.textSec }} 
+                                        onClick={() => handleLikeComment(c.id, c.isLikedByMe)}
+                                    >
+                                        Like
+                                    </span>
+                                    {c.likeCount > 0 && <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>👍 {c.likeCount}</span>}
+                                </div>
                             </div>
                         </div>
                     ))}
