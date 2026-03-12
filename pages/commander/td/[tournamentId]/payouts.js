@@ -9,6 +9,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import CommanderLayout from '../../../../src/components/commander/shared/CommanderLayout';
 import useTournamentRealtime from '../../../../src/hooks/useTournamentRealtime';
+import { broadcastChange } from '../../../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../../../src/engine/EventBus';
 import {
     Trophy, Users, DollarSign, LayoutGrid, Monitor,
@@ -103,6 +104,7 @@ export default function TDPayouts() {
 
             if (res.ok) {
                 await fetchPayouts();
+                broadcastChange('tournaments');
             }
         } catch (err) {
             console.error('Save payouts error:', err);

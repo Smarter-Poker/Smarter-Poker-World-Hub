@@ -593,9 +593,13 @@ export default function PromotionsPage() {
         },
         body: JSON.stringify({ action: 'verify' })
       });
-      if (res.ok) fetchHighHands();
+      if (res.ok) {
+        fetchHighHands();
+        broadcastChange('settings');
+      }
     } catch (error) {
       console.error('Verify high hand failed:', error);
+      alert('Verify high hand failed. Please check your connection and try again.');
     }
   }
 
