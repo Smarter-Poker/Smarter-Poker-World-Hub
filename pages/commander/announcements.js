@@ -7,7 +7,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { Send, Users, Clock, CheckCircle, Loader2 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
-import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
+import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
 
 const QUICK_MESSAGES = [

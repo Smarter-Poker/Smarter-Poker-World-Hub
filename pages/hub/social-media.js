@@ -1412,7 +1412,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
             if (newBookmarked) {
                 await supabase.from('social_interactions').upsert(
                     { post_id: post.id, user_id: currentUserId, interaction_type: 'bookmark' },
-                    { onConflict: 'user_id,post_id,interaction_type' }
+                    { onConflict: 'post_id,user_id' }
                 );
             } else {
                 await supabase.from('social_interactions').delete()
