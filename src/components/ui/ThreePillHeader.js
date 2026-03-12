@@ -368,8 +368,18 @@ export default function ThreePillHeader({
         };
 
         window.addEventListener('profile-updated', handleProfileUpdate);
+
+        // ── VIP status change listener ──
+        // Matches UniversalHeader — triggered by premiumFeatureGate.js and AvatarContext
+        // ThreePillHeader uses profile re-fetch to pick up VIP changes
+        const handleVipChange = () => {
+            handleProfileUpdate();
+        };
+        window.addEventListener('vip-status-changed', handleVipChange);
+
         return () => {
             window.removeEventListener('profile-updated', handleProfileUpdate);
+            window.removeEventListener('vip-status-changed', handleVipChange);
         };
     }, [user?.id]);
 
