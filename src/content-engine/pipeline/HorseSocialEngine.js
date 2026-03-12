@@ -604,12 +604,22 @@ async function likePosts(maxLikes = 30, includeRealUsers = true) {
 
             if (existing) continue;
 
-            // Insert like
+            // Phase 16: Pick a weighted reaction type
+            const reactionRoll = Math.random();
+            let reaction = 'like';
+            if (reactionRoll > 0.90) reaction = 'wow';        // 10%
+            else if (reactionRoll > 0.80) reaction = 'fire';  // 10%
+            else if (reactionRoll > 0.65) reaction = 'haha';  // 15%
+            else if (reactionRoll > 0.40) reaction = 'love';  // 25%
+            // else: 'like' (40%)
+
+            // Insert like with reaction type
             const { error } = await supabase
                 .from('social_likes')
                 .insert({
                     post_id: post.id,
-                    user_id: horse.profile_id
+                    user_id: horse.profile_id,
+                    reaction_type: reaction
                 });
 
             if (!error) {

@@ -165,7 +165,7 @@ async function processDirectMessages() {
         // 3. Fetch conversation history to see if the horse already replied
         const { data: history } = await supabase
             .from('social_messages')
-            .select('sender_id, content')
+            .select('sender_id, content, read_at')
             .eq('conversation_id', convId)
             .order('created_at', { ascending: true })
             .limit(10); // Last 10 messages for context
@@ -181,6 +181,21 @@ async function processDirectMessages() {
 
         // Ensure the LAST message was from the human. If the horse already replied, skip.
         if (history[history.length - 1].sender_id === targetHorseId) continue;
+
+        // Phase 17: Read Receipt — Mark the human's last message as "Seen"
+        const lastHumanMsg = [...history].reverse().find(h => h.sender_id !== targetHorseId);
+        if (lastHumanMsg && !lastHumanMsg.read_at) {
+            await supabase.from('social_messages')
+                .update({ read_at: new Date().toISOString() })
+                .eq('conversation_id', convId)
+                .eq('sender_id', lastHumanMsg.sender_id)
+                .is('read_at', null);
+            console.log(`   ${horse.name} read the message (Seen)`);
+        }
+
+        // Synthetic "thinking" delay before reply (2-8 seconds)
+        const thinkDelay = 2000 + Math.random() * 6000;
+        await new Promise(r => setTimeout(r, thinkDelay));
 
         // 4. Generate AI Reply
         const conversationContext = history.map(h => ({
