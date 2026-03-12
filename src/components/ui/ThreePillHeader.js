@@ -87,6 +87,8 @@ export default function ThreePillHeader({
         let notifSyncChannel = null;
         let notifChannel = null;
         let diamondChannel = null;
+        let cleanupNotifSync = null;
+        let cleanupDiamondSync = null;
         let diamondBc = null;
 
         const loadUser = async () => {
@@ -190,7 +192,7 @@ export default function ThreePillHeader({
                             if (mounted) setNotificationCount(notifCount || 0);
                         };
 
-                        const cleanupNotifSync = listenBroadcast('smarter_poker_notif_sync', (msg) => {
+                        cleanupNotifSync = listenBroadcast('smarter_poker_notif_sync', (msg) => {
                             if (msg === 'refresh_notifications') {
                                 console.log('[ThreePillHeader] received refresh_notifications broadcast');
                                 fetchUnreadCount();
@@ -241,7 +243,7 @@ export default function ThreePillHeader({
                             })
                             .subscribe();
 
-                        const cleanupDiamondSync = listenBroadcast('smarter_poker_diamond_sync', () => {
+                        cleanupDiamondSync = listenBroadcast('smarter_poker_diamond_sync', () => {
                             refreshDiamondBalance();
                         });
 
@@ -264,15 +266,10 @@ export default function ThreePillHeader({
         loadUser();
         return () => {
             mounted = false;
-            // listenBroadcast returns cleanup functions, handled internally by the hook where scope allows, 
-            // but for dynamic closures we can't easily return them all from loadUser.
-            // The listenBroadcast utility safely handles its own closures and Unhandled Promise Rejections.
-            if (notifChannel) {
-                supabase.removeChannel(notifChannel);
-            }
-            if (diamondChannel) {
-                supabase.removeChannel(diamondChannel);
-            }
+            if (notifChannel) supabase.removeChannel(notifChannel);
+            if (diamondChannel) supabase.removeChannel(diamondChannel);
+            if (cleanupNotifSync) cleanupNotifSync();
+            if (cleanupDiamondSync) cleanupDiamondSync();
         };
     }, []);
 

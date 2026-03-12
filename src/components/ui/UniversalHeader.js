@@ -143,6 +143,7 @@ export default function UniversalHeader({
     useEffect(() => {
         let mounted = true; // Prevent state updates after unmount
         let notifChannel;
+        let cleanupNotifSync = null;
         let messageChannel;
         let notifSyncChannel;
 
@@ -296,7 +297,7 @@ export default function UniversalHeader({
                     await fetchUnreadCount();
 
                     // ── CROSS-TAB SYNC: Listen for read notifications in other tabs ──
-                    const cleanupNotifSync = listenBroadcast('smarter_poker_notif_sync', (msg) => {
+                    cleanupNotifSync = listenBroadcast('smarter_poker_notif_sync', (msg) => {
                         if (msg === 'refresh_notifications') {
                             console.log('[UniversalHeader] received refresh_notifications broadcast');
                             fetchUnreadCount();
@@ -354,6 +355,7 @@ export default function UniversalHeader({
         return () => {
             mounted = false;
             if (notifChannel) supabase.removeChannel(notifChannel);
+            if (cleanupNotifSync) cleanupNotifSync();
         };
     }, []);
 
@@ -411,7 +413,6 @@ export default function UniversalHeader({
     useEffect(() => {
         if (!user?.id) return;
         let diamondChannel = null;
-        let diamondBc = null;
 
         const refreshDiamondBalance = async () => {
             try {
@@ -470,6 +471,7 @@ export default function UniversalHeader({
 
         return () => {
             if (diamondChannel) supabase.removeChannel(diamondChannel);
+            cleanupDiamondSync();
         };
     }, [user?.id]);
 
