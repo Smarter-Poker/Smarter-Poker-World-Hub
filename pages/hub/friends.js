@@ -598,7 +598,6 @@ function FriendsPage() {
     useEffect(() => {
         if (!user?.id) return;
         let friendsChannel = null;
-        let friendsBc = null;
 
         const _ch = supabase
             .channel(`friends:${user.id}`)
