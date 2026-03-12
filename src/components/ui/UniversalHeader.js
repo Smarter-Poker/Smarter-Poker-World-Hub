@@ -481,8 +481,8 @@ export default function UniversalHeader({
         const cleanup = listenBroadcast('smarter_poker_avatar_sync', (msg) => {
             if (msg === 'refresh') {
                 console.log('[UniversalHeader] Avatar refresh via BroadcastChannel');
-                // Avatar is managed by AvatarContext which handles the refresh
-                // This listener just ensures immediate UI update in this tab
+                // Trigger a profile re-fetch so avatar + name update in the header
+                window.dispatchEvent(new CustomEvent('profile-updated'));
             }
         });
 
@@ -494,9 +494,9 @@ export default function UniversalHeader({
     useEffect(() => {
         const cleanup = listenBroadcast('smarter_poker_chips_sync', (msg) => {
             if (msg === 'refresh') {
-                console.log('[UniversalHeader] Chip balance refresh via BroadcastChannel');
-                // Header doesn't display chip balance, but listeners help propagate
-                // the sync event to other components that do display it
+                console.log('[UniversalHeader] Chip/diamond balance refresh via BroadcastChannel');
+                // Refresh the diamond balance displayed in the header
+                window.dispatchEvent(new CustomEvent('diamond-balance-refresh'));
             }
         });
 

@@ -846,6 +846,8 @@ export default function DiamondStorePage() {
                     if (data.success) {
                         alert('VIP Daily Pass Activated! 💎');
                         setIsVip(true);
+                        broadcastSync('smarter_poker_vip_sync', 'refresh_vip');
+                        broadcastSync('smarter_poker_diamond_sync', 'refresh');
                     } else {
                         alert(`Failed: ${data.error}`);
                     }
@@ -926,8 +928,9 @@ export default function DiamondStorePage() {
             // Notify listeners (UniversalHeader, etc.) to refresh diamond balance immediately
             window.dispatchEvent(new CustomEvent('diamond-balance-refresh'));
 
-            // Broadcast across tabs
+            // Broadcast across tabs — diamond balance + chips changed
             broadcastSync('smarter_poker_diamond_sync', 'refresh');
+            broadcastSync('smarter_poker_chips_sync', 'refresh');
 
         } catch (error) {
             console.error('Diamond payment error:', error);

@@ -369,7 +369,8 @@ export default function ThreePillHeader({
         const cleanup = listenBroadcast('smarter_poker_avatar_sync', (msg) => {
             if (msg === 'refresh') {
                 console.log('[ThreePillHeader] Avatar refresh via BroadcastChannel');
-                // Avatar is managed by AvatarContext which handles the refresh
+                // Trigger a profile re-fetch so avatar + name update in the header
+                window.dispatchEvent(new CustomEvent('profile-updated'));
             }
         });
 
@@ -381,7 +382,9 @@ export default function ThreePillHeader({
     useEffect(() => {
         const cleanup = listenBroadcast('smarter_poker_chips_sync', (msg) => {
             if (msg === 'refresh') {
-                console.log('[ThreePillHeader] Chip balance refresh via BroadcastChannel');
+                console.log('[ThreePillHeader] Chip/diamond balance refresh via BroadcastChannel');
+                // Refresh the diamond balance displayed in the header
+                window.dispatchEvent(new CustomEvent('diamond-balance-refresh'));
             }
         });
 

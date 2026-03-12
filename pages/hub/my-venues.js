@@ -544,8 +544,10 @@ export default function MyVenuesPage() {
     // ── REAL-TIME BUS LISTENER ──
     // When Commander updates staff data (schedule, downs, time-clock), refresh the portal
     useEffect(() => {
+        const tabId = typeof window !== 'undefined' ? window.__SP_TAB_ID || Math.random().toString(36).slice(2) : '';
         const cleanup = listenBroadcast('commander-sync', (msg) => {
             if (msg?.type !== 'data-changed') return;
+            if (msg.tabId === tabId) return; // Suppress self-tab echo
             // Refresh data when staff-related entities change
             if (['staff', 'dealers', 'tables'].includes(msg.entity)) {
                 reloadVenues(); // Re-fetch all data
