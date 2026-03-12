@@ -33,7 +33,7 @@ export default async function handler(req, res) {
   if (!unionId) return res.status(400).json({ success: false, error: 'unionId query param required' });
 
   try {
-    // 1. Verify union admin
+    // 1. Verify union admin (with owner fallback)
     const { data: unionAdmin } = await supabaseAdmin
       .from('union_admins')
       .select('role, permissions')
@@ -41,7 +41,21 @@ export default async function handler(req, res) {
       .eq('user_id', user.id)
       .maybeSingle();
 
-    if (!unionAdmin) return res.status(403).json({ success: false, error: 'Not a union admin' });
+    // Fallback: check if user is the union owner
+    let resolvedAdmin = unionAdmin;
+    if (!resolvedAdmin) {
+      const { data: ownerCheck } = await supabaseAdmin
+        .from('unions')
+        .select('id')
+        .eq('id', unionId)
+        .eq('owner_id', user.id)
+        .maybeSingle();
+      if (ownerCheck) {
+        resolvedAdmin = { role: 'owner', permissions: null };
+      }
+    }
+
+    if (!resolvedAdmin) return res.status(403).json({ success: false, error: 'Not a union admin' });
 
     // 2. Get union info
     const { data: union } = await supabaseAdmin
@@ -262,7 +276,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       success: true,
       union,
-      adminRole: unionAdmin.role,
+      adminRole: resolvedAdmin.role,
       pendingApplications: pendingApps || 0,
       pendingLeaveRequests: pendingLeave || 0,
       activityFeed,
