@@ -25,6 +25,7 @@ import DiamondWalletModal from '../store/DiamondWalletModal';
 import { useAvatar } from '../../contexts/AvatarContext';
 import { useUnreadCount } from '../../hooks/useUnreadCount';
 import { eventBus, EventType } from '../../engine/EventBus';
+import { listenBroadcast } from '../../lib/broadcastSync';
 
 // Dark theme colors matching hub
 const C = {
@@ -294,13 +295,12 @@ export default function UniversalHeader({
                     await fetchUnreadCount();
 
                     // ── CROSS-TAB SYNC: Listen for read notifications in other tabs ──
-                    notifSyncChannel = new BroadcastChannel('smarter_poker_notif_sync');
-                    notifSyncChannel.onmessage = (event) => {
-                        if (event.data === 'refresh_notifications') {
+                    const cleanupNotifSync = listenBroadcast('smarter_poker_notif_sync', (msg) => {
+                        if (msg === 'refresh_notifications') {
                             console.log('[UniversalHeader] received refresh_notifications broadcast');
                             fetchUnreadCount();
                         }
-                    };
+                    });
 
                     // NOTE: Unread messages count is set from API response above (lines 160-165)
                     // No direct query needed - the get-header-stats API handles this correctly
@@ -353,9 +353,6 @@ export default function UniversalHeader({
         return () => {
             mounted = false;
             if (notifChannel) supabase.removeChannel(notifChannel);
-            if (notifSyncChannel) {
-                try { notifSyncChannel.close(); } catch (e) { }
-            }
         };
     }, []);
 
@@ -466,16 +463,12 @@ export default function UniversalHeader({
             .subscribe();
 
         // BroadcastChannel: cross-tab sync
-        try {
-            diamondBc = new BroadcastChannel('smarter_poker_diamond_sync');
-            diamondBc.onmessage = () => {
-                refreshDiamondBalance();
-            };
-        } catch (e) { }
+        const cleanupDiamondSync = listenBroadcast('smarter_poker_diamond_sync', () => {
+            refreshDiamondBalance();
+        });
 
         return () => {
             if (diamondChannel) supabase.removeChannel(diamondChannel);
-            try { diamondBc?.close(); } catch (e) { }
         };
     }, [user?.id]);
 
@@ -483,47 +476,30 @@ export default function UniversalHeader({
     // Listen for avatar changes from AvatarContext and other tabs
     useEffect(() => {
         if (!user?.id) return;
-        let avatarBc = null;
 
-        try {
-            avatarBc = new BroadcastChannel('smarter_poker_avatar_sync');
-            avatarBc.onmessage = (event) => {
-                if (event.data === 'refresh') {
-                    console.log('[UniversalHeader] Avatar refresh via BroadcastChannel');
-                    // Avatar is managed by AvatarContext which handles the refresh
-                    // This listener just ensures immediate UI update in this tab
-                }
-            };
-        } catch (e) { }
-
-        return () => {
-            if (avatarBc) {
-                try { avatarBc.close(); } catch (e) { }
+        const cleanup = listenBroadcast('smarter_poker_avatar_sync', (msg) => {
+            if (msg === 'refresh') {
+                console.log('[UniversalHeader] Avatar refresh via BroadcastChannel');
+                // Avatar is managed by AvatarContext which handles the refresh
+                // This listener just ensures immediate UI update in this tab
             }
-        };
+        });
+
+        return cleanup;
     }, [user?.id]);
 
     // ── TIER 2: Club Arena Chip Balance Cross-Tab Sync ──
     // Listen for chip balance changes from other Club Arena tabs
     useEffect(() => {
-        let chipsBc = null;
-
-        try {
-            chipsBc = new BroadcastChannel('smarter_poker_chips_sync');
-            chipsBc.onmessage = (event) => {
-                if (event.data === 'refresh') {
-                    console.log('[UniversalHeader] Chip balance refresh via BroadcastChannel');
-                    // Header doesn't display chip balance, but listeners help propagate
-                    // the sync event to other components that do display it
-                }
-            };
-        } catch (e) { }
-
-        return () => {
-            if (chipsBc) {
-                try { chipsBc.close(); } catch (e) { }
+        const cleanup = listenBroadcast('smarter_poker_chips_sync', (msg) => {
+            if (msg === 'refresh') {
+                console.log('[UniversalHeader] Chip balance refresh via BroadcastChannel');
+                // Header doesn't display chip balance, but listeners help propagate
+                // the sync event to other components that do display it
             }
-        };
+        });
+
+        return cleanup;
     }, []);
 
     // ── VIP status bus listener — updates VIP badge in real time ──
