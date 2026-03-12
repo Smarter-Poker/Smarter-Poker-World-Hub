@@ -19,7 +19,7 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { friendPreferences } from '../../src/services/preferences-service';
 import { usePersistedState } from '../../src/hooks/usePersistedState';
 import { getAccessToken } from '../../src/lib/authUtils';
-import { eventBus, EventType } from '../../src/engine/EventBus';
+import { eventBus, EventType, busEmit } from '../../src/engine/EventBus';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 
 const C = {
@@ -643,6 +643,7 @@ export default function FriendsPage() {
             setFollowingIds(prev => { const s = new Set(prev); s.delete(userId); return s; });
             toast.error('Could not follow user. Please try again.');
         } else {
+            busEmit.dataMutated('friends');
             try { const bc = new BroadcastChannel('smarter_poker_friends_sync'); bc.postMessage('refresh'); bc.close(); } catch (e) { }
         }
     };
@@ -667,6 +668,7 @@ export default function FriendsPage() {
             setFollowingIds(prev => new Set([...prev, userId]));
             toast.error('Could not unfollow user. Please try again.');
         } else {
+            busEmit.dataMutated('friends');
             try { const bc = new BroadcastChannel('smarter_poker_friends_sync'); bc.postMessage('refresh'); bc.close(); } catch (e) { }
         }
     };
@@ -681,6 +683,7 @@ export default function FriendsPage() {
         if (!error) {
             setPendingIds(prev => new Set([...prev, friendId]));
             toast.success('Friend request sent!');
+            busEmit.friendRequestSent(friendId);
             try { const bc = new BroadcastChannel('smarter_poker_friends_sync'); bc.postMessage('refresh'); bc.close(); } catch (e) { }
         } else {
             toast.error('Could not send friend request. Please try again.');
@@ -744,6 +747,7 @@ export default function FriendsPage() {
         // Remove from requests
         setFriendRequests(prev => prev.filter(r => r.id !== request.id));
 
+        busEmit.dataMutated('friends');
         try { const bc = new BroadcastChannel('smarter_poker_friends_sync'); bc.postMessage('refresh'); bc.close(); } catch (e) { }
     };
 
@@ -774,6 +778,7 @@ export default function FriendsPage() {
             });
         }
 
+        busEmit.dataMutated('friends');
         try { const bc = new BroadcastChannel('smarter_poker_friends_sync'); bc.postMessage('refresh'); bc.close(); } catch (e) { }
     };
 

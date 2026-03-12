@@ -278,7 +278,7 @@ export default function NotificationsPage() {
             }
 
             // Sync friends page cross-tab
-            try { new BroadcastChannel('smarter_poker_friends_sync').postMessage('refresh'); } catch { /* noop */ }
+            try { const bc = new BroadcastChannel('smarter_poker_friends_sync'); bc.postMessage('refresh'); bc.close(); } catch { /* noop */ }
         } catch (err) {
             console.error('Error accepting friend request:', err);
         }
@@ -332,7 +332,7 @@ export default function NotificationsPage() {
             ));
 
             // Sync friends page cross-tab
-            try { new BroadcastChannel('smarter_poker_friends_sync').postMessage('refresh'); } catch { /* noop */ }
+            try { const bc = new BroadcastChannel('smarter_poker_friends_sync'); bc.postMessage('refresh'); bc.close(); } catch { /* noop */ }
         } catch (err) {
             console.error('Error declining friend request:', err);
         }
