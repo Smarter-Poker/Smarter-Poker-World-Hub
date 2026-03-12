@@ -564,15 +564,15 @@ export default function MyVenuesPage() {
     }, [user, reloadVenues]);
   // Realtime subscription — live updates
   useEffect(() => {
-    if (!userId) return;
+    if (!user?.id) return;
     const _ch = supabase
-      .channel(`my-venues:${userId}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'commander_staff_shifts', filter: `staff_id=eq.${userId}` }, () => {
+      .channel(`my-venues:${user.id}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'commander_staff_shifts', filter: `staff_id=eq.${user.id}` }, () => {
         reloadVenues();
       })
       .subscribe();
     return () => { supabase.removeChannel(_ch); };
-  }, [userId, reloadVenues]);
+  }, [user?.id, reloadVenues]);
 
     const handleLinked = () => {
         // Clear the linked venue from emailMatches and refresh venues

@@ -749,6 +749,7 @@ function FriendsPage() {
         toast.success('Friend request accepted!');
         eventBus.emit(EventType.FRIEND_REQUEST_ACCEPTED, { friendId: request.user_id }, 'FriendsPage');
 
+        busEmit.dataMutated('friends');
         broadcastSync('smarter_poker_friends_sync', 'refresh');
         } finally { actionInProgress.current = false; }
     };
