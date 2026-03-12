@@ -40,6 +40,11 @@ export default function NotificationsPage() {
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState(null);
 
+    const mounted = useRef(true);
+    useEffect(() => {
+        return () => { mounted.current = false; };
+    }, []);
+
     useTrainingBus('notifications');
 
     const menuConfig = getMenuConfig('notifications', user, {}, {});
