@@ -19,6 +19,7 @@ export default async function handler(req, res) {
         let metadata = {};
         try {
             const metaRes = await fetch('https://api.microlink.io/?url=' + encodeURIComponent(targetUrl));
+            if (!metaRes.ok) throw new Error(`Request failed (${metaRes.status})`);
             const metaResult = await metaRes.json();
             if (metaResult.status === 'success' && metaResult.data) {
                 metadata = {

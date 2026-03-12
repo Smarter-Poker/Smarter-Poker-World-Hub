@@ -562,6 +562,7 @@ export default function HorsesAdmin() {
         fetch('/api/geeves/analytics?action=summary', { headers }),
         fetch('/api/geeves/analytics?action=top_missed', { headers }),
       ]);
+      if (!summaryRes.ok) throw new Error(`Request failed (${summaryRes.status})`);
       const [summaryData, missedData] = await Promise.all([summaryRes.json(), missedRes.json()]);
       setGeevesAnalytics({
         summary: summaryData.success ? summaryData.summary : null,
@@ -712,6 +713,7 @@ export default function HorsesAdmin() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ action: 'list', statusFilter }),
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) setCaApplications(data.applications || []);
     } catch (err) {
@@ -732,6 +734,7 @@ export default function HorsesAdmin() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ action: 'list_leave_requests', statusFilter }),
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) setCaLeaveRequests(data.leaveRequests || []);
     } catch (err) {
@@ -1930,6 +1933,7 @@ export default function HorsesAdmin() {
                         },
                         body: JSON.stringify(promoForm),
                       });
+                      if (!res.ok) throw new Error(`Request failed (${res.status})`);
                       const data = await res.json();
                       if (res.ok) {
                         showNotification(`Promo code ${data.code.code} created! 🎟️`);
@@ -3001,6 +3005,7 @@ export default function HorsesAdmin() {
                               headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
                               body: JSON.stringify({ action: 'approve', applicationId: app.id, commissionRate: rate }),
                             });
+                            if (!r.ok) throw new Error(`Request failed (${r.status})`);
                             const d = await r.json();
                             if (d.success) {
                               showNotification(`✅ ${d.message}`, 'success');
@@ -3031,6 +3036,7 @@ export default function HorsesAdmin() {
                               headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
                               body: JSON.stringify({ action: 'reject', applicationId: app.id, reason: caAppReason }),
                             });
+                            if (!r.ok) throw new Error(`Request failed (${r.status})`);
                             const d = await r.json();
                             if (d.success) {
                               showNotification(`Application rejected`, 'success');
@@ -3133,6 +3139,7 @@ export default function HorsesAdmin() {
                               headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
                               body: JSON.stringify({ action: 'approve_leave', leaveRequestId: req.id }),
                             });
+                            if (!r.ok) throw new Error(`Request failed (${r.status})`);
                             const d = await r.json();
                             if (d.success) {
                               showNotification(`✅ ${req.club_name} removed from union`, 'success');
@@ -3157,6 +3164,7 @@ export default function HorsesAdmin() {
                               headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
                               body: JSON.stringify({ action: 'reject', applicationId: req.id }),
                             });
+                            if (!r.ok) throw new Error(`Request failed (${r.status})`);
                             const d = await r.json();
                             if (d.success) {
                               showNotification('Leave request denied', 'success');

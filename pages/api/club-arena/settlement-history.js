@@ -85,6 +85,7 @@ export default async function handler(req, res) {
                             },
                             body: JSON.stringify({ clubId: club.id, action: 'close' }),
                         });
+                        if (!settleRes.ok) throw new Error(`Request failed (${settleRes.status})`);
                         const settleData = await settleRes.json();
                         settleSuccess = settleData.success;
                     } catch (settleErr) {

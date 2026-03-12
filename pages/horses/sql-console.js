@@ -67,6 +67,7 @@ export default function OmnichannelSQLConsole() {
                 body: JSON.stringify({ sql: sqlQuery, allowDestructive })
             });
 
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const data = await res.json();
             setResult({ status: res.status, data });
 

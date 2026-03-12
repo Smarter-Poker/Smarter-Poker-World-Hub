@@ -183,6 +183,7 @@ export default async function handler(req, res) {
                                 html: htmlBody
                             })
                         });
+                        if (!emailRes.ok) throw new Error(`Request failed (${emailRes.status})`);
                         const emailResult = await emailRes.json();
                         if (emailResult.id) {
                             results.sent++;

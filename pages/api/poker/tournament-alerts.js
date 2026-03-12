@@ -45,6 +45,7 @@ export default async function handler(req, res) {
             if (match === 'true') {
                 // Fetch daily tournaments
                 const tournamentsRes = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'https://smarter.poker'}/api/poker/daily-tournaments?limit=100`);
+                if (!tournamentsRes.ok) throw new Error(`Request failed (${tournamentsRes.status})`);
                 const tournamentsData = await tournamentsRes.json();
                 const tournaments = tournamentsData.tournaments || tournamentsData.data || [];
 

@@ -235,6 +235,7 @@ export default function HomeGamePage() {
       setLoading(true);
       try {
         const res = await fetch(`/api/public/home-game/${code}`);
+        if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const data = await res.json();
         if (data.success) {
           setGroup(data.data.group);
@@ -245,6 +246,7 @@ export default function HomeGamePage() {
         // Fetch posts if not private or if member
         if (data.data?.group && !data.data.group.is_private) {
           const postsRes = await fetch(`/api/public/home-game/${code}/posts?limit=10`);
+          if (!postsRes.ok) throw new Error(`Request failed (${postsRes.status})`);
           const postsData = await postsRes.json();
           if (postsData.success) {
             setPosts(postsData.data?.posts || []);

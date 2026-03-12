@@ -40,6 +40,7 @@ async function sendTwilioSMS(to, message) {
       }
     );
 
+    if (!response.ok) throw new Error(`Request failed (${response.status})`);
     const data = await response.json();
     if (response.ok) {
       return { success: true, sid: data.sid };
@@ -80,6 +81,7 @@ async function sendOneSignalPush(userId, title, message, data = {}) {
       })
     });
 
+    if (!response.ok) throw new Error(`Request failed (${response.status})`);
     const result = await response.json();
     if (response.ok && !result.errors) {
       return { success: true, id: result.id };

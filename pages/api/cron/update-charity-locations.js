@@ -139,6 +139,7 @@ export default async function handler(req, res) {
                             `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(locStr)}&format=json&limit=1&countrycodes=us`,
                             { headers: { 'User-Agent': 'SmarterPoker/1.0 (https://smarter.poker)' } }
                         );
+                        if (!geoRes.ok) throw new Error(`Request failed (${geoRes.status})`);
                         const geoData = await geoRes.json();
                         if (geoData && geoData.length > 0) {
                             existingGeo[locStr] = {

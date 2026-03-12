@@ -59,6 +59,7 @@ export default function ClaimPage() {
                 },
                 body: JSON.stringify({ code: token }),
             });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const data = await res.json();
             if (!res.ok || !data.success) {
                 setError(data.error || 'Failed to claim code');

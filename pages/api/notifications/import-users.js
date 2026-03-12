@@ -84,6 +84,7 @@ export default async function handler(req, res) {
                         }),
                     });
 
+                    if (!response.ok) throw new Error(`Request failed (${response.status})`);
                     const result = await response.json();
 
                     if (response.ok) {

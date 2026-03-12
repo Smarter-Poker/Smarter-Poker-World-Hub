@@ -104,6 +104,7 @@ export default async function handler(req, res) {
             body: JSON.stringify(payload),
         });
 
+        if (!response.ok) throw new Error(`Request failed (${response.status})`);
         const result = await response.json();
 
         if (result.id) {

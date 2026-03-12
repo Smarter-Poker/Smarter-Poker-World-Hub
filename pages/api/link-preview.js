@@ -70,6 +70,7 @@ export default async function handler(req, res) {
         try {
             const microlinkUrl = `https://api.microlink.io?url=${encodeURIComponent(url)}`;
             const microlinkRes = await fetch(microlinkUrl);
+            if (!microlinkRes.ok) throw new Error(`Request failed (${microlinkRes.status})`);
             const microlinkData = await microlinkRes.json();
 
             if (microlinkData.status === 'success' && microlinkData.data) {

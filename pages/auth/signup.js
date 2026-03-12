@@ -212,6 +212,7 @@ export default function SignUpPage() {
                 body: JSON.stringify({ phone: cleanPhone }),
             });
 
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const data = await res.json();
 
             if (!res.ok) {
@@ -255,6 +256,7 @@ export default function SignUpPage() {
                 body: JSON.stringify({ phone: cleanPhone, code: phoneOtp }),
             });
 
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const data = await res.json();
 
             if (!res.ok) {
@@ -310,6 +312,7 @@ export default function SignUpPage() {
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ code: formData.promoCode }),
                     });
+                    if (!res.ok) throw new Error(`Request failed (${res.status})`);
                     const data = await res.json();
                     if (res.ok && data.valid) {
                         setReferralValid(true);
@@ -328,6 +331,7 @@ export default function SignUpPage() {
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ code: formData.promoCode }),
                     });
+                    if (!res.ok) throw new Error(`Request failed (${res.status})`);
                     const data = await res.json();
                     if (res.ok && data.valid) {
                         setPromoValid(true);

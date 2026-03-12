@@ -22,6 +22,7 @@ export default async function handler(req, res) {
                 { method: 'GET' }
             );
 
+            if (!response.ok) throw new Error(`Request failed (${response.status})`);
             const data = await response.json();
             results.push({
                 videoId: video.videoId,

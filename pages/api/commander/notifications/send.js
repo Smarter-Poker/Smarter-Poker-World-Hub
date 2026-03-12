@@ -381,6 +381,7 @@ async function sendEmailNotification(notification) {
       })
     });
 
+    if (!response.ok) throw new Error(`Request failed (${response.status})`);
     const result = await response.json();
 
     if (result.id) {
@@ -456,6 +457,7 @@ async function sendPushNotification(notification) {
         })
       });
 
+      if (!response.ok) throw new Error(`Request failed (${response.status})`);
       const result = await response.json();
 
       if (result.id) {
@@ -517,6 +519,7 @@ async function sendPushNotification(notification) {
         })
       });
 
+      if (!response.ok) throw new Error(`Request failed (${response.status})`);
       const result = await response.json();
 
       await supabase
@@ -554,6 +557,7 @@ async function sendPushNotification(notification) {
       })
     });
 
+    if (!response.ok) throw new Error(`Request failed (${response.status})`);
     const result = await response.json();
 
     await supabase

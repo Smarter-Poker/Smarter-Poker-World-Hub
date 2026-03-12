@@ -354,6 +354,7 @@ export default function ClubPage() {
     async function checkFollowStatus() {
       try {
         const res = await fetch(`/api/social/pages/follow?page_id=${id}&requester_id=${user.id}`);
+        if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const json = await res.json();
         if (json.success) {
           setIsFollowing(json.is_following || false);
@@ -375,6 +376,7 @@ export default function ClubPage() {
       try {
         // Fetch venue info (works with both UUID and slug via API fallback)
         const res = await fetch(`/api/public/venue/${id}`, { signal });
+        if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const data = await res.json();
         if (data.success) {
           setVenue(data.data.venue);
@@ -392,14 +394,17 @@ export default function ClubPage() {
           ]);
 
           if (postsRes.status === 'fulfilled') {
+            if (!value.ok) throw new Error(`Request failed (${value.status})`);
             const postsData = await postsRes.value.json();
             if (postsData.success) setPosts(postsData.data?.posts || []);
           }
           if (photosRes.status === 'fulfilled') {
+            if (!value.ok) throw new Error(`Request failed (${value.status})`);
             const photosData = await photosRes.value.json();
             if (photosData.success) setPhotos(photosData.data?.photos || []);
           }
           if (reviewsRes.status === 'fulfilled') {
+            if (!value.ok) throw new Error(`Request failed (${value.status})`);
             const reviewsData = await reviewsRes.value.json();
             if (reviewsData.success) setReviews(reviewsData.data?.reviews || []);
           }
@@ -456,6 +461,7 @@ export default function ClubPage() {
           action: isFollowing ? 'unfollow' : undefined
         })
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
         setIsFollowing(!isFollowing);
@@ -488,6 +494,7 @@ export default function ClubPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ post_id: postId, user_id: user.id, interaction_type: 'like' }),
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (!res.ok) {
         // Revert on failure
@@ -583,6 +590,7 @@ export default function ClubPage() {
               prefix: venue?.social_page_id || id,
             }),
           });
+          if (!metaRes.ok) throw new Error(`Request failed (${metaRes.status})`);
           const meta = await metaRes.json();
           if (!meta.success) {
             alert('Upload failed: ' + (meta.error || 'Unknown error'));
@@ -610,6 +618,7 @@ export default function ClubPage() {
             headers: _clubImgSess?.access_token ? { Authorization: `Bearer ${_clubImgSess.access_token}` } : {},
             body: formData,
           });
+          if (!res.ok) throw new Error(`Request failed (${res.status})`);
           const json = await res.json();
           if (json.success && json.url) {
             uploaded.push({ type: json.type || 'photo', url: json.url });
@@ -648,6 +657,7 @@ export default function ClubPage() {
           media_urls: mediaUrls
         }),
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success && json.data) {
         // Add to posts list with mapped shape for PostCard
@@ -697,6 +707,7 @@ export default function ClubPage() {
           content: reviewContent.trim() || null
         })
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
         setReviewSuccess(data.updated ? 'Review updated!' : 'Review submitted!');
@@ -706,6 +717,7 @@ export default function ClubPage() {
         setReviewContent('');
         // Refresh reviews
         const reviewsRes = await fetch(`/api/public/venue/${resolvedId}/reviews?limit=10`);
+        if (!reviewsRes.ok) throw new Error(`Request failed (${reviewsRes.status})`);
         const reviewsData = await reviewsRes.json();
         if (reviewsData.success) {
           setReviews(reviewsData.data?.reviews || []);
