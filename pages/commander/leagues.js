@@ -144,7 +144,6 @@ export default function LeaguesAndFreerollsManagement() {
   const fetchStandings = async (leagueId) => {
     try {
       const res = await fetch(`/api/commander/leagues/${leagueId}/standings`, {
-        ...(signal ? { signal } : {}),
         headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
       });
       const json = await res.json();
