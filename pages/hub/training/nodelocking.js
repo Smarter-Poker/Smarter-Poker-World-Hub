@@ -412,7 +412,7 @@ export default function NodelockingPage() {
       setProfileSaveStatus('error');
       setTimeout(() => setProfileSaveStatus(null), 3000);
     }
-  }, [newProfileName, customTendencies, selectedProfile]);
+  }, [newProfileName, customTendencies, selectedProfile, bus]);
 
   // Load a saved profile
   const loadCustomProfile = useCallback((profile) => {
@@ -494,10 +494,18 @@ export default function NodelockingPage() {
   // Save profile analysis to Supabase
   const [saveStatus, setSaveStatus] = useState(null); // null | 'saving' | 'saved' | 'error'
   const [profileToDelete, setProfileToDelete] = useState(null);
+
+  // Toast notification system
+  const [toasts, setToasts] = useState([]);
+  const addToast = useCallback((toast) => {
+    const id = Date.now();
+    setToasts((prev) => [...prev, { ...toast, id }]);
+    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 4000);
+  }, []);
   const saveAnalysis = useCallback(async () => {
     setSaveStatus('saving');
     try {
-      const token = getAccessToken();
+      const token = await getAccessToken();
       if (token) {
         const res = await authedFetch('/api/training/save-session', {
           method: 'POST',
@@ -1161,6 +1169,31 @@ export default function NodelockingPage() {
           </>
         )}
       </AnimatePresence>
+
+      {/* Toast Notifications */}
+      <div style={{ position: 'fixed', top: 20, right: 20, zIndex: 10000, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {toasts.map((t) => (
+          <motion.div
+            key={t.id}
+            initial={{ x: 300, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: 300, opacity: 0 }}
+            style={{
+              padding: '12px 18px',
+              borderRadius: 10,
+              background: t.type === 'error' ? 'rgba(239,68,68,0.95)' : 'rgba(34,197,94,0.95)',
+              color: '#fff',
+              fontSize: 12,
+              fontWeight: 700,
+              boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+              maxWidth: 300,
+            }}
+          >
+            <div style={{ fontWeight: 800, marginBottom: 2 }}>{t.title}</div>
+            <div style={{ opacity: 0.9 }}>{t.message}</div>
+          </motion.div>
+        ))}
+      </div>
     </>
   );
 }

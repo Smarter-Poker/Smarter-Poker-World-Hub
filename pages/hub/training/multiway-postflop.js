@@ -467,7 +467,7 @@ export default function MultiwayPostflop() {
                 {filteredScenarios.map((s, i) => (
                   <motion.button
                     key={s.id}
-                    onClick={() => setSelectedScenario(s.id)}
+                    onClick={() => { setSelectedScenario(s.id); setShowAnswers(false); }}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.04 }}
