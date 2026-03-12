@@ -131,4 +131,23 @@
   .tab { padding: 8px 12px; font-size: 12px; }
   .pageTitle { font-size: 20px; }
   .formRow { flex-direction: column; }
+  .dataTable th, .dataTable td { padding: 8px 6px; font-size: 12px; }
+  .dataTable th { font-size: 10px; }
+  .sectionTitle { font-size: 14px; flex-wrap: wrap; }
+  .walletAmount { font-size: 22px; }
+  .modal { max-width: calc(100vw - 32px); padding: 16px; }
+  .inner { padding: 10px; }
+  .section { padding: 14px; }
+}
+
+@media (max-width: 480px) {
+  .statsGrid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .walletGrid { grid-template-columns: 1fr; }
+  .tab { padding: 6px 8px; font-size: 11px; }
+  .cardMeta { flex-direction: column; gap: 4px; }
+  .pageHeader { flex-direction: column; align-items: flex-start; }
+  .headerActions { width: 100%; }
+  .formGroup { min-width: 100px; }
+  .statCard { padding: 10px; }
+  .statValue { font-size: 20px; }
 }

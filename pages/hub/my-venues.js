@@ -12,6 +12,7 @@ import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { supabase } from '../../src/lib/supabase';
+import { listenBroadcast } from '../../src/lib/broadcastSync';
 import { getAuthUser, getAccessToken } from '../../src/lib/authUtils';
 import { Building2, Calendar, Layers, Clock, ChevronLeft, ChevronRight, Shield, Link2, AlertCircle } from 'lucide-react';
 import SkeletonLight from '../../src/components/ui/SkeletonLight';
@@ -543,20 +544,14 @@ export default function MyVenuesPage() {
     // ── REAL-TIME BUS LISTENER ──
     // When Commander updates staff data (schedule, downs, time-clock), refresh the portal
     useEffect(() => {
-        let bc;
-        try {
-            bc = new BroadcastChannel('commander_sync');
-            bc.onmessage = (event) => {
-                const { type, venue_id } = event.data || {};
-                // Refresh data when staff-related changes happen
-                if (['staff_schedule_update', 'dealer_rotation', 'time_clock_update', 'staff_update'].includes(type)) {
-                    reloadVenues(); // Re-fetch all data
-                }
-            };
-        } catch (e) {
-            // BroadcastChannel not supported in some browsers
-        }
-        return () => { if (bc) bc.close(); };
+        const cleanup = listenBroadcast('commander_sync', (event) => {
+            const { type, venue_id } = event.data || {};
+            // Refresh data when staff-related changes happen
+            if (['staff_schedule_update', 'dealer_rotation', 'time_clock_update', 'staff_update'].includes(type)) {
+                reloadVenues(); // Re-fetch all data
+            }
+        });
+        return cleanup;
     }, [reloadVenues]);
 
     // ── AUTO-REFRESH: Check for new data every 60 seconds ──

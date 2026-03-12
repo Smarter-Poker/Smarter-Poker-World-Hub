@@ -8,6 +8,7 @@ import Head from 'next/head';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { supabase } from '../../src/lib/supabase';
 import { eventBus, EventType } from '../../src/engine/EventBus';
+import { broadcastSync, listenBroadcast } from '../../src/lib/broadcastSync';
 import styles from './horses.module.css';
 
 // Sync Channel Name
@@ -457,16 +458,12 @@ export default function HorsesAdmin() {
     if (!user) return;
 
     // 1. Cross-Tab BroadcastChannel setup
-    let bc = null;
-    if (typeof BroadcastChannel !== 'undefined') {
-      bc = new BroadcastChannel(SYNC_CHANNEL);
-      bc.onmessage = (event) => {
-        if (event.data?.type === 'sync_update') {
-          console.log('[Horses Sync] Received cross-tab broadcast, refreshing data...');
-          loadDataRef.current();
-        }
-      };
-    }
+    const cleanupBc = listenBroadcast(SYNC_CHANNEL, (event) => {
+      if (event.data?.type === 'sync_update') {
+        console.log('[Horses Sync] Received cross-tab broadcast, refreshing data...');
+        loadDataRef.current();
+      }
+    });
 
     // 2. Local Window Event Listener (for internal component changes)
     const handleLocalSync = () => {
@@ -506,7 +503,7 @@ export default function HorsesAdmin() {
     });
 
     return () => {
-      if (bc) bc.close();
+      cleanupBc();
       window.removeEventListener('horses-updated', handleLocalSync);
       window.removeEventListener('horses-grinder-updated', handleLocalSync);
       window.removeEventListener('horses-settings-updated', handleLocalSync);
@@ -520,11 +517,7 @@ export default function HorsesAdmin() {
   // Used by mutation functions to trigger both local and cross-tab syncs
   const broadcastUpdate = (eventType = 'horses-updated') => {
     window.dispatchEvent(new CustomEvent(eventType));
-    if (typeof BroadcastChannel !== 'undefined') {
-      const bc = new BroadcastChannel(SYNC_CHANNEL);
-      bc.postMessage({ type: 'sync_update', timestamp: Date.now() });
-      bc.close();
-    }
+    broadcastSync(SYNC_CHANNEL, { type: 'sync_update', timestamp: Date.now() });
   };
 
   const [analyticsError, setAnalyticsError] = useState(null);

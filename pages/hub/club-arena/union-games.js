@@ -2,13 +2,13 @@
    Union Games — Native Hub Page (replaces iframe shell)
    3 Tabs: Tournaments | Tables | BBJ Pool
    ═══════════════════════════════════════════════════════════════ */
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { apiCall } from '../../../src/lib/club-arena/apiClient';
-import { busEmit } from '../../../src/engine/EventBus';
+import { busEmit, eventBus } from '../../../src/engine/EventBus';
 import s from '../../../src/styles/UnionDashboard.module.css';
 
 const fmt = (n) => Number(n || 0).toLocaleString();
@@ -52,6 +52,10 @@ export default function UnionGamesPage() {
 
   // BBJ state
   const [bbjData, setBbjData] = useState(null);
+
+  // Search / Filter
+  const [tournSearch, setTournSearch] = useState('');
+  const [tableSearch, setTableSearch] = useState('');
 
   const mountedRef = useRef(true);
   useEffect(() => () => { mountedRef.current = false; }, []);
@@ -150,6 +154,42 @@ export default function UnionGamesPage() {
     } catch (err) { setError(err.message); }
   };
 
+  // ── Auto-Refresh Polling (45s on active tab) ──────────────
+  useEffect(() => {
+    if (!unionId) return;
+    const interval = setInterval(() => {
+      if (document.hidden) return;
+      if (tab === 'tournaments') loadTournaments();
+      else if (tab === 'tables') loadTables();
+    }, 45000);
+    return () => clearInterval(interval);
+  }, [unionId, tab, loadTournaments, loadTables]);
+
+  // ── EventBus LISTENERS — auto-refresh on incoming events ──
+  useEffect(() => {
+    if (!unionId || typeof eventBus?.on !== 'function') return;
+    const refreshTourns = () => { if (mountedRef.current) loadTournaments(); };
+    const refreshTables = () => { if (mountedRef.current) loadTables(); };
+    const unsubs = [
+      eventBus.on('union:tournament-created', refreshTourns),
+      eventBus.on('union:table-created', refreshTables),
+    ];
+    return () => unsubs.forEach(fn => fn?.());
+  }, [unionId, loadTournaments, loadTables]);
+
+  // ── Filtered Lists (search) ───────────────────────────────
+  const filteredTournaments = useMemo(() => {
+    if (!tournSearch.trim()) return tournaments;
+    const q = tournSearch.toLowerCase();
+    return tournaments.filter(t => t.name?.toLowerCase().includes(q) || t.status?.includes(q));
+  }, [tournaments, tournSearch]);
+
+  const filteredTables = useMemo(() => {
+    if (!tableSearch.trim()) return tables;
+    const q = tableSearch.toLowerCase();
+    return tables.filter(t => t.name?.toLowerCase().includes(q) || t.stakes?.includes(q) || t.game_type?.toLowerCase().includes(q));
+  }, [tables, tableSearch]);
+
   if (loading && !unionId) {
     return (
       <HubErrorBoundary name="Union Games">
@@ -208,6 +248,9 @@ export default function UnionGamesPage() {
                     <option value="running">Running</option>
                     <option value="completed">Completed</option>
                   </select>
+                </div>
+                <div className={s.formGroup} style={{ maxWidth: 250 }}>
+                  <input className={s.formInput} value={tournSearch} onChange={e => setTournSearch(e.target.value)} placeholder="Search tournaments..." />
                 </div>
                 <button className={s.btnPrimary} onClick={() => setShowCreate(!showCreate)}>
                   {showCreate ? 'Cancel' : '+ Create Tournament'}
@@ -327,7 +370,7 @@ export default function UnionGamesPage() {
                       <th>Name</th><th>Club</th><th>Status</th><th>Type</th><th>Buy-in</th><th>Players</th><th>Prize</th><th>Start</th><th>Actions</th>
                     </tr></thead>
                     <tbody>
-                      {tournaments.map(t => (
+                      {filteredTournaments.map(t => (
                         <tr key={t.id}>
                           <td style={{ fontWeight: 600 }}>{t.name}</td>
                           <td>{clubMap[t.club_id]?.name || 'Unknown'}</td>
@@ -386,8 +429,8 @@ export default function UnionGamesPage() {
                 </div>
               )}
 
-              {!loading && tournaments.length === 0 && (
-                <div className={s.emptyState}><span className={s.emptyIcon}>🏆</span><div className={s.emptyText}>No {tournFilter} tournaments</div></div>
+              {!loading && filteredTournaments.length === 0 && (
+                <div className={s.emptyState}><span className={s.emptyIcon}>🏆</span><div className={s.emptyText}>{tournSearch ? 'No tournaments match your search' : `No ${tournFilter} tournaments`}</div></div>
               )}
 
               {/* Tournament Details Modal */}
@@ -428,6 +471,9 @@ export default function UnionGamesPage() {
                     <option value="closed">Closed</option>
                     <option value="all">All</option>
                   </select>
+                </div>
+                <div className={s.formGroup} style={{ maxWidth: 250 }}>
+                  <input className={s.formInput} value={tableSearch} onChange={e => setTableSearch(e.target.value)} placeholder="Search tables by name/stakes..." />
                 </div>
                 <button className={s.btnPrimary} onClick={() => setShowCreateTable(!showCreateTable)}>
                   {showCreateTable ? 'Cancel' : '+ Create Table'}
@@ -509,7 +555,7 @@ export default function UnionGamesPage() {
                       <th>Name</th><th>Club</th><th>Status</th><th>Game</th><th>Stakes</th><th>Players</th><th>Buy-in</th><th>Actions</th>
                     </tr></thead>
                     <tbody>
-                      {tables.map(t => (
+                      {filteredTables.map(t => (
                         <tr key={t.id}>
                           <td style={{ fontWeight: 600 }}>{t.name}</td>
                           <td>{clubMap[t.club_id]?.name || 'Unknown'}</td>
@@ -535,8 +581,8 @@ export default function UnionGamesPage() {
                 </div>
               )}
 
-              {!loading && tables.length === 0 && (
-                <div className={s.emptyState}><span className={s.emptyIcon}>🃏</span><div className={s.emptyText}>No {tableFilter} tables</div></div>
+              {!loading && filteredTables.length === 0 && (
+                <div className={s.emptyState}><span className={s.emptyIcon}>🃏</span><div className={s.emptyText}>{tableSearch ? 'No tables match your search' : `No ${tableFilter} tables`}</div></div>
               )}
             </>
           )}
