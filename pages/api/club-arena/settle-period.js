@@ -59,7 +59,7 @@ export default async function handler(req, res) {
     // Verify authorization
     const { data: club } = await supabaseAdmin
       .from('clubs')
-      .select('id, owner_id, union_id, chip_treasury')
+      .select('id, name, owner_id, union_id, chip_treasury')
       .eq('id', clubId)
       .maybeSingle();
     if (!club) return res.status(404).json({ success: false, error: 'Club not found' });

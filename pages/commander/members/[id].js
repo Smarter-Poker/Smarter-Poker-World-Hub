@@ -58,7 +58,7 @@ export default function MemberProfile() {
       const staffSession = getStaffSession();
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
       const [memberRes, sessionsRes, tournamentsRes] = await Promise.all([
-        fetch(`/api/commander/members/${id}?venue_id=${venueId}`, { headers }).then(r => r.json()),
+        fetch(`/api/commander/members/${id}?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ data: null })),
         fetch(`/api/commander/time-billing/sessions?member_id=${id}&venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ data: [] })),
         fetch(`/api/commander/tournaments/player-results?member_id=${id}&venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ data: [] }))
       ]);

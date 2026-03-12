@@ -122,24 +122,7 @@ export default async function handler(req, res) {
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // 4 & 5 & 6. ATOMIC SWEEP (Cancel cashouts + Sweep chips + Log credit)
-    // ═══════════════════════════════════════════════════════════════
-    const { data: sweepResult, error: sweepErr } = await supabaseAdmin.rpc('fn_leave_club_atomic', {
-      p_club_id: clubId,
-      p_user_id: user.id
-    });
-
-    if (sweepErr) {
-      throw sweepErr;
-    }
-
-    const heldChipsReturned = sweepResult?.held_chips_returned || 0;
-    const chipsReturnedToTreasury = sweepResult?.chips_returned || 0;
-    const creditUsed = sweepResult?.credit_written_off || 0;
-    const pendingCashoutsCount = 0; // Handled internally by RPC, exact count not strictly needed for UI message
-
-    // ═══════════════════════════════════════════════════════════════
-    // 7. IF AGENT — Clean up downline
+    // 4. IF AGENT — Clean up downline BEFORE membership is deleted by fn_leave_club_atomic
     // ═══════════════════════════════════════════════════════════════
     if (['agent', 'sub_agent', 'super_agent'].includes(member.role)) {
       // Unassign all players under this agent
@@ -158,15 +141,21 @@ export default async function handler(req, res) {
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // 8. DELETE MEMBERSHIP
+    // 5 & 6 & 7 & 8. ATOMIC SWEEP (Cancel cashouts + Sweep chips + Log credit + Delete membership)
     // ═══════════════════════════════════════════════════════════════
-    const { error: delErr } = await supabaseAdmin
-      .from('club_members')
-      .delete()
-      .eq('club_id', clubId)
-      .eq('user_id', user.id);
+    const { data: sweepResult, error: sweepErr } = await supabaseAdmin.rpc('fn_leave_club_atomic', {
+      p_club_id: clubId,
+      p_user_id: user.id
+    });
 
-    if (delErr) throw delErr;
+    if (sweepErr) {
+      throw sweepErr;
+    }
+
+    const heldChipsReturned = sweepResult?.held_chips_returned || 0;
+    const chipsReturnedToTreasury = sweepResult?.chips_returned || 0;
+    const creditUsed = sweepResult?.credit_written_off || 0;
+    const pendingCashoutsCount = 0; // Handled internally by RPC
 
     // ═══════════════════════════════════════════════════════════════
     // 9. UPDATE MEMBER COUNT

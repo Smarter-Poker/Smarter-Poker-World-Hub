@@ -62,15 +62,7 @@ export default async function handler(req, res) {
       return res.status(409).json({ success: false, error: rpcResult?.error || 'Cancellation failed', details: rpcErr?.message });
     }
 
-    // Record transaction
-    await supabaseAdmin.from('chip_transactions').insert({
-      club_id: cashout.club_id,
-      from_user_id: user.id,
-      to_user_id: user.id,
-      amount: cashout.amount,
-      transaction_type: 'cashout_cancelled',
-      notes: 'Player cancelled cashout — chips returned',
-    });
+    // Transaction already recorded atomically inside fn_cancel_cashout_atomic
 
     cacheResponse(req, 200, {
       success: true,

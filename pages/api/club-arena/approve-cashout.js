@@ -142,7 +142,8 @@ export default async function handler(req, res) {
         `[CASHOUT APPROVED]
 
 ${agentName} approved your cashout of ${cashout.amount.toLocaleString()} chips.`,
-        `[OK] Cashout approved! ${cashout.amount.toLocaleString()} chips`
+        `[OK] Cashout approved! ${cashout.amount.toLocaleString()} chips`,
+        'approve'
       );
 
       logAudit(supabaseAdmin, { actionType: 'cashout_approved', userId: user.id, targetUserId: cashout.player_id, clubId: cashout.club_id, amount: cashout.amount, ip: extractIP(req), details: { cashoutId, agentNote: note || 'Approved' } });
@@ -177,7 +178,8 @@ ${agentName} approved your cashout of ${cashout.amount.toLocaleString()} chips.`
         `[CASHOUT CANCELLED]
 
 ${agentName} cancelled your cashout request for ${cashout.amount.toLocaleString()} chips.\nYour chips have been returned to your balance.${note ? `\n\nNote: ${note}` : ''}`,
-        `Cashout cancelled. ${cashout.amount.toLocaleString()} chips returned to your balance.`
+        `Cashout cancelled. ${cashout.amount.toLocaleString()} chips returned to your balance.`,
+        'cancel'
       );
 
       logAudit(supabaseAdmin, { actionType: 'cashout_cancelled', userId: user.id, targetUserId: cashout.player_id, clubId: cashout.club_id, amount: cashout.amount, ip: extractIP(req), details: { cashoutId, chipsReturned: cashout.amount, playerNewBalance, agentNote: note || 'Cancelled by agent' } });
@@ -199,7 +201,7 @@ ${agentName} cancelled your cashout request for ${cashout.amount.toLocaleString(
 /**
  * Send in-app message + push notification to the player
  */
-async function notifyPlayer(cashout, playerName, agentName, messageText, pushText) {
+async function notifyPlayer(cashout, playerName, agentName, messageText, pushText, action) {
   // In-app message
   // Rate limit
 
@@ -235,7 +237,7 @@ async function notifyPlayer(cashout, playerName, agentName, messageText, pushTex
         },
         body: JSON.stringify({
           userId: cashout.player_id,
-          title: pushText.startsWith('[CASHOUT APPROVED]') ? 'Cashout Approved' : 'Cashout Cancelled',
+          title: action === 'approve' ? 'Cashout Approved' : 'Cashout Cancelled',
           message: pushText,
           url: '/hub/club-arena/cashier',
         }),
