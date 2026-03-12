@@ -113,65 +113,33 @@ export default async function handler(req, res) {
     }
 
     // ═════════════════════════════════════════════════════════════
-    // 2. HOLD chips — atomic debit (escrow)
-    //    Uses fn_debit_chips to prevent TOCTOU race on balance
+    // 2. ATOMIC CASHOUT REQUEST (Debit + Escrow Transaction + Request)
     // ═════════════════════════════════════════════════════════════
-    const { error: holdErr } = await supabaseAdmin.rpc('fn_debit_chips', {
+    const { data: result, error: rpcErr } = await supabaseAdmin.rpc('fn_request_cashout', {
       p_club_id: clubId,
-      p_user_id: user.id,
+      p_player_id: user.id,
+      p_agent_id: member.agent_id,
       p_amount: amount,
+      p_note: note || `Cashout request: ${amount.toLocaleString()} chips`
     });
 
-    if (holdErr) {
-      if (holdErr.message?.includes('Insufficient')) {
-        return res.status(400).json({ success: false, error: 'Insufficient chips', details: holdErr.message });
-      }
-      throw holdErr;
+    if (rpcErr) {
+      console.error('[request-cashout] RPC Error:', rpcErr);
+      throw rpcErr;
     }
 
-    // ═════════════════════════════════════════════════════════════
-    // 4. Create cashout_request
-    // ═════════════════════════════════════════════════════════════
-    const { data: cashout, error: cashoutErr } = await supabaseAdmin
-      .from('cashout_requests')
-      .insert({
-        club_id: clubId,
-        player_id: user.id,
-        agent_id: member.agent_id,
-        amount,
-        status: 'pending',
-        player_note: note || `Cashout request: ${amount.toLocaleString()} chips`,
-      })
-      .select()
-      .maybeSingle();
-
-    if (cashoutErr) {
-      // Rollback: restore chips atomically
-      await supabaseAdmin.rpc('fn_credit_chips', {
-        p_club_id: clubId,
-        p_user_id: user.id,
-        p_amount: amount,
+    if (!result?.success) {
+      const isBalanceErr = result?.error === 'Insufficient balance';
+      return res.status(isBalanceErr ? 400 : 409).json({ 
+          success: false, 
+          error: result?.error || 'Cashout request failed',
+          details: result
       });
-
-      // Handle Database UNIQUE constraint violation (idx_single_pending_cashout)
-      if (cashoutErr.code === '23505') {
-        return res.status(409).json({ success: false, error: 'You already have a pending cashout request' });
-      }
-
-      throw cashoutErr;
     }
 
-    // ═════════════════════════════════════════════════════════════
-    // 5. Record chip_transaction (escrow hold)
-    // ═════════════════════════════════════════════════════════════
-    await supabaseAdmin.from('chip_transactions').insert({
-      club_id: clubId,
-      from_user_id: user.id,
-      to_user_id: user.id,
-      amount: -amount,
-      transaction_type: 'cashout',
-      notes: `Cashout hold (escrow): ${amount.toLocaleString()} chips pending agent approval`,
-    });
+    const cashoutId = result.cashout_id;
+
+    // Removed manual chip_transactions log — handled atomically by fn_request_cashout
 
     // ═════════════════════════════════════════════════════════════
     // 6. Get player display name for notifications
@@ -239,14 +207,14 @@ export default async function handler(req, res) {
 
     const responseBody = {
       success: true,
-      cashoutId: cashout.id,
+      cashoutId: cashoutId,
       amount,
       status: 'pending',
       remainingBalance: member.chip_balance - amount,
       agentNotified: true,
       message: `${amount.toLocaleString()} chips held. Your agent has been notified.`,
     };
-    logAudit(supabaseAdmin, { actionType: 'cashout_requested', userId: user.id, clubId, amount, ip: extractIP(req), details: { cashoutId: cashout.id, remainingBalance: member.chip_balance - amount, agentId: member.agent_id } });
+    logAudit(supabaseAdmin, { actionType: 'cashout_requested', userId: user.id, clubId, amount, ip: extractIP(req), details: { cashoutId: cashoutId, remainingBalance: member.chip_balance - amount, agentId: member.agent_id } });
     cacheResponse(req, 200, responseBody);
     return res.status(200).json(responseBody);
   } catch (err) {

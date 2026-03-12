@@ -181,55 +181,15 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Insufficient club treasury', available: treasury, requested: amount });
       }
 
-      // Deduct from treasury atomically
-      const { error: treasuryErr } = await supabaseAdmin.rpc('fn_debit_treasury', {
+      // ATOMIC PREPAID CREDIT (Debit Treasury, Credit Member Balance, Credit Business Balance)
+      const { data: rpcResult, error: rpcErr } = await supabaseAdmin.rpc('fn_add_prepaid_credit_atomic', {
         p_club_id: clubId,
-        p_amount: amount,
-      });
-      if (treasuryErr) throw treasuryErr;
-
-      // Add to agent's chip_balance atomically
-      const { error: creditErr } = await supabaseAdmin.rpc('fn_credit_chips', {
-        p_club_id: clubId,
-        p_user_id: agentUserId,
-        p_amount: amount,
-      });
-      if (creditErr) {
-        // ROLLBACK: re-credit treasury since agent didn't receive chips
-        await supabaseAdmin.rpc('fn_credit_treasury', {
-          p_club_id: clubId,
-          p_amount: amount,
-        }).catch(rbErr => console.error('[agent-credit] Treasury rollback failed:', rbErr.message));
-        throw creditErr;
-      }
-
-      // ATOMIC: Update business_balance using optimistic lock WITH retry
-      // Eliminates JS-side `oldBal + amount` TOCTOU race
-      const { data: atomicBiz, error: bizAtomicErr } = await supabaseAdmin.rpc('fn_atomic_increment_field', {
-        p_table: 'agents',
-        p_field: 'business_balance',
-        p_increment: amount,
-        p_where_id: agentRecord.id,
+        p_agent_id: agentUserId,
+        p_amount: amount
       });
 
-      if (bizAtomicErr) {
-        // Fallback: optimistic lock with retry
-        const oldBal = agentRecord.business_balance || 0;
-        const { data: balUpd } = await supabaseAdmin
-          .from('agents')
-          .update({ business_balance: oldBal + amount })
-          .eq('id', agentRecord.id)
-          .eq('business_balance', oldBal) // optimistic lock
-          .select('id')
-          .maybeSingle();
-
-        if (!balUpd) {
-          // Retry: re-read fresh value and apply
-          const { data: freshAgent } = await supabaseAdmin.from('agents').select('business_balance').eq('id', agentRecord.id).maybeSingle();
-          if (freshAgent) {
-            await supabaseAdmin.from('agents').update({ business_balance: (freshAgent.business_balance || 0) + amount }).eq('id', agentRecord.id);
-          }
-        }
+      if (rpcErr || !rpcResult?.success) {
+        throw rpcErr || new Error(rpcResult?.error || 'Atomic prepaid credit failed');
       }
 
       await supabaseAdmin.from('chip_transactions').insert({
@@ -249,15 +209,12 @@ export default async function handler(req, res) {
         data: { clubId, amount }
       });
 
-      // Read fresh balances for accurate response
-      const { data: freshClub } = await supabaseAdmin.from('clubs').select('chip_treasury').eq('id', clubId).maybeSingle();
-      const { data: freshMember } = await supabaseAdmin.from('club_members').select('chip_balance').eq('club_id', clubId).eq('user_id', agentUserId).maybeSingle();
-
+      // Balances returned by RPC
       const resultData = {
         action: 'prepaid_added',
         amount,
-        agentBalance: freshMember?.chip_balance || 0,
-        treasuryRemaining: freshClub?.chip_treasury || 0,
+        agentBalance: rpcResult.agent_balance || 0,
+        treasuryRemaining: rpcResult.treasury_remaining || 0,
       };
       cacheResponse(req, 200, { success: true, ...resultData });
       result = resultData;

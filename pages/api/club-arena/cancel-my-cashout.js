@@ -50,33 +50,16 @@ export default async function handler(req, res) {
       return res.status(400).json({ success: false, error: `Cannot cancel — status is ${cashout.status}` });
     }
 
-    // Mark cashout as cancelled FIRST (prevents double-cancel race)
-    const { data: cancelled, error: cancelErr } = await supabaseAdmin
-      .from('cashout_requests')
-      .update({ status: 'cancelled', cancelled_at: new Date().toISOString(), agent_note: 'Cancelled by player' })
-      .eq('id', cashoutId)
-      .eq('status', 'pending') // Guard: only cancel if still pending
-      .select('id')
-      .maybeSingle();
+    // Atomic cancellation (updates status + credits player chips + logs transaction)
+    const { data: rpcResult, error: rpcErr } = await supabaseAdmin.rpc('fn_cancel_cashout_atomic', {
+      p_cashout_id: cashoutId,
+      p_user_id: user.id,
+      p_is_agent: false,
+      p_note: 'Cancelled by player'
+    });
 
-    if (cancelErr || !cancelled) {
-      return res.status(409).json({ success: false, error: 'Cashout already processed or cancelled' });
-    }
-
-    // Return chips atomically via RPC
-    const { data: newBalance, error: creditErr } = await supabaseAdmin
-      .rpc('fn_credit_chips', {
-        p_club_id: cashout.club_id,
-        p_user_id: user.id,
-        p_amount: cashout.amount,
-      });
-
-    if (creditErr) {
-      // Rollback status change if credit fails
-      await supabaseAdmin.from('cashout_requests')
-        .update({ status: 'pending', cancelled_at: null, agent_note: null })
-        .eq('id', cashoutId);
-      throw creditErr;
+    if (rpcErr || !rpcResult?.success) {
+      return res.status(409).json({ success: false, error: rpcResult?.error || 'Cancellation failed', details: rpcErr?.message });
     }
 
     // Record transaction

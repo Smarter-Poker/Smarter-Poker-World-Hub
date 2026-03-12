@@ -73,18 +73,8 @@ export default async function handler(req, res) {
     const lockCheck = await checkSettlementLock(supabaseAdmin, cashout.club_id);
     if (lockCheck.locked) return sendLockedResponse(res, lockCheck);
 
-    // Atomic status claim — prevents concurrent double-processing
-    const { data: claimed, error: claimErr } = await supabaseAdmin
-      .from('cashout_requests')
-      .update({ status: action === 'approve' ? 'completing' : 'cancelling' })
-      .eq('id', cashoutId)
-      .eq('status', 'pending')  // Only succeeds if still pending
-      .select('id')
-      .maybeSingle();
-
-    if (claimErr || !claimed) {
-      return res.status(409).json({ success: false, error: 'Cashout already processed or claimed by another request' });
-    }
+    // The atomic RPCs now handle the status claim and verify the cashout is 'pending'.
+    // We only need the lockCheck pre-flight here.
 
     // ═════════════════════════════════════════════════════════════
     // 2. Verify caller is the assigned agent or club owner/admin
@@ -153,40 +143,16 @@ export default async function handler(req, res) {
         throw creditErr;
       }
 
-      // BUG #161 FIX: Return cashed-out chips to club treasury.
-      // The chips were debited from player during request-cashout (fn_debit_chips).
-      // On approval, those chips need to go back to the club's chip_treasury,
-      // otherwise total chip supply permanently shrinks on every cashout.
-      const { error: treasuryErr } = await supabaseAdmin.rpc('fn_credit_treasury', {
-        p_club_id: cashout.club_id,
-        p_amount: cashout.amount,
+      // Step 2: Atomic approval (updates request status + credits treasury + logs transaction)
+      const { data: rpcResult, error: rpcErr } = await supabaseAdmin.rpc('fn_approve_cashout_atomic', {
+        p_cashout_id: cashoutId,
+        p_agent_id: user.id,
+        p_agent_note: note || 'Approved'
       });
 
-      if (treasuryErr) {
-        console.error('[approve-cashout] Treasury credit failed (non-fatal):', treasuryErr.message);
-        // Non-fatal: the cashout still completes. Treasury will be corrected
-        // during next settlement reconciliation.
+      if (rpcErr || !rpcResult?.success) {
+        throw rpcErr || new Error(rpcResult?.error || 'Atomic approval failed');
       }
-
-      // Mark cashout completed (from 'completing' => 'completed')
-      await supabaseAdmin
-        .from('cashout_requests')
-        .update({
-          status: 'completed',
-          completed_at: new Date().toISOString(),
-          agent_note: note || 'Approved',
-        })
-        .eq('id', cashoutId);
-
-      // Record transaction
-      await supabaseAdmin.from('chip_transactions').insert({
-        club_id: cashout.club_id,
-        from_user_id: cashout.player_id,
-        to_user_id: cashout.agent_id,
-        amount: cashout.amount,
-        transaction_type: 'cashout_approved',
-        notes: `Cashout approved: ${cashout.amount.toLocaleString()} chips => ${diamondsReturned} diamonds`,
-      });
 
       // Notify player: message + push
       await notifyPlayer(cashout, playerName, agentName,
@@ -211,47 +177,19 @@ You received ${diamondsReturned} diamonds.`,
     // CANCEL: Return held chips to player's balance
     // ═════════════════════════════════════════════════════════════
     if (action === 'cancel') {
-      // Atomic chip credit via RPC
-      const { error: creditErr } = await supabaseAdmin.rpc('fn_credit_chips', {
-        p_club_id: cashout.club_id,
-        p_user_id: cashout.player_id,
-        p_amount: cashout.amount,
+      // Atomic cancellation (updates status + credits player chips + logs transaction)
+      const { data: rpcResult, error: rpcErr } = await supabaseAdmin.rpc('fn_cancel_cashout_atomic', {
+        p_cashout_id: cashoutId,
+        p_user_id: user.id,
+        p_is_agent: true,
+        p_note: note || 'Cancelled by agent'
       });
 
-      if (creditErr) {
-        // Revert status claim
-        await supabaseAdmin.from('cashout_requests')
-          .update({ status: 'pending' }).eq('id', cashoutId);
-        throw creditErr;
+      if (rpcErr || !rpcResult?.success) {
+        return res.status(409).json({ success: false, error: rpcResult?.error || 'Cancellation failed', details: rpcErr?.message });
       }
 
-      // Get new balance for response
-      const { data: playerMember } = await supabaseAdmin
-        .from('club_members')
-        .select('chip_balance')
-        .eq('club_id', cashout.club_id)
-        .eq('user_id', cashout.player_id)
-        .maybeSingle();
-
-      // Mark cashout cancelled (from 'cancelling' => 'cancelled')
-      await supabaseAdmin
-        .from('cashout_requests')
-        .update({
-          status: 'cancelled',
-          cancelled_at: new Date().toISOString(),
-          agent_note: note || 'Cancelled by agent',
-        })
-        .eq('id', cashoutId);
-
-      // Record refund transaction
-      await supabaseAdmin.from('chip_transactions').insert({
-        club_id: cashout.club_id,
-        from_user_id: cashout.agent_id,
-        to_user_id: cashout.player_id,
-        amount: cashout.amount,
-        transaction_type: 'cashout_cancelled',
-        notes: `Cashout cancelled: ${cashout.amount.toLocaleString()} chips returned to player`,
-      });
+      const playerNewBalance = rpcResult.new_balance;
 
       // Notify player: message + push
       await notifyPlayer(cashout, playerName, agentName,
@@ -261,13 +199,13 @@ ${agentName} cancelled your cashout request for ${cashout.amount.toLocaleString(
         `Cashout cancelled. ${cashout.amount.toLocaleString()} chips returned to your balance.`
       );
 
-      logAudit(supabaseAdmin, { actionType: 'cashout_cancelled', userId: user.id, targetUserId: cashout.player_id, clubId: cashout.club_id, amount: cashout.amount, ip: extractIP(req), details: { cashoutId, chipsReturned: cashout.amount, playerNewBalance: playerMember?.chip_balance || 0, agentNote: note || 'Cancelled by agent' } });
+      logAudit(supabaseAdmin, { actionType: 'cashout_cancelled', userId: user.id, targetUserId: cashout.player_id, clubId: cashout.club_id, amount: cashout.amount, ip: extractIP(req), details: { cashoutId, chipsReturned: cashout.amount, playerNewBalance, agentNote: note || 'Cancelled by agent' } });
       return res.status(200).json({
         success: true,
         action: 'cancelled',
         amount: cashout.amount,
         chipsReturned: cashout.amount,
-        playerNewBalance: playerMember?.chip_balance || 0,
+        playerNewBalance,
         playerId: cashout.player_id,
       });
     }

@@ -538,32 +538,17 @@ export default async function handler(req, res) {
         .eq('id', cr.agent_id)
         .maybeSingle();
 
-      // Distribute chips: debit treasury, credit agent
+      // Distribute chips atomically
       if (cr.commission_amount > 0 && agentData) {
-        await supabaseAdmin.rpc('fn_debit_treasury', {
+        const { error: rpcErr } = await supabaseAdmin.rpc('fn_pay_commission_atomic', {
           p_club_id: clubId,
+          p_agent_id: agentData.user_id,
+          p_commission_record_id: commissionId,
           p_amount: cr.commission_amount,
+          p_period_id: cr.period_id
         });
 
-        await supabaseAdmin.rpc('fn_credit_chips', {
-          p_club_id: clubId,
-          p_user_id: agentData.user_id,
-          p_amount: cr.commission_amount,
-        });
-
-        await supabaseAdmin.from('chip_transactions').insert({
-          club_id: clubId,
-          from_user_id: null,
-          to_user_id: agentData.user_id,
-          amount: cr.commission_amount,
-          transaction_type: 'commission',
-          notes: `Agent commission paid: ${cr.commission_amount.toLocaleString()} chips — Manual settlement`,
-          metadata: {
-            period_id: cr.period_id,
-            commission_record_id: cr.id,
-            settlement_type: 'manual',
-          },
-        });
+        if (rpcErr) throw rpcErr;
       }
 
       // Get the period's start_at to scope the history update correctly
@@ -647,37 +632,20 @@ export default async function handler(req, res) {
         const agentUserId = agentUserMap.get(cr.agent_id);
 
         if (agentUserId && cr.commission_amount > 0) {
-          // Debit club treasury FIRST
-          const { error: debitErr } = await supabaseAdmin.rpc('fn_debit_treasury', {
+          // Process atomically
+          const { error: rpcErr } = await supabaseAdmin.rpc('fn_pay_commission_atomic', {
             p_club_id: clubId,
+            p_agent_id: agentUserId,
+            p_commission_record_id: cr.id,
             p_amount: cr.commission_amount,
+            p_period_id: periodId
           });
 
-          if (!debitErr) {
-            // Credit agent's chip balance
-            await supabaseAdmin.rpc('fn_credit_chips', {
-              p_club_id: clubId,
-              p_user_id: agentUserId,
-              p_amount: cr.commission_amount,
-            });
-
-            // Record chip transaction
-            await supabaseAdmin.from('chip_transactions').insert({
-              club_id: clubId,
-              from_user_id: null,
-              to_user_id: agentUserId,
-              amount: cr.commission_amount,
-              transaction_type: 'commission',
-              notes: `Agent commission paid: ${cr.commission_amount.toLocaleString()} chips — Period settlement`,
-              metadata: {
-                period_id: periodId,
-                commission_record_id: cr.id,
-                settlement_type: 'manual',
-              },
-            });
-
-            // Only track as paid after chips are confirmed delivered
+          if (!rpcErr) {
+            // Only track as paid after atomic transfer succeeds
             paidIds.push(cr.id);
+          } else {
+             console.error(`[settle-period] Failed to pay commission ${cr.id}:`, rpcErr.message);
           }
         } else {
           // No chip transfer needed (amount is 0) — still mark as paid
