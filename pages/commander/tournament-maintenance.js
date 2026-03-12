@@ -40,6 +40,7 @@ export default function TournamentMaintenance() {
             const res = await fetch('/api/commander/tournaments?limit=100', {
                 headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
             });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success || json.data) {
                 setTournaments(json.data?.tournaments || json.data || []);

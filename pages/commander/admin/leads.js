@@ -58,6 +58,7 @@ export default function LeadManagementPage() {
       const res = await fetch(`/api/commander/admin/leads?status=${statusFilter}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
         setLeads(data.leads);

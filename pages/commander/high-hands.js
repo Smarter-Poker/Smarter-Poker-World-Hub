@@ -51,6 +51,7 @@ export default function HighHands() {
       const res = await fetch(`/api/commander/high-hands?venue_id=${venueId}&limit=50`, {
         headers: { Authorization: `Bearer ${getToken()}` }
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       setHighHands(json.high_hands || []);
       setCurrentHigh(json.current_high || null);

@@ -60,6 +60,7 @@ export default function PlayerReputation() {
       const res = await fetch(`/api/commander/reputation?venue_id=${staff.venue_id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) setScores(json.data.scores || []);
     } catch (err) { console.error(err); }
@@ -72,6 +73,7 @@ export default function PlayerReputation() {
       const res = await fetch(`/api/commander/reputation?player_id=${playerId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
         setExpandedReviews(prev => ({ ...prev, [playerId]: json.data.recent_reviews || [] }));

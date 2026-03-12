@@ -81,6 +81,7 @@ export default function MembershipPlansPage() {
       const res = await fetch(`/api/commander/membership-plans?venue_id=${venueId}&include_inactive=true`, {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': localStorage.getItem('commander_staff') || '' }
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
         const p = data.data.plans || [];

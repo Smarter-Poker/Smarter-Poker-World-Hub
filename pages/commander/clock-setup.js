@@ -99,6 +99,7 @@ export default function ClockSetup() {
             const res = await fetch('/api/commander/clock-presets', {
                 headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
             });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) setPresets(json.data || []);
         } catch (err) { console.error(err); }
@@ -156,6 +157,7 @@ export default function ClockSetup() {
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
                 body: JSON.stringify(body),
             });
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (res.ok && json.success) {
                 setSaved(true);

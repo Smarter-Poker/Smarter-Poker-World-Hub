@@ -39,6 +39,7 @@ function ApiKeysModal({ isOpen, onClose, venueId, onSuccess }) {
       const res = await fetch(`/api/commander/admin/api-keys?venue_id=${venueId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
         setApiKeys(data.data?.keys || []);
@@ -466,6 +467,7 @@ export default function AdminDashboard() {
       // Load venues with summary
       const fetchOpts = (h) => signal ? { headers: h, signal } : { headers: h };
       const venuesRes = await fetch('/api/commander/admin/venues?summary=true', fetchOpts({ Authorization: `Bearer ${token}` }));
+      if (!venuesRes.ok) throw new Error(`Request failed (${venuesRes.status})`);
       const venuesData = await venuesRes.json();
       if (venuesData.venues) {
         setVenues(venuesData.venues);
@@ -498,6 +500,7 @@ export default function AdminDashboard() {
       const res = await fetch(`/api/commander/admin/audit-logs?${params}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.logs) {
         setAuditLogs(data.logs);
