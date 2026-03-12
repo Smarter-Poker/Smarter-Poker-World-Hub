@@ -262,15 +262,17 @@ export default function UnionDashboardPage() {
     setError(null);
     try {
       const res = await apiCall(endpoint, body);
-      if (!silent) setSuccess(successMsg || res.message || 'Done');
+      if (mountedRef.current) {
+        if (!silent) setSuccess(successMsg || res.message || 'Done');
+        if (invalidateWallet) setWalletData(null);
+      }
       if (busEvent) busEmit(busEvent, { unionId, action: body?.action, ...res });
-      if (invalidateWallet) setWalletData(null);
       return res;
     } catch (err) {
-      setError(err.message);
+      if (mountedRef.current) setError(err.message);
       return null;
     } finally {
-      setProcessing(false);
+      if (mountedRef.current) setProcessing(false);
     }
   };
 

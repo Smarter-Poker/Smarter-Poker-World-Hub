@@ -140,19 +140,19 @@ export default function UnionGamesPage() {
     setProcessing(true); setError(null);
     try {
       const res = await apiCall('/api/club-arena/union-games', { ...body, unionId });
-      setSuccess(successMsg || res.message || 'Done');
+      if (mountedRef.current) setSuccess(successMsg || res.message || 'Done');
       if (busEvent) busEmit(busEvent, { unionId, action: body?.action, ...res });
       return res;
-    } catch (err) { setError(err.message); return null; }
-    finally { setProcessing(false); }
+    } catch (err) { if (mountedRef.current) setError(err.message); return null; }
+    finally { if (mountedRef.current) setProcessing(false); }
   };
 
   // ── Load Tournament Details ───────────────────────────────
   const loadTournDetails = async (tournamentId) => {
     try {
       const res = await apiCall('/api/club-arena/union-games', { action: 'get_tournament_details', unionId, tournamentId });
-      setTournDetails({ id: tournamentId, registrations: res.registrations || [] });
-    } catch (err) { setError(err.message); }
+      if (mountedRef.current) setTournDetails({ id: tournamentId, registrations: res.registrations || [] });
+    } catch (err) { if (mountedRef.current) setError(err.message); }
   };
 
   // ── Auto-Refresh Polling (45s on active tab) ──────────────
