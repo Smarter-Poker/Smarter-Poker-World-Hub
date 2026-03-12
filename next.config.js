@@ -163,6 +163,12 @@ const nextConfig = {
     return {
       beforeFiles: [],
       afterFiles: [],
+      fallback: [
+        {
+          source: '/hub/club-arena/:path*',
+          destination: 'https://club-arena.vercel.app/:path*',
+        },
+      ],
     };
   },
 };
