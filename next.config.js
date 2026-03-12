@@ -57,8 +57,9 @@ const nextConfig = {
   // condition where vendor chunks get deleted mid-request, triggering
   // "Cannot find module './chunks/vendor-chunks/next.js'" 500 errors.
   experimental: {
-    workerThreads: process.env.NODE_ENV === 'production',
-    cpus: process.env.NODE_ENV === 'production' ? 4 : undefined,
+    // Disabled workerThreads and cpus: In Next.js 14, these can cause workers to 
+    // crash silently (OOM), resulting in random `PageNotFoundError` during build.
+    // workerThreads: false,
   },
   // ─── Dev Server Memory Management ──────────────────────────────────────────
   // With 952 pages, the dev server compiles pages on-demand and keeps them in memory.
@@ -107,19 +108,10 @@ const nextConfig = {
 
   swcMinify: true, // SWC minifier uses less memory than Terser
 
-  // Force complete cache invalidation - v20 Diamond Arcade Deploy
-  // Build timestamp: 2026-01-24T10:00:00Z
-  generateBuildId: async () => {
-    // In dev mode, use a stable ID so the .next cache persists across restarts.
-    // Without this, Date.now() forces webpack to recompile ALL 952 pages from scratch.
-    // In production (Vercel), the Git SHA is used automatically.
-    // [OVERWATCH] Bumped to dev-stable-v2 to break an infinite HMR browser reload loop
-    // caused by cached Webpack hashes after a .next directory nuke.
-    if (process.env.NODE_ENV === 'development') {
-      return 'dev-stable-v2';
-    }
-    return 'build-v20-perf-sprint-' + Date.now();
-  },
+  // Removed generateBuildId override:
+  // Hardcoding the build ID in development (e.g. 'dev-stable-v2') causes Next.js Fast Refresh
+  // to enter an infinite reload loop when the .next cache is cleared, because the browser HMR
+  // client expects the old Webpack hash but the server generates a new one.
 
   // ─── next/image Optimization ──────────────────────────────────────────────
   // Allows next/image to serve optimized WebP/AVIF from these external domains.
@@ -161,14 +153,33 @@ const nextConfig = {
 
   async rewrites() {
     return {
-      beforeFiles: [],
-      afterFiles: [],
-      fallback: [
+      beforeFiles: [
         {
           source: '/hub/club-arena/:path*',
-          destination: 'https://club-arena.vercel.app/:path*',
+          has: [
+            {
+              type: 'query',
+              key: '_embed',
+              value: '1',
+            },
+          ],
+          destination: 'https://club-arena.vercel.app/hub/club-arena/:path*',
         },
+        {
+          source: '/hub/club-arena/assets/:path*',
+          destination: 'https://club-arena.vercel.app/hub/club-arena/assets/:path*',
+        },
+        {
+          source: '/hub/club-arena/images/:path*',
+          destination: 'https://club-arena.vercel.app/hub/club-arena/images/:path*',
+        },
+        {
+          source: '/hub/club-arena/sounds/:path*',
+          destination: 'https://club-arena.vercel.app/hub/club-arena/sounds/:path*',
+        }
       ],
+      afterFiles: [],
+      fallback: [],
     };
   },
 };

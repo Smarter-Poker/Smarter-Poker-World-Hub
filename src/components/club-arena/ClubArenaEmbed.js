@@ -61,6 +61,9 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
         }
 
         const parsedQuery = queryKey ? JSON.parse(queryKey) : {};
+        // Add the proxy-trigger flag so Next.js rewrites catch the iframe request instead of rendering the Hub page loop
+        parsedQuery._embed = '1';
+        
         const params = new URLSearchParams(parsedQuery);
         const qs = params.toString();
         const url = `${SPA_ORIGIN}${path}${qs ? '?' + qs : ''}`;
