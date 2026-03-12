@@ -431,6 +431,7 @@ export default function CommanderSettingsPage() {
                               if (json.success) {
                                 setLogoUrl(json.data.club_logo_url);
                                 localStorage.removeItem('commander_branding');
+                                broadcastChange('settings');
                                 setSuccess('Logo uploaded successfully!');
                                 setTimeout(() => setSuccess(null), 3000);
                               } else {
@@ -455,6 +456,7 @@ export default function CommanderSettingsPage() {
                             if (json.success) {
                               setLogoUrl(null);
                               localStorage.removeItem('commander_branding');
+                              broadcastChange('settings');
                               setSuccess('Logo removed');
                               setTimeout(() => setSuccess(null), 3000);
                             }

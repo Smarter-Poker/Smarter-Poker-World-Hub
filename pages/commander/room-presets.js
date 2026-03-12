@@ -108,6 +108,7 @@ export default function DailyPresetsPage() {
       if (data.success) {
         setHardStopDirty(false);
         setHardStopSuccess('Hard Stop settings saved');
+        broadcastChange('settings');
         setTimeout(() => setHardStopSuccess(null), 3000);
       }
     } catch (e) { console.error("[room-presets.js]", e); }
@@ -129,6 +130,7 @@ export default function DailyPresetsPage() {
       if (data.success) {
         setAutoCompDirty(false);
         setAutoCompSuccess('Hourly comp rate saved');
+        broadcastChange('settings');
         setTimeout(() => setAutoCompSuccess(null), 3000);
       }
     } catch (e) { console.error("[room-presets.js]", e); }
@@ -305,6 +307,7 @@ export default function DailyPresetsPage() {
         setEditingId(null);
         resetForm();
         fetchData();
+        broadcastChange('settings');
       } else {
         setError(json.error || 'Failed to save');
       }
@@ -321,6 +324,7 @@ export default function DailyPresetsPage() {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
       fetchData();
+      broadcastChange('settings');
     } catch (err) { console.error(err); }
   }
 
