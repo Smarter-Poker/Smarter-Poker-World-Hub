@@ -1593,6 +1593,14 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                 
                 setCommentCount(prev => prev + 1);
                 
+                // Clear input IMMEDIATELY after successful insert — before any secondary operations
+                // that might throw and leave the input filled with an already-saved comment
+                const savedComment = newComment; // Capture for notification use below
+                const savedReplyingTo = replyingTo;
+                setNewComment('');
+                setReplyingTo(null);
+                if (onComment) onComment(post.id);
+                
                 // Sync the denormalized comment_count column on social_posts (fire-and-forget)
                 supabase.rpc('increment_post_count', { p_post_id: post.id, p_field: 'comment_count' }).catch(async () => {
                     // Fallback: manual increment if RPC doesn't exist
@@ -1602,42 +1610,44 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                     } catch (e) { console.warn('[Social] comment_count fallback failed:', e.message); }
                 });
                 
-                // Trigger reply notification
-                if (replyingTo && replyingTo.authorId !== currentUserId) {
-                    await supabase.from('notifications').insert({
-                        user_id: replyingTo.authorId,
-                        actor_id: currentUserId,
-                        type: 'reply',
-                        reference_id: post.id,
-                        message: `replied to your comment`
-                    });
-                }
-                
-                // Phase 28 Fix: Trigger mention notifications
-                const mentions = newComment.match(/@(\w+)/g);
-                if (mentions && mentions.length > 0) {
-                    const usernames = mentions.map(m => m.slice(1));
-                    const { data: mentionedUsers } = await supabase.from('profiles').select('id, username').in('username', usernames);
-                    if (mentionedUsers && mentionedUsers.length > 0) {
-                        // Filter out self-mentions — don't notify yourself
-                        const notifications = mentionedUsers
-                            .filter(u => u.id !== currentUserId)
-                            .map(u => ({
-                                user_id: u.id,
-                                actor_id: currentUserId,
-                                type: 'mention',
-                                reference_id: post.id,
-                                message: `mentioned you in a comment`
-                            }));
-                        if (notifications.length > 0) {
-                            await supabase.from('notifications').insert(notifications);
+                // Secondary operations: notifications (isolated — failure must NOT affect comment UX)
+                try {
+                    // Trigger reply notification
+                    if (savedReplyingTo && savedReplyingTo.authorId !== currentUserId) {
+                        await supabase.from('notifications').insert({
+                            user_id: savedReplyingTo.authorId,
+                            actor_id: currentUserId,
+                            type: 'reply',
+                            reference_id: post.id,
+                            message: `replied to your comment`
+                        });
+                    }
+                    
+                    // Phase 28 Fix: Trigger mention notifications
+                    const mentions = savedComment.match(/@(\w+)/g);
+                    if (mentions && mentions.length > 0) {
+                        const usernames = mentions.map(m => m.slice(1));
+                        const { data: mentionedUsers } = await supabase.from('profiles').select('id, username').in('username', usernames);
+                        if (mentionedUsers && mentionedUsers.length > 0) {
+                            // Filter out self-mentions — don't notify yourself
+                            const notifications = mentionedUsers
+                                .filter(u => u.id !== currentUserId)
+                                .map(u => ({
+                                    user_id: u.id,
+                                    actor_id: currentUserId,
+                                    type: 'mention',
+                                    reference_id: post.id,
+                                    message: `mentioned you in a comment`
+                                }));
+                            if (notifications.length > 0) {
+                                await supabase.from('notifications').insert(notifications);
+                            }
                         }
                     }
+                } catch (notifErr) {
+                    // Notification failures are non-critical — comment was already saved
+                    console.warn('[Social] Notification insert failed (comment was saved):', notifErr.message);
                 }
-
-                setNewComment('');
-                setReplyingTo(null);
-                if (onComment) onComment(post.id);
             }
         } catch (e) { console.error(e); }
     };
