@@ -296,7 +296,9 @@ export default function UniversalHeader({
 
                     // ── CROSS-TAB SYNC: Listen for read notifications in other tabs ──
                     cleanupNotifSync = listenBroadcast('smarter_poker_notif_sync', (msg) => {
-                        if (msg === 'refresh_notifications') {
+                        // Support both legacy string and new object payloads
+                        const isRefresh = msg === 'refresh_notifications' || msg?.action === 'refresh_notifications';
+                        if (isRefresh) {
                             console.log('[UniversalHeader] received refresh_notifications broadcast');
                             fetchUnreadCount();
                         }

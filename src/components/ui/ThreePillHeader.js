@@ -192,7 +192,9 @@ export default function ThreePillHeader({
                         };
 
                         cleanupNotifSync = listenBroadcast('smarter_poker_notif_sync', (msg) => {
-                            if (msg === 'refresh_notifications') {
+                            // Support both legacy string and new object payloads
+                            const isRefresh = msg === 'refresh_notifications' || msg?.action === 'refresh_notifications';
+                            if (isRefresh) {
                                 console.log('[ThreePillHeader] received refresh_notifications broadcast');
                                 fetchUnreadCount();
                             }
