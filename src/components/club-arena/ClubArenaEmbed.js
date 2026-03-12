@@ -162,13 +162,8 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
     /* ── Message listener: ACK, navigation, URL sync ──────────────────── */
     useEffect(() => {
         const handleMessage = (event) => {
-            console.log(`[World Hub Proxy Listener] Received message from origin:`, event.origin, event.data);
-            
             // Must be strictly from this origin to prevent cross-site scripting
-            if (event.origin !== window.location.origin) {
-                console.warn(`[World Hub Proxy Listener] Ignored message from illegitimate origin: ${event.origin}`);
-                return;
-            }
+            if (event.origin !== window.location.origin) return;
             const data = event.data;
             if (!data || typeof data !== 'object') return;
 
@@ -209,8 +204,12 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
         <>
             {/* ── Preconnect Hint ──────────────────────────────────────── */}
             <Head>
-                <link rel="preconnect" href={SPA_ORIGIN} crossOrigin="anonymous" />
-                <link rel="dns-prefetch" href={SPA_ORIGIN} />
+                {SPA_ORIGIN ? (
+                    <>
+                        <link rel="preconnect" href={SPA_ORIGIN} crossOrigin="anonymous" />
+                        <link rel="dns-prefetch" href={SPA_ORIGIN} />
+                    </>
+                ) : null}
             </Head>
 
             <div style={{

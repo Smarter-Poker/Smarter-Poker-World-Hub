@@ -257,11 +257,7 @@ const ChunkLoadRecovery = dynamic(
   { ssr: false }
 );
 
-// Dynamic import for Geeves Floating Orb (global "Ask Geeves" button)
-const GeevesFloatingOrb = dynamic(
-  () => import('../src/components/ui/GeevesFloatingOrb'),
-  { ssr: false }
-);
+
 
 // ═══════════════════════════════════════════════════════════════════════════
 // NAVIGATION GUARD — Prevents loading freeze when pressing back button
@@ -633,9 +629,7 @@ export default function App({ Component, pageProps }) {
                                 <HubErrorBoundary name="Chunk Load Recovery" fallback={<></>}>
                                   <ChunkLoadRecovery />
                                 </HubErrorBoundary>
-                                <HubErrorBoundary name="Geeves Floating Orb" fallback={<></>}>
-                                  <GeevesFloatingOrb />
-                                </HubErrorBoundary>
+
                               </ToastProvider>
                             </WorldThemeProvider>
                           </ActiveIdentityProvider>
