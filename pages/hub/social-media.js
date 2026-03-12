@@ -1328,6 +1328,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
     const router = useRouter();
     const [liked, setLiked] = useState(post.isLiked);
     const [likeCount, setLikeCount] = useState(post.likeCount);
+    const [reactions, setReactions] = useState(post.reactions || []);
 
     // Phase 28: Render @mentions as clickable links
     function renderMentions(text) {
@@ -1424,7 +1425,20 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
     const handleLike = async () => {
         const newLiked = !liked;
         setLiked(newLiked);
-        setLikeCount(prev => newLiked ? prev + 1 : Math.max(0, prev - 1));
+        
+        if (newLiked) {
+            setLikeCount(prev => prev + 1);
+            setReactions(prev => [...prev, 'like']); // optimistic default
+        } else {
+            setLikeCount(prev => Math.max(0, prev - 1));
+            // We lazily remove one 'like' (if present) for optimistic UI
+            const idx = reactions.indexOf('like');
+            if (idx > -1) {
+                const updated = [...reactions];
+                updated.splice(idx, 1);
+                setReactions(updated);
+            }
+        }
         await onLike(post.id, newLiked ? 'like' : null);
     };
 
@@ -1737,8 +1751,25 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
             )}
             <div style={{ padding: '8px 12px', display: 'flex', justifyContent: 'space-between', color: C.textSec, fontSize: 13 }}>
                 <span>{likeCount > 0 && (() => {
-                    // Synthetic breakdown — shows varied icons based on likeCount
-                    const icons = likeCount >= 5 ? '👍❤️😂' : likeCount >= 3 ? '👍❤️' : '👍';
+                    // Phase 24 Actual Breakdown: Aggregate true reactions and show top 3
+                    if (reactions.length === 0) return `👍 ${likeCount}`;
+                    
+                    const counts = {};
+                    reactions.forEach(r => { counts[r] = (counts[r] || 0) + 1; });
+                    
+                    // Sort descending by count
+                    const sortedReactions = Object.entries(counts).sort((a,b) => b[1] - a[1]);
+                    
+                    const emojiMap = {
+                        like: '👍',  // 40% chance
+                        love: '❤️',  // 25% chance
+                        haha: '😂',  // 15% chance
+                        fire: '🔥',  // 10% chance
+                        wow: '😲'    // 10% chance
+                    };
+                    
+                    // Get up to 3 icons
+                    const icons = sortedReactions.slice(0, 3).map(r => emojiMap[r[0]] || '👍').join('');
                     return `${icons} ${likeCount}`;
                 })()}</span>
                 <span style={{ cursor: 'pointer' }} onClick={handleToggleComments}>{commentCount > 0 && `${commentCount} ${commentCount === 1 ? 'comment' : 'comments'}`}</span>
@@ -4770,7 +4801,7 @@ function SocialMediaPage() {
             // Use native fetch directly to Supabase REST API
             try {
                 const queryParams = new URLSearchParams({
-                    select: 'id,content,content_type,media_urls,like_count,comment_count,share_count,created_at,author_id,link_url,link_title,link_description,link_image,link_site_name,metadata',
+                    select: 'id,content,content_type,media_urls,like_count,comment_count,share_count,created_at,author_id,link_url,link_title,link_description,link_image,link_site_name,metadata,social_likes(user_id,reaction_type)',
                     or: '(visibility.eq.public,visibility.is.null)',
                     order: 'created_at.desc',
                     offset: offset.toString(),
@@ -4898,24 +4929,29 @@ function SocialMediaPage() {
                     }
                 }
 
-                const formattedPosts = mixedFeed.map(p => ({
-                    id: p.id,
-                    authorId: p.author_id,
-                    content: p.content,
-                    contentType: p.content_type,
-                    mediaUrls: p.media_urls || [],
-                    likeCount: p.like_count || 0,
-                    commentCount: p.comment_count || 0,
-                    shareCount: p.share_count || 0,
-                    // Link metadata for ArticleCard
-                    link_url: p.link_url || null,
-                    link_title: p.link_title || null,
-                    link_description: p.link_description || null,
-                    link_image: p.link_image || null,
-                    link_site_name: p.link_site_name || null,
-                    timeAgo: timeAgo(p.created_at),
-                    isLiked: false,
-                    isPriority: p.isPriority,
+                const formattedPosts = mixedFeed.map(p => {
+                    const likesArray = p.social_likes || [];
+                    const reactions = likesArray.map(l => l.reaction_type || 'like');
+                    
+                    return {
+                        id: p.id,
+                        authorId: p.author_id,
+                        content: p.content,
+                        contentType: p.content_type,
+                        mediaUrls: p.media_urls || [],
+                        likeCount: Math.max(p.like_count || 0, reactions.length), // Prefer accurate length if higher
+                        reactions: reactions,
+                        isLiked: likesArray.some(l => l.user_id === authUser?.id),
+                        commentCount: p.comment_count || 0,
+                        shareCount: p.share_count || 0,
+                        // Link metadata for ArticleCard
+                        link_url: p.link_url || null,
+                        link_title: p.link_title || null,
+                        link_description: p.link_description || null,
+                        link_image: p.link_image || null,
+                        link_site_name: p.link_site_name || null,
+                        timeAgo: timeAgo(p.created_at),
+                        isPriority: p.isPriority,
                     isSuggested: p.isSuggested || false, // Mark as suggested on feed loop
                     isFriend: friendIds.includes(p.author_id),
                     isFollowing: followingIds.includes(p.author_id),
@@ -4939,7 +4975,8 @@ function SocialMediaPage() {
                             return authorMap[p.author_id]?.avatar_url || null;
                         })()
                     }
-                }));
+                };
+            });
 
                 // Track seen posts for variety on loop
                 const newSeenIds = new Set(seenPostIds);
