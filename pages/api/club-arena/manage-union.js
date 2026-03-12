@@ -94,13 +94,29 @@ export default async function handler(req, res) {
     // All other actions require unionId
     if (!unionId) return res.status(400).json({ success: false, error: 'unionId required' });
 
-    // Verify caller is union admin
-    const { data: callerAdmin } = await supabaseAdmin
+    // Verify caller is union admin (with owner fallback)
+    let callerAdmin;
+    const { data: adminRow } = await supabaseAdmin
       .from('union_admins')
       .select('role, permissions')
       .eq('union_id', unionId)
       .eq('user_id', user.id)
       .maybeSingle();
+
+    if (adminRow) {
+      callerAdmin = adminRow;
+    } else {
+      // Fallback: check if user is the union owner
+      const { data: ownerCheck } = await supabaseAdmin
+        .from('unions')
+        .select('id')
+        .eq('id', unionId)
+        .eq('owner_id', user.id)
+        .maybeSingle();
+      if (ownerCheck) {
+        callerAdmin = { role: 'union_lead', permissions: { full_access: true } };
+      }
+    }
 
     if (!callerAdmin) return res.status(403).json({ success: false, error: 'Not a union admin' });
 

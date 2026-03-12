@@ -7,8 +7,8 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
 
 export default function ClubArenaLobbyPage() {
-        useTrainingBus('club-arena-lobby');
-const router = useRouter();
+    useTrainingBus('club-arena-lobby');
+    const router = useRouter();
     const { clubId, club, ...otherQuery } = router.query;
     const resolvedClubId = clubId || club;
     const spaRoute = resolvedClubId ? `clubs/${resolvedClubId}` : 'lobby';
