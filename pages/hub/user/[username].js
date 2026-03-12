@@ -22,6 +22,7 @@ import ArticleCard from '../../../src/components/social/ArticleCard';
 import ArticleReaderModal from '../../../src/components/social/ArticleReaderModal';
 import ProfileSkeleton from '../../../src/components/skeletons/ProfileSkeleton';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
+import { isHorseOnlineNow } from '../../../src/lib/horsePresence';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -188,7 +189,7 @@ function PokerResumeBadge({ hendonData, isOwnProfile = false, onOpenResume }) {
 }
 
 // Post Card Component
-function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId }) {
+function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId, horseProfileIds = new Set() }) {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [liked, setLiked] = useState(false);
@@ -405,7 +406,12 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId 
             )}
 
             <div style={{ padding: 12, display: 'flex', gap: 10, alignItems: 'center' }}>
-                <Image src={author?.avatar_url || '/default-avatar.png'} alt="User avatar" width={40} height={40} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} loading="lazy" unoptimized />
+                <div style={{ position: 'relative', display: 'inline-block' }}>
+                    <Image src={author?.avatar_url || '/default-avatar.png'} alt="User avatar" width={40} height={40} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} loading="lazy" unoptimized />
+                    {horseProfileIds.has(post.author_id) && isHorseOnlineNow(post.author_id) && (
+                        <span style={{ position: 'absolute', bottom: 0, right: 0, width: 10, height: 10, background: '#31a24c', border: '2px solid white', borderRadius: '50%' }} />
+                    )}
+                </div>
                 <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 600, fontSize: 14, color: C.text }}>{author?.full_name || author?.username}</div>
                     <div style={{ fontSize: 12, color: C.textSec }}>{timeAgo(post.created_at)} · 🌍</div>
@@ -557,6 +563,7 @@ export default function UserProfilePage() {
     const [videos, setVideos] = useState([]);
     const [reels, setReels] = useState([]);
     const [isPosting, setIsPosting] = useState(false);
+    const [horseProfileIds, setHorseProfileIds] = useState(new Set());
     const [postContent, setPostContent] = useState('');
     const [showPostComposer, setShowPostComposer] = useState(false);
 
@@ -629,6 +636,12 @@ export default function UserProfilePage() {
             supabase.removeChannel(profileChannel);
             supabase.removeChannel(typingChannel);
         };
+    }, []);
+
+    // Phase 15: Load horse profile IDs for online presence
+    useEffect(() => {
+        supabase.from('content_authors').select('profile_id').eq('is_active', true).not('profile_id', 'is', null)
+            .then(({ data }) => { if (data) setHorseProfileIds(new Set(data.map(h => h.profile_id))); });
     }, []);
 
     useEffect(() => {
@@ -1171,7 +1184,12 @@ export default function UserProfilePage() {
                 <div style={{ padding: '0 16px', marginTop: -50, position: 'relative', zIndex: 10 }}>
                     <div style={{ display: 'flex', gap: 16, alignItems: 'flex-end' }}>
                         {/* Avatar */}
-                        <Avatar src={profile.avatar_url} name={profile.username} size={120} />
+                        <div style={{ position: 'relative', display: 'inline-block' }}>
+                            <Avatar src={profile.avatar_url} name={profile.username} size={120} />
+                            {horseProfileIds.has(profile.id) && isHorseOnlineNow(profile.id) && (
+                                <span style={{ position: 'absolute', bottom: 4, right: 4, width: 18, height: 18, background: '#31a24c', border: '3px solid white', borderRadius: '50%', zIndex: 5 }} />
+                            )}
+                        </div>
 
                         {/* Name & Stats */}
                         <div style={{ flex: 1, paddingBottom: 8 }}>
@@ -1484,7 +1502,7 @@ export default function UserProfilePage() {
 
                                 {/* Posts Feed */}
                                 {posts.length > 0 ? (
-                                    posts.map(post => <PostCard key={post.id} post={post} author={profile} isOwnProfile={isOwnProfile} onDelete={handleDeletePost} currentUserId={currentUser?.id} />)
+                                    posts.map(post => <PostCard key={post.id} post={post} author={profile} isOwnProfile={isOwnProfile} onDelete={handleDeletePost} currentUserId={currentUser?.id} horseProfileIds={horseProfileIds} />)
                                 ) : (
                                     <div style={{ background: C.card, borderRadius: 12, padding: 40, textAlign: 'center', color: C.textSec }}>
                                         <div style={{ fontSize: 32, marginBottom: 12 }}></div>

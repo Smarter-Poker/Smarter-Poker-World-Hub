@@ -61,6 +61,7 @@ import ArticleReaderModal from '../../src/components/social/ArticleReaderModal';
 import InviteFriendsModal from '../../src/components/ui/InviteFriendsModal';
 import { HubErrorBoundary } from '../../src/components/ui/HubErrorBoundary';
 import { useActiveIdentity } from '../../src/contexts/ActiveIdentityContext';
+import { isHorseOnlineNow } from '../../src/lib/horsePresence';
 
 // God-Mode Stack
 import { useSocialStore } from '../../src/stores/socialStore';
@@ -1323,7 +1324,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
     );
 }
 
-function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onLike, onDelete, onComment, onOpenArticle }) {
+function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onLike, onDelete, onComment, onOpenArticle, horseProfileIds = new Set() }) {
     const router = useRouter();
     const [liked, setLiked] = useState(post.isLiked);
     const [likeCount, setLikeCount] = useState(post.likeCount);
@@ -1503,8 +1504,11 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
     return (
         <div style={{ background: C.card, boxShadow: '0 1px 2px rgba(0,0,0,0.1)', marginBottom: 2, overflow: 'hidden' }}>
             <div style={{ padding: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
-                <Link href={`/hub/user/${post.author?.username || 'player'}`} style={{ textDecoration: 'none' }}>
+                <Link href={`/hub/user/${post.author?.username || 'player'}`} style={{ textDecoration: 'none', position: 'relative', display: 'inline-block' }}>
                     <Avatar src={post.author?.avatar} name={post.author?.name} size={40} />
+                    {horseProfileIds.has(post.authorId) && isHorseOnlineNow(post.authorId) && (
+                        <span style={{ position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, background: '#31a24c', border: '2px solid white', borderRadius: '50%' }} />
+                    )}
                 </Link>
                 <div style={{ flex: 1 }}>
                     <Link href={`/hub/user/${post.author?.username || 'player'}`} style={{ fontWeight: 600, color: C.text, textDecoration: 'none' }}>
@@ -4072,6 +4076,15 @@ function SocialMediaPage() {
     const [isPosting, setIsPosting] = useState(false);
     const [bottomNavVisible, setBottomNavVisible] = useState(true);
     const [notifications, setNotifications] = useState([]);
+    const [horseProfileIds, setHorseProfileIds] = useState(new Set());
+
+    // Phase 15: Load horse profile IDs for online presence indicators
+    useEffect(() => {
+        supabase.from('content_authors').select('profile_id').eq('is_active', true).not('profile_id', 'is', null)
+            .then(({ data }) => {
+                if (data) setHorseProfileIds(new Set(data.map(h => h.profile_id)));
+            });
+    }, []);
     // Global Search State
     const [globalSearchQuery, setGlobalSearchQuery] = useState('');
     const [globalSearchResults, setGlobalSearchResults] = useState({ users: [], posts: [] });
@@ -6031,6 +6044,7 @@ function SocialMediaPage() {
                                                     onLike={handleLike}
                                                     onDelete={handleDelete}
                                                     onOpenArticle={(url) => setArticleReader({ open: true, url, title: p.link_title || null })}
+                                                    horseProfileIds={horseProfileIds}
                                                 />
                                                 {/* Insert Reels carousel after 3rd post */}
                                                 {index === 2 && <ReelsFeedCarousel key="reels-carousel" />}
