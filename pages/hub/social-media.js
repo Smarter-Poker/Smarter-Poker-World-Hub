@@ -3586,6 +3586,11 @@ function ClubPagesView({ C, pages, setPages, loading, setLoading, category, setC
     const router = useRouter();
     const [searchInput, setSearchInput] = useState(search);
     const [showFollowedOnly, setShowFollowedOnly] = useState(false);
+    // Hydration-safe: read localStorage only on the client after mount
+    const [isStaff, setIsStaff] = useState(false);
+    useEffect(() => {
+        try { setIsStaff(!!JSON.parse(localStorage.getItem('commander_staff') || 'null')); } catch { }
+    }, []);
 
     function getAnonUserId() {
         try {
@@ -3698,7 +3703,7 @@ function ClubPagesView({ C, pages, setPages, loading, setLoading, category, setC
                         <p style={{ margin: '2px 0 0', fontSize: 13, color: C.textSec }}>Follow Home Games, Charity Clubs & More</p>
                     </div>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                        {(() => { try { return !!JSON.parse(localStorage.getItem('commander_staff') || 'null'); } catch { return false; } })() && (
+                        {isStaff && (
                             <button onClick={() => window.location.href = '/commander/dashboard'} style={{
                                 background: 'linear-gradient(135deg, #1a1a2e, #0f0f0f)', border: '1px solid #22D3EE', borderRadius: 20, padding: '8px 14px',
                                 fontSize: 12, fontWeight: 700, cursor: 'pointer', color: '#22D3EE', fontFamily: "'Orbitron', sans-serif",
@@ -3958,14 +3963,12 @@ export default function SocialMediaPage() {
     // Article Reader Modal State
     const [articleReader, setArticleReader] = useState({ open: false, url: null, title: null });
 
-    // Club Pages View State — initialize from URL query param so back-nav preserves state
-    const [showClubPages, setShowClubPages] = useState(() => {
-        if (typeof window !== 'undefined') {
-            const params = new URLSearchParams(window.location.search);
-            return params.get('view') === 'club-pages';
-        }
-        return false;
-    });
+    // Club Pages View State — hydration-safe: read URL param after mount
+    const [showClubPages, setShowClubPages] = useState(false);
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('view') === 'club-pages') setShowClubPages(true);
+    }, []);
     const [clubPages, setClubPages] = useState([]);
     const [clubPagesLoading, setClubPagesLoading] = useState(false);
     const [clubPagesCategory, setClubPagesCategory] = useState('all');

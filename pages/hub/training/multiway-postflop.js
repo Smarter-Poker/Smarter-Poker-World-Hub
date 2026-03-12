@@ -199,7 +199,7 @@ function MiniCard({ card }) {
 // FREQUENCY BAR
 // ═══════════════════════════════════════════════════════════════════════════
 
-function FrequencyBar({ actions, playerColor }) {
+function FrequencyBar({ actions, playerColor, quizMode, showAnswers }) {
   const entries = Object.entries(actions).filter(([, v]) => v > 0);
   const actionColors = {
     check: '#64748b',
@@ -756,6 +756,8 @@ export default function MultiwayPostflop() {
                       <FrequencyBar
                         actions={scenario.actions[player.position]}
                         playerColor={player.color}
+                        quizMode={quizMode}
+                        showAnswers={showAnswers}
                       />
                     </div>
                   ))}
