@@ -9,7 +9,7 @@ import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../src/lib/supabase';
 import toast from '../../src/stores/toastStore';
-import { broadcastSync, listenBroadcast } from '../../src/lib/broadcastSync';
+import { broadcastSyncDebounced, listenBroadcast, BROADCAST_TAB_ID } from '../../src/lib/broadcastSync';
 
 // God-Mode Stack
 import PageTransition from '../../src/components/transitions/PageTransition';
@@ -608,7 +608,9 @@ function FriendsPage() {
 
         // TIER 1: Friend Request Realtime Sync
         // Cross-tab sync when friend requests are sent/accepted/declined
-        const cleanupFriendsBc = listenBroadcast('smarter_poker_friends_sync', () => {
+        const cleanupFriendsBc = listenBroadcast('smarter_poker_friends_sync', (msg) => {
+            // Self-tab suppression: this tab already updated local state
+            if (msg?.tabId === BROADCAST_TAB_ID) return;
             fetchData();
         });
 
@@ -654,7 +656,7 @@ function FriendsPage() {
             toast.error('Could not follow user. Please try again.');
         } else {
             busEmit.dataMutated('friends');
-            broadcastSync('smarter_poker_friends_sync', 'refresh');
+            broadcastSyncDebounced('smarter_poker_friends_sync', { action: 'refresh', tabId: BROADCAST_TAB_ID });
         }
         } finally { actionInProgress.current = false; }
     };
@@ -682,7 +684,7 @@ function FriendsPage() {
             toast.error('Could not unfollow user. Please try again.');
         } else {
             busEmit.dataMutated('friends');
-            broadcastSync('smarter_poker_friends_sync', 'refresh');
+            broadcastSyncDebounced('smarter_poker_friends_sync', { action: 'refresh', tabId: BROADCAST_TAB_ID });
         }
         } finally { actionInProgress.current = false; }
     };
@@ -702,7 +704,7 @@ function FriendsPage() {
             if (!error) {
                 toast.success('Friend request sent!');
                 busEmit.friendRequestSent(friendId);
-                broadcastSync('smarter_poker_friends_sync', 'refresh');
+                broadcastSyncDebounced('smarter_poker_friends_sync', { action: 'refresh', tabId: BROADCAST_TAB_ID });
             } else {
                 // Rollback optimistic update
                 setPendingIds(prev => {
@@ -750,7 +752,7 @@ function FriendsPage() {
         eventBus.emit(EventType.FRIEND_REQUEST_ACCEPTED, { friendId: request.user_id }, 'FriendsPage');
 
         busEmit.dataMutated('friends');
-        broadcastSync('smarter_poker_friends_sync', 'refresh');
+        broadcastSyncDebounced('smarter_poker_friends_sync', { action: 'refresh', tabId: BROADCAST_TAB_ID });
         } finally { actionInProgress.current = false; }
     };
 
@@ -787,7 +789,7 @@ function FriendsPage() {
         setFriendRequests(prev => prev.filter(r => r.id !== request.id));
 
         busEmit.dataMutated('friends');
-        broadcastSync('smarter_poker_friends_sync', 'refresh');
+        broadcastSyncDebounced('smarter_poker_friends_sync', { action: 'refresh', tabId: BROADCAST_TAB_ID });
         } finally { actionInProgress.current = false; }
     };
 
@@ -821,7 +823,7 @@ function FriendsPage() {
         }
 
         busEmit.dataMutated('friends');
-        broadcastSync('smarter_poker_friends_sync', 'refresh');
+        broadcastSyncDebounced('smarter_poker_friends_sync', { action: 'refresh', tabId: BROADCAST_TAB_ID });
         } finally { actionInProgress.current = false; }
     };
 

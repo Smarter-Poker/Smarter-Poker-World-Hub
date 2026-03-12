@@ -69,7 +69,7 @@ import PageTransition from '../../src/components/transitions/PageTransition';
 import toast from '../../src/stores/toastStore';
 import { getAccessToken } from '../../src/lib/authUtils';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
-import { broadcastSync, listenBroadcast } from '../../src/lib/broadcastSync';
+import { broadcastSync, listenBroadcast, BROADCAST_TAB_ID } from '../../src/lib/broadcastSync';
 
 // Light Theme Colors (SmarterPoker-style)
 const C = {
@@ -1328,9 +1328,6 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
     const router = useRouter();
     const [liked, setLiked] = useState(post.isLiked);
     const [likeCount, setLikeCount] = useState(post.likeCount);
-
-    // Phase 24: Reaction emoji mapping
-    const REACTION_EMOJI = { like: '👍', love: '❤️', haha: '😂', fire: '🔥', wow: '😮' };
 
     // Phase 28: Render @mentions as clickable links
     function renderMentions(text) {
@@ -4226,7 +4223,7 @@ function SocialMediaPage() {
             }, async (payload) => {
                 console.log('[Social] 🔄 New post detected via realtime:', payload.new.id);
                 // Trigger feed reload to pick up new posts
-                    broadcastSync('smarter_poker_social_sync', 'refresh_feed');
+                    broadcastSync('smarter_poker_social_sync', { action: 'refresh_feed', tabId: BROADCAST_TAB_ID });
                 // Also refresh local feed
                 await loadFeed(0, false);
             })
@@ -4273,15 +4270,20 @@ function SocialMediaPage() {
     // Cross-tab Social Feed sync
     useEffect(() => {
         const cleanupSocialBc = listenBroadcast('smarter_poker_social_sync', (msg) => {
-            if (msg === 'refresh_feed') {
+            // Support both legacy string and new object payloads
+            const isRefresh = msg === 'refresh_feed' || msg?.action === 'refresh_feed';
+            const isSameTab = msg?.tabId === BROADCAST_TAB_ID;
+            if (isRefresh && !isSameTab) {
                 console.log('[Social] Refreshing feed from other tab');
                 loadFeed(0, false);
             }
         });
 
-        // Friends sync: refresh feed when friend list changes (updates "friend" badges)
-        const cleanupFriendsBc = listenBroadcast('smarter_poker_friends_sync', () => {
-            console.log('[Social] Friends changed — refreshing feed');
+        // Friends sync: refresh feed when friend list changes in another tab
+        const cleanupFriendsBc = listenBroadcast('smarter_poker_friends_sync', (msg) => {
+            // Self-tab suppression + support both string and object payloads
+            if (msg?.tabId === BROADCAST_TAB_ID) return;
+            console.log('[Social] Friends changed in other tab — refreshing feed');
             loadFeed(0, false);
         });
 

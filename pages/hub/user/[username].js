@@ -13,7 +13,7 @@ import React from 'react';
 import { usePersistedState } from '../../../src/hooks/usePersistedState';
 import { supabase } from '../../../src/lib/supabase';
 import { emitCacheInvalidation, onCacheInvalidation } from '../../../src/lib/cacheSync';
-import { broadcastSync, listenBroadcast } from '../../../src/lib/broadcastSync';
+import { broadcastSyncDebounced, listenBroadcast, BROADCAST_TAB_ID } from '../../../src/lib/broadcastSync';
 import { eventBus, busEmit } from '../../../src/engine/EventBus';
 
 // Components
@@ -600,8 +600,10 @@ export default function UserProfilePage() {
     // Cross-tab avatar/cache sync — re-fetch when profile is edited in another tab
     useEffect(() => {
         if (!username) return;
-        const cleanupAvatar = listenBroadcast('smarter_poker_avatar_sync', () => {
-            // Avatar changed — refresh profile to get new avatar
+        const cleanupAvatar = listenBroadcast('smarter_poker_avatar_sync', (msg) => {
+            // Self-tab suppression: skip if this tab triggered the avatar change
+            if (msg?.tabId === BROADCAST_TAB_ID) return;
+            // Avatar changed in another tab — refresh profile to get new avatar
             supabase.from('profiles').select('avatar_url, full_name, bio, username')
                 .eq('username', username).maybeSingle()
                 .then(({ data }) => {
@@ -982,7 +984,7 @@ export default function UserProfilePage() {
     };
     const notifyFriendsSync = () => {
         busEmit.dataMutated('friends');
-        broadcastSync('smarter_poker_friends_sync', 'refresh');
+        broadcastSyncDebounced('smarter_poker_friends_sync', { action: 'refresh', tabId: BROADCAST_TAB_ID });
     };
 
     const handleAddFriend = async () => {
