@@ -242,17 +242,17 @@ export default function WaitlistDesk() {
         console.error('Seat API error:', json);
         setSmsStatus({ type: 'none', text: 'Seat failed: ' + (json.error?.message || json.error || 'Unknown error') });
         setTimeout(() => setSmsStatus(null), 4000);
-        return;
+      } else {
+        // Only remove from UI after confirmed success
+        setWaitlists(prev => prev.filter(e => e.id !== entry.id));
+        setSeatModal(null); setSelectedPlayer(null);
+        busEmit.waitlistPlayerSeated(entry.player_name, tableNumber, seatNumber);
+        busEmit.celebration('confetti');
+        setSmsStatus({ type: 'sent', text: `${titleCase(entry.player_name)} seated at Table ${tableNumber} Seat ${seatNumber}` });
+        setTimeout(() => setSmsStatus(null), 4000);
+        await fetchData();
+        broadcastChange('waitlist');
       }
-      // Only remove from UI after confirmed success
-      setWaitlists(prev => prev.filter(e => e.id !== entry.id));
-      setSeatModal(null); setSelectedPlayer(null);
-      busEmit.waitlistPlayerSeated(entry.player_name, tableNumber, seatNumber);
-      busEmit.celebration('confetti');
-      setSmsStatus({ type: 'sent', text: `${titleCase(entry.player_name)} seated at Table ${tableNumber} Seat ${seatNumber}` });
-      setTimeout(() => setSmsStatus(null), 4000);
-      await fetchData();
-      broadcastChange('waitlist');
     } catch (err) { console.error('Seat error:', err); setSmsStatus({ type: 'none', text: 'Seat failed: ' + err.message }); setTimeout(() => setSmsStatus(null), 4000); await fetchData(); }
     finally { setActionLock(null); }
   };
@@ -274,16 +274,16 @@ export default function WaitlistDesk() {
         setSmsStatus({ type: 'none', text: 'Pass failed: ' + (json.error?.message || json.error || 'Unknown error') });
         setTimeout(() => setSmsStatus(null), 4000);
         await fetchData();
-        return;
+      } else {
+        // Move player to bottom of their game column upon success
+        setWaitlists(prev => {
+          const sameGame = prev.filter(e => e.game_type === entry.game_type && e.stakes === entry.stakes);
+          const maxPos = Math.max(...sameGame.map(e => e.position || 0), 0);
+          return prev.map(e => e.id === entry.id ? { ...e, position: maxPos + 1, status: 'waiting' } : e);
+        });
+        await fetchData();
+        broadcastChange('waitlist');
       }
-      // Move player to bottom of their game column
-      setWaitlists(prev => {
-        const sameGame = prev.filter(e => e.game_type === entry.game_type && e.stakes === entry.stakes);
-        const maxPos = Math.max(...sameGame.map(e => e.position || 0), 0);
-        return prev.map(e => e.id === entry.id ? { ...e, position: maxPos + 1, status: 'waiting' } : e);
-      });
-      await fetchData();
-      broadcastChange('waitlist');
     } catch (err) { console.error('Pass error:', err); await fetchData(); }
     finally { setActionLock(null); }
   };
@@ -305,13 +305,13 @@ export default function WaitlistDesk() {
         setSmsStatus({ type: 'none', text: 'Delete failed: ' + (json.error?.message || json.error || 'Unknown error') });
         setTimeout(() => setSmsStatus(null), 4000);
         await fetchData();
-        return;
+      } else {
+        // Only remove from UI after confirmed success
+        setWaitlists(prev => prev.filter(e => e.id !== entry.id));
+        busEmit.screenShake('light');
+        await fetchData();
+        broadcastChange('waitlist');
       }
-      // Only remove from UI after confirmed success
-      setWaitlists(prev => prev.filter(e => e.id !== entry.id));
-      busEmit.screenShake('light');
-      await fetchData();
-      broadcastChange('waitlist');
     } catch (err) { console.error('Remove error:', err); await fetchData(); }
     finally { setActionLock(null); }
   };

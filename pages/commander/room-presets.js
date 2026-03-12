@@ -104,12 +104,14 @@ export default function DailyPresetsPage() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ hard_stop_enabled: hardStopEnabled, hard_stop_time: hardStopTime })
       });
-      const data = await res.json();
-      if (data.success) {
-        setHardStopDirty(false);
-        setHardStopSuccess('Hard Stop settings saved');
-        broadcastChange('settings');
-        setTimeout(() => setHardStopSuccess(null), 3000);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setHardStopDirty(false);
+          setHardStopSuccess('Hard Stop settings saved');
+          broadcastChange('settings');
+          setTimeout(() => setHardStopSuccess(null), 3000);
+        }
       }
     } catch (e) { console.error("[room-presets.js]", e); }
     finally { setHardStopSaving(false); }
@@ -126,12 +128,14 @@ export default function DailyPresetsPage() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ auto_comp_rate: autoCompRate })
       });
-      const data = await res.json();
-      if (data.success) {
-        setAutoCompDirty(false);
-        setAutoCompSuccess('Hourly comp rate saved');
-        broadcastChange('settings');
-        setTimeout(() => setAutoCompSuccess(null), 3000);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setAutoCompDirty(false);
+          setAutoCompSuccess('Hourly comp rate saved');
+          broadcastChange('settings');
+          setTimeout(() => setAutoCompSuccess(null), 3000);
+        }
       }
     } catch (e) { console.error("[room-presets.js]", e); }
     finally { setAutoCompSaving(false); }
@@ -183,21 +187,25 @@ export default function DailyPresetsPage() {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
-      const json = await res.json();
-      if (json.success) {
-        const results = [];
-        if (json.data.games_opened > 0) results.push(`${json.data.games_opened} games opened`);
-        if (json.data.promotions_activated > 0) results.push(`${json.data.promotions_activated} promotions activated`);
-        if (json.data.tournaments_created > 0) results.push(`${json.data.tournaments_created} tournaments created`);
-        setSuccess(`"${preset.name}" launched — ${results.join(', ') || 'preset applied'}`);
-        setTimeout(() => setSuccess(null), 5000);
-        fetchData();
-        broadcastChange('tables');
-        broadcastChange('games');
-        broadcastChange('tournaments');
-        broadcastChange('settings');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success) {
+          const results = [];
+          if (json.data.games_opened > 0) results.push(`${json.data.games_opened} games opened`);
+          if (json.data.promotions_activated > 0) results.push(`${json.data.promotions_activated} promotions activated`);
+          if (json.data.tournaments_created > 0) results.push(`${json.data.tournaments_created} tournaments created`);
+          setSuccess(`"${preset.name}" launched — ${results.join(', ') || 'preset applied'}`);
+          setTimeout(() => setSuccess(null), 5000);
+          fetchData();
+          broadcastChange('tables');
+          broadcastChange('games');
+          broadcastChange('tournaments');
+          broadcastChange('settings');
+        } else {
+          setError(json.error || 'Failed to apply preset');
+        }
       } else {
-        setError(json.error || 'Failed to apply preset');
+        setError('Failed to apply preset');
       }
     } catch { setError('Failed to apply preset'); }
     finally { setApplying(null); }
@@ -299,17 +307,21 @@ export default function DailyPresetsPage() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify(form)
       });
-      const json = await res.json();
-      if (json.success) {
-        setSuccess(editingId ? 'Preset updated' : 'Preset created');
-        setTimeout(() => setSuccess(null), 3000);
-        setShowForm(false);
-        setEditingId(null);
-        resetForm();
-        fetchData();
-        broadcastChange('settings');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success) {
+          setSuccess(editingId ? 'Preset updated' : 'Preset created');
+          setTimeout(() => setSuccess(null), 3000);
+          setShowForm(false);
+          setEditingId(null);
+          resetForm();
+          fetchData();
+          broadcastChange('settings');
+        } else {
+          setError(json.error || 'Failed to save');
+        }
       } else {
-        setError(json.error || 'Failed to save');
+        setError('Failed to save preset');
       }
     } catch { setError('Failed to save preset'); }
   }
@@ -324,8 +336,11 @@ export default function DailyPresetsPage() {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
       if (res.ok) {
-        fetchData();
-        broadcastChange('settings');
+        const json = await res.json();
+        if (json.success) {
+          fetchData();
+          broadcastChange('settings');
+        }
       }
     } catch (err) { console.error(err); }
   }

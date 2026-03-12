@@ -220,12 +220,14 @@ ${receipts.map(r => `<div class="card">
     const { type, player } = confirmAction;
     setActionLoading(type);
     setConfirmAction(null);
+    let success = false;
     try {
       if (type === 'eliminate') {
         const res = await apiCall(`/api/commander/tournaments/${tournamentId}/eliminate`, {
           entry_id: player.entry_id, finish_position: floor?.stats?.players_remaining || 0
         });
         if (res.success) {
+          success = true;
           // Auto-print receipts if the elimination triggered an auto table break
           if (res.data?.auto_break?.executed) {
             printAutoBreakReceipts(res.data.auto_break);
@@ -236,6 +238,7 @@ ${receipts.map(r => `<div class="card">
       } else if (type === 'rebuy') {
         const res = await apiCall(`/api/commander/tournaments/${tournamentId}/entries/${player.entry_id}/rebuy`, {});
         if (res.success) {
+          success = true;
           printBluetoothReceipt(player, 'Rebuy', floor?.tournament?.rebuy_cost, floor?.tournament?.rebuy_chips || floor?.tournament?.starting_chips);
         } else {
           alert(res.error || 'Rebuy failed.');
@@ -243,16 +246,20 @@ ${receipts.map(r => `<div class="card">
       } else if (type === 'addon') {
         const res = await apiCall(`/api/commander/tournaments/${tournamentId}/entries/${player.entry_id}/addon`, {});
         if (res.success) {
+          success = true;
           printBluetoothReceipt(player, 'Add-on', floor?.tournament?.addon_cost, floor?.tournament?.addon_chips || floor?.tournament?.starting_chips);
         } else {
           alert(res.error || 'Add-on failed.');
         }
       }
+      
+      if (success) {
+        setSelectedPlayer(null);
+        await fetchFloor();
+        broadcastChange('tournaments');
+      }
     } catch (err) { console.error(err); alert('Action failed. Check console.'); }
-    setSelectedPlayer(null);
-    setActionLoading(null);
-    fetchFloor();
-    broadcastChange('tournaments');
+    finally { setActionLoading(null); }
   };
 
 
@@ -277,16 +284,20 @@ ${receipts.map(r => `<div class="card">
         headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken() },
         body: JSON.stringify({ chips: parseInt(chipValue) })
       });
-      const json = await res.json();
-      if (!res.ok || json.success === false) {
-        alert(json.error || 'Failed to update chips.');
-        return;
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success) {
+          setChipModal(null);
+          setChipValue('');
+          setSelectedPlayer(null);
+          await fetchFloor();
+          broadcastChange('tournaments');
+        } else {
+          alert(json.error || 'Failed to update chips.');
+        }
+      } else {
+        alert('Failed to update chips.');
       }
-      setChipModal(null);
-      setChipValue('');
-      setSelectedPlayer(null);
-      fetchFloor();
-      broadcastChange('tournaments');
     } catch (err) { console.error(err); alert('Failed to update chips. Check console.'); }
     finally { setActionLoading(null); }
   };
@@ -303,7 +314,7 @@ ${receipts.map(r => `<div class="card">
         setMoveTable('');
         setMoveSeat('');
         setSelectedPlayer(null);
-        fetchFloor();
+        await fetchFloor();
         broadcastChange('tournaments');
       } else {
         alert(res.error || 'Move failed — seat may be occupied.');

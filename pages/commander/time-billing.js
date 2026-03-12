@@ -279,18 +279,39 @@ export default function TimeBilling() {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
-      const json = await res.json();
-      // Print time billing receipt
-      if (json.success && json.data) {
-        const session = sessions.find(s => s.id === sessionId || s.session_id === sessionId);
-        if (session) printTimeBillingReceipt({
-          ...session,
-          duration_minutes: json.data.elapsed_minutes,
-          total_charge: calculateCharge(session.started_at, session.rate_per_hour || pricing.time_billing_rate || 0),
-          staff_name: staff?.display_name || 'Staff',
-        });
-        await fetchData();
-        broadcastChange('tables');
+      if (res.ok) {
+        const json = await res.json();
+        // Print time billing receipt
+        if (json.success && json.data) {
+          const session = sessions.find(s => s.id === sessionId || s.session_id === sessionId);
+          if (session) {
+            printTimeBillingReceipt({
+              ...session,
+              duration_minutes: json.data.elapsed_minutes,
+              total_charge: calculateCharge(session.started_at, session.rate_per_hour || pricing.time_billing_rate || 0),
+              staff_name: staff?.display_name || 'Staff',
+            });
+
+            const venueId = getVenueId();
+            await fetch(`/api/commander/cashier`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+              body: JSON.stringify({
+                venue_id: venueId,
+                player_id: session.player_id,
+                transaction_type: 'time_charge',
+                amount: -calculateCharge(session.started_at, session.rate_per_hour || pricing.time_billing_rate || 0),
+                payment_method: 'system',
+                created_at: new Date().toISOString(),
+                description: `Auto-charge: Time Billing session stopped (${json.data.elapsed_minutes}m)`,
+                duration_minutes: json.data.elapsed_minutes,
+                total_charge: calculateCharge(session.started_at, session.rate_per_hour || pricing.time_billing_rate || 0),
+                staff_name: staff?.display_name || 'Staff',
+              })
+            });
+            await fetchData();
+            broadcastChange('tables');
+          }
+        }
       }
     } catch (err) { console.error(err); }
     finally { setStopping(null); }
@@ -348,19 +369,22 @@ export default function TimeBilling() {
       });
 
       if (res.ok) {
-        // Auto-print receipt
-        printTimeBillingReceipt({
-          player_name: payModal.player_name,
-          table_number: payModal.table_number,
-          seat_number: payModal.seat_number,
-          total_charge: parseFloat(payAmount), // Use payAmount as total_charge for receipt
-          type: 'time_payment',
-          staff_name: staff?.display_name || 'Staff'
-        });
+        const json = await res.json();
+        if (json.success) {
+          // Auto-print receipt
+          printTimeBillingReceipt({
+            player_name: payModal.player_name,
+            table_number: payModal.table_number,
+            seat_number: payModal.seat_number,
+            total_charge: parseFloat(payAmount), // Use payAmount as total_charge for receipt
+            type: 'time_payment',
+            staff_name: staff?.display_name || 'Staff'
+          });
 
-        setPayModal(null); setPayAmount('');
-        await fetchData();
-        broadcastChange('tables');
+          setPayModal(null); setPayAmount('');
+          await fetchData();
+          broadcastChange('tables');
+        }
       }
     } catch (err) { console.error(err); }
   };

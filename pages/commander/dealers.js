@@ -414,11 +414,13 @@ export default function DealersPage() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ venue_id: venueId, ...data })
       });
-      const result = await res.json();
-      if (result.success) {
-        setShowAddModal(false);
-        fetchDealers();
-        broadcastChange('dealers');
+      if (res.ok) {
+        const result = await res.json();
+        if (result.success) {
+          setShowAddModal(false);
+          fetchDealers();
+          broadcastChange('dealers');
+        }
       }
     } catch (err) {
       console.error('Add dealer failed:', err);
@@ -435,9 +437,12 @@ export default function DealersPage() {
         body: JSON.stringify(data)
       });
       if (res.ok) {
-        setEditingDealer(null);
-        fetchDealers();
-        broadcastChange('dealers');
+        const json = await res.json();
+        if (json.success) {
+          setEditingDealer(null);
+          fetchDealers();
+          broadcastChange('dealers');
+        }
       }
     } catch (err) {
       console.error('Edit dealer failed:', err);
@@ -454,9 +459,12 @@ export default function DealersPage() {
         body: JSON.stringify({ dealer_id: dealerId, table_id: tableId, venue_id: venueId })
       });
       if (res.ok) {
-        setRotatingDealer(null);
-        fetchDealers();
-        broadcastChange('dealers');
+        const json = await res.json();
+        if (json.success) {
+          setRotatingDealer(null);
+          fetchDealers();
+          broadcastChange('dealers');
+        }
       }
     } catch (err) {
       console.error('Rotate dealer failed:', err);

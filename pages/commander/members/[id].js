@@ -79,30 +79,40 @@ export default function MemberProfile() {
     if (!minutes || minutes <= 0) return;
     try {
       const token = getToken();
-      await fetch(`/api/commander/members/${id}`, {
+      const res = await fetch(`/api/commander/members/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() },
         body: JSON.stringify({
           time_balance_minutes: (member.time_balance_minutes || 0) + minutes
         })
       });
-      setShowAddTime(false);
-      setAddTimeAmount('');
-      fetchMember();
-      broadcastChange('members');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success) {
+          setShowAddTime(false);
+          setAddTimeAmount('');
+          fetchMember();
+          broadcastChange('members');
+        }
+      }
     } catch (err) { console.error(err); }
   };
 
   const toggleStatus = async (newStatus) => {
     try {
       const token = getToken();
-      await fetch(`/api/commander/members/${id}`, {
+      const res = await fetch(`/api/commander/members/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() },
         body: JSON.stringify({ membership_status: newStatus })
       });
-      fetchMember();
-      broadcastChange('members');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success) {
+          fetchMember();
+          broadcastChange('members');
+        }
+      }
     } catch (err) { console.error(err); }
   };
 

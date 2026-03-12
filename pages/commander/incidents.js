@@ -407,12 +407,14 @@ export default function IncidentsPage() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ venue_id: venueId, reported_by: staff.id, ...data })
       });
-      const result = await res.json();
-      if (result.success) {
-        setShowCreateModal(false);
-        fetchIncidents();
-        broadcastChange('incidents');
-        busEmit.screenShake('medium');
+      if (res.ok) {
+        const result = await res.json();
+        if (result.success) {
+          setShowCreateModal(false);
+          fetchIncidents();
+          broadcastChange('incidents');
+          busEmit.screenShake('medium');
+        }
       }
     } catch (err) { console.error('Create incident failed:', err); }
   }
@@ -427,9 +429,12 @@ export default function IncidentsPage() {
         body: JSON.stringify({ resolution })
       });
       if (res.ok) {
-        setSelectedIncident(null);
-        fetchIncidents();
-        broadcastChange('incidents');
+        const json = await res.json();
+        if (json.success) {
+          setSelectedIncident(null);
+          fetchIncidents();
+          broadcastChange('incidents');
+        }
       }
     } catch (err) { console.error('Resolve incident failed:', err); }
   }

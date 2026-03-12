@@ -190,19 +190,21 @@ ${receipts.map(r => `<div class="card">
         headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken() },
         body: JSON.stringify({ action })
       });
-      const json = await res.json();
-
-      if (json.success) {
-        // Auto-print break receipts if the level advance triggered an auto-break
-        if (json.data?.auto_break?.executed) {
-          printAutoBreakReceipts(json.data.auto_break);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success) {
+          // Auto-print break receipts if the level advance triggered an auto-break
+          if (json.data?.auto_break?.executed) {
+            printAutoBreakReceipts(json.data.auto_break);
+          }
+          await fetchFloor();
+          broadcastChange('tournaments');
+        } else {
+          alert(json.error?.message || json.error || 'Clock action failed.');
         }
       } else {
-        alert(json.error?.message || json.error || 'Clock action failed.');
+        alert('Clock action failed.');
       }
-
-      await fetchFloor();
-      broadcastChange('tournaments');
     } catch (err) { console.error(err); alert('Clock action failed. Check console.'); }
     finally { setActionLoading(null); }
   };
@@ -216,11 +218,18 @@ ${receipts.map(r => `<div class="card">
         headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken() },
         body: JSON.stringify({ active: !isActive })
       });
-      const json = await res.json();
-      if (!json.success) alert(json.error?.message || json.error || 'Failed to toggle Hand-for-Hand.');
+      if (res.ok) {
+        const json = await res.json();
+        if (!json.success) {
+          alert(json.error?.message || json.error || 'Failed to toggle Hand-for-Hand.');
+        } else {
+          await fetchFloor();
+          broadcastChange('tournaments');
+        }
+      } else {
+        alert('Failed to toggle Hand-for-Hand.');
+      }
     } catch (err) { console.error(err); alert('Hand-for-Hand toggle failed.'); }
-    await fetchFloor();
-    broadcastChange('tournaments');
   };
 
   const triggerFinalTable = async () => {
@@ -231,10 +240,17 @@ ${receipts.map(r => `<div class="card">
         headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken() },
         body: JSON.stringify({ final_table_number: 1 })
       });
-      const json = await res.json();
-      if (!json.success) alert(json.error?.message || json.error || 'Final table action failed.');
-      await fetchFloor();
-      broadcastChange('tournaments');
+      if (res.ok) {
+        const json = await res.json();
+        if (!json.success) {
+          alert(json.error?.message || json.error || 'Final table action failed.');
+        } else {
+          await fetchFloor();
+          broadcastChange('tournaments');
+        }
+      } else {
+        alert('Final table action failed.');
+      }
     } catch (err) { console.error(err); alert('Final table action failed. Check console.'); }
     finally { setActionLoading(null); }
   };

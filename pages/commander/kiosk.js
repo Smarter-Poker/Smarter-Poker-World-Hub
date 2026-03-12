@@ -284,9 +284,13 @@ export default function MembershipKiosk() {
             });
             if (patchRes.ok) successCount++;
           }
-          if (successCount > 0) broadcastChange('waitlist');
+          if (successCount > 0) {
+            broadcastChange('waitlist');
+          }
         }
-      } catch (e) { console.error("[kiosk.js]", e); }
+      } catch (e) {
+        console.error("[kiosk.js]", e);
+      }
 
       setCheckinIsWaitlisted(foundOnWaitlist);
       broadcastChange('members'); // Push member check-in to Activity Feed globally
@@ -295,8 +299,9 @@ export default function MembershipKiosk() {
     } catch (err) {
       console.error(err);
       setScanError('Scan failed. Please try again.');
+    } finally {
+      setSubmitting(false);
     }
-    finally { setSubmitting(false); }
   };
 
   // ── CHECK IN BY NAME: Search waitlist by name and check in ──
