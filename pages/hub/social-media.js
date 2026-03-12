@@ -1584,6 +1584,15 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                 
                 setCommentCount(prev => prev + 1);
                 
+                // Sync the denormalized comment_count column on social_posts (fire-and-forget)
+                supabase.rpc('increment_post_count', { p_post_id: post.id, p_field: 'comment_count' }).catch(async () => {
+                    // Fallback: manual increment if RPC doesn't exist
+                    try {
+                        const { data: postData } = await supabase.from('social_posts').select('comment_count').eq('id', post.id).maybeSingle();
+                        if (postData) await supabase.from('social_posts').update({ comment_count: (postData.comment_count || 0) + 1 }).eq('id', post.id);
+                    } catch (e) { console.warn('[Social] comment_count fallback failed:', e.message); }
+                });
+                
                 // Trigger reply notification
                 if (replyingTo && replyingTo.authorId !== currentUserId) {
                     await supabase.from('notifications').insert({
@@ -5320,6 +5329,14 @@ function SocialMediaPage() {
                     .eq('post_id', postId)
                     .eq('user_id', user.id);
                 if (error) console.error('[Social] Unlike error:', error.message);
+                
+                // Sync denormalized like_count column (fire-and-forget)
+                supabase.rpc('decrement_post_count', { p_post_id: postId, p_field: 'like_count' }).catch(async () => {
+                    try {
+                        const { data: p } = await supabase.from('social_posts').select('like_count').eq('id', postId).maybeSingle();
+                        if (p) await supabase.from('social_posts').update({ like_count: Math.max(0, (p.like_count || 1) - 1) }).eq('id', postId);
+                    } catch (e) { console.warn('[Social] like_count decrement fallback failed:', e.message); }
+                });
             } else {
                 // Like: write to social_likes with reaction_type (matches Horse engine + Phase 24 read path)
                 const { data: existing } = await supabase.from('social_likes')
@@ -5335,6 +5352,14 @@ function SocialMediaPage() {
                         reaction_type: type || 'like'
                     });
                     if (error) console.error('[Social] Like error:', error.message);
+                    
+                    // Sync denormalized like_count column (fire-and-forget)
+                    supabase.rpc('increment_post_count', { p_post_id: postId, p_field: 'like_count' }).catch(async () => {
+                        try {
+                            const { data: p } = await supabase.from('social_posts').select('like_count').eq('id', postId).maybeSingle();
+                            if (p) await supabase.from('social_posts').update({ like_count: (p.like_count || 0) + 1 }).eq('id', postId);
+                        } catch (e) { console.warn('[Social] like_count increment fallback failed:', e.message); }
+                    });
                 }
             }
         } catch (e) { console.error(e); }
