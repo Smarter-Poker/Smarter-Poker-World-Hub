@@ -4261,9 +4261,30 @@ function SocialMediaPage() {
             })
             .subscribe();
 
+        // ── Bus Listeners: cross-page + horse engine reactive hydration ──
+        // (Phase 26/27/28: Horse Engine emits masterBus events when commenting/liking)
+        let unsubMasterBus = [];
+        if (typeof window !== 'undefined' && window.masterBus) {
+            unsubMasterBus.push(window.masterBus.subscribe('SOCIAL_POST', () => {
+                console.log('[Social] 🔄 New post detected via masterBus');
+                loadFeed(0, false);
+            }));
+            unsubMasterBus.push(window.masterBus.subscribe('SOCIAL_LIKE', (payload) => {
+                if (payload?.postId) {
+                    eventBus.emit('SOCIAL_LIKE_UPDATE', { postId: payload.postId, delta: payload.delta || 1 }, 'MasterBus_Bridge');
+                }
+            }));
+            unsubMasterBus.push(window.masterBus.subscribe('SOCIAL_COMMENT', (payload) => {
+                if (payload?.postId) {
+                    eventBus.emit('SOCIAL_COMMENT_UPDATE', { postId: payload.postId }, 'MasterBus_Bridge');
+                }
+            }));
+        }
+
         return () => {
             supabase.removeChannel(feedChannel);
             supabase.removeChannel(typingChannel);
+            unsubMasterBus.forEach(unsub => unsub());
         };
     }, [user?.id]);
 
