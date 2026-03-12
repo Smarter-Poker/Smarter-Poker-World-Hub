@@ -147,17 +147,23 @@ export default function NotificationsPage() {
                             actor_username: profile?.username || null
                         };
                     });
-                    setNotifications(enriched);
+                    if (mounted.current) {
+                        setNotifications(enriched);
+                    }
 
                     // Auto-mark social notifications as read (only social ones use supabase table)
                     const unreadIds = enriched.filter(n => !n.read && n._source === 'social').map(n => n.id);
                     if (unreadIds.length > 0) {
                         await supabase.from('notifications').update({ read: true }).in('id', unreadIds);
-                        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+                        if (mounted.current) {
+                            setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+                        }
                     }
                 }
             }
-            setLoading(false);
+            if (mounted.current) {
+                setLoading(false);
+            }
         };
         fetchNotifications();
         return () => controller.abort();
@@ -171,12 +177,14 @@ export default function NotificationsPage() {
                 // Prepend new notification to the list in real-time
                 if (payload.new) {
                     const n = payload.new;
-                    setNotifications(prev => [{
-                        ...n,
-                        _source: 'social',
-                        actor_name: n.title || 'New Notification',
-                        actor_avatar_url: null,
-                    }, ...prev]);
+                    if (mounted.current) {
+                        setNotifications(prev => [{
+                            ...n,
+                            _source: 'social',
+                            actor_name: n.title || 'New Notification',
+                            actor_avatar_url: null,
+                        }, ...prev]);
+                    }
                 }
             })
             .subscribe();
@@ -187,7 +195,9 @@ export default function NotificationsPage() {
             notifBc = new BroadcastChannel('smarter_poker_notif_sync');
             notifBc.onmessage = () => {
                 // Another tab marked notifications as read — refresh local state
-                setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+                if (mounted.current) {
+                    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+                }
             };
         } catch { /* noop */ }
 
@@ -199,7 +209,9 @@ export default function NotificationsPage() {
 
     const markAsRead = async (id) => {
         await supabase.from('notifications').update({ read: true }).eq('id', id);
-        setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+        if (mounted.current) {
+            setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+        }
         try {
             const bc = new BroadcastChannel('smarter_poker_notif_sync');
             bc.postMessage('refresh_notifications');
@@ -212,7 +224,9 @@ export default function NotificationsPage() {
         if (!user) return;
         const unreadCount = notifications.filter(n => !n.read).length;
         await supabase.from('notifications').update({ read: true }).eq('user_id', user.id).eq('read', false);
-        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+        if (mounted.current) {
+            setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+        }
         try {
             const bc = new BroadcastChannel('smarter_poker_notif_sync');
             bc.postMessage('refresh_notifications');
@@ -271,13 +285,14 @@ export default function NotificationsPage() {
                 }).eq('id', notification.id);
 
                 // Update local state
-                setNotifications(prev => prev.map(n =>
-                    n.id === notification.id
-                        ? { ...n, message: 'Is Now Your Friend!', type: 'friend_accepted', handled: true }
-                        : n
-                ));
-
-                toast.success('Friend request accepted!');
+                if (mounted.current) {
+                    setNotifications(prev => prev.map(n =>
+                        n.id === notification.id
+                            ? { ...n, message: 'Is Now Your Friend!', type: 'friend_accepted', handled: true }
+                            : n
+                    ));
+                    toast.success('Friend request accepted!');
+                }
             } else {
                 console.error('Could not find friendship to accept');
                 toast.error('Could not find friend request.');
@@ -333,13 +348,14 @@ export default function NotificationsPage() {
             }).eq('id', notification.id);
 
             // Update local state
-            setNotifications(prev => prev.map(n =>
-                n.id === notification.id
-                    ? { ...n, message: 'Is Now Following You', type: 'new_follow', handled: true }
-                    : n
-            ));
-
-            toast.success('Request declined \u2014 they now follow you.');
+            if (mounted.current) {
+                setNotifications(prev => prev.map(n =>
+                    n.id === notification.id
+                        ? { ...n, message: 'Is Now Following You', type: 'new_follow', handled: true }
+                        : n
+                ));
+                toast.success('Request declined \u2014 they now follow you.');
+            }
 
             // Sync friends page cross-tab + EventBus
             busEmit.dataMutated('friends');

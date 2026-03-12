@@ -442,12 +442,17 @@ export default function FriendsPage() {
     const FRIENDS_CACHE_KEY = 'sp-friends-cache';
     const FRIENDS_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
     const actionInProgress = useRef(false); // Prevent double-click spam
+    const mounted = useRef(true);
+
+    useEffect(() => {
+        return () => { mounted.current = false; };
+    }, []);
 
     const fetchData = async () => {
         //  BULLETPROOF: Use authUtils to avoid AbortError
         const authUser = getAuthUser();
-        if (!authUser) {
-            setLoading(false);
+        if (!authUser || !mounted.current) {
+            if (mounted.current) setLoading(false);
             return;
         }
         setUser(authUser);
@@ -459,17 +464,19 @@ export default function FriendsPage() {
                 const cached = JSON.parse(cachedRaw);
                 if (cached._cachedAt && (Date.now() - cached._cachedAt) < FRIENDS_CACHE_TTL && cached.data) {
                     const d = cached.data;
-                    setFriends(d.friends || []);
-                    setFriendIds(new Set(d.friendIds || []));
-                    setMyFriendIds(d.friendIds || []);
-                    setFriendRequests(d.friendRequests || []);
-                    setPendingIds(new Set((d.pendingOutgoing || []).map(r => r.friend_id)));
-                    setFollowing(d.following || []);
-                    setFollowingIds(new Set(d.followingIds || []));
-                    setFollowers(d.followers || []);
-                    setFollowerIds(new Set(d.followerIds || []));
-                    setSuggestions((d.suggestions || []).map(u => ({ ...u, mutualCount: 0 })));
-                    setLoading(false); // Instant render from cache
+                    if (mounted.current) {
+                        setFriends(d.friends || []);
+                        setFriendIds(new Set(d.friendIds || []));
+                        setMyFriendIds(d.friendIds || []);
+                        setFriendRequests(d.friendRequests || []);
+                        setPendingIds(new Set((d.pendingOutgoing || []).map(r => r.friend_id)));
+                        setFollowing(d.following || []);
+                        setFollowingIds(new Set(d.followingIds || []));
+                        setFollowers(d.followers || []);
+                        setFollowerIds(new Set(d.followerIds || []));
+                        setSuggestions((d.suggestions || []).map(u => ({ ...u, mutualCount: 0 })));
+                        setLoading(false); // Instant render from cache
+                    }
                 }
             }
         } catch { /* cache miss or corrupt — continue to API */ }
@@ -487,6 +494,7 @@ export default function FriendsPage() {
 
             if (resp.ok) {
                 const result = await resp.json();
+                if (!mounted.current) return; // Added guard
                 const d = result.data || {};
 
                 // Friends
@@ -525,7 +533,7 @@ export default function FriendsPage() {
             console.error('[Friends] fetchData error:', err);
         }
 
-        setLoading(false);
+        if (mounted.current) setLoading(false);
     };
 
     useEffect(() => {
@@ -573,13 +581,13 @@ export default function FriendsPage() {
                     .neq('id', user?.id || '')
                     .limit(20);
 
-                if (data) {
+                if (data && mounted.current) {
                     setSearchResults(data);
                 }
             } catch (e) {
                 console.error('Search error:', e);
             }
-            setIsSearching(false);
+            if (mounted.current) setIsSearching(false);
         }, 300);
 
         return () => clearTimeout(timer);

@@ -1034,21 +1034,23 @@ export default function MessengerPage() {
     // Refresh friends sidebar when friendships change on other pages
     useEffect(() => {
         let debounceTimer = null;
+        let mounted = true;
         const unsub = eventBus.on(EventType.DATA_MUTATED, (payload) => {
             if (payload?.entity === 'friends') {
                 clearTimeout(debounceTimer);
                 debounceTimer = setTimeout(async () => {
+                    if (!mounted) return;
                     try {
                         const token = getAccessToken();
                         const resp = await fetch('/api/friends?action=list', {
                             headers: { 'Authorization': 'Bearer ' + token }
                         }).then(r => r.json()).catch(() => ({ data: { friends: [] } }));
-                        if (resp?.data?.friends) setFriends(resp.data.friends);
+                        if (mounted && resp?.data?.friends) setFriends(resp.data.friends);
                     } catch (e) { /* silent */ }
                 }, 800);
             }
         });
-        return () => { clearTimeout(debounceTimer); unsub(); };
+        return () => { mounted = false; clearTimeout(debounceTimer); unsub(); };
     }, []);
 
     // Identity switching
