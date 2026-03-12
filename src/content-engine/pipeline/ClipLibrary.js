@@ -96,16 +96,16 @@ export const CLIP_SOURCES = {
 };
 
 export const CAPTION_TEMPLATES = {
-    [CLIP_CATEGORIES.MASSIVE_POT]: ["🔥 This pot is INSANE", "💰 Imagine having this action", "Stack going in the middle 💵"],
-    [CLIP_CATEGORIES.BLUFF]: ["😂 THE BALLS ON THIS GUY", "🧊 Ice in his veins fr", "Pure heart. No cards needed"],
-    [CLIP_CATEGORIES.BAD_BEAT]: ["💀 This is why I have PTSD", "😭 Poker is 100% skill right?", "Variance said NOT TODAY"],
-    [CLIP_CATEGORIES.SOUL_READ]: ["🔮 HE KNEW.", "🎯 Reads absolutely DIALED", "That read was criminal"],
-    [CLIP_CATEGORIES.TABLE_DRAMA]: ["😬 The tension at this table", "🍿 I live for this drama", "Someone call security 😂"],
-    [CLIP_CATEGORIES.CELEBRITY]: ["🐐 Legend stuff", "👑 Different breed", "🏆 The GOAT doing GOAT things"],
-    [CLIP_CATEGORIES.FUNNY]: ["😂 LMAOOO poker is comedy", "🤣 I cant breathe", "Peak poker content"],
-    [CLIP_CATEGORIES.EDUCATIONAL]: ["📚 Great spot to study", "🧠 Pay attention to sizing", "❓ What would you do?"],
-    [CLIP_CATEGORIES.VLOG]: ["Living the dream 🎲", "This is why I play poker", "Session goals"],
-    [CLIP_CATEGORIES.TOURNAMENT]: ["Tournament poker hits different", "ICM nightmares", "The grind pays off 🏆"]
+  [CLIP_CATEGORIES.MASSIVE_POT]: ["This pot is INSANE", "Imagine having this action", "Stack going in the middle "],
+  [CLIP_CATEGORIES.BLUFF]: ["THE BALLS ON THIS GUY", "Ice in his veins fr", "Pure heart. No cards needed"],
+  [CLIP_CATEGORIES.BAD_BEAT]: ["This is why I have PTSD", "Poker is 100% skill right?", "Variance said NOT TODAY"],
+  [CLIP_CATEGORIES.SOUL_READ]: ["HE KNEW.", "Reads absolutely DIALED", "That read was criminal"],
+  [CLIP_CATEGORIES.TABLE_DRAMA]: ["The tension at this table", "I live for this drama", "Someone call security "],
+  [CLIP_CATEGORIES.CELEBRITY]: ["Legend stuff", "Different breed", "The GOAT doing GOAT things"],
+  [CLIP_CATEGORIES.FUNNY]: ["LMAOOO poker is comedy", "I cant breathe", "Peak poker content"],
+  [CLIP_CATEGORIES.EDUCATIONAL]: ["Great spot to study", "Pay attention to sizing", "What would you do?"],
+  [CLIP_CATEGORIES.VLOG]: ["Living the dream ", "This is why I play poker", "Session goals"],
+  [CLIP_CATEGORIES.TOURNAMENT]: ["Tournament poker hits different", "ICM nightmares", "The grind pays off "]
 };
 
 // ═══════════════════════════════════════════════════════════════════════════

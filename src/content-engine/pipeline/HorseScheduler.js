@@ -131,7 +131,7 @@ export function isHorseActiveHour(profileId, currentHour) {
 
 // Style dimensions with many options for combination
 const CAPITALIZATION_STYLES = ['all_lower', 'normal', 'first_cap', 'random_caps', 'all_caps', 'lazy_caps'];
-const EMOJI_STYLES = ['none', 'minimal', 'moderate', 'heavy', 'emoji_only', 'trailing'];
+const EMOJI_STYLES = ['none', 'none', 'none', 'none', 'none', 'none']; // DISABLED — no emojis allowed
 const PUNCTUATION_STYLES = ['none', 'minimal', 'normal', 'enthusiastic', 'ellipsis', 'dash_lover'];
 const FILLER_SETS = [
     [], // No fillers
@@ -189,16 +189,7 @@ export function getHorseWritingStyle(profileId) {
     const quirk = LINGUISTIC_QUIRKS[(hash * 31) % LINGUISTIC_QUIRKS.length];
 
     // Additional unique traits
-    const emojiChoices = [
-        ['🔥', '💯', '👀'],
-        ['😂', '💀', '🤣'],
-        ['🙏', '👑', '⚡'],
-        ['🎯', '🃏', '♠️'],
-        ['📈', '📉', '💰'],
-        ['🤔', '🧐', '👁️'],
-        ['😤', '💪', '🏆'],
-        ['❤️', '🖤', '💜']
-    ][(hash * 41) % 8];
+    const emojiChoices = []; // DISABLED — emojis forbidden
 
     return {
         capitalization: capStyle,
@@ -329,30 +320,8 @@ export function applyWritingStyle(comment, profileId) {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // EMOJIS - Natural placement (5% of posts only = 1 in 20, no back-to-back)
-    // ═══════════════════════════════════════════════════════════════════════
-    const hasEmoji = result.match(/[\u{1F300}-\u{1F9FF}]/u);
-    const endsWithEmoji = result.match(/[\u{1F300}-\u{1F9FF}]\s*$/u);
-
-    // GLOBAL 5% emoji rate (1 in 20 posts) - real users rarely emoji
-    if (!hasEmoji && style.emojiStyle !== 'none' && Math.random() < 0.05) {
-        const emoji = style.emojiChoices[Math.floor(Math.random() * style.emojiChoices.length)];
-
-        // Random placement instead of always trailing
-        const placement = Math.random();
-        if (placement < 0.15) {
-            // 15% chance: emoji only (for very short responses)
-            if (result.length < 10) result = emoji;
-        } else if (placement < 0.35) {
-            // 20% chance: emoji at start
-            result = emoji + ' ' + result;
-        } else if (!endsWithEmoji) {
-            // 65% chance: emoji at end (most natural for reactions)
-            // But NEVER create back-to-back emojis
-            result = result + ' ' + emoji;
-        }
-    }
+    // EMOJI BLOCK — COMPLETELY DISABLED
+    // Emojis are forbidden in horse posts
 
     // ═══════════════════════════════════════════════════════════════════════
     // LINGUISTIC QUIRKS
@@ -528,29 +497,29 @@ export function getHorseDailyPostLimit(profileId) {
 // ═══════════════════════════════════════════════════════════════════════════
 const CONTENT_REACTIONS = {
     tournament_win: {
-        templates: ['LFG', 'SHIPPED 🏆', 'massive', 'gg wp', 'congrats!', '👑', 'huge W'],
+        templates: ['LFG', 'SHIPPED', 'massive', 'gg wp', 'congrats!', 'king', 'huge W'],
         energy: 'hype',
-        emojiBoost: 1.5
+        emojiBoost: 0
     },
     bad_beat: {
-        templates: ['pain', 'brutal', 'rip', 'oof', 'rough', '💀', 'variance'],
+        templates: ['pain', 'brutal', 'rip', 'oof', 'rough', 'tough one', 'variance'],
         energy: 'sympathy',
-        emojiBoost: 0.8
+        emojiBoost: 0
     },
     strategy: {
-        templates: ['noted', 'valid', '📈', 'true', 'facts', 'solid', 'this'],
+        templates: ['noted', 'valid', 'interesting', 'true', 'facts', 'solid', 'this'],
         energy: 'analytical',
-        emojiBoost: 0.7
+        emojiBoost: 0
     },
     lifestyle: {
-        templates: ['mood', 'real', 'lol', 'same', 'fr', '😂', 'relatable'],
+        templates: ['mood', 'real', 'lol', 'same', 'fr', 'haha', 'relatable'],
         energy: 'casual',
-        emojiBoost: 1.2
+        emojiBoost: 0
     },
     news: {
-        templates: ['👀', 'wild', 'hm', 'interesting', 'wow', '📰'],
+        templates: ['whoa', 'wild', 'hm', 'interesting', 'wow', 'breaking'],
         energy: 'neutral',
-        emojiBoost: 1.0
+        emojiBoost: 0
     }
 };
 
