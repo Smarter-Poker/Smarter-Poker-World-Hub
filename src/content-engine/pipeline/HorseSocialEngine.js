@@ -586,6 +586,13 @@ async function commentOnPosts(maxComments = 20, includeRealUsers = true) {
             const author = allHorses.find(h => h.profile_id === post.author_id);
             console.log(`   ${horse.name} → ${author?.name || 'User'}'s post: "${comment}"`);
             commented++;
+            
+            // Sync denormalized comment_count on social_posts (fire-and-forget)
+            supabase.rpc('increment_post_count', { p_post_id: post.id, p_field: 'comment_count' }).catch(() => {
+                supabase.from('social_posts').select('comment_count').eq('id', post.id).maybeSingle().then(({ data: p }) => {
+                    if (p) supabase.from('social_posts').update({ comment_count: (p.comment_count || 0) + 1 }).eq('id', post.id);
+                }).catch(() => {});
+            });
 
             if (commented >= maxComments) break;
         }
@@ -700,6 +707,13 @@ async function likePosts(maxLikes = 30, includeRealUsers = true) {
             if (!error) {
                 console.log(`   ${horse.name} liked a post ❤️`);
                 liked++;
+                
+                // Sync denormalized like_count on social_posts (fire-and-forget)
+                supabase.rpc('increment_post_count', { p_post_id: post.id, p_field: 'like_count' }).catch(() => {
+                    supabase.from('social_posts').select('like_count').eq('id', post.id).maybeSingle().then(({ data: p }) => {
+                        if (p) supabase.from('social_posts').update({ like_count: (p.like_count || 0) + 1 }).eq('id', post.id);
+                    }).catch(() => {});
+                });
             }
         }
 
@@ -823,6 +837,13 @@ async function replyToComments(maxReplies = 15) {
         if (!error) {
             console.log(`   ${horse.name} replied: "${replyText}"`);
             replied++;
+            
+            // Sync denormalized comment_count on social_posts (fire-and-forget)
+            supabase.rpc('increment_post_count', { p_post_id: comment.post_id, p_field: 'comment_count' }).catch(() => {
+                supabase.from('social_posts').select('comment_count').eq('id', comment.post_id).maybeSingle().then(({ data: p }) => {
+                    if (p) supabase.from('social_posts').update({ comment_count: (p.comment_count || 0) + 1 }).eq('id', comment.post_id);
+                }).catch(() => {});
+            });
 
             if (replied >= maxReplies) break;
         }
