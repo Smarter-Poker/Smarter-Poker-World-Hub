@@ -4436,7 +4436,7 @@ function SocialMediaPage() {
             }, async (payload) => {
                 // Skip self-authored posts — already added optimistically in handlePost
                 if (payload.new.author_id === user.id) return;
-                console.log('[Social] 🔄 New post detected via realtime:', payload.new.id);
+                if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] 🔄 New post detected via realtime:', payload.new.id);
                 // Trigger feed reload to pick up new posts
                     broadcastSync('smarter_poker_social_sync', { action: 'refresh_feed', tabId: BROADCAST_TAB_ID });
                 // Also refresh local feed
@@ -4487,7 +4487,7 @@ function SocialMediaPage() {
         let unsubMasterBus = [];
         if (typeof window !== 'undefined' && window.masterBus) {
             unsubMasterBus.push(window.masterBus.subscribe('SOCIAL_POST', () => {
-                console.log('[Social] 🔄 New post detected via masterBus');
+                if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] 🔄 New post detected via masterBus');
                 loadFeed(0, false);
             }));
             unsubMasterBus.push(window.masterBus.subscribe('SOCIAL_LIKE', (payload) => {
@@ -4516,7 +4516,7 @@ function SocialMediaPage() {
             const isRefresh = msg === 'refresh_feed' || msg?.action === 'refresh_feed';
             const isSameTab = msg?.tabId === BROADCAST_TAB_ID;
             if (isRefresh && !isSameTab) {
-                console.log('[Social] Refreshing feed from other tab');
+                if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] Refreshing feed from other tab');
                 loadFeed(0, false);
             }
         });
@@ -4525,7 +4525,7 @@ function SocialMediaPage() {
         const cleanupFriendsBc = listenBroadcast('smarter_poker_friends_sync', (msg) => {
             // Self-tab suppression + support both string and object payloads
             if (msg?.tabId === BROADCAST_TAB_ID) return;
-            console.log('[Social] Friends changed in other tab — refreshing feed');
+            if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] Friends changed in other tab — refreshing feed');
             loadFeed(0, false);
         });
 
@@ -4540,14 +4540,14 @@ function SocialMediaPage() {
             try {
                 const authUser = await ensureAuthReady(supabase);
                 if (authUser) {
-                    console.log('[Social] ✅ Auth hydrated via ensureAuthReady:', authUser.email || authUser.id);
+                    if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] ✅ Auth hydrated via ensureAuthReady:', authUser.email || authUser.id);
                 } else {
                     console.warn('[Social] ❌ ensureAuthReady could not find valid auth session');
                 }
 
                 if (authUser) {
                     // Use native fetch to avoid AbortError (same issue as stories/profiles)
-                    console.log('[Social] Fetching profile for user:', authUser.id);
+                    if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] Fetching profile for user:', authUser.id);
 
                     let profileRes = await fetch(`https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/profiles?id=eq.${authUser.id}&select=id,username,full_name,display_name_preference,skill_tier,avatar_url,hendon_url,hendon_total_cashes,hendon_total_earnings,hendon_best_finish,hendon_biggest_cash,role`, {
                         headers: {
@@ -4558,7 +4558,7 @@ function SocialMediaPage() {
 
                     let profiles = await profileRes.json();
                     let p = profiles?.[0] || null;
-                    console.log('[Social] Profile loaded:', p ? `${p.username} (avatar: ${p.avatar_url ? 'YES' : 'NO'})` : 'NOT FOUND');
+                    if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] Profile loaded:', p ? `${p.username} (avatar: ${p.avatar_url ? 'YES' : 'NO'})` : 'NOT FOUND');
 
                     // If no profile found by id, check if user owns another profile via owner_id
                     if (!p) {
@@ -4601,7 +4601,7 @@ function SocialMediaPage() {
                     supabase.from('profiles')
                         .update({ last_active: new Date().toISOString() })
                         .eq('id', p?.id || authUser.id)
-                        .then(() => console.log('[Social] Updated last_active timestamp'));
+                        .then(() => { if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] Updated last_active timestamp'); });
 
                     // Load notifications with actor profile data
                     const { data: notifs, error: notifsError } = await supabase.from('notifications')
@@ -4673,7 +4673,7 @@ function SocialMediaPage() {
                         setNotifications(enrichedNotifs);
                     }
                 } else {
-                    console.log('[Social] No authenticated user found');
+                    if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] No authenticated user found');
                 }
                 // Hydrate feed from cache for instant render
                 try {
@@ -4705,7 +4705,7 @@ function SocialMediaPage() {
                 if (data && data.venue_id) {
                     setIsCommander(true);
                     setCommanderData(data);
-                    console.log('[Social] Commander account detected:', data.venue_name);
+                    if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] Commander account detected:', data.venue_name);
 
                     // Fetch if this Commander already has a club page
                     setMyPageLoading(true);
@@ -4714,7 +4714,7 @@ function SocialMediaPage() {
                         .then(json => {
                             if (json.success && json.data && json.data.length > 0) {
                                 setMyClubPage(json.data[0]);
-                                console.log('[Social] Found existing Club Page:', json.data[0].name);
+                                if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] Found existing Club Page:', json.data[0].name);
                             } else if (json.success && json.data) {
                                 // Also check by owner_id if no linked_venue_id match
                                 if (user?.id) {
@@ -4906,7 +4906,7 @@ function SocialMediaPage() {
             const priorityUserIds = [...new Set([...friendIds, ...followingIds])];
 
             // ♾️ INFINITE SCROLL: Fetch posts using native fetch to bypass Supabase client AbortError
-            console.log('[Social] Loading feed via native fetch, offset:', offset);
+            if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] Loading feed via native fetch, offset:', offset);
 
             let allPostsData = null;
             let error = null;
@@ -4940,7 +4940,7 @@ function SocialMediaPage() {
                 }
 
                 allPostsData = await response.json();
-                console.log('[Social] ✅ Feed loaded via fetch - count:', allPostsData?.length);
+                if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] ✅ Feed loaded via fetch - count:', allPostsData?.length);
             } catch (e) {
                 console.error('[Social] Feed fetch error:', e);
                 error = { message: e.message };
@@ -4954,12 +4954,12 @@ function SocialMediaPage() {
                 // No posts returned - truly at the end
                 if (feedCycle < MAX_FEED_CYCLES) {
                     // Loop back from the beginning for endless scroll experience
-                    console.log('[Social] Looping feed - cycle', feedCycle + 1);
+                    if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] Looping feed - cycle', feedCycle + 1);
                     setFeedCycle(prev => prev + 1);
                     setFeedOffset(0);
                     // Don't set hasMorePosts false - let next scroll trigger the loop
                 } else {
-                    console.log('[Social] Max cycles reached - ending feed');
+                    if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] Max cycles reached - ending feed');
                     setHasMorePosts(false);
                 }
             } else {
@@ -5016,11 +5016,11 @@ function SocialMediaPage() {
             // Fetch author profiles using native fetch to avoid AbortError
             if (mixedFeed.length > 0) {
                 const authorIds = [...new Set(mixedFeed.map(p => p.author_id).filter(Boolean))];
-                console.log('[Social]  Processing', mixedFeed.length, 'posts with', authorIds.length, 'unique authors');
+                if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social]  Processing', mixedFeed.length, 'posts with', authorIds.length, 'unique authors');
                 let authorMap = {};
                 if (authorIds.length) {
                     try {
-                        console.log('[Social] Fetching profiles for author IDs:', authorIds.slice(0, 3), '...');
+                        if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] Fetching profiles for author IDs:', authorIds.slice(0, 3), '...');
                         const profilesRes = await fetch(`${supabaseUrl}/rest/v1/profiles?id=in.(${authorIds.join(',')})&select=id,username,full_name,display_name_preference,avatar_url`, {
                             headers: {
                                 'apikey': supabaseKey,
@@ -5028,16 +5028,16 @@ function SocialMediaPage() {
                             }
                         });
 
-                        console.log('[Social] Profile fetch response status:', profilesRes.status);
+                        if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] Profile fetch response status:', profilesRes.status);
                         if (!profilesRes.ok) {
                             const errorText = await profilesRes.text();
                             console.error('[Social] ❌ Profile fetch failed:', profilesRes.status, errorText);
                         } else {
                             const profiles = await profilesRes.json();
-                            console.log('[Social] ✅ Loaded', profiles.length, 'profiles:', profiles.map(p => p.username || p.full_name));
+                            if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] ✅ Loaded', profiles.length, 'profiles:', profiles.map(p => p.username || p.full_name));
                             if (profiles && profiles.length > 0) {
                                 authorMap = Object.fromEntries(profiles.map(p => [p.id, p]));
-                                console.log('[Social] ✅ Author map created with', Object.keys(authorMap).length, 'entries');
+                                if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] ✅ Author map created with', Object.keys(authorMap).length, 'entries');
                             } else {
                                 console.warn('[Social]  No profiles returned from query');
                             }
@@ -5149,10 +5149,10 @@ function SocialMediaPage() {
 
     // ♾️ INFINITE SCROLL: Load more posts when scrolling
     const loadMorePosts = async () => {
-        console.log('[Social] loadMorePosts called, loadingMore:', loadingMoreRef.current, 'hasMorePosts:', hasMorePostsRef.current);
+        if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] loadMorePosts called, loadingMore:', loadingMoreRef.current, 'hasMorePosts:', hasMorePostsRef.current);
         if (loadingMoreRef.current || !hasMorePostsRef.current) return;
         const newOffset = feedOffsetRef.current + POSTS_PER_PAGE;
-        console.log('[Social] Loading more from offset:', newOffset);
+        if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] Loading more from offset:', newOffset);
         setFeedOffset(newOffset);
         await loadFeed(newOffset, true);
     };
@@ -5170,17 +5170,17 @@ function SocialMediaPage() {
 
         // If node is null (unmounting), we're done
         if (!node) {
-            console.log('[Social] Sentinel unmounted, observer disconnected');
+            if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] Sentinel unmounted, observer disconnected');
             return;
         }
 
-        console.log('[Social] ✅ Sentinel mounted! Attaching IntersectionObserver...');
+        if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] ✅ Sentinel mounted! Attaching IntersectionObserver...');
 
         // Create and attach new observer
         observerRef.current = new IntersectionObserver(
             (entries) => {
                 if (entries[0].isIntersecting) {
-                    console.log('[Social] Sentinel visible! Calling loadMorePosts...');
+                    if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] Sentinel visible! Calling loadMorePosts...');
                     loadMorePosts();
                 }
             },
@@ -5191,9 +5191,9 @@ function SocialMediaPage() {
     }, []); // Empty deps - uses refs for current values
 
     const handlePost = async (content, urls, type, mentions = [], linkPreview = null) => {
-        console.log('[Social]  handlePost called with:', { content: content?.substring(0, 50), urls, type, mentions, hasLinkPreview: !!linkPreview });
-        console.log('[Social]  linkPreview FULL OBJECT:', JSON.stringify(linkPreview, null, 2));
-        console.log('[Social]  User state:', { id: user?.id, name: user?.name, hasUser: !!user });
+        if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social]  handlePost called with:', { content: content?.substring(0, 50), urls, type, mentions, hasLinkPreview: !!linkPreview });
+        if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social]  linkPreview FULL OBJECT:', JSON.stringify(linkPreview, null, 2));
+        if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social]  User state:', { id: user?.id, name: user?.name, hasUser: !!user });
 
         if (!user?.id) {
             console.error('[Social] ❌ Cannot post: user.id is missing!', user);
@@ -5212,7 +5212,7 @@ function SocialMediaPage() {
             if (isClubPost) {
                 // ═══ CLUB PAGE POST — route through page posts API ═══
                 const clubPageId = identityStored.clubPage.id;
-                console.log('[Social] 🏢 Posting as Club Page:', identityStored.clubPage.name, clubPageId);
+                if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] 🏢 Posting as Club Page:', identityStored.clubPage.name, clubPageId);
 
                 const token = getAccessToken();
                 const res = await fetch('/api/social/pages/posts', {
@@ -5240,7 +5240,7 @@ function SocialMediaPage() {
                 const json = await res.json();
                 if (!json.success) throw new Error(json.error || 'Failed to post as club');
 
-                console.log('[Social] ✅ Club page post created:', json.data?.id);
+                if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] ✅ Club page post created:', json.data?.id);
 
                 // Add to feed with club identity
                 setPosts(prev => [{
@@ -5280,7 +5280,7 @@ function SocialMediaPage() {
 
             // EXPLICIT: Add link metadata if available (from link preview)
             if (linkPreview) {
-                console.log('[Social]  Adding link metadata from preview:', linkPreview);
+                if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social]  Adding link metadata from preview:', linkPreview);
                 insertPayload.link_url = linkPreview.url || urls[0];
                 insertPayload.link_title = linkPreview.title || null;
                 insertPayload.link_description = linkPreview.description || null;
@@ -5288,7 +5288,7 @@ function SocialMediaPage() {
                 insertPayload.link_site_name = linkPreview.domain || null;
             }
 
-            console.log('[Social]  FINAL insert payload:', JSON.stringify(insertPayload, null, 2));
+            if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social]  FINAL insert payload:', JSON.stringify(insertPayload, null, 2));
 
             const { data, error } = await supabase.from('social_posts').insert(insertPayload).select().maybeSingle();
 
@@ -5297,7 +5297,7 @@ function SocialMediaPage() {
                 throw error || new Error('Post creation returned no data');
             }
 
-            console.log('[Social] ✅ Post created successfully:', data.id);
+            if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] ✅ Post created successfully:', data.id);
 
             // ═══ PRIMARY SUCCESS: Add to feed IMMEDIATELY ═══
             // This must happen before ANY secondary operations (mentions, reels)
