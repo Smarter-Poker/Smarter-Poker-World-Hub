@@ -48,6 +48,10 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
     const authAckedRef = useRef(false);
     const retryCountRef = useRef(0);
 
+    // Stabilize query object identity to prevent infinite re-renders
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const queryKey = typeof query === 'object' ? JSON.stringify(query) : '';
+
     /* ── Build iframe URL ─────────────────────────────────────────────── */
     useEffect(() => {
         let path = SPA_BASE;
@@ -55,7 +59,8 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
             path += '/' + spaRoute.replace(/^\//, '');
         }
 
-        const params = new URLSearchParams(query);
+        const parsedQuery = queryKey ? JSON.parse(queryKey) : {};
+        const params = new URLSearchParams(parsedQuery);
         const qs = params.toString();
         const url = `${SPA_ORIGIN}${path}${qs ? '?' + qs : ''}`;
 
@@ -63,21 +68,20 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
         setLoadState('loading');
         setErrorMsg('');
         authAckedRef.current = false;
-    }, [spaRoute, query]);
+    }, [spaRoute, queryKey]);
 
     /* ── Timeout detection ────────────────────────────────────────────── */
     useEffect(() => {
         if (loadState !== 'loading') return;
 
         timeoutRef.current = setTimeout(() => {
-            if (loadState === 'loading') {
-                console.error('[ClubArenaEmbed] Iframe load timed out after', LOAD_TIMEOUT_MS, 'ms');
-                setLoadState('error');
-                setErrorMsg(
-                    `Club Arena failed to load within ${LOAD_TIMEOUT_MS / 1000}s. ` +
-                    'This may be a network issue or a Content-Security-Policy block.'
-                );
-            }
+            // No stale-closure check needed — cleanup fn clears timeout if loadState changes
+            console.error('[ClubArenaEmbed] Iframe load timed out after', LOAD_TIMEOUT_MS, 'ms');
+            setLoadState('error');
+            setErrorMsg(
+                `Club Arena failed to load within ${LOAD_TIMEOUT_MS / 1000}s. ` +
+                'This may be a network issue or a Content-Security-Policy block.'
+            );
         }, LOAD_TIMEOUT_MS);
 
         return () => clearTimeout(timeoutRef.current);
@@ -123,6 +127,7 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
             if (authAckedRef.current) return; // Already acknowledged
             if (attempts >= AUTH_MAX_RETRIES) {
                 console.warn('[ClubArenaEmbed] Auth handshake: max retries reached without ACK');
+                clearInterval(authRetryRef.current); // Stop polling
                 return;
             }
             attempts++;
