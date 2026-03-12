@@ -26,7 +26,8 @@ import Head from 'next/head';
 import { supabase } from '../../lib/supabase';
 
 /* ── Origin Configuration ─────────────────────────────────────────────── */
-const SPA_ORIGIN = process.env.NEXT_PUBLIC_CLUB_ARENA_ORIGIN || 'https://club-arena.vercel.app';
+// Enforce relative paths so the Next.js same-origin proxy (rewrites) takes over.
+const SPA_ORIGIN = '';
 const SPA_BASE = '/hub/club-arena';
 const LOAD_TIMEOUT_MS = 15_000;       // 15s before showing error
 const AUTH_RETRY_INTERVAL_MS = 2_000; // Retry auth every 2s
@@ -138,7 +139,7 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
                         type: 'SMARTER_AUTH_TOKEN',
                         token: session.access_token,
                         refreshToken: session.refresh_token,
-                    }, SPA_ORIGIN);
+                    }, window.location.origin);
                     console.log(`[ClubArenaEmbed] Auth token sent (attempt ${attempts}/${AUTH_MAX_RETRIES})`);
                 }
             } catch (e) {
@@ -156,7 +157,8 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
     /* ── Message listener: ACK, navigation, URL sync ──────────────────── */
     useEffect(() => {
         const handleMessage = (event) => {
-            if (event.origin !== SPA_ORIGIN) return;
+            // Must be strictly from this origin to prevent cross-site scripting
+            if (event.origin !== window.location.origin) return;
             const data = event.data;
             if (!data || typeof data !== 'object') return;
 
