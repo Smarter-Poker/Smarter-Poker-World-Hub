@@ -9,14 +9,16 @@ import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
 export default function ClubArenaLobbyPage() {
         useTrainingBus('club-arena-lobby');
 const router = useRouter();
-    const { clubId } = router.query;
-    const spaRoute = clubId ? `clubs/${clubId}` : 'lobby';
+    const { clubId, club, ...otherQuery } = router.query;
+    const resolvedClubId = clubId || club;
+    const spaRoute = resolvedClubId ? `clubs/${resolvedClubId}` : 'lobby';
+    const query = resolvedClubId ? { club: resolvedClubId, ...otherQuery } : otherQuery;
 
     return (
         <HubErrorBoundary name="Club Arena">
             <SEOHead title="Club Lobby | Smarter.Poker" />
             <UniversalHeader />
-            <ClubArenaEmbed spaRoute={spaRoute} />
+            <ClubArenaEmbed spaRoute={spaRoute} query={query} />
         </HubErrorBoundary>
     );
 }
