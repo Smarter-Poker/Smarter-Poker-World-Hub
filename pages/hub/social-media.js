@@ -1329,6 +1329,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
     const [liked, setLiked] = useState(post.isLiked);
     const [likeCount, setLikeCount] = useState(post.likeCount);
     const [reactions, setReactions] = useState(post.reactions || []);
+    const [replyingTo, setReplyingTo] = useState(null);
 
     // Phase 28: Render @mentions as clickable links
     function renderMentions(text) {
@@ -1448,7 +1449,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
         try {
             // Step 1: Fetch comments and embedded likes
             const { data: commentsData, error: commentsError } = await supabase.from('social_comments')
-                .select('id, content, created_at, author_id, social_comment_likes(id, user_id)')
+                .select('id, content, created_at, author_id, parent_id, social_comment_likes(id, user_id)')
                 .eq('post_id', post.id)
                 .order('created_at', { ascending: true })
                 .limit(50);
@@ -1487,6 +1488,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                     id: c.id,
                     text: c.content,
                     authorId: c.author_id,
+                    parentId: c.parent_id || null,
                     authorName: author.full_name || author.username || 'Player',
                     authorAvatar: author.avatar_url || null,
                     authorUsername: author.username || null,
@@ -1550,11 +1552,15 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
     const handleSubmitComment = async () => {
         if (!newComment.trim() || !currentUserId) return;
         try {
-            const { data, error } = await supabase.from('social_comments').insert({ post_id: post.id, author_id: currentUserId, content: newComment }).select('id, content, created_at').maybeSingle();
+            const payload = { post_id: post.id, author_id: currentUserId, content: newComment };
+            if (replyingTo) payload.parent_id = replyingTo.id;
+            
+            const { data, error } = await supabase.from('social_comments').insert(payload).select('id, content, created_at, parent_id').maybeSingle();
             if (!error && data) {
                 setComments(prev => [...prev, {
                     id: data.id,
                     text: data.content,
+                    parentId: data.parent_id || null,
                     authorName: currentUserName || 'You',
                     authorId: currentUserId,
                     authorAvatar: currentUserAvatar,
@@ -1562,7 +1568,19 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                     likeCount: 0,
                     isLikedByMe: false
                 }]);
+                
                 setCommentCount(prev => prev + 1);
+                
+                // Trigger reply notification
+                if (replyingTo && replyingTo.authorId !== currentUserId) {
+                    await supabase.from('notifications').insert({
+                        user_id: replyingTo.authorId,
+                        actor_id: currentUserId,
+                        type: 'reply',
+                        reference_id: post.id,
+                        message: `replied to your comment`
+                    });
+                }
                 
                 // Phase 28 Fix: Trigger mention notifications
                 const mentions = newComment.match(/@(\w+)/g);
@@ -1582,6 +1600,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                 }
 
                 setNewComment('');
+                setReplyingTo(null);
                 if (onComment) onComment(post.id);
             }
         } catch (e) { console.error(e); }
@@ -1826,31 +1845,67 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
             {showComments && (
                 <div style={{ borderTop: `1px solid ${C.border}`, padding: 12 }}>
                     {loadingComments && <div style={{ color: C.textSec, fontSize: 13 }}>Loading Comments...</div>}
-                    {comments.map(c => (
-                        <div key={c.id} style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                            <Avatar src={c.authorAvatar} name={c.authorName} size={28} />
-                            <div style={{ flex: 1 }}>
-                                <div style={{ background: C.bg, borderRadius: 12, padding: '6px 10px', display: 'inline-block', minWidth: '80%' }}>
-                                    <div style={{ fontWeight: 600, fontSize: 13, color: C.text }}>{c.authorName}</div>
-                                    <div style={{ fontSize: 14, color: C.text }}>{renderMentions(c.text)}</div>
-                                </div>
-                                {/* Comment Meta row: Time, Like, Count */}
-                                <div style={{ display: 'flex', gap: 12, paddingLeft: 10, marginTop: 4, fontSize: 12, color: C.textSec, fontWeight: 600 }}>
-                                    <span>{c.time}</span>
-                                    <span 
-                                        style={{ cursor: 'pointer', color: c.isLikedByMe ? C.blue : C.textSec }} 
-                                        onClick={() => handleLikeComment(c.id, c.isLikedByMe)}
-                                    >
-                                        Like
-                                    </span>
-                                    {c.likeCount > 0 && <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>👍 {c.likeCount}</span>}
+                    
+                    {/* Separate top level comments and replies */}
+                    {(() => {
+                        const topLevel = comments.filter(c => !c.parentId);
+                        const replies = comments.filter(c => c.parentId);
+                        
+                        const renderCommentBlock = (c, isReply = false) => (
+                            <div key={c.id} style={{ display: 'flex', gap: 8, marginBottom: isReply ? 8 : 12, marginTop: isReply ? 8 : 0 }}>
+                                <Avatar src={c.authorAvatar} name={c.authorName} size={isReply ? 24 : 28} />
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ background: C.bg, borderRadius: 12, padding: '6px 10px', display: 'inline-block', minWidth: '80%' }}>
+                                        <div style={{ fontWeight: 600, fontSize: 13, color: C.text }}>{c.authorName}</div>
+                                        <div style={{ fontSize: 14, color: C.text }}>{renderMentions(c.text)}</div>
+                                    </div>
+                                    {/* Comment Meta row: Time, Like, Reply, Count */}
+                                    <div style={{ display: 'flex', gap: 12, paddingLeft: 10, marginTop: 4, fontSize: 12, color: C.textSec, fontWeight: 600 }}>
+                                        <span>{c.time}</span>
+                                        <span 
+                                            style={{ cursor: 'pointer', color: c.isLikedByMe ? C.blue : C.textSec }} 
+                                            onClick={() => handleLikeComment(c.id, c.isLikedByMe)}
+                                        >
+                                            Like
+                                        </span>
+                                        <span 
+                                            style={{ cursor: 'pointer', color: C.textSec }} 
+                                            onClick={() => setReplyingTo({ id: isReply ? c.parentId : c.id, name: c.authorName, authorId: c.authorId })}
+                                        >
+                                            Reply
+                                        </span>
+                                        {c.likeCount > 0 && <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>👍 {c.likeCount}</span>}
+                                    </div>
+                                    
+                                    {/* Render its children if it's a top-level comment */}
+                                    {!isReply && (
+                                        <div style={{ marginLeft: 36, borderLeft: `2px solid ${C.border}`, paddingLeft: 8, marginTop: 8 }}>
+                                            {replies.filter(r => r.parentId === c.id).map(r => renderCommentBlock(r, true))}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
+                        );
+                        
+                        return topLevel.map(c => renderCommentBlock(c, false));
+                    })()}
+
+                    {replyingTo && (
+                        <div style={{ fontSize: 12, color: C.textSec, marginBottom: 4, display: 'flex', justifyContent: 'space-between', padding: '0 40px' }}>
+                            <span>Replying to <strong>{replyingTo.name}</strong></span>
+                            <span style={{ cursor: 'pointer', fontWeight: 600 }} onClick={() => setReplyingTo(null)}>Cancel</span>
                         </div>
-                    ))}
+                    )}
                     <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
                         <Avatar src={currentUserAvatar} name={currentUserName} size={28} />
-                        <input value={newComment} onChange={e => setNewComment(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleSubmitComment()} placeholder="Write A Comment..." style={{ flex: 1, padding: '8px 14px', borderRadius: 18, border: 'none', background: C.bg, fontSize: 14, outline: 'none' }} />
+                        <input 
+                            value={newComment} 
+                            onChange={e => setNewComment(e.target.value)} 
+                            onKeyPress={e => e.key === 'Enter' && handleSubmitComment()} 
+                            placeholder={replyingTo ? `Reply to ${replyingTo.name}...` : "Write a comment..."} 
+                            style={{ flex: 1, padding: '8px 14px', borderRadius: 18, border: 'none', background: C.bg, fontSize: 14, outline: 'none' }} 
+                            autoFocus={!!replyingTo}
+                        />
                         <button onClick={handleSubmitComment} disabled={!newComment.trim()} style={{ background: 'none', border: 'none', cursor: 'pointer', color: newComment.trim() ? C.blue : C.textSec, fontWeight: 600, fontSize: 13 }}>Post</button>
                     </div>
                 </div>
