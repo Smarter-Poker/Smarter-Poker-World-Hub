@@ -9,6 +9,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
+import React from 'react';
 import { usePersistedState } from '../../../src/hooks/usePersistedState';
 import { supabase } from '../../../src/lib/supabase';
 import { emitCacheInvalidation, onCacheInvalidation } from '../../../src/lib/cacheSync';
@@ -197,6 +198,22 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId,
     const [commentCount, setCommentCount] = useState(post.comment_count || 0);
     const [showComments, setShowComments] = useState(false);
     const [typists, setTypists] = useState({}); // { [userId]: { name, avatar_url, timestamp } }
+
+    // Phase 28: Render @mentions as clickable links
+    function renderMentions(text) {
+        if (!text) return text;
+        const parts = text.split(/(@\w+)/g);
+        return parts.map((part, i) => {
+            if (part.startsWith('@')) {
+                const uname = part.slice(1);
+                return React.createElement('a', {
+                    key: i, href: `/hub/user/${uname}`,
+                    style: { color: C.blue, fontWeight: 600, textDecoration: 'none' }
+                }, part);
+            }
+            return part;
+        });
+    }
 
     // 📡 Real-time sync for Likes & Comments (Broadcast from WebSocket)
     useEffect(() => {
@@ -503,7 +520,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId,
                                     <img src={c.author?.avatar_url || '/default-avatar.png'} style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} alt="User avatar" loading="lazy" />
                                     <div style={{ flex: 1, background: '#f0f2f5', borderRadius: 12, padding: '8px 12px' }}>
                                         <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{c.author?.full_name || c.author?.username || 'User'}</div>
-                                        <div style={{ fontSize: 14, color: C.text, marginTop: 2 }}>{c.content}</div>
+                                        <div style={{ fontSize: 14, color: C.text, marginTop: 2 }}>{renderMentions(c.content)}</div>
                                         <div style={{ fontSize: 11, color: C.textSec, marginTop: 4 }}>{timeAgo(c.created_at)}</div>
                                     </div>
                                 </div>
