@@ -123,7 +123,7 @@ export default function LeagueDetailPage() {
     return () => { supabase.removeChannel(ch); };
   }, [id, refreshLeague]);
 
-  async function handleJoinLeague(signal) {
+  async function handleJoinLeague() {
     setJoining(true);
     try {
       const token = getAccessToken();

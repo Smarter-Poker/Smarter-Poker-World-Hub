@@ -19,6 +19,7 @@ import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCo
 
 export default function CloseDay() {
   const router = useRouter();
+  useEffect(() => { busEmit.sessionStart('commander-close-day'); }, []);
   const [step, setStep] = useState(1); // 1: review, 2: reconcile, 3: sign-off, 4: done
   const [loading, setLoading] = useState(true);
   const [tables, setTables] = useState([]);

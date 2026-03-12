@@ -301,6 +301,7 @@ export default function LeaguesAndFreerollsManagement() {
         const synced = json.results?.[0];
         showToast('success', `Synced: ${synced?.players_processed || 0} players processed, ${synced?.players_qualified || 0} qualified`);
         fetchQualifications(freerollId);
+        broadcastChange('settings'); // notify other tabs
       } else {
         showToast('error', json.error || 'Sync failed');
       }
