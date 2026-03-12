@@ -128,6 +128,7 @@ export default function CommanderLogin() {
         body: JSON.stringify({ userId: data.user.id }),
         signal: abortController.signal,
       });
+      if (!subRes.ok) throw new Error('Request failed');
       clearTimeout(fetchTimeout);
       const subData = await subRes.json();
 

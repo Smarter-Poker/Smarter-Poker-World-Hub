@@ -138,6 +138,7 @@ export default function LeaderboardBuilder() {
                     status: newBoard.status,
                 }),
             });
+            if (!res.ok) throw new Error('Request failed');
             const json = await res.json();
             if (res.ok) {
                 flash('success', `Board "${newBoard.name}" created!`);

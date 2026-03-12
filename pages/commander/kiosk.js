@@ -463,6 +463,7 @@ export default function MembershipKiosk() {
             signup_method: 'kiosk'
           })
         });
+        if (!res.ok) throw new Error('Request failed');
         if (res.ok) successCount++;
       }
       if (successCount > 0) {

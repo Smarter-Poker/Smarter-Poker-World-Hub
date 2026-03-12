@@ -282,6 +282,7 @@ ${total > 0 ? `<div class="fin-total-row"><span class="fin-total-label">Total Bu
                 method: 'POST', headers,
                 body: JSON.stringify({ player_id: selectedPlayer.id })
             });
+            if (!regRes.ok) throw new Error('Request failed');
             const regJson = await regRes.json();
 
             if (!regJson.success) {

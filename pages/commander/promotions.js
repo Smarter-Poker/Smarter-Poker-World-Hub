@@ -76,6 +76,8 @@ function RecordHighHandModal({ isOpen, onClose, onSubmit, venueId, staff }) {
           auto_verify: formData.auto_verify
         })
       });
+      if (!res.ok) throw new Error('Request failed');
+      if (!res.ok) throw new Error('Request failed');
 
       const data = await res.json();
       if (res.ok && data.high_hand) {
@@ -387,6 +389,7 @@ export default function PromotionsPage() {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       });
+      if (!res.ok) throw new Error('Request failed');
       const data = await res.json();
       if (data.success) {
         alert(`${data.message}`);
@@ -668,6 +671,7 @@ export default function PromotionsPage() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify(cloneData)
       });
+      if (!res.ok) throw new Error('Request failed');
       const result = await res.json();
       if (result.promotion || result.success) {
         broadcastChange('settings');
@@ -1034,7 +1038,7 @@ export default function PromotionsPage() {
                     try {
                       const token = getToken();
                       const staffSession = localStorage.getItem('commander_staff') || '';
-                      await fetch('/api/commander/high-hands', {
+                      const res = await fetch('/api/commander/high-hands', {
                         method: 'POST',
                         headers: {
                           'Content-Type': 'application/json',
@@ -1046,8 +1050,10 @@ export default function PromotionsPage() {
                           ...handData
                         })
                       });
-                      fetchHighHands();
-                      broadcastChange('settings');
+                      if (res.ok) {
+                        fetchHighHands();
+                        broadcastChange('settings');
+                      }
                     } catch (error) {
                       console.error('Submit high hand failed:', error);
                     }
@@ -1437,6 +1443,7 @@ export default function PromotionsPage() {
                         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
                         body: JSON.stringify(data)
                       });
+                      if (!res.ok) throw new Error('Request failed');
                       const result = await res.json();
                       if (result.promotion || result.success) {
                         broadcastChange('settings');
@@ -1467,6 +1474,7 @@ export default function PromotionsPage() {
                     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
                     body: JSON.stringify(data)
                   });
+                  if (!res.ok) throw new Error('Request failed');
                   const result = await res.json();
                   if (result.promotion || result.success) {
                     broadcastChange('settings');
@@ -1498,6 +1506,7 @@ export default function PromotionsPage() {
                   headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
                   body: JSON.stringify(data)
                 });
+                if (!res.ok) throw new Error('Request failed');
                 const result = await res.json();
                 if (result.success || result.promotion) {
                   fetchPromotions();
@@ -1517,11 +1526,13 @@ export default function PromotionsPage() {
               try {
                 const token = getToken();
                 const staffSession = localStorage.getItem('commander_staff') || '';
-                await fetch(`/api/commander/promotions/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } });
-                fetchPromotions();
-                broadcastChange('settings');
-                setShowEditModal(false);
-                setEditingPromo(null);
+                const res = await fetch(`/api/commander/promotions/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } });
+                if (res.ok) {
+                  fetchPromotions();
+                  broadcastChange('settings');
+                  setShowEditModal(false);
+                  setEditingPromo(null);
+                }
               } catch (error) {
                 console.error('Delete failed:', error);
               }

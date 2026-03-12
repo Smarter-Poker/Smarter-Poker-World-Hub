@@ -166,6 +166,7 @@ ${receipts.map(r => `<div class="card">
             headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken() },
             body: JSON.stringify({ entry_id: entryId, finish_position: floor?.stats?.players_remaining || 0 })
           });
+          if (!elimRes.ok) throw new Error('Request failed');
           const elimJson = await elimRes.json();
           // Auto-print receipts if elimination triggered an auto table break
           if (elimJson.success) {

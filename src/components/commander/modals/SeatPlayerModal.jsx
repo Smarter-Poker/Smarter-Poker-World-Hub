@@ -72,6 +72,7 @@ export default function SeatPlayerModal({
           seat_number: selectedSeat
         })
       });
+      if (!res.ok) throw new Error('Request failed');
 
       const data = await res.json();
 

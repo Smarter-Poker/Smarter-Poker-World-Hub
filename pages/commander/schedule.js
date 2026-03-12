@@ -339,6 +339,7 @@ export default function StaffSchedule() {
         headers: getHeaders(),
         body: JSON.stringify({ venue_id: venueId, ...data })
       });
+      if (!res.ok) throw new Error('Request failed');
       const result = await res.json();
       if (result.success) {
         lastWriteRef.current = Date.now();
@@ -367,6 +368,7 @@ export default function StaffSchedule() {
         method: 'DELETE',
         headers: getHeaders()
       });
+      if (!res.ok) throw new Error('Request failed');
       const result = await res.json();
       if (result.success) {
         lastWriteRef.current = Date.now();
@@ -390,6 +392,7 @@ export default function StaffSchedule() {
         headers: getHeaders(),
         body: JSON.stringify({ venue_id: venueId, week_start: weekStart, channel })
       });
+      if (!res.ok) throw new Error('Request failed');
       const result = await res.json();
       if (result.success) {
         setBroadcastResult(result.data);

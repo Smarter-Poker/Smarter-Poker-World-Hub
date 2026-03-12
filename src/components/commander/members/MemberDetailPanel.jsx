@@ -95,6 +95,7 @@ export default function MemberDetailPanel({ member, venueName, onClose, onUpdate
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ venue_id: venueId, pin_code: pinValue }),
             });
+            if (!pinRes.ok) throw new Error('Request failed');
             const pinJson = await pinRes.json();
 
             if (!pinJson.success || !pinJson.data?.valid) {
@@ -142,6 +143,7 @@ export default function MemberDetailPanel({ member, venueName, onClose, onUpdate
                 },
                 body: JSON.stringify(payload),
             });
+            if (!res.ok) throw new Error('Request failed');
             const data = await res.json();
             if (data.success && onUpdate) onUpdate(data.data.member);
             setEditing(false);

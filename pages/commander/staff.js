@@ -123,6 +123,7 @@ export default function CommanderStaffPage() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ ...staffData, venue_id: venueId })
       });
+      if (!res.ok) throw new Error('Request failed');
       const data = await res.json();
       if (data.success) {
         fetchStaff();
@@ -236,6 +237,7 @@ export default function CommanderStaffPage() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify(staffData)
       });
+      if (!res.ok) throw new Error('Request failed');
       const data = await res.json();
       if (data.success) {
         fetchStaff();
@@ -265,6 +267,7 @@ export default function CommanderStaffPage() {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
+      if (!res.ok) throw new Error('Request failed');
       const data = await res.json();
       if (data.success) {
         fetchStaff();
@@ -305,6 +308,7 @@ export default function CommanderStaffPage() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ venue_id: venueId, staff_id: staffId }),
       });
+      if (!res.ok) throw new Error('Request failed');
       const data = await res.json();
       if (data.success) {
         setLinkCodeData({ staffId, token: data.data.token, url: data.data.claim_url });

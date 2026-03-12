@@ -138,6 +138,7 @@ export default function MembershipPlansPage() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': localStorage.getItem('commander_staff') || '' },
         body: JSON.stringify({ [field]: price })
       });
+      if (!res.ok) throw new Error('Request failed');
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
       setSuccess('Price Updated!');

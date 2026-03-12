@@ -140,6 +140,7 @@ export default function PayoutModal({
           paying_places: payingPlaces
         })
       });
+      if (!res.ok) throw new Error('Request failed');
 
       const data = await res.json();
 

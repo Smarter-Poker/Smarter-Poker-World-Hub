@@ -48,6 +48,7 @@ function RentEquipmentModal({ isOpen, onClose, equipment, venueId, onSuccess }) 
           notes: formData.notes
         })
       });
+      if (!res.ok) throw new Error('Request failed');
 
       const data = await res.json();
       if (data.success) {
@@ -191,6 +192,7 @@ function BookDealerModal({ isOpen, onClose, dealer, venueId, onSuccess }) {
           notes: formData.notes
         })
       });
+      if (!res.ok) throw new Error('Request failed');
 
       const data = await res.json();
       if (data.success) {

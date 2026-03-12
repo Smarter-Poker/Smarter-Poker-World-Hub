@@ -127,11 +127,12 @@ export default function TDControlCenter() {
     setSendingMessage(true);
     try {
       const token = getToken();
-      await fetch(`/api/commander/tournaments/${tournamentId}/message`, {
+      const res = await fetch(`/api/commander/tournaments/${tournamentId}/message`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-staff-session': token },
         body: JSON.stringify({ message: messageText, type: 'announcement', duration_seconds: 60 })
       });
+      if (!res.ok) throw new Error('Request failed');
       setMessageText('');
       setMessageModal(false);
     } catch (err) {

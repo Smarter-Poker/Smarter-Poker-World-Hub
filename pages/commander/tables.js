@@ -212,13 +212,15 @@ export default function CommanderTablesPage() {
           max_players: newMaxPlayers, status: 'waiting'
         })
       });
+      if (!res.ok) throw new Error('Request failed');
       const data = await res.json();
       if (data.success || data.data) {
-        await fetch(`/api/commander/tables/${selectedTable.id}`, {
+        const res = await fetch(`/api/commander/tables/${selectedTable.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
           body: JSON.stringify({ status: 'in_use', game_type: newGameType, stakes: newStakes, mode: 'cash', table_purpose: 'cash_game' })
         });
+        if (!res.ok) throw new Error('Request failed');
         setShowStartGame(false);
         await fetchTables();
         broadcastChange('games');
@@ -303,6 +305,7 @@ export default function CommanderTablesPage() {
         headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
         body: JSON.stringify({ ...tableData, venue_id: venueId })
       });
+      if (!res.ok) throw new Error('Request failed');
       const data = await res.json();
       if (data.success) {
         setShowAddModal(false);

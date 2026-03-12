@@ -173,6 +173,8 @@ export default function CommanderSettingsPage() {
           security_gate_enabled: settings.security_gate_enabled
         })
       });
+      if (!res.ok) throw new Error('Request failed');
+      if (!res.ok) throw new Error('Request failed');
 
       const data = await res.json();
       if (data.success) {
@@ -205,6 +207,7 @@ export default function CommanderSettingsPage() {
         headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
         body: JSON.stringify({ [key]: newValue })
       });
+      if (!res.ok) throw new Error('Request failed');
       const data = await res.json();
       if (data.success) {
         broadcastChange('settings');

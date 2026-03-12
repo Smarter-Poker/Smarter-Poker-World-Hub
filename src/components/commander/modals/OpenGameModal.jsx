@@ -60,6 +60,7 @@ export default function OpenGameModal({ isOpen, onClose, onSubmit, tables = [], 
           max_buyin: maxBuyin
         })
       });
+      if (!res.ok) throw new Error('Request failed');
 
       const data = await res.json();
 

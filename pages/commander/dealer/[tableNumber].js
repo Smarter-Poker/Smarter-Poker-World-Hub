@@ -389,9 +389,10 @@ export default function DealerTablet() {
       }
       // Also remove from table session if applicable
       if (player.session_id) {
-        await fetch(`/api/commander/dealer/sessions/${player.session_id}/end`, {
+        const res = await fetch(`/api/commander/dealer/sessions/${player.session_id}/end`, {
           method: 'POST', headers: { Authorization: `Bearer ${getToken()}` }
         }).catch(() => { });
+        if (!res.ok) throw new Error('Request failed');
       }
       await fetchTable();
       broadcastChange('tables');

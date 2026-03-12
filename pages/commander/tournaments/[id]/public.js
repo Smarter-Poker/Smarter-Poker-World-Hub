@@ -199,6 +199,7 @@ export default function TournamentPublic() {
           }
         })
       });
+      if (!res.ok) throw new Error('Request failed');
       if (res.ok) {
         setPosted(true);
         setTimeout(() => setPosted(false), 3000);

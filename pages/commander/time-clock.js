@@ -112,6 +112,7 @@ export default function TimeClock() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ venue_id: venueId, qr_code: qrCode }),
             });
+            if (!res.ok) throw new Error('Request failed');
             const data = await res.json();
             if (data.success) {
                 setScanResult(data.data);

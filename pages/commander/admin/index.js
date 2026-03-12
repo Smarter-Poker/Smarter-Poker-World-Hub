@@ -67,6 +67,7 @@ function ApiKeysModal({ isOpen, onClose, venueId, onSuccess }) {
         },
         body: JSON.stringify({ name: newKeyName, venue_id: venueId })
       });
+      if (!res.ok) throw new Error('Request failed');
       const data = await res.json();
       if (data.success) {
         setApiKeys([data.data.key, ...apiKeys]);
@@ -94,6 +95,7 @@ function ApiKeysModal({ isOpen, onClose, venueId, onSuccess }) {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
+      if (!res.ok) throw new Error('Request failed');
       const data = await res.json();
       if (data.success) {
         setApiKeys(apiKeys.filter(k => k.id !== keyId));
@@ -250,6 +252,7 @@ function VenueSettingsModal({ isOpen, onClose, venue, onSave, onSuccess }) {
         },
         body: JSON.stringify(settings)
       });
+      if (!res.ok) throw new Error('Request failed');
       const data = await res.json();
       if (data.success) {
         onSave?.(data.data?.venue || { ...venue, ...settings });
@@ -520,6 +523,7 @@ export default function AdminDashboard() {
           ...formData
         })
       });
+      if (!res.ok) throw new Error('Request failed');
       const data = await res.json();
       if (res.ok && data.export) {
         setExports([data.export, ...exports]);

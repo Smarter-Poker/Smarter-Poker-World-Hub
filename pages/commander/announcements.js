@@ -77,6 +77,7 @@ export default function CommanderAnnouncementsPage() {
           type: 'announcement'
         })
       });
+      if (!res.ok) throw new Error('Request failed');
 
       const data = await res.json();
 

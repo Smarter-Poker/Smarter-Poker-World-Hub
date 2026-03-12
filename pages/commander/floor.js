@@ -176,7 +176,7 @@ export default function FloorMap() {
         return fetch(`/api/commander/tables/${t.id}`, {
           method: 'PATCH', headers,
           body: JSON.stringify({ position_x: pos.x, position_y: pos.y, rotation: rot }),
-        });
+        }).then(r => { if (!r.ok) throw new Error('fail'); return r; });
       }));
       setHasChanges(false);
       setSaved(true);

@@ -348,6 +348,7 @@ export default function TablesDisplay() {
           method: 'POST', headers,
           body: JSON.stringify({ qr_code: qrData, table_number: lockedTableNum, seat_number: seatNumber, venue_id: venueId }),
         });
+        if (!seatRes.ok) throw new Error('Request failed');
         const seatJson = await seatRes.json();
         if (seatJson.success) {
           setToast({ type: 'success', text: `✅ ${seatJson.data.player_name} seated at S${seatNumber}` });

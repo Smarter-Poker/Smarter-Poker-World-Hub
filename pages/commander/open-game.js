@@ -125,6 +125,7 @@ export default function OpenGame() {
           max_players: selectedTable.max_seats || selectedTable.seats || 9
         })
       });
+      if (!gameRes.ok) throw new Error('Request failed');
 
       const gameJson = await gameRes.json();
       if (!gameJson.success) {

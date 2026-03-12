@@ -168,6 +168,7 @@ export default function TournamentDetailPage() {
         headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
         body: JSON.stringify({ action })
       });
+      if (!res.ok) throw new Error('Request failed');
 
       const data = await res.json();
       if (data.success) {
@@ -188,6 +189,7 @@ export default function TournamentDetailPage() {
         headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
         body: JSON.stringify({ status: newStatus })
       });
+      if (!res.ok) throw new Error('Request failed');
 
       const data = await res.json();
       if (data.success) {

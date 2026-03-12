@@ -80,6 +80,7 @@ export default function LeadManagementPage() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ id: leadId, status: newStatus }),
       });
+      if (!res.ok) throw new Error('Request failed');
       const data = await res.json();
       if (data.success) {
         setLeads((prev) =>

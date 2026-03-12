@@ -438,6 +438,7 @@ export default function Cashier() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ venue_id: venueId, pin_code: digits })
       });
+      if (!pinRes.ok) throw new Error('Request failed');
       const pinJson = await pinRes.json();
       if (!pinJson.success || !pinJson.data?.valid) {
         setPinError(pinJson.error?.message || 'Invalid PIN');
@@ -500,7 +501,6 @@ export default function Cashier() {
           pin_verified_by: staff?.id || null
         })
       });
-      const json = await res.json();
       if (res.ok) {
         const json = await res.json(); // Parse JSON only if response is OK
         if (json.success) {
@@ -575,6 +575,7 @@ export default function Cashier() {
           pin_verified_by: staff?.id || null
         })
       });
+      if (!txRes.ok) throw new Error('Request failed');
       const txJson = await txRes.json();
       if (!txJson.success) console.warn('Time transaction record failed:', txJson.error);
 
@@ -646,6 +647,7 @@ export default function Cashier() {
           pin_verified_by: staff?.id || null
         })
       });
+      if (!txRes.ok) throw new Error('Request failed');
       const txJson = await txRes.json();
       if (!txJson.success) console.warn('Membership transaction record failed:', txJson.error);
 
@@ -716,6 +718,7 @@ export default function Cashier() {
           pin_verified_by: staff?.id || null
         })
       });
+      if (!voidRes.ok) throw new Error('Request failed');
       const voidJson = await voidRes.json();
       if (!voidJson.success) console.warn('Void transaction record failed:', voidJson.error);
 
@@ -728,6 +731,7 @@ export default function Cashier() {
           void_reason: `${actionLabel} by ${staff?.display_name || 'Staff'} — ${type}`
         })
       });
+      if (!patchRes.ok) throw new Error('Request failed');
       const patchJson = await patchRes.json();
       if (!patchJson.success) {
         // Handle already-voided gracefully

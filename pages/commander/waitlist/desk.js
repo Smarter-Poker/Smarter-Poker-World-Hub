@@ -121,11 +121,12 @@ export default function WaitlistDesk() {
     try {
       const token = getToken();
       const staffSession = getStaffSession();
-      await fetch('/api/commander/settings', {
+      const res = await fetch('/api/commander/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ desk_customization: newCustom })
       });
+      if (!res.ok) throw new Error('Request failed');
     } catch (err) { console.error('Failed to save customization:', err); }
   };
 

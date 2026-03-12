@@ -207,6 +207,7 @@ export default function RegisterPage() {
         }),
         signal: abortController.signal,
       });
+      if (!res.ok) throw new Error('Request failed');
       clearTimeout(fetchTimeout);
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Registration failed');

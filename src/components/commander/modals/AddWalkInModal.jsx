@@ -51,6 +51,7 @@ export default function AddWalkInModal({ isOpen, onClose, onSubmit, venueId, act
           source: 'walk_in'
         })
       });
+      if (!res.ok) throw new Error('Request failed');
 
       const data = await res.json();
 

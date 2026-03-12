@@ -155,6 +155,7 @@ export default function AddMemberModal({ isOpen, onClose, onSubmit, venueId }) {
                     notes: form.notes.trim() || null,
                 }),
             });
+            if (!res.ok) throw new Error('Request failed');
 
             const data = await res.json();
 

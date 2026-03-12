@@ -236,6 +236,7 @@ export default function TimeBilling() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ venue_id: venueId, pin_code: digits })
       });
+      if (!pinRes.ok) throw new Error('Request failed');
       const pinJson = await pinRes.json();
       if (!pinJson.success || !pinJson.data?.valid) {
         setPinError(pinJson.error?.message || 'Invalid PIN');
@@ -308,6 +309,7 @@ export default function TimeBilling() {
                 staff_name: staff?.display_name || 'Staff',
               })
             });
+            if (!res.ok) throw new Error('Request failed');
             if (res.ok) {
               await fetchData();
               broadcastChange('tables');

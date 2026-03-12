@@ -57,6 +57,7 @@ export default function MustMoveModal({
           must_move_to: selectedGameId
         })
       });
+      if (!res.ok) throw new Error('Request failed');
 
       const data = await res.json();
 
@@ -83,6 +84,7 @@ export default function MustMoveModal({
       const res = await fetch(`/api/commander/games/${game.id}/must-move`, {
         method: 'DELETE'
       });
+      if (!res.ok) throw new Error('Request failed');
 
       const data = await res.json();
 
