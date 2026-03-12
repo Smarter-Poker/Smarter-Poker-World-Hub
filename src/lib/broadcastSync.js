@@ -33,7 +33,7 @@ function debugLog(direction, channelName, message) {
         if (localStorage.getItem('broadcast_debug') !== '1') return;
         const ts = new Date().toISOString().slice(11, 23);
         console.log(
-            `%c[BC ${direction}] %c${channelName}`,
+            `%c[BC ${direction} ${ts}] %c${channelName}`,
             direction === '📡 SEND' ? 'color:#00E0FF;font-weight:bold' : 'color:#22c55e;font-weight:bold',
             'color:#FFD700',
             message
