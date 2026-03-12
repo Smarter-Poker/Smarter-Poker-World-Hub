@@ -192,7 +192,8 @@ export default function UnionDashboardPage() {
     const refreshApps = () => { if (mountedRef.current) { setAppsLoaded(false); loadApps(); } };
     const unsubs = [
       ...['union:club-removed', 'union:commission-updated', 'union:admin-changed',
-          'union:tournament-created', 'union:table-created'].map(e => eventBus.on(e, refresh)),
+          'union:tournament-created', 'union:table-created',
+          'union:tournament-updated', 'union:table-closed'].map(e => eventBus.on(e, refresh)),
       eventBus.on('union:wallet-transfer', refreshWallet),
       eventBus.on('union:application-reviewed', refreshApps),
     ];

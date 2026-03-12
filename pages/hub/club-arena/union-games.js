@@ -173,7 +173,9 @@ export default function UnionGamesPage() {
     const refreshTables = () => { if (mountedRef.current) loadTables(); };
     const unsubs = [
       eventBus.on('union:tournament-created', refreshTourns),
+      eventBus.on('union:tournament-updated', refreshTourns),
       eventBus.on('union:table-created', refreshTables),
+      eventBus.on('union:table-closed', refreshTables),
     ];
     return () => unsubs.forEach(fn => fn?.());
   }, [unionId, loadTournaments, loadTables]);
@@ -390,37 +392,37 @@ export default function UnionGamesPage() {
                               {t.status === 'scheduled' && (
                                 <>
                                   <button className={`${s.btnSuccess} ${s.btnSmall}`} disabled={processing} onClick={async () => {
-                                    const res = await doAction({ action: 'open_registration', tournamentId: t.id }, 'Registration opened');
+                                    const res = await doAction({ action: 'open_registration', tournamentId: t.id }, 'Registration opened', { busEvent: 'union:tournament-updated' });
                                     if (res) loadTournaments();
                                   }}>Open Reg</button>
                                   <button className={`${s.btnPrimary} ${s.btnSmall}`} disabled={processing} onClick={async () => {
-                                    const res = await doAction({ action: 'start_tournament', tournamentId: t.id }, 'Tournament started');
+                                    const res = await doAction({ action: 'start_tournament', tournamentId: t.id }, 'Tournament started', { busEvent: 'union:tournament-updated' });
                                     if (res) loadTournaments();
                                   }}>Start</button>
                                 </>
                               )}
                               {['registering', 'late_reg'].includes(t.status) && (
                                 <button className={`${s.btnPrimary} ${s.btnSmall}`} disabled={processing} onClick={async () => {
-                                  const res = await doAction({ action: 'start_tournament', tournamentId: t.id }, 'Tournament started');
+                                  const res = await doAction({ action: 'start_tournament', tournamentId: t.id }, 'Tournament started', { busEvent: 'union:tournament-updated' });
                                   if (res) loadTournaments();
                                 }}>Start</button>
                               )}
                               {['running', 'late_reg', 'final_table'].includes(t.status) && (
                                 <button className={`${s.btnGold} ${s.btnSmall}`} disabled={processing} onClick={async () => {
-                                  const res = await doAction({ action: 'pause_tournament', tournamentId: t.id }, 'Paused');
+                                  const res = await doAction({ action: 'pause_tournament', tournamentId: t.id }, 'Paused', { busEvent: 'union:tournament-updated' });
                                   if (res) loadTournaments();
                                 }}>Pause</button>
                               )}
                               {t.status === 'paused' && (
                                 <button className={`${s.btnSuccess} ${s.btnSmall}`} disabled={processing} onClick={async () => {
-                                  const res = await doAction({ action: 'resume_tournament', tournamentId: t.id }, 'Resumed');
+                                  const res = await doAction({ action: 'resume_tournament', tournamentId: t.id }, 'Resumed', { busEvent: 'union:tournament-updated' });
                                   if (res) loadTournaments();
                                 }}>Resume</button>
                               )}
                               {!['complete', 'cancelled'].includes(t.status) && (
                                 <button className={`${s.btnDanger} ${s.btnSmall}`} disabled={processing} onClick={async () => {
                                   if (!confirm(`Cancel tournament "${t.name}"? Players will be refunded.`)) return;
-                                  const res = await doAction({ action: 'cancel_tournament', tournamentId: t.id }, 'Cancelled');
+                                  const res = await doAction({ action: 'cancel_tournament', tournamentId: t.id }, 'Cancelled', { busEvent: 'union:tournament-updated' });
                                   if (res) loadTournaments();
                                 }}>Cancel</button>
                               )}
@@ -573,7 +575,7 @@ export default function UnionGamesPage() {
                             {['waiting', 'running'].includes(t.status) && (t.current_players || 0) === 0 && (
                               <button className={`${s.btnDanger} ${s.btnSmall}`} disabled={processing} onClick={async () => {
                                 if (!confirm(`Close table "${t.name}"?`)) return;
-                                const res = await doAction({ action: 'close_table', tableId: t.id }, 'Table closed');
+                                const res = await doAction({ action: 'close_table', tableId: t.id }, 'Table closed', { busEvent: 'union:table-closed' });
                                 if (res) loadTables();
                               }}>Close</button>
                             )}
