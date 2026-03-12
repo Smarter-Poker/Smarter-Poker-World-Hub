@@ -8,11 +8,11 @@
  * 3. Auto-pull from waitlist or manually seat players
  * 4. Table goes live
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { Check, ChevronRight, Loader2, Play, AlertTriangle } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
-import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
+import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
 
 const GAME_TYPES = [
@@ -34,6 +34,10 @@ const COMMON_STAKES = {
 export default function OpenGame() {
   useEffect(() => { busEmit.sessionStart('commander-open-game'); }, []);
   const router = useRouter();
+
+  const getVenueId = () => {
+    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id || ''; } catch { return ''; }
+  };
   const [step, setStep] = useState(1); // 1: game, 2: table, 3: confirm
   const [selectedGame, setSelectedGame] = useState(null);
   const [selectedStakes, setSelectedStakes] = useState(null);
@@ -46,33 +50,33 @@ export default function OpenGame() {
 
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
-  const getVenueId = () => {
-    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id || ''; } catch { return ''; }
-  };
+
+  // fetchTables declared first — must precede useEffect/useCommanderSync that reference it
+  const fetchTables = useCallback(async () => {
+    setLoading(true);
+    try {
+      const token = getToken();
+      const venueId = getVenueId();
+      const staffSession = localStorage.getItem('commander_staff') || '';
+      const res = await fetch(`/api/commander/tables?venue_id=${venueId}`, { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } });
+      const json = await res.json();
+      if (json.success) {
+        const tablesArr = Array.isArray(json.data) ? json.data
+          : Array.isArray(json.data?.tables) ? json.data.tables : [];
+        setTables(tablesArr.filter(t => t.status === 'available' || !t.status));
+      }
+    } catch (err) { console.error(err); }
+    finally { setLoading(false); }
+  }, []);
 
   // Fetch available tables when on step 2
   useEffect(() => {
     if (step !== 2) return;
-    const fetchTables = async () => {
-        const controller = new AbortController();
-        const { signal } = controller;
-      setLoading(true);
-      try {
-        const token = getToken();
-        const venueId = getVenueId();
-        const staffSession = localStorage.getItem('commander_staff') || '';
-        const res = await fetch(`/api/commander/tables?venue_id=${venueId}`, { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } });
-        const json = await res.json();
-        if (json.success) {
-          const tablesArr = Array.isArray(json.data) ? json.data
-            : Array.isArray(json.data?.tables) ? json.data.tables : [];
-          setTables(tablesArr.filter(t => t.status === 'available' || !t.status));
-        }
-      } catch (err) { console.error(err); }
-      finally { setLoading(false); }
-    };
     fetchTables();
-  }, [step]);
+  }, [step, fetchTables]);
+
+  // Commander Data Bus — both BroadcastChannel (instant) + Supabase Realtime (cross-device)
+  useCommanderSync(getVenueId(), fetchTables, { entities: ['games', 'tables'] });
 
   // Fetch waitlist for this game type
   useEffect(() => {

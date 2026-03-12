@@ -10,7 +10,7 @@ import { Users, Package, Star, MapPin, Calendar, CheckCircle, Search, Loader2, X
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { getToken } from '../../src/lib/commander/clientAuth';
 import { busEmit } from '../../src/engine/EventBus';
-import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
+import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import useDebounce from '../../src/hooks/useDebounce';
 
 const GAME_TYPES = ['nlhe', 'plo', 'plo8', 'mixed', 'stud', 'razz', 'omaha'];
@@ -493,11 +493,16 @@ export default function MarketplacePage() {
     }
   }, []);
 
+  const fetchAll = useCallback(() => {
+    Promise.all([fetchDealers(), fetchEquipment()]).finally(() => setLoading(false));
+  }, [fetchDealers, fetchEquipment]);
+
   useEffect(() => {
-    if (venueId) {
-      Promise.all([fetchDealers(), fetchEquipment()]).finally(() => setLoading(false));
-    }
-  }, [venueId, fetchDealers, fetchEquipment]);
+    if (venueId) fetchAll();
+  }, [venueId, fetchAll]);
+
+  // Commander Data Bus — both BroadcastChannel (instant) + Supabase Realtime (cross-device)
+  useCommanderSync(venueId || '', fetchAll, { entities: ['settings'] });
 
   function handleBookDealer(dealer) {
     setSelectedDealer(dealer);

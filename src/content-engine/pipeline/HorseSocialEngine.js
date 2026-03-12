@@ -839,6 +839,7 @@ async function runSocialInteractions(options = {}) {
         includeComments = true,
         includeLikes = true,
         includeReplies = true,
+        includeCommentReactions = true,
         includeRealUsers = true
     } = options;
 
@@ -871,6 +872,12 @@ async function runSocialInteractions(options = {}) {
             results.replied = replyResults.replied;
         }
 
+        // 5. React to comments (Phase 27)
+        if (includeCommentReactions) {
+            const reactResults = await reactToComments(15);
+            results.commentReactions = reactResults.reacted;
+        }
+
         // Summary
         console.log('\n' + '═'.repeat(60));
         console.log('📊 SOCIAL INTERACTION SUMMARY');
@@ -880,6 +887,7 @@ async function runSocialInteractions(options = {}) {
         console.log(`   Comments Posted: ${results.commented || 0}`);
         console.log(`   Posts Liked: ${results.liked || 0}`);
         console.log(`   Comment Replies: ${results.replied || 0}`);
+        console.log(`   Comment Reactions: ${results.commentReactions || 0}`);
         console.log('\n🎉 Horses are socializing!');
 
         return results;

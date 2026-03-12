@@ -9,13 +9,13 @@
  * 4. Staff sign-off with PIN
  * 5. Generate end-of-day report
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { busEmit } from '../../src/engine/EventBus';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { CheckCircle2, XCircle, AlertTriangle, Loader2, Lock, FileText, ChevronRight } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
-import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
+import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
 export default function CloseDay() {
   const router = useRouter();
@@ -42,7 +42,8 @@ export default function CloseDay() {
     return () => ctrl.abort();
   }, []);
 
-  const fetchStatus = async (signal) => {
+  // fetchStatus declared first — must precede useEffect/useCommanderSync that reference it
+  const fetchStatus = useCallback(async (signal) => {
     setLoading(true);
     try {
       const token = getToken();
@@ -70,7 +71,10 @@ export default function CloseDay() {
       if (reportRes.data) setDayStats(reportRes.data);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
-  };
+  }, []);
+
+  // Commander Data Bus — both BroadcastChannel (instant) + Supabase Realtime (cross-device)
+  useCommanderSync(getVenueId(), fetchStatus, { entities: ['tables', 'games'] });
 
   const openTables = tables.filter(t => t.status === 'active' || t.status === 'open');
   const allClear = openTables.length === 0 && activeSessions.length === 0 && waitlistCount === 0;
