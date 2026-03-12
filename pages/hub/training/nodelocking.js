@@ -398,6 +398,12 @@ export default function NodelockingPage() {
       });
       setSavedProfiles((prev) => [...prev, { name: newProfileName.trim(), tendencies: customTendencies, createdAt: new Date().toISOString() }]);
       setProfileSaveStatus('saved');
+      
+      // Phase 34: Emit training event so Dashboard updates in real-time
+      if (bus && bus.emitHandComplete) {
+        bus.emitHandComplete({ gameId: 'nodelocking_profile', correct: 1, ev_loss: 0 });
+      }
+
       setShowSaveModal(false);
       setNewProfileName('');
       setTimeout(() => setProfileSaveStatus(null), 3000);
@@ -418,6 +424,9 @@ export default function NodelockingPage() {
   const deleteCustomProfile = useCallback(async (index) => {
     const profile = savedProfiles[index];
     setSavedProfiles((prev) => prev.filter((_, i) => i !== index));
+    addToast({ title: 'Profile Deleted', message: `Deleted ${profile.name}`, type: 'success' });
+    setProfileToDelete(null);
+    
     // Persist deletion to Supabase
     if (profile?.id) {
       try {
@@ -431,9 +440,10 @@ export default function NodelockingPage() {
         }
       } catch (e) {
         console.warn('[Nodelocking] Could not delete profile from DB:', e);
+        addToast({ title: 'Error', message: 'Failed to delete from database', type: 'error' });
       }
     }
-  }, [savedProfiles]);
+  }, [savedProfiles, addToast]);
 
   useEffect(() => {
     try {
@@ -483,6 +493,7 @@ export default function NodelockingPage() {
 
   // Save profile analysis to Supabase
   const [saveStatus, setSaveStatus] = useState(null); // null | 'saving' | 'saved' | 'error'
+  const [profileToDelete, setProfileToDelete] = useState(null);
   const saveAnalysis = useCallback(async () => {
     setSaveStatus('saving');
     try {
@@ -1068,6 +1079,88 @@ export default function NodelockingPage() {
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {profileToDelete !== null && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setProfileToDelete(null)}
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'rgba(0,0,0,0.8)',
+                backdropFilter: 'blur(4px)',
+                zIndex: 1000000,
+              }}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              style={{
+                position: 'fixed',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                background: '#0f0f1e',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: 16,
+                padding: 24,
+                width: '90%',
+                maxWidth: 400,
+                zIndex: 1000001,
+                boxShadow: '0 24px 48px rgba(0,0,0,0.5)',
+              }}
+            >
+              <h2 style={{ fontSize: 18, fontWeight: 800, color: '#e2e8f0', margin: '0 0 12px' }}>
+                Delete Profile
+              </h2>
+              <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 24, lineHeight: 1.5 }}>
+                Are you sure you want to delete profile <span style={{ color: '#fff', fontWeight: 700 }}>"{savedProfiles[profileToDelete]?.name}"</span>? This action cannot be undone.
+              </p>
+              <div style={{ display: 'flex', gap: 12 }}>
+                <button
+                  onClick={() => setProfileToDelete(null)}
+                  style={{
+                    flex: 1,
+                    padding: '10px',
+                    borderRadius: 8,
+                    background: 'rgba(255,255,255,0.06)',
+                    color: '#e2e8f0',
+                    border: 'none',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => deleteCustomProfile(profileToDelete)}
+                  style={{
+                    flex: 1,
+                    padding: '10px',
+                    borderRadius: 8,
+                    background: '#ef4444',
+                    color: '#fff',
+                    border: 'none',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </>
   );
 }

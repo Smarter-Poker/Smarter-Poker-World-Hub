@@ -229,9 +229,10 @@ function FrequencyBar({ actions, playerColor }) {
           borderRadius: 6,
           overflow: 'hidden',
           marginBottom: 6,
+          background: 'rgba(255,255,255,0.05)',
         }}
       >
-        {entries.map(([action, freq]) => (
+        {!quizMode || showAnswers ? entries.map(([action, freq]) => (
           <div
             key={action}
             style={{
@@ -248,10 +249,14 @@ function FrequencyBar({ actions, playerColor }) {
           >
             {freq > 8 ? `${freq}%` : ''}
           </div>
-        ))}
+        )) : (
+          <div style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', fontSize: 9, fontWeight: 700 }}>
+            ❓ HIDDEN (QUIZ MODE)
+          </div>
+        )}
       </div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        {entries.map(([action, freq]) => (
+        {!quizMode || showAnswers ? entries.map(([action, freq]) => (
           <div key={action} style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 9 }}>
             <div
               style={{
@@ -266,7 +271,9 @@ function FrequencyBar({ actions, playerColor }) {
               <strong style={{ color: '#e2e8f0' }}>{freq}%</strong>
             </span>
           </div>
-        ))}
+        )) : (
+          <div style={{ fontSize: 9, color: '#64748b' }}>Guess the frequencies before revealing.</div>
+        )}
       </div>
     </div>
   );
@@ -336,6 +343,10 @@ export default function MultiwayPostflop() {
   useTrainingBus('multiway-postflop');
 
   const [selectedScenario, setSelectedScenario] = useState(null);
+  
+  // Phase 34: Multiway Quiz Mode
+  const [quizMode, setQuizMode] = useState(false);
+  const [showAnswers, setShowAnswers] = useState(false);
   const [textureFilter, setTextureFilter] = useState('All');
   const [sessionsCompleted, setSessionsCompleted] = useState(0);
 
@@ -565,22 +576,54 @@ export default function MultiwayPostflop() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
               >
-                <button
-                  onClick={() => setSelectedScenario(null)}
-                  style={{
-                    background: 'rgba(255,255,255,0.06)',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: 8,
-                    padding: '6px 12px',
-                    color: '#94a3b8',
-                    cursor: 'pointer',
-                    fontSize: 11,
-                    fontWeight: 600,
-                    marginBottom: 16,
-                  }}
-                >
-                  ← All Scenarios
-                </button>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <button
+                    onClick={() => {
+                      setSelectedScenario(null);
+                      setQuizMode(false);
+                      setShowAnswers(false);
+                    }}
+                    style={{
+                      background: 'rgba(255,255,255,0.06)',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: 8,
+                      padding: '6px 12px',
+                      color: '#94a3b8',
+                      cursor: 'pointer',
+                      fontSize: 11,
+                      fontWeight: 600,
+                    }}
+                  >
+                    ← All Scenarios
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (quizMode) {
+                        setQuizMode(false);
+                        setShowAnswers(true);
+                      } else {
+                        setQuizMode(true);
+                        setShowAnswers(false);
+                      }
+                    }}
+                    style={{
+                      background: quizMode ? 'rgba(168,85,247,0.15)' : 'rgba(255,255,255,0.06)',
+                      border: quizMode ? '1px solid rgba(168,85,247,0.4)' : '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: 8,
+                      padding: '6px 14px',
+                      color: quizMode ? '#a855f7' : '#94a3b8',
+                      cursor: 'pointer',
+                      fontSize: 11,
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                    }}
+                  >
+                    {quizMode ? '🎯 Quiz Mode: ON' : '🎯 Practice Quiz'}
+                  </button>
+                </div>
 
                 {/* Board Display */}
                 <div
@@ -718,26 +761,69 @@ export default function MultiwayPostflop() {
                   ))}
                 </div>
 
-                {/* Analysis Notes */}
-                <div
-                  style={{
-                    background: 'rgba(251,191,36,0.05)',
-                    border: '1px solid rgba(251,191,36,0.15)',
-                    borderRadius: 10,
-                    padding: 14,
-                    marginBottom: 16,
-                  }}
-                >
-                  <div style={{ fontSize: 10, fontWeight: 800, color: '#fbbf24', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>
-                    💡 Solver Insight
+                {/* Analysis Notes (Hidden during quiz until revealed) */}
+                {(!quizMode || showAnswers) && (
+                  <div
+                    style={{
+                      background: 'rgba(251,191,36,0.05)',
+                      border: '1px solid rgba(251,191,36,0.15)',
+                      borderRadius: 10,
+                      padding: 14,
+                      marginBottom: 16,
+                    }}
+                  >
+                    <div style={{ fontSize: 10, fontWeight: 800, color: '#fbbf24', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>
+                      💡 Solver Insight
+                    </div>
+                    <div style={{ fontSize: 12, color: '#cbd5e1', lineHeight: 1.6 }}>
+                      {scenario.notes}
+                    </div>
                   </div>
-                  <div style={{ fontSize: 12, color: '#cbd5e1', lineHeight: 1.6 }}>
-                    {scenario.notes}
+                )}
+
+                {/* Reveal Solution Button */}
+                {quizMode && !showAnswers && (
+                  <motion.button
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => setShowAnswers(true)}
+                    style={{
+                      width: '100%',
+                      marginTop: 8,
+                      marginBottom: 16,
+                      padding: '14px',
+                      borderRadius: 10,
+                      border: 'none',
+                      background: 'linear-gradient(135deg, #a855f7, #6366f1)',
+                      color: '#fff',
+                      fontSize: 13,
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 20px rgba(168,85,247,0.3)',
+                    }}
+                  >
+                    👁️ Reveal Solution
+                  </motion.button>
+                )}
+                {quizMode && showAnswers && (
+                  <div style={{ marginBottom: 16, textAlign: 'center', color: '#22c55e', fontSize: 11, fontWeight: 700 }}>
+                    Solution revealed. Try another scenario!
                   </div>
-                </div>
+                )}
 
                 <motion.button
-                  onClick={() => { markStudied(); setSelectedScenario(null); }}
+                  onClick={() => {
+                    markStudied();
+                    
+                    // Phase 34: Emit cross-page sync event for Dashboard
+                    if (bus) {
+                      bus.emitHandComplete({ gameId: 'multiway_postflop', correct: 1, ev_loss: 0 });
+                      bus.emitDecisionCorrect();
+                    }
+                    
+                    setSelectedScenario(null); 
+                    setQuizMode(false);
+                    setShowAnswers(false);
+                  }}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   style={{

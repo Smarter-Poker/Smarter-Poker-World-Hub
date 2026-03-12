@@ -113,8 +113,10 @@ const nextConfig = {
     // In dev mode, use a stable ID so the .next cache persists across restarts.
     // Without this, Date.now() forces webpack to recompile ALL 952 pages from scratch.
     // In production (Vercel), the Git SHA is used automatically.
+    // [OVERWATCH] Bumped to dev-stable-v2 to break an infinite HMR browser reload loop
+    // caused by cached Webpack hashes after a .next directory nuke.
     if (process.env.NODE_ENV === 'development') {
-      return 'dev-stable';
+      return 'dev-stable-v2';
     }
     return 'build-v20-perf-sprint-' + Date.now();
   },

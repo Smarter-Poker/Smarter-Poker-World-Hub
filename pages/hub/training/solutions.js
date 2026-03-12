@@ -429,7 +429,7 @@ function SolutionsBrowserInner({ setError }) {
   const [showBookmarksOnly, setShowBookmarksOnly] = useState(false);
 
   // Phase 17: Board Texture Filter
-  const [boardTexture, setBoardTexture] = useState('All');
+  const [boardTexture, setBoardTexture] = useState(filters.rxTexture || 'All');
   const BOARD_TEXTURES = ['All', 'Monotone', 'Two-Tone', 'Rainbow', 'Paired', 'Connected'];
   const TEXTURE_FILTER_COLORS = {
     All: '#00d4ff',
@@ -918,7 +918,11 @@ function SolutionsBrowserInner({ setError }) {
               {BOARD_TEXTURES.map((tex) => (
                 <button
                   key={tex}
-                  onClick={() => { setBoardTexture(tex); setPage(1); }}
+                  onClick={() => {
+                    setBoardTexture(tex);
+                    saveFilter('rxTexture', tex);
+                    setPage(1);
+                  }}
                   style={{
                     padding: '4px 8px',
                     borderRadius: 6,

@@ -573,9 +573,8 @@ export default function SessionDashboard() {
           </div>
 
           {loading ? (
-            <div style={{ textAlign: 'center', padding: 60, color: '#475569' }}>
-              <div style={{ fontSize: 24, marginBottom: 8 }}>⏳</div>
-              Loading session data...
+            <div style={{ marginTop: 24 }}>
+              <DashboardSkeleton />
             </div>
           ) : (
             <>

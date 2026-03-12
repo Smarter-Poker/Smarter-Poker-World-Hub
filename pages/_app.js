@@ -131,6 +131,16 @@ if (typeof window !== 'undefined') {
         });
       });
     }
+  } else if (process.env.NODE_ENV === 'development') {
+    // ALWAYS aggressively unregister service workers in DEV mode to prevent HMR infinite loops
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        registrations.forEach(registration => {
+          console.log('[DEV PWA BUSTER] Forcing ServiceWorker unregistration');
+          registration.unregister();
+        });
+      });
+    }
   }
 
   // Store current version
