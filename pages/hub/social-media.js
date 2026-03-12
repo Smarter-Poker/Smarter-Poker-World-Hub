@@ -1335,6 +1335,25 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
     const [commentCount, setCommentCount] = useState(post.commentCount || 0);
     const [fullScreenVideo, setFullScreenVideo] = useState(null);
 
+    // 📡 Real-time sync for Likes & Comments (Broadcast from WebSocket)
+    useEffect(() => {
+        if (!post.id) return;
+        const cleanupLike = eventBus.on('SOCIAL_LIKE_UPDATE', (payload) => {
+            if (payload?.postId === post.id) {
+                setLikeCount(prev => Math.max(0, prev + payload.delta));
+            }
+        });
+        const cleanupComment = eventBus.on('SOCIAL_COMMENT_UPDATE', (payload) => {
+            if (payload?.postId === post.id) {
+                setCommentCount(prev => prev + 1);
+            }
+        });
+        return () => {
+            if (cleanupLike) cleanupLike();
+            if (cleanupComment) cleanupComment();
+        };
+    }, [post.id]);
+
     const handleBookmark = async () => {
         if (!currentUserId) return;
         const newBookmarked = !bookmarked;
@@ -4075,6 +4094,21 @@ function SocialMediaPage() {
                     broadcastSync('smarter_poker_social_sync', 'refresh_feed');
                 // Also refresh local feed
                 await loadFeed(0, false);
+            })
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_likes' }, (payload) => {
+                if (payload.new && payload.new.post_id) {
+                    eventBus.emit('SOCIAL_LIKE_UPDATE', { postId: payload.new.post_id, delta: 1 }, 'SocialRealtime');
+                }
+            })
+            .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'social_likes' }, (payload) => {
+                if (payload.old && payload.old.post_id) {
+                    eventBus.emit('SOCIAL_LIKE_UPDATE', { postId: payload.old.post_id, delta: -1 }, 'SocialRealtime');
+                }
+            })
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_comments' }, (payload) => {
+                if (payload.new && payload.new.post_id) {
+                    eventBus.emit('SOCIAL_COMMENT_UPDATE', { postId: payload.new.post_id }, 'SocialRealtime');
+                }
             })
             .subscribe();
 

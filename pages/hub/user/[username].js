@@ -13,6 +13,7 @@ import { usePersistedState } from '../../../src/hooks/usePersistedState';
 import { supabase } from '../../../src/lib/supabase';
 import { emitCacheInvalidation, onCacheInvalidation } from '../../../src/lib/cacheSync';
 import { broadcastSync, listenBroadcast } from '../../../src/lib/broadcastSync';
+import { eventBus } from '../../../src/engine/EventBus';
 
 // Components
 import PageTransition from '../../../src/components/transitions/PageTransition';
@@ -194,6 +195,25 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId 
     const [likeCount, setLikeCount] = useState(post.like_count || 0);
     const [commentCount, setCommentCount] = useState(post.comment_count || 0);
     const [showComments, setShowComments] = useState(false);
+
+    // 📡 Real-time sync for Likes & Comments (Broadcast from WebSocket)
+    useEffect(() => {
+        if (!post.id) return;
+        const cleanupLike = eventBus.on('SOCIAL_LIKE_UPDATE', (payload) => {
+            if (payload?.postId === post.id) {
+                setLikeCount(prev => Math.max(0, prev + payload.delta));
+            }
+        });
+        const cleanupComment = eventBus.on('SOCIAL_COMMENT_UPDATE', (payload) => {
+            if (payload?.postId === post.id) {
+                setCommentCount(prev => prev + 1);
+            }
+        });
+        return () => {
+            if (cleanupLike) cleanupLike();
+            if (cleanupComment) cleanupComment();
+        };
+    }, [post.id]);
     const [comments, setComments] = useState([]);
     const [commentText, setCommentText] = useState('');
     const [submittingComment, setSubmittingComment] = useState(false);
@@ -734,6 +754,21 @@ export default function UserProfilePage() {
             .channel(`user-profile:${profile.id}`)
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_posts', filter: `author_id=eq.${profile.id}` }, handleRealtimeUpdate)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'follows' }, handleRealtimeUpdate)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_likes' }, (payload) => {
+                if (payload.new && payload.new.post_id) {
+                    eventBus.emit('SOCIAL_LIKE_UPDATE', { postId: payload.new.post_id, delta: 1 }, 'SocialRealtime');
+                }
+            })
+            .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'social_likes' }, (payload) => {
+                if (payload.old && payload.old.post_id) {
+                    eventBus.emit('SOCIAL_LIKE_UPDATE', { postId: payload.old.post_id, delta: -1 }, 'SocialRealtime');
+                }
+            })
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_comments' }, (payload) => {
+                if (payload.new && payload.new.post_id) {
+                    eventBus.emit('SOCIAL_COMMENT_UPDATE', { postId: payload.new.post_id }, 'SocialRealtime');
+                }
+            })
             .subscribe();
 
         // Cross-tab cache sync: when another tab invalidates this profile's cache
