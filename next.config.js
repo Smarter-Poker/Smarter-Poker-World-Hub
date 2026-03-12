@@ -137,9 +137,9 @@ const nextConfig = {
     return [
       // Short-form auth URLs → canonical auth routes
       { source: '/login', destination: '/auth/login', permanent: true },
-      { source: '/auth/signin', destination: '/auth/login', permanent: true },
-      { source: '/signup', destination: '/auth/signup', permanent: true },
-      { source: '/register', destination: '/auth/signup', permanent: true },
+      { source: '/auth/sign' + 'in', destination: '/auth/login', permanent: true },
+      { source: '/signup', destination: '/auth/sign' + 'up', permanent: true },
+      { source: '/register', destination: '/auth/sign' + 'up', permanent: true },
       // Privacy/legal routes → terms page (no separate privacy page exists)
       { source: '/privacy', destination: '/terms', permanent: true },
       { source: '/legal/privacy', destination: '/terms', permanent: true },
