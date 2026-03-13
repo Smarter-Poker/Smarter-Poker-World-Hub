@@ -419,6 +419,7 @@ function BrandingTab({ clubId }) {
       setSaveSuccess(false);
       await apiCall('/api/club-arena/club-branding', { action: 'save', clubId, theme });
       setSaveSuccess(true);
+      busEmit('CLUB_UPDATED', { clubId });
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       saveTimerRef.current = setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
