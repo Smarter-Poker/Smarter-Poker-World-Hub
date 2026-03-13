@@ -144,7 +144,14 @@ export default function ClubArenaLeaderboardPage() {
       <HubErrorBoundary name="Leaderboard">
         <SEOHead title="Leaderboard | Smarter.Poker" />
         <UniversalHeader />
-        <div className={s.container}><div className={s.loading}>Loading Leaderboard...</div></div>
+        <div className={s.container}>
+          <div className={s.inner} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div className="ca-skeleton" style={{ height: '48px' }} />
+            <div style={{ display: 'flex', gap: '8px' }}>{[1,2,3,4].map(i => <div key={i} className="ca-skeleton" style={{ height: '36px', flex: 1 }} />)}</div>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '16px' }}>{[1,2,3].map(i => <div key={i} className="ca-skeleton" style={{ height: '140px', width: '140px', borderRadius: '16px' }} />)}</div>
+            {[1,2,3,4,5].map(i => <div key={i} className="ca-skeleton" style={{ height: '44px' }} />)}
+          </div>
+        </div>
       </HubErrorBoundary>
     );
   }

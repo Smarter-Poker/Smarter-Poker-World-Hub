@@ -35,6 +35,7 @@ export default function ClubArenaMessagesPage() {
   const [messages, setMessages] = useState([]);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState(null);
   const [connectionLost, setConnectionLost] = useState(false);
 
   const chatEndRef = useRef(null);
@@ -153,7 +154,8 @@ export default function ClubArenaMessagesPage() {
     } catch (err) {
       // Remove optimistic message on failure
       setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id));
-      alert('Failed to send: ' + err.message);
+      setSendError(err.message);
+      setTimeout(() => setSendError(null), 5000);
     } finally {
       setSending(false);
     }
@@ -283,9 +285,17 @@ export default function ClubArenaMessagesPage() {
               <div ref={chatEndRef} />
             </div>
 
+            {/* Send Error */}
+            {sendError && (
+              <div style={{ padding: '8px 16px', background: '#FA383E22', borderTop: '1px solid #FA383E44', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: '#FA383E', fontSize: '13px' }}>Failed to send: {sendError}</span>
+                <button onClick={() => setSendError(null)} style={{ background: 'none', border: 'none', color: '#FA383E', cursor: 'pointer', fontSize: '12px', padding: '2px 8px' }}>✕</button>
+              </div>
+            )}
+
             {/* Composer */}
             <div style={{
-              padding: '12px 16px', borderTop: '1px solid #3A3B3C',
+              padding: '12px 16px', borderTop: sendError ? 'none' : '1px solid #3A3B3C',
               display: 'flex', gap: '12px', alignItems: 'center', background: '#18191A',
               borderRadius: '0 0 12px 12px',
             }}>

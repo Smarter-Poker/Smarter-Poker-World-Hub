@@ -42,6 +42,7 @@ export default function ClubArenaXMTTPage() {
   const [userId, setUserId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [actionError, setActionError] = useState(null);
 
   const [tournaments, setTournaments] = useState([]);
   const [filter, setFilter] = useState('all'); // all | registering | running | completed
@@ -153,7 +154,7 @@ export default function ClubArenaXMTTPage() {
       await apiCall('/api/club-arena/tournaments', { action: 'register', clubId, tournamentId });
       loadTournaments(clubId);
       if (selectedTournament === tournamentId) loadDetail(tournamentId, clubId);
-    } catch (err) { alert(err.message); }
+    } catch (err) { setActionError(err.message); setTimeout(() => setActionError(null), 5000); }
   };
 
   const handleUnregister = async (tournamentId) => {
@@ -161,7 +162,7 @@ export default function ClubArenaXMTTPage() {
       await apiCall('/api/club-arena/tournaments', { action: 'unregister', clubId, tournamentId });
       loadTournaments(clubId);
       if (selectedTournament === tournamentId) loadDetail(tournamentId, clubId);
-    } catch (err) { alert(err.message); }
+    } catch (err) { setActionError(err.message); setTimeout(() => setActionError(null), 5000); }
   };
 
   // Filter
@@ -226,6 +227,14 @@ export default function ClubArenaXMTTPage() {
               </button>
             ))}
           </div>
+
+          {/* Action Error */}
+          {actionError && (
+            <div style={{ background: '#FA383E22', border: '1px solid #FA383E44', borderRadius: '8px', padding: '10px 16px', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ color: '#FA383E', fontSize: '13px' }}>{actionError}</span>
+              <button onClick={() => setActionError(null)} style={{ background: 'none', border: 'none', color: '#FA383E', cursor: 'pointer', fontSize: '12px', padding: '2px 8px' }}>✕</button>
+            </div>
+          )}
 
           <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
             {/* Tournament List */}
