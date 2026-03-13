@@ -233,6 +233,7 @@ export default function ClubArenaCashierPage() {
       setSuccess(`🎁 Claimed ${fmt(res.claimed)} chips! New balance: ${fmt(res.newBalance)}`);
       setBalance(res.newBalance || balance);
       busEmit('CASHIER_BALANCE_CHANGED', { clubId, balance: res.newBalance });
+      busEmit('RAKEBACK_CLAIMED', { clubId, claimed: res.claimed });
       setRakebackLoaded(false); // Trigger re-fetch
     } catch (err) { setError(err.message); }
     finally { setClaiming(false); }

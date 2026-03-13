@@ -1037,6 +1037,7 @@ export default function AgentDashboardPage() {
                         const labels = { issue_credit: 'Credit issued', add_prepaid: 'Prepaid added', revoke_credit: 'Credit revoked' };
                         setSuccess(`${labels[creditAction]} — ${fmtChips(creditAmount)} chips`);
                         busEmit('AGENT_UPDATED', { clubId });
+                        busEmit('CREDIT_UPDATED', { clubId, agentUserId: creditTarget, action: creditAction });
                         setCreditAmount(''); setCreditNotes('');
                         loadDashboard(clubId);
                       } catch (err) { setError(err.message); }

@@ -911,6 +911,7 @@ function SettingsTab({ clubId }) {
     try {
       await apiCall('/api/club-arena/save-settings', { clubId, action: 'save', settings });
       setMsg('Settings saved!');
+      busEmit('SETTINGS_CHANGED', { clubId });
     } catch (e) { setErr(e.message); }
     finally { setProcessing(false); }
   };

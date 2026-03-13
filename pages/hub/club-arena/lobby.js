@@ -282,7 +282,9 @@ export default function ClubArenaLobbyPage() {
     setTableActionProcessing(tableId);
     try {
       await apiCall('/api/club-arena/manage-table', { tableId, clubId, action });
-      busEmit('TABLE_CREATED', { clubId });
+      // Emit the action-specific event so listening pages react correctly
+      const eventMap = { pause: 'TABLE_PAUSED', resume: 'TABLE_RESUMED', close: 'TABLE_CLOSED', create: 'TABLE_CREATED' };
+      busEmit(eventMap[action] || 'TABLE_CREATED', { clubId, tableId });
       loadLobby(clubId);
     } catch (err) {
       setError(err.message);
