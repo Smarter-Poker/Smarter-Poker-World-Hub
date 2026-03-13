@@ -63,6 +63,12 @@ export default function AgentDashboardPage() {
   const [showTransfer, setShowTransfer] = useState(false);
   const [transferTarget, setTransferTarget] = useState('');
   const [transferAmount, setTransferAmount] = useState('');
+
+  // Promo wallet state
+  const [promoData, setPromoData] = useState(null);
+  const [promoLoaded, setPromoLoaded] = useState(false);
+  const [promoGrantTarget, setPromoGrantTarget] = useState('');
+  const [promoGrantAmount, setPromoGrantAmount] = useState('');
   const [transferNotes, setTransferNotes] = useState('');
 
   // Search / Filter
@@ -220,6 +226,11 @@ export default function AgentDashboardPage() {
         .catch(e => console.warn('Score load failed:', e))
         .finally(() => { if (mountedRef.current) setScoreLoading(false); });
     }
+    if (tab === 'promo' && !promoLoaded && clubId) {
+      apiCall('/api/club-arena/promo-wallet', { clubId, action: 'get_balances' })
+        .then(r => { if (mountedRef.current) { setPromoData(r); setPromoLoaded(true); } })
+        .catch(e => console.warn('Promo load failed:', e));
+    }
   }, [tab, loadAnalytics, loadHeatMap, loadLeaderboard, agentScore, scoreLoading, clubId]);
 
   // ── EventBus Listeners ─────────────────────────────────────
@@ -374,6 +385,7 @@ export default function AgentDashboardPage() {
               { id: 'commissions', label: 'Commissions' },
               { id: 'score', label: '🎯 Score' },
               { id: 'analytics', label: 'Analytics' },
+              ...(['owner', 'admin'].includes(role) ? [{ id: 'promo', label: '🎁 Promo' }] : []),
             ].map(t => (
               <button
                 key={t.id}
@@ -850,6 +862,94 @@ export default function AgentDashboardPage() {
                     </div>
                   </div>
                 </div>
+              )}
+            </div>
+          )}
+
+          {/* ── Promo Wallet Tab ─────────────────────────────── */}
+          {tab === 'promo' && (
+            <div style={{ animation: 'fadeIn 0.2s ease-out' }}>
+              {!promoLoaded ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>{[1,2,3].map(i => <div key={i} className="ca-skeleton" style={{ height: '60px' }} />)}</div>
+              ) : (
+                <>
+                  {/* Promo Balances */}
+                  <div className={s.statsGrid} style={{ marginBottom: '20px' }}>
+                    <div className={s.statCard} style={{ borderColor: 'rgba(49,162,76,0.3)' }}>
+                      <div className={s.statValueGreen}>{fmtChips(promoData?.clubPromoBalance || 0)}</div>
+                      <div className={s.statLabel}>Club Promo Balance</div>
+                    </div>
+                    <div className={s.statCard}>
+                      <div className={s.statValue}>{fmtChips(promoData?.totalAgentPromo || 0)}</div>
+                      <div className={s.statLabel}>Total Agent Promo</div>
+                    </div>
+                    <div className={s.statCard}>
+                      <div className={s.statValueBlue}>{promoData?.agents?.length || 0}</div>
+                      <div className={s.statLabel}>Active Agents</div>
+                    </div>
+                  </div>
+
+                  {/* Grant Promo to Agent */}
+                  <div style={{ background: '#242526', borderRadius: '12px', padding: '16px 20px', marginBottom: '20px', border: '1px solid #3A3B3C' }}>
+                    <div style={{ fontSize: '15px', fontWeight: 700, color: '#E4E6EB', marginBottom: '12px' }}>🎁 Grant Promo to Agent</div>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      <select
+                        value={promoGrantTarget}
+                        onChange={e => setPromoGrantTarget(e.target.value)}
+                        style={{ flex: '1 1 200px', padding: '10px 12px', background: '#18191A', border: '1px solid #3A3B3C', borderRadius: '8px', color: '#E4E6EB', fontSize: '13px' }}
+                      >
+                        <option value="">Select agent...</option>
+                        {(promoData?.agents || []).map(a => (
+                          <option key={a.userId} value={a.userId}>{a.displayName} ({fmtChips(a.promoBalance)} promo)</option>
+                        ))}
+                      </select>
+                      <input
+                        type="number" value={promoGrantAmount} onChange={e => setPromoGrantAmount(e.target.value)}
+                        placeholder="Amount" min="1"
+                        style={{ flex: '0 0 120px', padding: '10px 12px', background: '#18191A', border: '1px solid #3A3B3C', borderRadius: '8px', color: '#E4E6EB', fontSize: '13px' }}
+                      />
+                      <button
+                        className={s.btnPrimary}
+                        disabled={processing || !promoGrantTarget || !promoGrantAmount}
+                        onClick={async () => {
+                          setProcessing(true);
+                          try {
+                            await apiCall('/api/club-arena/promo-wallet', {
+                              clubId, action: 'grant_to_agent',
+                              agentUserId: promoGrantTarget, amount: promoGrantAmount,
+                            });
+                            setSuccess(`Granted ${fmtChips(promoGrantAmount)} promo chips!`);
+                            busEmit('CHIPS_DISTRIBUTED', { clubId });
+                            setPromoGrantTarget(''); setPromoGrantAmount('');
+                            setPromoLoaded(false); // force reload
+                          } catch (err) { setError(err.message); }
+                          finally { setProcessing(false); }
+                        }}
+                      >
+                        {processing ? 'Granting...' : 'Grant Promo'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Agent Promo Breakdown */}
+                  {(promoData?.agents || []).length > 0 && (
+                    <div className={s.tableScroll}>
+                      <table className={s.dataTable}>
+                        <thead><tr><th>Agent</th><th>Status</th><th style={{ textAlign: 'right' }}>Promo Balance</th><th style={{ textAlign: 'right' }}>Commission</th></tr></thead>
+                        <tbody>
+                          {(promoData?.agents || []).map(a => (
+                            <tr key={a.userId}>
+                              <td style={{ fontWeight: 600 }}>{a.displayName}</td>
+                              <td><span className={statusClass(a.status)}>{a.status}</span></td>
+                              <td style={{ textAlign: 'right', color: a.promoBalance > 0 ? '#31A24C' : '#B0B3B8', fontWeight: 700 }}>{fmtChips(a.promoBalance)}</td>
+                              <td style={{ textAlign: 'right', color: '#B0B3B8' }}>{a.commissionRate}%</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
