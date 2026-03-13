@@ -11,7 +11,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { apiCall } from '../../../src/lib/club-arena/apiClient';
-import { eventBus } from '../../../src/engine/EventBus';
+import { busEmit, eventBus } from '../../../src/engine/EventBus';
 import s from '../../../src/styles/UnionDashboard.module.css';
 
 // ── Helpers ─────────────────────────────────────────────────
@@ -260,6 +260,7 @@ export default function ClubArenaAntiCheatPage() {
     try {
       const res = await ac('kick_player', { playerId, tableId, reason: 'Anti-cheat violation — removed by admin' });
       setSuccess(res.message || 'Player removed.');
+      busEmit('PLAYER_KICKED', { clubId, playerId, tableId });
     } catch (err) { setError(err.message); }
     finally { setProcessing(false); }
   };
