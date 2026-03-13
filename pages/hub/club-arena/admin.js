@@ -690,7 +690,7 @@ function AnnouncementsTab({ clubId }) {
       }
       setTitle(''); setContent(''); setEditing(null);
       load();
-      eventBus.emit('ANNOUNCEMENT_CREATED', { clubId });
+      busEmit('ANNOUNCEMENT_CREATED', { clubId });
     } catch (err) { setActionError(err.message); }
     finally { setSaving(false); }
   };
@@ -700,7 +700,7 @@ function AnnouncementsTab({ clubId }) {
     try {
       await apiCall('/api/club-arena/announcements', { action: 'delete', clubId, announcementId: id });
       load();
-      eventBus.emit('ANNOUNCEMENT_CREATED', { clubId });
+      busEmit('ANNOUNCEMENT_CREATED', { clubId });
     } catch (err) { setActionError(err.message); }
   };
 
@@ -708,7 +708,7 @@ function AnnouncementsTab({ clubId }) {
     try {
       await apiCall('/api/club-arena/announcements', { action: 'update', clubId, announcementId: item.id, pinned: !item.pinned });
       load();
-      eventBus.emit('ANNOUNCEMENT_CREATED', { clubId });
+      busEmit('ANNOUNCEMENT_CREATED', { clubId });
     } catch (err) { setActionError(err.message); }
   };
 
