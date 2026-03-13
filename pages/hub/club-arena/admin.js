@@ -672,19 +672,26 @@ function AnnouncementsTab({ clubId }) {
       }
       setTitle(''); setContent(''); setEditing(null);
       load();
+      eventBus.emit('ANNOUNCEMENT_CREATED', { clubId });
     } catch (err) { alert(err.message); }
     finally { setSaving(false); }
   };
 
   const handleDelete = async (id) => {
     if (!confirm('Delete this announcement?')) return;
-    await apiCall('/api/club-arena/announcements', { action: 'delete', clubId, announcementId: id });
-    load();
+    try {
+      await apiCall('/api/club-arena/announcements', { action: 'delete', clubId, announcementId: id });
+      load();
+      eventBus.emit('ANNOUNCEMENT_CREATED', { clubId });
+    } catch (err) { alert(err.message); }
   };
 
   const handlePin = async (item) => {
-    await apiCall('/api/club-arena/announcements', { action: 'update', clubId, announcementId: item.id, pinned: !item.pinned });
-    load();
+    try {
+      await apiCall('/api/club-arena/announcements', { action: 'update', clubId, announcementId: item.id, pinned: !item.pinned });
+      load();
+      eventBus.emit('ANNOUNCEMENT_CREATED', { clubId });
+    } catch (err) { alert(err.message); }
   };
 
   if (loading) return <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>{[1,2,3].map(i => <div key={i} className={s.shimmerLine} style={{ height: '60px', borderRadius: '8px' }} />)}</div>;
@@ -749,13 +756,17 @@ function TemplatesTab({ clubId }) {
 
   const handleDelete = async (id) => {
     if (!confirm('Delete this template?')) return;
-    await apiCall('/api/club-arena/table-templates', { action: 'delete', clubId, templateId: id });
-    load();
+    try {
+      await apiCall('/api/club-arena/table-templates', { action: 'delete', clubId, templateId: id });
+      load();
+    } catch (err) { alert(err.message); }
   };
 
   const toggleSchedule = async (tmpl) => {
-    await apiCall('/api/club-arena/table-templates', { action: 'schedule', clubId, templateId: tmpl.id, scheduleEnabled: !tmpl.schedule_enabled });
-    load();
+    try {
+      await apiCall('/api/club-arena/table-templates', { action: 'schedule', clubId, templateId: tmpl.id, scheduleEnabled: !tmpl.schedule_enabled });
+      load();
+    } catch (err) { alert(err.message); }
   };
 
   const GAME_LABELS = { nlh: 'NLH', plo4: 'PLO4', plo5: 'PLO5', flh: 'FLH', nlh_bomb: 'Bomb Pot', nlh_6plus: '6+', sdh: 'Short Deck' };
