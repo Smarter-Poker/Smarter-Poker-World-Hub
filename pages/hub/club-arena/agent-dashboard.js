@@ -984,6 +984,70 @@ export default function AgentDashboardPage() {
             </div>
           )}
 
+          {/* ── Credit Management Tab ─────────────────────── */}
+          {tab === 'credit' && (
+            <div style={{ animation: 'fadeIn 0.2s ease-out' }}>
+              <div style={{ background: '#242526', borderRadius: '12px', padding: '20px', border: '1px solid #3A3B3C' }}>
+                <div style={{ fontSize: '16px', fontWeight: 700, color: '#E4E6EB', marginBottom: '4px' }}>🏦 Agent Credit Management</div>
+                <div style={{ fontSize: '12px', color: '#B0B3B8', marginBottom: '16px', lineHeight: 1.5 }}>
+                  Issue credit lines, add prepaid balances, or revoke credit for agents.
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', color: '#B0B3B8', marginBottom: '6px', fontWeight: 600 }}>Agent</label>
+                    <select value={creditTarget} onChange={e => setCreditTarget(e.target.value)}
+                      style={{ width: '100%', padding: '10px 12px', background: '#18191A', border: '1px solid #3A3B3C', borderRadius: '8px', color: '#E4E6EB', fontSize: '13px' }}>
+                      <option value="">Select agent...</option>
+                      {agents.map(a => (
+                        <option key={a.user_id} value={a.user_id}>
+                          {a.profile?.display_name || a.profile?.username || a.user_id?.slice(0, 8)} — {a.role}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', color: '#B0B3B8', marginBottom: '6px', fontWeight: 600 }}>Action</label>
+                    <select value={creditAction} onChange={e => setCreditAction(e.target.value)}
+                      style={{ width: '100%', padding: '10px 12px', background: '#18191A', border: '1px solid #3A3B3C', borderRadius: '8px', color: '#E4E6EB', fontSize: '13px' }}>
+                      <option value="issue_credit">Issue Credit Line</option>
+                      <option value="add_prepaid">Add Prepaid Balance</option>
+                      <option value="revoke_credit">Revoke Credit</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', color: '#B0B3B8', marginBottom: '6px', fontWeight: 600 }}>Amount</label>
+                    <input type="number" value={creditAmount} onChange={e => setCreditAmount(e.target.value)}
+                      placeholder="0" min="1" style={{ width: '100%', padding: '10px 12px', background: '#18191A', border: '1px solid #3A3B3C', borderRadius: '8px', color: '#E4E6EB', fontSize: '13px' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', color: '#B0B3B8', marginBottom: '6px', fontWeight: 600 }}>Notes (optional)</label>
+                    <input value={creditNotes} onChange={e => setCreditNotes(e.target.value)}
+                      placeholder="Reason..." style={{ width: '100%', padding: '10px 12px', background: '#18191A', border: '1px solid #3A3B3C', borderRadius: '8px', color: '#E4E6EB', fontSize: '13px' }} />
+                  </div>
+                  <button className={s.btnPrimary} disabled={processing || !creditTarget || !creditAmount}
+                    style={{ padding: '12px', marginTop: '4px' }}
+                    onClick={async () => {
+                      setProcessing(true); setError(null);
+                      try {
+                        await apiCall('/api/club-arena/agent-credit', {
+                          clubId, agentUserId: creditTarget, action: creditAction,
+                          amount: Number(creditAmount), notes: creditNotes || undefined,
+                        });
+                        const labels = { issue_credit: 'Credit issued', add_prepaid: 'Prepaid added', revoke_credit: 'Credit revoked' };
+                        setSuccess(`${labels[creditAction]} — ${fmtChips(creditAmount)} chips`);
+                        busEmit('AGENT_UPDATED', { clubId });
+                        setCreditAmount(''); setCreditNotes('');
+                        loadDashboard(clubId);
+                      } catch (err) { setError(err.message); }
+                      finally { setProcessing(false); }
+                    }}>
+                    {processing ? 'Processing...' : creditAction === 'issue_credit' ? 'Issue Credit' : creditAction === 'add_prepaid' ? 'Add Prepaid' : 'Revoke Credit'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* ── Transfer Modal ─────────────────────────────── */}
           {showTransfer && (
             <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
