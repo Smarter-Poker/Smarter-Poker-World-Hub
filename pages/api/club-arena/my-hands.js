@@ -1,0 +1,94 @@
+/**
+ * GET /api/club-arena/my-hands
+ * 
+ * Retrieves recent hand histories across the club where the requesting user participated.
+ * 
+ * Query: ?clubId=xxx&page=1&limit=50
+ * Auth: Bearer token (Must be a club member)
+ */
+import { createClient } from '../../../src/lib/supabaseServer';
+
+const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
+
+export default async function handler(req, res) {
+    // Rate limit
+    if (await applyRateLimit(req, res)) return;
+    if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'Not authenticated' });
+
+    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+
+    const { clubId, page = '1', limit = '50' } = req.query;
+    if (!clubId) return res.status(400).json({ error: 'clubId required' });
+
+    // Verify club membership
+    const { data: membership } = await supabaseAdmin
+        .from('club_members')
+        .select('role')
+        .eq('club_id', clubId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+    if (!membership) return res.status(403).json({ error: 'Must be a club member' });
+
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 50));
+    const offset = (pageNum - 1) * limitNum;
+
+    try {
+        // Find hand histories in this club where the user is in the hand_data -> players array.
+        // The JSONB contains path `hand_data->'players'` which is an array of objects.
+        // We use the JSONB containment operator `@>`
+        const { data: hands, count, error } = await supabaseAdmin
+            .from('hand_histories')
+            .select('id, hand_id, hand_number, table_id, pot_total, created_at', { count: 'exact' })
+            .eq('club_id', clubId)
+            // JSONB filter: look for the user.id inside the players array
+            .contains('hand_data', { players: [{ id: user.id }] })
+            .order('created_at', { ascending: false })
+            .range(offset, offset + limitNum - 1);
+
+        if (error) throw error;
+
+        // Collect table IDs to get table names
+        const tableIds = new Set((hands || []).map(h => h.table_id).filter(Boolean));
+        let tableMap = {};
+        
+        if (tableIds.size > 0) {
+            const { data: tables } = await supabaseAdmin
+                .from('tables')
+                .select('id, name')
+                .in('id', Array.from(tableIds));
+            
+            tableMap = (tables || []).reduce((acc, t) => {
+                acc[t.id] = t.name;
+                return acc;
+            }, {});
+        }
+
+        const enrichedHands = (hands || []).map(h => ({
+            ...h,
+            tableName: tableMap[h.table_id] || 'Unknown Table',
+        }));
+
+        return res.status(200).json({
+            success: true,
+            hands: enrichedHands,
+            total: count || 0,
+            page: pageNum,
+            totalPages: Math.ceil((count || 0) / limitNum),
+        });
+
+    } catch (err) {
+        console.error('[my-hands] fail:', err);
+        return res.status(500).json({ error: 'Internal server error' });
+    }
+}
