@@ -218,7 +218,13 @@ export default function ClubArenaPlayersPage() {
       <HubErrorBoundary name="Players">
         <SEOHead title="Players | Smarter.Poker" />
         <UniversalHeader />
-        <div className={s.container}><div className={s.loading}>Loading Players...</div></div>
+        <div className={s.container}>
+          <div className={s.inner} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div className="ca-skeleton" style={{ height: '48px' }} />
+            <div style={{ display: 'flex', gap: '8px' }}>{[1,2,3].map(i => <div key={i} className="ca-skeleton" style={{ height: '36px', flex: 1 }} />)}</div>
+            {[1,2,3,4,5,6].map(i => <div key={i} className="ca-skeleton" style={{ height: '52px' }} />)}
+          </div>
+        </div>
       </HubErrorBoundary>
     );
   }
