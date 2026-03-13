@@ -487,7 +487,7 @@ export default function CompSystem() {
             authorized_pin: true,
             void_reason: voidPinModal.actionLabel + ' by ' + ((staff && staff.display_name) || 'Staff')
           })
-        }).then(r => { if (!r.ok) throw new Error('fail'); return r; }).catch(() => {});
+        }).then(r => { if (!r.ok) throw new Error('fail'); return r; })
           .then(function (r) { return r.json(); })
           .then(function (json) {
             if (json.success) {

@@ -46,6 +46,7 @@ export default function ClubArenaPlayerStatsPage() {
 
   useEffect(() => {
     let cancelled = false;
+    let authSub = null;
 
     const init = async (session) => {
       if (cancelled) return;
@@ -144,10 +145,18 @@ export default function ClubArenaPlayerStatsPage() {
       const { supabase } = await import('../../../src/lib/supabase');
       const { data: { session } } = await supabase.auth.getSession();
       if (session) { await init(session); return; }
-      setError('login_required'); setLoading(false);
+
+      const timeout = setTimeout(() => { if (!cancelled) { setError('login_required'); setLoading(false); } }, 3000);
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, sess) => {
+        clearTimeout(timeout);
+        if (sess && !cancelled) await init(sess);
+        else if (!cancelled) { setError('login_required'); setLoading(false); }
+        subscription?.unsubscribe();
+      });
+      authSub = subscription;
     })();
 
-    return () => { cancelled = true; };
+    return () => { cancelled = true; authSub?.unsubscribe?.(); };
   }, [router.query.club, router.query.clubId]);
 
   if (loading) {

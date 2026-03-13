@@ -76,6 +76,7 @@ export default function ClubArenaXMTTPage() {
   // Auth + init
   useEffect(() => {
     let cancelled = false;
+    let authSub = null;
 
     const init = async (session) => {
       if (cancelled) return;
@@ -103,10 +104,18 @@ export default function ClubArenaXMTTPage() {
       const { supabase } = await import('../../../src/lib/supabase');
       const { data: { session } } = await supabase.auth.getSession();
       if (session) { await init(session); return; }
-      setError('login_required'); setLoading(false);
+
+      const timeout = setTimeout(() => { if (!cancelled) { setError('login_required'); setLoading(false); } }, 3000);
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, sess) => {
+        clearTimeout(timeout);
+        if (sess && !cancelled) await init(sess);
+        else if (!cancelled) { setError('login_required'); setLoading(false); }
+        subscription?.unsubscribe();
+      });
+      authSub = subscription;
     })();
 
-    return () => { cancelled = true; };
+    return () => { cancelled = true; authSub?.unsubscribe?.(); };
   }, [router.query.club, router.query.clubId, loadTournaments]);
 
   // Auto-poll every 30s
@@ -162,7 +171,8 @@ export default function ClubArenaXMTTPage() {
               <div style={{ fontSize: '48px', marginBottom: '12px' }}>🔒</div>
               <button onClick={() => window.location.href = '/auth/login'} className={s.btnPrimary}>Log In</button>
             </div>
-          ) : error ? <div className={s.error}>{error}</div> : null}
+          ) : error ? <div className={s.error}>{error}</div> : (
+            <>
 
           {/* Header */}
           <div className={s.pageHeader}>
@@ -263,6 +273,8 @@ export default function ClubArenaXMTTPage() {
               </div>
             )}
           </div>
+          </>
+          )}
 
         </div>
       </div>

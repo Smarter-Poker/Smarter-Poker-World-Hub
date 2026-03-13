@@ -161,7 +161,8 @@ export default function ClubArenaMessagesPage() {
               <div style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>Session Expired</div>
               <button onClick={() => window.location.href = '/auth/login'} className={s.btnPrimary}>Log In</button>
             </div>
-          ) : error ? <div className={s.error}>{error}</div> : null}
+          ) : error ? <div className={s.error}>{error}</div> : (
+            <>
 
           {/* Header */}
           <div className={s.pageHeader}>
@@ -271,7 +272,8 @@ export default function ClubArenaMessagesPage() {
               </button>
             </div>
           </div>
-
+        </>
+          )}
         </div>
       </div>
     </HubErrorBoundary>
