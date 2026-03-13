@@ -2,7 +2,7 @@
    Club Arena Player Stats — Native Hub Page (replaces iframe)
    Personal performance dashboard for a player in this club
    ═══════════════════════════════════════════════════════════════ */
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
