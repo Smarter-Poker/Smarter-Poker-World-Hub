@@ -11,6 +11,7 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { apiCall, apiGet } from '../../../src/lib/club-arena/apiClient';
 import { busEmit, eventBus } from '../../../src/engine/EventBus';
+import { createDebouncedHandler } from '../../../src/lib/club-arena/retryAsync';
 import s from '../../../src/styles/UnionDashboard.module.css';
 
 // ── Helpers ─────────────────────────────────────────────────

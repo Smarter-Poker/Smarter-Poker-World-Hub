@@ -126,6 +126,16 @@ class GlobalEventBus {
     }
 
     /**
+     * Remove a specific listener for an event type.
+     * This is the complement to .on() — used by 20+ call sites that
+     * prefer the explicit .off(type, callback) pattern over the
+     * unsubscribe function returned by .on().
+     */
+    off(eventType, callback) {
+        this.listeners.get(eventType)?.delete(callback);
+    }
+
+    /**
      * Emit an event. SSR-safe: silently no-ops on the server so pages
      * that emit during useMemo/render never crash during SSR.
      */

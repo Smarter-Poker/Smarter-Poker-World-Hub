@@ -75,7 +75,7 @@ function DashboardTab({ clubId }) {
   useEffect(() => {
     const debouncedLoad = createDebouncedHandler(load, 300);
     const events = ['TABLE_CREATED', 'CHIPS_DISTRIBUTED', 'AGENT_UPDATED', 'ANNOUNCEMENT_CREATED',
-      'CLUB_UPDATED', 'SETTINGS_CHANGED', 'CREDIT_UPDATED'];
+      'CLUB_UPDATED', 'SETTINGS_CHANGED', 'CREDIT_UPDATED', 'CASHOUT_REQUESTED', 'CASHOUT_APPROVED'];
     events.forEach(ev => eventBus.on(ev, debouncedLoad));
     return () => { debouncedLoad.cancel(); events.forEach(ev => eventBus.off(ev, debouncedLoad)); };
   }, [load]);

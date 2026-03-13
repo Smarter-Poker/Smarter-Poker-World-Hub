@@ -143,7 +143,7 @@ export default function ClubArenaHandHistoriesPage() {
   useEffect(() => {
     if (!clubId) return;
     const refresh = () => loadHands(clubId, page, true);
-    const events = ['HAND_COMPLETE', 'HAND_REPLAYED'];
+    const events = ['HAND_COMPLETE', 'HAND_REPLAYED', 'TABLE_CREATED'];
     events.forEach(ev => eventBus.on(ev, refresh));
     return () => events.forEach(ev => eventBus.off(ev, refresh));
   }, [clubId, page, loadHands]);

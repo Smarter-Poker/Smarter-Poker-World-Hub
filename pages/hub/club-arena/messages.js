@@ -136,7 +136,7 @@ export default function ClubArenaMessagesPage() {
   useEffect(() => {
     if (!clubId) return;
     const refresh = () => loadMessages(clubId);
-    const events = ['ANNOUNCEMENT_CREATED', 'MESSAGE_RECEIVED', 'PLAYER_KICKED'];
+    const events = ['ANNOUNCEMENT_CREATED', 'MESSAGE_RECEIVED', 'PLAYER_KICKED', 'MEMBER_UPDATED'];
     events.forEach(ev => eventBus.on(ev, refresh));
     return () => events.forEach(ev => eventBus.off(ev, refresh));
   }, [clubId, loadMessages]);
