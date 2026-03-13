@@ -43,6 +43,7 @@ export default function ClubArenaPlayerStatsPage() {
   const [stats, setStats] = useState(null);
 
   const mountedRef = useRef(true);
+  const hasStatsRef = useRef(false);
   useEffect(() => () => { mountedRef.current = false; }, []);
 
   useEffect(() => {
@@ -135,6 +136,7 @@ export default function ClubArenaPlayerStatsPage() {
             netFlow,
             dailyMap,
           });
+          hasStatsRef.current = true;
           setLoading(false);
         }
       } catch (err) {
@@ -168,7 +170,7 @@ export default function ClubArenaPlayerStatsPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         // Only show loading skeleton on initial load (no existing data)
-        if (!stats) setLoading(true);
+        if (!hasStatsRef.current) setLoading(true);
         setError(null);
         // Re-run the whole init logic for this user in this club
         const { data: membership } = await supabase.from('club_members').select('chip_balance, role, joined_at').eq('club_id', clubId).eq('user_id', session.user.id).maybeSingle();
@@ -183,13 +185,14 @@ export default function ClubArenaPlayerStatsPage() {
         const daysSince = Math.max(1, Math.ceil((Date.now() - new Date(membership.joined_at).getTime()) / 86400000));
         if (mountedRef.current) {
           setStats({ chipBalance: membership.chip_balance, role: membership.role, joinedAt: membership.joined_at, daysSince, handCount: handCount || 0, txCount, totalBuyins, totalCashouts, totalDistributed, netFlow, dailyMap });
+          hasStatsRef.current = true;
           setLoading(false);
         }
       }
     } catch (err) {
       if (mountedRef.current) { setError(err.message); setLoading(false); }
     }
-  }, [clubId, stats]);
+  }, [clubId]);
 
   // Auto-refresh on visibilitychange
   useEffect(() => {
