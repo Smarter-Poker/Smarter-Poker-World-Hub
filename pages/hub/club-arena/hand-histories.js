@@ -2,7 +2,7 @@
    Club Arena Hand Histories — Native Hub Page (replaces iframe shell)
    Chronological feed of hands mapped to HandReplayerModal
    ═══════════════════════════════════════════════════════════════ */
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
@@ -59,6 +59,15 @@ export default function ClubArenaHandHistoriesPage() {
 
   const mountedRef = useRef(true);
   useEffect(() => () => { mountedRef.current = false; }, []);
+
+  // Memoize filtered hands to avoid re‑filtering on every render
+  const filtered = useMemo(() => {
+    return data.hands.filter(h => {
+      if (filterTable && !(h.tableName || '').toLowerCase().includes(filterTable.toLowerCase())) return false;
+      if (filterMinPot && Number(h.pot_total || 0) < Number(filterMinPot)) return false;
+      return true;
+    });
+  }, [data.hands, filterTable, filterMinPot]);
 
   const loadHands = useCallback(async (cId, p) => {
     try {
@@ -188,14 +197,7 @@ export default function ClubArenaHandHistoriesPage() {
                       <button className={s.btnPrimary} style={{ padding: '8px 20px', fontSize: '13px' }}>🏠 Join a Table</button>
                     </Link>
                   </div>
-                ) : (() => {
-                  // Apply client-side filters
-                  const filtered = data.hands.filter(h => {
-                    if (filterTable && !(h.tableName || '').toLowerCase().includes(filterTable.toLowerCase())) return false;
-                    if (filterMinPot && Number(h.pot_total || 0) < Number(filterMinPot)) return false;
-                    return true;
-                  });
-                  return filtered.length === 0 && (filterTable || filterMinPot) ? (
+                ) : filtered.length === 0 && (filterTable || filterMinPot) ? (
                     <div className={s.emptyState}>
                       <span className={s.emptyIcon}>🔍</span>
                       <span className={s.emptyText}>No hands match your filters.</span>
@@ -233,8 +235,7 @@ export default function ClubArenaHandHistoriesPage() {
                       </tbody>
                     </table>
                   </div>
-                  );
-                })()}
+                )}
               </div>
 
               {/* Replayer Modal */}

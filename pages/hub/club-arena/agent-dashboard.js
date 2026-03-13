@@ -288,7 +288,14 @@ export default function AgentDashboardPage() {
       <HubErrorBoundary name="Agent Dashboard">
         <SEOHead title="Agent Dashboard | Smarter.Poker" />
         <UniversalHeader />
-        <div className={s.container}><div className={s.loading}>Loading Agent Dashboard...</div></div>
+        <div className={s.container}>
+          <div className={s.inner} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div className="ca-skeleton" style={{ height: '48px' }} />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px' }}>{[1,2,3,4].map(i => <div key={i} className="ca-skeleton ca-skeleton-stat" />)}</div>
+            <div style={{ display: 'flex', gap: '8px' }}>{[1,2,3,4,5].map(i => <div key={i} className="ca-skeleton" style={{ height: '36px', flex: 1 }} />)}</div>
+            {[1,2,3].map(i => <div key={i} className="ca-skeleton" style={{ height: '60px' }} />)}
+          </div>
+        </div>
       </HubErrorBoundary>
     );
   }
@@ -725,7 +732,7 @@ export default function AgentDashboardPage() {
               <div className={s.section}>
                 <div className={s.sectionTitle}>Player Activity Heat Map</div>
                 {!heatMap ? (
-                  <div className={s.loading}>Loading heat map...</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>{[1,2,3,4].map(i => <div key={i} className="ca-skeleton" style={{ height: '44px' }} />)}</div>
                 ) : heatMap.length === 0 ? (
                   <div className={s.emptyState}><span className={s.emptyIcon}>🗺️</span><span className={s.emptyText}>No player activity data</span></div>
                 ) : (
@@ -771,7 +778,7 @@ export default function AgentDashboardPage() {
               <div className={s.section}>
                 <div className={s.sectionTitle}>Agent Leaderboard (30-Day Revenue)</div>
                 {!leaderboard ? (
-                  <div className={s.loading}>Loading leaderboard...</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>{[1,2,3].map(i => <div key={i} className="ca-skeleton" style={{ height: '44px' }} />)}</div>
                 ) : leaderboard.length === 0 ? (
                   <div className={s.emptyState}><span className={s.emptyIcon}>🏆</span><span className={s.emptyText}>No agent data available</span></div>
                 ) : (
