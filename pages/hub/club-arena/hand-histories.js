@@ -72,7 +72,8 @@ export default function ClubArenaHandHistoriesPage() {
 
   const loadHands = useCallback(async (cId, p) => {
     try {
-      setLoading(true);
+      // Only show loading skeleton on first load — bus refreshes stay silent
+      setLoading(prev => prev && true);
       setError(null);
       const res = await apiGet(`/api/club-arena/my-hands?clubId=${cId}&page=${p}&limit=50`);
       if (mountedRef.current) {
