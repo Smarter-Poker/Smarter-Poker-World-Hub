@@ -47,10 +47,13 @@ export const EventType = {
     COMP_ISSUED: 'COMP_ISSUED',
     INCIDENT_REPORTED: 'INCIDENT_REPORTED',
     TOURNAMENT_STARTED: 'TOURNAMENT_STARTED',
+    TOURNAMENT_REGISTERED: 'TOURNAMENT_REGISTERED',
     TOURNAMENT_LEVEL_CHANGE: 'TOURNAMENT_LEVEL_CHANGE',
     BOUNTY_AWARDED: 'BOUNTY_AWARDED',
     MYSTERY_BOUNTY_REVEALED: 'MYSTERY_BOUNTY_REVEALED',
     TOURNAMENT_COMPLETE: 'TOURNAMENT_COMPLETE',
+    TOURNAMENT_CANCELLED: 'TOURNAMENT_CANCELLED',
+    HAND_REPLAYED: 'HAND_REPLAYED',
     DATA_MUTATED: 'DATA_MUTATED',
 
     // ── Geeves AI Help Bot ──
@@ -241,6 +244,15 @@ const _busEmitMethods = {
 
     tournamentComplete: (tournamentName, winner) =>
         eventBus.emit(EventType.TOURNAMENT_COMPLETE, { tournamentName, winner }, 'TournamentDirector'),
+
+    tournamentRegistered: (tournamentId, clubId) =>
+        eventBus.emit(EventType.TOURNAMENT_REGISTERED, { tournamentId, clubId }, 'ClubArena'),
+
+    tournamentCancelled: (tournamentId, clubId) =>
+        eventBus.emit(EventType.TOURNAMENT_CANCELLED, { tournamentId, clubId }, 'ClubArena'),
+
+    handReplayed: (handId, clubId) =>
+        eventBus.emit(EventType.HAND_REPLAYED, { handId, clubId }, 'ClubArena'),
 
     dataMutated: (entity) =>
         eventBus.emit(EventType.DATA_MUTATED, { entity, ..._getStaffCtx() }, 'DataSync'),
