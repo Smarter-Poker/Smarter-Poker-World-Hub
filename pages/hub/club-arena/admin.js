@@ -144,14 +144,16 @@ function SettlementsTab({ clubId }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const [error, setError] = useState(null);
 
   const load = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
       const res = await apiCall('/api/club-arena/settle-period', { action: 'status', clubId });
       setData(res);
     } catch (err) {
-      alert(err.message);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -163,10 +165,11 @@ function SettlementsTab({ clubId }) {
     if (!confirm(`Are you sure you want to ${actionName} this settlement period?`)) return;
     try {
       setProcessing(true);
+      setError(null);
       await apiCall('/api/club-arena/settle-period', { action: actionName, clubId, ...extras });
       load();
     } catch(err) {
-      alert(err.message);
+      setError(err.message);
     } finally {
       setProcessing(false);
     }
@@ -380,6 +383,7 @@ function BrandingTab({ clubId }) {
   const [loadError, setLoadError] = useState(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const saveTimerRef = useRef(null);
+  const ownershipRef = useRef(null);
 
   useEffect(() => () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); }, []);
 
@@ -407,7 +411,7 @@ function BrandingTab({ clubId }) {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       saveTimerRef.current = setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
-      alert('Failed to save: ' + err.message);
+      setLoadError('Failed to save: ' + err.message);
     } finally {
       setSaving(false);
     }
@@ -484,9 +488,9 @@ function BrandingTab({ clubId }) {
           <h4 style={{ margin: '0 0 12px', fontSize: '15px', color: '#FA383E' }}>⚠️ Danger Zone — Transfer Ownership</h4>
           <p style={{ fontSize: '12px', color: '#B0B3B8', marginBottom: '12px' }}>Transfer complete ownership of this club to another member. This action is irreversible — you will be demoted to admin.</p>
           <div style={{ display: 'flex', gap: '8px' }}>
-            <input id="ownershipTarget" placeholder="New owner's User ID (UUID)" style={{ flex: 1, padding: '10px 12px', background: '#18191A', border: '1px solid #3A3B3C', borderRadius: '8px', color: '#E4E6EB', fontSize: '13px' }} />
+            <input ref={ownershipRef} placeholder="New owner's User ID (UUID)" style={{ flex: 1, padding: '10px 12px', background: '#18191A', border: '1px solid #3A3B3C', borderRadius: '8px', color: '#E4E6EB', fontSize: '13px' }} />
             <button className={s.btnGhost} style={{ color: '#FA383E', borderColor: '#FA383E' }} onClick={async () => {
-              const target = document.getElementById('ownershipTarget')?.value;
+              const target = ownershipRef.current?.value;
               if (!target) return alert('Enter the new owner\'s User ID');
               if (!confirm(`⚠️ IRREVERSIBLE: Transfer ownership to ${target.substring(0,8)}...? You will be demoted to admin.`)) return;
               if (!confirm('Are you absolutely sure? This cannot be undone.')) return;
@@ -654,6 +658,7 @@ function AnnouncementsTab({ clubId }) {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [saving, setSaving] = useState(false);
+  const [actionError, setActionError] = useState(null);
 
   const load = useCallback(async () => {
     try {
@@ -678,7 +683,7 @@ function AnnouncementsTab({ clubId }) {
       setTitle(''); setContent(''); setEditing(null);
       load();
       eventBus.emit('ANNOUNCEMENT_CREATED', { clubId });
-    } catch (err) { alert(err.message); }
+    } catch (err) { setActionError(err.message); }
     finally { setSaving(false); }
   };
 
@@ -688,7 +693,7 @@ function AnnouncementsTab({ clubId }) {
       await apiCall('/api/club-arena/announcements', { action: 'delete', clubId, announcementId: id });
       load();
       eventBus.emit('ANNOUNCEMENT_CREATED', { clubId });
-    } catch (err) { alert(err.message); }
+    } catch (err) { setActionError(err.message); }
   };
 
   const handlePin = async (item) => {
@@ -696,7 +701,7 @@ function AnnouncementsTab({ clubId }) {
       await apiCall('/api/club-arena/announcements', { action: 'update', clubId, announcementId: item.id, pinned: !item.pinned });
       load();
       eventBus.emit('ANNOUNCEMENT_CREATED', { clubId });
-    } catch (err) { alert(err.message); }
+    } catch (err) { setActionError(err.message); }
   };
 
   if (loading) return <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>{[1,2,3].map(i => <div key={i} className={s.shimmerLine} style={{ height: '60px', borderRadius: '8px' }} />)}</div>;
@@ -746,6 +751,7 @@ function AnnouncementsTab({ clubId }) {
 // ── Table Templates Tab ──────────────────────────────────
 function TemplatesTab({ clubId }) {
   const [templates, setTemplates] = useState([]);
+  const [actionError, setActionError] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -764,14 +770,14 @@ function TemplatesTab({ clubId }) {
     try {
       await apiCall('/api/club-arena/table-templates', { action: 'delete', clubId, templateId: id });
       load();
-    } catch (err) { alert(err.message); }
+    } catch (err) { setActionError(err.message); }
   };
 
   const toggleSchedule = async (tmpl) => {
     try {
       await apiCall('/api/club-arena/table-templates', { action: 'schedule', clubId, templateId: tmpl.id, scheduleEnabled: !tmpl.schedule_enabled });
       load();
-    } catch (err) { alert(err.message); }
+    } catch (err) { setActionError(err.message); }
   };
 
   const GAME_LABELS = { nlh: 'NLH', plo4: 'PLO4', plo5: 'PLO5', flh: 'FLH', nlh_bomb: 'Bomb Pot', nlh_6plus: '6+', sdh: 'Short Deck' };
@@ -932,17 +938,23 @@ function HierarchyTreeTab({ clubId }) {
   const [expandedNodes, setExpandedNodes] = useState(new Set());
   const [stats, setStats] = useState({ total: 0, active: 0 });
 
-  useEffect(() => {
-    if (!clubId) return;
-    (async () => {
-      try {
-        const data = await apiCall('/api/club-arena/agent-analytics', { clubId, action: 'hierarchy_tree' });
-        setTree(data.tree || []);
-        setStats({ total: data.totalAgents || 0, active: data.activeAgents || 0 });
-      } catch (e) { console.error('Hierarchy load error:', e); }
+  const [loadError, setLoadError] = useState(null);
+
+  const loadTree = useCallback(async () => {
+    try {
+      setLoading(true);
+      setLoadError(null);
+      const data = await apiCall('/api/club-arena/agent-analytics', { clubId, action: 'hierarchy_tree' });
+      setTree(data.tree || []);
+      setStats({ total: data.totalAgents || 0, active: data.activeAgents || 0 });
+    } catch (e) {
+      setLoadError(e.message || 'Failed to load hierarchy');
+    } finally {
       setLoading(false);
-    })();
+    }
   }, [clubId]);
+
+  useEffect(() => { if (clubId) loadTree(); }, [clubId, loadTree]);
 
   const toggleExpand = (id) => {
     setExpandedNodes(prev => {
