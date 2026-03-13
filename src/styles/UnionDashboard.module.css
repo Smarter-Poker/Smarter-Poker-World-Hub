@@ -194,6 +194,7 @@
 .skeletonStat { height: 80px; }
 .skeletonCard { height: 60px; margin-bottom: 8px; }
 .skeletonText { height: 14px; margin-bottom: 8px; width: 60%; }
+.shimmerLine { background: linear-gradient(90deg, #242526 25%, #3A3B3C 50%, #242526 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
 
 /* ── Notification Panel ────────────────────────────────────── */
 .notifPanel { background: #242526; border: 1px solid #3A3B3C; border-radius: 10px; padding: 16px; margin-bottom: 16px; }

@@ -431,7 +431,9 @@ export default function ClubArenaCashierPage() {
           {tab === 'history' && (
             <>
               {!historyLoaded ? (
-                <div className={s.loading}>Loading cashout history...</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {[1,2,3,4].map(i => <div key={i} className={s.shimmerLine} style={{ height: '50px', borderRadius: '8px' }} />)}
+                </div>
               ) : history.length === 0 ? (
                 <div className={s.emptyState}><span className={s.emptyIcon}>📜</span><span className={s.emptyText}>No cashout history</span></div>
               ) : (
