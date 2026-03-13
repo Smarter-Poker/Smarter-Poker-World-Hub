@@ -394,8 +394,21 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'No active horses found. Create horse profiles first.' });
       }
 
+      const horseStats = new Map();
+      for (const h of horses.all) {
+        horseStats.set(h.id, { cash: 0, tournaments: 0 });
+      }
+
       // 1. Create cash tables (alternating clubs)
-      const { created: cashCreated, tableIds } = await createCashTables(log);
+      // Create 3 batches of cash tables so there are ~738 seats available for 355 horses (everyone gets 2)
+      let cashCreated = 0;
+      const tableIds = { shark: [], jaqk: [] };
+      for (let i = 0; i < 3; i++) {
+        const res = await createCashTables(log);
+        cashCreated += res.created;
+        tableIds.shark.push(...res.tableIds.shark);
+        tableIds.jaqk.push(...res.tableIds.jaqk);
+      }
       log.push(`✅ Cash tables created: ${cashCreated} (Shark: ${tableIds.shark.length}, JAQK: ${tableIds.jaqk.length})`);
 
       // 2. Create today's tournaments (alternating clubs)
@@ -413,10 +426,17 @@ export default async function handler(req, res) {
           tournamentsCreated++;
           if (clubId === SHARK_CLUB_ID) tournamentIds.shark.push(result.id);
           else tournamentIds.jaqk.push(result.id);
-          // Register target number of horses
-          const targetHorses = Math.min(cfg.horsesTarget, horses.all.length);
-          const horseSlice = horses.all.sort(() => Math.random() - 0.5).slice(0, targetHorses);
+          
+          // Register target number of horses - picking from those with < 2 tournaments
+          let availableHorses = horses.all.filter(h => (horseStats.get(h.id)?.tournaments || 0) < 2);
+          availableHorses = availableHorses.sort(() => Math.random() - 0.5);
+          const targetHorses = Math.min(cfg.horsesTarget, availableHorses.length);
+          const horseSlice = availableHorses.slice(0, targetHorses);
           const reg = await registerHorses(result.id, horseSlice);
+          for (const h of horseSlice) {
+            const stat = horseStats.get(h.id);
+            stat.tournaments += 1;
+          }
           tournamentsRegistered += reg;
         } else {
           log.push(`⚠️ Tournament "${cfg.name}" failed: ${result.error}`);
@@ -453,8 +473,14 @@ export default async function handler(req, res) {
           .maybeSingle();
         if (!error && data) {
           sngsCreated++;
-          const sngHorses = horses.all.sort(() => Math.random() - 0.5).slice(0, cfg.max);
+          let availableHorses = horses.all.filter(h => (horseStats.get(h.id)?.tournaments || 0) < 2);
+          availableHorses = availableHorses.sort(() => Math.random() - 0.5);
+          const sngHorses = availableHorses.slice(0, cfg.max);
           sngRegistered += await registerHorses(data.id, sngHorses);
+          for (const h of sngHorses) {
+            const stat = horseStats.get(h.id);
+            stat.tournaments += 1;
+          }
         }
       }
       log.push(`✅ SNGs created: ${sngsCreated}, horses registered: ${sngRegistered}`);
@@ -491,8 +517,14 @@ export default async function handler(req, res) {
           .maybeSingle();
         if (!error && data) {
           spinsCreated++;
-          const spinHorses = horses.all.sort(() => Math.random() - 0.5).slice(0, cfg.max);
+          let availableHorses = horses.all.filter(h => (horseStats.get(h.id)?.tournaments || 0) < 2);
+          availableHorses = availableHorses.sort(() => Math.random() - 0.5);
+          const spinHorses = availableHorses.slice(0, cfg.max);
           spinRegistered += await registerHorses(data.id, spinHorses);
+          for (const h of spinHorses) {
+            const stat = horseStats.get(h.id);
+            stat.tournaments += 1;
+          }
         }
       }
       log.push(`✅ Spins created: ${spinsCreated}, horses registered: ${spinRegistered}`);
@@ -508,16 +540,19 @@ export default async function handler(req, res) {
       const activeTables = allTables.data || [];
 
       // Seat Shark horses at Shark tables, JAQK horses at JAQK tables
-      for (const [clubHorses, clubId] of [[horses.shark, SHARK_CLUB_ID], [horses.jaqk, JAQK_CLUB_ID]]) {
+      const sharkHorses = [...horses.shark].sort(() => Math.random() - 0.5);
+      const jaqkHorses = [...horses.jaqk].sort(() => Math.random() - 0.5);
+
+      for (const [clubHorses, clubId] of [[sharkHorses, SHARK_CLUB_ID], [jaqkHorses, JAQK_CLUB_ID]]) {
         const clubTables = activeTables.filter(t => t.club_id === clubId);
         for (const horse of clubHorses) {
-          let seated = 0;
+          const stat = horseStats.get(horse.id);
           for (const table of clubTables) {
-            if (seated >= 2) break; // 2 cash tables per horse
+            if (stat.cash >= 2) break; // 2 cash tables per horse
             if ((table.current_players || 0) >= table.max_players) continue;
             const didSeat = await seatHorseAtTable(table.id, horse.id, table.max_players, table.big_blind);
             if (didSeat) {
-              seated++;
+              stat.cash++;
               cashSeats++;
               table.current_players = (table.current_players || 0) + 1;
             }

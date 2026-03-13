@@ -53,9 +53,9 @@ function HorsesLogin({ onLogin }) {
         <div className="horses-login">
             <div className="login-card">
                 <div className="login-header">
-                    <span className="logo">🐴</span>
-                    <h1>HORSES</h1>
-                    <p>Content Stable Admin</p>
+                    <span className="logo">✍️</span>
+                    <h1>AUTHORS</h1>
+                    <p>Content Author Admin</p>
                 </div>
 
                 <form onSubmit={handleLogin}>
@@ -256,14 +256,14 @@ function HorsesDashboard({ user, onLogout }) {
             setPersonas([data, ...personas]);
             setShowCreateModal(false);
             setNewPersona({ name: '', gender: 'male', location: '', specialty: 'cash_games', stakes: '', bio: '', voice: 'casual' });
-            showNotification('New horse stabled! 🐴', 'success');
+            showNotification('New author added! ✍️', 'success');
         } catch (err) {
             // For demo mode fallback
             const demoId = Date.now();
             const demoPersona = { ...personaToCreate, id: demoId };
             setPersonas([demoPersona, ...personas]);
             setShowCreateModal(false);
-            showNotification('Horse created (Demo Mode)', 'success');
+            showNotification('Author created (Demo Mode)', 'success');
         }
     };
 
@@ -345,9 +345,9 @@ function HorsesDashboard({ user, onLogout }) {
 
             <header className="dashboard-header">
                 <div className="header-left">
-                    <span className="logo">🐴</span>
-                    <h1>HORSES</h1>
-                    <span className="subtitle">Content Stable</span>
+                    <span className="logo">✍️</span>
+                    <h1>AUTHORS</h1>
+                    <span className="subtitle">Content Admin</span>
                 </div>
                 <div className="header-right">
                     <div className="engine-status">
@@ -365,7 +365,7 @@ function HorsesDashboard({ user, onLogout }) {
                     className={activeTab === 'stable' ? 'active' : ''}
                     onClick={() => setActiveTab('stable')}
                 >
-                    🐎 The Stable
+                    👥 Authors
                 </button>
                 <button
                     className={activeTab === 'pipeline' ? 'active' : ''}
@@ -403,7 +403,7 @@ function HorsesDashboard({ user, onLogout }) {
                             <div className="stable-stats">
                                 <div className="stat-box">
                                     <span className="stat-number">{personas.length}</span>
-                                    <span className="stat-label">Total Horses</span>
+                                    <span className="stat-label">Total Authors</span>
                                 </div>
                                 <div className="stat-box active">
                                     <span className="stat-number">{activeCount}</span>
@@ -418,7 +418,7 @@ function HorsesDashboard({ user, onLogout }) {
                             <div className="stable-controls">
                                 <input
                                     type="text"
-                                    placeholder="Search Horses..."
+                                    placeholder="Search Authors..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     className="search-input"
@@ -428,7 +428,7 @@ function HorsesDashboard({ user, onLogout }) {
                                     onChange={(e) => setFilter(e.target.value)}
                                     className="filter-select"
                                 >
-                                    <option value="all">All Horses</option>
+                                    <option value="all">All Authors</option>
                                     <option value="active">Active Only</option>
                                     <option value="inactive">Resting Only</option>
                                 </select>
@@ -436,7 +436,7 @@ function HorsesDashboard({ user, onLogout }) {
                                     Activate All
                                 </button>
                                 <button className="btn-create" onClick={() => setShowCreateModal(true)}>
-                                    ➕ New Horse
+                                    ➕ New Author
                                 </button>
                             </div>
                         </div>
@@ -475,7 +475,7 @@ function HorsesDashboard({ user, onLogout }) {
                                         <button
                                             className="delete-btn"
                                             onClick={() => handleDelete(persona.id, persona.name)}
-                                            title="Retire Horse"
+                                            title="Retire Author"
                                         >
                                             🗑️
                                         </button>
