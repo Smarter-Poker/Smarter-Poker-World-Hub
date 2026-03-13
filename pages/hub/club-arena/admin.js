@@ -465,7 +465,7 @@ function SettlementHistoryTab({ clubId }) {
     try {
       setLoading(true);
       setLoadError(null);
-      const res = await apiCall('/api/club-arena/settle-period', { action: 'history', clubId });
+      const res = await apiCall('/api/club-arena/settlement-history', { action: 'list', clubId, limit: 50 });
       setPeriods(res.periods || []);
     } catch (err) {
       setLoadError(err.message);
@@ -502,13 +502,13 @@ function SettlementHistoryTab({ clubId }) {
             <div key={p.id} style={{ background: '#242526', padding: '16px 20px', borderRadius: '12px', border: '1px solid #3A3B3C' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <div style={{ fontWeight: 700, fontSize: '15px' }}>Period #{p.period_number} — Year {p.year}</div>
-                <span style={{ fontSize: '11px', fontWeight: 700, padding: '3px 8px', borderRadius: '4px', background: '#3A3B3C', color: '#B0B3B8' }}>{p.status?.toUpperCase()}</span>
+                <span style={{ fontSize: '11px', fontWeight: 700, padding: '3px 8px', borderRadius: '4px', background: p.status === 'open' ? 'rgba(49,162,76,0.15)' : '#3A3B3C', color: p.status === 'open' ? '#31A24C' : '#B0B3B8' }}>{p.status?.toUpperCase()}</span>
               </div>
               <div style={{ display: 'flex', gap: '24px', fontSize: '13px', color: '#B0B3B8', flexWrap: 'wrap' }}>
-                <span>📅 {formatDate(p.start_at)} — {formatDate(p.end_at)}</span>
-                {p.total_rake != null && <span style={{ color: '#F7C52A', fontWeight: 600 }}>💰 Rake: {fmtChips(p.total_rake)}</span>}
-                {p.total_commissions != null && <span style={{ color: '#31A24C', fontWeight: 600 }}>💸 Commissions: {fmtChips(p.total_commissions)}</span>}
-                {p.agents_paid != null && <span>👥 {p.agents_paid} agents paid</span>}
+                <span>📅 {formatDate(p.start_at)} — {p.status === 'open' ? 'Now' : formatDate(p.end_at)}</span>
+                {p.total_rake_collected != null && <span style={{ color: '#F7C52A', fontWeight: 600 }}>💰 Rake: {fmtChips(p.total_rake_collected)}</span>}
+                {p.totalCommissions != null && <span style={{ color: '#31A24C', fontWeight: 600 }}>💸 Commissions: {fmtChips(p.totalCommissions)}</span>}
+                {p.paidCount != null && <span>👥 {p.paidCount} paid / {p.pendingCount || 0} pending</span>}
               </div>
             </div>
           ))}
