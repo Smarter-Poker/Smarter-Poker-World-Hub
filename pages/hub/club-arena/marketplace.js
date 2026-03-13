@@ -150,7 +150,14 @@ export default function ClubArenaMarketplacePage() {
       <HubErrorBoundary name="Marketplace">
         <SEOHead title="Marketplace | Smarter.Poker" />
         <UniversalHeader />
-        <div className={s.container}><div className={s.loading}>Loading Marketplace...</div></div>
+        <div className={s.container}>
+          <div className={s.inner} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div className="ca-skeleton" style={{ height: '48px' }} />
+            <div style={{ display: 'flex', gap: '8px' }}>{[1,2].map(i => <div key={i} className="ca-skeleton" style={{ height: '36px', flex: 1 }} />)}</div>
+            <div className="ca-skeleton" style={{ height: '60px' }} />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>{[1,2,3,4,5,6].map(i => <div key={i} className="ca-skeleton ca-skeleton-card" />)}</div>
+          </div>
+        </div>
       </HubErrorBoundary>
     );
   }
