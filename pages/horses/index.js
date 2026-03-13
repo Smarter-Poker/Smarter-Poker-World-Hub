@@ -1032,6 +1032,40 @@ export default function HorsesAdmin() {
     }
   };
 
+  /** Launch or shutdown ENTIRE horse fleet via horse-launch API */
+  const handleFleetLaunch = async (fleetAction) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) { showNotification('Session expired.', 'error'); return; }
+
+      showNotification(fleetAction === 'launch_all' ? '🚀 Launching full fleet deployment...' : '⏹️ Shutting down fleet...', 'info');
+
+      const res = await fetch('/api/club-arena/horse-launch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ action: fleetAction }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        if (fleetAction === 'launch_all') {
+          showNotification(`🐎 Fleet deployed! ${data.cashTables} tables, ${data.tournaments} tournaments, ${data.sngs} SNGs, ${data.spins} Spins — ${data.cashSeats} seats filled`, 'success');
+        } else {
+          showNotification(`Fleet shutdown complete. ${data.horsesRemoved} horses removed.`, 'success');
+        }
+        broadcastUpdate('horses-grinder-updated');
+        // Refresh grinder data
+        const _c = new AbortController();
+        loadGrinderData(_c.signal);
+      } else {
+        showNotification(data.error || 'Fleet action failed', 'error');
+      }
+    } catch (err) {
+      console.error('Fleet launch error:', err);
+      showNotification('Network error during fleet launch', 'error');
+    }
+  };
+
   const handleGrinderAction = async (action, club) => {
     try {
       const {
