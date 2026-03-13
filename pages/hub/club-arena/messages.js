@@ -11,6 +11,7 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { apiCall, apiGet } from '../../../src/lib/club-arena/apiClient';
 import { eventBus } from '../../../src/engine/EventBus';
+import { createDebouncedHandler } from '../../../src/lib/club-arena/retryAsync';
 import s from '../../../src/styles/UnionDashboard.module.css';
 
 const formatTime = (ts) => {
@@ -132,13 +133,13 @@ export default function ClubArenaMessagesPage() {
     return () => clearInterval(pollRef.current);
   }, [clubId, loadMessages]);
 
-  // EventBus — instant refresh on relevant events
+  // EventBus — debounced refresh on relevant events
   useEffect(() => {
     if (!clubId) return;
-    const refresh = () => loadMessages(clubId);
+    const debouncedRefresh = createDebouncedHandler(() => loadMessages(clubId), 300);
     const events = ['ANNOUNCEMENT_CREATED', 'MESSAGE_RECEIVED', 'PLAYER_KICKED', 'MEMBER_UPDATED'];
-    events.forEach(ev => eventBus.on(ev, refresh));
-    return () => events.forEach(ev => eventBus.off(ev, refresh));
+    events.forEach(ev => eventBus.on(ev, debouncedRefresh));
+    return () => { debouncedRefresh.cancel(); events.forEach(ev => eventBus.off(ev, debouncedRefresh)); };
   }, [clubId, loadMessages]);
 
   // Send message (optimistic)
