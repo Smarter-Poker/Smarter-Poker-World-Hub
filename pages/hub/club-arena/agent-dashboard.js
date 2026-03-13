@@ -71,6 +71,12 @@ export default function AgentDashboardPage() {
   const [promoGrantAmount, setPromoGrantAmount] = useState('');
   const [transferNotes, setTransferNotes] = useState('');
 
+  // Credit management state (owner-only)
+  const [creditTarget, setCreditTarget] = useState('');
+  const [creditAction, setCreditAction] = useState('issue_credit');
+  const [creditAmount, setCreditAmount] = useState('');
+  const [creditNotes, setCreditNotes] = useState('');
+
   // Search / Filter
   const [playerSearch, setPlayerSearch] = useState('');
 
@@ -386,6 +392,7 @@ export default function AgentDashboardPage() {
               { id: 'score', label: '🎯 Score' },
               { id: 'analytics', label: 'Analytics' },
               ...(['owner', 'admin'].includes(role) ? [{ id: 'promo', label: '🎁 Promo' }] : []),
+              ...(['owner'].includes(role) ? [{ id: 'credit', label: '🏦 Credit' }] : []),
             ].map(t => (
               <button
                 key={t.id}
@@ -479,6 +486,7 @@ export default function AgentDashboardPage() {
                           <th>Amount</th>
                           <th>From / To</th>
                           <th>Time</th>
+                          <th></th>
                         </tr>
                       </thead>
                       <tbody>
@@ -488,6 +496,28 @@ export default function AgentDashboardPage() {
                             <td style={{ fontWeight: 600 }}>{fmtChips(tx.amount)}</td>
                             <td style={{ fontSize: '12px', color: '#B0B3B8' }}>{tx.from_user_id?.substring(0, 8) || '—'}.. → {tx.to_user_id?.substring(0, 8) || '—'}..</td>
                             <td style={{ fontSize: '12px', color: '#B0B3B8' }}>{timeAgo(tx.created_at)}</td>
+                            <td>
+                              {(tx.type === 'distribute' || tx.transaction_type === 'distribute') &&
+                                tx.created_at && (Date.now() - new Date(tx.created_at).getTime()) < 600000 && (
+                                <button
+                                  disabled={processing}
+                                  onClick={async () => {
+                                    if (!confirm('Clawback this distribution?')) return;
+                                    setProcessing(true);
+                                    try {
+                                      await apiCall('/api/club-arena/clawback-chips', { transactionId: tx.id, clubId });
+                                      setSuccess('Clawback successful!');
+                                      busEmit('CHIPS_DISTRIBUTED', { clubId });
+                                      loadDashboard(clubId);
+                                    } catch (err) { setError(err.message); }
+                                    finally { setProcessing(false); }
+                                  }}
+                                  style={{ fontSize: '10px', background: 'rgba(250,56,62,0.12)', color: '#FA383E', border: '1px solid rgba(250,56,62,0.25)', borderRadius: '5px', padding: '2px 8px', cursor: 'pointer', fontWeight: 600 }}
+                                >
+                                  ↩ Clawback
+                                </button>
+                              )}
+                            </td>
                           </tr>
                         ))}
                       </tbody>

@@ -70,6 +70,11 @@ export default function ClubArenaCashierPage() {
   const [rakebackLoaded, setRakebackLoaded] = useState(false);
   const [claiming, setClaiming] = useState(false);
 
+  // Distribute (admin/agent)
+  const [distUserId, setDistUserId] = useState('');
+  const [distAmount, setDistAmount] = useState('');
+  const [distNotes, setDistNotes] = useState('');
+
   const mountedRef = useRef(true);
   useEffect(() => () => { mountedRef.current = false; }, []);
 
@@ -292,6 +297,7 @@ export default function ClubArenaCashierPage() {
               { id: 'cashout', label: 'Cashout', badge: pendingCashouts.length || null },
               { id: 'history', label: 'History' },
               { id: 'rakeback', label: '🎁 Rakeback', badge: rakebackStatus?.pendingRakeback > 0 ? 1 : null },
+              ...(['owner', 'admin', 'agent', 'super_agent'].includes(role) ? [{ id: 'distribute', label: '💸 Distribute' }] : []),
             ].map(t => (
               <button key={t.id} className={`${s.tab} ${tab === t.id ? s.tabActive : ''}`} onClick={() => setTab(t.id)}>
                 {t.label}
@@ -635,6 +641,50 @@ export default function ClubArenaCashierPage() {
                 </>
               )}
             </>
+          )}
+
+          {/* ── Distribute Tab ──────────────────────────────── */}
+          {tab === 'distribute' && (
+            <div style={{ animation: 'fadeIn 0.2s ease-out' }}>
+              <div style={{ background: '#242526', borderRadius: '12px', padding: '20px', border: '1px solid #3A3B3C' }}>
+                <div style={{ fontSize: '16px', fontWeight: 700, color: '#E4E6EB', marginBottom: '16px' }}>💸 Distribute Chips to Player</div>
+                <div style={{ fontSize: '12px', color: '#B0B3B8', marginBottom: '16px', lineHeight: 1.5 }}>
+                  Send chips from the club treasury to a player. The player must be an active member of the club.
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', color: '#B0B3B8', marginBottom: '6px', fontWeight: 600 }}>Player User ID</label>
+                    <input value={distUserId} onChange={e => setDistUserId(e.target.value)}
+                      placeholder="UUID of the player" style={{ width: '100%', padding: '10px 12px', background: '#18191A', border: '1px solid #3A3B3C', borderRadius: '8px', color: '#E4E6EB', fontSize: '13px' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', color: '#B0B3B8', marginBottom: '6px', fontWeight: 600 }}>Amount</label>
+                    <input type="number" value={distAmount} onChange={e => setDistAmount(e.target.value)}
+                      placeholder="0" min="1" style={{ width: '100%', padding: '10px 12px', background: '#18191A', border: '1px solid #3A3B3C', borderRadius: '8px', color: '#E4E6EB', fontSize: '13px' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', color: '#B0B3B8', marginBottom: '6px', fontWeight: 600 }}>Notes (optional)</label>
+                    <input value={distNotes} onChange={e => setDistNotes(e.target.value)}
+                      placeholder="Reason for distribution..." style={{ width: '100%', padding: '10px 12px', background: '#18191A', border: '1px solid #3A3B3C', borderRadius: '8px', color: '#E4E6EB', fontSize: '13px' }} />
+                  </div>
+                  <button className={s.btnPrimary} disabled={processing || !distUserId || !distAmount}
+                    style={{ padding: '12px', marginTop: '4px' }}
+                    onClick={async () => {
+                      setProcessing(true); setError(null);
+                      try {
+                        await apiCall('/api/club-arena/distribute-chips', { clubId, toUserId: distUserId, amount: Number(distAmount), notes: distNotes || undefined });
+                        setSuccess(`Distributed ${fmtChips(distAmount)} chips!`);
+                        busEmit('CHIPS_DISTRIBUTED', { clubId });
+                        setDistUserId(''); setDistAmount(''); setDistNotes('');
+                        loadCashier(clubId);
+                      } catch (err) { setError(err.message); }
+                      finally { setProcessing(false); }
+                    }}>
+                    {processing ? 'Distributing...' : `Send ${distAmount ? fmtChips(distAmount) : '0'} chips`}
+                  </button>
+                </div>
+              </div>
+            </div>
           )}
 
         </div>
