@@ -11,6 +11,7 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { apiCall, apiGet } from '../../../src/lib/club-arena/apiClient';
 import { busEmit, eventBus } from '../../../src/engine/EventBus';
+import retryAsync, { createDebouncedHandler } from '../../../src/lib/club-arena/retryAsync';
 import s from '../../../src/styles/UnionDashboard.module.css';
 
 // ── Helpers ─────────────────────────────────────────────────
@@ -184,12 +185,13 @@ export default function ClubArenaCashierPage() {
     return () => { cancelled = true; };
   }, [tab, rakebackLoaded, clubId]);
 
-  // ── EventBus ───────────────────────────────────────────────
+  // ── EventBus (debounced) ───────────────────────────────────
   useEffect(() => {
-    const refresh = () => { if (clubId) loadCashier(clubId); };
-    const events = ['CASHOUT_APPROVED', 'CASHOUT_CANCELLED', 'CHIPS_DISTRIBUTED', 'BALANCE_UPDATED'];
-    events.forEach(ev => eventBus.on(ev, refresh));
-    return () => events.forEach(ev => eventBus.off(ev, refresh));
+    const debouncedRefresh = createDebouncedHandler(() => { if (clubId) loadCashier(clubId); }, 300);
+    const events = ['CASHOUT_APPROVED', 'CASHOUT_CANCELLED', 'CHIPS_DISTRIBUTED', 'BALANCE_UPDATED',
+      'CREDIT_UPDATED', 'RAKEBACK_CLAIMED', 'CASHIER_BALANCE_CHANGED'];
+    events.forEach(ev => eventBus.on(ev, debouncedRefresh));
+    return () => { debouncedRefresh.cancel(); events.forEach(ev => eventBus.off(ev, debouncedRefresh)); };
   }, [clubId, loadCashier]);
 
   // ── Actions ────────────────────────────────────────────────

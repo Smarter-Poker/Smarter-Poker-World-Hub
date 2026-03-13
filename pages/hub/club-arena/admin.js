@@ -11,6 +11,7 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { apiCall, apiGet } from '../../../src/lib/club-arena/apiClient';
 import { busEmit, eventBus } from '../../../src/engine/EventBus';
+import { createDebouncedHandler } from '../../../src/lib/club-arena/retryAsync';
 import s from '../../../src/styles/UnionDashboard.module.css';
 
 // ── Helpers ─────────────────────────────────────────────────
@@ -70,11 +71,13 @@ function DashboardTab({ clubId }) {
 
   useEffect(() => { load(); }, [load]);
 
-  // Bus listener for cross-page sync
+  // Bus listener for cross-page sync (debounced)
   useEffect(() => {
-    const events = ['TABLE_CREATED', 'CHIPS_DISTRIBUTED', 'AGENT_UPDATED', 'ANNOUNCEMENT_CREATED', 'CASHOUT_REQUESTED', 'CASHOUT_APPROVED'];
-    events.forEach(ev => eventBus.on(ev, load));
-    return () => events.forEach(ev => eventBus.off(ev, load));
+    const debouncedLoad = createDebouncedHandler(load, 300);
+    const events = ['TABLE_CREATED', 'CHIPS_DISTRIBUTED', 'AGENT_UPDATED', 'ANNOUNCEMENT_CREATED',
+      'CLUB_UPDATED', 'SETTINGS_CHANGED', 'CREDIT_UPDATED'];
+    events.forEach(ev => eventBus.on(ev, debouncedLoad));
+    return () => { debouncedLoad.cancel(); events.forEach(ev => eventBus.off(ev, debouncedLoad)); };
   }, [load]);
 
   if (loading) return (
