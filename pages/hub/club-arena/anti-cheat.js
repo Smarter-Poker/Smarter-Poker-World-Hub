@@ -214,7 +214,7 @@ export default function ClubArenaAntiCheatPage() {
     })();
 
     return () => { cancelled = true; };
-  }, [router.query.club, router.query.clubId]);
+  }, [router.query.club, router.query.clubId, loadStats]);
 
   // ── Lazy Tab Loading ───────────────────────────────────────
   useEffect(() => {
@@ -228,7 +228,17 @@ export default function ClubArenaAntiCheatPage() {
   // ── Reload flags when filter changes ───────────────────────
   useEffect(() => {
     if (flagsLoaded && clubId) loadFlags(flagFilter);
-  }, [flagFilter]);
+  }, [flagFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── EventBus Listeners ─────────────────────────────────
+  useEffect(() => {
+    if (!clubId) return;
+    const unsubs = [
+      eventBus.on('ANTI_CHEAT_FLAG_CREATED', () => { loadStats(clubId); setFlagsLoaded(false); }),
+      eventBus.on('PLAYER_KICKED', () => { loadStats(clubId); }),
+    ];
+    return () => unsubs.forEach(u => u?.());
+  }, [clubId, loadStats]);
 
   // ── Actions ────────────────────────────────────────────────
   const reviewFlag = async () => {
