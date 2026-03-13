@@ -4942,7 +4942,7 @@ function SocialMediaPage() {
 
 
             // Define Supabase credentials for native fetch (needed for both posts and profiles)
-            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '${process.env.NEXT_PUBLIC_SUPABASE_URL}';
+            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
             const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
             // Use native fetch directly to Supabase REST API

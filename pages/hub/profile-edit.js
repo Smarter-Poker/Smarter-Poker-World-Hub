@@ -337,7 +337,7 @@ export default function ProfilePage() {
                     setUser(authUser);
                     // Fetch profile using native fetch to avoid AbortError
                     try {
-                        const supabaseUrl = '${process.env.NEXT_PUBLIC_SUPABASE_URL}';
+                        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
                         const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
                         const response = await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${authUser.id}&select=*`, {

@@ -166,7 +166,8 @@ export default function ClubArenaPlayerStatsPage() {
       const { supabase } = await import('../../../src/lib/supabase');
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        setLoading(true);
+        // Only show loading skeleton on initial load (no existing data)
+        if (!stats) setLoading(true);
         setError(null);
         // Re-run the whole init logic for this user in this club
         const { data: membership } = await supabase.from('club_members').select('chip_balance, role, joined_at').eq('club_id', clubId).eq('user_id', session.user.id).maybeSingle();
@@ -187,7 +188,7 @@ export default function ClubArenaPlayerStatsPage() {
     } catch (err) {
       if (mountedRef.current) { setError(err.message); setLoading(false); }
     }
-  }, [clubId]);
+  }, [clubId, stats]);
 
   // Auto-refresh on visibilitychange
   useEffect(() => {

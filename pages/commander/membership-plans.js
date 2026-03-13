@@ -358,7 +358,7 @@ export default function MembershipPlansPage() {
             {/* Full-width background image — click detection via JS */}
             <img
               ref={imgRef}
-              src="${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/media/commander/membership-plans-bg-user-clean.jpg"
+              src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/media/commander/membership-plans-bg-user-clean.jpg`}
               alt="Membership Plans"
               className="mp-bg-img"
               draggable={false}
