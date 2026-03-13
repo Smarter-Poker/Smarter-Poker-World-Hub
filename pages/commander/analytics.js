@@ -148,8 +148,8 @@ export default function AnalyticsPage() {
       const staffSession = localStorage.getItem('commander_staff') || '';
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
       const [dailyRes, playersRes] = await Promise.all([
-        fetch(`/api/commander/analytics/daily?venue_id=${venueId}&days=${periodDays * 2}`, { headers }),
-        fetch(`/api/commander/analytics/players?venue_id=${venueId}&limit=10`, { headers })
+        fetch(`/api/commander/analytics/daily?venue_id=${venueId}&days=${periodDays * 2}`, { headers }).catch(() => ({ ok: false })),
+        fetch(`/api/commander/analytics/players?venue_id=${venueId}&limit=10`, { headers }).catch(() => ({ ok: false }))
       ]);
 
       if (!dailyRes.ok) throw new Error(`Request failed (${dailyRes.status})`);

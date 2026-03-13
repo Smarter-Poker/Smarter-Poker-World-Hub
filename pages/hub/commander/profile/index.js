@@ -83,8 +83,8 @@ export default function PlayerProfilePage() {
     if (!token) return null;
     const h = { Authorization: `Bearer ${token}` };
     const [profileRes, statsRes] = await Promise.all([
-      fetch('/api/commander/profile', { headers: h }),
-      fetch('/api/commander/profile/stats', { headers: h })
+      fetch('/api/commander/profile', { headers: h }).catch(() => ({ ok: false })),
+      fetch('/api/commander/profile/stats', { headers: h }).catch(() => ({ ok: false }))
     ]);
     if (!profileRes.ok) throw new Error(`Request failed (${profileRes.status})`);
     const [profileData, statsData] = await Promise.all([profileRes.json(), statsRes.json()]);

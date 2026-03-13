@@ -99,8 +99,8 @@ export default function TournamentDetailPage() {
       const headers = { 'x-staff-session': staffSession };
       const fo = signal ? { headers, signal } : { headers };
       const [tournamentRes, entriesRes] = await Promise.all([
-        fetch(`/api/commander/tournaments/${id}`, fo),
-        fetch(`/api/commander/tournaments/${id}/entries`, fo)
+        fetch(`/api/commander/tournaments/${id}`, fo).catch(() => ({ ok: false })),
+        fetch(`/api/commander/tournaments/${id}/entries`, fo).catch(() => ({ ok: false }))
       ]);
 
       if (!tournamentRes.ok) throw new Error(`Request failed (${tournamentRes.status})`);

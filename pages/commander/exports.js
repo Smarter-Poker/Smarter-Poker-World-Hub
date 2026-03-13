@@ -54,8 +54,8 @@ export default function ExportsHub() {
     try {
       const headers = { Authorization: `Bearer ${getToken()}` };
       const [expRes, tRes] = await Promise.all([
-        fetch(`/api/commander/exports?venue_id=${venueId}`, { headers }),
-        fetch(`/api/commander/tournaments?venue_id=${venueId}&status=completed&limit=20`, { headers }),
+        fetch(`/api/commander/exports?venue_id=${venueId}`, { headers }).catch(() => ({ ok: false })),
+        fetch(`/api/commander/tournaments?venue_id=${venueId}&status=completed&limit=20`, { headers }).catch(() => ({ ok: false })),
       ]);
       const expJson = await expRes.json().catch(() => ({ exports: [] }));
       const tJson = await tRes.json().catch(() => ({ data: [] }));

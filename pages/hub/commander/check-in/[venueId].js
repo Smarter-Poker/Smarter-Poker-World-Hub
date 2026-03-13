@@ -52,9 +52,9 @@ export default function PlayerCheckInPage() {
   async function fetchVenueData(signal) {
     try {
       const [venueRes, gamesRes, promosRes] = await Promise.all([
-        fetch(`/api/commander/venues/${venueId}`),
-        fetch(`/api/commander/games/venue/${venueId}`),
-        fetch(`/api/commander/promotions?venue_id=${venueId}&active=true`)
+        fetch(`/api/commander/venues/${venueId}`).catch(() => ({ ok: false })),
+        fetch(`/api/commander/games/venue/${venueId}`).catch(() => ({ ok: false })),
+        fetch(`/api/commander/promotions?venue_id=${venueId}&active=true`).catch(() => ({ ok: false }))
       ]);
 
       if (!venueRes.ok) throw new Error(`Request failed (${venueRes.status})`);

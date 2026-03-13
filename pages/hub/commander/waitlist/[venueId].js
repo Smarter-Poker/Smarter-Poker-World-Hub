@@ -42,8 +42,8 @@ export default function PlayerWaitlistPage() {
     try {
       const fetchOpts = signal ? { signal } : {};
       const [publicRes, waitlistRes] = await Promise.all([
-        fetch(`/api/public/venue/${venueId}`, fetchOpts),
-        fetch(`/api/commander/waitlist/venue/${venueId}`, fetchOpts)
+        fetch(`/api/public/venue/${venueId}`, fetchOpts).catch(() => ({ ok: false })),
+        fetch(`/api/commander/waitlist/venue/${venueId}`, fetchOpts).catch(() => ({ ok: false }))
       ]);
 
       const [publicData, waitlistData] = await Promise.all([

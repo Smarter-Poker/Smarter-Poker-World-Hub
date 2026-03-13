@@ -45,8 +45,8 @@ export default function TournamentRegisterPage() {
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
       const [tournamentRes, entriesRes] = await Promise.all([
-        fetch(`/api/commander/tournaments/${id}`, { headers }),
-        fetch(`/api/commander/tournaments/${id}/entries?check_my_entry=true`, { headers })
+        fetch(`/api/commander/tournaments/${id}`, { headers }).catch(() => ({ ok: false })),
+        fetch(`/api/commander/tournaments/${id}/entries?check_my_entry=true`, { headers }).catch(() => ({ ok: false }))
       ]);
 
       const [tournamentData, entriesData] = await Promise.all([

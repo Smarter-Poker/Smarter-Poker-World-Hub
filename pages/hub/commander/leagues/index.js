@@ -111,8 +111,8 @@ export default function LeaguesPage() {
   const { data: swrData, isLoading: loading, mutate: refreshLeagues } = useSWR('/api/commander/leagues', async () => {
     const token = getAccessToken();
     const [allRes, myRes] = await Promise.all([
-      fetch('/api/commander/leagues'),
-      token ? fetch('/api/commander/leagues/my', { headers: { Authorization: `Bearer ${token}` } })
+      fetch('/api/commander/leagues').catch(() => ({ ok: false })),
+      token ? fetch('/api/commander/leagues/my', { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ ok: false }))
         : Promise.resolve({ json: () => ({ success: false }) })
     ]);
     if (!allRes.ok) throw new Error(`Request failed (${allRes.status})`);

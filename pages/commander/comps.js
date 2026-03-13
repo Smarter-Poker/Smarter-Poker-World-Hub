@@ -151,8 +151,8 @@ export default function CompSystem() {
 
       if (tab === 'dashboard') {
         const [membersRes, logRes] = await Promise.all([
-          fetch(`/api/commander/members?venue_id=${venueId}&has_comps=true&limit=100`, { headers }),
-          fetch(`/api/commander/comps/balances?venue_id=${venueId}&history=true`, { headers })
+          fetch(`/api/commander/members?venue_id=${venueId}&has_comps=true&limit=100`, { headers }).catch(() => ({ ok: false })),
+          fetch(`/api/commander/comps/balances?venue_id=${venueId}&history=true`, { headers }).catch(() => ({ ok: false }))
         ]);
         if (!membersRes.ok) throw new Error(`Request failed (${membersRes.status})`);
         const membersJson = await membersRes.json();

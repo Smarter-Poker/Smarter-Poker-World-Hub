@@ -530,8 +530,8 @@ export default function MyVenuesPage() {
         token ? ['/api/employee/venues', token] : null,
         async ([url, tok]) => {
             const [venueRes, emailRes] = await Promise.all([
-                fetch(url, { headers: { Authorization: `Bearer ${tok}` } }).then(r => r.json()),
-                fetch('/api/employee/link-by-email', { headers: { Authorization: `Bearer ${tok}` } }).then(r => r.json()),
+                fetch(url, { headers: { Authorization: `Bearer ${tok}` } }).catch(() => ({ ok: false })).then(r => r.json()),
+                fetch('/api/employee/link-by-email', { headers: { Authorization: `Bearer ${tok}` } }).catch(() => ({ ok: false })).then(r => r.json()),
             ]);
             if (emailRes.success) setEmailMatches(emailRes.data.matches || []);
             return venueRes.success ? (venueRes.data.venues || []) : [];

@@ -135,10 +135,10 @@ export default function TourDetailPage() {
   const swrKey = code ? `/api/poker/tours?tour_code=${encodeURIComponent(code)}&include_series=true` : null;
   const { data: swrData, isLoading: loading, error } = useSWR(swrKey, async () => {
     const [tourRes, activityRes, resultsRes, followRes] = await Promise.all([
-      fetch('/api/poker/tours?tour_code=' + encodeURIComponent(code) + '&include_series=true'),
-      fetch('/api/poker/activity?page_type=tour&page_id=' + encodeURIComponent(code) + '&limit=10'),
-      fetch('/api/poker/results?tour_code=' + encodeURIComponent(code) + '&limit=10'),
-      fetch('/api/poker/follow?page_type=tour&page_id=' + encodeURIComponent(code))
+      fetch('/api/poker/tours?tour_code=' + encodeURIComponent(code) + '&include_series=true').catch(() => ({ ok: false })),
+      fetch('/api/poker/activity?page_type=tour&page_id=' + encodeURIComponent(code) + '&limit=10').catch(() => ({ ok: false })),
+      fetch('/api/poker/results?tour_code=' + encodeURIComponent(code) + '&limit=10').catch(() => ({ ok: false })),
+      fetch('/api/poker/follow?page_type=tour&page_id=' + encodeURIComponent(code)).catch(() => ({ ok: false }))
     ]);
     if (!tourRes.ok) throw new Error(`Request failed (${tourRes.status})`);
     const [tj, aj, rj, fj] = await Promise.all([tourRes.json(), activityRes.json(), resultsRes.json(), followRes.json()]);

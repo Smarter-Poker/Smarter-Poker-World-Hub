@@ -62,11 +62,11 @@ export default function VenueDetailPage() {
 
     try {
       const [venueRes, gamesRes, promosRes, reviewsRes, liveGamesRes] = await Promise.all([
-        fetch(`/api/commander/venues/${id}`),
-        fetch(`/api/commander/games/venue/${id}`),
-        fetch(`/api/commander/promotions?venue_id=${id}&active=true`),
-        fetch(`/api/commander/venues/${id}/reviews?limit=10`),
-        fetch(`/api/commander/games/live?venue_id=${id}`)
+        fetch(`/api/commander/venues/${id}`).catch(() => ({ ok: false })),
+        fetch(`/api/commander/games/venue/${id}`).catch(() => ({ ok: false })),
+        fetch(`/api/commander/promotions?venue_id=${id}&active=true`).catch(() => ({ ok: false })),
+        fetch(`/api/commander/venues/${id}/reviews?limit=10`).catch(() => ({ ok: false })),
+        fetch(`/api/commander/games/live?venue_id=${id}`).catch(() => ({ ok: false }))
       ]);
 
       if (!venueRes.ok) throw new Error(`Request failed (${venueRes.status})`);

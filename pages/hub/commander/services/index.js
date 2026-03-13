@@ -310,8 +310,8 @@ export default function ServicesPage() {
     if (!token) return null;
     const h = { Authorization: `Bearer ${token}` };
     const [sessRes, reqRes] = await Promise.all([
-      fetch('/api/commander/sessions/current', { headers: h }),
-      fetch('/api/commander/services/my', { headers: h })
+      fetch('/api/commander/sessions/current', { headers: h }).catch(() => ({ ok: false })),
+      fetch('/api/commander/services/my', { headers: h }).catch(() => ({ ok: false }))
     ]);
     if (!sessRes.ok) throw new Error(`Request failed (${sessRes.status})`);
     const [sd, rd] = await Promise.all([sessRes.json(), reqRes.json()]);

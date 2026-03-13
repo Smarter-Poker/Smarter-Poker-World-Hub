@@ -29,8 +29,8 @@ export default function PlayerActivityReport() {
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       const headers = { Authorization: `Bearer ${token}` };
       const [membersRes, sessionsRes] = await Promise.all([
-        fetch(`/api/commander/members?sort=${sortBy}&limit=100`, { headers }),
-        fetch('/api/commander/time-billing/sessions?limit=200&status=all', { headers })
+        fetch(`/api/commander/members?sort=${sortBy}&limit=100`, { headers }).catch(() => ({ ok: false })),
+        fetch('/api/commander/time-billing/sessions?limit=200&status=all', { headers }).catch(() => ({ ok: false }))
       ]);
       if (!membersRes.ok) throw new Error(`Request failed (${membersRes.status})`);
       const [membersJson, sessionsJson] = await Promise.all([membersRes.json(), sessionsRes.json()]);

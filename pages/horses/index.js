@@ -559,8 +559,8 @@ export default function HorsesAdmin() {
       if (!session?.access_token) return;
       const headers = { Authorization: `Bearer ${session.access_token}` };
       const [summaryRes, missedRes] = await Promise.all([
-        fetch('/api/geeves/analytics?action=summary', { headers }),
-        fetch('/api/geeves/analytics?action=top_missed', { headers }),
+        fetch('/api/geeves/analytics?action=summary', { headers }).catch(() => ({ ok: false })),
+        fetch('/api/geeves/analytics?action=top_missed', { headers }).catch(() => ({ ok: false })),
       ]);
       if (!summaryRes.ok) throw new Error(`Request failed (${summaryRes.status})`);
       const [summaryData, missedData] = await Promise.all([summaryRes.json(), missedRes.json()]);

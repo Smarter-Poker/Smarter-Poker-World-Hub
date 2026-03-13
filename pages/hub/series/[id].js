@@ -154,10 +154,10 @@ export default function SeriesDetailPage() {
   const swrKey = id ? `/api/poker/series?id=${id}` : null;
   const { data: swrData, isLoading: loading, error } = useSWR(swrKey, async () => {
     const [seriesRes, resultsRes, followRes, activityRes] = await Promise.all([
-      fetch('/api/poker/series?id=' + id),
-      fetch('/api/poker/results?series_id=' + id),
-      fetch('/api/poker/follow?page_type=series&page_id=' + id),
-      fetch('/api/poker/activity?page_type=series&page_id=' + id + '&limit=10')
+      fetch('/api/poker/series?id=' + id).catch(() => ({ ok: false })),
+      fetch('/api/poker/results?series_id=' + id).catch(() => ({ ok: false })),
+      fetch('/api/poker/follow?page_type=series&page_id=' + id).catch(() => ({ ok: false })),
+      fetch('/api/poker/activity?page_type=series&page_id=' + id + '&limit=10').catch(() => ({ ok: false }))
     ]);
     if (!seriesRes.ok) throw new Error(`Request failed (${seriesRes.status})`);
     const [sj, rj, fj, aj] = await Promise.all([seriesRes.json(), resultsRes.json(), followRes.json(), activityRes.json()]);

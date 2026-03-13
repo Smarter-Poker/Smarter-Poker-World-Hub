@@ -68,10 +68,10 @@ export default function LeaderboardPage() {
   const swrKey = venueId ? `/api/commander/leaderboards/${venueId}?metric=${metric}&period=${period}` : null;
   const { data: swrData, isLoading: loading, mutate: refreshLeaderboard } = useSWR(swrKey, async () => {
     const [leaderboardRes, promosRes, venueRes, listRes] = await Promise.all([
-      fetch(`/api/commander/leaderboards/${venueId}?metric=${metric}&period=${period}`),
-      fetch(`/api/commander/promotions?venue_id=${venueId}&active=true`),
-      fetch(`/api/commander/venues/${venueId}`),
-      fetch(`/api/commander/leaderboards?venue_id=${venueId}&status=active`)
+      fetch(`/api/commander/leaderboards/${venueId}?metric=${metric}&period=${period}`).catch(() => ({ ok: false })),
+      fetch(`/api/commander/promotions?venue_id=${venueId}&active=true`).catch(() => ({ ok: false })),
+      fetch(`/api/commander/venues/${venueId}`).catch(() => ({ ok: false })),
+      fetch(`/api/commander/leaderboards?venue_id=${venueId}&status=active`).catch(() => ({ ok: false }))
     ]);
     if (!leaderboardRes.ok) throw new Error(`Request failed (${leaderboardRes.status})`);
     const [lb, pr, vn, ls] = await Promise.all([leaderboardRes.json(), promosRes.json(), venueRes.json(), listRes.json()]);

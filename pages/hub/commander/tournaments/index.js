@@ -128,8 +128,8 @@ export default function PlayerTournamentsHub() {
   const { data: swrData, isLoading, mutate: refreshTournaments } = useSWR('/api/commander/tournaments?status=active', async (url) => {
     const token = getAccessToken();
     const [tourRes, myRes] = await Promise.all([
-      fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} }),
-      token ? fetch('/api/commander/tournaments/my', { headers: { Authorization: `Bearer ${token}` } })
+      fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} }).catch(() => ({ ok: false })),
+      token ? fetch('/api/commander/tournaments/my', { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ ok: false }))
              : Promise.resolve({ json: () => ({ registrations: [] }) })
     ]);
     if (!tourRes.ok) throw new Error(`Request failed (${tourRes.status})`);

@@ -99,8 +99,8 @@ export default function ResponsibleGamingPage() {
       if (!token) return null;
       const h = { Authorization: `Bearer ${token}` };
       const [limRes, exRes] = await Promise.all([
-        fetch(url, { headers: h }),
-        fetch('/api/commander/responsible-gaming/exclusion', { headers: h })
+        fetch(url, { headers: h }).catch(() => ({ ok: false })),
+        fetch('/api/commander/responsible-gaming/exclusion', { headers: h }).catch(() => ({ ok: false }))
       ]);
       if (!limRes.ok) throw new Error(`Request failed (${limRes.status})`);
       const [limData, exData] = await Promise.all([limRes.json(), exRes.json()]);

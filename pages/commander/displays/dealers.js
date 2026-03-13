@@ -23,8 +23,8 @@ export default function DealerRotationDisplay() {
   const fetchData = useCallback(async () => {
     try {
       const [dealerRes, rotRes] = await Promise.all([
-        fetch('/api/commander/dealers'),
-        fetch('/api/commander/dealers/rotations')
+        fetch('/api/commander/dealers').catch(() => ({ ok: false })),
+        fetch('/api/commander/dealers/rotations').catch(() => ({ ok: false }))
       ]);
       if (!dealerRes.ok) throw new Error(`Request failed (${dealerRes.status})`);
       const dealerJson = await dealerRes.json();

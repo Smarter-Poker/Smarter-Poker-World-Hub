@@ -41,9 +41,9 @@ export default function VenueDetail() {
     try {
       const fo = signal ? { signal } : {};
       const [venueRes, gamesRes, waitlistRes] = await Promise.all([
-        fetch(`/api/commander/venues/${id}`, fo),
-        fetch(`/api/commander/games/venue/${id}`, fo),
-        fetch(`/api/commander/waitlist/venue/${id}`, fo)
+        fetch(`/api/commander/venues/${id}`, fo).catch(() => ({ ok: false })),
+        fetch(`/api/commander/games/venue/${id}`, fo).catch(() => ({ ok: false })),
+        fetch(`/api/commander/waitlist/venue/${id}`, fo).catch(() => ({ ok: false }))
       ]);
 
       const [venueData, gamesData, waitlistData] = await Promise.all([

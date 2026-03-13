@@ -148,9 +148,9 @@ export default function DailyPresetsPage() {
       const stored = JSON.parse(localStorage.getItem('commander_staff') || '{}');
       const venueId = stored.venue_id;
       const [presetsRes, typesRes, promosRes] = await Promise.all([
-        fetch(`/api/commander/room-presets?venue_id=${venueId}`, { headers }),
-        fetch(`/api/commander/game-types?venue_id=${venueId}`, { headers }),
-        fetch(`/api/commander/promotions?venue_id=${venueId}&status=all`, { headers })
+        fetch(`/api/commander/room-presets?venue_id=${venueId}`, { headers }).catch(() => ({ ok: false })),
+        fetch(`/api/commander/game-types?venue_id=${venueId}`, { headers }).catch(() => ({ ok: false })),
+        fetch(`/api/commander/promotions?venue_id=${venueId}&status=all`, { headers }).catch(() => ({ ok: false }))
       ]);
       const [presetsJson, typesJson, promosJson] = await Promise.all([
         presetsRes.json(), typesRes.json(), promosRes.json()

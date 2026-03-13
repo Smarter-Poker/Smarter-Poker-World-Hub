@@ -290,9 +290,9 @@ export default function VenueDetailPage() {
   const swrKey = id ? `/api/poker/venues?id=${id}` : null;
   const { data: swrData, isLoading: loading, error } = useSWR(swrKey, async () => {
     const [venueRes, followRes, socialRes] = await Promise.all([
-      fetch('/api/poker/venues?id=' + id),
-      fetch('/api/poker/follow?page_type=venue&page_id=' + id),
-      fetch('/api/social/pages?linked_venue_id=' + String(id) + '&limit=1')
+      fetch('/api/poker/venues?id=' + id).catch(() => ({ ok: false })),
+      fetch('/api/poker/follow?page_type=venue&page_id=' + id).catch(() => ({ ok: false })),
+      fetch('/api/social/pages?linked_venue_id=' + String(id) + '&limit=1').catch(() => ({ ok: false }))
     ]);
     if (!venueRes.ok) throw new Error(`Request failed (${venueRes.status})`);
     const [vj, fj, sj] = await Promise.all([venueRes.json(), followRes.json(), socialRes.json()]);

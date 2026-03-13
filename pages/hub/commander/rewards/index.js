@@ -103,9 +103,9 @@ export default function PlayerRewardsPage() {
     if (!token) return null;
     const h = { Authorization: `Bearer ${token}` };
     const [balRes, txRes, rateRes] = await Promise.all([
-      fetch('/api/commander/comps/balances', { headers: h }),
-      fetch('/api/commander/comps/transactions?limit=20', { headers: h }),
-      fetch('/api/commander/comps/rates', { headers: h })
+      fetch('/api/commander/comps/balances', { headers: h }).catch(() => ({ ok: false })),
+      fetch('/api/commander/comps/transactions?limit=20', { headers: h }).catch(() => ({ ok: false })),
+      fetch('/api/commander/comps/rates', { headers: h }).catch(() => ({ ok: false }))
     ]);
     if (!balRes.ok) throw new Error(`Request failed (${balRes.status})`);
     const [bal, tx, rates] = await Promise.all([balRes.json(), txRes.json(), rateRes.json()]);

@@ -98,8 +98,8 @@ export default function LeagueDetailPage() {
     const token = getAccessToken();
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     const [leagueRes, standingsRes] = await Promise.all([
-      fetch(`/api/commander/leagues/${id}`, { headers }),
-      fetch(`/api/commander/leagues/${id}/standings`, { headers })
+      fetch(`/api/commander/leagues/${id}`, { headers }).catch(() => ({ ok: false })),
+      fetch(`/api/commander/leagues/${id}/standings`, { headers }).catch(() => ({ ok: false }))
     ]);
     if (!leagueRes.ok) throw new Error(`Request failed (${leagueRes.status})`);
     const [leagueData, standingsData] = await Promise.all([leagueRes.json(), standingsRes.json()]);
