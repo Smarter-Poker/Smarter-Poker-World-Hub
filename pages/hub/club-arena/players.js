@@ -91,16 +91,36 @@ export default function ClubArenaPlayersPage() {
       if (!targetClubId) { setError('No club selected.'); setLoading(false); return; }
       const res = await apiGet(`/api/club-arena/player-sessions?clubId=${targetClubId}`);
       if (mountedRef.current) {
-        setSessions(res.sessions || []);
+        const sessionData = res.sessions || [];
+        setSessions(sessionData);
         setSummary(res.summary || null);
         setTables(res.tables || []);
+
+        // Load notes for all players in one batch
+        if (!notesLoaded && sessionData.length > 0) {
+          try {
+            const userIds = [...new Set(sessionData.map(s => s.userId).filter(Boolean))];
+            if (userIds.length > 0) {
+              const notesRes = await apiCall('/api/club-arena/player-notes', { action: 'get_bulk', targetUserIds: userIds });
+              if (mountedRef.current) {
+                setNotes(notesRes.notes || {});
+                setNotesLoaded(true);
+              }
+            } else {
+              setNotesLoaded(true);
+            }
+          } catch (err) {
+            console.warn('[Players] Notes bulk load failed:', err.message);
+            if (mountedRef.current) setNotesLoaded(true);
+          }
+        }
       }
     } catch (err) {
       if (mountedRef.current) setError(err.message);
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, [clubId]);
+  }, [clubId, notesLoaded]);
 
   // ── Load Retention (Lazy) ─────────────────────────────────
   const loadRetention = useCallback(async (force) => {
