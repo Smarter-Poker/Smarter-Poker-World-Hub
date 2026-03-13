@@ -399,7 +399,6 @@ export default function PromotionsPage() {
         alert(data.error || 'Failed to seed promos');
       }
     } catch (err) { console.error('Seed promos error:', err); alert('Failed to seed promos'); }
-    setPromoCodesLoading(false);
     finally { setSeedingPromos(false); }
   };
 
@@ -413,7 +412,6 @@ export default function PromotionsPage() {
       });
       if (res.ok) fetchPromoCodes();
     } catch (err) { console.error('Toggle promo code error:', err); alert('Action failed: Toggle promo code. Please try again.'); }
-  setPromoCodesLoading(false);
   };
 
   const deletePromoCode = async (code) => {

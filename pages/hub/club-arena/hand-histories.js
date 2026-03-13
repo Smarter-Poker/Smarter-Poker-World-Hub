@@ -12,6 +12,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { apiGet } from '../../../src/lib/club-arena/apiClient';
 import dynamic from 'next/dynamic';
 import s from '../../../src/styles/UnionDashboard.module.css';
+import '../../../src/styles/worlds/club-arena.css';
 
 // SSG-safe: load HandReplayerModal only on client side
 const HandReplayerModal = dynamic(
@@ -54,6 +55,8 @@ export default function ClubArenaHandHistoriesPage() {
   const [data, setData] = useState({ hands: [], total: 0, page: 1, totalPages: 1 });
   const [page, setPage] = useState(1);
   const [activeHandId, setActiveHandId] = useState(null);
+  const [filterTable, setFilterTable] = useState('');
+  const [filterMinPot, setFilterMinPot] = useState('');
 
   const mountedRef = useRef(true);
   useEffect(() => () => { mountedRef.current = false; }, []);
@@ -156,6 +159,15 @@ export default function ClubArenaHandHistoriesPage() {
 
               {/* Body */}
               <div className={s.section}>
+                {/* Filters */}
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
+                  <input value={filterTable} onChange={e => setFilterTable(e.target.value)} placeholder="Filter by table..." style={{ flex: '1 1 150px', padding: '8px 12px', background: '#3A3B3C', border: '1px solid #4A4B4C', borderRadius: '8px', color: '#E4E6EB', fontSize: '13px', outline: 'none' }} />
+                  <input value={filterMinPot} onChange={e => setFilterMinPot(e.target.value.replace(/\D/g, ''))} placeholder="Min pot..." style={{ width: '100px', padding: '8px 12px', background: '#3A3B3C', border: '1px solid #4A4B4C', borderRadius: '8px', color: '#E4E6EB', fontSize: '13px', outline: 'none' }} />
+                  {(filterTable || filterMinPot) && (
+                    <button onClick={() => { setFilterTable(''); setFilterMinPot(''); }} className={s.btnGhost} style={{ fontSize: '12px', padding: '6px 12px' }}>✕ Clear</button>
+                  )}
+                </div>
+
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                   <h3 style={{ margin: 0, fontSize: '16px' }}>Recent Hands ({data.total})</h3>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -166,7 +178,9 @@ export default function ClubArenaHandHistoriesPage() {
                 </div>
 
                 {loading && data.hands.length === 0 ? (
-                  <div className={s.loading}>Loading Hand Histories...</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {[1,2,3,4,5].map(i => <div key={i} className="ca-skeleton" style={{ height: '48px' }} />)}
+                  </div>
                 ) : data.hands.length === 0 ? (
                   <div className={s.emptyState}>
                     <span className={s.emptyIcon}>🎬</span>
@@ -175,7 +189,19 @@ export default function ClubArenaHandHistoriesPage() {
                       <button className={s.btnPrimary} style={{ padding: '8px 20px', fontSize: '13px' }}>🏠 Join a Table</button>
                     </Link>
                   </div>
-                ) : (
+                ) : (() => {
+                  // Apply client-side filters
+                  const filtered = data.hands.filter(h => {
+                    if (filterTable && !(h.tableName || '').toLowerCase().includes(filterTable.toLowerCase())) return false;
+                    if (filterMinPot && Number(h.pot_total || 0) < Number(filterMinPot)) return false;
+                    return true;
+                  });
+                  return filtered.length === 0 && (filterTable || filterMinPot) ? (
+                    <div className={s.emptyState}>
+                      <span className={s.emptyIcon}>🔍</span>
+                      <span className={s.emptyText}>No hands match your filters.</span>
+                    </div>
+                  ) : (
                   <div className={s.tableScroll}>
                     <table className={s.dataTable}>
                       <thead>
@@ -188,7 +214,7 @@ export default function ClubArenaHandHistoriesPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {data.hands.map(h => (
+                        {filtered.map(h => (
                           <tr key={h.id} style={{ transition: 'background 0.2s' }}>
                             <td style={{ color: '#B0B3B8', fontFamily: 'monospace' }}>#{h.hand_number || h.hand_id?.split('-')[1]?.substring(0,4) || '?'}</td>
                             <td style={{ fontWeight: 600 }}>{h.tableName}</td>
@@ -208,7 +234,8 @@ export default function ClubArenaHandHistoriesPage() {
                       </tbody>
                     </table>
                   </div>
-                )}
+                  );
+                })()}
               </div>
 
               {/* Replayer Modal */}

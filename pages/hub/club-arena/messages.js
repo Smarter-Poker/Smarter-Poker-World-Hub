@@ -11,6 +11,7 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { apiCall, apiGet } from '../../../src/lib/club-arena/apiClient';
 import s from '../../../src/styles/UnionDashboard.module.css';
+import '../../../src/styles/worlds/club-arena.css';
 
 const formatTime = (ts) => {
   if (!ts) return '';
@@ -168,7 +169,13 @@ export default function ClubArenaMessagesPage() {
       <HubErrorBoundary name="Messages">
         <SEOHead title="Messages | Smarter.Poker" />
         <UniversalHeader />
-        <div className={s.container}><div className={s.loading}>Connecting to Chat...</div></div>
+        <div className={s.container}>
+          <div className={s.inner} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div className="ca-skeleton" style={{ height: '48px' }} />
+            <div className="ca-skeleton" style={{ height: 'calc(100vh - 280px)', minHeight: '300px' }} />
+            <div className="ca-skeleton" style={{ height: '52px' }} />
+          </div>
+        </div>
       </HubErrorBoundary>
     );
   }

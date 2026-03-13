@@ -11,6 +11,7 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { apiCall } from '../../../src/lib/club-arena/apiClient';
 import s from '../../../src/styles/UnionDashboard.module.css';
+import '../../../src/styles/worlds/club-arena.css';
 
 const fmt = (n) => Number(n || 0).toLocaleString();
 const fmtChips = (n) => {
@@ -175,7 +176,15 @@ export default function ClubArenaXMTTPage() {
       <HubErrorBoundary name="XMTT">
         <SEOHead title="XMTT Tournament Lobby | Smarter.Poker" />
         <UniversalHeader />
-        <div className={s.container}><div className={s.loading}>Loading Tournament Lobby...</div></div>
+        <div className={s.container}>
+          <div className={s.inner} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div className="ca-skeleton" style={{ height: '48px' }} />
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {[1,2,3,4].map(i => <div key={i} className="ca-skeleton" style={{ height: '36px', flex: 1 }} />)}
+            </div>
+            {[1,2,3].map(i => <div key={i} className="ca-skeleton ca-skeleton-card" />)}
+          </div>
+        </div>
       </HubErrorBoundary>
     );
   }

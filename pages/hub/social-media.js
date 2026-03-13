@@ -4572,9 +4572,9 @@ function SocialMediaPage() {
                     // Use native fetch to avoid AbortError (same issue as stories/profiles)
                     if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] Fetching profile for user:', authUser.id);
 
-                    let profileRes = await fetch(`https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/profiles?id=eq.${authUser.id}&select=id,username,full_name,display_name_preference,skill_tier,avatar_url,hendon_url,hendon_total_cashes,hendon_total_earnings,hendon_best_finish,hendon_biggest_cash,role`, {
+                    let profileRes = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/profiles?id=eq.${authUser.id}&select=id,username,full_name,display_name_preference,skill_tier,avatar_url,hendon_url,hendon_total_cashes,hendon_total_earnings,hendon_best_finish,hendon_biggest_cash,role`, {
                         headers: {
-                            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo',
+                            'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
                             'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo'
                         }
                     });
@@ -4586,9 +4586,9 @@ function SocialMediaPage() {
 
                     // If no profile found by id, check if user owns another profile via owner_id
                     if (!p) {
-                        const ownedProfileRes = await fetch(`https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/profiles?owner_id=eq.${authUser.id}&select=id,username,full_name,display_name_preference,skill_tier,avatar_url,hendon_url,hendon_total_cashes,hendon_total_earnings,hendon_best_finish,hendon_biggest_cash,role`, {
+                        const ownedProfileRes = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/profiles?owner_id=eq.${authUser.id}&select=id,username,full_name,display_name_preference,skill_tier,avatar_url,hendon_url,hendon_total_cashes,hendon_total_earnings,hendon_best_finish,hendon_biggest_cash,role`, {
                             headers: {
-                                'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo',
+                                'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
                                 'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo'
                             }
                         });
@@ -4942,8 +4942,8 @@ function SocialMediaPage() {
 
 
             // Define Supabase credentials for native fetch (needed for both posts and profiles)
-            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-            const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo';
+            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '${process.env.NEXT_PUBLIC_SUPABASE_URL}';
+            const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
             // Use native fetch directly to Supabase REST API
             try {

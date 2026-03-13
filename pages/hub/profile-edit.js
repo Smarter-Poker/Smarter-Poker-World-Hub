@@ -337,8 +337,8 @@ export default function ProfilePage() {
                     setUser(authUser);
                     // Fetch profile using native fetch to avoid AbortError
                     try {
-                        const supabaseUrl = 'https://kuklfnapbkmacvwxktbh.supabase.co';
-                        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo';
+                        const supabaseUrl = '${process.env.NEXT_PUBLIC_SUPABASE_URL}';
+                        const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
                         const response = await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${authUser.id}&select=*`, {
                             headers: {

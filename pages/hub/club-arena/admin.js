@@ -11,6 +11,7 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { apiCall } from '../../../src/lib/club-arena/apiClient';
 import s from '../../../src/styles/UnionDashboard.module.css';
+import '../../../src/styles/worlds/club-arena.css';
 
 // ── Helpers ─────────────────────────────────────────────────
 const fmt = (n) => Number(n || 0).toLocaleString();
@@ -69,7 +70,17 @@ function DashboardTab({ clubId }) {
 
   useEffect(() => { load(); }, [load]);
 
-  if (loading) return <div className={s.loading}>Loading Dashboard...</div>;
+  if (loading) return (
+    <div style={{ animation: 'fadeIn 0.2s ease-out' }}>
+      <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
+        <div style={{ flex: '1 1 300px' }}><div className="ca-skeleton" style={{ height: '240px' }} /></div>
+        <div style={{ flex: '2 1 400px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {[1,2,3,4,5].map(i => <div key={i} className="ca-skeleton" style={{ height: '40px' }} />)}
+        </div>
+      </div>
+      <div className="ca-skeleton" style={{ height: '160px', marginTop: '24px' }} />
+    </div>
+  );
   if (loadError || !health) return (
     <div className={s.error} style={{ textAlign: 'center', padding: '40px' }}>
       <div style={{ fontSize: '32px', marginBottom: '12px' }}>⚠️</div>
@@ -162,7 +173,12 @@ function SettlementsTab({ clubId }) {
     }
   };
 
-  if (loading) return <div className={s.loading}>Loading Settlements...</div>;
+  if (loading) return (
+    <div style={{ animation: 'fadeIn 0.2s ease-out' }}>
+      <div className="ca-skeleton" style={{ height: '140px', marginBottom: '24px' }} />
+      <div className="ca-skeleton" style={{ height: '200px' }} />
+    </div>
+  );
   if (!data) return null;
 
   const cp = data.currentPeriod;
@@ -375,7 +391,11 @@ function BrandingTab({ clubId }) {
 
   const update = (k, v) => setTheme(p => ({ ...p, [k]: v }));
 
-  if (loading) return <div className={s.loading}>Loading Theme Settings...</div>;
+  if (loading) return (
+    <div style={{ animation: 'fadeIn 0.2s ease-out', maxWidth: '600px', margin: '0 auto' }}>
+      <div className="ca-skeleton" style={{ height: '320px', borderRadius: '12px' }} />
+    </div>
+  );
   if (loadError || !theme) return (
     <div className={s.error} style={{ textAlign: 'center', padding: '40px' }}>
       <div style={{ fontSize: '32px', marginBottom: '12px' }}>🎨</div>
@@ -439,6 +459,68 @@ function BrandingTab({ clubId }) {
   );
 }
 
+function SettlementHistoryTab({ clubId }) {
+  const [periods, setPeriods] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
+
+  const load = useCallback(async () => {
+    try {
+      setLoading(true);
+      setLoadError(null);
+      const res = await apiCall('/api/club-arena/settle-period', { action: 'history', clubId });
+      setPeriods(res.periods || []);
+    } catch (err) {
+      setLoadError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [clubId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  if (loading) return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      {[1,2,3].map(i => <div key={i} className="ca-skeleton" style={{ height: '80px' }} />)}
+    </div>
+  );
+  if (loadError) return (
+    <div className={s.error} style={{ textAlign: 'center', padding: '40px' }}>
+      <div style={{ marginBottom: '16px' }}>{loadError}</div>
+      <button onClick={load} className={s.btnPrimary} style={{ padding: '8px 24px' }}>↻ Retry</button>
+    </div>
+  );
+
+  return (
+    <div style={{ animation: 'fadeIn 0.2s ease-out' }}>
+      <h3 style={{ margin: '0 0 16px', fontSize: '18px' }}>📖 Settlement History</h3>
+      {periods.length === 0 ? (
+        <div className={s.emptyState} style={{ padding: '40px' }}>
+          <span className={s.emptyIcon}>💰</span>
+          <span className={s.emptyText}>No settlement history yet. Close your first period to see records here.</span>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {periods.map(p => (
+            <div key={p.id} style={{ background: '#242526', padding: '16px 20px', borderRadius: '12px', border: '1px solid #3A3B3C' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <div style={{ fontWeight: 700, fontSize: '15px' }}>Period #{p.period_number} — Year {p.year}</div>
+                <span style={{ fontSize: '11px', fontWeight: 700, padding: '3px 8px', borderRadius: '4px', background: '#3A3B3C', color: '#B0B3B8' }}>{p.status?.toUpperCase()}</span>
+              </div>
+              <div style={{ display: 'flex', gap: '24px', fontSize: '13px', color: '#B0B3B8', flexWrap: 'wrap' }}>
+                <span>📅 {formatDate(p.start_at)} — {formatDate(p.end_at)}</span>
+                {p.total_rake != null && <span style={{ color: '#F7C52A', fontWeight: 600 }}>💰 Rake: {fmtChips(p.total_rake)}</span>}
+                {p.total_commissions != null && <span style={{ color: '#31A24C', fontWeight: 600 }}>💸 Commissions: {fmtChips(p.total_commissions)}</span>}
+                {p.agents_paid != null && <span>👥 {p.agents_paid} agents paid</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main Page Component ─────────────────────────────────────
 export default function ClubArenaAdminPage() {
   useTrainingBus('club-arena-admin');
@@ -449,7 +531,7 @@ export default function ClubArenaAdminPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
-  const [activeTab, setActiveTab] = useState('dashboard'); // dashboard | settlements | audit | branding
+  const [activeTab, setActiveTab] = useState('dashboard'); // dashboard | settlements | history | audit | branding
 
   useEffect(() => {
     let cancelled = false;
@@ -510,7 +592,15 @@ export default function ClubArenaAdminPage() {
       <HubErrorBoundary name="Admin">
         <SEOHead title="Admin & Operations | Smarter.Poker" />
         <UniversalHeader />
-        <div className={s.container}><div className={s.loading}>Initializing Security Module...</div></div>
+        <div className={s.container}>
+          <div className={s.inner} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div className="ca-skeleton" style={{ height: '48px' }} />
+            <div style={{ display: 'flex', gap: '16px' }}>
+              {[1,2,3,4].map(i => <div key={i} className="ca-skeleton" style={{ height: '36px', flex: 1 }} />)}
+            </div>
+            <div className="ca-skeleton" style={{ height: '300px' }} />
+          </div>
+        </div>
       </HubErrorBoundary>
     );
   }
@@ -550,6 +640,7 @@ export default function ClubArenaAdminPage() {
               <div className={s.tabs} style={{ paddingBottom: '16px', marginBottom: '24px', borderBottom: '1px solid #3A3B3C' }}>
                 <button className={`${s.tab} ${activeTab === 'dashboard' ? s.tabActive : ''}`} onClick={() => setActiveTab('dashboard')}>🩺 Health</button>
                 <button className={`${s.tab} ${activeTab === 'settlements' ? s.tabActive : ''}`} onClick={() => setActiveTab('settlements')}>💰 Settlements</button>
+                <button className={`${s.tab} ${activeTab === 'history' ? s.tabActive : ''}`} onClick={() => setActiveTab('history')}>📖 History</button>
                 <button className={`${s.tab} ${activeTab === 'audit' ? s.tabActive : ''}`} onClick={() => setActiveTab('audit')}>🛡️ Audit Trail</button>
                 <button className={`${s.tab} ${activeTab === 'branding' ? s.tabActive : ''}`} onClick={() => setActiveTab('branding')}>🎨 Branding</button>
               </div>
@@ -557,6 +648,7 @@ export default function ClubArenaAdminPage() {
               {/* Tab Content */}
               {activeTab === 'dashboard' && <DashboardTab clubId={clubId} />}
               {activeTab === 'settlements' && <SettlementsTab clubId={clubId} />}
+              {activeTab === 'history' && <SettlementHistoryTab clubId={clubId} />}
               {activeTab === 'audit' && <AuditLogTab clubId={clubId} />}
               {activeTab === 'branding' && <BrandingTab clubId={clubId} />}
             </>

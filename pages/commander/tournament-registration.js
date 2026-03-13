@@ -71,7 +71,6 @@ export default function TournamentRegistration() {
             const json = await res.json();
             setSearchResults(json.data || []);
         } catch { setSearchResults([]); }
-        setLoading(false);
         finally { setSearchLoading(false); }
     }, [venueId]);
 

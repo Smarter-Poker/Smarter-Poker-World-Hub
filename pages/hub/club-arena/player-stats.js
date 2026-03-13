@@ -11,6 +11,7 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 import s from '../../../src/styles/UnionDashboard.module.css';
+import '../../../src/styles/worlds/club-arena.css';
 
 const fmt = (n) => Number(n || 0).toLocaleString();
 const fmtChips = (n) => {
@@ -204,7 +205,16 @@ export default function ClubArenaPlayerStatsPage() {
       <HubErrorBoundary name="Player Stats">
         <SEOHead title="My Stats | Smarter.Poker" />
         <UniversalHeader />
-        <div className={s.container}><div className={s.loading}>Computing Your Performance...</div></div>
+        <div className={s.container}>
+          <div className={s.inner} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div className="ca-skeleton" style={{ height: '48px' }} />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '16px' }}>
+              {[1,2,3,4,5,6].map(i => <div key={i} className="ca-skeleton ca-skeleton-stat" />)}
+            </div>
+            <div className="ca-skeleton" style={{ height: '80px' }} />
+            <div className="ca-skeleton" style={{ height: '200px' }} />
+          </div>
+        </div>
       </HubErrorBoundary>
     );
   }
@@ -257,35 +267,62 @@ export default function ClubArenaPlayerStatsPage() {
                 </div>
               </div>
 
-              {/* Daily Activity Chart (text-based) */}
+              {/* Daily Activity Visual Chart + Table */}
               <div style={{ background: '#242526', padding: '20px', borderRadius: '12px', border: '1px solid #3A3B3C' }}>
                 <h3 style={{ margin: '0 0 16px', fontSize: '16px' }}>📅 Daily Activity (Last 30 Days)</h3>
                 {Object.keys(stats.dailyMap).length === 0 ? (
                   <div style={{ color: '#65676B', textAlign: 'center', padding: '20px' }}>No activity in the last 30 days</div>
-                ) : (
-                  <div className={s.tableScroll}>
-                    <table className={s.dataTable}>
-                      <thead>
-                        <tr>
-                          <th>Date</th>
-                          <th style={{ textAlign: 'right' }}>Chips In</th>
-                          <th style={{ textAlign: 'right' }}>Chips Out</th>
-                          <th style={{ textAlign: 'right' }}>Net</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {Object.entries(stats.dailyMap).sort(([a], [b]) => b.localeCompare(a)).slice(0, 30).map(([day, d]) => (
-                          <tr key={day}>
-                            <td style={{ color: '#B0B3B8' }}>{day}</td>
-                            <td style={{ textAlign: 'right', color: '#31A24C' }}>{fmtChips(d.in)}</td>
-                            <td style={{ textAlign: 'right', color: '#FA383E' }}>{fmtChips(d.out)}</td>
-                            <td style={{ textAlign: 'right', fontWeight: 700, color: (d.in - d.out) >= 0 ? '#31A24C' : '#FA383E' }}>{fmtChips(d.in - d.out)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                ) : (() => {
+                  const sortedDays = Object.entries(stats.dailyMap).sort(([a], [b]) => a.localeCompare(b)).slice(-14); // last 14 days for visual chart
+                  const maxVal = Math.max(1, ...sortedDays.map(([, d]) => Math.max(d.in, d.out, Math.abs(d.in - d.out))));
+                  return (
+                    <>
+                      {/* Visual Bar Chart */}
+                      <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: '120px', padding: '0 4px', marginBottom: '20px', borderBottom: '1px solid #3A3B3C' }}>
+                        {sortedDays.map(([day, d]) => {
+                          const net = d.in - d.out;
+                          const barH = Math.max(4, (Math.abs(net) / maxVal) * 100);
+                          const color = net >= 0 ? '#31A24C' : '#FA383E';
+                          const label = day.split('-').slice(1).join('/');
+                          return (
+                            <div key={day} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%', position: 'relative' }} title={`${day}: In ${fmtChips(d.in)} | Out ${fmtChips(d.out)} | Net ${net >= 0 ? '+' : ''}${fmtChips(net)}`}>
+                              <div style={{ width: '100%', maxWidth: '24px', height: `${barH}%`, background: color, borderRadius: '4px 4px 0 0', transition: 'height 0.3s ease', minHeight: '4px', opacity: 0.85 }} />
+                              <div style={{ fontSize: '9px', color: '#65676B', marginTop: '4px', whiteSpace: 'nowrap' }}>{label}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginBottom: '16px', fontSize: '11px' }}>
+                        <span style={{ color: '#31A24C' }}>■ Positive Net</span>
+                        <span style={{ color: '#FA383E' }}>■ Negative Net</span>
+                      </div>
+
+                      {/* Data Table */}
+                      <div className={s.tableScroll}>
+                        <table className={s.dataTable}>
+                          <thead>
+                            <tr>
+                              <th>Date</th>
+                              <th style={{ textAlign: 'right' }}>Chips In</th>
+                              <th style={{ textAlign: 'right' }}>Chips Out</th>
+                              <th style={{ textAlign: 'right' }}>Net</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {Object.entries(stats.dailyMap).sort(([a], [b]) => b.localeCompare(a)).slice(0, 30).map(([day, d]) => (
+                              <tr key={day}>
+                                <td style={{ color: '#B0B3B8' }}>{day}</td>
+                                <td style={{ textAlign: 'right', color: '#31A24C' }}>{fmtChips(d.in)}</td>
+                                <td style={{ textAlign: 'right', color: '#FA383E' }}>{fmtChips(d.out)}</td>
+                                <td style={{ textAlign: 'right', fontWeight: 700, color: (d.in - d.out) >= 0 ? '#31A24C' : '#FA383E' }}>{fmtChips(d.in - d.out)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             </>
           )}
