@@ -1452,7 +1452,27 @@ export default function HorsesAdmin() {
               </div>
 
               <div className={styles.grinderControls}>
-                <h3>🏠 Club Management — Shark Club & Club JAQK</h3>
+                <h3>🚀 Fleet Deployment — Midway Union</h3>
+                <div className={styles.clubActions}>
+                  <button
+                    className={styles.btnSuccess}
+                    onClick={() => handleFleetLaunch('launch_all')}
+                    disabled={grinderLoading}
+                    style={{ background: 'linear-gradient(135deg, #10b981, #059669)', fontSize: 15, padding: '12px 24px' }}
+                  >
+                    🚀 Launch Full Fleet (Cash + Tournaments + SNGs + Spins)
+                  </button>
+                  <button
+                    className={styles.actionBtn}
+                    onClick={() => handleFleetLaunch('shutdown')}
+                    disabled={grinderLoading}
+                    style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)', fontSize: 15, padding: '12px 24px', color: '#fff' }}
+                  >
+                    💀 Shutdown Entire Fleet
+                  </button>
+                </div>
+
+                <h3 style={{ marginTop: 24 }}>🏠 Club Management — Shark Club & Club JAQK</h3>
                 <div className={styles.clubActions}>
                   <button
                     className={styles.btnSuccess}
