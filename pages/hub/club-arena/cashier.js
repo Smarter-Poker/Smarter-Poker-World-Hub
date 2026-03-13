@@ -64,6 +64,12 @@ export default function ClubArenaCashierPage() {
   const [history, setHistory] = useState([]);
   const [historyLoaded, setHistoryLoaded] = useState(false);
 
+  // Rakeback
+  const [rakebackStatus, setRakebackStatus] = useState(null);
+  const [rakebackHistory, setRakebackHistory] = useState([]);
+  const [rakebackLoaded, setRakebackLoaded] = useState(false);
+  const [claiming, setClaiming] = useState(false);
+
   const mountedRef = useRef(true);
   useEffect(() => () => { mountedRef.current = false; }, []);
 
@@ -239,6 +245,7 @@ export default function ClubArenaCashierPage() {
               { id: 'wallet', label: 'Wallet' },
               { id: 'cashout', label: 'Cashout', badge: pendingCashouts.length || null },
               { id: 'history', label: 'History' },
+              { id: 'rakeback', label: '🎁 Rakeback', badge: rakebackStatus?.pendingRakeback > 0 ? 1 : null },
             ].map(t => (
               <button key={t.id} className={`${s.tab} ${tab === t.id ? s.tabActive : ''}`} onClick={() => setTab(t.id)}>
                 {t.label}
@@ -483,6 +490,147 @@ export default function ClubArenaCashierPage() {
               )}
             </>
           )}
+
+          {/* ══════════════════════════════════════════════════ */}
+          {/*  TAB: RAKEBACK                                    */}
+          {/* ══════════════════════════════════════════════════ */}
+          {tab === 'rakeback' && (() => {
+            // Lazy-load rakeback data
+            if (!rakebackLoaded && clubId) {
+              (async () => {
+                try {
+                  const [statusRes, histRes] = await Promise.all([
+                    apiGet(`/api/club-arena/rakeback?clubId=${clubId}&action=status`),
+                    apiGet(`/api/club-arena/rakeback?clubId=${clubId}&action=history`),
+                  ]);
+                  setRakebackStatus(statusRes);
+                  setRakebackHistory(histRes.history || []);
+                  setRakebackLoaded(true);
+                } catch (err) { console.warn('[Cashier] Rakeback load failed:', err.message); setRakebackLoaded(true); }
+              })();
+            }
+
+            const handleClaim = async () => {
+              setClaiming(true);
+              try {
+                const res = await apiCall('/api/club-arena/rakeback', { action: 'claim', clubId });
+                setSuccess(`🎁 Claimed ${fmt(res.claimed)} chips! New balance: ${fmt(res.newBalance)}`);
+                setBalance(res.newBalance || balance);
+                busEmit('CASHIER_BALANCE_CHANGED', { clubId, balance: res.newBalance });
+                setRakebackLoaded(false); // Refresh
+              } catch (err) { setError(err.message); }
+              finally { setClaiming(false); }
+            };
+
+            const handlePeriod = async (action) => {
+              if (action === 'close' && !confirm('Close the current rakeback period? This will calculate rakeback for all players.')) return;
+              setProcessing(true);
+              try {
+                const res = await apiCall('/api/club-arena/rakeback', { action, clubId });
+                setSuccess(action === 'open' ? 'Rakeback period opened!' : `Period closed. ${res.playersProcessed || 0} players processed, ${fmt(res.totalRakebackDistributed || 0)} chips distributed.`);
+                setRakebackLoaded(false); // Refresh
+              } catch (err) { setError(err.message); }
+              finally { setProcessing(false); }
+            };
+
+            return (
+              <>
+                {!rakebackLoaded ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {[1,2,3].map(i => <div key={i} className={s.shimmerLine} style={{ height: '60px', borderRadius: '8px' }} />)}
+                  </div>
+                ) : (
+                  <>
+                    {/* Rakeback Stats */}
+                    <div className={s.statsGrid} style={{ marginBottom: '20px' }}>
+                      <div className={s.statCard}>
+                        <div className={s.statValueGold}>{fmt(rakebackStatus?.pendingRakeback || 0)}</div>
+                        <div className={s.statLabel}>Pending Rakeback</div>
+                      </div>
+                      <div className={s.statCard}>
+                        <div className={s.statValue}>{((rakebackStatus?.rakebackRate || 0.10) * 100).toFixed(0)}%</div>
+                        <div className={s.statLabel}>Rakeback Rate</div>
+                      </div>
+                      <div className={s.statCard}>
+                        <div className={s.statValueBlue}>{rakebackStatus?.pendingCount || 0}</div>
+                        <div className={s.statLabel}>Periods Pending</div>
+                      </div>
+                    </div>
+
+                    {/* Active Period */}
+                    <div className={s.section}>
+                      <div className={s.sectionTitle}>Period Status</div>
+                      {rakebackStatus?.activePeriod ? (
+                        <div style={{ background: 'rgba(49,162,76,0.08)', border: '1px solid rgba(49,162,76,0.3)', borderRadius: '10px', padding: '16px 20px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ fontWeight: 700, color: '#31A24C' }}>🟢 Period Open</div>
+                            <span style={{ fontSize: '12px', color: '#B0B3B8' }}>Since {new Date(rakebackStatus.activePeriod.period_start).toLocaleDateString()}</span>
+                          </div>
+                          <div style={{ fontSize: '13px', color: '#B0B3B8', marginTop: '8px' }}>Rake is being tracked. Close the period to calculate and distribute rakeback.</div>
+                        </div>
+                      ) : (
+                        <div style={{ background: '#242526', border: '1px solid #3A3B3C', borderRadius: '10px', padding: '16px 20px' }}>
+                          <div style={{ fontWeight: 700, color: '#B0B3B8' }}>⚫ No Active Period</div>
+                          <div style={{ fontSize: '13px', color: '#6B7280', marginTop: '4px' }}>An admin must open a period to begin tracking rake for rakeback calculations.</div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Claim Button */}
+                    {(rakebackStatus?.pendingRakeback || 0) > 0 && (
+                      <div style={{ marginTop: '16px', background: 'linear-gradient(135deg, rgba(247,197,42,0.08), rgba(247,197,42,0.15))', border: '1px solid rgba(247,197,42,0.3)', borderRadius: '12px', padding: '20px', textAlign: 'center' }}>
+                        <div style={{ fontSize: '28px', fontWeight: 800, color: '#F7C52A', marginBottom: '8px' }}>{fmt(rakebackStatus.pendingRakeback)} chips</div>
+                        <div style={{ fontSize: '14px', color: '#B0B3B8', marginBottom: '16px' }}>Available to claim from {rakebackStatus.pendingCount} period(s)</div>
+                        <button onClick={handleClaim} className={s.btnPrimary} disabled={claiming} style={{ padding: '12px 40px', fontSize: '16px', fontWeight: 700 }}>
+                          {claiming ? '⏳ Claiming...' : '🎁 Claim Rakeback'}
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Admin Controls */}
+                    {['owner', 'admin'].includes(rakebackStatus?.role) && (
+                      <div className={s.section} style={{ marginTop: '16px' }}>
+                        <div className={s.sectionTitle}>Admin Controls</div>
+                        <div style={{ display: 'flex', gap: '12px' }}>
+                          {!rakebackStatus?.activePeriod ? (
+                            <button onClick={() => handlePeriod('open')} className={s.btnPrimary} disabled={processing}>
+                              {processing ? 'Opening...' : '▶️ Open New Period'}
+                            </button>
+                          ) : (
+                            <button onClick={() => handlePeriod('close')} className={s.btnGhost} style={{ borderColor: '#F5A623', color: '#F5A623' }} disabled={processing}>
+                              {processing ? 'Closing...' : '⏹️ Close Period & Distribute'}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* History */}
+                    {rakebackHistory.length > 0 && (
+                      <div className={s.section} style={{ marginTop: '16px' }}>
+                        <div className={s.sectionTitle}>Rakeback History</div>
+                        <div className={s.tableScroll}>
+                          <table className={s.dataTable}>
+                            <thead><tr><th>Period</th><th>Rake Paid</th><th>Rakeback</th><th>Status</th></tr></thead>
+                            <tbody>
+                              {rakebackHistory.map(r => (
+                                <tr key={r.id}>
+                                  <td style={{ fontSize: '12px', color: '#B0B3B8' }}>{new Date(r.period_start || r.created_at).toLocaleDateString()} — {r.period_end ? new Date(r.period_end).toLocaleDateString() : 'Now'}</td>
+                                  <td style={{ fontWeight: 600 }}>{fmtChips(r.rake_contributed)}</td>
+                                  <td style={{ fontWeight: 700, color: '#F7C52A' }}>{fmtChips(r.rakeback_amount)}</td>
+                                  <td><span style={{ fontSize: '11px', fontWeight: 700, padding: '3px 8px', borderRadius: '12px', textTransform: 'uppercase', background: r.status === 'claimed' ? 'rgba(49,162,76,0.15)' : r.status === 'closed' ? 'rgba(247,197,42,0.15)' : '#3A3B3C', color: r.status === 'claimed' ? '#31A24C' : r.status === 'closed' ? '#F7C52A' : '#B0B3B8' }}>{r.status}</span></td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </>
+            );
+          })()}
 
         </div>
       </div>

@@ -9,7 +9,7 @@ import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { apiCall } from '../../../src/lib/club-arena/apiClient';
+import { apiCall, apiGet } from '../../../src/lib/club-arena/apiClient';
 import s from '../../../src/styles/UnionDashboard.module.css';
 
 // ── Helpers ─────────────────────────────────────────────────
@@ -559,6 +559,87 @@ function SettlementHistoryTab({ clubId }) {
   );
 }
 
+// ── Recommendations Tab ─────────────────────────────────────
+function RecommendationsTab({ clubId }) {
+  const [recs, setRecs] = useState([]);
+  const [insights, setInsights] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
+
+  const load = useCallback(async () => {
+    try {
+      setLoading(true);
+      setLoadError(null);
+      const res = await apiGet(`/api/club-arena/smart-recommendations?clubId=${clubId}`);
+      setRecs(res.recommendations || []);
+      setInsights(res.insights || null);
+    } catch (err) {
+      setLoadError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [clubId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const typeStyles = {
+    success: { bg: 'rgba(49,162,76,0.1)', border: '#31A24C' },
+    warning: { bg: 'rgba(245,166,35,0.1)', border: '#F5A623' },
+    info:    { bg: 'rgba(69,153,255,0.1)', border: '#4599FF' },
+  };
+
+  if (loading) return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      {[1,2,3].map(i => <div key={i} className={s.shimmerLine} style={{ height: '80px', borderRadius: '8px' }} />)}
+    </div>
+  );
+  if (loadError) return (
+    <div className={s.error} style={{ textAlign: 'center', padding: '40px' }}>
+      <div style={{ marginBottom: '16px' }}>{loadError}</div>
+      <button onClick={load} className={s.btnPrimary} style={{ padding: '8px 24px' }}>↻ Retry</button>
+    </div>
+  );
+
+  return (
+    <div style={{ animation: 'fadeIn 0.2s ease-out' }}>
+      <h3 style={{ margin: '0 0 16px', fontSize: '18px' }}>🤖 Smart Recommendations</h3>
+
+      {/* Insights Panel */}
+      {insights && (
+        <div className={s.statsGrid} style={{ marginBottom: '20px' }}>
+          <div className={s.statCard}><div className={s.statValueGreen}>{fmt(insights.activeTables)}</div><div className={s.statLabel}>Active Tables</div></div>
+          <div className={s.statCard}><div className={s.statValueBlue}>{fmt(insights.totalSeated)}</div><div className={s.statLabel}>Players Seated</div></div>
+          <div className={s.statCard}><div className={s.statValue}>{fmt(insights.totalMembers)}</div><div className={s.statLabel}>Total Members</div></div>
+          <div className={s.statCard}><div className={s.statValueGold}>{fmtChips(insights.avgChipBalance)}</div><div className={s.statLabel}>Avg Balance</div></div>
+          <div className={s.statCard}><div className={s.statValueBlue}>{insights.peakHour}:00</div><div className={s.statLabel}>Peak Hour</div></div>
+        </div>
+      )}
+
+      {/* Recommendation Cards */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        {recs.map((rec, i) => {
+          const st = typeStyles[rec.type] || typeStyles.info;
+          return (
+            <div key={i} style={{ background: st.bg, borderLeft: `4px solid ${st.border}`, borderRadius: '8px', padding: '16px 20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
+                <div style={{ fontSize: '16px', fontWeight: 700, color: '#E4E6EB' }}>
+                  {rec.icon} {rec.title}
+                </div>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: '#B0B3B8', background: '#3A3B3C', padding: '2px 8px', borderRadius: '12px' }}>
+                  P{rec.priority || 3}
+                </span>
+              </div>
+              <div style={{ fontSize: '14px', color: '#B0B3B8', lineHeight: 1.5 }}>{rec.desc}</div>
+            </div>
+          );
+        })}
+      </div>
+
+      <button onClick={load} className={s.btnGhost} style={{ marginTop: '16px' }}>↻ Re-analyze</button>
+    </div>
+  );
+}
+
 // ── Hierarchy Tree Tab ──────────────────────────────────────
 function HierarchyTreeTab({ clubId }) {
   const [tree, setTree] = useState(null);
@@ -798,6 +879,9 @@ export default function ClubArenaAdminPage() {
                 {role === 'owner' && (
                   <button className={`${s.tab} ${activeTab === 'branding' ? s.tabActive : ''}`} onClick={() => setActiveTab('branding')}>🎨 Branding</button>
                 )}
+                {['owner', 'admin'].includes(role) && (
+                  <button className={`${s.tab} ${activeTab === 'recommendations' ? s.tabActive : ''}`} onClick={() => setActiveTab('recommendations')}>🤖 Recs</button>
+                )}
               </div>
 
               {/* Tab Content */}
@@ -807,6 +891,7 @@ export default function ClubArenaAdminPage() {
               {activeTab === 'history' && <SettlementHistoryTab clubId={clubId} />}
               {activeTab === 'audit' && <AuditLogTab clubId={clubId} />}
               {activeTab === 'branding' && <BrandingTab clubId={clubId} />}
+              {activeTab === 'recommendations' && <RecommendationsTab clubId={clubId} />}
             </>
           )}
 
