@@ -21,71 +21,77 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  const sig = req.headers['stripe-signature'];
-  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
-  let event;
-
   try {
-    // Get raw body for signature verification
-    const rawBody = await getRawBody(req);
-
-    // SECURITY: Signature verification is REQUIRED.
-    // If webhook secret is not configured, reject all events.
-    if (!endpointSecret) {
-      console.error('STRIPE_WEBHOOK_SECRET not configured — rejecting webhook');
-      return res.status(500).json({ error: 'Webhook secret not configured' });
-    }
-    if (!sig) {
-      return res.status(400).json({ error: 'Missing stripe-signature header' });
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
 
-    const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-    event = stripe.webhooks.constructEvent(rawBody, sig, endpointSecret);
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    const sig = req.headers['stripe-signature'];
+    const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+    let event;
+
+    try {
+      // Get raw body for signature verification
+      const rawBody = await getRawBody(req);
+
+      // SECURITY: Signature verification is REQUIRED.
+      // If webhook secret is not configured, reject all events.
+      if (!endpointSecret) {
+        console.error('STRIPE_WEBHOOK_SECRET not configured — rejecting webhook');
+        return res.status(500).json({ error: 'Webhook secret not configured' });
+      }
+      if (!sig) {
+        return res.status(400).json({ error: 'Missing stripe-signature header' });
+      }
+
+      const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+      event = stripe.webhooks.constructEvent(rawBody, sig, endpointSecret);
+    } catch (err) {
+      console.error('Webhook signature verification failed:', err.message);
+      return res.status(400).json({ error: `Webhook Error: ${err.message}` });
+    }
+
+    // Handle the event
+    try {
+      switch (event.type) {
+        case 'payment_intent.succeeded':
+          await handlePaymentSuccess(event.data.object);
+          break;
+
+        case 'payment_intent.payment_failed':
+          await handlePaymentFailed(event.data.object);
+          break;
+
+        case 'charge.refunded':
+          await handleRefund(event.data.object);
+          break;
+
+        case 'customer.subscription.created':
+        case 'customer.subscription.updated':
+          await handleSubscriptionUpdate(event.data.object);
+          break;
+
+        case 'customer.subscription.deleted':
+          await handleSubscriptionCancelled(event.data.object);
+          break;
+
+        default:
+      }
+
+      return res.status(200).json({ received: true });
+    } catch (error) {
+      console.error('Webhook handler error:', error);
+      return res.status(500).json({ error: 'Webhook handler failed' });
+    }
+
   } catch (err) {
-    console.error('Webhook signature verification failed:', err.message);
-    return res.status(400).json({ error: `Webhook Error: ${err.message}` });
-  }
-
-  // Handle the event
-  try {
-    switch (event.type) {
-      case 'payment_intent.succeeded':
-        await handlePaymentSuccess(event.data.object);
-        break;
-
-      case 'payment_intent.payment_failed':
-        await handlePaymentFailed(event.data.object);
-        break;
-
-      case 'charge.refunded':
-        await handleRefund(event.data.object);
-        break;
-
-      case 'customer.subscription.created':
-      case 'customer.subscription.updated':
-        await handleSubscriptionUpdate(event.data.object);
-        break;
-
-      case 'customer.subscription.deleted':
-        await handleSubscriptionCancelled(event.data.object);
-        break;
-
-      default:
-    }
-
-    return res.status(200).json({ received: true });
-  } catch (error) {
-    console.error('Webhook handler error:', error);
-    return res.status(500).json({ error: 'Webhook handler failed' });
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }
 

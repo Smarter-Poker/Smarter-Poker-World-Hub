@@ -121,74 +121,80 @@ async function tryFallbacks(source, configPath) {
 // MAIN HANDLER
 // ═══════════════════════════════════════════════════════════════════════════
 export default async function handler(req, res) {
-    // Verify cron secret
-    if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
+  try {
+      // Verify cron secret
+      if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+          return res.status(401).json({ error: 'Unauthorized' });
+      }
 
-    const results = {
-        timestamp: new Date().toISOString(),
-        sources: [],
-        healthy: 0,
-        failed: 0,
-        auto_fixed: 0,
-        needs_attention: []
-    };
+      const results = {
+          timestamp: new Date().toISOString(),
+          sources: [],
+          healthy: 0,
+          failed: 0,
+          auto_fixed: 0,
+          needs_attention: []
+      };
 
-    for (const source of SOURCES) {
-        const check = await checkSource(source.primary);
+      for (const source of SOURCES) {
+          const check = await checkSource(source.primary);
 
-        if (check.ok) {
-            results.sources.push({ name: source.name, status: 'healthy' });
-            results.healthy++;
-        } else {
+          if (check.ok) {
+              results.sources.push({ name: source.name, status: 'healthy' });
+              results.healthy++;
+          } else {
 
-            // Attempt self-healing
-            if (source.fallbacks.length > 0) {
-                const fix = await tryFallbacks(source, 'pages/api/cron/news-scraper.js');
+              // Attempt self-healing
+              if (source.fallbacks.length > 0) {
+                  const fix = await tryFallbacks(source, 'pages/api/cron/news-scraper.js');
 
-                if (fix.fixed) {
-                    results.sources.push({
-                        name: source.name,
-                        status: 'auto_fixed',
-                        new_url: fix.new_url
-                    });
-                    results.auto_fixed++;
-                } else {
-                    results.sources.push({ name: source.name, status: 'failed' });
-                    results.failed++;
-                    results.needs_attention.push(source.name);
-                }
-            } else {
-                results.sources.push({ name: source.name, status: 'failed' });
-                results.failed++;
-                results.needs_attention.push(source.name);
-            }
-        }
-    }
+                  if (fix.fixed) {
+                      results.sources.push({
+                          name: source.name,
+                          status: 'auto_fixed',
+                          new_url: fix.new_url
+                      });
+                      results.auto_fixed++;
+                  } else {
+                      results.sources.push({ name: source.name, status: 'failed' });
+                      results.failed++;
+                      results.needs_attention.push(source.name);
+                  }
+              } else {
+                  results.sources.push({ name: source.name, status: 'failed' });
+                  results.failed++;
+                  results.needs_attention.push(source.name);
+              }
+          }
+      }
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // REPORT TO SENTRY ONLY IF THERE ARE UNRECOVERABLE FAILURES
-    // ═══════════════════════════════════════════════════════════════════════
-    if (results.needs_attention.length > 0) {
-        Sentry.captureMessage(`Content Health Check: ${results.needs_attention.length} sources need manual attention`, {
-            level: 'warning',
-            extra: {
-                failed_sources: results.needs_attention,
-                full_results: results
-            }
-        });
-    }
+      // ═══════════════════════════════════════════════════════════════════════
+      // REPORT TO SENTRY ONLY IF THERE ARE UNRECOVERABLE FAILURES
+      // ═══════════════════════════════════════════════════════════════════════
+      if (results.needs_attention.length > 0) {
+          Sentry.captureMessage(`Content Health Check: ${results.needs_attention.length} sources need manual attention`, {
+              level: 'warning',
+              extra: {
+                  failed_sources: results.needs_attention,
+                  full_results: results
+              }
+          });
+      }
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // SUMMARY
-    // ═══════════════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════════════════
+      // SUMMARY
+      // ═══════════════════════════════════════════════════════════════════════
 
-    if (results.needs_attention.length > 0) {
-    }
+      if (results.needs_attention.length > 0) {
+      }
 
-    return res.status(200).json({
-        success: results.failed === 0,
-        ...results
-    });
+      return res.status(200).json({
+          success: results.failed === 0,
+          ...results
+      });
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

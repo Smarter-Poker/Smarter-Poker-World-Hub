@@ -14,29 +14,35 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
-
-    const guard = await guardWriteStaff(req, res);
-    if (!guard) return;
-
-    const freerollId = req.query.id;
-    if (!freerollId) {
-        return res.status(400).json({
-            success: false,
-            error: { code: 'MISSING_ID', message: 'Freeroll ID required' }
-        });
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
 
-    if (req.method === 'GET') return listQualifications(req, res, freerollId);
-    if (req.method === 'POST') return upsertQualification(req, res, freerollId);
-    if (req.method === 'DELETE') return removeQualification(req, res, freerollId);
+      const guard = await guardWriteStaff(req, res);
+      if (!guard) return;
 
-    return res.status(405).json({
-        success: false,
-        error: { code: 'METHOD_NOT_ALLOWED', message: 'GET, POST, DELETE allowed' }
-    });
+      const freerollId = req.query.id;
+      if (!freerollId) {
+          return res.status(400).json({
+              success: false,
+              error: { code: 'MISSING_ID', message: 'Freeroll ID required' }
+          });
+      }
+
+      if (req.method === 'GET') return listQualifications(req, res, freerollId);
+      if (req.method === 'POST') return upsertQualification(req, res, freerollId);
+      if (req.method === 'DELETE') return removeQualification(req, res, freerollId);
+
+      return res.status(405).json({
+          success: false,
+          error: { code: 'METHOD_NOT_ALLOWED', message: 'GET, POST, DELETE allowed' }
+      });
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }
 
 async function listQualifications(req, res, freerollId) {

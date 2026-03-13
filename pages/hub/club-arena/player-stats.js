@@ -2,7 +2,7 @@
    Club Arena Player Stats — Native Hub Page (replaces iframe)
    Personal performance dashboard for a player in this club
    ═══════════════════════════════════════════════════════════════ */
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
@@ -159,6 +159,46 @@ export default function ClubArenaPlayerStatsPage() {
     return () => { cancelled = true; authSub?.unsubscribe?.(); };
   }, [router.query.club, router.query.clubId]);
 
+  // Refresh function (for button and visibilitychange)
+  const refreshStats = useCallback(async () => {
+    if (!clubId) return;
+    try {
+      const { supabase } = await import('../../../src/lib/supabase');
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setLoading(true);
+        setError(null);
+        // Re-run the whole init logic for this user in this club
+        const { data: membership } = await supabase.from('club_members').select('chip_balance, role, joined_at').eq('club_id', clubId).eq('user_id', session.user.id).maybeSingle();
+        if (!membership) { setError('Not a member of this club.'); setLoading(false); return; }
+        const since30d = new Date(Date.now() - 30 * 86400000).toISOString();
+        const { data: txns } = await supabase.from('chip_transactions').select('amount, transaction_type, created_at').eq('club_id', clubId).or(`from_user_id.eq.${session.user.id},to_user_id.eq.${session.user.id}`).gte('created_at', since30d).order('created_at', { ascending: false }).limit(500);
+        const { count: handCount } = await supabase.from('hand_histories').select('id', { count: 'exact', head: true }).eq('club_id', clubId).contains('hand_data', { players: [{ id: session.user.id }] });
+        let totalBuyins = 0, totalCashouts = 0, totalDistributed = 0, txCount = 0;
+        const dailyMap = {};
+        (txns || []).forEach(tx => { txCount++; const amt = Math.abs(Number(tx.amount) || 0); const day = tx.created_at?.split('T')[0]; if (['buyin', 'distribute', 'agent_to_player', 'promo_agent_to_player'].includes(tx.transaction_type)) totalDistributed += amt; if (['cashout_approved', 'cashout'].includes(tx.transaction_type)) totalCashouts += amt; if (['buyin'].includes(tx.transaction_type)) totalBuyins += amt; if (day) { if (!dailyMap[day]) dailyMap[day] = { in: 0, out: 0 }; if (['buyin', 'distribute', 'agent_to_player'].includes(tx.transaction_type)) dailyMap[day].in += amt; if (['cashout_approved', 'cashout'].includes(tx.transaction_type)) dailyMap[day].out += amt; } });
+        const netFlow = totalDistributed - totalCashouts;
+        const daysSince = Math.max(1, Math.ceil((Date.now() - new Date(membership.joined_at).getTime()) / 86400000));
+        if (mountedRef.current) {
+          setStats({ chipBalance: membership.chip_balance, role: membership.role, joinedAt: membership.joined_at, daysSince, handCount: handCount || 0, txCount, totalBuyins, totalCashouts, totalDistributed, netFlow, dailyMap });
+          setLoading(false);
+        }
+      }
+    } catch (err) {
+      if (mountedRef.current) { setError(err.message); setLoading(false); }
+    }
+  }, [clubId]);
+
+  // Auto-refresh on visibilitychange
+  useEffect(() => {
+    if (!clubId) return;
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') refreshStats();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [clubId, refreshStats]);
+
   if (loading) {
     return (
       <HubErrorBoundary name="Player Stats">
@@ -190,6 +230,7 @@ export default function ClubArenaPlayerStatsPage() {
               <div className={s.pageHeader}>
                 <div className={s.pageTitle}>📊 My Performance</div>
                 <div className={s.headerActions}>
+                  <button onClick={refreshStats} className={s.btnGhost}>↻ Refresh</button>
                   <Link href="/hub/club-arena/lobby" style={{ textDecoration: 'none' }}>
                     <button className={s.btnGhost}>🏠 Lobby</button>
                   </Link>

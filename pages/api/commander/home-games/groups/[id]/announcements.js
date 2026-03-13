@@ -14,28 +14,34 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+    if (req.method !== 'GET') { const _u = await guardUser(req, res); if (!_u) return; }
+
+    const { id: groupId } = req.query;
+
+    if (!groupId) {
+      return res.status(400).json({ error: 'Group ID required' });
+    }
+
+    if (req.method === 'GET') {
+      return listAnnouncements(req, res, groupId);
+    }
+
+    if (req.method === 'POST') {
+      return createAnnouncement(req, res, groupId);
+    }
+
+    res.setHeader('Allow', ['GET', 'POST']);
+    return res.status(405).json({ error: 'Method not allowed' });
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-  if (req.method !== 'GET') { const _u = await guardUser(req, res); if (!_u) return; }
-
-  const { id: groupId } = req.query;
-
-  if (!groupId) {
-    return res.status(400).json({ error: 'Group ID required' });
-  }
-
-  if (req.method === 'GET') {
-    return listAnnouncements(req, res, groupId);
-  }
-
-  if (req.method === 'POST') {
-    return createAnnouncement(req, res, groupId);
-  }
-
-  res.setHeader('Allow', ['GET', 'POST']);
-  return res.status(405).json({ error: 'Method not allowed' });
 }
 
 async function listAnnouncements(req, res, groupId) {

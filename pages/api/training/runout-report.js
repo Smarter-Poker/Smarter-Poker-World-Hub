@@ -76,105 +76,111 @@ function calculateAggressionIndex(strategyMatrix) {
 }
 
 export default async function handler(req, res) {
-    if (req.method !== 'GET') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
+  try {
+      if (req.method !== 'GET') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
 
-    try {
-        // Auth check
-        const token = req.headers.authorization?.replace('Bearer ', '');
-        if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-        const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
-        if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+      try {
+          // Auth check
+          const token = req.headers.authorization?.replace('Bearer ', '');
+          if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
+          const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+          if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-        const { scenarioHash } = req.query;
+          const { scenarioHash } = req.query;
 
-        if (!scenarioHash) {
-            return res.status(400).json({ success: false, error: 'scenarioHash is required' });
-        }
+          if (!scenarioHash) {
+              return res.status(400).json({ success: false, error: 'scenarioHash is required' });
+          }
 
-        // Parse current board from hash
-        const currentBoard = parseBoardFromHash(scenarioHash);
-        const deadSet = new Set(currentBoard.map(c => c.toLowerCase()));
+          // Parse current board from hash
+          const currentBoard = parseBoardFromHash(scenarioHash);
+          const deadSet = new Set(currentBoard.map(c => c.toLowerCase()));
 
-        // Build all 52 cards
-        const allCards = [];
-        for (const rank of RANKS) {
-            for (const suit of SUITS) {
-                allCards.push(`${rank}${suit}`);
-            }
-        }
+          // Build all 52 cards
+          const allCards = [];
+          for (const rank of RANKS) {
+              for (const suit of SUITS) {
+                  allCards.push(`${rank}${suit}`);
+              }
+          }
 
-        // Get current spot's aggression index as baseline
-        const { data: currentSpot } = await supabase
-            .from('solved_spots_gold')
-            .select('strategy_matrix')
-            .eq('scenario_hash', scenarioHash)
-            .maybeSingle();
+          // Get current spot's aggression index as baseline
+          const { data: currentSpot } = await supabase
+              .from('solved_spots_gold')
+              .select('strategy_matrix')
+              .eq('scenario_hash', scenarioHash)
+              .maybeSingle();
 
-        const baselineAggression = currentSpot
-            ? calculateAggressionIndex(currentSpot.strategy_matrix)
-            : 0;
+          const baselineAggression = currentSpot
+              ? calculateAggressionIndex(currentSpot.strategy_matrix)
+              : 0;
 
-        // Query all child spots for possible runout cards
-        // A child has the same scenario_hash but with 2 more characters (one more card)
-        // Use the full current hash + 2 wildcard chars for precision
+          // Query all child spots for possible runout cards
+          // A child has the same scenario_hash but with 2 more characters (one more card)
+          // Use the full current hash + 2 wildcard chars for precision
 
-        const { data: childSpots, error } = await supabase
-            .from('solved_spots_gold')
-            .select('scenario_hash, strategy_matrix, hand_evs')
-            .ilike('scenario_hash', `${scenarioHash}__`)
-            .limit(200);
+          const { data: childSpots, error } = await supabase
+              .from('solved_spots_gold')
+              .select('scenario_hash, strategy_matrix, hand_evs')
+              .ilike('scenario_hash', `${scenarioHash}__`)
+              .limit(200);
 
-        if (error) {
-            console.error('[RunoutReport] Query error:', error);
-            return res.status(500).json({ success: false, error: 'Database query failed' });
-        }
+          if (error) {
+              console.error('[RunoutReport] Query error:', error);
+              return res.status(500).json({ success: false, error: 'Database query failed' });
+          }
 
-        // Build a map of next-card → child spot data
-        const childMap = {};
-        (childSpots || []).forEach(spot => {
-            const childBoard = parseBoardFromHash(spot.scenario_hash);
-            // Only consider spots that are exactly 1 card deeper
-            if (childBoard.length === currentBoard.length + 1) {
-                const nextCard = childBoard[currentBoard.length];
-                if (nextCard) {
-                    const childAggression = calculateAggressionIndex(spot.strategy_matrix);
-                    childMap[nextCard.toLowerCase()] = {
-                        aggression: childAggression,
-                        ev_delta: childAggression - baselineAggression,
-                        handEvs: spot.hand_evs,
-                    };
-                }
-            }
-        });
+          // Build a map of next-card → child spot data
+          const childMap = {};
+          (childSpots || []).forEach(spot => {
+              const childBoard = parseBoardFromHash(spot.scenario_hash);
+              // Only consider spots that are exactly 1 card deeper
+              if (childBoard.length === currentBoard.length + 1) {
+                  const nextCard = childBoard[currentBoard.length];
+                  if (nextCard) {
+                      const childAggression = calculateAggressionIndex(spot.strategy_matrix);
+                      childMap[nextCard.toLowerCase()] = {
+                          aggression: childAggression,
+                          ev_delta: childAggression - baselineAggression,
+                          handEvs: spot.hand_evs,
+                      };
+                  }
+              }
+          });
 
-        // Build the runout report for all 52 cards
-        const runouts = {};
-        allCards.forEach(card => {
-            const key = card.toLowerCase();
-            const isDead = deadSet.has(key);
-            const childData = childMap[key];
+          // Build the runout report for all 52 cards
+          const runouts = {};
+          allCards.forEach(card => {
+              const key = card.toLowerCase();
+              const isDead = deadSet.has(key);
+              const childData = childMap[key];
 
-            runouts[card] = {
-                card,
-                is_dead: isDead,
-                has_data: !isDead && !!childData,
-                ev_delta: childData?.ev_delta ?? null,
-                eq_shift: childData?.ev_delta ? (childData.ev_delta > 0 ? 'positive' : 'negative') : null,
-            };
-        });
+              runouts[card] = {
+                  card,
+                  is_dead: isDead,
+                  has_data: !isDead && !!childData,
+                  ev_delta: childData?.ev_delta ?? null,
+                  eq_shift: childData?.ev_delta ? (childData.ev_delta > 0 ? 'positive' : 'negative') : null,
+              };
+          });
 
-        return res.status(200).json({
-            success: true,
-            runouts,
-            currentBoard,
-            childrenFound: Object.keys(childMap).length,
-            baselineAggression: Math.round(baselineAggression * 100) / 100,
-        });
+          return res.status(200).json({
+              success: true,
+              runouts,
+              currentBoard,
+              childrenFound: Object.keys(childMap).length,
+              baselineAggression: Math.round(baselineAggression * 100) / 100,
+          });
 
-    } catch (err) {
-        console.error('[RunoutReport] Error:', err);
-        return res.status(500).json({ success: false, error: err.message });
-    }
+      } catch (err) {
+          console.error('[RunoutReport] Error:', err);
+          return res.status(500).json({ success: false, error: err.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

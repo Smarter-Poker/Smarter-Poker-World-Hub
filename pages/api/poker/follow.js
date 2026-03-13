@@ -24,31 +24,37 @@ const supabase = createClient(
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+      // CORS headers
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-user-id, Authorization');
+
+      if (req.method === 'OPTIONS') {
+          return res.status(200).end();
+      }
+
+      try {
+          if (req.method === 'GET') {
+              return handleGet(req, res);
+          } else if (req.method === 'POST') {
+              return handlePost(req, res);
+          } else {
+              return res.status(405).json({ success: false, error: 'Method not allowed' });
+          }
+      } catch (error) {
+          console.error('Follow API error:', error);
+          return res.status(500).json({ success: false, error: error.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-    // CORS headers
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-user-id, Authorization');
-
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
-    }
-
-    try {
-        if (req.method === 'GET') {
-            return handleGet(req, res);
-        } else if (req.method === 'POST') {
-            return handlePost(req, res);
-        } else {
-            return res.status(405).json({ success: false, error: 'Method not allowed' });
-        }
-    } catch (error) {
-        console.error('Follow API error:', error);
-        return res.status(500).json({ success: false, error: error.message });
-    }
 }
 
 async function handleGet(req, res) {

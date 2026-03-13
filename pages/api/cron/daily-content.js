@@ -49,79 +49,85 @@ function getTodayContent() {
 }
 
 export default async function handler(req, res) {
-    // Verify cron secret
-    if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
-    // Verify this is a cron request (optional: add auth header check)
-    if (req.method !== 'POST' && req.method !== 'GET') {
-        return res.status(405).json({ error: 'Method not allowed' });
-    }
+  try {
+      // Verify cron secret
+      if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+          return res.status(401).json({ error: 'Unauthorized' });
+      }
+      // Verify this is a cron request (optional: add auth header check)
+      if (req.method !== 'POST' && req.method !== 'GET') {
+          return res.status(405).json({ error: 'Method not allowed' });
+      }
 
-    try {
+      try {
 
-        // Initialize Supabase with anon key (RLS will handle permissions)
-        const supabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-        );
+          // Initialize Supabase with anon key (RLS will handle permissions)
+          const supabase = createClient(
+              process.env.NEXT_PUBLIC_SUPABASE_URL,
+              process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+          );
 
-        // Get today's content
-        const todayContent = getTodayContent();
+          // Get today's content
+          const todayContent = getTodayContent();
 
-        // Create post using RPC function (bypasses RLS issues)
-        const { data: post, error: postError } = await supabase
-            .rpc('fn_create_social_post', {
-                p_author_id: SYSTEM_UUID,
-                p_content: todayContent.content,
-                p_content_type: todayContent.content_type,
-                p_media_urls: [],
-                p_visibility: 'public',
-                p_achievement_data: null
-            });
+          // Create post using RPC function (bypasses RLS issues)
+          const { data: post, error: postError } = await supabase
+              .rpc('fn_create_social_post', {
+                  p_author_id: SYSTEM_UUID,
+                  p_content: todayContent.content,
+                  p_content_type: todayContent.content_type,
+                  p_media_urls: [],
+                  p_visibility: 'public',
+                  p_achievement_data: null
+              });
 
-        if (postError) {
-            // Fallback: direct insert (may fail due to RLS)
+          if (postError) {
+              // Fallback: direct insert (may fail due to RLS)
 
-            const { data: directPost, error: directError } = await supabase
-                .from('social_posts')
-                .insert({
-                    author_id: SYSTEM_UUID,
-                    content: todayContent.content,
-                    content_type: todayContent.content_type,
-                    visibility: 'public',
-                    created_at: new Date().toISOString()
-                })
-                .select()
-                .maybeSingle();
+              const { data: directPost, error: directError } = await supabase
+                  .from('social_posts')
+                  .insert({
+                      author_id: SYSTEM_UUID,
+                      content: todayContent.content,
+                      content_type: todayContent.content_type,
+                      visibility: 'public',
+                      created_at: new Date().toISOString()
+                  })
+                  .select()
+                  .maybeSingle();
 
-            if (directError) {
-                throw new Error(`Failed to create post: ${directError.message}`);
-            }
+              if (directError) {
+                  throw new Error(`Failed to create post: ${directError.message}`);
+              }
 
-            return res.status(200).json({
-                success: true,
-                message: 'Daily content published (direct insert)',
-                post_id: directPost.id,
-                content_type: todayContent.content_type
-            });
-        }
+              return res.status(200).json({
+                  success: true,
+                  message: 'Daily content published (direct insert)',
+                  post_id: directPost.id,
+                  content_type: todayContent.content_type
+              });
+          }
 
 
-        return res.status(200).json({
-            success: true,
-            message: 'Daily content published successfully',
-            post_id: post.id || 'created',
-            content_type: todayContent.content_type,
-            timestamp: new Date().toISOString()
-        });
+          return res.status(200).json({
+              success: true,
+              message: 'Daily content published successfully',
+              post_id: post.id || 'created',
+              content_type: todayContent.content_type,
+              timestamp: new Date().toISOString()
+          });
 
-    } catch (error) {
-        console.error('[Daily Content] Error:', error);
-        return res.status(500).json({
-            success: false,
-            error: error.message,
-            timestamp: new Date().toISOString()
-        });
-    }
+      } catch (error) {
+          console.error('[Daily Content] Error:', error);
+          return res.status(500).json({
+              success: false,
+              error: error.message,
+              timestamp: new Date().toISOString()
+          });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

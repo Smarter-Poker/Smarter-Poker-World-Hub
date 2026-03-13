@@ -16,22 +16,28 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
-  // CDN cache: fresh for 60s, serve stale up to 300s
-  if (req.method === 'GET') {
-    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
-  }
-
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
-
+  try {
+    // CDN cache: fresh for 60s, serve stale up to 300s
     if (req.method === 'GET') {
-        return handleGet(req, res);
-    } else if (req.method === 'POST') {
-        return handlePost(req, res);
+      res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
     }
 
-    return res.status(405).json({ success: false, error: 'Method not allowed' });
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+      if (req.method === 'GET') {
+          return handleGet(req, res);
+      } else if (req.method === 'POST') {
+          return handlePost(req, res);
+      }
+
+      return res.status(405).json({ success: false, error: 'Method not allowed' });
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }
 
 async function handleGet(req, res) {

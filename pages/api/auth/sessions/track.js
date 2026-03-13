@@ -33,81 +33,87 @@ function getDeviceName(userAgent) {
 }
 
 export default async function handler(req, res) {
-    if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
-    }
+  try {
+      if (req.method !== 'POST') {
+          return res.status(405).json({ error: 'Method not allowed' });
+      }
 
-    try {
-        const { fingerprint } = req.body;
+      try {
+          const { fingerprint } = req.body;
 
-        // Get authenticated user from session
-        const authHeader = req.headers.authorization;
-        if (!authHeader) {
-            return res.status(401).json({ error: 'Not authenticated' });
-        }
+          // Get authenticated user from session
+          const authHeader = req.headers.authorization;
+          if (!authHeader) {
+              return res.status(401).json({ error: 'Not authenticated' });
+          }
 
-        const token = authHeader.replace('Bearer ', '');
-        const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+          const token = authHeader.replace('Bearer ', '');
+          const { data: { user }, error: userError } = await supabase.auth.getUser(token);
 
-        if (userError || !user) {
-            return res.status(401).json({ error: 'Invalid session' });
-        }
+          if (userError || !user) {
+              return res.status(401).json({ error: 'Invalid session' });
+          }
 
-        // Get IP address and user agent
-        const ipAddress = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || req.socket.remoteAddress || 'Unknown';
-        const userAgent = req.headers['user-agent'] || '';
-        const deviceName = getDeviceName(userAgent);
+          // Get IP address and user agent
+          const ipAddress = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || req.socket.remoteAddress || 'Unknown';
+          const userAgent = req.headers['user-agent'] || '';
+          const deviceName = getDeviceName(userAgent);
 
-        // Create a unique session identifier based on fingerprint or IP+UA
-        const sessionKey = fingerprint || `${ipAddress}-${userAgent}`;
+          // Create a unique session identifier based on fingerprint or IP+UA
+          const sessionKey = fingerprint || `${ipAddress}-${userAgent}`;
 
-        // Upsert session (update if exists, insert if new)
-        // We'll use a combination of user_id and device_name as a pseudo-unique key
-        const { data: existingSession } = await supabase
-            .from('user_sessions')
-            .select('id')
-            .eq('user_id', user.id)
-            .eq('device_name', deviceName)
-            .eq('ip_address', ipAddress)
-            .maybeSingle();
+          // Upsert session (update if exists, insert if new)
+          // We'll use a combination of user_id and device_name as a pseudo-unique key
+          const { data: existingSession } = await supabase
+              .from('user_sessions')
+              .select('id')
+              .eq('user_id', user.id)
+              .eq('device_name', deviceName)
+              .eq('ip_address', ipAddress)
+              .maybeSingle();
 
-        if (existingSession) {
-            // Update existing session
-            const { error: updateError } = await supabase
-                .from('user_sessions')
-                .update({
-                    last_active: new Date().toISOString(),
-                    user_agent: userAgent
-                })
-                .eq('id', existingSession.id);
+          if (existingSession) {
+              // Update existing session
+              const { error: updateError } = await supabase
+                  .from('user_sessions')
+                  .update({
+                      last_active: new Date().toISOString(),
+                      user_agent: userAgent
+                  })
+                  .eq('id', existingSession.id);
 
-            if (updateError) {
-                console.error('Error updating session:', updateError);
-            }
-        } else {
-            // Insert new session
-            const { error: insertError } = await supabase
-                .from('user_sessions')
-                .insert({
-                    user_id: user.id,
-                    device_name: deviceName,
-                    ip_address: ipAddress,
-                    user_agent: userAgent,
-                    last_active: new Date().toISOString()
-                });
+              if (updateError) {
+                  console.error('Error updating session:', updateError);
+              }
+          } else {
+              // Insert new session
+              const { error: insertError } = await supabase
+                  .from('user_sessions')
+                  .insert({
+                      user_id: user.id,
+                      device_name: deviceName,
+                      ip_address: ipAddress,
+                      user_agent: userAgent,
+                      last_active: new Date().toISOString()
+                  });
 
-            if (insertError) {
-                console.error('Error inserting session:', insertError);
-            }
-        }
+              if (insertError) {
+                  console.error('Error inserting session:', insertError);
+              }
+          }
 
-        return res.status(200).json({
-            success: true,
-            message: 'Session tracked'
-        });
+          return res.status(200).json({
+              success: true,
+              message: 'Session tracked'
+          });
 
-    } catch (error) {
-        console.error('Session track error:', error);
-        return res.status(500).json({ error: 'Internal server error' });
-    }
+      } catch (error) {
+          console.error('Session track error:', error);
+          return res.status(500).json({ error: 'Internal server error' });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

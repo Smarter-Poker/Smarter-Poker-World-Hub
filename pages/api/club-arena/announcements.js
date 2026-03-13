@@ -15,135 +15,141 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
-
-  const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
-
-  const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-  if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
-
   try {
-    // ═══════════════════════════════════════════════════════════════
-    // GET — List announcements
-    // ═══════════════════════════════════════════════════════════════
-    if (req.method === 'GET') {
-      const clubId = req.query.clubId;
-      if (!clubId) return res.status(400).json({ success: false, error: 'clubId required' });
-
-      // Verify membership
-      const { data: member } = await supabaseAdmin
-        .from('club_members')
-        .select('role')
-        .eq('club_id', clubId)
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (!member) return res.status(403).json({ success: false, error: 'Not a club member' });
-
-      const { data: announcements, error } = await supabaseAdmin
-        .from('club_announcements')
-        .select('*')
-        .eq('club_id', clubId)
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-      if (error) throw error;
-      return res.status(200).json({ success: true, announcements: announcements || [] });
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    // POST — Create/Update/Delete
-    // ═══════════════════════════════════════════════════════════════
-    if (req.method === 'POST') {
-      const { action, clubId, title, content, announcementId, pinned } = req.body;
-      if (!clubId || !action) return res.status(400).json({ success: false, error: 'clubId and action required' });
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
-      // Verify admin/owner role
-      const { data: member } = await supabaseAdmin
-        .from('club_members')
-        .select('role')
-        .eq('club_id', clubId)
-        .eq('user_id', user.id)
-        .maybeSingle();
+    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+    if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-      if (!member || !['owner', 'admin'].includes(member.role)) {
-        // Union admin fallback
-        const { data: clubInfo } = await supabaseAdmin.from('clubs').select('union_id').eq('id', clubId).maybeSingle();
-        let unionAuth = false;
-        if (clubInfo?.union_id) {
-          const { data: ua } = await supabaseAdmin.from('union_admins').select('role').eq('union_id', clubInfo.union_id).eq('user_id', user.id).maybeSingle();
-          if (ua) {
-              unionAuth = true;
-          } else {
-              // Owner fallback
-              const { data: union } = await supabaseAdmin.from('unions').select('id').eq('id', clubInfo.union_id).eq('owner_id', user.id).maybeSingle();
-              if (union) unionAuth = true;
-          }
-        }
-        if (!unionAuth) {
-          return res.status(403).json({ success: false, error: 'Only admins, owners, or union admins can manage announcements' });
-        }
-      }
+    try {
+      // ═══════════════════════════════════════════════════════════════
+      // GET — List announcements
+      // ═══════════════════════════════════════════════════════════════
+      if (req.method === 'GET') {
+        const clubId = req.query.clubId;
+        if (!clubId) return res.status(400).json({ success: false, error: 'clubId required' });
 
-      if (action === 'create') {
-        if (!title?.trim()) return res.status(400).json({ success: false, error: 'Title required' });
-
-        const { data: announcement, error } = await supabaseAdmin
-          .from('club_announcements')
-          .insert({
-            club_id: clubId,
-            author_id: user.id,
-            title: sanitizeNote(title, 200),
-            content: sanitizeNote(content, 5000),
-            pinned: pinned || false,
-          })
-          .select()
+        // Verify membership
+        const { data: member } = await supabaseAdmin
+          .from('club_members')
+          .select('role')
+          .eq('club_id', clubId)
+          .eq('user_id', user.id)
           .maybeSingle();
 
-        if (error) throw error;
-        return res.status(200).json({ success: true, announcement });
-      }
+        if (!member) return res.status(403).json({ success: false, error: 'Not a club member' });
 
-      if (action === 'update') {
-        if (!announcementId) return res.status(400).json({ success: false, error: 'announcementId required' });
-
-        const updates = {};
-        if (title !== undefined) updates.title = sanitizeNote(title, 200);
-        if (content !== undefined) updates.content = sanitizeNote(content, 5000);
-        if (pinned !== undefined) updates.pinned = pinned;
-
-        const { error } = await supabaseAdmin
+        const { data: announcements, error } = await supabaseAdmin
           .from('club_announcements')
-          .update(updates)
-          .eq('id', announcementId)
-          .eq('club_id', clubId);
+          .select('*')
+          .eq('club_id', clubId)
+          .order('created_at', { ascending: false })
+          .limit(50);
 
         if (error) throw error;
-        return res.status(200).json({ success: true });
+        return res.status(200).json({ success: true, announcements: announcements || [] });
       }
 
-      if (action === 'delete') {
-        if (!announcementId) return res.status(400).json({ success: false, error: 'announcementId required' });
+      // ═══════════════════════════════════════════════════════════════
+      // POST — Create/Update/Delete
+      // ═══════════════════════════════════════════════════════════════
+      if (req.method === 'POST') {
+        const { action, clubId, title, content, announcementId, pinned } = req.body;
+        if (!clubId || !action) return res.status(400).json({ success: false, error: 'clubId and action required' });
 
-        const { error } = await supabaseAdmin
-          .from('club_announcements')
-          .delete()
-          .eq('id', announcementId)
-          .eq('club_id', clubId);
+        // Verify admin/owner role
+        const { data: member } = await supabaseAdmin
+          .from('club_members')
+          .select('role')
+          .eq('club_id', clubId)
+          .eq('user_id', user.id)
+          .maybeSingle();
 
-        if (error) throw error;
-        return res.status(200).json({ success: true });
+        if (!member || !['owner', 'admin'].includes(member.role)) {
+          // Union admin fallback
+          const { data: clubInfo } = await supabaseAdmin.from('clubs').select('union_id').eq('id', clubId).maybeSingle();
+          let unionAuth = false;
+          if (clubInfo?.union_id) {
+            const { data: ua } = await supabaseAdmin.from('union_admins').select('role').eq('union_id', clubInfo.union_id).eq('user_id', user.id).maybeSingle();
+            if (ua) {
+                unionAuth = true;
+            } else {
+                // Owner fallback
+                const { data: union } = await supabaseAdmin.from('unions').select('id').eq('id', clubInfo.union_id).eq('owner_id', user.id).maybeSingle();
+                if (union) unionAuth = true;
+            }
+          }
+          if (!unionAuth) {
+            return res.status(403).json({ success: false, error: 'Only admins, owners, or union admins can manage announcements' });
+          }
+        }
+
+        if (action === 'create') {
+          if (!title?.trim()) return res.status(400).json({ success: false, error: 'Title required' });
+
+          const { data: announcement, error } = await supabaseAdmin
+            .from('club_announcements')
+            .insert({
+              club_id: clubId,
+              author_id: user.id,
+              title: sanitizeNote(title, 200),
+              content: sanitizeNote(content, 5000),
+              pinned: pinned || false,
+            })
+            .select()
+            .maybeSingle();
+
+          if (error) throw error;
+          return res.status(200).json({ success: true, announcement });
+        }
+
+        if (action === 'update') {
+          if (!announcementId) return res.status(400).json({ success: false, error: 'announcementId required' });
+
+          const updates = {};
+          if (title !== undefined) updates.title = sanitizeNote(title, 200);
+          if (content !== undefined) updates.content = sanitizeNote(content, 5000);
+          if (pinned !== undefined) updates.pinned = pinned;
+
+          const { error } = await supabaseAdmin
+            .from('club_announcements')
+            .update(updates)
+            .eq('id', announcementId)
+            .eq('club_id', clubId);
+
+          if (error) throw error;
+          return res.status(200).json({ success: true });
+        }
+
+        if (action === 'delete') {
+          if (!announcementId) return res.status(400).json({ success: false, error: 'announcementId required' });
+
+          const { error } = await supabaseAdmin
+            .from('club_announcements')
+            .delete()
+            .eq('id', announcementId)
+            .eq('club_id', clubId);
+
+          if (error) throw error;
+          return res.status(200).json({ success: true });
+        }
+
+        return res.status(400).json({ success: false, error: `Unknown action: ${action}` });
       }
 
-      return res.status(400).json({ success: false, error: `Unknown action: ${action}` });
+      return res.status(405).json({ success: false, error: 'GET or POST only' });
+    } catch (err) {
+      console.error('[announcements]', err);
+      return res.status(500).json({ success: false, error: 'Announcements failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
     }
 
-    return res.status(405).json({ success: false, error: 'GET or POST only' });
   } catch (err) {
-    console.error('[announcements]', err);
-    return res.status(500).json({ success: false, error: 'Announcements failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

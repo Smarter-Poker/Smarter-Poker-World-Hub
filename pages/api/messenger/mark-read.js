@@ -13,52 +13,58 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+      if (req.method !== 'POST') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
+
+      // ── Auth: verify JWT identity ──
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
+      const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+      if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+
+      const userId = user.id; // From JWT, NOT body
+      const { conversationId } = req.body;
+
+      if (!conversationId) {
+          return res.status(400).json({ success: false, error: 'conversationId required' });
+      }
+
+
+      try {
+          // Update last_read_at to now
+          const { data, error } = await supabaseAdmin
+              .from('social_conversation_participants')
+              .update({ last_read_at: new Date().toISOString() })
+              .eq('conversation_id', conversationId)
+              .eq('user_id', userId)
+              .select()
+              .maybeSingle();
+
+          if (error) {
+              console.error('[MARK-READ] Update error:', error);
+              return res.status(500).json({ success: false, error: error.message });
+          }
+
+          if (!data) {
+              console.warn('[MARK-READ] No participant found to mark as read');
+              return res.status(404).json({ success: false, error: 'Participant not found' });
+          }
+
+          return res.json({ success: true, data });
+
+      } catch (error) {
+          console.error('[MARK-READ] Error:', error);
+          return res.status(500).json({ success: false, error: error.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-    if (req.method !== 'POST') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
-
-    // ── Auth: verify JWT identity ──
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-    if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
-
-    const userId = user.id; // From JWT, NOT body
-    const { conversationId } = req.body;
-
-    if (!conversationId) {
-        return res.status(400).json({ success: false, error: 'conversationId required' });
-    }
-
-
-    try {
-        // Update last_read_at to now
-        const { data, error } = await supabaseAdmin
-            .from('social_conversation_participants')
-            .update({ last_read_at: new Date().toISOString() })
-            .eq('conversation_id', conversationId)
-            .eq('user_id', userId)
-            .select()
-            .maybeSingle();
-
-        if (error) {
-            console.error('[MARK-READ] Update error:', error);
-            return res.status(500).json({ success: false, error: error.message });
-        }
-
-        if (!data) {
-            console.warn('[MARK-READ] No participant found to mark as read');
-            return res.status(404).json({ success: false, error: 'Participant not found' });
-        }
-
-        return res.json({ success: true, data });
-
-    } catch (error) {
-        console.error('[MARK-READ] Error:', error);
-        return res.status(500).json({ success: false, error: error.message });
-    }
 }

@@ -188,146 +188,152 @@ function parseDirectWebsiteTournaments(html, venueName) {
 }
 
 export default async function handler(req, res) {
-    // Verify cron secret if configured
-    if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
-        // Allow in development or if no secret configured
-        if (process.env.NODE_ENV === 'production' && process.env.CRON_SECRET) {
-            return res.status(401).json({ error: 'Unauthorized' });
-        }
-    }
+  try {
+      // Verify cron secret if configured
+      if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+          // Allow in development or if no secret configured
+          if (process.env.NODE_ENV === 'production' && process.env.CRON_SECRET) {
+              return res.status(401).json({ error: 'Unauthorized' });
+          }
+      }
 
-    const { state, source, limit, force } = req.query;
+      const { state, source, limit, force } = req.query;
 
-    const stats = {
-        venuesProcessed: 0,
-        tournamentsFound: 0,
-        tournamentsInserted: 0,
-        errors: [],
-        skipped: 0
-    };
+      const stats = {
+          venuesProcessed: 0,
+          tournamentsFound: 0,
+          tournamentsInserted: 0,
+          errors: [],
+          skipped: 0
+      };
 
-    try {
-        // Build query
-        let query = supabase
-            .from('poker_venues')
-            .select('id, name, city, state, scrape_source, scrape_url, pokeratlas_url, last_scraped')
-            .eq('is_active', true)
-            .order('name')
-                .limit(100);
+      try {
+          // Build query
+          let query = supabase
+              .from('poker_venues')
+              .select('id, name, city, state, scrape_source, scrape_url, pokeratlas_url, last_scraped')
+              .eq('is_active', true)
+              .order('name')
+                  .limit(100);
 
-        if (state) query = query.eq('state', state.toUpperCase());
-        if (source) query = query.eq('scrape_source', source);
-        if (limit) query = query.limit(parseInt(limit));
+          if (state) query = query.eq('state', state.toUpperCase());
+          if (source) query = query.eq('scrape_source', source);
+          if (limit) query = query.limit(parseInt(limit));
 
-        if (force !== 'true') {
-            const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-            query = query.or(`last_scraped.is.null,last_scraped.lt.${yesterday}`);
-        }
+          if (force !== 'true') {
+              const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+              query = query.or(`last_scraped.is.null,last_scraped.lt.${yesterday}`);
+          }
 
-        const { data: venues, error: queryError } = await query;
+          const { data: venues, error: queryError } = await query;
 
-        if (queryError) {
-            return res.status(500).json({ error: queryError.message });
-        }
+          if (queryError) {
+              return res.status(500).json({ error: queryError.message });
+          }
 
-        // Process venues (limit to 50 for API timeout)
-        const maxVenues = Math.min(venues.length, 50);
+          // Process venues (limit to 50 for API timeout)
+          const maxVenues = Math.min(venues.length, 50);
 
-        for (let i = 0; i < maxVenues; i++) {
-            const venue = venues[i];
-            stats.venuesProcessed++;
+          for (let i = 0; i < maxVenues; i++) {
+              const venue = venues[i];
+              stats.venuesProcessed++;
 
-            const scrapeSource = venue.scrape_source || 'manual';
+              const scrapeSource = venue.scrape_source || 'manual';
 
-            if (scrapeSource === 'manual' || !venue.scrape_url) {
-                stats.skipped++;
-                continue;
-            }
+              if (scrapeSource === 'manual' || !venue.scrape_url) {
+                  stats.skipped++;
+                  continue;
+              }
 
-            let url = venue.scrape_url;
-            let tournaments = [];
+              let url = venue.scrape_url;
+              let tournaments = [];
 
-            try {
-                if (scrapeSource === 'pokeratlas') {
-                    url = venue.pokeratlas_url || venue.scrape_url;
-                    if (!url.endsWith('/tournaments')) {
-                        url = url.replace(/\/$/, '') + '/tournaments';
-                    }
-                    const html = await fetchUrl(url);
-                    tournaments = parsePokerAtlasTournaments(html, venue.name);
+              try {
+                  if (scrapeSource === 'pokeratlas') {
+                      url = venue.pokeratlas_url || venue.scrape_url;
+                      if (!url.endsWith('/tournaments')) {
+                          url = url.replace(/\/$/, '') + '/tournaments';
+                      }
+                      const html = await fetchUrl(url);
+                      tournaments = parsePokerAtlasTournaments(html, venue.name);
 
-                } else if (scrapeSource === 'direct_website') {
-                    url = venue.scrape_url;
-                    if (!url.startsWith('http')) url = 'https://' + url;
+                  } else if (scrapeSource === 'direct_website') {
+                      url = venue.scrape_url;
+                      if (!url.startsWith('http')) url = 'https://' + url;
 
-                    const paths = ['', '/poker', '/poker/tournaments', '/tournaments'];
-                    for (const path of paths) {
-                        try {
-                            const tryUrl = url.replace(/\/$/, '') + path;
-                            const html = await fetchUrl(tryUrl);
-                            tournaments = parseDirectWebsiteTournaments(html, venue.name);
-                            if (tournaments.length > 0) {
-                                url = tryUrl;
-                                break;
-                            }
-                        } catch (e) {
-                            // Try next path
-                        }
-                    }
-                }
+                      const paths = ['', '/poker', '/poker/tournaments', '/tournaments'];
+                      for (const path of paths) {
+                          try {
+                              const tryUrl = url.replace(/\/$/, '') + path;
+                              const html = await fetchUrl(tryUrl);
+                              tournaments = parseDirectWebsiteTournaments(html, venue.name);
+                              if (tournaments.length > 0) {
+                                  url = tryUrl;
+                                  break;
+                              }
+                          } catch (e) {
+                              // Try next path
+                          }
+                      }
+                  }
 
-                stats.tournamentsFound += tournaments.length;
+                  stats.tournamentsFound += tournaments.length;
 
-                if (tournaments.length > 0) {
-                    for (const tournament of tournaments) {
-                        tournament.venue_id = venue.id;
-                        tournament.source_url = url;
-                        tournament.last_scraped = new Date().toISOString();
-                        tournament.is_active = true;
+                  if (tournaments.length > 0) {
+                      for (const tournament of tournaments) {
+                          tournament.venue_id = venue.id;
+                          tournament.source_url = url;
+                          tournament.last_scraped = new Date().toISOString();
+                          tournament.is_active = true;
 
-                        const { error: insertError } = await supabase
-                            .from('venue_daily_tournaments')
-                            .upsert(tournament, {
-                                onConflict: 'venue_id,day_of_week,start_time,buy_in'
-                            });
+                          const { error: insertError } = await supabase
+                              .from('venue_daily_tournaments')
+                              .upsert(tournament, {
+                                  onConflict: 'venue_id,day_of_week,start_time,buy_in'
+                              });
 
-                        if (!insertError) stats.tournamentsInserted++;
-                    }
-                }
+                          if (!insertError) stats.tournamentsInserted++;
+                      }
+                  }
 
-                await supabase
-                    .from('poker_venues')
-                    .update({
-                        last_scraped: new Date().toISOString(),
-                        scrape_status: tournaments.length > 0 ? 'complete' : 'no_tournaments'
-                    })
-                    .eq('id', venue.id);
+                  await supabase
+                      .from('poker_venues')
+                      .update({
+                          last_scraped: new Date().toISOString(),
+                          scrape_status: tournaments.length > 0 ? 'complete' : 'no_tournaments'
+                      })
+                      .eq('id', venue.id);
 
-            } catch (error) {
-                stats.errors.push({ venue: venue.name, error: error.message });
-                await supabase
-                    .from('poker_venues')
-                    .update({ scrape_status: 'error', last_scraped: new Date().toISOString() })
-                    .eq('id', venue.id);
-            }
+              } catch (error) {
+                  stats.errors.push({ venue: venue.name, error: error.message });
+                  await supabase
+                      .from('poker_venues')
+                      .update({ scrape_status: 'error', last_scraped: new Date().toISOString() })
+                      .eq('id', venue.id);
+              }
 
-            // Rate limiting
-            if (i < maxVenues - 1) {
-                await sleep(RATE_LIMIT_MS);
-            }
-        }
+              // Rate limiting
+              if (i < maxVenues - 1) {
+                  await sleep(RATE_LIMIT_MS);
+              }
+          }
 
-        return res.status(200).json({
-            success: true,
-            stats,
-            remaining: venues.length - maxVenues
-        });
+          return res.status(200).json({
+              success: true,
+              stats,
+              remaining: venues.length - maxVenues
+          });
 
-    } catch (error) {
-        return res.status(500).json({
-            success: false,
-            error: error.message,
-            stats
-        });
-    }
+      } catch (error) {
+          return res.status(500).json({
+              success: false,
+              error: error.message,
+              stats
+          });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

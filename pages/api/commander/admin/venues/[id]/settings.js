@@ -5,31 +5,37 @@ import { applyRateLimit, LIMITS } from '../../../../../../src/lib/apiRateLimit';
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  } else {
-    if (!applyRateLimit(req, res, LIMITS.read)) return;
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    } else {
+      if (!applyRateLimit(req, res, LIMITS.read)) return;
+    }
+
+    const _g = await guardManager(req, res); if (!_g) return;
+    const { id } = req.query;
+
+    if (req.method === 'GET') {
+      const { data, error } = await supabase.from('commander_venue_settings').select('*').eq('venue_id', id).maybeSingle();
+      if (error) return res.json({ success: true, data: { settings: {} } });
+      return res.json({ success: true, data: { settings: data } });
+    }
+
+    if (req.method === 'PATCH') {
+      const { data, error } = await supabase
+        .from('commander_venue_settings')
+        .upsert({ venue_id: id, ...req.body }, { onConflict: 'venue_id' })
+        .select()
+        .maybeSingle();
+      if (error) return res.status(500).json({ success: false, error: error.message });
+      if (!data) return res.status(500).json({ success: false, error: 'Failed to update settings' });
+      return res.json({ success: true, data: { settings: data } });
+    }
+
+    return res.status(405).json({ success: false, error: 'Method not allowed' });
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-  const _g = await guardManager(req, res); if (!_g) return;
-  const { id } = req.query;
-
-  if (req.method === 'GET') {
-    const { data, error } = await supabase.from('commander_venue_settings').select('*').eq('venue_id', id).maybeSingle();
-    if (error) return res.json({ success: true, data: { settings: {} } });
-    return res.json({ success: true, data: { settings: data } });
-  }
-
-  if (req.method === 'PATCH') {
-    const { data, error } = await supabase
-      .from('commander_venue_settings')
-      .upsert({ venue_id: id, ...req.body }, { onConflict: 'venue_id' })
-      .select()
-      .maybeSingle();
-    if (error) return res.status(500).json({ success: false, error: error.message });
-    if (!data) return res.status(500).json({ success: false, error: 'Failed to update settings' });
-    return res.json({ success: true, data: { settings: data } });
-  }
-
-  return res.status(405).json({ success: false, error: 'Method not allowed' });
 }

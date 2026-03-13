@@ -13,29 +13,35 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
 
-  const { id } = req.query;
+    const { id } = req.query;
 
-  if (!id) {
-    return res.status(400).json({
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: 'Incident ID required' }
+      });
+    }
+
+    if (req.method === 'GET') {
+      return handleGet(req, res, id);
+    } else if (req.method === 'PATCH') {
+      return handlePatch(req, res, id);
+    }
+
+    return res.status(405).json({
       success: false,
-      error: { code: 'VALIDATION_ERROR', message: 'Incident ID required' }
+      error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' }
     });
-  }
 
-  if (req.method === 'GET') {
-    return handleGet(req, res, id);
-  } else if (req.method === 'PATCH') {
-    return handlePatch(req, res, id);
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-  return res.status(405).json({
-    success: false,
-    error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' }
-  });
 }
 
 async function handleGet(req, res, id) {

@@ -12,76 +12,82 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
-
-  // Auth guard: require staff auth
-  const _staff = await guardStaff(req, res);
-  if (!_staff) return;
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({
-      success: false,
-      error: { code: 'METHOD_NOT_ALLOWED', message: 'Only POST allowed' }
-    });
-  }
-
-  const { tableId } = req.query;
-  const { venue_id, platforms = ['youtube'], delay_minutes = 15, overlay_config } = req.body;
-
-  if (!venue_id) {
-    return res.status(400).json({
-      success: false,
-      error: { code: 'MISSING_FIELDS', message: 'venue_id required' }
-    });
-  }
-
   try {
-    // Check if stream already exists for this table
-    const { data: existing } = await supabase
-      .from('commander_streams')
-      .select('id')
-      .eq('table_id', tableId)
-      .eq('status', 'live')
-      .maybeSingle();
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
 
-    if (existing) {
-      return res.status(400).json({
+    // Auth guard: require staff auth
+    const _staff = await guardStaff(req, res);
+    if (!_staff) return;
+
+    if (req.method !== 'POST') {
+      return res.status(405).json({
         success: false,
-        error: { code: 'ALREADY_STREAMING', message: 'Table is already streaming' }
+        error: { code: 'METHOD_NOT_ALLOWED', message: 'Only POST allowed' }
       });
     }
 
-    // Create or update stream record
-    const { data: stream, error } = await supabase
-      .from('commander_streams')
-      .upsert({
-        venue_id,
-        table_id: tableId,
-        status: 'live',
-        platforms,
-        delay_minutes,
-        overlay_config: overlay_config || {},
-        started_at: new Date().toISOString(),
-        viewer_count: 0
-      }, {
-        onConflict: 'table_id'
-      })
-      .select()
-      .maybeSingle();
+    const { tableId } = req.query;
+    const { venue_id, platforms = ['youtube'], delay_minutes = 15, overlay_config } = req.body;
 
-    if (error) throw error;
+    if (!venue_id) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'MISSING_FIELDS', message: 'venue_id required' }
+      });
+    }
 
-    return res.status(200).json({
-      success: true,
-      data: { stream }
-    });
-  } catch (error) {
-    console.error('Start stream error:', error);
-    return res.status(500).json({
-      success: false,
-      error: { code: 'SERVER_ERROR', message: 'Failed to start stream' }
-    });
+    try {
+      // Check if stream already exists for this table
+      const { data: existing } = await supabase
+        .from('commander_streams')
+        .select('id')
+        .eq('table_id', tableId)
+        .eq('status', 'live')
+        .maybeSingle();
+
+      if (existing) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'ALREADY_STREAMING', message: 'Table is already streaming' }
+        });
+      }
+
+      // Create or update stream record
+      const { data: stream, error } = await supabase
+        .from('commander_streams')
+        .upsert({
+          venue_id,
+          table_id: tableId,
+          status: 'live',
+          platforms,
+          delay_minutes,
+          overlay_config: overlay_config || {},
+          started_at: new Date().toISOString(),
+          viewer_count: 0
+        }, {
+          onConflict: 'table_id'
+        })
+        .select()
+        .maybeSingle();
+
+      if (error) throw error;
+
+      return res.status(200).json({
+        success: true,
+        data: { stream }
+      });
+    } catch (error) {
+      console.error('Start stream error:', error);
+      return res.status(500).json({
+        success: false,
+        error: { code: 'SERVER_ERROR', message: 'Failed to start stream' }
+      });
+    }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

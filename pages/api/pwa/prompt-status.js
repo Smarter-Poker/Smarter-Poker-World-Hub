@@ -55,82 +55,88 @@ function sanitizeAction(action) {
 }
 
 export default async function handler(req, res) {
-    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-        if (!applyRateLimit(req, res, LIMITS.write)) return;
-    }
+  try {
+      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+          if (!applyRateLimit(req, res, LIMITS.write)) return;
+      }
 
-    if (req.method !== 'GET' && req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
-    }
+      if (req.method !== 'GET' && req.method !== 'POST') {
+          return res.status(405).json({ error: 'Method not allowed' });
+      }
 
-    const ip = getClientIp(req);
-    if (isRateLimited(ip)) {
-        return res.status(429).json({ error: 'Too many requests' });
-    }
+      const ip = getClientIp(req);
+      if (isRateLimited(ip)) {
+          return res.status(429).json({ error: 'Too many requests' });
+      }
 
-    // ─── GET: Check if this IP already responded ───
-    if (req.method === 'GET') {
-        try {
-            const { data, error } = await supabase
-                .from('pwa_prompt_log')
-                .select('id')
-                .eq('ip_address', ip)
-                .limit(1);
+      // ─── GET: Check if this IP already responded ───
+      if (req.method === 'GET') {
+          try {
+              const { data, error } = await supabase
+                  .from('pwa_prompt_log')
+                  .select('id')
+                  .eq('ip_address', ip)
+                  .limit(1);
 
-            if (error) {
-                // Table may not exist — treat as "not dismissed"
-                return res.status(200).json({ dismissed: false });
-            }
-            return res.status(200).json({ dismissed: data && data.length > 0 });
-        } catch {
-            return res.status(200).json({ dismissed: false });
-        }
-    }
+              if (error) {
+                  // Table may not exist — treat as "not dismissed"
+                  return res.status(200).json({ dismissed: false });
+              }
+              return res.status(200).json({ dismissed: data && data.length > 0 });
+          } catch {
+              return res.status(200).json({ dismissed: false });
+          }
+      }
 
-    // ─── POST: Record that this IP responded ───
-    if (req.method === 'POST') {
-        const { action } = req.body || {};
-        const cleanAction = sanitizeAction(action);
+      // ─── POST: Record that this IP responded ───
+      if (req.method === 'POST') {
+          const { action } = req.body || {};
+          const cleanAction = sanitizeAction(action);
 
-        try {
-            const exists = await ensureTable();
-            if (!exists) {
-                return res.status(200).json({ ok: true, note: 'table_pending' });
-            }
+          try {
+              const exists = await ensureTable();
+              if (!exists) {
+                  return res.status(200).json({ ok: true, note: 'table_pending' });
+              }
 
-            // Idempotent: check if already recorded for this IP
-            const { data: existing } = await supabase
-                .from('pwa_prompt_log')
-                .select('id')
-                .eq('ip_address', ip)
-                .limit(1);
+              // Idempotent: check if already recorded for this IP
+              const { data: existing } = await supabase
+                  .from('pwa_prompt_log')
+                  .select('id')
+                  .eq('ip_address', ip)
+                  .limit(1);
 
-            if (existing && existing.length > 0) {
-                return res.status(200).json({ ok: true, already_recorded: true });
-            }
+              if (existing && existing.length > 0) {
+                  return res.status(200).json({ ok: true, already_recorded: true });
+              }
 
-            const { error } = await supabase
-                .from('pwa_prompt_log')
-                .insert({
-                    ip_address: ip,
-                    action: cleanAction,
-                    responded_at: new Date().toISOString(),
-                });
+              const { error } = await supabase
+                  .from('pwa_prompt_log')
+                  .insert({
+                      ip_address: ip,
+                      action: cleanAction,
+                      responded_at: new Date().toISOString(),
+                  });
 
-            if (error) {
-                if (error.code === '23505') {
-                    return res.status(200).json({ ok: true, already_recorded: true });
-                }
-                console.error('[pwa-prompt-status] POST insert error:', error.message);
-                return res.status(200).json({ ok: false });
-            }
+              if (error) {
+                  if (error.code === '23505') {
+                      return res.status(200).json({ ok: true, already_recorded: true });
+                  }
+                  console.error('[pwa-prompt-status] POST insert error:', error.message);
+                  return res.status(200).json({ ok: false });
+              }
 
-            return res.status(200).json({ ok: true });
-        } catch (err) {
-            console.error('[pwa-prompt-status] POST exception:', err);
-            return res.status(200).json({ ok: false });
-        }
-    }
+              return res.status(200).json({ ok: true });
+          } catch (err) {
+              console.error('[pwa-prompt-status] POST exception:', err);
+              return res.status(200).json({ ok: false });
+          }
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }
 
 // ─── Table existence check (cached per cold start) ───

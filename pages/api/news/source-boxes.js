@@ -29,107 +29,113 @@ const SOURCE_BOXES = [
 ];
 
 export default async function handler(req, res) {
-    if (req.method !== 'GET') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
+  try {
+      if (req.method !== 'GET') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
 
-    try {
-        const boxArticles = [];
+      try {
+          const boxArticles = [];
 
-        // Query each source's latest article - GUARANTEED one per box
-        for (const box of SOURCE_BOXES) {
-            // Try by source_box first, then by source_name
-            let { data: article } = await supabase
-                .from('poker_news')
-                .select('*')
-                .eq('source_box', box.box)
-                .eq('is_published', true)
-                .order('published_at', { ascending: false })
-                .limit(1)
-                .maybeSingle();
+          // Query each source's latest article - GUARANTEED one per box
+          for (const box of SOURCE_BOXES) {
+              // Try by source_box first, then by source_name
+              let { data: article } = await supabase
+                  .from('poker_news')
+                  .select('*')
+                  .eq('source_box', box.box)
+                  .eq('is_published', true)
+                  .order('published_at', { ascending: false })
+                  .limit(1)
+                  .maybeSingle();
 
-            // Fallback: try by source_name if source_box didn't match
-            if (!article) {
-                const { data: byName } = await supabase
-                    .from('poker_news')
-                    .select('*')
-                    .eq('source_name', box.source_name)
-                    .eq('is_published', true)
-                    .order('published_at', { ascending: false })
-                    .limit(1)
-                    .maybeSingle();
-                article = byName;
-            }
+              // Fallback: try by source_name if source_box didn't match
+              if (!article) {
+                  const { data: byName } = await supabase
+                      .from('poker_news')
+                      .select('*')
+                      .eq('source_name', box.source_name)
+                      .eq('is_published', true)
+                      .order('published_at', { ascending: false })
+                      .limit(1)
+                      .maybeSingle();
+                  article = byName;
+              }
 
-            // MSPT Cross-Source Fallback: Every 2 hours (matching cron cycle),
-            // if MSPT's own article is stale, auto-populate Box 2 from any source
-            // covering MSPT (e.g., PokerNews, CardPlayer). When MSPT publishes
-            // new stories directly, they'll naturally be fresher and take precedence.
-            if (box.box === 2 && article) {
-                const articleAge = Date.now() - new Date(article.published_at).getTime();
-                const twoHoursMs = 2 * 60 * 60 * 1000;
-                if (articleAge > twoHoursMs) {
-                    const { data: crossSource } = await supabase
-                        .from('poker_news')
-                        .select('*')
-                        .ilike('title', '%MSPT%')
-                        .eq('is_published', true)
-                        .order('published_at', { ascending: false })
-                        .limit(1)
-                        .maybeSingle();
+              // MSPT Cross-Source Fallback: Every 2 hours (matching cron cycle),
+              // if MSPT's own article is stale, auto-populate Box 2 from any source
+              // covering MSPT (e.g., PokerNews, CardPlayer). When MSPT publishes
+              // new stories directly, they'll naturally be fresher and take precedence.
+              if (box.box === 2 && article) {
+                  const articleAge = Date.now() - new Date(article.published_at).getTime();
+                  const twoHoursMs = 2 * 60 * 60 * 1000;
+                  if (articleAge > twoHoursMs) {
+                      const { data: crossSource } = await supabase
+                          .from('poker_news')
+                          .select('*')
+                          .ilike('title', '%MSPT%')
+                          .eq('is_published', true)
+                          .order('published_at', { ascending: false })
+                          .limit(1)
+                          .maybeSingle();
 
-                    if (crossSource && new Date(crossSource.published_at) > new Date(article.published_at)) {
-                        article = crossSource;
-                    }
-                }
-            }
+                      if (crossSource && new Date(crossSource.published_at) > new Date(article.published_at)) {
+                          article = crossSource;
+                      }
+                  }
+              }
 
-            // If we found an article, add it with box number
-            if (article) {
-                boxArticles.push({
-                    ...article,
-                    _boxNumber: box.box,
-                    _sourceName: box.source_name
-                });
-            } else {
-                // NO PLACEHOLDER - just mark as empty for this box
-                // The frontend should handle showing old cached content
-                boxArticles.push({
-                    id: `empty-box-${box.box}`,
-                    _boxNumber: box.box,
-                    _sourceName: box.source_name,
-                    _isEmpty: true,
-                    title: `Awaiting ${box.source_name} News`,
-                    source_name: box.source_name,
-                    image_url: box.fallback_image,
-                    published_at: new Date().toISOString(),
-                    views: 0
-                });
-            }
-        }
+              // If we found an article, add it with box number
+              if (article) {
+                  boxArticles.push({
+                      ...article,
+                      _boxNumber: box.box,
+                      _sourceName: box.source_name
+                  });
+              } else {
+                  // NO PLACEHOLDER - just mark as empty for this box
+                  // The frontend should handle showing old cached content
+                  boxArticles.push({
+                      id: `empty-box-${box.box}`,
+                      _boxNumber: box.box,
+                      _sourceName: box.source_name,
+                      _isEmpty: true,
+                      title: `Awaiting ${box.source_name} News`,
+                      source_name: box.source_name,
+                      image_url: box.fallback_image,
+                      published_at: new Date().toISOString(),
+                      views: 0
+                  });
+              }
+          }
 
-        return res.status(200).json({
-            success: true,
-            data: boxArticles,
-            timestamp: new Date().toISOString()
-        });
+          return res.status(200).json({
+              success: true,
+              data: boxArticles,
+              timestamp: new Date().toISOString()
+          });
 
-    } catch (error) {
-        console.error('[Source Boxes API] Error:', error);
-        return res.status(500).json({
-            success: false,
-            error: error.message,
-            data: SOURCE_BOXES.map(box => ({
-                id: `error-box-${box.box}`,
-                _boxNumber: box.box,
-                _sourceName: box.source_name,
-                _isError: true,
-                title: `${box.source_name} - Loading...`,
-                source_name: box.source_name,
-                image_url: box.fallback_image,
-                published_at: new Date().toISOString(),
-                views: 0
-            }))
-        });
-    }
+      } catch (error) {
+          console.error('[Source Boxes API] Error:', error);
+          return res.status(500).json({
+              success: false,
+              error: error.message,
+              data: SOURCE_BOXES.map(box => ({
+                  id: `error-box-${box.box}`,
+                  _boxNumber: box.box,
+                  _sourceName: box.source_name,
+                  _isError: true,
+                  title: `${box.source_name} - Loading...`,
+                  source_name: box.source_name,
+                  image_url: box.fallback_image,
+                  published_at: new Date().toISOString(),
+                  views: 0
+              }))
+          });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

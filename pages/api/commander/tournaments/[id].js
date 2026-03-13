@@ -16,33 +16,39 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  try {
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+    const _g = await guardWriteStaff(req, res); if (!_g) return;
+
+    const { id } = req.query;
+
+    if (!id) {
+      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Tournament ID required' } });
+    }
+
+    if (req.method === 'GET') {
+      return getTournament(req, res, id);
+    }
+
+    // PATCH is how the frontend sends status changes
+    if (req.method === 'PATCH' || req.method === 'PUT') {
+      return updateTournament(req, res, id, _g);
+    }
+
+    if (req.method === 'DELETE') {
+      return cancelTournament(req, res, id, _g);
+    }
+
+    res.setHeader('Allow', ['GET', 'PUT', 'PATCH', 'DELETE']);
+    return res.status(405).json({ success: false, error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' } });
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-  const _g = await guardWriteStaff(req, res); if (!_g) return;
-
-  const { id } = req.query;
-
-  if (!id) {
-    return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Tournament ID required' } });
-  }
-
-  if (req.method === 'GET') {
-    return getTournament(req, res, id);
-  }
-
-  // PATCH is how the frontend sends status changes
-  if (req.method === 'PATCH' || req.method === 'PUT') {
-    return updateTournament(req, res, id, _g);
-  }
-
-  if (req.method === 'DELETE') {
-    return cancelTournament(req, res, id, _g);
-  }
-
-  res.setHeader('Allow', ['GET', 'PUT', 'PATCH', 'DELETE']);
-  return res.status(405).json({ success: false, error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' } });
 }
 
 async function getTournament(req, res, id) {

@@ -77,170 +77,176 @@ async function upsertLeaderboard(sb, userId, gameId, diamondsEarned, accuracy, p
 }
 
 export default async function handler(req, res) {
-    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-        if (!applyRateLimit(req, res, LIMITS.write)) return;
-    }
+  try {
+      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+          if (!applyRateLimit(req, res, LIMITS.write)) return;
+      }
 
-    // Require JWT auth for write operations
-    if (req.method !== 'GET') {
-        const _token = req.headers.authorization?.replace('Bearer ', '');
-        if (!_token) return res.status(401).json({ success: false, error: 'Authentication required' });
-        const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
-        if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
-        if (req.body) req.body.userId = _authUser.id;
-    }
+      // Require JWT auth for write operations
+      if (req.method !== 'GET') {
+          const _token = req.headers.authorization?.replace('Bearer ', '');
+          if (!_token) return res.status(401).json({ success: false, error: 'Authentication required' });
+          const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
+          if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+          if (req.body) req.body.userId = _authUser.id;
+      }
 
-    if (req.method !== 'POST') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
+      if (req.method !== 'POST') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
 
-    try {
-        const {
-            userId,
-            gameId,
-            level,
-            questionsAnswered,
-            questionsCorrect,
-            accuracy,
-            passed,
-            streak,
-            diamondsEarned,
-            timeSpentSeconds
-        } = req.body;
+      try {
+          const {
+              userId,
+              gameId,
+              level,
+              questionsAnswered,
+              questionsCorrect,
+              accuracy,
+              passed,
+              streak,
+              diamondsEarned,
+              timeSpentSeconds
+          } = req.body;
 
-        // Validation
-        if (!userId || !gameId || !level) {
-            return res.status(400).json({ success: false, error: 'Missing required fields' });
-        }
+          // Validation
+          if (!userId || !gameId || !level) {
+              return res.status(400).json({ success: false, error: 'Missing required fields' });
+          }
 
-        // 1. Save level completion to history
-        const { data: levelHistory, error: historyError } = await supabase
-            .from('training_level_history')
-            .insert({
-                user_id: userId,
-                game_id: gameId,
-                level: level,
-                questions_answered: questionsAnswered,
-                questions_correct: questionsCorrect,
-                accuracy_percentage: accuracy,
-                passed: passed,
-                time_spent_seconds: timeSpentSeconds,
-                best_streak: streak,
-                diamonds_earned: diamondsEarned
-            })
-            .select()
-            .maybeSingle();
+          // 1. Save level completion to history
+          const { data: levelHistory, error: historyError } = await supabase
+              .from('training_level_history')
+              .insert({
+                  user_id: userId,
+                  game_id: gameId,
+                  level: level,
+                  questions_answered: questionsAnswered,
+                  questions_correct: questionsCorrect,
+                  accuracy_percentage: accuracy,
+                  passed: passed,
+                  time_spent_seconds: timeSpentSeconds,
+                  best_streak: streak,
+                  diamonds_earned: diamondsEarned
+              })
+              .select()
+              .maybeSingle();
 
-        if (historyError) {
-            console.error('Error saving level history:', historyError);
-        }
+          if (historyError) {
+              console.error('Error saving level history:', historyError);
+          }
 
-        // 2. Update or create training_progress
-        const { data: existingProgress } = await supabase
-            .from('training_progress')
-            .select('*')
-            .eq('user_id', userId)
-            .eq('game_id', gameId)
-            .maybeSingle();
+          // 2. Update or create training_progress
+          const { data: existingProgress } = await supabase
+              .from('training_progress')
+              .select('*')
+              .eq('user_id', userId)
+              .eq('game_id', gameId)
+              .maybeSingle();
 
-        if (existingProgress) {
-            // Update existing progress
-            const { data: updatedProgress, error: updateError } = await supabase
-                .from('training_progress')
-                .update({
-                    level: passed ? Math.min(level + 1, 10) : level,
-                    hands_played: (existingProgress.hands_played || 0) + questionsAnswered,
-                    correct_answers: (existingProgress.correct_answers || 0) + questionsCorrect,
-                    total_answers: (existingProgress.total_answers || 0) + questionsAnswered,
-                    current_streak: streak,
-                    best_streak: Math.max(streak, existingProgress.best_streak || 0),
-                    last_played_at: new Date().toISOString()
-                })
-                .eq('user_id', userId)
-                .eq('game_id', gameId)
-                .select()
-                .maybeSingle();
+          if (existingProgress) {
+              // Update existing progress
+              const { data: updatedProgress, error: updateError } = await supabase
+                  .from('training_progress')
+                  .update({
+                      level: passed ? Math.min(level + 1, 10) : level,
+                      hands_played: (existingProgress.hands_played || 0) + questionsAnswered,
+                      correct_answers: (existingProgress.correct_answers || 0) + questionsCorrect,
+                      total_answers: (existingProgress.total_answers || 0) + questionsAnswered,
+                      current_streak: streak,
+                      best_streak: Math.max(streak, existingProgress.best_streak || 0),
+                      last_played_at: new Date().toISOString()
+                  })
+                  .eq('user_id', userId)
+                  .eq('game_id', gameId)
+                  .select()
+                  .maybeSingle();
 
-            if (updateError) {
-                console.error('Error updating progress:', updateError);
-                return res.status(500).json({ success: false, error: 'Failed to update progress' });
-            }
+              if (updateError) {
+                  console.error('Error updating progress:', updateError);
+                  return res.status(500).json({ success: false, error: 'Failed to update progress' });
+              }
 
-            // 3. Upsert leaderboard entry
-            try {
-                await upsertLeaderboard(supabase, userId, gameId, diamondsEarned, accuracy, passed);
-            } catch (lbError) {
-                console.warn('Leaderboard upsert failed:', lbError.message);
-            }
+              // 3. Upsert leaderboard entry
+              try {
+                  await upsertLeaderboard(supabase, userId, gameId, diamondsEarned, accuracy, passed);
+              } catch (lbError) {
+                  console.warn('Leaderboard upsert failed:', lbError.message);
+              }
 
-            // 4. Award diamonds to profile balance
-            if (diamondsEarned > 0) {
-                try {
-                    await supabase.rpc('add_diamonds_to_balance', { p_user_id: userId, p_amount: diamondsEarned });
-                } catch (e) {
-                    console.warn('[SaveProgress] Diamond award failed:', e.message);
-                }
-            }
+              // 4. Award diamonds to profile balance
+              if (diamondsEarned > 0) {
+                  try {
+                      await supabase.rpc('add_diamonds_to_balance', { p_user_id: userId, p_amount: diamondsEarned });
+                  } catch (e) {
+                      console.warn('[SaveProgress] Diamond award failed:', e.message);
+                  }
+              }
 
-            return res.status(200).json({
-                success: true,
-                progress: updatedProgress,
-                levelHistory: levelHistory
-            });
-        } else {
-            // Create new progress
-            const { data: newProgress, error: insertError } = await supabase
-                .from('training_progress')
-                .insert({
-                    user_id: userId,
-                    game_id: gameId,
-                    level: passed ? Math.min(level + 1, 10) : level,
-                    hands_played: questionsAnswered,
-                    correct_answers: questionsCorrect,
-                    total_answers: questionsAnswered,
-                    current_streak: streak,
-                    best_streak: streak,
-                    last_played_at: new Date().toISOString()
-                })
-                .select()
-                .maybeSingle();
+              return res.status(200).json({
+                  success: true,
+                  progress: updatedProgress,
+                  levelHistory: levelHistory
+              });
+          } else {
+              // Create new progress
+              const { data: newProgress, error: insertError } = await supabase
+                  .from('training_progress')
+                  .insert({
+                      user_id: userId,
+                      game_id: gameId,
+                      level: passed ? Math.min(level + 1, 10) : level,
+                      hands_played: questionsAnswered,
+                      correct_answers: questionsCorrect,
+                      total_answers: questionsAnswered,
+                      current_streak: streak,
+                      best_streak: streak,
+                      last_played_at: new Date().toISOString()
+                  })
+                  .select()
+                  .maybeSingle();
 
-            if (insertError) {
-                console.error('Error creating progress:', JSON.stringify(insertError, null, 2));
-                console.error('Insert payload:', { userId, gameId, level, questionsAnswered, questionsCorrect });
-                return res.status(500).json({
-                    success: false, error: 'Failed to create progress',
-                    details: insertError.message,
-                    code: insertError.code,
-                    hint: insertError.hint
-                });
-            }
+              if (insertError) {
+                  console.error('Error creating progress:', JSON.stringify(insertError, null, 2));
+                  console.error('Insert payload:', { userId, gameId, level, questionsAnswered, questionsCorrect });
+                  return res.status(500).json({
+                      success: false, error: 'Failed to create progress',
+                      details: insertError.message,
+                      code: insertError.code,
+                      hint: insertError.hint
+                  });
+              }
 
-            // 3. Upsert leaderboard entry
-            try {
-                await upsertLeaderboard(supabase, userId, gameId, diamondsEarned, accuracy, passed);
-            } catch (lbError) {
-                console.warn('Leaderboard upsert failed:', lbError.message);
-            }
+              // 3. Upsert leaderboard entry
+              try {
+                  await upsertLeaderboard(supabase, userId, gameId, diamondsEarned, accuracy, passed);
+              } catch (lbError) {
+                  console.warn('Leaderboard upsert failed:', lbError.message);
+              }
 
-            // 4. Award diamonds to profile balance
-            if (diamondsEarned > 0) {
-                try {
-                    await supabase.rpc('add_diamonds_to_balance', { p_user_id: userId, p_amount: diamondsEarned });
-                } catch (e) {
-                    console.warn('[SaveProgress] Diamond award failed:', e.message);
-                }
-            }
+              // 4. Award diamonds to profile balance
+              if (diamondsEarned > 0) {
+                  try {
+                      await supabase.rpc('add_diamonds_to_balance', { p_user_id: userId, p_amount: diamondsEarned });
+                  } catch (e) {
+                      console.warn('[SaveProgress] Diamond award failed:', e.message);
+                  }
+              }
 
-            return res.status(200).json({
-                success: true,
-                progress: newProgress,
-                levelHistory: levelHistory
-            });
-        }
+              return res.status(200).json({
+                  success: true,
+                  progress: newProgress,
+                  levelHistory: levelHistory
+              });
+          }
 
-    } catch (error) {
-        console.error('Error in save-progress:', error);
-        return res.status(500).json({ success: false, error: 'Internal server error' });
-    }
+      } catch (error) {
+          console.error('Error in save-progress:', error);
+          return res.status(500).json({ success: false, error: 'Internal server error' });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

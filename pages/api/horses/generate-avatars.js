@@ -87,99 +87,105 @@ async function uploadToStorage(imageUrl, horseId) {
 }
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
-
-    if (req.method !== 'POST') {
-        return res.status(405).json({ success: false, error: 'POST only' });
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
 
-    // Auth: Support JWT (from admin UI) or header secret (from cron)
-    const authHeader = req.headers.authorization;
-    const adminSecret = req.headers['x-admin-secret'];
-    const envSecret = process.env.ADMIN_ROUTE_SECRET;
-    let isAuthorized = false;
-
-    if (authHeader) {
-      const token = authHeader.replace('Bearer ', '');
-      const { data: { user }, error } = await supabase.auth.getUser(token);
-      if (!error && user) {
-        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
-        if (profile && ['admin', 'superadmin', 'god'].includes(profile.role)) isAuthorized = true;
+      if (req.method !== 'POST') {
+          return res.status(405).json({ success: false, error: 'POST only' });
       }
-    }
-    if (!isAuthorized && envSecret && adminSecret === envSecret) {
-      isAuthorized = true;
-    }
-    if (!isAuthorized) {
-        return res.status(401).json({ success: false, error: 'Admin authentication required' });
-    }
 
-    const limit = parseInt(req.query.limit) || 5; // Process 5 at a time to avoid timeout
+      // Auth: Support JWT (from admin UI) or header secret (from cron)
+      const authHeader = req.headers.authorization;
+      const adminSecret = req.headers['x-admin-secret'];
+      const envSecret = process.env.ADMIN_ROUTE_SECRET;
+      let isAuthorized = false;
 
-
-    try {
-        // Get horses without avatars
-        const { data: horses, error } = await supabase
-            .from('content_authors')
-            .select('id, name, gender, location, specialty, profile_id')
-            .is('avatar_url', null)
-            .not('profile_id', 'is', null)
-            .limit(limit);
-
-        if (error) throw error;
-        if (!horses?.length) {
-            return res.status(200).json({ message: 'All horses have avatars!', generated: 0 });
+      if (authHeader) {
+        const token = authHeader.replace('Bearer ', '');
+        const { data: { user }, error } = await supabase.auth.getUser(token);
+        if (!error && user) {
+          const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
+          if (profile && ['admin', 'superadmin', 'god'].includes(profile.role)) isAuthorized = true;
         }
+      }
+      if (!isAuthorized && envSecret && adminSecret === envSecret) {
+        isAuthorized = true;
+      }
+      if (!isAuthorized) {
+          return res.status(401).json({ success: false, error: 'Admin authentication required' });
+      }
 
-        const results = [];
+      const limit = parseInt(req.query.limit) || 5; // Process 5 at a time to avoid timeout
 
-        for (const horse of horses) {
 
-            // Generate avatar
-            const tempUrl = await generateAvatar(horse);
-            if (!tempUrl) {
-                results.push({ horse: horse.name, success: false, error: 'Generation failed' });
-                continue;
-            }
+      try {
+          // Get horses without avatars
+          const { data: horses, error } = await supabase
+              .from('content_authors')
+              .select('id, name, gender, location, specialty, profile_id')
+              .is('avatar_url', null)
+              .not('profile_id', 'is', null)
+              .limit(limit);
 
-            // Upload to storage
-            const permanentUrl = await uploadToStorage(tempUrl, horse.id);
-            if (!permanentUrl) {
-                results.push({ horse: horse.name, success: false, error: 'Upload failed' });
-                continue;
-            }
+          if (error) throw error;
+          if (!horses?.length) {
+              return res.status(200).json({ message: 'All horses have avatars!', generated: 0 });
+          }
 
-            // Update content_authors
-            await supabase
-                .from('content_authors')
-                .update({ avatar_url: permanentUrl })
-                .eq('id', horse.id);
+          const results = [];
 
-            // Update profiles
-            await supabase
-                .from('profiles')
-                .update({ avatar_url: permanentUrl })
-                .eq('id', horse.profile_id);
+          for (const horse of horses) {
 
-            results.push({ horse: horse.name, success: true, url: permanentUrl });
+              // Generate avatar
+              const tempUrl = await generateAvatar(horse);
+              if (!tempUrl) {
+                  results.push({ horse: horse.name, success: false, error: 'Generation failed' });
+                  continue;
+              }
 
-            // Small delay between generations
-            await new Promise(r => setTimeout(r, 2000));
-        }
+              // Upload to storage
+              const permanentUrl = await uploadToStorage(tempUrl, horse.id);
+              if (!permanentUrl) {
+                  results.push({ horse: horse.name, success: false, error: 'Upload failed' });
+                  continue;
+              }
 
-        return res.status(200).json({
-            success: true,
-            generated: results.filter(r => r.success).length,
-            remaining: await getRemainingCount(),
-            results
-        });
+              // Update content_authors
+              await supabase
+                  .from('content_authors')
+                  .update({ avatar_url: permanentUrl })
+                  .eq('id', horse.id);
 
-    } catch (error) {
-        console.error('Avatar generation error:', error);
-        return res.status(500).json({ success: false, error: error.message });
-    }
+              // Update profiles
+              await supabase
+                  .from('profiles')
+                  .update({ avatar_url: permanentUrl })
+                  .eq('id', horse.profile_id);
+
+              results.push({ horse: horse.name, success: true, url: permanentUrl });
+
+              // Small delay between generations
+              await new Promise(r => setTimeout(r, 2000));
+          }
+
+          return res.status(200).json({
+              success: true,
+              generated: results.filter(r => r.success).length,
+              remaining: await getRemainingCount(),
+              results
+          });
+
+      } catch (error) {
+          console.error('Avatar generation error:', error);
+          return res.status(500).json({ success: false, error: error.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }
 
 async function getRemainingCount() {

@@ -170,100 +170,106 @@ function calcEquity(players, board, variant = 'holdem', iterations = 5000) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default async function handler(req, res) {
-    if (req.method !== 'POST') {
-        return res.status(405).json({ success: false, error: 'POST only' });
-    }
+  try {
+      if (req.method !== 'POST') {
+          return res.status(405).json({ success: false, error: 'POST only' });
+      }
 
-    try {
-        // Auth check
-        const token = req.headers.authorization?.replace('Bearer ', '');
-        if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-        const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
-        if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+      try {
+          // Auth check
+          const token = req.headers.authorization?.replace('Bearer ', '');
+          if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
+          const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+          if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-        const {
-            hands = [],
-            board: boardInput = [],
-            variant = 'holdem',
-            iterations: rawIterations = 5000,
-        } = req.body;
+          const {
+              hands = [],
+              board: boardInput = [],
+              variant = 'holdem',
+              iterations: rawIterations = 5000,
+          } = req.body;
 
-        // Validation
-        if (!Array.isArray(hands) || hands.length < 2 || hands.length > 4) {
-            return res.status(400).json({ success: false, error: 'Provide 2-4 hands' });
-        }
+          // Validation
+          if (!Array.isArray(hands) || hands.length < 2 || hands.length > 4) {
+              return res.status(400).json({ success: false, error: 'Provide 2-4 hands' });
+          }
 
-        const iterations = Math.min(Math.max(Number(rawIterations) || 5000, 1000), 10000);
-        const allCardInts = new Set();
-        const errors = [];
+          const iterations = Math.min(Math.max(Number(rawIterations) || 5000, 1000), 10000);
+          const allCardInts = new Set();
+          const errors = [];
 
-        // Parse hands
-        const players = hands.map((hand, idx) => {
-            if (typeof hand !== 'string' || hand.length < 4) {
-                errors.push(`Hand ${idx + 1}: invalid format (expected e.g. "AhKs")`);
-                return null;
-            }
-            // Split hand into individual cards (every 2 chars)
-            const cards = [];
-            for (let i = 0; i < hand.length; i += 2) {
-                const cardStr = hand.substring(i, i + 2);
-                const cardInt = parseCardStr(cardStr);
-                if (cardInt === -1) {
-                    errors.push(`Hand ${idx + 1}: invalid card "${cardStr}"`);
-                    return null;
-                }
-                if (allCardInts.has(cardInt)) {
-                    errors.push(`Duplicate card: ${cardStr}`);
-                    return null;
-                }
-                allCardInts.add(cardInt);
-                cards.push(cardInt);
-            }
-            return { id: `player${idx + 1}`, holeCards: cards, handStr: hand };
-        });
+          // Parse hands
+          const players = hands.map((hand, idx) => {
+              if (typeof hand !== 'string' || hand.length < 4) {
+                  errors.push(`Hand ${idx + 1}: invalid format (expected e.g. "AhKs")`);
+                  return null;
+              }
+              // Split hand into individual cards (every 2 chars)
+              const cards = [];
+              for (let i = 0; i < hand.length; i += 2) {
+                  const cardStr = hand.substring(i, i + 2);
+                  const cardInt = parseCardStr(cardStr);
+                  if (cardInt === -1) {
+                      errors.push(`Hand ${idx + 1}: invalid card "${cardStr}"`);
+                      return null;
+                  }
+                  if (allCardInts.has(cardInt)) {
+                      errors.push(`Duplicate card: ${cardStr}`);
+                      return null;
+                  }
+                  allCardInts.add(cardInt);
+                  cards.push(cardInt);
+              }
+              return { id: `player${idx + 1}`, holeCards: cards, handStr: hand };
+          });
 
-        if (errors.length > 0) {
-            return res.status(400).json({ success: false, error: errors.join('; ') });
-        }
+          if (errors.length > 0) {
+              return res.status(400).json({ success: false, error: errors.join('; ') });
+          }
 
-        // Parse board
-        const boardCards = [];
-        if (Array.isArray(boardInput)) {
-            for (const cardStr of boardInput) {
-                if (!cardStr) continue;
-                const cardInt = parseCardStr(cardStr);
-                if (cardInt === -1) {
-                    return res.status(400).json({ success: false, error: `Invalid board card: "${cardStr}"` });
-                }
-                if (allCardInts.has(cardInt)) {
-                    return res.status(400).json({ success: false, error: `Duplicate card on board: ${cardStr}` });
-                }
-                allCardInts.add(cardInt);
-                boardCards.push(cardInt);
-            }
-        }
+          // Parse board
+          const boardCards = [];
+          if (Array.isArray(boardInput)) {
+              for (const cardStr of boardInput) {
+                  if (!cardStr) continue;
+                  const cardInt = parseCardStr(cardStr);
+                  if (cardInt === -1) {
+                      return res.status(400).json({ success: false, error: `Invalid board card: "${cardStr}"` });
+                  }
+                  if (allCardInts.has(cardInt)) {
+                      return res.status(400).json({ success: false, error: `Duplicate card on board: ${cardStr}` });
+                  }
+                  allCardInts.add(cardInt);
+                  boardCards.push(cardInt);
+              }
+          }
 
-        if (boardCards.length > 5) {
-            return res.status(400).json({ success: false, error: 'Board cannot have more than 5 cards' });
-        }
+          if (boardCards.length > 5) {
+              return res.status(400).json({ success: false, error: 'Board cannot have more than 5 cards' });
+          }
 
-        // Run Monte Carlo
-        const result = calcEquity(players.filter(Boolean), boardCards, variant, iterations);
+          // Run Monte Carlo
+          const result = calcEquity(players.filter(Boolean), boardCards, variant, iterations);
 
-        return res.status(200).json({
-            success: true,
-            results: result.players.map((p, i) => ({
-                hand: hands[i],
-                equity: p.equity,
-                wins: p.wins,
-                ties: p.ties,
-            })),
-            totalIterations: iterations,
-            boardSize: result.boardSize,
-        });
+          return res.status(200).json({
+              success: true,
+              results: result.players.map((p, i) => ({
+                  hand: hands[i],
+                  equity: p.equity,
+                  wins: p.wins,
+                  ties: p.ties,
+              })),
+              totalIterations: iterations,
+              boardSize: result.boardSize,
+          });
 
-    } catch (err) {
-        console.error('[Equity] Error:', err);
-        return res.status(500).json({ success: false, error: err.message });
-    }
+      } catch (err) {
+          console.error('[Equity] Error:', err);
+          return res.status(500).json({ success: false, error: err.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

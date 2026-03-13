@@ -12,117 +12,123 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (!applyRateLimit(req, res, LIMITS.read)) return;
-
-  if (req.method !== 'GET') {
-    return res.status(405).json({
-      success: false,
-      error: { code: 'METHOD_NOT_ALLOWED', message: 'Only GET allowed' }
-    });
-  }
-
-  const { gameId, limit = 50, offset = 0 } = req.query;
-
-  // Require authentication
-  const authHeader = req.headers.authorization;
-  if (!authHeader) {
-    return res.status(401).json({
-      success: false,
-      error: { code: 'AUTH_REQUIRED', message: 'Authentication required' }
-    });
-  }
-
   try {
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (!applyRateLimit(req, res, LIMITS.read)) return;
 
-    if (authError || !user) {
+    if (req.method !== 'GET') {
+      return res.status(405).json({
+        success: false,
+        error: { code: 'METHOD_NOT_ALLOWED', message: 'Only GET allowed' }
+      });
+    }
+
+    const { gameId, limit = 50, offset = 0 } = req.query;
+
+    // Require authentication
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
       return res.status(401).json({
         success: false,
-        error: { code: 'AUTH_REQUIRED', message: 'Invalid token' }
+        error: { code: 'AUTH_REQUIRED', message: 'Authentication required' }
       });
     }
 
-    // Get game info
-    const { data: game, error: gameError } = await supabase
-      .from('commander_games')
-      .select('id, game_type, stakes')
-      .eq('id', gameId)
-      .maybeSingle();
+    try {
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
-    if (gameError || !game) {
-      return res.status(404).json({
-        success: false,
-        error: { code: 'NOT_FOUND', message: 'Game not found' }
-      });
-    }
+      if (authError || !user) {
+        return res.status(401).json({
+          success: false,
+          error: { code: 'AUTH_REQUIRED', message: 'Invalid token' }
+        });
+      }
 
-    // Get hands from this game
-    const { data: hands, error } = await supabase
-      .from('commander_hand_history')
-      .select('*')
-      .eq('game_id', gameId)
-      .order('hand_number', { ascending: false })
-      .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
+      // Get game info
+      const { data: game, error: gameError } = await supabase
+        .from('commander_games')
+        .select('id, game_type, stakes')
+        .eq('id', gameId)
+        .maybeSingle();
 
-    if (error) {
-      console.error('Hands error:', error);
-      throw error;
-    }
+      if (gameError || !game) {
+        return res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'Game not found' }
+        });
+      }
 
-    // Format hands for player view
-    const formattedHands = hands?.map(hand => {
-      // Determine player's seat and cards from player_cards or player_seat_map
-      let playerSeat = null;
-      let playerCards = [];
+      // Get hands from this game
+      const { data: hands, error } = await supabase
+        .from('commander_hand_history')
+        .select('*')
+        .eq('game_id', gameId)
+        .order('hand_number', { ascending: false })
+        .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
 
-      if (hand.player_cards && typeof hand.player_cards === 'object') {
-        const seats = Object.keys(hand.player_cards);
-        if (seats.length > 0) {
-          // Check player_seat_map for user's seat
-          if (hand.player_seat_map && hand.player_seat_map[user.id]) {
-            playerSeat = hand.player_seat_map[user.id];
-            playerCards = hand.player_cards[playerSeat] || [];
-          } else {
-            // Fallback: use first available seat
-            playerSeat = parseInt(seats[0]) || 1;
-            playerCards = hand.player_cards[seats[0]] || [];
+      if (error) {
+        console.error('Hands error:', error);
+        throw error;
+      }
+
+      // Format hands for player view
+      const formattedHands = hands?.map(hand => {
+        // Determine player's seat and cards from player_cards or player_seat_map
+        let playerSeat = null;
+        let playerCards = [];
+
+        if (hand.player_cards && typeof hand.player_cards === 'object') {
+          const seats = Object.keys(hand.player_cards);
+          if (seats.length > 0) {
+            // Check player_seat_map for user's seat
+            if (hand.player_seat_map && hand.player_seat_map[user.id]) {
+              playerSeat = hand.player_seat_map[user.id];
+              playerCards = hand.player_cards[playerSeat] || [];
+            } else {
+              // Fallback: use first available seat
+              playerSeat = parseInt(seats[0]) || 1;
+              playerCards = hand.player_cards[seats[0]] || [];
+            }
           }
         }
-      }
 
-      // Calculate profit based on actual player seat
-      const winners = hand.winners || [];
-      const isWinner = winners.some(w => w.seat === playerSeat || w.player_id === user.id);
-      const profit = isWinner ? Math.round(hand.pot_size / 2) : -Math.round(hand.pot_size / 4);
+        // Calculate profit based on actual player seat
+        const winners = hand.winners || [];
+        const isWinner = winners.some(w => w.seat === playerSeat || w.player_id === user.id);
+        const profit = isWinner ? Math.round(hand.pot_size / 2) : -Math.round(hand.pot_size / 4);
 
-      return {
-        id: hand.id,
-        hand_number: hand.hand_number,
-        game_type: `${game.stakes || ''} ${game.game_type || 'NLH'}`.trim(),
-        player_seat: playerSeat,
-        player_cards: playerCards,
-        board: hand.board || [],
-        pot_size: hand.pot_size || 0,
-        profit: profit,
-        result: isWinner ? 'won' : 'lost',
-        created_at: hand.created_at
-      };
-    }) || [];
+        return {
+          id: hand.id,
+          hand_number: hand.hand_number,
+          game_type: `${game.stakes || ''} ${game.game_type || 'NLH'}`.trim(),
+          player_seat: playerSeat,
+          player_cards: playerCards,
+          board: hand.board || [],
+          pot_size: hand.pot_size || 0,
+          profit: profit,
+          result: isWinner ? 'won' : 'lost',
+          created_at: hand.created_at
+        };
+      }) || [];
 
-    return res.status(200).json({
-      success: true,
-      data: {
-        hands: formattedHands,
-        total: hands?.length || 0
-      }
-    });
+      return res.status(200).json({
+        success: true,
+        data: {
+          hands: formattedHands,
+          total: hands?.length || 0
+        }
+      });
 
-  } catch (error) {
-    console.error('Hands API error:', error);
-    return res.status(500).json({
-      success: false,
-      error: { code: 'SERVER_ERROR', message: 'Failed to fetch hands' }
-    });
+    } catch (error) {
+      console.error('Hands API error:', error);
+      return res.status(500).json({
+        success: false,
+        error: { code: 'SERVER_ERROR', message: 'Failed to fetch hands' }
+      });
+    }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

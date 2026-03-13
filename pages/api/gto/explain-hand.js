@@ -14,116 +14,122 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { createClient as _createAuthClient } from '../../../src/lib/supabaseServerClient';
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+    // BUG #244 FIX: Require JWT auth — these routes use paid AI APIs
+    const _authSupa = _createAuthClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+    const _token = req.headers.authorization?.replace('Bearer ', '');
+    if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
+    const { data: { user: _authUser }, error: _authErr } = await _authSupa.auth.getUser(_token);
+    if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+
+      if (req.method !== 'POST') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
+
+      try {
+          const {
+              hand,           // e.g., "JTs"
+              position,       // e.g., "CO"
+              stackDepth,     // e.g., 100
+              correctAction,  // e.g., "call"
+              userAction,     // e.g., "fold" (what user selected)
+              scenario        // Full scenario context
+          } = req.body;
+
+          if (!hand || !correctAction) {
+              return res.status(400).json({
+                  success: false, error: 'Missing required fields: hand, correctAction'
+              });
+          }
+
+          // Check cache first
+          const cacheParams = { hand, position, stackDepth, correctAction, scenarioTitle: scenario?.title };
+          const cached = await getCachedResponse('explain-hand', cacheParams);
+
+          if (cached) {
+              return res.status(200).json({
+                  ...cached,
+                  fromCache: true
+              });
+          }
+
+          const prompt = buildExplanationPrompt(
+              hand,
+              position,
+              stackDepth,
+              correctAction,
+              userAction,
+              scenario
+          );
+
+          const grok = getGrokClient();
+          const completion = await grok.chat.completions.create({
+              model: 'grok-3',
+              messages: [
+                  {
+                      role: 'system',
+                      content: `You are a GTO poker coach explaining strategic concepts to students. 
+                      Be concise but insightful. Explain the "why" behind the GTO decision.
+                      Use poker terminology but keep explanations accessible.
+                      Format: 2-3 short sentences, then a key takeaway.
+                      Never be condescending - treat the player as a fellow poker enthusiast learning.`
+                  },
+                  {
+                      role: 'user',
+                      content: prompt
+                  }
+              ],
+              temperature: 0.6,
+              max_tokens: 300,
+          });
+
+          const explanation = completion.choices[0]?.message?.content;
+
+          if (!explanation) {
+              throw new Error('Empty response from Grok');
+          }
+
+          const response = {
+              success: true,
+              hand,
+              correctAction,
+              userAction,
+              explanation: explanation.trim(),
+              generatedAt: new Date().toISOString(),
+          };
+
+          // Cache the response
+          await setCachedResponse('explain-hand', cacheParams, response, 30);
+
+          return res.status(200).json(response);
+
+      } catch (error) {
+          console.error('[ExplainHand] Error:', error);
+
+          // Graceful fallback
+          return res.status(200).json({
+              success: true,
+              hand: req.body.hand,
+              correctAction: req.body.correctAction,
+              userAction: req.body.userAction,
+              explanation: getDefaultExplanation(
+                  req.body.hand,
+                  req.body.correctAction,
+                  req.body.userAction
+              ),
+              fallback: true,
+              generatedAt: new Date().toISOString(),
+          });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-  // BUG #244 FIX: Require JWT auth — these routes use paid AI APIs
-  const _authSupa = _createAuthClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-  const _token = req.headers.authorization?.replace('Bearer ', '');
-  if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
-  const { data: { user: _authUser }, error: _authErr } = await _authSupa.auth.getUser(_token);
-  if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
-
-    if (req.method !== 'POST') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
-
-    try {
-        const {
-            hand,           // e.g., "JTs"
-            position,       // e.g., "CO"
-            stackDepth,     // e.g., 100
-            correctAction,  // e.g., "call"
-            userAction,     // e.g., "fold" (what user selected)
-            scenario        // Full scenario context
-        } = req.body;
-
-        if (!hand || !correctAction) {
-            return res.status(400).json({
-                success: false, error: 'Missing required fields: hand, correctAction'
-            });
-        }
-
-        // Check cache first
-        const cacheParams = { hand, position, stackDepth, correctAction, scenarioTitle: scenario?.title };
-        const cached = await getCachedResponse('explain-hand', cacheParams);
-
-        if (cached) {
-            return res.status(200).json({
-                ...cached,
-                fromCache: true
-            });
-        }
-
-        const prompt = buildExplanationPrompt(
-            hand,
-            position,
-            stackDepth,
-            correctAction,
-            userAction,
-            scenario
-        );
-
-        const grok = getGrokClient();
-        const completion = await grok.chat.completions.create({
-            model: 'grok-3',
-            messages: [
-                {
-                    role: 'system',
-                    content: `You are a GTO poker coach explaining strategic concepts to students. 
-                    Be concise but insightful. Explain the "why" behind the GTO decision.
-                    Use poker terminology but keep explanations accessible.
-                    Format: 2-3 short sentences, then a key takeaway.
-                    Never be condescending - treat the player as a fellow poker enthusiast learning.`
-                },
-                {
-                    role: 'user',
-                    content: prompt
-                }
-            ],
-            temperature: 0.6,
-            max_tokens: 300,
-        });
-
-        const explanation = completion.choices[0]?.message?.content;
-
-        if (!explanation) {
-            throw new Error('Empty response from Grok');
-        }
-
-        const response = {
-            success: true,
-            hand,
-            correctAction,
-            userAction,
-            explanation: explanation.trim(),
-            generatedAt: new Date().toISOString(),
-        };
-
-        // Cache the response
-        await setCachedResponse('explain-hand', cacheParams, response, 30);
-
-        return res.status(200).json(response);
-
-    } catch (error) {
-        console.error('[ExplainHand] Error:', error);
-
-        // Graceful fallback
-        return res.status(200).json({
-            success: true,
-            hand: req.body.hand,
-            correctAction: req.body.correctAction,
-            userAction: req.body.userAction,
-            explanation: getDefaultExplanation(
-                req.body.hand,
-                req.body.correctAction,
-                req.body.userAction
-            ),
-            fallback: true,
-            generatedAt: new Date().toISOString(),
-        });
-    }
 }
 
 function buildExplanationPrompt(hand, position, stackDepth, correctAction, userAction, scenario) {

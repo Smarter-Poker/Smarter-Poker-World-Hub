@@ -158,67 +158,73 @@ async function fetchOgImage(url) {
 }
 
 export default async function handler(req, res) {
-    if (!SUPABASE_URL || !SUPABASE_KEY) {
-        return res.status(500).json({ success: false, error: 'Missing Supabase credentials' });
-    }
+  try {
+      if (!SUPABASE_URL || !SUPABASE_KEY) {
+          return res.status(500).json({ success: false, error: 'Missing Supabase credentials' });
+      }
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+      const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    try {
-        // Get articles that have default/placeholder images
-        const { data: articles, error: fetchError } = await supabase
-            .from('poker_news')
-            .select('id, title, source_url, image_url, category')
-            .order('published_at', { ascending: false })
-            .limit(50); // Process most recent 50
+      try {
+          // Get articles that have default/placeholder images
+          const { data: articles, error: fetchError } = await supabase
+              .from('poker_news')
+              .select('id, title, source_url, image_url, category')
+              .order('published_at', { ascending: false })
+              .limit(50); // Process most recent 50
 
-        if (fetchError) throw fetchError;
+          if (fetchError) throw fetchError;
 
-        // Filter to articles with default images
-        const articlesToUpdate = (articles || []).filter(a => {
-            if (!a.image_url) return true;
-            return DEFAULT_IMAGE_PATTERNS.some(pattern => a.image_url.includes(pattern));
-        });
+          // Filter to articles with default images
+          const articlesToUpdate = (articles || []).filter(a => {
+              if (!a.image_url) return true;
+              return DEFAULT_IMAGE_PATTERNS.some(pattern => a.image_url.includes(pattern));
+          });
 
 
-        let updated = 0;
-        let failed = 0;
-        const results = [];
+          let updated = 0;
+          let failed = 0;
+          const results = [];
 
-        for (const article of articlesToUpdate) {
+          for (const article of articlesToUpdate) {
 
-            const newImageUrl = await fetchOgImage(article.source_url);
+              const newImageUrl = await fetchOgImage(article.source_url);
 
-            if (newImageUrl) {
-                const { error: updateError } = await supabase
-                    .from('poker_news')
-                    .update({ image_url: newImageUrl })
-                    .eq('id', article.id);
+              if (newImageUrl) {
+                  const { error: updateError } = await supabase
+                      .from('poker_news')
+                      .update({ image_url: newImageUrl })
+                      .eq('id', article.id);
 
-                if (!updateError) {
-                    updated++;
-                    results.push({ id: article.id, title: article.title.substring(0, 40), newImage: newImageUrl.substring(0, 60) });
-                } else {
-                    failed++;
-                }
-            } else {
-                failed++;
-            }
+                  if (!updateError) {
+                      updated++;
+                      results.push({ id: article.id, title: article.title.substring(0, 40), newImage: newImageUrl.substring(0, 60) });
+                  } else {
+                      failed++;
+                  }
+              } else {
+                  failed++;
+              }
 
-            // Small delay to be nice to servers
-            await new Promise(r => setTimeout(r, 500));
-        }
+              // Small delay to be nice to servers
+              await new Promise(r => setTimeout(r, 500));
+          }
 
-        return res.status(200).json({
-            success: true,
-            total: articlesToUpdate.length,
-            updated,
-            failed,
-            results
-        });
+          return res.status(200).json({
+              success: true,
+              total: articlesToUpdate.length,
+              updated,
+              failed,
+              results
+          });
 
-    } catch (error) {
-        console.error('Error refetching images:', error);
-        return res.status(500).json({ success: false, error: error.message });
-    }
+      } catch (error) {
+          console.error('Error refetching images:', error);
+          return res.status(500).json({ success: false, error: error.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

@@ -29,123 +29,129 @@ const GAME_TYPE_TO_PIO = {
 };
 
 export default async function handler(req, res) {
-    if (!applyRateLimit(req, res, LIMITS.read)) return;
+  try {
+      if (!applyRateLimit(req, res, LIMITS.read)) return;
 
-    // Auth
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-    const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
-    if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+      // Auth
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
+      const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+      if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-    if (req.method !== 'GET') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
+      if (req.method !== 'GET') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
 
-    const {
-        gameType = 'cash',
-        position,
-        villainPosition,
-        actionScenario,
-        stackDepth = '100',
-        street,
-        handClass,
-        count = '25',
-    } = req.query;
+      const {
+          gameType = 'cash',
+          position,
+          villainPosition,
+          actionScenario,
+          stackDepth = '100',
+          street,
+          handClass,
+          count = '25',
+      } = req.query;
 
-    const parsedStack = parseInt(stackDepth) || 100;
-    const parsedCount = Math.min(parseInt(count) || 25, 100);
-    const pioGameTypes = GAME_TYPE_TO_PIO[gameType] || GAME_TYPE_TO_PIO.cash;
+      const parsedStack = parseInt(stackDepth) || 100;
+      const parsedCount = Math.min(parseInt(count) || 25, 100);
+      const pioGameTypes = GAME_TYPE_TO_PIO[gameType] || GAME_TYPE_TO_PIO.cash;
 
-    try {
-        console.log(`[CustomTrain] Config: ${gameType} | ${position || 'any'} | vs ${villainPosition || 'any'} | ${actionScenario || 'any'} | ${parsedStack}BB | ${street || 'all'} | ${handClass || 'any'} | ${parsedCount} hands`);
+      try {
+          console.log(`[CustomTrain] Config: ${gameType} | ${position || 'any'} | vs ${villainPosition || 'any'} | ${actionScenario || 'any'} | ${parsedStack}BB | ${street || 'all'} | ${handClass || 'any'} | ${parsedCount} hands`);
 
-        // Build query filters
-        let query = supabase
-            .from('solved_spots_gold')
-            .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
-            .in('game_type', pioGameTypes)
-            .eq('stack_depth', parsedStack);
+          // Build query filters
+          let query = supabase
+              .from('solved_spots_gold')
+              .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
+              .in('game_type', pioGameTypes)
+              .eq('stack_depth', parsedStack);
 
-        // Filter by street if specified
-        if (street && street !== 'all') {
-            query = query.eq('street', street);
-        }
+          // Filter by street if specified
+          if (street && street !== 'all') {
+              query = query.eq('street', street);
+          }
 
-        // Filter by position if specified (position is in scenario_hash)
-        if (position && position !== 'any') {
-            query = query.ilike('scenario_hash', `%_${position}_%`);
-        }
+          // Filter by position if specified (position is in scenario_hash)
+          if (position && position !== 'any') {
+              query = query.ilike('scenario_hash', `%_${position}_%`);
+          }
 
-        // Filter by villain position if specified
-        if (villainPosition && villainPosition !== 'any') {
-            query = query.ilike('scenario_hash', `%_${villainPosition}_%`);
-        }
+          // Filter by villain position if specified
+          if (villainPosition && villainPosition !== 'any') {
+              query = query.ilike('scenario_hash', `%_${villainPosition}_%`);
+          }
 
-        // Filter by action scenario if specified (SRP, 3BP, 4BP are in scenario_hash)
-        if (actionScenario && actionScenario !== 'any') {
-            const scenarioMap = { 'SRP': 'srp', '3BP': '3bet', '4BP': '4bet' };
-            const tag = scenarioMap[actionScenario];
-            if (tag) {
-                query = query.ilike('scenario_hash', `%${tag}%`);
-            }
-        }
+          // Filter by action scenario if specified (SRP, 3BP, 4BP are in scenario_hash)
+          if (actionScenario && actionScenario !== 'any') {
+              const scenarioMap = { 'SRP': 'srp', '3BP': '3bet', '4BP': '4bet' };
+              const tag = scenarioMap[actionScenario];
+              if (tag) {
+                  query = query.ilike('scenario_hash', `%${tag}%`);
+              }
+          }
 
-        // Fetch pool
-        const poolSize = Math.min(parsedCount * 3, 150);
-        query = query.limit(poolSize);
+          // Fetch pool
+          const poolSize = Math.min(parsedCount * 3, 150);
+          query = query.limit(poolSize);
 
-        const { data: scenarios, error: dbErr } = await query;
+          const { data: scenarios, error: dbErr } = await query;
 
-        if (dbErr) {
-            console.error('[CustomTrain] DB error:', dbErr.message);
-            return res.status(500).json({ success: false, error: 'Database query failed' });
-        }
+          if (dbErr) {
+              console.error('[CustomTrain] DB error:', dbErr.message);
+              return res.status(500).json({ success: false, error: 'Database query failed' });
+          }
 
-        if (!scenarios || scenarios.length === 0) {
-            console.log(`[CustomTrain] No scenarios found for config, trying broader search...`);
+          if (!scenarios || scenarios.length === 0) {
+              console.log(`[CustomTrain] No scenarios found for config, trying broader search...`);
 
-            // Fallback: try without position filter
-            let fallbackQuery = supabase
-                .from('solved_spots_gold')
-                .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
-                .in('game_type', pioGameTypes)
-                .eq('stack_depth', parsedStack)
-                .limit(poolSize);
+              // Fallback: try without position filter
+              let fallbackQuery = supabase
+                  .from('solved_spots_gold')
+                  .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
+                  .in('game_type', pioGameTypes)
+                  .eq('stack_depth', parsedStack)
+                  .limit(poolSize);
 
-            if (street && street !== 'all') {
-                fallbackQuery = fallbackQuery.eq('street', street);
-            }
+              if (street && street !== 'all') {
+                  fallbackQuery = fallbackQuery.eq('street', street);
+              }
 
-            const { data: fallbackData } = await fallbackQuery;
+              const { data: fallbackData } = await fallbackQuery;
 
-            if (!fallbackData || fallbackData.length === 0) {
-                // Final fallback: any stack depth for this game type
-                const { data: anyData } = await supabase
-                    .from('solved_spots_gold')
-                    .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
-                    .in('game_type', pioGameTypes)
-                    .limit(poolSize);
+              if (!fallbackData || fallbackData.length === 0) {
+                  // Final fallback: any stack depth for this game type
+                  const { data: anyData } = await supabase
+                      .from('solved_spots_gold')
+                      .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
+                      .in('game_type', pioGameTypes)
+                      .limit(poolSize);
 
-                if (!anyData || anyData.length === 0) {
-                    return res.status(200).json({
-                        success: false,
-                        questions: [],
-                        message: 'No solver data available for this configuration',
-                    });
-                }
+                  if (!anyData || anyData.length === 0) {
+                      return res.status(200).json({
+                          success: false,
+                          questions: [],
+                          message: 'No solver data available for this configuration',
+                      });
+                  }
 
-                return buildAndReturnQuestions(res, anyData, parsedCount, position, parsedStack, street, handClass);
-            }
+                  return buildAndReturnQuestions(res, anyData, parsedCount, position, parsedStack, street, handClass);
+              }
 
-            return buildAndReturnQuestions(res, fallbackData, parsedCount, position, parsedStack, street, handClass);
-        }
+              return buildAndReturnQuestions(res, fallbackData, parsedCount, position, parsedStack, street, handClass);
+          }
 
-        return buildAndReturnQuestions(res, scenarios, parsedCount, position, parsedStack, street, handClass);
+          return buildAndReturnQuestions(res, scenarios, parsedCount, position, parsedStack, street, handClass);
 
-    } catch (err) {
-        console.error('[CustomTrain] Error:', err);
-        return res.status(500).json({ success: false, error: err.message });
-    }
+      } catch (err) {
+          console.error('[CustomTrain] Error:', err);
+          return res.status(500).json({ success: false, error: err.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }
 
 /**

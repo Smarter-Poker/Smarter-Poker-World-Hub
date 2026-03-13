@@ -24,54 +24,60 @@ If asked about a specific game variant, always cover: dealing order, betting str
 Do NOT discuss strategy, odds, or anything unrelated to dealing and game rules.`;
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+      if (req.method !== 'POST') {
+          return res.status(405).json({ error: 'Method not allowed' });
+      }
+
+      // BUG #248 FIX: Require JWT auth — this route uses paid OpenAI API
+      const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+      const _token = req.headers.authorization?.replace('Bearer ', '');
+      if (!_token) return res.status(401).json({ error: 'Auth required' });
+      const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
+      if (_authErr || !_authUser) return res.status(401).json({ error: 'Invalid token' });
+
+      const { query, history = [] } = req.body;
+
+      if (!query || typeof query !== 'string' || query.trim().length === 0) {
+          return res.status(400).json({ error: 'Query is required' });
+      }
+
+      if (query.trim().length > 500) {
+          return res.status(400).json({ error: 'Query too long (max 500 chars)' });
+      }
+
+      try {
+          // Build message history (last 4 exchanges max to save tokens)
+          const recentHistory = history.slice(-4).flatMap(turn => [
+              { role: 'user', content: turn.question },
+              { role: 'assistant', content: turn.answer },
+          ]);
+
+          const completion = await openai.chat.completions.create({
+              model: 'gpt-4o-mini',
+              messages: [
+                  { role: 'system', content: DEALER_SYSTEM_PROMPT },
+                  ...recentHistory,
+                  { role: 'user', content: query.trim() },
+              ],
+              max_tokens: 600,
+              temperature: 0.3, // Low temp — factual dealer reference
+          });
+
+          const answer = completion.choices[0]?.message?.content?.trim() || 'No answer generated.';
+
+          return res.status(200).json({ answer });
+      } catch (err) {
+          console.error('Jarvis dealer-reference error:', err);
+          return res.status(500).json({ error: 'Jarvis is temporarily unavailable. Please try again.' });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-    if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
-    }
-
-    // BUG #248 FIX: Require JWT auth — this route uses paid OpenAI API
-    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-    const _token = req.headers.authorization?.replace('Bearer ', '');
-    if (!_token) return res.status(401).json({ error: 'Auth required' });
-    const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
-    if (_authErr || !_authUser) return res.status(401).json({ error: 'Invalid token' });
-
-    const { query, history = [] } = req.body;
-
-    if (!query || typeof query !== 'string' || query.trim().length === 0) {
-        return res.status(400).json({ error: 'Query is required' });
-    }
-
-    if (query.trim().length > 500) {
-        return res.status(400).json({ error: 'Query too long (max 500 chars)' });
-    }
-
-    try {
-        // Build message history (last 4 exchanges max to save tokens)
-        const recentHistory = history.slice(-4).flatMap(turn => [
-            { role: 'user', content: turn.question },
-            { role: 'assistant', content: turn.answer },
-        ]);
-
-        const completion = await openai.chat.completions.create({
-            model: 'gpt-4o-mini',
-            messages: [
-                { role: 'system', content: DEALER_SYSTEM_PROMPT },
-                ...recentHistory,
-                { role: 'user', content: query.trim() },
-            ],
-            max_tokens: 600,
-            temperature: 0.3, // Low temp — factual dealer reference
-        });
-
-        const answer = completion.choices[0]?.message?.content?.trim() || 'No answer generated.';
-
-        return res.status(200).json({ answer });
-    } catch (err) {
-        console.error('Jarvis dealer-reference error:', err);
-        return res.status(500).json({ error: 'Jarvis is temporarily unavailable. Please try again.' });
-    }
 }

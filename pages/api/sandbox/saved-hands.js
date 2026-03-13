@@ -9,37 +9,43 @@ function getSupabase() {
 }
 
 export default async function handler(req, res) {
-    if (req.method !== 'GET') return res.status(405).json({ success: false, error: 'Method not allowed' });
+  try {
+      if (req.method !== 'GET') return res.status(405).json({ success: false, error: 'Method not allowed' });
 
-    try {
-        const supabase = getSupabase();
+      try {
+          const supabase = getSupabase();
 
-        let userId = null;
-        const authHeader = req.headers.authorization;
-        if (authHeader?.startsWith('Bearer ')) {
-            const token = authHeader.replace('Bearer ', '');
-            try {
-                const { data: { user } } = await supabase.auth.getUser(token);
-                if (user) userId = user.id;
-            } catch (e) { }
-        }
+          let userId = null;
+          const authHeader = req.headers.authorization;
+          if (authHeader?.startsWith('Bearer ')) {
+              const token = authHeader.replace('Bearer ', '');
+              try {
+                  const { data: { user } } = await supabase.auth.getUser(token);
+                  if (user) userId = user.id;
+              } catch (e) { }
+          }
 
-        if (!userId) return res.status(401).json({ success: false, error: 'Authentication required' });
+          if (!userId) return res.status(401).json({ success: false, error: 'Authentication required' });
 
-        const { data, error } = await supabase
-            .from('sandbox_saved_hands')
-            .select('*')
-            .eq('user_id', userId)
-            .order('created_at', { ascending: false });
+          const { data, error } = await supabase
+              .from('sandbox_saved_hands')
+              .select('*')
+              .eq('user_id', userId)
+              .order('created_at', { ascending: false });
 
-        if (error) {
-            if (error.code === '42P01') return res.status(200).json({ success: true, hands: [] }); // table doesn't exist yet
-            throw error;
-        }
+          if (error) {
+              if (error.code === '42P01') return res.status(200).json({ success: true, hands: [] }); // table doesn't exist yet
+              throw error;
+          }
 
-        return res.status(200).json({ success: true, hands: data || [] });
-    } catch (err) {
-        console.error('[saved-hands] Error:', err);
-        return res.status(500).json({ success: false, error: err.message });
-    }
+          return res.status(200).json({ success: true, hands: data || [] });
+      } catch (err) {
+          console.error('[saved-hands] Error:', err);
+          return res.status(500).json({ success: false, error: err.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

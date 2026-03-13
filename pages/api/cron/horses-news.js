@@ -492,83 +492,89 @@ async function postNewsArticle(horse, article, timeEnergy = null) {
 // MAIN HANDLER
 // ═══════════════════════════════════════════════════════════════════════════
 export default async function handler(req, res) {
-    // Verify cron secret
-    if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
+  try {
+      // Verify cron secret
+      if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+          return res.status(401).json({ error: 'Unauthorized' });
+      }
 
-    if (!SUPABASE_URL || !process.env.XAI_API_KEY) {
-        return res.status(500).json({ error: 'Missing env vars' });
-    }
+      if (!SUPABASE_URL || !process.env.XAI_API_KEY) {
+          return res.status(500).json({ error: 'Missing env vars' });
+      }
 
-    try {
-        // Fetch latest news from all sources
-        const articles = await fetchLatestNews();
+      try {
+          // Fetch latest news from all sources
+          const articles = await fetchLatestNews();
 
-        if (articles.length === 0) {
-            return res.status(200).json({ success: true, message: 'No news available', posted: 0 });
-        }
+          if (articles.length === 0) {
+              return res.status(200).json({ success: true, message: 'No news available', posted: 0 });
+          }
 
-        // Get random active horses
-        const { data: horses } = await supabase
-            .from('content_authors')
-            .select('*')
-            .eq('is_active', true)
-            .not('profile_id', 'is', null)
-            .limit(CONFIG.HORSES_PER_TRIGGER * 2);
+          // Get random active horses
+          const { data: horses } = await supabase
+              .from('content_authors')
+              .select('*')
+              .eq('is_active', true)
+              .not('profile_id', 'is', null)
+              .limit(CONFIG.HORSES_PER_TRIGGER * 2);
 
-        if (!horses?.length) {
-            return res.status(200).json({ success: true, message: 'No horses available', posted: 0 });
-        }
+          if (!horses?.length) {
+              return res.status(200).json({ success: true, message: 'No horses available', posted: 0 });
+          }
 
-        const shuffledHorses = horses.sort(() => Math.random() - 0.5).slice(0, CONFIG.HORSES_PER_TRIGGER);
-        const results = [];
+          const shuffledHorses = horses.sort(() => Math.random() - 0.5).slice(0, CONFIG.HORSES_PER_TRIGGER);
+          const results = [];
 
-        // Get current time-of-day energy
-        const timeEnergy = getTimeOfDayEnergy();
+          // Get current time-of-day energy
+          const timeEnergy = getTimeOfDayEnergy();
 
-        for (const horse of shuffledHorses) {
-            // Check if this horse should post today (activity variance)
-            if (!shouldHorsePostToday(horse.profile_id)) {
-                continue;
-            }
+          for (const horse of shuffledHorses) {
+              // Check if this horse should post today (activity variance)
+              if (!shouldHorsePostToday(horse.profile_id)) {
+                  continue;
+              }
 
-            // Find an article not recently shared
-            let article = null;
-            const shuffledArticles = [...articles].sort(() => Math.random() - 0.5);
+              // Find an article not recently shared
+              let article = null;
+              const shuffledArticles = [...articles].sort(() => Math.random() - 0.5);
 
-            for (const a of shuffledArticles) {
-                const recentlyShared = await isArticleRecentlyShared(a.link);
-                if (!recentlyShared) {
-                    article = a;
-                    break;
-                }
-            }
+              for (const a of shuffledArticles) {
+                  const recentlyShared = await isArticleRecentlyShared(a.link);
+                  if (!recentlyShared) {
+                      article = a;
+                      break;
+                  }
+              }
 
-            if (!article) {
-                continue;
-            }
+              if (!article) {
+                  continue;
+              }
 
-            // Random delay between 1-4 seconds for natural staggering
-            const delay = 1000 + Math.random() * 3000;
-            await new Promise(r => setTimeout(r, delay));
+              // Random delay between 1-4 seconds for natural staggering
+              const delay = 1000 + Math.random() * 3000;
+              await new Promise(r => setTimeout(r, delay));
 
-            const result = await postNewsArticle(horse, article, timeEnergy);
-            if (result) {
-                results.push({ horse: horse.alias, ...result, success: true });
-            }
-        }
+              const result = await postNewsArticle(horse, article, timeEnergy);
+              if (result) {
+                  results.push({ horse: horse.alias, ...result, success: true });
+              }
+          }
 
 
-        return res.status(200).json({
-            success: true,
-            posted: results.length,
-            results,
-            timestamp: new Date().toISOString()
-        });
+          return res.status(200).json({
+              success: true,
+              posted: results.length,
+              results,
+              timestamp: new Date().toISOString()
+          });
 
-    } catch (error) {
-        console.error('Cron error:', error);
-        return res.status(500).json({ success: false, error: error.message });
-    }
+      } catch (error) {
+          console.error('Cron error:', error);
+          return res.status(500).json({ success: false, error: error.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

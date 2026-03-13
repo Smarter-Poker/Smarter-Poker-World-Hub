@@ -15,29 +15,35 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
 
-  const { id } = req.query;
+    const { id } = req.query;
 
-  if (!id) {
-    return res.status(400).json({
-      success: false,
-      error: { code: 'VALIDATION_ERROR', message: 'Game ID required' }
-    });
-  }
-
-  switch (req.method) {
-    case 'POST':
-      return handlePost(req, res, id);
-    case 'DELETE':
-      return handleDelete(req, res, id);
-    default:
-      return res.status(405).json({
+    if (!id) {
+      return res.status(400).json({
         success: false,
-        error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' }
+        error: { code: 'VALIDATION_ERROR', message: 'Game ID required' }
       });
+    }
+
+    switch (req.method) {
+      case 'POST':
+        return handlePost(req, res, id);
+      case 'DELETE':
+        return handleDelete(req, res, id);
+      default:
+        return res.status(405).json({
+          success: false,
+          error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' }
+        });
+    }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }
 

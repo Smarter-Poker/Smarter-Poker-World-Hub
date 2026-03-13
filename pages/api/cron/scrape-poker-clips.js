@@ -176,62 +176,68 @@ async function storeNewClips(clips) {
 }
 
 export default async function handler(req, res) {
-    // Verify cron secret
-    if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
+  try {
+      // Verify cron secret
+      if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+          return res.status(401).json({ error: 'Unauthorized' });
+      }
 
-    if (!SUPABASE_URL) {
-        return res.status(500).json({ error: 'Missing SUPABASE_URL' });
-    }
+      if (!SUPABASE_URL) {
+          return res.status(500).json({ error: 'Missing SUPABASE_URL' });
+      }
 
-    try {
-        const existingIds = await getExistingClipIds();
+      try {
+          const existingIds = await getExistingClipIds();
 
-        let totalNew = 0;
-        const allNewClips = [];
+          let totalNew = 0;
+          const allNewClips = [];
 
-        // Process each channel
-        for (const channel of POKER_CHANNELS) {
-            const videos = await fetchChannelVideos(channel);
+          // Process each channel
+          for (const channel of POKER_CHANNELS) {
+              const videos = await fetchChannelVideos(channel);
 
-            // Filter out existing clips
-            const newVideos = videos.filter(v =>
-                !existingIds.has(v.clip_id) && !existingIds.has(v.video_id)
-            );
+              // Filter out existing clips
+              const newVideos = videos.filter(v =>
+                  !existingIds.has(v.clip_id) && !existingIds.has(v.video_id)
+              );
 
-            allNewClips.push(...newVideos);
-            totalNew += newVideos.length;
+              allNewClips.push(...newVideos);
+              totalNew += newVideos.length;
 
-            // Small delay between channels to be nice
-            await new Promise(r => setTimeout(r, 500));
-        }
+              // Small delay between channels to be nice
+              await new Promise(r => setTimeout(r, 500));
+          }
 
 
-        // Store new clips in database
-        let insertResult = { inserted: 0 };
-        if (allNewClips.length > 0) {
-            insertResult = await storeNewClips(allNewClips);
+          // Store new clips in database
+          let insertResult = { inserted: 0 };
+          if (allNewClips.length > 0) {
+              insertResult = await storeNewClips(allNewClips);
 
-            allNewClips.slice(0, 5).forEach(c => {
-            });
-        }
+              allNewClips.slice(0, 5).forEach(c => {
+              });
+          }
 
-        return res.status(200).json({
-            success: true,
-            channels_scraped: POKER_CHANNELS.length,
-            new_clips_found: totalNew,
-            clips_inserted: insertResult.inserted,
-            sample_clips: allNewClips.slice(0, 10).map(c => ({
-                source: c.source,
-                title: c.title,
-                category: c.category
-            })),
-            timestamp: new Date().toISOString()
-        });
+          return res.status(200).json({
+              success: true,
+              channels_scraped: POKER_CHANNELS.length,
+              new_clips_found: totalNew,
+              clips_inserted: insertResult.inserted,
+              sample_clips: allNewClips.slice(0, 10).map(c => ({
+                  source: c.source,
+                  title: c.title,
+                  category: c.category
+              })),
+              timestamp: new Date().toISOString()
+          });
 
-    } catch (error) {
-        console.error('Scraper error:', error);
-        return res.status(500).json({ success: false, error: error.message });
-    }
+      } catch (error) {
+          console.error('Scraper error:', error);
+          return res.status(500).json({ success: false, error: error.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

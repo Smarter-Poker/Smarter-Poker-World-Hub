@@ -12,97 +12,103 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (!applyRateLimit(req, res, LIMITS.read)) return;
-
-  if (req.method !== 'GET') {
-    return res.status(405).json({
-      success: false,
-      error: { code: 'METHOD_NOT_ALLOWED', message: 'Only GET allowed' }
-    });
-  }
-
-  const { deviceId, screen } = req.query;
-
   try {
-    // Get display config
-    const { data: display, error: displayError } = await supabase
-      .from('commander_table_displays')
-      .select('*, commander_tables(id, table_number, table_name)')
-      .eq('device_id', deviceId)
-      .maybeSingle();
+    if (!applyRateLimit(req, res, LIMITS.read)) return;
 
-    if (displayError || !display) {
-      return res.status(404).json({
+    if (req.method !== 'GET') {
+      return res.status(405).json({
         success: false,
-        error: { code: 'NOT_FOUND', message: 'Display not registered' }
+        error: { code: 'METHOD_NOT_ALLOWED', message: 'Only GET allowed' }
       });
     }
 
-    // Update heartbeat
-    await supabase
-      .from('commander_table_displays')
-      .update({
-        is_online: true,
-        last_heartbeat: new Date().toISOString()
-      })
-      .eq('id', display.id);
+    const { deviceId, screen } = req.query;
 
-    // Determine which screen to show
-    const currentScreen = screen || display.display_mode;
-    let content = {};
+    try {
+      // Get display config
+      const { data: display, error: displayError } = await supabase
+        .from('commander_table_displays')
+        .select('*, commander_tables(id, table_number, table_name)')
+        .eq('device_id', deviceId)
+        .maybeSingle();
 
-    switch (currentScreen) {
-      case 'waitlist':
-        content = await getWaitlistContent(display.venue_id);
-        break;
+      if (displayError || !display) {
+        return res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'Display not registered' }
+        });
+      }
 
-      case 'clock':
-        content = await getClockContent(display.venue_id);
-        break;
+      // Update heartbeat
+      await supabase
+        .from('commander_table_displays')
+        .update({
+          is_online: true,
+          last_heartbeat: new Date().toISOString()
+        })
+        .eq('id', display.id);
 
-      case 'promotions':
-        content = await getPromotionsContent(display.venue_id);
-        break;
+      // Determine which screen to show
+      const currentScreen = screen || display.display_mode;
+      let content = {};
 
-      case 'high_hand':
-        content = await getHighHandContent(display.venue_id);
-        break;
+      switch (currentScreen) {
+        case 'waitlist':
+          content = await getWaitlistContent(display.venue_id);
+          break;
 
-      case 'leaderboard':
-        content = await getLeaderboardContent(display.venue_id);
-        break;
+        case 'clock':
+          content = await getClockContent(display.venue_id);
+          break;
 
-      case 'rotation':
-      default:
-        // Get all content for rotation
-        content = {
-          waitlist: await getWaitlistContent(display.venue_id),
-          promotions: await getPromotionsContent(display.venue_id),
-          high_hand: await getHighHandContent(display.venue_id),
-          leaderboard: await getLeaderboardContent(display.venue_id)
-        };
-        break;
+        case 'promotions':
+          content = await getPromotionsContent(display.venue_id);
+          break;
+
+        case 'high_hand':
+          content = await getHighHandContent(display.venue_id);
+          break;
+
+        case 'leaderboard':
+          content = await getLeaderboardContent(display.venue_id);
+          break;
+
+        case 'rotation':
+        default:
+          // Get all content for rotation
+          content = {
+            waitlist: await getWaitlistContent(display.venue_id),
+            promotions: await getPromotionsContent(display.venue_id),
+            high_hand: await getHighHandContent(display.venue_id),
+            leaderboard: await getLeaderboardContent(display.venue_id)
+          };
+          break;
+      }
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          display_id: display.id,
+          screen: currentScreen,
+          rotation_screens: display.rotation_screens,
+          rotation_interval: display.rotation_interval,
+          venue_id: display.venue_id,
+          table: display.commander_tables,
+          content,
+          timestamp: new Date().toISOString()
+        }
+      });
+    } catch (error) {
+      console.error('Display content error:', error);
+      return res.status(500).json({
+        success: false,
+        error: { code: 'SERVER_ERROR', message: 'Failed to fetch content' }
+      });
     }
 
-    return res.status(200).json({
-      success: true,
-      data: {
-        display_id: display.id,
-        screen: currentScreen,
-        rotation_screens: display.rotation_screens,
-        rotation_interval: display.rotation_interval,
-        venue_id: display.venue_id,
-        table: display.commander_tables,
-        content,
-        timestamp: new Date().toISOString()
-      }
-    });
-  } catch (error) {
-    console.error('Display content error:', error);
-    return res.status(500).json({
-      success: false,
-      error: { code: 'SERVER_ERROR', message: 'Failed to fetch content' }
-    });
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }
 

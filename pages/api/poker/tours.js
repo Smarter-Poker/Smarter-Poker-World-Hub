@@ -83,114 +83,120 @@ function getUpcomingSeries(tourCode) {
 }
 
 export default async function handler(req, res) {
-  if (!applyRateLimit(req, res, LIMITS.read)) return;
+  try {
+    if (!applyRateLimit(req, res, LIMITS.read)) return;
 
-    if (req.method !== 'GET') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
+      if (req.method !== 'GET') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
 
-    try {
-        const {
-            type,           // major, circuit, high_roller, regional, grassroots
-            region,         // US, Europe, Asia
-            search,
-            tour_code,      // Specific tour
-            include_series, // Include upcoming series
-            limit = 50
-        } = req.query;
+      try {
+          const {
+              type,           // major, circuit, high_roller, regional, grassroots
+              region,         // US, Europe, Asia
+              search,
+              tour_code,      // Specific tour
+              include_series, // Include upcoming series
+              limit = 50
+          } = req.query;
 
-        // Try to get from database first
-        let dbTours = [];
-        try {
-            const { data, error } = await supabase
-                .from('tour_source_registry')
-                .select('*')
-                .eq('is_active', true)
-                .order('tour_type', { ascending: true })
-                    .limit(100);
+          // Try to get from database first
+          let dbTours = [];
+          try {
+              const { data, error } = await supabase
+                  .from('tour_source_registry')
+                  .select('*')
+                  .eq('is_active', true)
+                  .order('tour_type', { ascending: true })
+                      .limit(100);
 
-            if (!error && data && data.length > 0) {
-                dbTours = data;
-            }
-        } catch (e) {
-            // DB not available, use fallback
-        }
+              if (!error && data && data.length > 0) {
+                  dbTours = data;
+              }
+          } catch (e) {
+              // DB not available, use fallback
+          }
 
-        // Use registry as fallback/primary source
-        let tours = dbTours.length > 0 ? dbTours : getToursFromRegistry();
+          // Use registry as fallback/primary source
+          let tours = dbTours.length > 0 ? dbTours : getToursFromRegistry();
 
-        // Filter by tour type
-        if (type) {
-            tours = tours.filter(t => t.tour_type === type);
-        }
+          // Filter by tour type
+          if (type) {
+              tours = tours.filter(t => t.tour_type === type);
+          }
 
-        // Filter by region
-        if (region) {
-            tours = tours.filter(t =>
-                t.regions?.includes(region) ||
-                t.regions?.includes(region.toUpperCase())
-            );
-        }
+          // Filter by region
+          if (region) {
+              tours = tours.filter(t =>
+                  t.regions?.includes(region) ||
+                  t.regions?.includes(region.toUpperCase())
+              );
+          }
 
-        // Search by name
-        if (search) {
-            const searchLower = search.toLowerCase();
-            tours = tours.filter(t =>
-                t.tour_name?.toLowerCase().includes(searchLower) ||
-                t.tour_code?.toLowerCase().includes(searchLower) ||
-                t.headquarters?.toLowerCase().includes(searchLower)
-            );
-        }
+          // Search by name
+          if (search) {
+              const searchLower = search.toLowerCase();
+              tours = tours.filter(t =>
+                  t.tour_name?.toLowerCase().includes(searchLower) ||
+                  t.tour_code?.toLowerCase().includes(searchLower) ||
+                  t.headquarters?.toLowerCase().includes(searchLower)
+              );
+          }
 
-        // Get specific tour
-        if (tour_code) {
-            tours = tours.filter(t =>
-                t.tour_code === tour_code.toUpperCase()
-            );
-        }
+          // Get specific tour
+          if (tour_code) {
+              tours = tours.filter(t =>
+                  t.tour_code === tour_code.toUpperCase()
+              );
+          }
 
-        // Optionally include upcoming series for each tour
-        if (include_series === 'true') {
-            tours = tours.map(tour => ({
-                ...tour,
-                upcoming_series: getUpcomingSeries(tour.tour_code).slice(0, 5)
-            }));
-        }
+          // Optionally include upcoming series for each tour
+          if (include_series === 'true') {
+              tours = tours.map(tour => ({
+                  ...tour,
+                  upcoming_series: getUpcomingSeries(tour.tour_code).slice(0, 5)
+              }));
+          }
 
-        // Get upcoming series count for summary
-        const upcomingSeries = getUpcomingSeries(null);
-        const seriesByTour = {};
-        upcomingSeries.forEach(s => {
-            seriesByTour[s.tour] = (seriesByTour[s.tour] || 0) + 1;
-        });
+          // Get upcoming series count for summary
+          const upcomingSeries = getUpcomingSeries(null);
+          const seriesByTour = {};
+          upcomingSeries.forEach(s => {
+              seriesByTour[s.tour] = (seriesByTour[s.tour] || 0) + 1;
+          });
 
-        return res.status(200).json({
-            success: true,
-            data: tours.slice(0, parseInt(limit, 10) || 50),
-            total: tours.length,
-            summary: {
-                total_tours: tours.length,
-                by_type: countByField(tours, 'tour_type'),
-                upcoming_series_count: upcomingSeries.length,
-                series_by_tour: seriesByTour
-            },
-            metadata: {
-                source: dbTours.length > 0 ? 'database' : 'registry',
-                last_updated: tourRegistry.metadata?.created || '2026-01-26'
-            }
-        });
+          return res.status(200).json({
+              success: true,
+              data: tours.slice(0, parseInt(limit, 10) || 50),
+              total: tours.length,
+              summary: {
+                  total_tours: tours.length,
+                  by_type: countByField(tours, 'tour_type'),
+                  upcoming_series_count: upcomingSeries.length,
+                  series_by_tour: seriesByTour
+              },
+              metadata: {
+                  source: dbTours.length > 0 ? 'database' : 'registry',
+                  last_updated: tourRegistry.metadata?.created || '2026-01-26'
+              }
+          });
 
-    } catch (error) {
-        console.error('Tours API error:', error);
-        // Return fallback data
-        const tours = getToursFromRegistry();
-        return res.status(200).json({
-            success: true,
-            data: tours,
-            total: tours.length,
-            error: error.message
-        });
-    }
+      } catch (error) {
+          console.error('Tours API error:', error);
+          // Return fallback data
+          const tours = getToursFromRegistry();
+          return res.status(200).json({
+              success: true,
+              data: tours,
+              total: tours.length,
+              error: error.message
+          });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }
 
 function countByField(items, field) {

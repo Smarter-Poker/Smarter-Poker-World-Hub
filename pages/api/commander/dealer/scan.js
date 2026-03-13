@@ -19,95 +19,101 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
-
-  // Auth guard: require staff auth
-  const _staff = await guardStaff(req, res);
-  if (!_staff) return;
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ success: false, error: 'Method not allowed' });
-  }
-
-  const { qr_code, table_number } = req.body;
-
-  if (!qr_code) {
-    return res.status(400).json({ success: false, error: 'qr_code is required' });
-  }
-
   try {
-    // Look up member by QR code
-    // QR format: CMD-XXXX-XXXXXXXX or a check-in URL containing the code
-    let lookupCode = qr_code;
-
-    // If it's a URL, extract the code portion
-    if (qr_code.includes('/check-in/')) {
-      const parts = qr_code.split('/');
-      lookupCode = parts[parts.length - 1];
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
 
-    const { data: members, error: memberError } = await supabase
-      .from('commander_members')
-      .select('*')
-      .eq('venue_id', _staff.venue_id)
-      .or(`qr_code.eq.${lookupCode},member_number.eq.${lookupCode}`)
-      .limit(1);
+    // Auth guard: require staff auth
+    const _staff = await guardStaff(req, res);
+    if (!_staff) return;
 
-    if (memberError) throw memberError;
-
-    const member = members?.[0];
-    if (!member) {
-      return res.status(404).json({ success: false, error: 'Member not found. QR code not recognized.' });
+    if (req.method !== 'POST') {
+      return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
-    // Check membership status
-    const membershipActive =
-      member.membership_status !== 'suspended' &&
-      member.membership_status !== 'banned' &&
-      member.membership_status !== 'expired' &&
-      member.membership_status !== 'inactive';
+    const { qr_code, table_number } = req.body;
 
-    // Check if membership has expired by date
-    const isExpiredByDate = member.membership_expires &&
-      new Date(member.membership_expires) < new Date();
+    if (!qr_code) {
+      return res.status(400).json({ success: false, error: 'qr_code is required' });
+    }
 
-    // Check if already seated at another table
-    const { data: existingSessions } = await supabase
-      .from('commander_table_sessions')
-      .select('table_number, seat_number')
-      .eq('member_id', member.id)
-      .eq('status', 'active')
-      .limit(1);
+    try {
+      // Look up member by QR code
+      // QR format: CMD-XXXX-XXXXXXXX or a check-in URL containing the code
+      let lookupCode = qr_code;
 
-    const alreadySeated = existingSessions?.[0] || null;
-
-    // Time balance (minutes pre-paid on their card)
-    const timeBalance = member.time_balance_minutes || 0;
-
-    return res.status(200).json({
-      success: true,
-      data: {
-        member: {
-          id: member.id,
-          first_name: member.first_name,
-          last_name: member.last_name,
-          member_number: member.member_number,
-          membership_tier: member.membership_tier || 'standard',
-          membership_status: member.membership_status,
-          photo_url: member.photo_url,
-          total_visits: member.total_visits || 0,
-          qr_code: member.qr_code
-        },
-        membership_active: membershipActive && !isExpiredByDate,
-        membership_expires: member.membership_expires,
-        time_balance_minutes: timeBalance,
-        already_seated: alreadySeated
+      // If it's a URL, extract the code portion
+      if (qr_code.includes('/check-in/')) {
+        const parts = qr_code.split('/');
+        lookupCode = parts[parts.length - 1];
       }
-    });
+
+      const { data: members, error: memberError } = await supabase
+        .from('commander_members')
+        .select('*')
+        .eq('venue_id', _staff.venue_id)
+        .or(`qr_code.eq.${lookupCode},member_number.eq.${lookupCode}`)
+        .limit(1);
+
+      if (memberError) throw memberError;
+
+      const member = members?.[0];
+      if (!member) {
+        return res.status(404).json({ success: false, error: 'Member not found. QR code not recognized.' });
+      }
+
+      // Check membership status
+      const membershipActive =
+        member.membership_status !== 'suspended' &&
+        member.membership_status !== 'banned' &&
+        member.membership_status !== 'expired' &&
+        member.membership_status !== 'inactive';
+
+      // Check if membership has expired by date
+      const isExpiredByDate = member.membership_expires &&
+        new Date(member.membership_expires) < new Date();
+
+      // Check if already seated at another table
+      const { data: existingSessions } = await supabase
+        .from('commander_table_sessions')
+        .select('table_number, seat_number')
+        .eq('member_id', member.id)
+        .eq('status', 'active')
+        .limit(1);
+
+      const alreadySeated = existingSessions?.[0] || null;
+
+      // Time balance (minutes pre-paid on their card)
+      const timeBalance = member.time_balance_minutes || 0;
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          member: {
+            id: member.id,
+            first_name: member.first_name,
+            last_name: member.last_name,
+            member_number: member.member_number,
+            membership_tier: member.membership_tier || 'standard',
+            membership_status: member.membership_status,
+            photo_url: member.photo_url,
+            total_visits: member.total_visits || 0,
+            qr_code: member.qr_code
+          },
+          membership_active: membershipActive && !isExpiredByDate,
+          membership_expires: member.membership_expires,
+          time_balance_minutes: timeBalance,
+          already_seated: alreadySeated
+        }
+      });
+    } catch (err) {
+      console.error('Dealer scan error:', err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+
   } catch (err) {
-    console.error('Dealer scan error:', err);
-    return res.status(500).json({ success: false, error: err.message });
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

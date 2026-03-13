@@ -14,28 +14,34 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+    // Auth guard: require staff auth
+    const _staff = await guardStaff(req, res);
+    if (!_staff) return;
+
+    const { deviceId } = req.query;
+
+    if (req.method === 'GET') {
+      return handleGet(req, res, deviceId);
+    } else if (req.method === 'PATCH') {
+      return handlePatch(req, res, deviceId);
+    } else if (req.method === 'DELETE') {
+      return handleDelete(req, res, deviceId);
+    }
+
+    return res.status(405).json({
+      success: false,
+      error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' }
+    });
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-  // Auth guard: require staff auth
-  const _staff = await guardStaff(req, res);
-  if (!_staff) return;
-
-  const { deviceId } = req.query;
-
-  if (req.method === 'GET') {
-    return handleGet(req, res, deviceId);
-  } else if (req.method === 'PATCH') {
-    return handlePatch(req, res, deviceId);
-  } else if (req.method === 'DELETE') {
-    return handleDelete(req, res, deviceId);
-  }
-
-  return res.status(405).json({
-    success: false,
-    error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' }
-  });
 }
 
 async function handleGet(req, res, deviceId) {

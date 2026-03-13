@@ -96,227 +96,233 @@ async function sendOneSignalPush(userId, title, message, data = {}) {
 }
 
 export default async function handler(req, res) {
-  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
-
-  const _g = await guardWriteStaff(req, res); if (!_g) return;
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({
-      success: false,
-      error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' }
-    });
-  }
-
-  const { id } = req.query;
-
-  if (!id) {
-    return res.status(400).json({
-      success: false,
-      error: { code: 'VALIDATION_ERROR', message: 'Waitlist entry ID required' }
-    });
-  }
-
   try {
-    const staff = _g; // from guardWriteStaff
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
 
-    const { notify_sms = true, notify_push = true, message } = req.body;
+    const _g = await guardWriteStaff(req, res); if (!_g) return;
 
-    // Verify entry exists and is waiting
-    const { data: entry, error: fetchError } = await supabase
-      .from('commander_waitlist')
-      .select(`
-        *,
-        poker_venues (
-          id,
-          name,
-          auto_text_enabled
-        )
-      `)
-      .eq('id', id)
-      .maybeSingle();
-
-    if (fetchError || !entry) {
-      return res.status(404).json({
+    if (req.method !== 'POST') {
+      return res.status(405).json({
         success: false,
-        error: { code: 'NOT_FOUND', message: 'Waitlist entry not found' }
+        error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' }
       });
     }
 
-    // Verify staff belongs to the same venue as the waitlist entry
-    if (staff.venue_id !== entry.venue_id) {
-      return res.status(403).json({
-        success: false,
-        error: { code: 'FORBIDDEN', message: 'Staff is not authorized for this venue' }
-      });
-    }
+    const { id } = req.query;
 
-    if (entry.status !== 'waiting') {
+    if (!id) {
       return res.status(400).json({
         success: false,
-        error: { code: 'VALIDATION_ERROR', message: 'Entry is not in waiting status' }
+        error: { code: 'VALIDATION_ERROR', message: 'Waitlist entry ID required' }
       });
     }
 
-    // Update entry status to called
-    const { data: updatedEntry, error: updateError } = await supabase
-      .from('commander_waitlist')
-      .update({
-        status: 'called',
-        call_count: (entry.call_count || 0) + 1,
-        last_called_at: new Date().toISOString()
-      })
-      .eq('id', id)
-      .select()
-      .maybeSingle();
+    try {
+      const staff = _g; // from guardWriteStaff
 
-    if (updateError) {
-      console.error('Commander waitlist call update error:', updateError);
+      const { notify_sms = true, notify_push = true, message } = req.body;
+
+      // Verify entry exists and is waiting
+      const { data: entry, error: fetchError } = await supabase
+        .from('commander_waitlist')
+        .select(`
+          *,
+          poker_venues (
+            id,
+            name,
+            auto_text_enabled
+          )
+        `)
+        .eq('id', id)
+        .maybeSingle();
+
+      if (fetchError || !entry) {
+        return res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'Waitlist entry not found' }
+        });
+      }
+
+      // Verify staff belongs to the same venue as the waitlist entry
+      if (staff.venue_id !== entry.venue_id) {
+        return res.status(403).json({
+          success: false,
+          error: { code: 'FORBIDDEN', message: 'Staff is not authorized for this venue' }
+        });
+      }
+
+      if (entry.status !== 'waiting') {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'VALIDATION_ERROR', message: 'Entry is not in waiting status' }
+        });
+      }
+
+      // Update entry status to called
+      const { data: updatedEntry, error: updateError } = await supabase
+        .from('commander_waitlist')
+        .update({
+          status: 'called',
+          call_count: (entry.call_count || 0) + 1,
+          last_called_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .maybeSingle();
+
+      if (updateError) {
+        console.error('Commander waitlist call update error:', updateError);
+        return res.status(500).json({
+          success: false,
+          error: { code: 'DATABASE_ERROR', message: 'Failed to update entry' }
+        });
+      }
+
+      // Send notifications
+      const notifications = [];
+      const notificationMessage = message ||
+        `Your seat is ready at ${entry.poker_venues?.name || 'the venue'} for ${entry.stakes} ${(entry.game_type || '').toUpperCase()}. Please check in within 5 minutes.`;
+
+      // Create notification record
+      if (entry.player_id || entry.player_phone) {
+        const notificationData = {
+          venue_id: entry.venue_id,
+          player_id: entry.player_id || null,
+          notification_type: 'called_for_seat',
+          title: 'Seat Available',
+          message: notificationMessage,
+          status: 'pending',
+          metadata: {
+            waitlist_id: entry.id,
+            game_type: entry.game_type,
+            stakes: entry.stakes
+          }
+        };
+
+        // SMS notification via Twilio
+        if (notify_sms && entry.player_phone && entry.poker_venues?.auto_text_enabled !== false) {
+          const { data: smsNotification, error: smsError } = await supabase
+            .from('commander_notifications')
+            .insert({
+              ...notificationData,
+              channel: 'sms'
+            })
+            .select()
+            .maybeSingle();
+
+          if (!smsError) {
+            notifications.push(smsNotification);
+
+            // Send SMS via Twilio
+            const smsResult = await sendTwilioSMS(entry.player_phone, notificationMessage);
+
+            // Update notification status
+            await supabase
+              .from('commander_notifications')
+              .update({
+                status: smsResult.success ? 'sent' : 'failed',
+                sent_at: smsResult.success ? new Date().toISOString() : null,
+                metadata: {
+                  ...smsNotification.metadata,
+                  twilio_sid: smsResult.sid,
+                  error: smsResult.error
+                }
+              })
+              .eq('id', smsNotification.id);
+          }
+        }
+
+        // Push notification via OneSignal
+        if (notify_push && entry.player_id) {
+          const { data: pushNotification, error: pushError } = await supabase
+            .from('commander_notifications')
+            .insert({
+              ...notificationData,
+              channel: 'push'
+            })
+            .select()
+            .maybeSingle();
+
+          if (!pushError) {
+            notifications.push(pushNotification);
+
+            // Send push via OneSignal
+            const pushResult = await sendOneSignalPush(
+              entry.player_id,
+              'Seat Available',
+              notificationMessage,
+              {
+                type: 'seat_ready',
+                waitlist_id: entry.id,
+                venue_id: entry.venue_id,
+                game_type: entry.game_type,
+                stakes: entry.stakes
+              }
+            );
+
+            // Update notification status
+            await supabase
+              .from('commander_notifications')
+              .update({
+                status: pushResult.success ? 'sent' : 'failed',
+                sent_at: pushResult.success ? new Date().toISOString() : null,
+                metadata: {
+                  ...pushNotification.metadata,
+                  onesignal_id: pushResult.id,
+                  error: pushResult.error
+                }
+              })
+              .eq('id', pushNotification.id);
+          }
+        }
+
+        // In-app notification
+        if (entry.player_id) {
+          const { data: inAppNotification } = await supabase
+            .from('commander_notifications')
+            .insert({
+              ...notificationData,
+              channel: 'in_app',
+              status: 'sent'
+            })
+            .select()
+            .maybeSingle();
+
+          if (inAppNotification) {
+            notifications.push(inAppNotification);
+          }
+        }
+      }
+
+      // Audit log
+      await logAction(AuditActions.WAITLIST_CALL, {
+        venueId: staff.venue_id,
+        staffId: staff.id,
+        targetId: id,
+        targetType: 'commander_waitlist',
+        targetName: entry.player_name || 'Player',
+        req
+      });
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          entry: updatedEntry,
+          notifications_sent: notifications.length
+        }
+      });
+    } catch (error) {
+      console.error('Commander waitlist call API error:', error);
       return res.status(500).json({
         success: false,
-        error: { code: 'DATABASE_ERROR', message: 'Failed to update entry' }
+        error: { code: 'INTERNAL_ERROR', message: 'Internal server error' }
       });
     }
 
-    // Send notifications
-    const notifications = [];
-    const notificationMessage = message ||
-      `Your seat is ready at ${entry.poker_venues?.name || 'the venue'} for ${entry.stakes} ${(entry.game_type || '').toUpperCase()}. Please check in within 5 minutes.`;
-
-    // Create notification record
-    if (entry.player_id || entry.player_phone) {
-      const notificationData = {
-        venue_id: entry.venue_id,
-        player_id: entry.player_id || null,
-        notification_type: 'called_for_seat',
-        title: 'Seat Available',
-        message: notificationMessage,
-        status: 'pending',
-        metadata: {
-          waitlist_id: entry.id,
-          game_type: entry.game_type,
-          stakes: entry.stakes
-        }
-      };
-
-      // SMS notification via Twilio
-      if (notify_sms && entry.player_phone && entry.poker_venues?.auto_text_enabled !== false) {
-        const { data: smsNotification, error: smsError } = await supabase
-          .from('commander_notifications')
-          .insert({
-            ...notificationData,
-            channel: 'sms'
-          })
-          .select()
-          .maybeSingle();
-
-        if (!smsError) {
-          notifications.push(smsNotification);
-
-          // Send SMS via Twilio
-          const smsResult = await sendTwilioSMS(entry.player_phone, notificationMessage);
-
-          // Update notification status
-          await supabase
-            .from('commander_notifications')
-            .update({
-              status: smsResult.success ? 'sent' : 'failed',
-              sent_at: smsResult.success ? new Date().toISOString() : null,
-              metadata: {
-                ...smsNotification.metadata,
-                twilio_sid: smsResult.sid,
-                error: smsResult.error
-              }
-            })
-            .eq('id', smsNotification.id);
-        }
-      }
-
-      // Push notification via OneSignal
-      if (notify_push && entry.player_id) {
-        const { data: pushNotification, error: pushError } = await supabase
-          .from('commander_notifications')
-          .insert({
-            ...notificationData,
-            channel: 'push'
-          })
-          .select()
-          .maybeSingle();
-
-        if (!pushError) {
-          notifications.push(pushNotification);
-
-          // Send push via OneSignal
-          const pushResult = await sendOneSignalPush(
-            entry.player_id,
-            'Seat Available',
-            notificationMessage,
-            {
-              type: 'seat_ready',
-              waitlist_id: entry.id,
-              venue_id: entry.venue_id,
-              game_type: entry.game_type,
-              stakes: entry.stakes
-            }
-          );
-
-          // Update notification status
-          await supabase
-            .from('commander_notifications')
-            .update({
-              status: pushResult.success ? 'sent' : 'failed',
-              sent_at: pushResult.success ? new Date().toISOString() : null,
-              metadata: {
-                ...pushNotification.metadata,
-                onesignal_id: pushResult.id,
-                error: pushResult.error
-              }
-            })
-            .eq('id', pushNotification.id);
-        }
-      }
-
-      // In-app notification
-      if (entry.player_id) {
-        const { data: inAppNotification } = await supabase
-          .from('commander_notifications')
-          .insert({
-            ...notificationData,
-            channel: 'in_app',
-            status: 'sent'
-          })
-          .select()
-          .maybeSingle();
-
-        if (inAppNotification) {
-          notifications.push(inAppNotification);
-        }
-      }
-    }
-
-    // Audit log
-    await logAction(AuditActions.WAITLIST_CALL, {
-      venueId: staff.venue_id,
-      staffId: staff.id,
-      targetId: id,
-      targetType: 'commander_waitlist',
-      targetName: entry.player_name || 'Player',
-      req
-    });
-
-    return res.status(200).json({
-      success: true,
-      data: {
-        entry: updatedEntry,
-        notifications_sent: notifications.length
-      }
-    });
-  } catch (error) {
-    console.error('Commander waitlist call API error:', error);
-    return res.status(500).json({
-      success: false,
-      error: { code: 'INTERNAL_ERROR', message: 'Internal server error' }
-    });
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

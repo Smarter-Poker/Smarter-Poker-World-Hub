@@ -50,99 +50,105 @@ const CATEGORY_APPROACHES = {
 };
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+      if (req.method !== 'POST') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
+
+      // BUG #268 FIX: Require JWT or admin auth — calls paid Grok API
+      const adminSecret = req.headers['x-admin-secret'];
+      const envSecret = process.env.ADMIN_ROUTE_SECRET;
+      const hasAdminAuth = envSecret && adminSecret === envSecret;
+
+      if (!hasAdminAuth) {
+          const token = req.headers.authorization?.replace('Bearer ', '');
+          if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
+          const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+          if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+      }
+
+      try {
+          const {
+              question,
+              correctAnswer,
+              explanation,
+              difficulty = 'medium',
+              category = 'gto_theory',
+              options = [],
+              correctIndex = 0,
+          } = req.body;
+
+          // Extract action from correct answer
+          const action = extractAction(correctAnswer);
+          const frequency = DIFFICULTY_CONFIDENCE[difficulty] || 78;
+          const gtoApproach = CATEGORY_APPROACHES[category] || CATEGORY_APPROACHES['gto_theory'];
+
+          // Generate EV value based on difficulty
+          const evValue = difficulty === 'hard' ? '+1.75BB' : difficulty === 'medium' ? '+1.25BB' : '+0.85BB';
+
+          // Generate alternate lines from other options
+          const alternateLines = options
+              .filter((_, i) => i !== correctIndex)
+              .slice(0, 2)
+              .map((opt, i) => ({
+                  action: extractAction(opt),
+                  frequency: i === 0 ? '15%' : '5%',
+                  reason: i === 0
+                      ? 'Mixed strategy for range balance'
+                      : 'Against extremely tight opponents',
+              }));
+
+          // Generate cache key
+          const cacheKey = generateCacheKey({
+              action, frequency, explanation, category,
+          });
+
+          // Check if image exists in cache
+          const existingUrl = await checkCachedImage(cacheKey);
+          if (existingUrl) {
+              return res.status(200).json({
+                  success: true,
+                  imageUrl: existingUrl,
+                  fromCache: true,
+              });
+          }
+
+          // Generate image using Grok AI
+          const imageBuffer = await generateWithGrok({
+              action,
+              frequency,
+              explanation: explanation || 'This is the optimal GTO play in this situation.',
+              gtoApproach,
+              evValue,
+              alternateLines,
+              category,
+          });
+
+          // Upload to Supabase storage
+          const imageUrl = await uploadToStorage(cacheKey, imageBuffer);
+
+          return res.status(200).json({
+              success: true,
+              imageUrl,
+              fromCache: false,
+          });
+
+      } catch (error) {
+          console.error('[Trivia-GTO-Panel] Error:', error);
+          return res.status(500).json({
+              success: false,
+              error: error.message,
+          });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-    if (req.method !== 'POST') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
-
-    // BUG #268 FIX: Require JWT or admin auth — calls paid Grok API
-    const adminSecret = req.headers['x-admin-secret'];
-    const envSecret = process.env.ADMIN_ROUTE_SECRET;
-    const hasAdminAuth = envSecret && adminSecret === envSecret;
-
-    if (!hasAdminAuth) {
-        const token = req.headers.authorization?.replace('Bearer ', '');
-        if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
-        const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
-        if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
-    }
-
-    try {
-        const {
-            question,
-            correctAnswer,
-            explanation,
-            difficulty = 'medium',
-            category = 'gto_theory',
-            options = [],
-            correctIndex = 0,
-        } = req.body;
-
-        // Extract action from correct answer
-        const action = extractAction(correctAnswer);
-        const frequency = DIFFICULTY_CONFIDENCE[difficulty] || 78;
-        const gtoApproach = CATEGORY_APPROACHES[category] || CATEGORY_APPROACHES['gto_theory'];
-
-        // Generate EV value based on difficulty
-        const evValue = difficulty === 'hard' ? '+1.75BB' : difficulty === 'medium' ? '+1.25BB' : '+0.85BB';
-
-        // Generate alternate lines from other options
-        const alternateLines = options
-            .filter((_, i) => i !== correctIndex)
-            .slice(0, 2)
-            .map((opt, i) => ({
-                action: extractAction(opt),
-                frequency: i === 0 ? '15%' : '5%',
-                reason: i === 0
-                    ? 'Mixed strategy for range balance'
-                    : 'Against extremely tight opponents',
-            }));
-
-        // Generate cache key
-        const cacheKey = generateCacheKey({
-            action, frequency, explanation, category,
-        });
-
-        // Check if image exists in cache
-        const existingUrl = await checkCachedImage(cacheKey);
-        if (existingUrl) {
-            return res.status(200).json({
-                success: true,
-                imageUrl: existingUrl,
-                fromCache: true,
-            });
-        }
-
-        // Generate image using Grok AI
-        const imageBuffer = await generateWithGrok({
-            action,
-            frequency,
-            explanation: explanation || 'This is the optimal GTO play in this situation.',
-            gtoApproach,
-            evValue,
-            alternateLines,
-            category,
-        });
-
-        // Upload to Supabase storage
-        const imageUrl = await uploadToStorage(cacheKey, imageBuffer);
-
-        return res.status(200).json({
-            success: true,
-            imageUrl,
-            fromCache: false,
-        });
-
-    } catch (error) {
-        console.error('[Trivia-GTO-Panel] Error:', error);
-        return res.status(500).json({
-            success: false,
-            error: error.message,
-        });
-    }
 }
 
 /**

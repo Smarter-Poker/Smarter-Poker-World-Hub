@@ -48,193 +48,199 @@ function hashQuestion(q) {
 }
 
 export default async function handler(req, res) {
-    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-        if (!applyRateLimit(req, res, LIMITS.write)) return;
-    }
+  try {
+      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+          if (!applyRateLimit(req, res, LIMITS.write)) return;
+      }
 
-    if (req.method !== 'POST') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
+      if (req.method !== 'POST') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
 
-    // ── Parse body first (before auth, so KB can serve guests) ──
-    const { message, context, conversationHistory, currentPage, userRole, isVIP } = req.body;
+      // ── Parse body first (before auth, so KB can serve guests) ──
+      const { message, context, conversationHistory, currentPage, userRole, isVIP } = req.body;
 
-    if (!message) {
-        return res.status(400).json({ success: false, error: 'Message is required' });
-    }
+      if (!message) {
+          return res.status(400).json({ success: false, error: 'Message is required' });
+      }
 
-    // ── STEP 0: Check Local KB (FREE, instant, no auth needed) ──
-    // Pass role boosts from the client (extracted client-side from JWT payload, used for scoring only)
-    const clientRoleBoosts = getRoleBoosts(userRole || null, Boolean(isVIP));
-    const kbResult = lookupKnowledgeBase(message, currentPage, clientRoleBoosts);
-    if (kbResult && kbResult.confidence >= 45) {
-        return res.status(200).json({
-            response: kbResult.answer,
-            message: kbResult.answer,
-            success: true,
-            fromLocalKB: true,
-            followUps: kbResult.followUps || [],
-        });
-    }
+      // ── STEP 0: Check Local KB (FREE, instant, no auth needed) ──
+      // Pass role boosts from the client (extracted client-side from JWT payload, used for scoring only)
+      const clientRoleBoosts = getRoleBoosts(userRole || null, Boolean(isVIP));
+      const kbResult = lookupKnowledgeBase(message, currentPage, clientRoleBoosts);
+      if (kbResult && kbResult.confidence >= 45) {
+          return res.status(200).json({
+              response: kbResult.answer,
+              message: kbResult.answer,
+              success: true,
+              fromLocalKB: true,
+              followUps: kbResult.followUps || [],
+          });
+      }
 
-    // ── Auth: required for cache + Grok tiers ──
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) {
-        if (kbResult && kbResult.confidence >= 30) {
-            return res.status(200).json({ response: kbResult.answer, message: kbResult.answer, success: true, fromLocalKB: true, followUps: kbResult.followUps || [], guestMode: true });
-        }
-        return res.status(401).json({ success: false, error: 'Sign in for AI-powered answers' });
-    }
-    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-    if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+      // ── Auth: required for cache + Grok tiers ──
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      if (!token) {
+          if (kbResult && kbResult.confidence >= 30) {
+              return res.status(200).json({ response: kbResult.answer, message: kbResult.answer, success: true, fromLocalKB: true, followUps: kbResult.followUps || [], guestMode: true });
+          }
+          return res.status(401).json({ success: false, error: 'Sign in for AI-powered answers' });
+      }
+      const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+      if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-    try {
+      try {
 
-        // ── STEP 1: Check cache before calling Grok ──
-        const questionHash = hashQuestion(message);
-        try {
-            const { data: cached } = await supabaseAdmin
-                .from('geeves_knowledge_cache')
-                .select('id, answer, times_served, avg_rating')
-                .eq('question_hash', questionHash)
-                .maybeSingle();
+          // ── STEP 1: Check cache before calling Grok ──
+          const questionHash = hashQuestion(message);
+          try {
+              const { data: cached } = await supabaseAdmin
+                  .from('geeves_knowledge_cache')
+                  .select('id, answer, times_served, avg_rating')
+                  .eq('question_hash', questionHash)
+                  .maybeSingle();
 
-            if (cached) {
-                // Increment served counter
-                await supabaseAdmin.rpc('increment_cache_served', { cache_uuid: cached.id }).catch(() => { });
+              if (cached) {
+                  // Increment served counter
+                  await supabaseAdmin.rpc('increment_cache_served', { cache_uuid: cached.id }).catch(() => { });
 
-                return res.status(200).json({
-                    response: cached.answer,
-                    message: cached.answer,
-                    success: true,
-                    fromCache: true,
-                    cacheId: cached.id,
-                });
-            }
-        } catch (cacheErr) {
-            // Cache miss or table doesn't exist yet — continue to Grok
-            console.warn('[Geeves Chat] Cache lookup failed (non-critical):', cacheErr.message);
-        }
+                  return res.status(200).json({
+                      response: cached.answer,
+                      message: cached.answer,
+                      success: true,
+                      fromCache: true,
+                      cacheId: cached.id,
+                  });
+              }
+          } catch (cacheErr) {
+              // Cache miss or table doesn't exist yet — continue to Grok
+              console.warn('[Geeves Chat] Cache lookup failed (non-critical):', cacheErr.message);
+          }
 
-        // ── STEP 2: No cache hit — call Grok with conversation context ──
-        const grok = getGrokClient();
+          // ── STEP 2: No cache hit — call Grok with conversation context ──
+          const grok = getGrokClient();
 
-        // Build messages array with system prompt
-        const grokMessages = [
-            { role: 'system', content: GEEVES_SYSTEM_PROMPT },
-        ];
+          // Build messages array with system prompt
+          const grokMessages = [
+              { role: 'system', content: GEEVES_SYSTEM_PROMPT },
+          ];
 
-        // Feature 2: Conversation Memory — prepend last 6 turns so follow-up questions
-        // have context ("how do I close it?" knows "it" = settlement period, etc.)
-        if (Array.isArray(conversationHistory) && conversationHistory.length > 0) {
-            const recentHistory = conversationHistory.slice(-6); // Max 6 turns (3 exchanges)
-            recentHistory.forEach(msg => {
-                grokMessages.push({
-                    role: msg.isUser ? 'user' : 'assistant',
-                    content: String(msg.content || '').slice(0, 600), // Trim long answers
-                });
-            });
-        }
+          // Feature 2: Conversation Memory — prepend last 6 turns so follow-up questions
+          // have context ("how do I close it?" knows "it" = settlement period, etc.)
+          if (Array.isArray(conversationHistory) && conversationHistory.length > 0) {
+              const recentHistory = conversationHistory.slice(-6); // Max 6 turns (3 exchanges)
+              recentHistory.forEach(msg => {
+                  grokMessages.push({
+                      role: msg.isUser ? 'user' : 'assistant',
+                      content: String(msg.content || '').slice(0, 600), // Trim long answers
+                  });
+              });
+          }
 
-        grokMessages.push({ role: 'user', content: message });
+          grokMessages.push({ role: 'user', content: message });
 
-        const response = await grok.chat.completions.create({
-            model: 'grok-beta',
-            messages: grokMessages,
-            temperature: 0.7,
-            max_tokens: 800,
-            stream: false,
-        });
+          const response = await grok.chat.completions.create({
+              model: 'grok-beta',
+              messages: grokMessages,
+              temperature: 0.7,
+              max_tokens: 800,
+              stream: false,
+          });
 
-        const answer = response.choices[0].message.content;
+          const answer = response.choices[0].message.content;
 
-        // ── STEP 3: Save to cache for future use ──
-        let cacheId = null;
-        try {
-            const { data: newCache } = await supabaseAdmin
-                .from('geeves_knowledge_cache')
-                .insert({
-                    question_normalized: normalizeQuestion(message),
-                    question_hash: questionHash,
-                    question_original: message,
-                    answer: answer,
-                    answer_tokens: answer.split(/\s+/).length,
-                    question_type: 'general',
-                    tags: [],
-                    created_by: user.id,
-                    times_served: 1,
-                    last_served_at: new Date().toISOString()
-                })
-                .select('id')
-                .maybeSingle();
-            cacheId = newCache?.id || null;
-        } catch (saveErr) {
-            console.warn('[Geeves Chat] Cache save failed (non-critical):', saveErr.message);
-        }
+          // ── STEP 3: Save to cache for future use ──
+          let cacheId = null;
+          try {
+              const { data: newCache } = await supabaseAdmin
+                  .from('geeves_knowledge_cache')
+                  .insert({
+                      question_normalized: normalizeQuestion(message),
+                      question_hash: questionHash,
+                      question_original: message,
+                      answer: answer,
+                      answer_tokens: answer.split(/\s+/).length,
+                      question_type: 'general',
+                      tags: [],
+                      created_by: user.id,
+                      times_served: 1,
+                      last_served_at: new Date().toISOString()
+                  })
+                  .select('id')
+                  .maybeSingle();
+              cacheId = newCache?.id || null;
+          } catch (saveErr) {
+              console.warn('[Geeves Chat] Cache save failed (non-critical):', saveErr.message);
+          }
 
-        // ── STEP 4: Auto-Learning Loop — log missed question to Supabase ──
-        // This feeds the Geeves Analytics dashboard in Horses so admins can
-        // identify knowledge gaps and add them to the KB.
-        try {
-            // Use raw SQL so we can do a proper ON CONFLICT DO UPDATE with arithmetic
-            // The RPC is preferred but falls back to direct PostgREST if not yet created.
-            await supabaseAdmin.rpc('geeves_upsert_missed_question', {
-                p_question: message,
-                p_hash: questionHash,
-                p_page: currentPage || null,
-                p_grok_answer: answer,
-            });
-        } catch (_rpcErr) {
-            // RPC not yet available — use raw INSERT via PostgREST with SQL function
-            // Supabase's REST API doesn't natively support ON CONFLICT DO UPDATE with expressions,
-            // so we use separate insert + update logic:
-            try {
-                // Try INSERT first
-                const { error: insErr } = await supabaseAdmin
-                    .from('geeves_missed_questions')
-                    .insert({
-                        question: message,
-                        question_hash: questionHash,
-                        page: currentPage || null,
-                        grok_answer: answer.slice(0, 2000), // Cap Grok answer size
-                        asked_count: 1,
-                        first_asked: new Date().toISOString(),
-                        last_asked: new Date().toISOString(),
-                    });
+          // ── STEP 4: Auto-Learning Loop — log missed question to Supabase ──
+          // This feeds the Geeves Analytics dashboard in Horses so admins can
+          // identify knowledge gaps and add them to the KB.
+          try {
+              // Use raw SQL so we can do a proper ON CONFLICT DO UPDATE with arithmetic
+              // The RPC is preferred but falls back to direct PostgREST if not yet created.
+              await supabaseAdmin.rpc('geeves_upsert_missed_question', {
+                  p_question: message,
+                  p_hash: questionHash,
+                  p_page: currentPage || null,
+                  p_grok_answer: answer,
+              });
+          } catch (_rpcErr) {
+              // RPC not yet available — use raw INSERT via PostgREST with SQL function
+              // Supabase's REST API doesn't natively support ON CONFLICT DO UPDATE with expressions,
+              // so we use separate insert + update logic:
+              try {
+                  // Try INSERT first
+                  const { error: insErr } = await supabaseAdmin
+                      .from('geeves_missed_questions')
+                      .insert({
+                          question: message,
+                          question_hash: questionHash,
+                          page: currentPage || null,
+                          grok_answer: answer.slice(0, 2000), // Cap Grok answer size
+                          asked_count: 1,
+                          first_asked: new Date().toISOString(),
+                          last_asked: new Date().toISOString(),
+                      });
 
-                if (insErr && insErr.code === '23505') {
-                    // Unique constraint violation = already exists, increment count
-                    await supabaseAdmin.rpc('geeves_increment_missed_count', {
-                        p_hash: questionHash,
-                        p_grok_answer: answer.slice(0, 2000),
-                        p_page: currentPage || null,
-                    }).catch(() => {
-                        // Final fallback: direct update (no increment, still more correct than resetting to 1)
-                        supabaseAdmin
-                            .from('geeves_missed_questions')
-                            .update({ last_asked: new Date().toISOString(), grok_answer: answer.slice(0, 2000) })
-                            .eq('question_hash', questionHash)
-                            .then(() => { }).catch(() => { });
-                    });
-                }
-            } catch { /* truly silent — never break the user experience */ }
-        }
+                  if (insErr && insErr.code === '23505') {
+                      // Unique constraint violation = already exists, increment count
+                      await supabaseAdmin.rpc('geeves_increment_missed_count', {
+                          p_hash: questionHash,
+                          p_grok_answer: answer.slice(0, 2000),
+                          p_page: currentPage || null,
+                      }).catch(() => {
+                          // Final fallback: direct update (no increment, still more correct than resetting to 1)
+                          supabaseAdmin
+                              .from('geeves_missed_questions')
+                              .update({ last_asked: new Date().toISOString(), grok_answer: answer.slice(0, 2000) })
+                              .eq('question_hash', questionHash)
+                              .then(() => { }).catch(() => { });
+                      });
+                  }
+              } catch { /* truly silent — never break the user experience */ }
+          }
 
-        return res.status(200).json({
-            response: answer,
-            message: answer,
-            success: true,
-            fromCache: false,
-            cacheId,
-            missedQuestion: true
-        });
+          return res.status(200).json({
+              response: answer,
+              message: answer,
+              success: true,
+              fromCache: false,
+              cacheId,
+              missedQuestion: true
+          });
 
-    } catch (error) {
-        console.error('[Geeves Chat] Error:', error);
-        return res.status(500).json({
-            success: false, error: 'Failed to process message',
-            response: "I'm having trouble connecting right now. Please try again.",
-            message: "I'm having trouble connecting right now. Please try again."
-        });
-    }
+      } catch (error) {
+          console.error('[Geeves Chat] Error:', error);
+          return res.status(500).json({
+              success: false, error: 'Failed to process message',
+              response: "I'm having trouble connecting right now. Please try again.",
+              message: "I'm having trouble connecting right now. Please try again."
+          });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

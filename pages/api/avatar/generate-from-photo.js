@@ -108,133 +108,139 @@ async function removeBackgroundWithSharp(inputBuffer) {
 }
 
 export default async function handler(req, res) {
-  if (!applyRateLimit(req, res, LIMITS.ai)) return;
+  try {
+    if (!applyRateLimit(req, res, LIMITS.ai)) return;
 
-    if (req.method !== 'POST') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
+      if (req.method !== 'POST') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
 
-    // BUG #266 FIX: Require JWT auth — this endpoint calls paid Grok API.
-    // Without auth, anyone can spam it and rack up API charges.
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
-    const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
-    if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+      // BUG #266 FIX: Require JWT auth — this endpoint calls paid Grok API.
+      // Without auth, anyone can spam it and rack up API charges.
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
+      const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+      if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-    try {
-        const { photoBase64, prompt, userId: _clientUserId } = req.body;
-        const userId = authUser.id; // Always use JWT user ID
+      try {
+          const { photoBase64, prompt, userId: _clientUserId } = req.body;
+          const userId = authUser.id; // Always use JWT user ID
 
-        if (!photoBase64) {
-            return res.status(400).json({ success: false, error: 'Photo is required' });
-        }
-
-
-        // Step 1: Use Grok Vision to analyze the photo
-        const analysisResponse = await grok.chat.completions.create({
-            model: "grok-3",  // Grok-3 for analysis
-            messages: [
-                {
-                    role: "user",
-                    content: [
-                        {
-                            type: "text",
-                            text: `Analyze this person's appearance in EXTREME detail for avatar creation. Be VERY specific about:
-
-1. FACE SHAPE: (oval, round, square, heart, oblong, etc.)
-2. SKIN TONE: (exact shade - fair, olive, tan, brown, dark, with undertones)
-3. HAIR: Exact color, style, texture, length
-4. EYES: Exact color, shape, size
-5. EYEBROWS: Shape, thickness, color
-6. NOSE: Size, shape
-7. LIPS: Shape, fullness
-8. DISTINCTIVE FEATURES: Dimples, freckles, beauty marks
-9. OVERALL VIBE: Expression, energy
-10. AGE RANGE: Approximate age
-
-Be specific - this creates a Pixar-style avatar that should be RECOGNIZABLE as this person.`
-                        },
-                        {
-                            type: "image_url",
-                            image_url: { url: photoBase64 }
-                        }
-                    ]
-                }
-            ],
-            max_tokens: 800
-        });
-
-        const faceDescription = analysisResponse.choices[0].message.content;
-
-        // Step 2: Generate avatar with grok-2-image
-        const additionalStyle = prompt ? `ADDITIONAL STYLE REQUESTS: ${prompt}. ` : '';
-        const dallePrompt = `Create a 3D Pixar/Disney-style cartoon PORTRAIT that MATCHES these EXACT features:
-
-${faceDescription}
-
-${additionalStyle}
-
-CRITICAL REQUIREMENTS:
-- This avatar MUST be recognizable as the person described above
-- MATCH the exact face shape, skin tone, hair color/style described
-- Head and upper shoulders only (bust portrait)
-- PURE WHITE BACKGROUND (#FFFFFF)
-- NO props, NO accessories, NO poker chips, NO cards
-- High quality 3D render with Pixar-level detail
-
-The goal is that if someone knows this person, they would IMMEDIATELY recognize this avatar.`;
-
-        const imageResponse = await grok.images.generate({
-            model: "dall-e-3",  // Mapped to grok-2-image by grokClient
-            prompt: dallePrompt,
-            n: 1,
-            size: "1024x1024",
-        });
-
-        const imageUrl = imageResponse.data[0].url;
-
-        const imgResponse = await fetch(imageUrl);
-        const arrayBuffer = await imgResponse.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
+          if (!photoBase64) {
+              return res.status(400).json({ success: false, error: 'Photo is required' });
+          }
 
 
-        const transparentBuffer = await removeBackgroundWithSharp(buffer);
+          // Step 1: Use Grok Vision to analyze the photo
+          const analysisResponse = await grok.chat.completions.create({
+              model: "grok-3",  // Grok-3 for analysis
+              messages: [
+                  {
+                      role: "user",
+                      content: [
+                          {
+                              type: "text",
+                              text: `Analyze this person's appearance in EXTREME detail for avatar creation. Be VERY specific about:
+
+  1. FACE SHAPE: (oval, round, square, heart, oblong, etc.)
+  2. SKIN TONE: (exact shade - fair, olive, tan, brown, dark, with undertones)
+  3. HAIR: Exact color, style, texture, length
+  4. EYES: Exact color, shape, size
+  5. EYEBROWS: Shape, thickness, color
+  6. NOSE: Size, shape
+  7. LIPS: Shape, fullness
+  8. DISTINCTIVE FEATURES: Dimples, freckles, beauty marks
+  9. OVERALL VIBE: Expression, energy
+  10. AGE RANGE: Approximate age
+
+  Be specific - this creates a Pixar-style avatar that should be RECOGNIZABLE as this person.`
+                          },
+                          {
+                              type: "image_url",
+                              image_url: { url: photoBase64 }
+                          }
+                      ]
+                  }
+              ],
+              max_tokens: 800
+          });
+
+          const faceDescription = analysisResponse.choices[0].message.content;
+
+          // Step 2: Generate avatar with grok-2-image
+          const additionalStyle = prompt ? `ADDITIONAL STYLE REQUESTS: ${prompt}. ` : '';
+          const dallePrompt = `Create a 3D Pixar/Disney-style cartoon PORTRAIT that MATCHES these EXACT features:
+
+  ${faceDescription}
+
+  ${additionalStyle}
+
+  CRITICAL REQUIREMENTS:
+  - This avatar MUST be recognizable as the person described above
+  - MATCH the exact face shape, skin tone, hair color/style described
+  - Head and upper shoulders only (bust portrait)
+  - PURE WHITE BACKGROUND (#FFFFFF)
+  - NO props, NO accessories, NO poker chips, NO cards
+  - High quality 3D render with Pixar-level detail
+
+  The goal is that if someone knows this person, they would IMMEDIATELY recognize this avatar.`;
+
+          const imageResponse = await grok.images.generate({
+              model: "dall-e-3",  // Mapped to grok-2-image by grokClient
+              prompt: dallePrompt,
+              n: 1,
+              size: "1024x1024",
+          });
+
+          const imageUrl = imageResponse.data[0].url;
+
+          const imgResponse = await fetch(imageUrl);
+          const arrayBuffer = await imgResponse.arrayBuffer();
+          const buffer = Buffer.from(arrayBuffer);
 
 
-        const timestamp = Date.now();
-        const safeUserId = userId || 'anonymous';
-        const filename = `likeness_${safeUserId}_${timestamp}.png`;
-        const storagePath = `generated/${filename}`;
-
-        const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('custom-avatars')
-            .upload(storagePath, transparentBuffer, {
-                contentType: 'image/png',
-                cacheControl: '3600',
-                upsert: true
-            });
-
-        if (uploadError) {
-            console.error('❌ Supabase upload error:', uploadError);
-            throw new Error('Failed to upload avatar to storage');
-        }
-
-        const { data: { publicUrl } } = supabase.storage
-            .from('custom-avatars')
-            .getPublicUrl(storagePath);
+          const transparentBuffer = await removeBackgroundWithSharp(buffer);
 
 
-        return res.status(200).json({
-            success: true,
-            imageUrl: publicUrl,
-            faceDescription: faceDescription
-        });
+          const timestamp = Date.now();
+          const safeUserId = userId || 'anonymous';
+          const filename = `likeness_${safeUserId}_${timestamp}.png`;
+          const storagePath = `generated/${filename}`;
 
-    } catch (error) {
-        console.error('❌ Photo avatar generation error:', error);
-        return res.status(500).json({
-            success: false,
-            error: error.message || 'Failed to generate avatar from photo'
-        });
-    }
+          const { data: uploadData, error: uploadError } = await supabase.storage
+              .from('custom-avatars')
+              .upload(storagePath, transparentBuffer, {
+                  contentType: 'image/png',
+                  cacheControl: '3600',
+                  upsert: true
+              });
+
+          if (uploadError) {
+              console.error('❌ Supabase upload error:', uploadError);
+              throw new Error('Failed to upload avatar to storage');
+          }
+
+          const { data: { publicUrl } } = supabase.storage
+              .from('custom-avatars')
+              .getPublicUrl(storagePath);
+
+
+          return res.status(200).json({
+              success: true,
+              imageUrl: publicUrl,
+              faceDescription: faceDescription
+          });
+
+      } catch (error) {
+          console.error('❌ Photo avatar generation error:', error);
+          return res.status(500).json({
+              success: false,
+              error: error.message || 'Failed to generate avatar from photo'
+          });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

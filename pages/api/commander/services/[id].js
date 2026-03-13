@@ -15,33 +15,39 @@ const supabase = createClient(
 const VALID_STATUSES = ['pending', 'acknowledged', 'in_progress', 'completed', 'cancelled'];
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
 
-  // Auth guard: require staff auth for write operations
-  const _authResult = await guardWriteStaff(req, res);
-  if (!_authResult) return;
+    // Auth guard: require staff auth for write operations
+    const _authResult = await guardWriteStaff(req, res);
+    if (!_authResult) return;
 
-  const { id } = req.query;
+    const { id } = req.query;
 
-  if (!id) {
-    return res.status(400).json({
-      success: false,
-      error: { code: 'VALIDATION_ERROR', message: 'Request ID required' }
-    });
-  }
-
-  switch (req.method) {
-    case 'GET':
-      return handleGet(req, res, id);
-    case 'PATCH':
-      return handlePatch(req, res, id);
-    default:
-      return res.status(405).json({
+    if (!id) {
+      return res.status(400).json({
         success: false,
-        error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' }
+        error: { code: 'VALIDATION_ERROR', message: 'Request ID required' }
       });
+    }
+
+    switch (req.method) {
+      case 'GET':
+        return handleGet(req, res, id);
+      case 'PATCH':
+        return handlePatch(req, res, id);
+      default:
+        return res.status(405).json({
+          success: false,
+          error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' }
+        });
+    }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }
 

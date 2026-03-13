@@ -12,79 +12,85 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
-
-  // Auth guard: require user auth for writes
-  if (req.method !== "GET") { const _user = await guardUser(req, res); if (!_user) return; }
-  if (req.method !== 'POST') {
-    return res.status(405).json({
-      success: false,
-      error: { code: 'METHOD_NOT_ALLOWED', message: 'Only POST allowed' }
-    });
-  }
-
-  const { id } = req.query;
-  const { player_id, invite_code } = req.body;
-
-  if (!player_id) {
-    return res.status(400).json({
-      success: false,
-      error: { code: 'MISSING_FIELDS', message: 'player_id required' }
-    });
-  }
-
   try {
-    // Get squad
-    const { data: squad, error: squadError } = await supabase
-      .from('commander_waitlist_groups')
-      .select(`
-        *,
-        commander_waitlist_group_members (id, player_id)
-      `)
-      .eq('id', id)
-      .maybeSingle();
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
 
-    if (squadError || !squad) {
-      return res.status(404).json({
+    // Auth guard: require user auth for writes
+    if (req.method !== "GET") { const _user = await guardUser(req, res); if (!_user) return; }
+    if (req.method !== 'POST') {
+      return res.status(405).json({
         success: false,
-        error: { code: 'NOT_FOUND', message: 'Squad not found' }
+        error: { code: 'METHOD_NOT_ALLOWED', message: 'Only POST allowed' }
       });
     }
 
-    // Check if already a member
-    const alreadyMember = squad.commander_waitlist_group_members?.some(
-      m => m.player_id === player_id
-    );
-    if (alreadyMember) {
+    const { id } = req.query;
+    const { player_id, invite_code } = req.body;
+
+    if (!player_id) {
       return res.status(400).json({
         success: false,
-        error: { code: 'ALREADY_MEMBER', message: 'Already in this squad' }
+        error: { code: 'MISSING_FIELDS', message: 'player_id required' }
       });
     }
 
-    // Add member
-    const { data: member, error: memberError } = await supabase
-      .from('commander_waitlist_group_members')
-      .insert({
-        group_id: id,
-        player_id
-      })
-      .select()
-      .maybeSingle();
+    try {
+      // Get squad
+      const { data: squad, error: squadError } = await supabase
+        .from('commander_waitlist_groups')
+        .select(`
+          *,
+          commander_waitlist_group_members (id, player_id)
+        `)
+        .eq('id', id)
+        .maybeSingle();
 
-    if (memberError) throw memberError;
+      if (squadError || !squad) {
+        return res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'Squad not found' }
+        });
+      }
 
-    return res.status(200).json({
-      success: true,
-      data: { member }
-    });
-  } catch (error) {
-    console.error('Join squad error:', error);
-    return res.status(500).json({
-      success: false,
-      error: { code: 'SERVER_ERROR', message: 'Failed to join squad' }
-    });
+      // Check if already a member
+      const alreadyMember = squad.commander_waitlist_group_members?.some(
+        m => m.player_id === player_id
+      );
+      if (alreadyMember) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'ALREADY_MEMBER', message: 'Already in this squad' }
+        });
+      }
+
+      // Add member
+      const { data: member, error: memberError } = await supabase
+        .from('commander_waitlist_group_members')
+        .insert({
+          group_id: id,
+          player_id
+        })
+        .select()
+        .maybeSingle();
+
+      if (memberError) throw memberError;
+
+      return res.status(200).json({
+        success: true,
+        data: { member }
+      });
+    } catch (error) {
+      console.error('Join squad error:', error);
+      return res.status(500).json({
+        success: false,
+        error: { code: 'SERVER_ERROR', message: 'Failed to join squad' }
+      });
+    }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

@@ -20,78 +20,84 @@ if (!supabaseUrl || !supabaseKey) {
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default async function handler(req, res) {
-    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-        if (!applyRateLimit(req, res, LIMITS.write)) return;
-    }
+  try {
+      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+          if (!applyRateLimit(req, res, LIMITS.write)) return;
+      }
 
-    if (req.method !== 'POST') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
+      if (req.method !== 'POST') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
 
-    // ── Auth: Admin-only test operation (calls Grok API) ──
-    const adminSecret = req.headers['x-admin-secret'];
-    const envSecret = process.env.ADMIN_ROUTE_SECRET;
-    if (!envSecret || !adminSecret || adminSecret !== envSecret) {
-        return res.status(403).json({ success: false, error: 'Admin access required' });
-    }
+      // ── Auth: Admin-only test operation (calls Grok API) ──
+      const adminSecret = req.headers['x-admin-secret'];
+      const envSecret = process.env.ADMIN_ROUTE_SECRET;
+      if (!envSecret || !adminSecret || adminSecret !== envSecret) {
+          return res.status(403).json({ success: false, error: 'Admin access required' });
+      }
 
-    try {
-        const gameId = 'mtt-007';
-        const game = { id: 'mtt-007', name: 'Deep Stack MTT', category: 'MTT' };
-        const gameConfig = getGameConfig(gameId);
-        const engineType = gameConfig.engine;
-        const level = 1;
+      try {
+          const gameId = 'mtt-007';
+          const game = { id: 'mtt-007', name: 'Deep Stack MTT', category: 'MTT' };
+          const gameConfig = getGameConfig(gameId);
+          const engineType = gameConfig.engine;
+          const level = 1;
 
 
-        const results = [];
+          const results = [];
 
-        // Generate 5 test questions
-        for (let i = 1; i <= 5; i++) {
+          // Generate 5 test questions
+          for (let i = 1; i <= 5; i++) {
 
-            const question = await generateQuestionWithGrok(
-                gameId,
-                engineType,
-                level,
-                gameConfig.gameType,
-                game,
-                gameConfig
-            );
+              const question = await generateQuestionWithGrok(
+                  gameId,
+                  engineType,
+                  level,
+                  gameConfig.gameType,
+                  game,
+                  gameConfig
+              );
 
-            if (question) {
-                // Save to cache
-                const { error } = await supabase
-                    .from('training_question_cache')
-                    .insert({
-                        question_id: question.id,
-                        game_id: gameId,
-                        engine_type: engineType.toUpperCase(),
-                        game_type: gameConfig.gameType,
-                        level: level,
-                        question_data: question,
-                        times_used: 0,
-                    });
+              if (question) {
+                  // Save to cache
+                  const { error } = await supabase
+                      .from('training_question_cache')
+                      .insert({
+                          question_id: question.id,
+                          game_id: gameId,
+                          engine_type: engineType.toUpperCase(),
+                          game_type: gameConfig.gameType,
+                          level: level,
+                          question_data: question,
+                          times_used: 0,
+                      });
 
-                if (error && !error.message?.includes('duplicate')) {
-                    console.error(`❌ Save failed:`, error.message);
-                } else {
-                    results.push(question);
-                }
-            }
+                  if (error && !error.message?.includes('duplicate')) {
+                      console.error(`❌ Save failed:`, error.message);
+                  } else {
+                      results.push(question);
+                  }
+              }
 
-            // Rate limit
-            await new Promise(resolve => setTimeout(resolve, 1000));
-        }
+              // Rate limit
+              await new Promise(resolve => setTimeout(resolve, 1000));
+          }
 
-        return res.status(200).json({
-            success: true,
-            count: results.length,
-            questions: results
-        });
+          return res.status(200).json({
+              success: true,
+              count: results.length,
+              questions: results
+          });
 
-    } catch (error) {
-        console.error('❌ Test generation error:', error);
-        return res.status(500).json({ success: false, error: error.message });
-    }
+      } catch (error) {
+          console.error('❌ Test generation error:', error);
+          return res.status(500).json({ success: false, error: error.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }
 
 async function generateQuestionWithGrok(gameId, engineType, level, gameType, game, gameConfig) {

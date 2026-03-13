@@ -15,77 +15,83 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
-
-  const _g = await guardWriteStaff(req, res); if (!_g) return;
-
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', ['POST']);
-    return res.status(405).json({ success: false, error: 'Method not allowed' });
-  }
-
-  const { id: tournamentId } = req.query;
-  if (!tournamentId) return res.status(400).json({ success: false, error: 'Tournament ID required' });
-
   try {
-    // Staff is already validated by guardWriteStaff at the handler level
-
-    // Get tournament for clock_state
-    const { data: tournament, error: tErr } = await supabase
-      .from('commander_tournaments')
-      .select('*')
-      .eq('id', tournamentId)
-      .maybeSingle();
-    if (tErr || !tournament) return res.status(404).json({ success: false, error: 'Tournament not found' });
-
-    const { message, type, duration_seconds } = req.body;
-    if (!message || message.trim().length === 0) {
-      return res.status(400).json({ success: false, error: 'Message text required' });
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
 
-    const msgType = type || 'announcement'; // announcement, alert, info, break_table, hand_for_hand
-    const duration = duration_seconds || 30;
+    const _g = await guardWriteStaff(req, res); if (!_g) return;
 
-    // Store message in clock_state so display screens can read it
-    const clockState = tournament.clock_state || {};
-    const messages = clockState.messages || [];
-    const newMessage = {
-      id: `msg_${Date.now()}`,
-      text: message.trim(),
-      type: msgType,
-      created_at: new Date().toISOString(),
-      expires_at: new Date(Date.now() + duration * 1000).toISOString(),
-      created_by: 'staff'
-    };
+    if (req.method !== 'POST') {
+      res.setHeader('Allow', ['POST']);
+      return res.status(405).json({ success: false, error: 'Method not allowed' });
+    }
 
-    messages.push(newMessage);
-    // Keep only last 20 messages
-    const trimmedMessages = messages.slice(-20);
+    const { id: tournamentId } = req.query;
+    if (!tournamentId) return res.status(400).json({ success: false, error: 'Tournament ID required' });
 
-    const { error: uErr } = await supabase
-      .from('commander_tournaments')
-      .update({
-        clock_state: {
-          ...clockState,
-          messages: trimmedMessages,
-          current_message: newMessage
-        }
-      })
-      .eq('id', tournamentId);
+    try {
+      // Staff is already validated by guardWriteStaff at the handler level
 
-    if (uErr) return res.status(500).json({ success: false, error: 'Failed to broadcast message' });
+      // Get tournament for clock_state
+      const { data: tournament, error: tErr } = await supabase
+        .from('commander_tournaments')
+        .select('*')
+        .eq('id', tournamentId)
+        .maybeSingle();
+      if (tErr || !tournament) return res.status(404).json({ success: false, error: 'Tournament not found' });
 
-    return res.status(200).json({
-      success: true,
-      data: {
-        message: newMessage,
-        broadcast: true
+      const { message, type, duration_seconds } = req.body;
+      if (!message || message.trim().length === 0) {
+        return res.status(400).json({ success: false, error: 'Message text required' });
       }
-    });
+
+      const msgType = type || 'announcement'; // announcement, alert, info, break_table, hand_for_hand
+      const duration = duration_seconds || 30;
+
+      // Store message in clock_state so display screens can read it
+      const clockState = tournament.clock_state || {};
+      const messages = clockState.messages || [];
+      const newMessage = {
+        id: `msg_${Date.now()}`,
+        text: message.trim(),
+        type: msgType,
+        created_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + duration * 1000).toISOString(),
+        created_by: 'staff'
+      };
+
+      messages.push(newMessage);
+      // Keep only last 20 messages
+      const trimmedMessages = messages.slice(-20);
+
+      const { error: uErr } = await supabase
+        .from('commander_tournaments')
+        .update({
+          clock_state: {
+            ...clockState,
+            messages: trimmedMessages,
+            current_message: newMessage
+          }
+        })
+        .eq('id', tournamentId);
+
+      if (uErr) return res.status(500).json({ success: false, error: 'Failed to broadcast message' });
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          message: newMessage,
+          broadcast: true
+        }
+      });
+    } catch (err) {
+      console.error('Tournament message error:', err);
+      return res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+
   } catch (err) {
-    console.error('Tournament message error:', err);
-    return res.status(500).json({ success: false, error: 'Internal server error' });
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

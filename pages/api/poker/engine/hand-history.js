@@ -6,70 +6,76 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
-  if (req.method !== 'GET' && req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-
-  const token = (req.headers.authorization || '').replace('Bearer ', '');
-  if (!token) return res.status(401).json({ error: 'Unauthorized' });
-
-  const supabase = supabaseAdmin;
-  const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
-  if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
-
-  // ═══ POST: Persist a hand ═══
-  if (req.method === 'POST') {
-    const { tableId, hand } = req.body || {};
-    if (!tableId || !hand) return res.status(400).json({ error: 'tableId and hand required' });
-    try {
-      await supabase.from('hand_histories').upsert({
-        hand_id: hand.handId || `${tableId}-${Date.now()}`,
-        table_id: tableId,
-        user_id: user.id,
-        hand_data: hand,
-        pot_total: hand.potTotal || 0,
-        created_at: new Date().toISOString(),
-      }, { onConflict: 'hand_id,user_id' });
-      return res.status(200).json({ ok: true });
-    } catch (err) {
-      console.error('[hand-history] POST error:', err);
-      return res.status(500).json({ error: 'Failed to save hand' });
-    }
-  }
-
-  // ═══ GET: Fetch hands ═══
-
-  const { tableId, page = '0', limit = '20' } = req.query;
-  if (!tableId) return res.status(400).json({ error: 'tableId required' });
-
-  const offset = parseInt(page) * parseInt(limit);
-  const lim = Math.min(parseInt(limit) || 20, 50);
-
   try {
-    const { data, error, count } = await supabase
-      .from('hand_histories')
-      .select('*', { count: 'exact' })
-      .eq('table_id', tableId)
-      .order('created_at', { ascending: false })
-      .range(offset, offset + lim - 1);
+    if (req.method !== 'GET' && req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-    if (error) {
-      console.error('[hand-history] Query error:', error.message);
-      return res.status(500).json({ error: 'Failed to fetch hand history' });
+    const token = (req.headers.authorization || '').replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'Unauthorized' });
+
+    const supabase = supabaseAdmin;
+    const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+
+    // ═══ POST: Persist a hand ═══
+    if (req.method === 'POST') {
+      const { tableId, hand } = req.body || {};
+      if (!tableId || !hand) return res.status(400).json({ error: 'tableId and hand required' });
+      try {
+        await supabase.from('hand_histories').upsert({
+          hand_id: hand.handId || `${tableId}-${Date.now()}`,
+          table_id: tableId,
+          user_id: user.id,
+          hand_data: hand,
+          pot_total: hand.potTotal || 0,
+          created_at: new Date().toISOString(),
+        }, { onConflict: 'hand_id,user_id' });
+        return res.status(200).json({ ok: true });
+      } catch (err) {
+        console.error('[hand-history] POST error:', err);
+        return res.status(500).json({ error: 'Failed to save hand' });
+      }
     }
 
-    // Filter to only include hands where this player participated
-    const playerHands = (data || []).filter(h => {
-      const players = h.players || h.hand_data?.players || [];
-      return players.some(p => String(p.id) === String(user.id) || String(p.playerId) === String(user.id));
-    });
+    // ═══ GET: Fetch hands ═══
 
-    return res.status(200).json({
-      hands: playerHands,
-      total: count || 0,
-      page: parseInt(page),
-      limit: lim,
-    });
+    const { tableId, page = '0', limit = '20' } = req.query;
+    if (!tableId) return res.status(400).json({ error: 'tableId required' });
+
+    const offset = parseInt(page) * parseInt(limit);
+    const lim = Math.min(parseInt(limit) || 20, 50);
+
+    try {
+      const { data, error, count } = await supabase
+        .from('hand_histories')
+        .select('*', { count: 'exact' })
+        .eq('table_id', tableId)
+        .order('created_at', { ascending: false })
+        .range(offset, offset + lim - 1);
+
+      if (error) {
+        console.error('[hand-history] Query error:', error.message);
+        return res.status(500).json({ error: 'Failed to fetch hand history' });
+      }
+
+      // Filter to only include hands where this player participated
+      const playerHands = (data || []).filter(h => {
+        const players = h.players || h.hand_data?.players || [];
+        return players.some(p => String(p.id) === String(user.id) || String(p.playerId) === String(user.id));
+      });
+
+      return res.status(200).json({
+        hands: playerHands,
+        total: count || 0,
+        page: parseInt(page),
+        limit: lim,
+      });
+    } catch (err) {
+      console.error('[hand-history] Error:', err);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+
   } catch (err) {
-    console.error('[hand-history] Error:', err);
-    return res.status(500).json({ error: 'Internal server error' });
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

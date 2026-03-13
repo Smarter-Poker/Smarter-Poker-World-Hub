@@ -14,20 +14,26 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-        if (!applyRateLimit(req, res, LIMITS.write)) return;
-    }
+  try {
+      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+          if (!applyRateLimit(req, res, LIMITS.write)) return;
+      }
 
-    // Auth guard: require staff auth for write operations
-    const _authResult = await guardWriteStaff(req, res);
-    if (!_authResult) return;
+      // Auth guard: require staff auth for write operations
+      const _authResult = await guardWriteStaff(req, res);
+      if (!_authResult) return;
 
-    if (req.method === 'GET') {
-        return handleList(req, res);
-    } else if (req.method === 'POST') {
-        return handleCreate(req, res);
-    }
-    return res.status(405).json({ success: false, error: 'Method not allowed' });
+      if (req.method === 'GET') {
+          return handleList(req, res);
+      } else if (req.method === 'POST') {
+          return handleCreate(req, res);
+      }
+      return res.status(405).json({ success: false, error: 'Method not allowed' });
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }
 
 async function handleList(req, res) {

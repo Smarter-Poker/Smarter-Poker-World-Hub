@@ -14,143 +14,149 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { createClient as _createAuthClient } from '../../../src/lib/supabaseServerClient';
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+    // BUG #244 FIX: Require JWT auth — these routes use paid AI APIs
+    const _authSupa = _createAuthClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+    const _token = req.headers.authorization?.replace('Bearer ', '');
+    if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
+    const { data: { user: _authUser }, error: _authErr } = await _authSupa.auth.getUser(_token);
+    if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+
+      if (req.method !== 'POST') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
+
+      try {
+          const {
+              mistakes,       // Array of { hand, userAction, correctAction }
+              scenario,       // The scenario played
+              finalScore,     // User's score 0-100
+              position,       // e.g., "CO"
+              stackDepth      // e.g., 100
+          } = req.body;
+
+          if (!mistakes || mistakes.length === 0) {
+              return res.status(200).json({
+                  success: true,
+                  analysis: {
+                      summary: "Perfect game! No mistakes to analyze.",
+                      recommendations: ["Keep practicing to maintain your edge!"],
+                      patternInsights: []
+                  }
+              });
+          }
+
+          // Create cache key from sorted mistakes
+          const sortedMistakes = mistakes.map(m => `${m.hand}:${m.userAction}`).sort().join('|');
+          const cacheParams = {
+              mistakesHash: sortedMistakes,
+              scenarioTitle: scenario?.title,
+              position,
+              stackDepth
+          };
+
+          const cached = await getCachedResponse('analyze-game', cacheParams);
+          if (cached) {
+              return res.status(200).json({
+                  ...cached,
+                  fromCache: true
+              });
+          }
+
+          const prompt = buildAnalysisPrompt(mistakes, scenario, finalScore, position, stackDepth);
+
+          const grok = getGrokClient();
+          const completion = await grok.chat.completions.create({
+              model: 'grok-3',
+              messages: [
+                  {
+                      role: 'system',
+                      content: `You are Jarvis, an elite GTO poker coach providing post-game analysis.
+                      Be encouraging but direct. Focus on patterns and actionable improvements.
+                      Format your response as JSON with: summary, patternInsights[], recommendations[].
+                      Keep insights concise (max 2 sentences each). Max 3 recommendations.`
+                  },
+                  {
+                      role: 'user',
+                      content: prompt
+                  }
+              ],
+              temperature: 0.5,
+              max_tokens: 800,
+          });
+
+          const responseText = completion.choices[0]?.message?.content;
+
+          if (!responseText) {
+              throw new Error('Empty response from Jarvis');
+          }
+
+          // Parse JSON response
+          let analysis;
+          try {
+              const cleanedResponse = responseText
+                  .replace(/```json\n?/g, '')
+                  .replace(/```\n?/g, '')
+                  .trim();
+              analysis = JSON.parse(cleanedResponse);
+          } catch (parseError) {
+              console.error('[AnalyzeGame] Parse error, using raw text');
+              analysis = {
+                  summary: responseText.slice(0, 200),
+                  patternInsights: [],
+                  recommendations: ["Review your range construction"]
+              };
+          }
+
+          const response = {
+              success: true,
+              analysis,
+              meta: {
+                  mistakeCount: mistakes.length,
+                  score: finalScore,
+                  generatedAt: new Date().toISOString(),
+              }
+          };
+
+          // Cache the response
+          await setCachedResponse('analyze-game', cacheParams, response, 30);
+
+          return res.status(200).json(response);
+
+      } catch (error) {
+          console.error('[AnalyzeGame] Error:', error);
+
+          // Graceful fallback
+          const mistakeCount = req.body?.mistakes?.length || 0;
+          return res.status(200).json({
+              success: true,
+              analysis: {
+                  summary: `You made ${mistakeCount} mistake${mistakeCount !== 1 ? 's' : ''} this game. ${getEncouragement(req.body?.finalScore)}`,
+                  patternInsights: [
+                      { pattern: "Range Construction", insight: "Focus on memorizing starting ranges by position." }
+                  ],
+                  recommendations: [
+                      "Practice this scenario again to reinforce the correct plays",
+                      "Review the hands you missed most frequently"
+                  ]
+              },
+              fallback: true,
+              meta: {
+                  mistakeCount,
+                  score: req.body?.finalScore,
+                  generatedAt: new Date().toISOString(),
+              }
+          });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-  // BUG #244 FIX: Require JWT auth — these routes use paid AI APIs
-  const _authSupa = _createAuthClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-  const _token = req.headers.authorization?.replace('Bearer ', '');
-  if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
-  const { data: { user: _authUser }, error: _authErr } = await _authSupa.auth.getUser(_token);
-  if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
-
-    if (req.method !== 'POST') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
-
-    try {
-        const {
-            mistakes,       // Array of { hand, userAction, correctAction }
-            scenario,       // The scenario played
-            finalScore,     // User's score 0-100
-            position,       // e.g., "CO"
-            stackDepth      // e.g., 100
-        } = req.body;
-
-        if (!mistakes || mistakes.length === 0) {
-            return res.status(200).json({
-                success: true,
-                analysis: {
-                    summary: "Perfect game! No mistakes to analyze.",
-                    recommendations: ["Keep practicing to maintain your edge!"],
-                    patternInsights: []
-                }
-            });
-        }
-
-        // Create cache key from sorted mistakes
-        const sortedMistakes = mistakes.map(m => `${m.hand}:${m.userAction}`).sort().join('|');
-        const cacheParams = {
-            mistakesHash: sortedMistakes,
-            scenarioTitle: scenario?.title,
-            position,
-            stackDepth
-        };
-
-        const cached = await getCachedResponse('analyze-game', cacheParams);
-        if (cached) {
-            return res.status(200).json({
-                ...cached,
-                fromCache: true
-            });
-        }
-
-        const prompt = buildAnalysisPrompt(mistakes, scenario, finalScore, position, stackDepth);
-
-        const grok = getGrokClient();
-        const completion = await grok.chat.completions.create({
-            model: 'grok-3',
-            messages: [
-                {
-                    role: 'system',
-                    content: `You are Jarvis, an elite GTO poker coach providing post-game analysis.
-                    Be encouraging but direct. Focus on patterns and actionable improvements.
-                    Format your response as JSON with: summary, patternInsights[], recommendations[].
-                    Keep insights concise (max 2 sentences each). Max 3 recommendations.`
-                },
-                {
-                    role: 'user',
-                    content: prompt
-                }
-            ],
-            temperature: 0.5,
-            max_tokens: 800,
-        });
-
-        const responseText = completion.choices[0]?.message?.content;
-
-        if (!responseText) {
-            throw new Error('Empty response from Jarvis');
-        }
-
-        // Parse JSON response
-        let analysis;
-        try {
-            const cleanedResponse = responseText
-                .replace(/```json\n?/g, '')
-                .replace(/```\n?/g, '')
-                .trim();
-            analysis = JSON.parse(cleanedResponse);
-        } catch (parseError) {
-            console.error('[AnalyzeGame] Parse error, using raw text');
-            analysis = {
-                summary: responseText.slice(0, 200),
-                patternInsights: [],
-                recommendations: ["Review your range construction"]
-            };
-        }
-
-        const response = {
-            success: true,
-            analysis,
-            meta: {
-                mistakeCount: mistakes.length,
-                score: finalScore,
-                generatedAt: new Date().toISOString(),
-            }
-        };
-
-        // Cache the response
-        await setCachedResponse('analyze-game', cacheParams, response, 30);
-
-        return res.status(200).json(response);
-
-    } catch (error) {
-        console.error('[AnalyzeGame] Error:', error);
-
-        // Graceful fallback
-        const mistakeCount = req.body?.mistakes?.length || 0;
-        return res.status(200).json({
-            success: true,
-            analysis: {
-                summary: `You made ${mistakeCount} mistake${mistakeCount !== 1 ? 's' : ''} this game. ${getEncouragement(req.body?.finalScore)}`,
-                patternInsights: [
-                    { pattern: "Range Construction", insight: "Focus on memorizing starting ranges by position." }
-                ],
-                recommendations: [
-                    "Practice this scenario again to reinforce the correct plays",
-                    "Review the hands you missed most frequently"
-                ]
-            },
-            fallback: true,
-            meta: {
-                mistakeCount,
-                score: req.body?.finalScore,
-                generatedAt: new Date().toISOString(),
-            }
-        });
-    }
 }
 
 function buildAnalysisPrompt(mistakes, scenario, finalScore, position, stackDepth) {

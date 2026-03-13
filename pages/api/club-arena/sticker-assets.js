@@ -13,26 +13,32 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
-    if (req.method !== 'GET') return res.status(405).json({ error: 'GET only' });
-  if (!applyRateLimit(req, res, LIMITS.read)) return;
+  try {
+      if (req.method !== 'GET') return res.status(405).json({ error: 'GET only' });
+    if (!applyRateLimit(req, res, LIMITS.read)) return;
 
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ error: 'No auth token' });
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      if (!token) return res.status(401).json({ error: 'No auth token' });
 
-    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+      const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+      if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
-    try {
-        const { data: stickers, error } = await supabaseAdmin
-            .from('sticker_assets')
-            .select('key, label, category, storage_path, applies_to, is_dynamic, dynamic_field, sort_order')
-            .order('sort_order', { ascending: true });
+      try {
+          const { data: stickers, error } = await supabaseAdmin
+              .from('sticker_assets')
+              .select('key, label, category, storage_path, applies_to, is_dynamic, dynamic_field, sort_order')
+              .order('sort_order', { ascending: true });
 
-        if (error) throw error;
+          if (error) throw error;
 
-        return res.status(200).json({ stickers: stickers || [] });
-    } catch (err) {
-        console.error('[sticker-assets]', err);
-        return res.status(500).json({ error: 'Failed to load sticker assets' });
-    }
+          return res.status(200).json({ stickers: stickers || [] });
+      } catch (err) {
+          console.error('[sticker-assets]', err);
+          return res.status(500).json({ error: 'Failed to load sticker assets' });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

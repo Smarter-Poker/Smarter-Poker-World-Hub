@@ -97,133 +97,139 @@ function generateOptions(correctAction, allActions) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default async function handler(req, res) {
-    if (req.method !== 'GET') {
-        return res.status(405).json({ success: false, error: 'GET only' });
-    }
+  try {
+      if (req.method !== 'GET') {
+          return res.status(405).json({ success: false, error: 'GET only' });
+      }
 
-    try {
-        // Auth check
-        const token = req.headers.authorization?.replace('Bearer ', '');
-        if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-        const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
-        if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+      try {
+          // Auth check
+          const token = req.headers.authorization?.replace('Bearer ', '');
+          if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
+          const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+          if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-        const { format, position, stack } = req.query;
+          const { format, position, stack } = req.query;
 
-        // Build query — get a random offset from total count
-        let countQuery = supabase
-            .from('solved_spots_gold')
-            .select('id', { count: 'exact', head: true });
+          // Build query — get a random offset from total count
+          let countQuery = supabase
+              .from('solved_spots_gold')
+              .select('id', { count: 'exact', head: true });
 
-        if (format === 'cash') countQuery = countQuery.ilike('game_type', '%cash%');
-        if (format === 'mtt') countQuery = countQuery.ilike('game_type', '%mtt%');
-        if (position) countQuery = countQuery.ilike('scenario_hash', `%_${position}_%`);
-        if (stack) countQuery = countQuery.eq('stack_depth', parseInt(stack));
+          if (format === 'cash') countQuery = countQuery.ilike('game_type', '%cash%');
+          if (format === 'mtt') countQuery = countQuery.ilike('game_type', '%mtt%');
+          if (position) countQuery = countQuery.ilike('scenario_hash', `%_${position}_%`);
+          if (stack) countQuery = countQuery.eq('stack_depth', parseInt(stack));
 
-        const { count, error: countErr } = await countQuery;
-        if (countErr) {
-            console.error('[SpotDrill] Count error:', countErr);
-            return res.status(500).json({ success: false, error: 'Database error' });
-        }
+          const { count, error: countErr } = await countQuery;
+          if (countErr) {
+              console.error('[SpotDrill] Count error:', countErr);
+              return res.status(500).json({ success: false, error: 'Database error' });
+          }
 
-        if (!count || count === 0) {
-            return res.status(404).json({ success: false, error: 'No spots found matching filters' });
-        }
+          if (!count || count === 0) {
+              return res.status(404).json({ success: false, error: 'No spots found matching filters' });
+          }
 
-        // Pick random offset
-        const randomOffset = Math.floor(Math.random() * count);
+          // Pick random offset
+          const randomOffset = Math.floor(Math.random() * count);
 
-        let spotQuery = supabase
-            .from('solved_spots_gold')
-            .select('id, scenario_hash, game_type, stack_depth, strategy_matrix');
+          let spotQuery = supabase
+              .from('solved_spots_gold')
+              .select('id, scenario_hash, game_type, stack_depth, strategy_matrix');
 
-        if (format === 'cash') spotQuery = spotQuery.ilike('game_type', '%cash%');
-        if (format === 'mtt') spotQuery = spotQuery.ilike('game_type', '%mtt%');
-        if (position) spotQuery = spotQuery.ilike('scenario_hash', `%_${position}_%`);
-        if (stack) spotQuery = spotQuery.eq('stack_depth', parseInt(stack));
+          if (format === 'cash') spotQuery = spotQuery.ilike('game_type', '%cash%');
+          if (format === 'mtt') spotQuery = spotQuery.ilike('game_type', '%mtt%');
+          if (position) spotQuery = spotQuery.ilike('scenario_hash', `%_${position}_%`);
+          if (stack) spotQuery = spotQuery.eq('stack_depth', parseInt(stack));
 
-        spotQuery = spotQuery.range(randomOffset, randomOffset).limit(1);
+          spotQuery = spotQuery.range(randomOffset, randomOffset).limit(1);
 
-        const { data: spots, error: spotErr } = await spotQuery;
-        if (spotErr || !spots || spots.length === 0) {
-            console.error('[SpotDrill] Spot fetch error:', spotErr);
-            return res.status(500).json({ success: false, error: 'Failed to fetch spot' });
-        }
+          const { data: spots, error: spotErr } = await spotQuery;
+          if (spotErr || !spots || spots.length === 0) {
+              console.error('[SpotDrill] Spot fetch error:', spotErr);
+              return res.status(500).json({ success: false, error: 'Failed to fetch spot' });
+          }
 
-        const spot = spots[0];
-        const matrix = spot.strategy_matrix || {};
-        const actions = matrix.actions || [];
-        const frequencies = matrix.frequencies || {};
+          const spot = spots[0];
+          const matrix = spot.strategy_matrix || {};
+          const actions = matrix.actions || [];
+          const frequencies = matrix.frequencies || {};
 
-        if (actions.length === 0) {
-            // No action data — try again (skip this spot)
-            return res.status(200).json({
-                success: false,
-                error: 'Spot has no action data — retry',
-                retry: true,
-            });
-        }
+          if (actions.length === 0) {
+              // No action data — try again (skip this spot)
+              return res.status(200).json({
+                  success: false,
+                  error: 'Spot has no action data — retry',
+                  retry: true,
+              });
+          }
 
-        // Pick a random hand that has frequency data
-        const allHands = Object.keys(frequencies[actions[0]] || {});
-        const handsWithData = allHands.filter(hand => {
-            // Find the highest freq action for this hand
-            let maxFreq = 0;
-            for (const action of actions) {
-                const freq = frequencies[action]?.[hand] || 0;
-                if (freq > maxFreq) maxFreq = freq;
-            }
-            return maxFreq > 0.1; // Hand must have a clear action (>10% frequency)
-        });
+          // Pick a random hand that has frequency data
+          const allHands = Object.keys(frequencies[actions[0]] || {});
+          const handsWithData = allHands.filter(hand => {
+              // Find the highest freq action for this hand
+              let maxFreq = 0;
+              for (const action of actions) {
+                  const freq = frequencies[action]?.[hand] || 0;
+                  if (freq > maxFreq) maxFreq = freq;
+              }
+              return maxFreq > 0.1; // Hand must have a clear action (>10% frequency)
+          });
 
-        if (handsWithData.length === 0) {
-            return res.status(200).json({
-                success: false,
-                error: 'No hands with clear actions — retry',
-                retry: true,
-            });
-        }
+          if (handsWithData.length === 0) {
+              return res.status(200).json({
+                  success: false,
+                  error: 'No hands with clear actions — retry',
+                  retry: true,
+              });
+          }
 
-        const randomHand = handsWithData[Math.floor(Math.random() * handsWithData.length)];
+          const randomHand = handsWithData[Math.floor(Math.random() * handsWithData.length)];
 
-        // Find the correct GTO action (highest frequency for this hand)
-        let correctAction = actions[0];
-        let correctFreq = 0;
-        const actionBreakdown = {};
+          // Find the correct GTO action (highest frequency for this hand)
+          let correctAction = actions[0];
+          let correctFreq = 0;
+          const actionBreakdown = {};
 
-        for (const action of actions) {
-            const freq = frequencies[action]?.[randomHand] || 0;
-            actionBreakdown[action] = Math.round(freq * 1000) / 10; // percentage
-            if (freq > correctFreq) {
-                correctFreq = freq;
-                correctAction = action;
-            }
-        }
+          for (const action of actions) {
+              const freq = frequencies[action]?.[randomHand] || 0;
+              actionBreakdown[action] = Math.round(freq * 1000) / 10; // percentage
+              if (freq > correctFreq) {
+                  correctFreq = freq;
+                  correctAction = action;
+              }
+          }
 
-        const board = parseBoardFromHash(spot.scenario_hash);
-        const heroPosition = extractPositionFromHash(spot.scenario_hash);
-        const street = getStreetFromBoard(board);
-        const options = generateOptions(correctAction, actions);
+          const board = parseBoardFromHash(spot.scenario_hash);
+          const heroPosition = extractPositionFromHash(spot.scenario_hash);
+          const street = getStreetFromBoard(board);
+          const options = generateOptions(correctAction, actions);
 
-        return res.status(200).json({
-            success: true,
-            spot: {
-                id: spot.id,
-                board,
-                street,
-                heroPosition,
-                stackDepth: spot.stack_depth,
-                gameType: spot.game_type,
-                heroHand: randomHand,
-                gtoAction: correctAction,
-                gtoFrequency: Math.round(correctFreq * 1000) / 10,
-                actionBreakdown,
-                options,
-            },
-        });
+          return res.status(200).json({
+              success: true,
+              spot: {
+                  id: spot.id,
+                  board,
+                  street,
+                  heroPosition,
+                  stackDepth: spot.stack_depth,
+                  gameType: spot.game_type,
+                  heroHand: randomHand,
+                  gtoAction: correctAction,
+                  gtoFrequency: Math.round(correctFreq * 1000) / 10,
+                  actionBreakdown,
+                  options,
+              },
+          });
 
-    } catch (err) {
-        console.error('[SpotDrill] Error:', err);
-        return res.status(500).json({ success: false, error: err.message });
-    }
+      } catch (err) {
+          console.error('[SpotDrill] Error:', err);
+          return res.status(500).json({ success: false, error: err.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

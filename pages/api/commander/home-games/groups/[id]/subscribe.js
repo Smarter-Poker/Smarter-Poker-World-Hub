@@ -14,44 +14,50 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+    if (req.method !== 'GET') { const _u = await guardUser(req, res); if (!_u) return; }
+
+    const { id: groupId } = req.query;
+
+    if (!groupId) {
+      return res.status(400).json({ success: false, error: 'Group ID required' });
+    }
+
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ success: false, error: 'Authorization required' });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+    if (authError || !user) {
+      return res.status(401).json({ success: false, error: 'Invalid token' });
+    }
+
+    if (req.method === 'POST') {
+      return subscribe(req, res, groupId, user.id);
+    }
+
+    if (req.method === 'DELETE') {
+      return unsubscribe(req, res, groupId, user.id);
+    }
+
+    if (req.method === 'PUT') {
+      return updatePreferences(req, res, groupId, user.id);
+    }
+
+    res.setHeader('Allow', ['POST', 'DELETE', 'PUT']);
+    return res.status(405).json({ success: false, error: 'Method not allowed' });
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-  if (req.method !== 'GET') { const _u = await guardUser(req, res); if (!_u) return; }
-
-  const { id: groupId } = req.query;
-
-  if (!groupId) {
-    return res.status(400).json({ success: false, error: 'Group ID required' });
-  }
-
-  const authHeader = req.headers.authorization;
-  if (!authHeader) {
-    return res.status(401).json({ success: false, error: 'Authorization required' });
-  }
-
-  const token = authHeader.replace('Bearer ', '');
-  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-
-  if (authError || !user) {
-    return res.status(401).json({ success: false, error: 'Invalid token' });
-  }
-
-  if (req.method === 'POST') {
-    return subscribe(req, res, groupId, user.id);
-  }
-
-  if (req.method === 'DELETE') {
-    return unsubscribe(req, res, groupId, user.id);
-  }
-
-  if (req.method === 'PUT') {
-    return updatePreferences(req, res, groupId, user.id);
-  }
-
-  res.setHeader('Allow', ['POST', 'DELETE', 'PUT']);
-  return res.status(405).json({ success: false, error: 'Method not allowed' });
 }
 
 async function subscribe(req, res, groupId, userId) {

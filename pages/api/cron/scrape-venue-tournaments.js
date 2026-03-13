@@ -302,239 +302,245 @@ function parseDirectWebsiteTournaments(html, venueName) {
 // Main handler
 // ---------------------------------------------------------------------------
 export default async function handler(req, res) {
-    // CRON_SECRET auth — optional, skip in dev
-    if (process.env.NODE_ENV === 'production' && process.env.CRON_SECRET) {
-        if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
-            return res.status(401).json({ error: 'Unauthorized' });
-        }
-    }
+  try {
+      // CRON_SECRET auth — optional, skip in dev
+      if (process.env.NODE_ENV === 'production' && process.env.CRON_SECRET) {
+          if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+              return res.status(401).json({ error: 'Unauthorized' });
+          }
+      }
 
-    const { batch: batchParam, state, force } = req.query;
-    const batchNumber = parseInt(batchParam) || 1;
+      const { batch: batchParam, state, force } = req.query;
+      const batchNumber = parseInt(batchParam) || 1;
 
-    const stats = {
-        success: true,
-        batch: batchNumber,
-        venuesProcessed: 0,
-        tournamentsFound: 0,
-        tournamentsUpserted: 0,
-        errors: [],
-        skipped: 0,
-        startedAt: new Date().toISOString()
-    };
+      const stats = {
+          success: true,
+          batch: batchNumber,
+          venuesProcessed: 0,
+          tournamentsFound: 0,
+          tournamentsUpserted: 0,
+          errors: [],
+          skipped: 0,
+          startedAt: new Date().toISOString()
+      };
 
-    try {
-        // ----- Load venue list from JSON -----
-        const venuesData = loadJsonFile(VENUES_JSON_PATH);
-        if (!venuesData || !venuesData.venues) {
-            return res.status(500).json({
-                success: false,
-                error: 'Could not load all-venues.json'
-            });
-        }
+      try {
+          // ----- Load venue list from JSON -----
+          const venuesData = loadJsonFile(VENUES_JSON_PATH);
+          if (!venuesData || !venuesData.venues) {
+              return res.status(500).json({
+                  success: false,
+                  error: 'Could not load all-venues.json'
+              });
+          }
 
-        // Filter to venues with tournaments
-        let tournamentVenues = venuesData.venues.filter(v => v.has_tournaments === true);
+          // Filter to venues with tournaments
+          let tournamentVenues = venuesData.venues.filter(v => v.has_tournaments === true);
 
-        // Optional: filter by state
-        if (state) {
-            tournamentVenues = tournamentVenues.filter(v =>
-                v.state && v.state.toUpperCase() === state.toUpperCase()
-            );
-        } else {
-            // Apply batch slicing (3-day rotation)
-            const batchSize = MAX_VENUES_PER_BATCH;
-            const startIdx = (batchNumber - 1) * batchSize;
-            const endIdx = Math.min(startIdx + batchSize, tournamentVenues.length);
-            tournamentVenues = tournamentVenues.slice(startIdx, endIdx);
-        }
+          // Optional: filter by state
+          if (state) {
+              tournamentVenues = tournamentVenues.filter(v =>
+                  v.state && v.state.toUpperCase() === state.toUpperCase()
+              );
+          } else {
+              // Apply batch slicing (3-day rotation)
+              const batchSize = MAX_VENUES_PER_BATCH;
+              const startIdx = (batchNumber - 1) * batchSize;
+              const endIdx = Math.min(startIdx + batchSize, tournamentVenues.length);
+              tournamentVenues = tournamentVenues.slice(startIdx, endIdx);
+          }
 
-        // Cap to max per batch
-        tournamentVenues = tournamentVenues.slice(0, MAX_VENUES_PER_BATCH);
+          // Cap to max per batch
+          tournamentVenues = tournamentVenues.slice(0, MAX_VENUES_PER_BATCH);
 
-        // ----- Load existing schedules JSON (for fallback writes) -----
-        let schedulesData = loadJsonFile(SCHEDULES_JSON_PATH);
-        if (!schedulesData) {
-            schedulesData = {
-                metadata: {
-                    description: 'Daily/Recurring Tournament Schedules for Verified Venues',
-                    lastUpdated: new Date().toISOString().split('T')[0],
-                    totalVenues: 0,
-                    venuesWithDailyTournaments: 0,
-                    sources: ['Auto-scraper cron job']
-                },
-                tournaments: []
-            };
-        }
+          // ----- Load existing schedules JSON (for fallback writes) -----
+          let schedulesData = loadJsonFile(SCHEDULES_JSON_PATH);
+          if (!schedulesData) {
+              schedulesData = {
+                  metadata: {
+                      description: 'Daily/Recurring Tournament Schedules for Verified Venues',
+                      lastUpdated: new Date().toISOString().split('T')[0],
+                      totalVenues: 0,
+                      venuesWithDailyTournaments: 0,
+                      sources: ['Auto-scraper cron job']
+                  },
+                  tournaments: []
+              };
+          }
 
-        // Index existing schedules by venue_name for quick lookup
-        const schedulesByVenue = {};
-        for (const entry of schedulesData.tournaments) {
-            schedulesByVenue[entry.venue_name] = entry;
-        }
+          // Index existing schedules by venue_name for quick lookup
+          const schedulesByVenue = {};
+          for (const entry of schedulesData.tournaments) {
+              schedulesByVenue[entry.venue_name] = entry;
+          }
 
-        // ----- Process each venue -----
-        for (let i = 0; i < tournamentVenues.length; i++) {
-            const venue = tournamentVenues[i];
-            stats.venuesProcessed++;
+          // ----- Process each venue -----
+          for (let i = 0; i < tournamentVenues.length; i++) {
+              const venue = tournamentVenues[i];
+              stats.venuesProcessed++;
 
-            // Determine scrape URL
-            const pokerAtlasUrl = venue.poker_atlas_url;
-            const website = venue.website;
+              // Determine scrape URL
+              const pokerAtlasUrl = venue.poker_atlas_url;
+              const website = venue.website;
 
-            if (!pokerAtlasUrl && !website) {
-                stats.skipped++;
-                continue;
-            }
+              if (!pokerAtlasUrl && !website) {
+                  stats.skipped++;
+                  continue;
+              }
 
-            // Skip if recently scraped (unless force=true)
-            if (force !== 'true' && schedulesByVenue[venue.name]) {
-                const existing = schedulesByVenue[venue.name];
-                if (existing.last_scraped) {
-                    const lastScraped = new Date(existing.last_scraped);
-                    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-                    if (lastScraped > oneDayAgo) {
-                        stats.skipped++;
-                        continue;
-                    }
-                }
-            }
+              // Skip if recently scraped (unless force=true)
+              if (force !== 'true' && schedulesByVenue[venue.name]) {
+                  const existing = schedulesByVenue[venue.name];
+                  if (existing.last_scraped) {
+                      const lastScraped = new Date(existing.last_scraped);
+                      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+                      if (lastScraped > oneDayAgo) {
+                          stats.skipped++;
+                          continue;
+                      }
+                  }
+              }
 
-            let tournaments = [];
-            let sourceUrl = '';
+              let tournaments = [];
+              let sourceUrl = '';
 
-            try {
-                // Strategy 1: Try PokerAtlas first (most structured data)
-                if (pokerAtlasUrl) {
-                    let paUrl = pokerAtlasUrl;
-                    if (!paUrl.endsWith('/tournaments')) {
-                        paUrl = paUrl.replace(/\/$/, '') + '/tournaments';
-                    }
+              try {
+                  // Strategy 1: Try PokerAtlas first (most structured data)
+                  if (pokerAtlasUrl) {
+                      let paUrl = pokerAtlasUrl;
+                      if (!paUrl.endsWith('/tournaments')) {
+                          paUrl = paUrl.replace(/\/$/, '') + '/tournaments';
+                      }
 
-                    try {
-                        const html = await fetchUrl(paUrl);
-                        tournaments = parsePokerAtlasTournaments(html, venue.name);
-                        sourceUrl = paUrl;
-                    } catch (paError) {
-                        // PokerAtlas failed, fall through to direct website
-                    }
-                }
+                      try {
+                          const html = await fetchUrl(paUrl);
+                          tournaments = parsePokerAtlasTournaments(html, venue.name);
+                          sourceUrl = paUrl;
+                      } catch (paError) {
+                          // PokerAtlas failed, fall through to direct website
+                      }
+                  }
 
-                // Strategy 2: Try direct venue website
-                if (tournaments.length === 0 && website) {
-                    let baseUrl = website;
-                    if (!baseUrl.startsWith('http')) {
-                        baseUrl = 'https://' + baseUrl;
-                    }
+                  // Strategy 2: Try direct venue website
+                  if (tournaments.length === 0 && website) {
+                      let baseUrl = website;
+                      if (!baseUrl.startsWith('http')) {
+                          baseUrl = 'https://' + baseUrl;
+                      }
 
-                    const paths = ['', '/poker', '/poker/tournaments', '/tournaments', '/poker-room'];
-                    for (const pathSuffix of paths) {
-                        try {
-                            const tryUrl = baseUrl.replace(/\/$/, '') + pathSuffix;
-                            const html = await fetchUrl(tryUrl);
-                            const parsed = parseDirectWebsiteTournaments(html, venue.name);
-                            if (parsed.length > 0) {
-                                tournaments = parsed;
-                                sourceUrl = tryUrl;
-                                break;
-                            }
-                        } catch (_) {
-                            // Try next path
-                        }
-                    }
-                }
+                      const paths = ['', '/poker', '/poker/tournaments', '/tournaments', '/poker-room'];
+                      for (const pathSuffix of paths) {
+                          try {
+                              const tryUrl = baseUrl.replace(/\/$/, '') + pathSuffix;
+                              const html = await fetchUrl(tryUrl);
+                              const parsed = parseDirectWebsiteTournaments(html, venue.name);
+                              if (parsed.length > 0) {
+                                  tournaments = parsed;
+                                  sourceUrl = tryUrl;
+                                  break;
+                              }
+                          } catch (_) {
+                              // Try next path
+                          }
+                      }
+                  }
 
-                stats.tournamentsFound += tournaments.length;
+                  stats.tournamentsFound += tournaments.length;
 
-                if (tournaments.length > 0) {
-                    // ----- Upsert to Supabase if available -----
-                    if (supabase) {
-                        for (const tournament of tournaments) {
-                            try {
-                                const record = {
-                                    venue_name: tournament.venue_name,
-                                    day_of_week: tournament.day_of_week,
-                                    start_time: tournament.start_time,
-                                    buy_in: tournament.buy_in,
-                                    game_type: tournament.game_type,
-                                    format: tournament.format,
-                                    guaranteed: tournament.guaranteed,
-                                    source_url: sourceUrl,
-                                    last_scraped: new Date().toISOString(),
-                                    is_active: true
-                                };
+                  if (tournaments.length > 0) {
+                      // ----- Upsert to Supabase if available -----
+                      if (supabase) {
+                          for (const tournament of tournaments) {
+                              try {
+                                  const record = {
+                                      venue_name: tournament.venue_name,
+                                      day_of_week: tournament.day_of_week,
+                                      start_time: tournament.start_time,
+                                      buy_in: tournament.buy_in,
+                                      game_type: tournament.game_type,
+                                      format: tournament.format,
+                                      guaranteed: tournament.guaranteed,
+                                      source_url: sourceUrl,
+                                      last_scraped: new Date().toISOString(),
+                                      is_active: true
+                                  };
 
-                                // Include venue_id if we can resolve it
-                                if (venue.id) record.venue_id = venue.id;
+                                  // Include venue_id if we can resolve it
+                                  if (venue.id) record.venue_id = venue.id;
 
-                                const { error: upsertError } = await supabase
-                                    .from('venue_daily_tournaments')
-                                    .upsert(record, {
-                                        onConflict: 'venue_id,day_of_week,start_time,buy_in'
-                                    });
+                                  const { error: upsertError } = await supabase
+                                      .from('venue_daily_tournaments')
+                                      .upsert(record, {
+                                          onConflict: 'venue_id,day_of_week,start_time,buy_in'
+                                      });
 
-                                if (!upsertError) stats.tournamentsUpserted++;
-                            } catch (_) {
-                                // Individual upsert failure is non-fatal
-                            }
-                        }
-                    }
+                                  if (!upsertError) stats.tournamentsUpserted++;
+                              } catch (_) {
+                                  // Individual upsert failure is non-fatal
+                              }
+                          }
+                      }
 
-                    // ----- Update JSON file data -----
-                    schedulesByVenue[venue.name] = {
-                        venue_name: venue.name,
-                        city: venue.city,
-                        state: venue.state,
-                        schedules: tournaments.map(t => ({
-                            day_of_week: t.day_of_week,
-                            start_time: t.start_time,
-                            buy_in: t.buy_in,
-                            game_type: t.game_type,
-                            format: t.format,
-                            guaranteed: t.guaranteed,
-                            notes: null
-                        })),
-                        source_url: sourceUrl,
-                        last_scraped: new Date().toISOString()
-                    };
-                } else {
-                    // No tournaments found — mark as checked
-                    if (schedulesByVenue[venue.name]) {
-                        schedulesByVenue[venue.name].last_scraped = new Date().toISOString();
-                    }
-                }
-            } catch (error) {
-                stats.errors.push({
-                    venue: venue.name,
-                    error: error.message
-                });
-            }
+                      // ----- Update JSON file data -----
+                      schedulesByVenue[venue.name] = {
+                          venue_name: venue.name,
+                          city: venue.city,
+                          state: venue.state,
+                          schedules: tournaments.map(t => ({
+                              day_of_week: t.day_of_week,
+                              start_time: t.start_time,
+                              buy_in: t.buy_in,
+                              game_type: t.game_type,
+                              format: t.format,
+                              guaranteed: t.guaranteed,
+                              notes: null
+                          })),
+                          source_url: sourceUrl,
+                          last_scraped: new Date().toISOString()
+                      };
+                  } else {
+                      // No tournaments found — mark as checked
+                      if (schedulesByVenue[venue.name]) {
+                          schedulesByVenue[venue.name].last_scraped = new Date().toISOString();
+                      }
+                  }
+              } catch (error) {
+                  stats.errors.push({
+                      venue: venue.name,
+                      error: error.message
+                  });
+              }
 
-            // Rate limiting between venues
-            if (i < tournamentVenues.length - 1) {
-                await sleep(RATE_LIMIT_MS);
-            }
-        }
+              // Rate limiting between venues
+              if (i < tournamentVenues.length - 1) {
+                  await sleep(RATE_LIMIT_MS);
+              }
+          }
 
-        // ----- Write updated schedules back to JSON -----
-        const updatedTournaments = Object.values(schedulesByVenue);
-        schedulesData.tournaments = updatedTournaments;
-        schedulesData.metadata.lastUpdated = new Date().toISOString().split('T')[0];
-        schedulesData.metadata.totalVenues = updatedTournaments.length;
-        schedulesData.metadata.venuesWithDailyTournaments = updatedTournaments.filter(
-            v => v.schedules && v.schedules.length > 0
-        ).length;
+          // ----- Write updated schedules back to JSON -----
+          const updatedTournaments = Object.values(schedulesByVenue);
+          schedulesData.tournaments = updatedTournaments;
+          schedulesData.metadata.lastUpdated = new Date().toISOString().split('T')[0];
+          schedulesData.metadata.totalVenues = updatedTournaments.length;
+          schedulesData.metadata.venuesWithDailyTournaments = updatedTournaments.filter(
+              v => v.schedules && v.schedules.length > 0
+          ).length;
 
-        const saved = saveJsonFile(SCHEDULES_JSON_PATH, schedulesData);
-        stats.jsonSaved = saved;
-        stats.finishedAt = new Date().toISOString();
+          const saved = saveJsonFile(SCHEDULES_JSON_PATH, schedulesData);
+          stats.jsonSaved = saved;
+          stats.finishedAt = new Date().toISOString();
 
-        return res.status(200).json(stats);
+          return res.status(200).json(stats);
 
-    } catch (error) {
-        stats.success = false;
-        stats.error = error.message;
-        stats.finishedAt = new Date().toISOString();
-        return res.status(500).json(stats);
-    }
+      } catch (error) {
+          stats.success = false;
+          stats.error = error.message;
+          stats.finishedAt = new Date().toISOString();
+          return res.status(500).json(stats);
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

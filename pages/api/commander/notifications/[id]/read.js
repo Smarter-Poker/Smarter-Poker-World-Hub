@@ -12,42 +12,48 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
-
-  // Auth guard: require user auth for writes
-  if (req.method !== "GET") { const _user = await guardUser(req, res); if (!_user) return; }
-  if (req.method !== 'PATCH') {
-    return res.status(405).json({
-      success: false,
-      error: { code: 'METHOD_NOT_ALLOWED', message: 'Only PATCH allowed' }
-    });
-  }
-
-  const { id } = req.query;
-
   try {
-    const { data: notification, error } = await supabase
-      .from('commander_notifications')
-      .update({
-        read_at: new Date().toISOString()
-      })
-      .eq('id', id)
-      .select()
-      .maybeSingle();
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
 
-    if (error) throw error;
+    // Auth guard: require user auth for writes
+    if (req.method !== "GET") { const _user = await guardUser(req, res); if (!_user) return; }
+    if (req.method !== 'PATCH') {
+      return res.status(405).json({
+        success: false,
+        error: { code: 'METHOD_NOT_ALLOWED', message: 'Only PATCH allowed' }
+      });
+    }
 
-    return res.status(200).json({
-      success: true,
-      data: { notification }
-    });
-  } catch (error) {
-    console.error('Mark read error:', error);
-    return res.status(500).json({
-      success: false,
-      error: { code: 'SERVER_ERROR', message: 'Failed to mark as read' }
-    });
+    const { id } = req.query;
+
+    try {
+      const { data: notification, error } = await supabase
+        .from('commander_notifications')
+        .update({
+          read_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .maybeSingle();
+
+      if (error) throw error;
+
+      return res.status(200).json({
+        success: true,
+        data: { notification }
+      });
+    } catch (error) {
+      console.error('Mark read error:', error);
+      return res.status(500).json({
+        success: false,
+        error: { code: 'SERVER_ERROR', message: 'Failed to mark as read' }
+      });
+    }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

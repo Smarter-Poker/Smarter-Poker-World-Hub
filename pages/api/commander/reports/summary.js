@@ -25,90 +25,96 @@ function getDateRange(range) {
 }
 
 export default async function handler(req, res) {
-  if (!applyRateLimit(req, res, LIMITS.read)) return;
-
-  if (req.method !== 'GET') return res.status(405).json({ success: false, error: 'Method not allowed' });
-
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ success: false, error: 'Authorization required' });
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user } } = await supabase.auth.getUser(token);
-    if (!user) return res.status(401).json({ success: false, error: 'Invalid token' });
+    if (!applyRateLimit(req, res, LIMITS.read)) return;
 
-    const { range = 'today' } = req.query;
-    const { start, end } = getDateRange(range);
+    if (req.method !== 'GET') return res.status(405).json({ success: false, error: 'Method not allowed' });
 
-    // Get venue from staff record, with owner fallback
-    let staffVenueId = null;
-    const { data: staffRow } = await supabase
-      .from('commander_staff')
-      .select('venue_id')
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .maybeSingle();
-    if (staffRow) {
-      staffVenueId = staffRow.venue_id;
-    } else {
-      // Fallback: check if user is a venue owner via subscription
-      const { data: sub } = await supabase
-        .from('commander_subscriptions')
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader) return res.status(401).json({ success: false, error: 'Authorization required' });
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user } } = await supabase.auth.getUser(token);
+      if (!user) return res.status(401).json({ success: false, error: 'Invalid token' });
+
+      const { range = 'today' } = req.query;
+      const { start, end } = getDateRange(range);
+
+      // Get venue from staff record, with owner fallback
+      let staffVenueId = null;
+      const { data: staffRow } = await supabase
+        .from('commander_staff')
         .select('venue_id')
-        .eq('owner_id', user.id)
-        .in('status', ['active', 'trialing'])
-        .limit(1)
+        .eq('user_id', user.id)
+        .eq('is_active', true)
         .maybeSingle();
-      if (sub) staffVenueId = sub.venue_id;
-    }
-    if (!staffVenueId) return res.status(403).json({ success: false, error: 'Staff access required' });
-    const staff = { venue_id: staffVenueId };
-
-    // Tournament stats
-    const { data: tournaments } = await supabase
-      .from('commander_tournaments')
-      .select('id, status, buyin_amount, actual_prizepool')
-      .eq('venue_id', staff.venue_id)
-      .gte('created_at', start)
-      .lte('created_at', end);
-
-    const tournamentsRun = (tournaments || []).filter(t => ['completed', 'running', 'final_table'].includes(t.status)).length;
-
-    // Tournament entries for player count
-    const tournamentIds = (tournaments || []).map(t => t.id);
-    let totalEntries = 0;
-    if (tournamentIds.length > 0) {
-      const { count } = await supabase
-        .from('commander_tournament_entries')
-        .select('id', { count: 'exact', head: true })
-        .in('tournament_id', tournamentIds)
-      totalEntries = count || 0;
-    }
-
-    // Tables
-    const { data: tablesData } = await supabase
-      .from('commander_tables')
-      .select('id')
-      .eq('venue_id', staff.venue_id)
-
-    // Estimate table hours (tables * hours since start)
-    const hoursSinceStart = Math.min((new Date() - new Date(start)) / 3600000, 24);
-    const tableHours = Math.round((tablesData?.length || 0) * hoursSinceStart * 0.6); // 60% utilization estimate
-
-    // Revenue estimate
-    const revenue = (tournaments || []).reduce((sum, t) => sum + (t.actual_prizepool || t.buyin_amount || 0), 0);
-
-    return res.status(200).json({
-      success: true,
-      data: {
-        total_players: totalEntries,
-        table_hours: tableHours,
-        tournaments_run: tournamentsRun,
-        revenue,
-        date_range: { start, end, label: range }
+      if (staffRow) {
+        staffVenueId = staffRow.venue_id;
+      } else {
+        // Fallback: check if user is a venue owner via subscription
+        const { data: sub } = await supabase
+          .from('commander_subscriptions')
+          .select('venue_id')
+          .eq('owner_id', user.id)
+          .in('status', ['active', 'trialing'])
+          .limit(1)
+          .maybeSingle();
+        if (sub) staffVenueId = sub.venue_id;
       }
-    });
+      if (!staffVenueId) return res.status(403).json({ success: false, error: 'Staff access required' });
+      const staff = { venue_id: staffVenueId };
+
+      // Tournament stats
+      const { data: tournaments } = await supabase
+        .from('commander_tournaments')
+        .select('id, status, buyin_amount, actual_prizepool')
+        .eq('venue_id', staff.venue_id)
+        .gte('created_at', start)
+        .lte('created_at', end);
+
+      const tournamentsRun = (tournaments || []).filter(t => ['completed', 'running', 'final_table'].includes(t.status)).length;
+
+      // Tournament entries for player count
+      const tournamentIds = (tournaments || []).map(t => t.id);
+      let totalEntries = 0;
+      if (tournamentIds.length > 0) {
+        const { count } = await supabase
+          .from('commander_tournament_entries')
+          .select('id', { count: 'exact', head: true })
+          .in('tournament_id', tournamentIds)
+        totalEntries = count || 0;
+      }
+
+      // Tables
+      const { data: tablesData } = await supabase
+        .from('commander_tables')
+        .select('id')
+        .eq('venue_id', staff.venue_id)
+
+      // Estimate table hours (tables * hours since start)
+      const hoursSinceStart = Math.min((new Date() - new Date(start)) / 3600000, 24);
+      const tableHours = Math.round((tablesData?.length || 0) * hoursSinceStart * 0.6); // 60% utilization estimate
+
+      // Revenue estimate
+      const revenue = (tournaments || []).reduce((sum, t) => sum + (t.actual_prizepool || t.buyin_amount || 0), 0);
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          total_players: totalEntries,
+          table_hours: tableHours,
+          tournaments_run: tournamentsRun,
+          revenue,
+          date_range: { start, end, label: range }
+        }
+      });
+    } catch (err) {
+      console.error('Reports summary error:', err);
+      return res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+
   } catch (err) {
-    console.error('Reports summary error:', err);
-    return res.status(500).json({ success: false, error: 'Internal server error' });
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

@@ -19,90 +19,96 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+      if (req.method !== 'POST') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
+
+      try {
+          const { action, call_id, venue_id, table_number, table_name, called_by } = req.body;
+
+          // ── Cancel an active floor call ──
+          if (action === 'cancel' && call_id) {
+              const { error } = await supabase
+                  .from('commander_floor_calls')
+                  .update({
+                      status: 'resolved',
+                      responded_at: new Date().toISOString(),
+                      resolution: 'cancelled_by_tablet',
+                  })
+                  .eq('id', call_id);
+
+              if (error) {
+                  console.error('Floor call cancel error:', error);
+                  return res.status(500).json({ success: false, error: 'Failed to cancel floor call' });
+              }
+              return res.status(200).json({ success: true, data: { cancelled: true } });
+          }
+
+          // ── Create a new floor call ──
+          if (!venue_id || !table_number) {
+              return res.status(400).json({ success: false, error: 'venue_id and table_number are required' });
+          }
+
+          // Check for existing active call from same table (prevent spam)
+          const { data: existing } = await supabase
+              .from('commander_floor_calls')
+              .select('id, created_at')
+              .eq('venue_id', venue_id)
+              .eq('table_number', table_number)
+              .eq('status', 'active')
+              .limit(1);
+
+          if (existing && existing.length > 0) {
+              const age = (Date.now() - new Date(existing[0].created_at).getTime()) / 1000;
+              if (age < 60) {
+                  return res.status(200).json({
+                      success: true,
+                      data: { id: existing[0].id, already_active: true, message: 'Floor call already active' }
+                  });
+              }
+              // Resolve old call
+              await supabase
+                  .from('commander_floor_calls')
+                  .update({ status: 'resolved', responded_at: new Date().toISOString(), resolution: 'auto-expired' })
+                  .eq('id', existing[0].id);
+          }
+
+          // Create new floor call
+          const { data: call, error } = await supabase
+              .from('commander_floor_calls')
+              .insert({
+                  venue_id,
+                  table_number,
+                  reason: 'floor_request',
+                  description: `Table ${table_number}${table_name ? ` (${table_name})` : ''} needs floor assistance`,
+                  priority: 'normal',
+                  status: 'active',
+                  called_by: called_by || 'tablet',
+              })
+              .select()
+              .maybeSingle();
+
+          if (error) {
+              console.error('Floor call create error:', error);
+              return res.status(500).json({ success: false, error: 'Failed to create floor call' });
+          }
+
+          return res.status(200).json({
+              success: true,
+              data: { id: call.id, table_number, description: call.description }
+          });
+      } catch (error) {
+          console.error('Floor call error:', error);
+          return res.status(500).json({ success: false, error: 'Internal server error' });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-    if (req.method !== 'POST') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
-
-    try {
-        const { action, call_id, venue_id, table_number, table_name, called_by } = req.body;
-
-        // ── Cancel an active floor call ──
-        if (action === 'cancel' && call_id) {
-            const { error } = await supabase
-                .from('commander_floor_calls')
-                .update({
-                    status: 'resolved',
-                    responded_at: new Date().toISOString(),
-                    resolution: 'cancelled_by_tablet',
-                })
-                .eq('id', call_id);
-
-            if (error) {
-                console.error('Floor call cancel error:', error);
-                return res.status(500).json({ success: false, error: 'Failed to cancel floor call' });
-            }
-            return res.status(200).json({ success: true, data: { cancelled: true } });
-        }
-
-        // ── Create a new floor call ──
-        if (!venue_id || !table_number) {
-            return res.status(400).json({ success: false, error: 'venue_id and table_number are required' });
-        }
-
-        // Check for existing active call from same table (prevent spam)
-        const { data: existing } = await supabase
-            .from('commander_floor_calls')
-            .select('id, created_at')
-            .eq('venue_id', venue_id)
-            .eq('table_number', table_number)
-            .eq('status', 'active')
-            .limit(1);
-
-        if (existing && existing.length > 0) {
-            const age = (Date.now() - new Date(existing[0].created_at).getTime()) / 1000;
-            if (age < 60) {
-                return res.status(200).json({
-                    success: true,
-                    data: { id: existing[0].id, already_active: true, message: 'Floor call already active' }
-                });
-            }
-            // Resolve old call
-            await supabase
-                .from('commander_floor_calls')
-                .update({ status: 'resolved', responded_at: new Date().toISOString(), resolution: 'auto-expired' })
-                .eq('id', existing[0].id);
-        }
-
-        // Create new floor call
-        const { data: call, error } = await supabase
-            .from('commander_floor_calls')
-            .insert({
-                venue_id,
-                table_number,
-                reason: 'floor_request',
-                description: `Table ${table_number}${table_name ? ` (${table_name})` : ''} needs floor assistance`,
-                priority: 'normal',
-                status: 'active',
-                called_by: called_by || 'tablet',
-            })
-            .select()
-            .maybeSingle();
-
-        if (error) {
-            console.error('Floor call create error:', error);
-            return res.status(500).json({ success: false, error: 'Failed to create floor call' });
-        }
-
-        return res.status(200).json({
-            success: true,
-            data: { id: call.id, table_number, description: call.description }
-        });
-    } catch (error) {
-        console.error('Floor call error:', error);
-        return res.status(500).json({ success: false, error: 'Internal server error' });
-    }
 }

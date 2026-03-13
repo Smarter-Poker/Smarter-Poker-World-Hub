@@ -18,60 +18,66 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+    // BUG #244 FIX: Require JWT auth — these routes use paid AI APIs
+    const _authSupa = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+    const _token = req.headers.authorization?.replace('Bearer ', '');
+    if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
+    const { data: { user: _authUser }, error: _authErr } = await _authSupa.auth.getUser(_token);
+    if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+
+      if (req.method !== 'POST') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
+
+      try {
+          const userId = _authUser.id; // Trust JWT, not client-supplied body
+
+          // First, get the user's weak spots
+          const weakSpots = await fetchWeakSpots(userId);
+
+          if (!weakSpots || weakSpots.length === 0) {
+              // No weakness data - return a general scenario
+              return res.status(200).json({
+                  success: true,
+                  scenario: getDefaultScenario(),
+                  targetedArea: null,
+                  message: 'Play more games for personalized training!'
+              });
+          }
+
+          // Pick the top weakness to target
+          const targetWeakness = weakSpots[0];
+
+          // Generate scenario targeting this weakness
+          const scenario = await generateTargetedScenario(targetWeakness);
+
+          return res.status(200).json({
+              success: true,
+              scenario,
+              targetedArea: targetWeakness.area,
+              weakSpots,
+              message: `Targeting your ${targetWeakness.area} weakness`
+          });
+
+      } catch (error) {
+          console.error('[GenerateAdaptive] Error:', error);
+          return res.status(200).json({
+              success: true,
+              scenario: getDefaultScenario(),
+              targetedArea: null,
+              fallback: true
+          });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-  // BUG #244 FIX: Require JWT auth — these routes use paid AI APIs
-  const _authSupa = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-  const _token = req.headers.authorization?.replace('Bearer ', '');
-  if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
-  const { data: { user: _authUser }, error: _authErr } = await _authSupa.auth.getUser(_token);
-  if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
-
-    if (req.method !== 'POST') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
-
-    try {
-        const userId = _authUser.id; // Trust JWT, not client-supplied body
-
-        // First, get the user's weak spots
-        const weakSpots = await fetchWeakSpots(userId);
-
-        if (!weakSpots || weakSpots.length === 0) {
-            // No weakness data - return a general scenario
-            return res.status(200).json({
-                success: true,
-                scenario: getDefaultScenario(),
-                targetedArea: null,
-                message: 'Play more games for personalized training!'
-            });
-        }
-
-        // Pick the top weakness to target
-        const targetWeakness = weakSpots[0];
-
-        // Generate scenario targeting this weakness
-        const scenario = await generateTargetedScenario(targetWeakness);
-
-        return res.status(200).json({
-            success: true,
-            scenario,
-            targetedArea: targetWeakness.area,
-            weakSpots,
-            message: `Targeting your ${targetWeakness.area} weakness`
-        });
-
-    } catch (error) {
-        console.error('[GenerateAdaptive] Error:', error);
-        return res.status(200).json({
-            success: true,
-            scenario: getDefaultScenario(),
-            targetedArea: null,
-            fallback: true
-        });
-    }
 }
 
 async function fetchWeakSpots(userId) {

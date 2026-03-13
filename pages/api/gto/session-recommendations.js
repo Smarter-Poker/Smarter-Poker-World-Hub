@@ -19,53 +19,59 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+      if (req.method !== 'POST') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
+
+      // Auth guard
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
+      const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+      if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+
+      try {
+          const { sessionData } = req.body;
+          const userId = authUser.id; // Trust JWT, not client-supplied body
+
+          // Get user's training profile and recent history
+          const profile = await getUserProfile(userId);
+          const recentSessions = await getRecentSessions(userId, 5);
+
+          // Generate personalized recommendations
+          const recommendations = await generateRecommendations(
+              profile,
+              recentSessions,
+              sessionData
+          );
+
+          return res.status(200).json({
+              success: true,
+              recommendations,
+              profile: {
+                  skillLevel: profile?.skill_assessment || 'Developing',
+                  totalSessions: profile?.total_sessions || 0,
+                  accuracy: profile?.overall_accuracy || 0
+              }
+          });
+
+      } catch (error) {
+          console.error('[SessionRecommendations] Error:', error);
+          return res.status(200).json({
+              success: true,
+              recommendations: getDefaultRecommendations(),
+              fallback: true
+          });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-    if (req.method !== 'POST') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
-
-    // Auth guard
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-    const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
-    if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
-
-    try {
-        const { sessionData } = req.body;
-        const userId = authUser.id; // Trust JWT, not client-supplied body
-
-        // Get user's training profile and recent history
-        const profile = await getUserProfile(userId);
-        const recentSessions = await getRecentSessions(userId, 5);
-
-        // Generate personalized recommendations
-        const recommendations = await generateRecommendations(
-            profile,
-            recentSessions,
-            sessionData
-        );
-
-        return res.status(200).json({
-            success: true,
-            recommendations,
-            profile: {
-                skillLevel: profile?.skill_assessment || 'Developing',
-                totalSessions: profile?.total_sessions || 0,
-                accuracy: profile?.overall_accuracy || 0
-            }
-        });
-
-    } catch (error) {
-        console.error('[SessionRecommendations] Error:', error);
-        return res.status(200).json({
-            success: true,
-            recommendations: getDefaultRecommendations(),
-            fallback: true
-        });
-    }
 }
 
 async function getUserProfile(userId) {

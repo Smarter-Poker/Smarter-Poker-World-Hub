@@ -20,173 +20,179 @@ const supabase = createClient(
 const HOUSE_RAKE_PERCENT = 10;
 
 export default async function handler(req, res) {
-    const authHeader = req.headers.authorization;
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
+  try {
+      const authHeader = req.headers.authorization;
+      if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+          return res.status(401).json({ error: 'Unauthorized' });
+      }
 
-    try {
-        const now = new Date();
-        const results = {
-            roundsCompleted: 0,
-            roundsAdvanced: 0,
-            forfeitWarnings: 0,
-            tournamentsFinished: 0
-        };
+      try {
+          const now = new Date();
+          const results = {
+              roundsCompleted: 0,
+              roundsAdvanced: 0,
+              forfeitWarnings: 0,
+              tournamentsFinished: 0
+          };
 
-        // 1. Send forfeit warnings (1 hour before deadline)
-        const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
-        const { data: warningRounds } = await supabase
-            .from('trivia_tournament_rounds')
-            .select('*, trivia_tournaments(*)')
-            .eq('status', 'active')
-            .gt('deadline', now.toISOString())
-            .lte('deadline', oneHourFromNow.toISOString())
-                .limit(100);
+          // 1. Send forfeit warnings (1 hour before deadline)
+          const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+          const { data: warningRounds } = await supabase
+              .from('trivia_tournament_rounds')
+              .select('*, trivia_tournaments(*)')
+              .eq('status', 'active')
+              .gt('deadline', now.toISOString())
+              .lte('deadline', oneHourFromNow.toISOString())
+                  .limit(100);
 
-        for (const round of warningRounds || []) {
-            const matchups = round.matchups || [];
-            for (const matchup of matchups) {
-                if (matchup.winner_id || matchup.is_bye) continue;
+          for (const round of warningRounds || []) {
+              const matchups = round.matchups || [];
+              for (const matchup of matchups) {
+                  if (matchup.winner_id || matchup.is_bye) continue;
 
-                // Warn players who haven't played yet
-                const playersToWarn = [];
-                if (matchup.player1_id && matchup.player1_score === null) {
-                    playersToWarn.push(matchup.player1_id);
-                }
-                if (matchup.player2_id && matchup.player2_score === null) {
-                    playersToWarn.push(matchup.player2_id);
-                }
+                  // Warn players who haven't played yet
+                  const playersToWarn = [];
+                  if (matchup.player1_id && matchup.player1_score === null) {
+                      playersToWarn.push(matchup.player1_id);
+                  }
+                  if (matchup.player2_id && matchup.player2_score === null) {
+                      playersToWarn.push(matchup.player2_id);
+                  }
 
-                for (const playerId of playersToWarn) {
-                    // Check if warning already sent
-                    const { data: existing } = await supabase
-                        .from('trivia_tournament_notifications')
-                        .select('id')
-                        .eq('user_id', playerId)
-                        .eq('tournament_id', round.tournament_id)
-                        .eq('notification_type', 'forfeit_warning')
-                        .gte('created_at', new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString())
-                        .limit(1);
+                  for (const playerId of playersToWarn) {
+                      // Check if warning already sent
+                      const { data: existing } = await supabase
+                          .from('trivia_tournament_notifications')
+                          .select('id')
+                          .eq('user_id', playerId)
+                          .eq('tournament_id', round.tournament_id)
+                          .eq('notification_type', 'forfeit_warning')
+                          .gte('created_at', new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString())
+                          .limit(1);
 
-                    if (!existing || existing.length === 0) {
-                        await supabase
-                            .from('trivia_tournament_notifications')
-                            .insert({
-                                user_id: playerId,
-                                tournament_id: round.tournament_id,
-                                notification_type: 'forfeit_warning',
-                                message: `⚠️ Round ${round.round_number} deadline is in 1 hour! Play now or you'll be disqualified.`
-                            });
-                        results.forfeitWarnings++;
-                    }
-                }
-            }
-        }
+                      if (!existing || existing.length === 0) {
+                          await supabase
+                              .from('trivia_tournament_notifications')
+                              .insert({
+                                  user_id: playerId,
+                                  tournament_id: round.tournament_id,
+                                  notification_type: 'forfeit_warning',
+                                  message: `⚠️ Round ${round.round_number} deadline is in 1 hour! Play now or you'll be disqualified.`
+                              });
+                          results.forfeitWarnings++;
+                      }
+                  }
+              }
+          }
 
-        // 2. Process expired rounds (deadline has passed)
-        const { data: expiredRounds } = await supabase
-            .from('trivia_tournament_rounds')
-            .select('*, trivia_tournaments(*)')
-            .eq('status', 'active')
-            .lte('deadline', now.toISOString())
-                .limit(100);
+          // 2. Process expired rounds (deadline has passed)
+          const { data: expiredRounds } = await supabase
+              .from('trivia_tournament_rounds')
+              .select('*, trivia_tournaments(*)')
+              .eq('status', 'active')
+              .lte('deadline', now.toISOString())
+                  .limit(100);
 
-        for (const round of expiredRounds || []) {
-            const tournament = round.trivia_tournaments;
-            if (!tournament) continue;
+          for (const round of expiredRounds || []) {
+              const tournament = round.trivia_tournaments;
+              if (!tournament) continue;
 
-            // Process forfeits and determine winners
-            const matchups = round.matchups || [];
-            const updatedMatchups = matchups.map(matchup => {
-                if (matchup.winner_id || matchup.is_bye) return matchup;
+              // Process forfeits and determine winners
+              const matchups = round.matchups || [];
+              const updatedMatchups = matchups.map(matchup => {
+                  if (matchup.winner_id || matchup.is_bye) return matchup;
 
-                const p1Played = matchup.player1_score !== null;
-                const p2Played = matchup.player2_score !== null;
+                  const p1Played = matchup.player1_score !== null;
+                  const p2Played = matchup.player2_score !== null;
 
-                if (p1Played && p2Played) {
-                    // Both played — higher score wins
-                    if (matchup.player1_score > matchup.player2_score) {
-                        matchup.winner_id = matchup.player1_id;
-                    } else if (matchup.player2_score > matchup.player1_score) {
-                        matchup.winner_id = matchup.player2_id;
-                    } else {
-                        // Tie — random winner (or could use time-based tiebreaker)
-                        matchup.winner_id = Math.random() < 0.5 ? matchup.player1_id : matchup.player2_id;
-                    }
-                } else if (p1Played && !p2Played) {
-                    matchup.winner_id = matchup.player1_id;
-                    matchup.player2_forfeited = true;
-                } else if (!p1Played && p2Played) {
-                    matchup.winner_id = matchup.player2_id;
-                    matchup.player1_forfeited = true;
-                } else {
-                    // Neither played — random winner advances
-                    matchup.winner_id = matchup.player1_id || matchup.player2_id;
-                    matchup.both_forfeited = true;
-                }
+                  if (p1Played && p2Played) {
+                      // Both played — higher score wins
+                      if (matchup.player1_score > matchup.player2_score) {
+                          matchup.winner_id = matchup.player1_id;
+                      } else if (matchup.player2_score > matchup.player1_score) {
+                          matchup.winner_id = matchup.player2_id;
+                      } else {
+                          // Tie — random winner (or could use time-based tiebreaker)
+                          matchup.winner_id = Math.random() < 0.5 ? matchup.player1_id : matchup.player2_id;
+                      }
+                  } else if (p1Played && !p2Played) {
+                      matchup.winner_id = matchup.player1_id;
+                      matchup.player2_forfeited = true;
+                  } else if (!p1Played && p2Played) {
+                      matchup.winner_id = matchup.player2_id;
+                      matchup.player1_forfeited = true;
+                  } else {
+                      // Neither played — random winner advances
+                      matchup.winner_id = matchup.player1_id || matchup.player2_id;
+                      matchup.both_forfeited = true;
+                  }
 
-                return matchup;
-            });
+                  return matchup;
+              });
 
-            // Update round as complete
-            await supabase
-                .from('trivia_tournament_rounds')
-                .update({ status: 'complete', matchups: updatedMatchups })
-                .eq('id', round.id);
+              // Update round as complete
+              await supabase
+                  .from('trivia_tournament_rounds')
+                  .update({ status: 'complete', matchups: updatedMatchups })
+                  .eq('id', round.id);
 
-            // Mark eliminated players
-            for (const matchup of updatedMatchups) {
-                const loserId = matchup.player1_id === matchup.winner_id
-                    ? matchup.player2_id
-                    : matchup.player1_id;
+              // Mark eliminated players
+              for (const matchup of updatedMatchups) {
+                  const loserId = matchup.player1_id === matchup.winner_id
+                      ? matchup.player2_id
+                      : matchup.player1_id;
 
-                if (loserId) {
-                    await supabase
-                        .from('trivia_tournament_entries')
-                        .update({ eliminated_round: round.round_number })
-                        .eq('tournament_id', tournament.id)
-                        .eq('user_id', loserId);
+                  if (loserId) {
+                      await supabase
+                          .from('trivia_tournament_entries')
+                          .update({ eliminated_round: round.round_number })
+                          .eq('tournament_id', tournament.id)
+                          .eq('user_id', loserId);
 
-                    await supabase
-                        .from('trivia_tournament_notifications')
-                        .insert({
-                            user_id: loserId,
-                            tournament_id: tournament.id,
-                            notification_type: 'eliminated',
-                            message: `You've been eliminated in Round ${round.round_number} of ${tournament.name}.`
-                        });
-                }
-            }
+                      await supabase
+                          .from('trivia_tournament_notifications')
+                          .insert({
+                              user_id: loserId,
+                              tournament_id: tournament.id,
+                              notification_type: 'eliminated',
+                              message: `You've been eliminated in Round ${round.round_number} of ${tournament.name}.`
+                          });
+                  }
+              }
 
-            results.roundsCompleted++;
+              results.roundsCompleted++;
 
-            // Determine winners for next round
-            const winners = updatedMatchups
-                .map(m => m.winner_id)
-                .filter(Boolean);
+              // Determine winners for next round
+              const winners = updatedMatchups
+                  .map(m => m.winner_id)
+                  .filter(Boolean);
 
-            // Check if this was the final round
-            if (winners.length <= 1 || round.round_number >= (tournament.total_rounds || 999)) {
-                await completeTournament(tournament, winners[0], round.round_number);
-                results.tournamentsFinished++;
-            } else {
-                // Create next round
-                await createNextRound(tournament, winners, round.round_number + 1);
-                results.roundsAdvanced++;
-            }
-        }
+              // Check if this was the final round
+              if (winners.length <= 1 || round.round_number >= (tournament.total_rounds || 999)) {
+                  await completeTournament(tournament, winners[0], round.round_number);
+                  results.tournamentsFinished++;
+              } else {
+                  // Create next round
+                  await createNextRound(tournament, winners, round.round_number + 1);
+                  results.roundsAdvanced++;
+              }
+          }
 
-        return res.status(200).json({
-            success: true,
-            results,
-            timestamp: now.toISOString()
-        });
+          return res.status(200).json({
+              success: true,
+              results,
+              timestamp: now.toISOString()
+          });
 
-    } catch (error) {
-        console.error('[Tournament Rounds] Error:', error);
-        return res.status(500).json({ error: error.message });
-    }
+      } catch (error) {
+          console.error('[Tournament Rounds] Error:', error);
+          return res.status(500).json({ error: error.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }
 
 /**

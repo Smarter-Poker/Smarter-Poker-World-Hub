@@ -17,31 +17,37 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
-  if (!applyRateLimit(req, res, 'club-arena/accept-tos')) return;
-
-  const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) return res.status(401).json({ success: false, error: 'Not authenticated' });
-
-  // Phase 8: E2E Test fast-bypass for local testing without .env service keys
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY.includes('mock')) {
-      return res.status(200).json({ success: true, acceptedAt: new Date().toISOString() });
-  }
-
-  const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-  if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
-
   try {
-    const { error: updateErr } = await supabaseAdmin
-      .from('profiles')
-      .update({ club_arena_tos_accepted_at: new Date().toISOString() })
-      .eq('id', user.id);
+    if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
+    if (!applyRateLimit(req, res, 'club-arena/accept-tos')) return;
 
-    if (updateErr) throw updateErr;
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ success: false, error: 'Not authenticated' });
 
-    return res.status(200).json({ success: true, acceptedAt: new Date().toISOString() });
+    // Phase 8: E2E Test fast-bypass for local testing without .env service keys
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY.includes('mock')) {
+        return res.status(200).json({ success: true, acceptedAt: new Date().toISOString() });
+    }
+
+    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+    if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+
+    try {
+      const { error: updateErr } = await supabaseAdmin
+        .from('profiles')
+        .update({ club_arena_tos_accepted_at: new Date().toISOString() })
+        .eq('id', user.id);
+
+      if (updateErr) throw updateErr;
+
+      return res.status(200).json({ success: true, acceptedAt: new Date().toISOString() });
+    } catch (err) {
+      console.error('[accept-tos]', err);
+      return res.status(500).json({ success: false, error: 'Failed to record TOS acceptance' });
+    }
+
   } catch (err) {
-    console.error('[accept-tos]', err);
-    return res.status(500).json({ success: false, error: 'Failed to record TOS acceptance' });
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

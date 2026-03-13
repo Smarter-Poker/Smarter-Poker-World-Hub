@@ -14,98 +14,104 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export default async function handler(req, res) {
-    // Verify cron secret
-    if (process.env.NODE_ENV === 'production') {
-        const authHeader = req.headers.authorization;
-        if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-            return res.status(401).json({ error: 'Unauthorized' });
-        }
-    }
+  try {
+      // Verify cron secret
+      if (process.env.NODE_ENV === 'production') {
+          const authHeader = req.headers.authorization;
+          if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+              return res.status(401).json({ error: 'Unauthorized' });
+          }
+      }
 
-    if (!supabaseUrl || !supabaseKey) {
-        return res.status(500).json({ error: 'Missing Supabase configuration' });
-    }
+      if (!supabaseUrl || !supabaseKey) {
+          return res.status(500).json({ error: 'Missing Supabase configuration' });
+      }
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
+      const supabase = createClient(supabaseUrl, supabaseKey);
 
-    try {
+      try {
 
-        // Calculate today's identifier
-        const now = new Date();
-        const dayStart = new Date(now);
-        dayStart.setHours(dayStart.getHours() - 24); // Past 24 hours
-        const reportDate = now.toISOString().split('T')[0];
+          // Calculate today's identifier
+          const now = new Date();
+          const dayStart = new Date(now);
+          dayStart.setHours(dayStart.getHours() - 24); // Past 24 hours
+          const reportDate = now.toISOString().split('T')[0];
 
-        // Get all users who trained today
-        const { data: sessions, error: sessionsError } = await supabase
-            .from('jarvis_training_sessions')
-            .select('user_id, game_id, category, accuracy, questions_answered, questions_correct, answers_data, leaks_detected')
-            .gte('created_at', dayStart.toISOString())
-            .order('user_id')
-                .limit(100);
+          // Get all users who trained today
+          const { data: sessions, error: sessionsError } = await supabase
+              .from('jarvis_training_sessions')
+              .select('user_id, game_id, category, accuracy, questions_answered, questions_correct, answers_data, leaks_detected')
+              .gte('created_at', dayStart.toISOString())
+              .order('user_id')
+                  .limit(100);
 
-        if (sessionsError) {
-            throw sessionsError;
-        }
+          if (sessionsError) {
+              throw sessionsError;
+          }
 
-        if (!sessions || sessions.length === 0) {
-            return res.status(200).json({
-                success: true,
-                message: 'No training sessions this week',
-                reportsGenerated: 0
-            });
-        }
+          if (!sessions || sessions.length === 0) {
+              return res.status(200).json({
+                  success: true,
+                  message: 'No training sessions this week',
+                  reportsGenerated: 0
+              });
+          }
 
-        // Group sessions by user
-        const userSessions = {};
-        sessions.forEach(session => {
-            if (!userSessions[session.user_id]) {
-                userSessions[session.user_id] = [];
-            }
-            userSessions[session.user_id].push(session);
-        });
+          // Group sessions by user
+          const userSessions = {};
+          sessions.forEach(session => {
+              if (!userSessions[session.user_id]) {
+                  userSessions[session.user_id] = [];
+              }
+              userSessions[session.user_id].push(session);
+          });
 
-        const grok = getGrokClient();
-        let reportsGenerated = 0;
+          const grok = getGrokClient();
+          let reportsGenerated = 0;
 
-        // Generate report for each user
-        for (const [userId, userSessionList] of Object.entries(userSessions)) {
-            try {
-                const report = await generateWeeklyReport(grok, userSessionList, userId);
+          // Generate report for each user
+          for (const [userId, userSessionList] of Object.entries(userSessions)) {
+              try {
+                  const report = await generateWeeklyReport(grok, userSessionList, userId);
 
-                await supabase
-                    .from('jarvis_weekly_reports')
-                    .upsert({
-                        user_id: userId,
-                        report_week: reportWeek,
-                        sessions_count: userSessionList.length,
-                        questions_count: userSessionList.reduce((sum, s) => sum + s.questions_answered, 0),
-                        accuracy: calculateAverageAccuracy(userSessionList),
-                        primary_leaks: report.leaks,
-                        improvements: report.improvements,
-                        recommendations: report.recommendations,
-                        grok_analysis: report.analysis,
-                        created_at: new Date().toISOString(),
-                    }, { onConflict: 'user_id,report_week' });
+                  await supabase
+                      .from('jarvis_weekly_reports')
+                      .upsert({
+                          user_id: userId,
+                          report_week: reportWeek,
+                          sessions_count: userSessionList.length,
+                          questions_count: userSessionList.reduce((sum, s) => sum + s.questions_answered, 0),
+                          accuracy: calculateAverageAccuracy(userSessionList),
+                          primary_leaks: report.leaks,
+                          improvements: report.improvements,
+                          recommendations: report.recommendations,
+                          grok_analysis: report.analysis,
+                          created_at: new Date().toISOString(),
+                      }, { onConflict: 'user_id,report_week' });
 
-                reportsGenerated++;
-            } catch (err) {
-                console.error(`[WeeklyLeakReport] Error for user ${userId}:`, err.message);
-            }
-        }
+                  reportsGenerated++;
+              } catch (err) {
+                  console.error(`[WeeklyLeakReport] Error for user ${userId}:`, err.message);
+              }
+          }
 
 
-        return res.status(200).json({
-            success: true,
-            message: 'Weekly reports generated',
-            reportsGenerated,
-            reportWeek,
-        });
+          return res.status(200).json({
+              success: true,
+              message: 'Weekly reports generated',
+              reportsGenerated,
+              reportWeek,
+          });
 
-    } catch (error) {
-        console.error('[WeeklyLeakReport] Error:', error);
-        return res.status(500).json({ error: 'Failed to generate reports', details: error.message });
-    }
+      } catch (error) {
+          console.error('[WeeklyLeakReport] Error:', error);
+          return res.status(500).json({ error: 'Failed to generate reports', details: error.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }
 
 async function generateWeeklyReport(grok, sessions, userId) {

@@ -17,109 +17,115 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-        if (!applyRateLimit(req, res, LIMITS.write)) return;
-    }
+  try {
+      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+          if (!applyRateLimit(req, res, LIMITS.write)) return;
+      }
 
-    // Require JWT auth for write operations
-    if (req.method !== 'GET') {
-        const _token = req.headers.authorization?.replace('Bearer ', '');
-        if (!_token) return res.status(401).json({ error: 'Authentication required' });
-        const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
-        if (_authErr || !_authUser) return res.status(401).json({ error: 'Invalid token' });
-        if (req.body) req.body.userId = _authUser.id;
-    }
-    if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
-    }
+      // Require JWT auth for write operations
+      if (req.method !== 'GET') {
+          const _token = req.headers.authorization?.replace('Bearer ', '');
+          if (!_token) return res.status(401).json({ error: 'Authentication required' });
+          const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
+          if (_authErr || !_authUser) return res.status(401).json({ error: 'Invalid token' });
+          if (req.body) req.body.userId = _authUser.id;
+      }
+      if (req.method !== 'POST') {
+          return res.status(405).json({ error: 'Method not allowed' });
+      }
 
-    try {
-        const { game_id, level = 1 } = req.body;
-        // BUG #272 FIX: Always use authenticated user ID, not client-supplied user_id.
-        // The auth middleware sets req.body.userId (camelCase) but this code was
-        // reading user_id (snake_case) from the body, ignoring the JWT identity.
-        const user_id = req.body.userId; // Set by auth middleware from JWT
+      try {
+          const { game_id, level = 1 } = req.body;
+          // BUG #272 FIX: Always use authenticated user ID, not client-supplied user_id.
+          // The auth middleware sets req.body.userId (camelCase) but this code was
+          // reading user_id (snake_case) from the body, ignoring the JWT identity.
+          const user_id = req.body.userId; // Set by auth middleware from JWT
 
-        if (!game_id) {
-            return res.status(400).json({ error: 'Missing game_id' });
-        }
+          if (!game_id) {
+              return res.status(400).json({ error: 'Missing game_id' });
+          }
 
-        // Generate a session ID
-        const sessionId = uuidv4();
-        const effectiveUserId = user_id; // Always authenticated, no anonymous fallback
+          // Generate a session ID
+          const sessionId = uuidv4();
+          const effectiveUserId = user_id; // Always authenticated, no anonymous fallback
 
-        // Get game info from registry
-        let gameName = 'Training Game';
-        let engineType = 'PIO';
-        let gameConfig = {};
+          // Get game info from registry
+          let gameName = 'Training Game';
+          let engineType = 'PIO';
+          let gameConfig = {};
 
-        const { data: game, error: gameError } = await supabase
-            .from('game_registry')
-            .select('*')
-            .eq('slug', game_id)
-            .maybeSingle();
+          const { data: game, error: gameError } = await supabase
+              .from('game_registry')
+              .select('*')
+              .eq('slug', game_id)
+              .maybeSingle();
 
-        if (game) {
-            gameName = game.title || game.name || gameName;
-            engineType = game.engine_type || engineType;
-            gameConfig = game.config || {};
-        }
+          if (game) {
+              gameName = game.title || game.name || gameName;
+              engineType = game.engine_type || engineType;
+              gameConfig = game.config || {};
+          }
 
-        // Try to get or create user session record
-        let currentLevel = level;
-        let currentHp = 100;
+          // Try to get or create user session record
+          let currentLevel = level;
+          let currentHp = 100;
 
-        if (user_id) {
-            // Check for existing session/progress
-            const { data: existingSession } = await supabase
-                .from('god_mode_user_session')
-                .select('*')
-                .eq('user_id', user_id)
-                .eq('game_id', game_id)
-                .maybeSingle();
+          if (user_id) {
+              // Check for existing session/progress
+              const { data: existingSession } = await supabase
+                  .from('god_mode_user_session')
+                  .select('*')
+                  .eq('user_id', user_id)
+                  .eq('game_id', game_id)
+                  .maybeSingle();
 
-            if (existingSession) {
-                currentLevel = Math.max(level, existingSession.current_level || 1);
-                currentHp = existingSession.health_chips || 100;
-            }
+              if (existingSession) {
+                  currentLevel = Math.max(level, existingSession.current_level || 1);
+                  currentHp = existingSession.health_chips || 100;
+              }
 
-            // Create or update session record
-            const { error: upsertError } = await supabase
-                .from('god_mode_user_session')
-                .upsert({
-                    user_id: user_id,
-                    game_id: game_id,
-                    session_id: sessionId,
-                    current_level: currentLevel,
-                    health_chips: currentHp,
-                    round_hand_count: 0,
-                    round_correct_count: 0,
-                    total_hands_played: existingSession?.total_hands_played || 0,
-                    total_correct: existingSession?.total_correct || 0,
-                    highest_level_unlocked: existingSession?.highest_level_unlocked || 1,
-                    updated_at: new Date().toISOString(),
-                }, {
-                    onConflict: 'user_id,game_id'
-                });
+              // Create or update session record
+              const { error: upsertError } = await supabase
+                  .from('god_mode_user_session')
+                  .upsert({
+                      user_id: user_id,
+                      game_id: game_id,
+                      session_id: sessionId,
+                      current_level: currentLevel,
+                      health_chips: currentHp,
+                      round_hand_count: 0,
+                      round_correct_count: 0,
+                      total_hands_played: existingSession?.total_hands_played || 0,
+                      total_correct: existingSession?.total_correct || 0,
+                      highest_level_unlocked: existingSession?.highest_level_unlocked || 1,
+                      updated_at: new Date().toISOString(),
+                  }, {
+                      onConflict: 'user_id,game_id'
+                  });
 
-            // HIGH FIX #3: Add error logging to empty error handler
-            if (upsertError) {
-                console.error('[Session] Upsert error:', upsertError.message);
-            }
-        }
+              // HIGH FIX #3: Add error logging to empty error handler
+              if (upsertError) {
+                  console.error('[Session] Upsert error:', upsertError.message);
+              }
+          }
 
-        // Return session data
-        return res.status(200).json({
-            session_id: sessionId,
-            game_name: gameName,
-            engine_type: engineType,
-            current_level: currentLevel,
-            current_hp: currentHp,
-            config: gameConfig,
-        });
+          // Return session data
+          return res.status(200).json({
+              session_id: sessionId,
+              game_name: gameName,
+              engine_type: engineType,
+              current_level: currentLevel,
+              current_hp: currentHp,
+              config: gameConfig,
+          });
 
-    } catch (error) {
-        console.error('Session start error:', error);
-        return res.status(500).json({ error: 'Internal server error' });
-    }
+      } catch (error) {
+          console.error('Session start error:', error);
+          return res.status(500).json({ error: 'Internal server error' });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

@@ -6,35 +6,41 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-    if (req.method !== 'POST' && req.method !== 'GET') {
-        return res.status(405).json({ error: 'Method not allowed' });
-    }
+  try {
+      if (req.method !== 'POST' && req.method !== 'GET') {
+          return res.status(405).json({ error: 'Method not allowed' });
+      }
 
-    // Verify cron secret
-    const cronSecret = req.headers.authorization?.replace('Bearer ', '');
-    if (cronSecret !== process.env.CRON_SECRET) {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
+      // Verify cron secret
+      const cronSecret = req.headers.authorization?.replace('Bearer ', '');
+      if (cronSecret !== process.env.CRON_SECRET) {
+          return res.status(401).json({ error: 'Unauthorized' });
+      }
 
-    try {
-        console.log('[Cron] Starting expired day pass cleanup...');
+      try {
+          console.log('[Cron] Starting expired day pass cleanup...');
 
-        const { data, error } = await supabase
-            .from('premium_feature_access')
-            .delete()
-            .lt('expires_at', new Date().toISOString());
+          const { data, error } = await supabase
+              .from('premium_feature_access')
+              .delete()
+              .lt('expires_at', new Date().toISOString());
 
-        if (error) throw error;
+          if (error) throw error;
 
-        console.log('[Cron] Expired day pass cleanup complete:', data);
+          console.log('[Cron] Expired day pass cleanup complete:', data);
 
-        return res.status(200).json({
-            success: true,
-            message: 'Expired passes cleaned up',
-            deleted: data?.length || 0
-        });
-    } catch (error) {
-        console.error('[Cron] Error cleaning expired passes:', error.message);
-        return res.status(500).json({ success: false, error: error.message });
-    }
+          return res.status(200).json({
+              success: true,
+              message: 'Expired passes cleaned up',
+              deleted: data?.length || 0
+          });
+      } catch (error) {
+          console.error('[Cron] Error cleaning expired passes:', error.message);
+          return res.status(500).json({ success: false, error: error.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

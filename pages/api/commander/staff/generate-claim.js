@@ -14,97 +14,103 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-        if (!applyRateLimit(req, res, LIMITS.write)) return;
-    }
+  try {
+      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+          if (!applyRateLimit(req, res, LIMITS.write)) return;
+      }
 
-    if (req.method !== 'POST') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
+      if (req.method !== 'POST') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
 
-    try {
-        const { venue_id, staff_id } = req.body;
+      try {
+          const { venue_id, staff_id } = req.body;
 
-        if (!venue_id || !staff_id) {
-            return res.status(400).json({ success: false, error: 'venue_id and staff_id required' });
-        }
+          if (!venue_id || !staff_id) {
+              return res.status(400).json({ success: false, error: 'venue_id and staff_id required' });
+          }
 
-        // Require owner or manager auth
-        const authResult = await verifyManagerSession(req, venue_id);
-        if (authResult.error) {
-            return res.status(authResult.error.status).json({
-                success: false,
-                error: authResult.error.message,
-            });
-        }
+          // Require owner or manager auth
+          const authResult = await verifyManagerSession(req, venue_id);
+          if (authResult.error) {
+              return res.status(authResult.error.status).json({
+                  success: false,
+                  error: authResult.error.message,
+              });
+          }
 
-        // Verify staff exists at this venue
-        const { data: staff, error: staffErr } = await supabase
-            .from('commander_staff')
-            .select('id, display_name, role, linked_user_id, email')
-            .eq('id', staff_id)
-            .eq('venue_id', venue_id)
-            .eq('is_active', true)
-            .maybeSingle();
+          // Verify staff exists at this venue
+          const { data: staff, error: staffErr } = await supabase
+              .from('commander_staff')
+              .select('id, display_name, role, linked_user_id, email')
+              .eq('id', staff_id)
+              .eq('venue_id', venue_id)
+              .eq('is_active', true)
+              .maybeSingle();
 
-        if (staffErr || !staff) {
-            return res.status(404).json({ success: false, error: 'Staff member not found' });
-        }
+          if (staffErr || !staff) {
+              return res.status(404).json({ success: false, error: 'Staff member not found' });
+          }
 
-        if (staff.linked_user_id) {
-            return res.status(400).json({
-                success: false,
-                error: 'This staff member is already linked to a Smarter.Poker account',
-            });
-        }
+          if (staff.linked_user_id) {
+              return res.status(400).json({
+                  success: false,
+                  error: 'This staff member is already linked to a Smarter.Poker account',
+              });
+          }
 
-        // Invalidate any existing unclaimed tokens for this staff member
-        await supabase
-            .from('staff_claim_tokens')
-            .update({ expires_at: new Date().toISOString() })
-            .eq('staff_id', staff_id)
-            .is('claimed_by', null);
+          // Invalidate any existing unclaimed tokens for this staff member
+          await supabase
+              .from('staff_claim_tokens')
+              .update({ expires_at: new Date().toISOString() })
+              .eq('staff_id', staff_id)
+              .is('claimed_by', null);
 
-        // Generate a unique 6-character alphanumeric code
-        const token = crypto.randomBytes(4).toString('hex').substring(0, 6).toUpperCase();
+          // Generate a unique 6-character alphanumeric code
+          const token = crypto.randomBytes(4).toString('hex').substring(0, 6).toUpperCase();
 
-        const { data: claim, error: insertErr } = await supabase
-            .from('staff_claim_tokens')
-            .insert({
-                venue_id,
-                staff_id,
-                token,
-                expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-            })
-            .select()
-            .maybeSingle();
+          const { data: claim, error: insertErr } = await supabase
+              .from('staff_claim_tokens')
+              .insert({
+                  venue_id,
+                  staff_id,
+                  token,
+                  expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+              })
+              .select()
+              .maybeSingle();
 
-        if (insertErr) {
-            console.error('Generate claim error:', insertErr);
-            return res.status(500).json({ success: false, error: 'Failed to generate claim code' });
-        }
+          if (insertErr) {
+              console.error('Generate claim error:', insertErr);
+              return res.status(500).json({ success: false, error: 'Failed to generate claim code' });
+          }
 
-        // Get venue name for the claim URL display
-        const { data: venue } = await supabase
-            .from('poker_venues')
-            .select('name')
-            .eq('id', venue_id)
-            .maybeSingle();
+          // Get venue name for the claim URL display
+          const { data: venue } = await supabase
+              .from('poker_venues')
+              .select('name')
+              .eq('id', venue_id)
+              .maybeSingle();
 
-        return res.status(201).json({
-            success: true,
-            data: {
-                token: claim.token,
-                expires_at: claim.expires_at,
-                claim_url: `https://smarter.poker/claim/${claim.token}`,
-                staff_name: staff.display_name,
-                venue_name: venue?.name || 'Unknown Venue',
-            },
-        });
+          return res.status(201).json({
+              success: true,
+              data: {
+                  token: claim.token,
+                  expires_at: claim.expires_at,
+                  claim_url: `https://smarter.poker/claim/${claim.token}`,
+                  staff_name: staff.display_name,
+                  venue_name: venue?.name || 'Unknown Venue',
+              },
+          });
 
-        // Execute audit log after returning response if possible, or just before
-    } catch (err) {
-        console.error('Generate claim code error:', err);
-        return res.status(500).json({ success: false, error: 'Internal server error' });
-    }
+          // Execute audit log after returning response if possible, or just before
+      } catch (err) {
+          console.error('Generate claim code error:', err);
+          return res.status(500).json({ success: false, error: 'Internal server error' });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

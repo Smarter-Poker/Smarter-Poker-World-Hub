@@ -214,208 +214,214 @@ async function saveToCache(question, answer, questionType, userId) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default async function handler(req, res) {
-    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-        if (!applyRateLimit(req, res, LIMITS.write)) return;
-    }
+  try {
+      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+          if (!applyRateLimit(req, res, LIMITS.write)) return;
+      }
 
-    if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
-    }
+      if (req.method !== 'POST') {
+          return res.status(405).json({ error: 'Method not allowed' });
+      }
 
-    try {
-        const { question, conversationId, conversationHistory, currentPage } = req.body;
+      try {
+          const { question, conversationId, conversationHistory, currentPage } = req.body;
 
-        if (!question) {
-            return res.status(400).json({ error: 'Question is required' });
-        }
+          if (!question) {
+              return res.status(400).json({ error: 'Question is required' });
+          }
 
-        // ═══════════════════════════════════════════════════════════════════
-        // STEP 0: Check Local Knowledge Base (FREE, instant, no auth needed)
-        // ═══════════════════════════════════════════════════════════════════
-        const kbResult = lookupKnowledgeBase(question, currentPage);
+          // ═══════════════════════════════════════════════════════════════════
+          // STEP 0: Check Local Knowledge Base (FREE, instant, no auth needed)
+          // ═══════════════════════════════════════════════════════════════════
+          const kbResult = lookupKnowledgeBase(question, currentPage);
 
-        if (kbResult && kbResult.confidence >= 45) {
-            // Try to save to conversation if user is authenticated
-            if (conversationId) {
-                try {
-                    const authHeader = req.headers.authorization;
-                    if (authHeader?.startsWith('Bearer ')) {
-                        const token = authHeader.replace('Bearer ', '');
-                        const { data: { user } } = await supabase.auth.getUser(token);
-                        if (user) {
-                            await saveConversationMessages(conversationId, question, kbResult.answer, null, false);
-                        }
-                    }
-                } catch { /* non-critical — don't block the response */ }
-            }
+          if (kbResult && kbResult.confidence >= 45) {
+              // Try to save to conversation if user is authenticated
+              if (conversationId) {
+                  try {
+                      const authHeader = req.headers.authorization;
+                      if (authHeader?.startsWith('Bearer ')) {
+                          const token = authHeader.replace('Bearer ', '');
+                          const { data: { user } } = await supabase.auth.getUser(token);
+                          if (user) {
+                              await saveConversationMessages(conversationId, question, kbResult.answer, null, false);
+                          }
+                      }
+                  } catch { /* non-critical — don't block the response */ }
+              }
 
-            return res.status(200).json({
-                answer: kbResult.answer,
-                questionType: kbResult.category,
-                fromLocalKB: true,
-                followUps: kbResult.followUps || [],
-                confidence: kbResult.confidence,
-                entryId: kbResult.entryId,
-            });
-        }
+              return res.status(200).json({
+                  answer: kbResult.answer,
+                  questionType: kbResult.category,
+                  fromLocalKB: true,
+                  followUps: kbResult.followUps || [],
+                  confidence: kbResult.confidence,
+                  entryId: kbResult.entryId,
+              });
+          }
 
-        // ── Auth required for cache + Grok tiers ──
-        const authHeader = req.headers.authorization;
-        if (!authHeader?.startsWith('Bearer ')) {
-            // Guest users only get KB answers
-            if (kbResult && kbResult.confidence >= 30) {
-                return res.status(200).json({
-                    answer: kbResult.answer,
-                    questionType: kbResult.category,
-                    fromLocalKB: true,
-                    followUps: kbResult.followUps || [],
-                    confidence: kbResult.confidence,
-                    guestMode: true,
-                });
-            }
-            return res.status(401).json({ error: 'Sign in for AI-powered answers to this question' });
-        }
+          // ── Auth required for cache + Grok tiers ──
+          const authHeader = req.headers.authorization;
+          if (!authHeader?.startsWith('Bearer ')) {
+              // Guest users only get KB answers
+              if (kbResult && kbResult.confidence >= 30) {
+                  return res.status(200).json({
+                      answer: kbResult.answer,
+                      questionType: kbResult.category,
+                      fromLocalKB: true,
+                      followUps: kbResult.followUps || [],
+                      confidence: kbResult.confidence,
+                      guestMode: true,
+                  });
+              }
+              return res.status(401).json({ error: 'Sign in for AI-powered answers to this question' });
+          }
 
-        const token = authHeader.replace('Bearer ', '');
-        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+          const token = authHeader.replace('Bearer ', '');
+          const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
-        if (authError || !user) {
-            return res.status(401).json({ error: 'Invalid token' });
-        }
+          if (authError || !user) {
+              return res.status(401).json({ error: 'Invalid token' });
+          }
 
-        const questionHash = hashQuestion(question);
-        const questionType = detectQuestionType(question);
+          const questionHash = hashQuestion(question);
+          const questionType = detectQuestionType(question);
 
 
-        // ═══════════════════════════════════════════════════════════════════
-        // STEP 1: Check exact cache match
-        // ═══════════════════════════════════════════════════════════════════
-        let cachedAnswer = await checkExactCache(questionHash);
+          // ═══════════════════════════════════════════════════════════════════
+          // STEP 1: Check exact cache match
+          // ═══════════════════════════════════════════════════════════════════
+          let cachedAnswer = await checkExactCache(questionHash);
 
-        if (cachedAnswer) {
+          if (cachedAnswer) {
 
-            await incrementCacheServed(cachedAnswer.id);
+              await incrementCacheServed(cachedAnswer.id);
 
-            // Save to conversation if ID provided
-            if (conversationId) {
-                await saveConversationMessages(conversationId, question, cachedAnswer.answer, cachedAnswer.id, true);
-            }
+              // Save to conversation if ID provided
+              if (conversationId) {
+                  await saveConversationMessages(conversationId, question, cachedAnswer.answer, cachedAnswer.id, true);
+              }
 
-            // Track analytics
-            await trackAnalytics(user.id, questionType, question, cachedAnswer.answer.length, true);
+              // Track analytics
+              await trackAnalytics(user.id, questionType, question, cachedAnswer.answer.length, true);
 
-            return res.status(200).json({
-                answer: cachedAnswer.answer,
-                questionType,
-                fromCache: true,
-                cacheId: cachedAnswer.id,
-                timesServed: cachedAnswer.times_served + 1,
-                avgRating: cachedAnswer.avg_rating
-            });
-        }
+              return res.status(200).json({
+                  answer: cachedAnswer.answer,
+                  questionType,
+                  fromCache: true,
+                  cacheId: cachedAnswer.id,
+                  timesServed: cachedAnswer.times_served + 1,
+                  avgRating: cachedAnswer.avg_rating
+              });
+          }
 
-        // ═══════════════════════════════════════════════════════════════════
-        // STEP 2: Check similar questions (fuzzy match)
-        // ═══════════════════════════════════════════════════════════════════
-        const similarAnswer = await checkSimilarCache(question);
+          // ═══════════════════════════════════════════════════════════════════
+          // STEP 2: Check similar questions (fuzzy match)
+          // ═══════════════════════════════════════════════════════════════════
+          const similarAnswer = await checkSimilarCache(question);
 
-        if (similarAnswer) {
+          if (similarAnswer) {
 
-            await incrementCacheServed(similarAnswer.id);
+              await incrementCacheServed(similarAnswer.id);
 
-            if (conversationId) {
-                await saveConversationMessages(conversationId, question, similarAnswer.answer, similarAnswer.id, true);
-            }
+              if (conversationId) {
+                  await saveConversationMessages(conversationId, question, similarAnswer.answer, similarAnswer.id, true);
+              }
 
-            await trackAnalytics(user.id, questionType, question, similarAnswer.answer.length, true);
+              await trackAnalytics(user.id, questionType, question, similarAnswer.answer.length, true);
 
-            return res.status(200).json({
-                answer: similarAnswer.answer,
-                questionType,
-                fromCache: true,
-                cacheId: similarAnswer.id,
-                timesServed: similarAnswer.times_served + 1,
-                avgRating: similarAnswer.avg_rating,
-                similarTo: similarAnswer.question_original
-            });
-        }
+              return res.status(200).json({
+                  answer: similarAnswer.answer,
+                  questionType,
+                  fromCache: true,
+                  cacheId: similarAnswer.id,
+                  timesServed: similarAnswer.times_served + 1,
+                  avgRating: similarAnswer.avg_rating,
+                  similarTo: similarAnswer.question_original
+              });
+          }
 
-        // ═══════════════════════════════════════════════════════════════════
-        // STEP 3: No cache hit — call Grok
-        // ═══════════════════════════════════════════════════════════════════
+          // ═══════════════════════════════════════════════════════════════════
+          // STEP 3: No cache hit — call Grok
+          // ═══════════════════════════════════════════════════════════════════
 
-        const grok = getGrokClient();
+          const grok = getGrokClient();
 
-        // Build messages array with conversation history
-        const messages = [
-            { role: 'system', content: GEEVES_SYSTEM_PROMPT }
-        ];
+          // Build messages array with conversation history
+          const messages = [
+              { role: 'system', content: GEEVES_SYSTEM_PROMPT }
+          ];
 
-        // Add conversation history if provided (for context)
-        if (conversationHistory && conversationHistory.length > 0) {
-            // Only include last 6 messages for context
-            const recentHistory = conversationHistory.slice(-6);
-            recentHistory.forEach(msg => {
-                messages.push({
-                    role: msg.isUser ? 'user' : 'assistant',
-                    content: msg.content
-                });
-            });
-        }
+          // Add conversation history if provided (for context)
+          if (conversationHistory && conversationHistory.length > 0) {
+              // Only include last 6 messages for context
+              const recentHistory = conversationHistory.slice(-6);
+              recentHistory.forEach(msg => {
+                  messages.push({
+                      role: msg.isUser ? 'user' : 'assistant',
+                      content: msg.content
+                  });
+              });
+          }
 
-        messages.push({ role: 'user', content: question });
+          messages.push({ role: 'user', content: question });
 
-        const response = await grok.chat.completions.create({
-            model: 'grok-beta',
-            messages,
-            temperature: 0.7,
-            max_tokens: 2000,
-            stream: false
-        });
+          const response = await grok.chat.completions.create({
+              model: 'grok-beta',
+              messages,
+              temperature: 0.7,
+              max_tokens: 2000,
+              stream: false
+          });
 
-        const answer = response.choices[0].message.content;
+          const answer = response.choices[0].message.content;
 
-        // ═══════════════════════════════════════════════════════════════════
-        // STEP 4: Save to cache for future use
-        // ═══════════════════════════════════════════════════════════════════
-        const cacheEntry = await saveToCache(question, answer, questionType, user.id);
+          // ═══════════════════════════════════════════════════════════════════
+          // STEP 4: Save to cache for future use
+          // ═══════════════════════════════════════════════════════════════════
+          const cacheEntry = await saveToCache(question, answer, questionType, user.id);
 
-        // Auto-Learning Loop — log missed question to Supabase
-        try {
-            await supabase.rpc('geeves_upsert_missed_question', {
-                p_question: question,
-                p_hash: questionHash,
-                p_page: currentPage || null,
-                p_grok_answer: answer,
-            });
-        } catch (err) {
-            console.warn('[Geeves Ask] Failed to log missed question:', err.message);
-        }
+          // Auto-Learning Loop — log missed question to Supabase
+          try {
+              await supabase.rpc('geeves_upsert_missed_question', {
+                  p_question: question,
+                  p_hash: questionHash,
+                  p_page: currentPage || null,
+                  p_grok_answer: answer,
+              });
+          } catch (err) {
+              console.warn('[Geeves Ask] Failed to log missed question:', err.message);
+          }
 
-        // Save to conversation
-        if (conversationId) {
-            await saveConversationMessages(conversationId, question, answer, cacheEntry?.id, false);
-        }
+          // Save to conversation
+          if (conversationId) {
+              await saveConversationMessages(conversationId, question, answer, cacheEntry?.id, false);
+          }
 
-        // Track analytics
-        await trackAnalytics(user.id, questionType, question, answer.length, false);
+          // Track analytics
+          await trackAnalytics(user.id, questionType, question, answer.length, false);
 
-        return res.status(200).json({
-            answer,
-            questionType,
-            fromCache: false,
-            cacheId: cacheEntry?.id,
-            timesServed: 1,
-            missedQuestion: true
-        });
+          return res.status(200).json({
+              answer,
+              questionType,
+              fromCache: false,
+              cacheId: cacheEntry?.id,
+              timesServed: 1,
+              missedQuestion: true
+          });
 
-    } catch (error) {
-        console.error('[Geeves] Error:', error);
-        return res.status(500).json({
-            error: 'Failed to process question',
-            details: error.message
-        });
-    }
+      } catch (error) {
+          console.error('[Geeves] Error:', error);
+          return res.status(500).json({
+              error: 'Failed to process question',
+              details: error.message
+          });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

@@ -14,22 +14,28 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+    if (req.method !== 'GET') { const _u = await guardUser(req, res); if (!_u) return; }
+
+    if (req.method === 'GET') {
+      return listEvents(req, res);
+    }
+
+    if (req.method === 'POST') {
+      return createEvent(req, res);
+    }
+
+    res.setHeader('Allow', ['GET', 'POST']);
+    return res.status(405).json({ error: 'Method not allowed' });
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-  if (req.method !== 'GET') { const _u = await guardUser(req, res); if (!_u) return; }
-
-  if (req.method === 'GET') {
-    return listEvents(req, res);
-  }
-
-  if (req.method === 'POST') {
-    return createEvent(req, res);
-  }
-
-  res.setHeader('Allow', ['GET', 'POST']);
-  return res.status(405).json({ error: 'Method not allowed' });
 }
 
 async function listEvents(req, res) {

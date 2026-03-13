@@ -19,108 +19,114 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-        if (!applyRateLimit(req, res, LIMITS.write)) return;
-    }
+  try {
+      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+          if (!applyRateLimit(req, res, LIMITS.write)) return;
+      }
 
-    if (req.method !== 'POST') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
+      if (req.method !== 'POST') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
 
-    // Auth guard
-    const _auth = await guardWriteStaff(req, res);
-    if (!_auth) return;
+      // Auth guard
+      const _auth = await guardWriteStaff(req, res);
+      if (!_auth) return;
 
-    const { venue_id, count, max_seats = 9 } = req.body;
+      const { venue_id, count, max_seats = 9 } = req.body;
 
-    if (!venue_id) {
-        return res.status(400).json({ success: false, error: 'venue_id is required' });
-    }
-    if (!count || count < 1 || count > 200) {
-        return res.status(400).json({ success: false, error: 'count must be between 1 and 200' });
-    }
+      if (!venue_id) {
+          return res.status(400).json({ success: false, error: 'venue_id is required' });
+      }
+      if (!count || count < 1 || count > 200) {
+          return res.status(400).json({ success: false, error: 'count must be between 1 and 200' });
+      }
 
-    try {
-        // 1. Verify venue exists
-        const { data: venue, error: venueErr } = await supabase
-            .from('poker_venues')
-            .select('id, name')
-            .eq('id', venue_id)
-            .maybeSingle();
+      try {
+          // 1. Verify venue exists
+          const { data: venue, error: venueErr } = await supabase
+              .from('poker_venues')
+              .select('id, name')
+              .eq('id', venue_id)
+              .maybeSingle();
 
-        if (venueErr || !venue) {
-            return res.status(404).json({ success: false, error: 'Venue not found' });
-        }
+          if (venueErr || !venue) {
+              return res.status(404).json({ success: false, error: 'Venue not found' });
+          }
 
-        // 2. Get existing tables
-        const { data: existingTables } = await supabase
-            .from('commander_tables')
-            .select('table_number')
-            .eq('venue_id', venue_id)
+          // 2. Get existing tables
+          const { data: existingTables } = await supabase
+              .from('commander_tables')
+              .select('table_number')
+              .eq('venue_id', venue_id)
 
-        const existingNumbers = new Set((existingTables || []).map(t => t.table_number));
+          const existingNumbers = new Set((existingTables || []).map(t => t.table_number));
 
-        // 3. Create missing tables
-        const tablesToInsert = [];
-        for (let i = 1; i <= count; i++) {
-            if (!existingNumbers.has(i)) {
-                tablesToInsert.push({
-                    venue_id,
-                    table_number: i,
-                    table_name: `Table ${i}`,
-                    max_seats: parseInt(max_seats) || 9,
-                    status: 'available',
-                });
-            }
-        }
+          // 3. Create missing tables
+          const tablesToInsert = [];
+          for (let i = 1; i <= count; i++) {
+              if (!existingNumbers.has(i)) {
+                  tablesToInsert.push({
+                      venue_id,
+                      table_number: i,
+                      table_name: `Table ${i}`,
+                      max_seats: parseInt(max_seats) || 9,
+                      status: 'available',
+                  });
+              }
+          }
 
-        if (tablesToInsert.length === 0) {
-            return res.status(200).json({
-                success: true,
-                message: `All ${count} tables already exist for ${venue.name}`,
-                created: 0,
-                existing: existingNumbers.size,
-            });
-        }
+          if (tablesToInsert.length === 0) {
+              return res.status(200).json({
+                  success: true,
+                  message: `All ${count} tables already exist for ${venue.name}`,
+                  created: 0,
+                  existing: existingNumbers.size,
+              });
+          }
 
-        const { error: insertErr } = await supabase
-            .from('commander_tables')
-            .insert(tablesToInsert);
+          const { error: insertErr } = await supabase
+              .from('commander_tables')
+              .insert(tablesToInsert);
 
-        if (insertErr) {
-            console.error('Table provision insert error:', insertErr);
-            return res.status(500).json({ success: false, error: 'Failed to create tables: ' + insertErr.message });
-        }
+          if (insertErr) {
+              console.error('Table provision insert error:', insertErr);
+              return res.status(500).json({ success: false, error: 'Failed to create tables: ' + insertErr.message });
+          }
 
-        // 4. Update poker_venues.poker_tables count
-        await supabase
-            .from('poker_venues')
-            .update({ poker_tables: count })
-            .eq('id', venue_id);
+          // 4. Update poker_venues.poker_tables count
+          await supabase
+              .from('poker_venues')
+              .update({ poker_tables: count })
+              .eq('id', venue_id);
 
-        // Audit log
-        if (_auth && _auth.id) {
-            await logAction({ action: 'provision_tables', category: 'table' }, {
-                venueId: venue_id,
-                staffId: _auth.id,
-                targetId: venue_id,
-                targetType: 'poker_venues',
-                targetName: venue.name,
-                metadata: { count_requested: count, tables_created: tablesToInsert.length },
-                req
-            });
-        }
+          // Audit log
+          if (_auth && _auth.id) {
+              await logAction({ action: 'provision_tables', category: 'table' }, {
+                  venueId: venue_id,
+                  staffId: _auth.id,
+                  targetId: venue_id,
+                  targetType: 'poker_venues',
+                  targetName: venue.name,
+                  metadata: { count_requested: count, tables_created: tablesToInsert.length },
+                  req
+              });
+          }
 
-        return res.status(200).json({
-            success: true,
-            message: `Provisioned ${tablesToInsert.length} tables for ${venue.name}`,
-            created: tablesToInsert.length,
-            existing: existingNumbers.size,
-            total: existingNumbers.size + tablesToInsert.length,
-        });
+          return res.status(200).json({
+              success: true,
+              message: `Provisioned ${tablesToInsert.length} tables for ${venue.name}`,
+              created: tablesToInsert.length,
+              existing: existingNumbers.size,
+              total: existingNumbers.size + tablesToInsert.length,
+          });
 
-    } catch (err) {
-        console.error('Provision tables error:', err);
-        return res.status(500).json({ success: false, error: 'Internal server error' });
-    }
+      } catch (err) {
+          console.error('Provision tables error:', err);
+          return res.status(500).json({ success: false, error: 'Internal server error' });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

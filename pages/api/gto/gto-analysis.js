@@ -62,118 +62,124 @@ const ACTION_COLORS = {
 };
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+    // BUG #244 FIX: Require JWT auth — these routes use paid AI APIs
+    const _authSupa = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+    const _token = req.headers.authorization?.replace('Bearer ', '');
+    if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
+    const { data: { user: _authUser }, error: _authErr } = await _authSupa.auth.getUser(_token);
+    if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+
+      if (req.method !== 'POST') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
+
+      try {
+          const {
+              hand,           // e.g., "AKs"
+              position,       // e.g., "BTN"
+              stackDepth,     // e.g., 100
+              board,          // e.g., "Jh7s2d" or ["Jh", "7s", "2d"]
+              street,         // e.g., "flop"
+              villainPosition,// e.g., "BB"
+              action,         // e.g., "facing bet"
+              gameType,       // e.g., "cash", "mtt"
+          } = req.body;
+
+          if (!hand) {
+              return res.status(400).json({ success: false, error: 'Missing required field: hand' });
+          }
+
+          // Normalize board to string
+          const boardString = Array.isArray(board) ? board.join('') : (board || '');
+
+          // Build cache key params
+          const cacheParams = {
+              hand: hand.toLowerCase(),
+              position: (position || 'BTN').toUpperCase(),
+              stackDepth: stackDepth || 100,
+              board: boardString.toLowerCase(),
+              street: (street || 'flop').toLowerCase(),
+              villainPosition: (villainPosition || 'BB').toUpperCase(),
+              action: (action || '').toLowerCase(),
+              gameType: (gameType || 'cash').toLowerCase(),
+          };
+
+          // Check cache first
+          const cached = await getCachedResponse('gto-analysis', cacheParams);
+          if (cached) {
+              return res.status(200).json({
+                  ...cached,
+                  fromCache: true,
+              });
+          }
+
+          // Query PioSolver data
+          let pioData = null;
+          let source = 'GROK_AI';
+
+          try {
+              pioData = await queryPioSolverData(cacheParams);
+              if (pioData) {
+                  source = 'PIO_SOLVER';
+              }
+          } catch (pioError) {
+              console.error('[GTO-Analysis] PioSolver query failed:', pioError.message);
+          }
+
+          // Build analysis response
+          let analysis;
+
+          if (pioData) {
+              // Use PioSolver data
+              analysis = buildAnalysisFromPio(pioData, cacheParams);
+          } else {
+              // Fallback to Grok AI
+              analysis = await generateAnalysisWithGrok(cacheParams);
+          }
+
+          // Always enhance with Grok explanations if explanation is short
+          if (!analysis.explanation || analysis.explanation.length < 100) {
+              const grokEnhancement = await generateGrokExplanation(cacheParams, analysis.optimalAction);
+              analysis.explanation = grokEnhancement.explanation || analysis.explanation;
+              analysis.gtoApproach = grokEnhancement.gtoApproach || analysis.gtoApproach;
+          }
+
+          const response = {
+              success: true,
+              ...analysis,
+              source,
+              generatedAt: new Date().toISOString(),
+          };
+
+          // Cache the response for 30 days
+          await setCachedResponse('gto-analysis', cacheParams, response, 30);
+
+          return res.status(200).json(response);
+
+      } catch (error) {
+          console.error('[GTO-Analysis] Error:', error);
+          return res.status(500).json({
+              success: false,
+              error: error.message,
+              // Return fallback data
+              optimalAction: 'CALL',
+              explanation: 'Unable to generate analysis. Please try again.',
+              gtoApproach: 'Standard play recommended.',
+              evAnalysis: null,
+              alternateLines: [],
+              isMixed: false,
+          });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-  // BUG #244 FIX: Require JWT auth — these routes use paid AI APIs
-  const _authSupa = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-  const _token = req.headers.authorization?.replace('Bearer ', '');
-  if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
-  const { data: { user: _authUser }, error: _authErr } = await _authSupa.auth.getUser(_token);
-  if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
-
-    if (req.method !== 'POST') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
-
-    try {
-        const {
-            hand,           // e.g., "AKs"
-            position,       // e.g., "BTN"
-            stackDepth,     // e.g., 100
-            board,          // e.g., "Jh7s2d" or ["Jh", "7s", "2d"]
-            street,         // e.g., "flop"
-            villainPosition,// e.g., "BB"
-            action,         // e.g., "facing bet"
-            gameType,       // e.g., "cash", "mtt"
-        } = req.body;
-
-        if (!hand) {
-            return res.status(400).json({ success: false, error: 'Missing required field: hand' });
-        }
-
-        // Normalize board to string
-        const boardString = Array.isArray(board) ? board.join('') : (board || '');
-
-        // Build cache key params
-        const cacheParams = {
-            hand: hand.toLowerCase(),
-            position: (position || 'BTN').toUpperCase(),
-            stackDepth: stackDepth || 100,
-            board: boardString.toLowerCase(),
-            street: (street || 'flop').toLowerCase(),
-            villainPosition: (villainPosition || 'BB').toUpperCase(),
-            action: (action || '').toLowerCase(),
-            gameType: (gameType || 'cash').toLowerCase(),
-        };
-
-        // Check cache first
-        const cached = await getCachedResponse('gto-analysis', cacheParams);
-        if (cached) {
-            return res.status(200).json({
-                ...cached,
-                fromCache: true,
-            });
-        }
-
-        // Query PioSolver data
-        let pioData = null;
-        let source = 'GROK_AI';
-
-        try {
-            pioData = await queryPioSolverData(cacheParams);
-            if (pioData) {
-                source = 'PIO_SOLVER';
-            }
-        } catch (pioError) {
-            console.error('[GTO-Analysis] PioSolver query failed:', pioError.message);
-        }
-
-        // Build analysis response
-        let analysis;
-
-        if (pioData) {
-            // Use PioSolver data
-            analysis = buildAnalysisFromPio(pioData, cacheParams);
-        } else {
-            // Fallback to Grok AI
-            analysis = await generateAnalysisWithGrok(cacheParams);
-        }
-
-        // Always enhance with Grok explanations if explanation is short
-        if (!analysis.explanation || analysis.explanation.length < 100) {
-            const grokEnhancement = await generateGrokExplanation(cacheParams, analysis.optimalAction);
-            analysis.explanation = grokEnhancement.explanation || analysis.explanation;
-            analysis.gtoApproach = grokEnhancement.gtoApproach || analysis.gtoApproach;
-        }
-
-        const response = {
-            success: true,
-            ...analysis,
-            source,
-            generatedAt: new Date().toISOString(),
-        };
-
-        // Cache the response for 30 days
-        await setCachedResponse('gto-analysis', cacheParams, response, 30);
-
-        return res.status(200).json(response);
-
-    } catch (error) {
-        console.error('[GTO-Analysis] Error:', error);
-        return res.status(500).json({
-            success: false,
-            error: error.message,
-            // Return fallback data
-            optimalAction: 'CALL',
-            explanation: 'Unable to generate analysis. Please try again.',
-            gtoApproach: 'Standard play recommended.',
-            evAnalysis: null,
-            alternateLines: [],
-            isMixed: false,
-        });
-    }
 }
 
 /**

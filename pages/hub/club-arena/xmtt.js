@@ -118,12 +118,34 @@ export default function ClubArenaXMTTPage() {
     return () => { cancelled = true; authSub?.unsubscribe?.(); };
   }, [router.query.club, router.query.clubId, loadTournaments]);
 
-  // Auto-poll every 30s
+  // Auto-poll tournament list every 30s
   useEffect(() => {
     if (!clubId) return;
     const iv = setInterval(() => loadTournaments(clubId), 30000);
     return () => clearInterval(iv);
   }, [clubId, loadTournaments]);
+
+  // Auto-refresh detail panel every 15s when viewing a running tournament
+  useEffect(() => {
+    if (!selectedTournament || !clubId) return;
+    const selected = tournaments.find(t => t.id === selectedTournament);
+    if (!selected || selected.status !== 'running') return;
+    const iv = setInterval(() => loadDetail(selectedTournament, clubId), 15000);
+    return () => clearInterval(iv);
+  }, [selectedTournament, clubId, tournaments, loadDetail]);
+
+  // Refresh on tab visibility change
+  useEffect(() => {
+    if (!clubId) return;
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        loadTournaments(clubId);
+        if (selectedTournament) loadDetail(selectedTournament, clubId);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [clubId, selectedTournament, loadTournaments, loadDetail]);
 
   // Register / Unregister
   const handleRegister = async (tournamentId) => {
@@ -204,6 +226,9 @@ export default function ClubArenaXMTTPage() {
                 <div className={s.emptyState} style={{ padding: '40px' }}>
                   <span className={s.emptyIcon}>🏆</span>
                   <span className={s.emptyText}>No MTT tournaments found for this filter.</span>
+                  <Link href="/hub/club-arena/lobby" style={{ textDecoration: 'none', marginTop: '12px' }}>
+                    <button className={s.btnPrimary} style={{ padding: '8px 20px', fontSize: '13px' }}>🏠 Go to Lobby</button>
+                  </Link>
                 </div>
               ) : mttTournaments.map(t => (
                 <div

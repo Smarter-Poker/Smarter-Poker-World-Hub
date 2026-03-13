@@ -205,457 +205,463 @@ function applyFilters(venues, { id, state, city, type, tournaments, search, feat
 }
 
 export default async function handler(req, res) {
-  // CDN cache: fresh for 120s, serve stale up to 600s
-  if (req.method === 'GET') {
-    res.setHeader('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=600');
+  try {
+    // CDN cache: fresh for 120s, serve stale up to 600s
+    if (req.method === 'GET') {
+      res.setHeader('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=600');
+    }
+
+    if (!applyRateLimit(req, res, LIMITS.read)) return;
+
+      if (req.method !== 'GET') {
+          return res.status(405).json({ success: false, error: { code: 'METHOD_NOT_ALLOWED', message: 'Only GET allowed' } });
+      }
+
+      try {
+          const {
+              id,
+              state,
+              city,
+              type,
+              tournaments,
+              search,
+              lat,
+              lng,
+              radius = 100,
+              limit = 500,
+              featured,
+              hasNLH,
+              hasPLO,
+              hasMixed,
+          } = req.query;
+
+          const maxResults = Math.min(parseInt(limit, 10) || 50, 200);
+          let venues = [];
+
+          if (id) {
+              // --- Single venue lookup: validate integer ID ---
+              const numericId = parseInt(id, 10);
+              if (isNaN(numericId) || numericId < 1) {
+                  return res.status(400).json({ success: false, error: { code: 'INVALID_ID', message: 'Invalid venue id' } });
+              }
+
+              // Try Supabase first (has real-time data)
+              try {
+                  const { data, error } = await supabase
+                      .from('poker_venues')
+                      .select('*')
+                      .eq('id', numericId)
+                      .maybeSingle();
+
+                  if (!error && data) {
+                      venues = [data];
+                  } else {
+                      throw new Error(error?.message || 'Not found in Supabase');
+                  }
+              } catch (dbError) {
+                  // Fall back to JSON for single venue
+                  venues = applyFilters(getJsonVenues(), { id });
+              }
+          } else {
+              // --- Venue listing: use JSON (complete 483-venue dataset) ---
+              venues = applyFilters(getJsonVenues(), { state, city, type, tournaments, search, featured });
+              venues.sort((a, b) => (b.trust_score || 0) - (a.trust_score || 0));
+
+              // --- Merge public social pages (clubs, charities, home games) ---
+              // Linked pages enrich their parent JSON venue; unlinked pages create new entries
+              try {
+                  let spQuery = supabase
+                      .from('social_pages')
+                      .select('id, name, description, avatar_url, page_type, location_city, location_state, follower_count, metadata, linked_venue_id, owner_id')
+                      .eq('is_public', true)
+                      .not('location_city', 'is', null)
+                          .limit(100);
+
+                  // Apply matching filters to social pages query
+                  if (state) spQuery = spQuery.ilike('location_state', state)
+                      .limit(100);
+                  if (city) spQuery = spQuery.ilike('location_city', `%${city}%`)
+                      .limit(100);
+                  if (type && ['club', 'charity', 'home_game'].includes(type)) {
+                      spQuery = spQuery.eq('page_type', type)
+                          .limit(100);
+                  } else if (type && ['poker_club'].includes(type)) {
+                      // poker_club maps to club page_type
+                      spQuery = spQuery.eq('page_type', 'club')
+                          .limit(100);
+                  } else if (type && !['club', 'charity', 'home_game', 'poker_club'].includes(type)) {
+                      // Type filter is for a poker_venues-only type (e.g. 'casino'), skip social pages
+                      spQuery = null;
+                  }
+                  if (search) {
+                      const searchAbbrev = resolveStateAbbrev(search);
+                      const searchStateName = STATE_ABBREV_TO_NAME[search.toUpperCase()];
+                      // Build OR filter: name, city, state (verbatim), plus abbreviation/full-name if resolved
+                      let orParts = [`name.ilike.%${search}%`, `location_city.ilike.%${search}%`, `location_state.ilike.%${search}%`];
+                      if (searchAbbrev) orParts.push(`location_state.ilike.${searchAbbrev}`);
+                      if (searchStateName) orParts.push(`location_state.ilike.${searchStateName}`);
+                      spQuery = spQuery?.or(orParts.join(','));
+                  }
+
+                  if (spQuery) {
+                      const { data: socialPages } = await spQuery.limit(200);
+                      if (socialPages && socialPages.length > 0) {
+                          const DAYS_ORDER = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                          const todayIdx = new Date().getDay();
+                          const todayKey = DAYS_ORDER[todayIdx];
+
+                          // --- Batch tournament detection ---
+                          // Resolve owner_ids → club_ids → tournament counts
+                          const ownerIds = [...new Set(socialPages.map(sp => sp.owner_id).filter(Boolean))];
+                          let clubsByOwner = {};
+                          let tournamentCountByClub = {};
+                          if (ownerIds.length > 0) {
+                              try {
+                                  const { data: clubs } = await supabase
+                                      .from('clubs')
+                                      .select('id, owner_id, name')
+                                      .in('owner_id', ownerIds)
+                                          .limit(100);
+                                  if (clubs) {
+                                      for (const c of clubs) {
+                                          if (!clubsByOwner[c.owner_id]) clubsByOwner[c.owner_id] = [];
+                                          clubsByOwner[c.owner_id].push(c);
+                                      }
+                                      const clubIds = clubs.map(c => c.id);
+                                      if (clubIds.length > 0) {
+                                          const { data: tourneys } = await supabase
+                                              .from('tournaments')
+                                              .select('club_id')
+                                              .in('club_id', clubIds)
+                                              .in('status', ['ANNOUNCED', 'RUNNING', 'SCHEDULED'])
+                                              .gte('start_time', new Date().toISOString())
+                                                  .limit(100);
+                                          if (tourneys) {
+                                              for (const t of tourneys) {
+                                                  tournamentCountByClub[t.club_id] = (tournamentCountByClub[t.club_id] || 0) + 1;
+                                              }
+                                          }
+                                      }
+                                  }
+                              } catch (clubErr) {
+                                  console.warn('[venues] Club/tournament lookup failed (non-fatal):', clubErr.message);
+                                  captureError(clubErr, { tags: { api: 'poker-venues', stage: 'tournament-detection' } });
+                              }
+                          }
+
+                          // Helper: check if a social page has upcoming tournaments
+                          const pageHasTournaments = (sp) => {
+                              const ownerClubs = clubsByOwner[sp.owner_id] || [];
+                              // Try name match first, then fallback to any club by this owner
+                              const matchedClub = ownerClubs.find(c => c.name.toLowerCase() === sp.name.toLowerCase()) || ownerClubs[0];
+                              return matchedClub ? (tournamentCountByClub[matchedClub.id] || 0) > 0 : false;
+                          };
+
+                          // Helper: extract game types from run_schedule metadata
+                          const extractGames = (schedule) => {
+                              const games = new Set();
+                              for (const dayData of Object.values(schedule)) {
+                                  if (dayData && dayData.games && Array.isArray(dayData.games)) {
+                                      dayData.games.forEach(g => games.add(g));
+                                  }
+                              }
+                              return [...games];
+                          };
+
+                          // Separate linked vs unlinked pages
+                          const linkedPages = socialPages.filter(sp => sp.linked_venue_id);
+                          const unlinkedPages = socialPages.filter(sp => !sp.linked_venue_id);
+
+                          addBreadcrumb({
+                              category: 'poker-venues',
+                              message: `Social page merge: ${socialPages.length} total, ${linkedPages.length} linked, ${unlinkedPages.length} unlinked`,
+                              data: { total: socialPages.length, linked: linkedPages.length, unlinked: unlinkedPages.length },
+                          });
+
+                          // --- Enrich JSON venues that have a linked social page ---
+                          const missedLinkedPages = []; // Pages whose linked_venue_id is NOT in JSON
+                          for (const sp of linkedPages) {
+                              const jsonVenue = getVenueById(sp.linked_venue_id);
+                              if (jsonVenue) {
+                                  jsonVenue.is_social_page = true;
+                                  jsonVenue.social_page_id = sp.id;
+                                  jsonVenue.follower_count = sp.follower_count || jsonVenue.follower_count || 0;
+                                  jsonVenue.has_tournaments = jsonVenue.has_tournaments || pageHasTournaments(sp);
+                                  if (sp.avatar_url || (sp.metadata && sp.metadata.logo_url)) {
+                                      jsonVenue.profile_photo_url = jsonVenue.profile_photo_url || sp.avatar_url || sp.metadata.logo_url;
+                                  }
+                                  // Inherit coordinates from social page geocoding if JSON venue has none
+                                  if (!jsonVenue.latitude && !jsonVenue.longitude) {
+                                      const geocoded = (sp.metadata && sp.metadata.geocoded_locations) || {};
+                                      const locStr = sp.location_city + (sp.location_state ? ', ' + sp.location_state : '');
+                                      const coords = geocoded[locStr] || geocoded[sp.location_city] || null;
+                                      if (coords) {
+                                          jsonVenue.latitude = coords.lat;
+                                          jsonVenue.longitude = coords.lng;
+                                      }
+                                  }
+                                  const schedule = (sp.metadata && sp.metadata.run_schedule) || {};
+                                  const schedGames = extractGames(schedule);
+                                  if (schedGames.length > 0) {
+                                      jsonVenue.games_offered = [...new Set([...(jsonVenue.games_offered || []), ...schedGames])];
+                                  }
+                              } else {
+                                  // Linked venue not in JSON dataset — try Supabase poker_venues
+                                  missedLinkedPages.push(sp);
+                              }
+                          }
+
+                          // --- Look up Supabase poker_venues for linked pages not in JSON ---
+                          let supabaseVenuesByIdMap = {};
+                          if (missedLinkedPages.length > 0) {
+                              try {
+                                  const missedIds = [...new Set(missedLinkedPages.map(sp => sp.linked_venue_id))];
+                                  const { data: pvRows } = await supabase
+                                      .from('poker_venues')
+                                      .select('id, games_offered, stakes_cash, trust_score, is_featured, has_tournaments, hours_weekday, hours_weekend, poker_tables')
+                                      .in('id', missedIds)
+                                      .eq('is_active', true)
+                                          .limit(100);
+                                  if (pvRows) {
+                                      for (const pv of pvRows) supabaseVenuesByIdMap[pv.id] = pv;
+                                  }
+                              } catch (pvErr) {
+                                  console.warn('[venues] poker_venues lookup for missed linked pages failed (non-fatal):', pvErr.message);
+                                  captureError(pvErr, { tags: { api: 'poker-venues', stage: 'missed-linked-enrichment' } });
+                              }
+                          }
+
+                          for (const sp of missedLinkedPages) {
+                              const pv = supabaseVenuesByIdMap[sp.linked_venue_id];
+                              const geocoded = (sp.metadata && sp.metadata.geocoded_locations) || {};
+                              const schedule = (sp.metadata && sp.metadata.run_schedule) || {};
+                              const hasTourneys = pageHasTournaments(sp) || (pv ? pv.has_tournaments : false);
+                              const schedGames = extractGames(schedule);
+                              const pvGames = pv ? (pv.games_offered || []) : [];
+                              const allGames = [...new Set([...schedGames, ...pvGames])];
+                              const primaryLocStr = sp.location_city + (sp.location_state ? ', ' + sp.location_state : '');
+                              const primaryCoords = geocoded[primaryLocStr] || geocoded[sp.location_city] || null;
+
+                              unlinkedPages.push({
+                                  ...sp,
+                                  _enrichedFromPokerVenue: pv || null,
+                                  _resolvedGames: allGames,
+                                  _resolvedTrustScore: pv ? pv.trust_score : null,
+                                  _resolvedIsFeatured: pv ? pv.is_featured : false,
+                                  _resolvedHasTournaments: hasTourneys,
+                                  _resolvedLatitude: primaryCoords ? primaryCoords.lat : null,
+                                  _resolvedLongitude: primaryCoords ? primaryCoords.lng : null,
+                              });
+                          }
+
+                          // --- Map unlinked pages into venue entries ---
+                          const mappedPages = [];
+                          for (const sp of unlinkedPages) {
+                              const geocoded = (sp.metadata && sp.metadata.geocoded_locations) || {};
+                              const schedule = (sp.metadata && sp.metadata.run_schedule) || {};
+                              const hasTourneys = sp._resolvedHasTournaments != null ? sp._resolvedHasTournaments : pageHasTournaments(sp);
+                              const schedGames = sp._resolvedGames || extractGames(schedule);
+
+                              // Determine primary lat/lng from geocoded_locations (or pre-resolved)
+                              let primaryLat = sp._resolvedLatitude || null;
+                              let primaryLng = sp._resolvedLongitude || null;
+                              if (!primaryLat && !primaryLng) {
+                                  const primaryLocStr = sp.location_city + (sp.location_state ? ', ' + sp.location_state : '');
+                                  const primaryCoords = geocoded[primaryLocStr] || geocoded[sp.location_city] || null;
+                                  primaryLat = primaryCoords ? primaryCoords.lat : null;
+                                  primaryLng = primaryCoords ? primaryCoords.lng : null;
+                              }
+
+                              // Use enriched data when available from poker_venues lookup
+                              const trustScore = sp._resolvedTrustScore || null;
+                              const isFeatured = sp._resolvedIsFeatured || false;
+
+                              // For charities: create one entry per unique geocoded schedule location
+                              if (sp.page_type === 'charity' && Object.keys(schedule).length > 0) {
+                                  const seenLocs = new Set();
+                                  for (const dayKey of DAYS_ORDER) {
+                                      const dayData = schedule[dayKey];
+                                      if (!dayData || !dayData.open || !dayData.location) continue;
+                                      const locKey = dayData.location.trim();
+                                      if (seenLocs.has(locKey)) continue;
+                                      seenLocs.add(locKey);
+
+                                      const coords = geocoded[locKey] || null;
+                                      mappedPages.push({
+                                          id: `sp-${sp.id}-${dayKey}`,
+                                          name: sp.name,
+                                          city: locKey.split(',')[0]?.trim() || sp.location_city,
+                                          state: locKey.split(',')[1]?.trim() || sp.location_state,
+                                          venue_type: 'charity',
+                                          profile_photo_url: sp.avatar_url,
+                                          about: sp.description,
+                                          trust_score: trustScore,
+                                          is_social_page: true,
+                                          social_page_id: sp.id,
+                                          follower_count: sp.follower_count || 0,
+                                          latitude: coords ? coords.lat : null,
+                                          longitude: coords ? coords.lng : null,
+                                          games_offered: dayData.games || [],
+                                          has_tournaments: hasTourneys,
+                                          is_featured: isFeatured,
+                                          schedule_location: locKey,
+                                          schedule_day: dayKey,
+                                          is_today: dayKey === todayKey,
+                                      });
+                                  }
+                                  // If no schedule locations found, still add primary entry
+                                  if (seenLocs.size === 0) {
+                                      mappedPages.push({
+                                          id: `sp-${sp.id}`,
+                                          name: sp.name,
+                                          city: sp.location_city,
+                                          state: sp.location_state,
+                                          venue_type: 'charity',
+                                          profile_photo_url: sp.avatar_url,
+                                          about: sp.description,
+                                          trust_score: trustScore,
+                                          is_social_page: true,
+                                          social_page_id: sp.id,
+                                          follower_count: sp.follower_count || 0,
+                                          latitude: primaryLat,
+                                          longitude: primaryLng,
+                                          games_offered: schedGames,
+                                          has_tournaments: hasTourneys,
+                                          is_featured: isFeatured,
+                                      });
+                                  }
+                              } else {
+                                  // Clubs and home games: single entry with primary coords
+                                  mappedPages.push({
+                                      id: `sp-${sp.id}`,
+                                      name: sp.name,
+                                      city: sp.location_city,
+                                      state: sp.location_state,
+                                      venue_type: sp.page_type === 'club' ? 'poker_club' : sp.page_type,
+                                      profile_photo_url: sp.avatar_url || (sp.metadata && sp.metadata.logo_url) || null,
+                                      about: sp.description,
+                                      trust_score: trustScore,
+                                      is_social_page: true,
+                                      social_page_id: sp.id,
+                                      follower_count: sp.follower_count || 0,
+                                      latitude: primaryLat,
+                                      longitude: primaryLng,
+                                      games_offered: schedGames,
+                                      has_tournaments: hasTourneys,
+                                      is_featured: isFeatured,
+                                  });
+                              }
+                          }
+                          venues = venues.concat(mappedPages);
+
+                          addBreadcrumb({
+                              category: 'poker-venues',
+                              message: `Merge complete: ${mappedPages.length} social entries added, ${missedLinkedPages.length} enriched from poker_venues`,
+                              data: { mapped: mappedPages.length, missed: missedLinkedPages.length, enriched: Object.keys(supabaseVenuesByIdMap).length },
+                          });
+                      }
+                  }
+              } catch (spErr) {
+                  console.warn('[venues] Social pages merge failed (non-fatal):', spErr.message);
+                  captureError(spErr, { tags: { api: 'poker-venues', stage: 'social-merge' }, level: 'warning' });
+              }
+          }
+
+          // --- GPS-based distance calculation and filtering ---
+          const hasGps = !!(lat && lng);
+          if (hasGps) {
+              const userLat = parseFloat(lat);
+              const userLng = parseFloat(lng);
+              const maxRadius = Math.max(0, parseFloat(radius) || 100);
+
+              // Validate GPS coordinates
+              if (isNaN(userLat) || isNaN(userLng) || userLat < -90 || userLat > 90 || userLng < -180 || userLng > 180) {
+                  return res.status(400).json({ success: false, error: 'Invalid GPS coordinates. lat must be -90 to 90, lng must be -180 to 180.' });
+              }
+
+              venues = venues.map(venue => {
+                  const venueLat = venue.latitude ?? venue.lat;
+                  const venueLng = venue.longitude ?? venue.lng;
+
+                  if (venueLat == null || venueLng == null) {
+                      return { ...venue, distance_km: null, distance_mi: null };
+                  }
+
+                  const distance = calculateDistance(userLat, userLng, parseFloat(venueLat), parseFloat(venueLng));
+                  return {
+                      ...venue,
+                      distance_km: Math.round(distance * 10) / 10,
+                      distance_mi: Math.round(distance * 0.621371 * 10) / 10,
+                  };
+              });
+
+              // Filter by radius (exclude venues with no coordinates)
+              venues = venues.filter(v => v.distance_km != null && v.distance_km <= maxRadius);
+
+              // Sort by distance when GPS is provided
+              venues.sort((a, b) => a.distance_km - b.distance_km);
+          }
+
+          // --- Single venue by ID: attach daily tournament schedules ---
+          if (id && venues.length > 0) {
+              const venue = venues[0];
+              const tournamentMatch = findDailyTournaments(venue.name, venue.city, venue.state);
+
+              if (tournamentMatch) {
+                  venue.daily_tournaments = tournamentMatch.schedules || [];
+                  venue.daily_tournaments_source = tournamentMatch.source_url || null;
+              } else {
+                  venue.daily_tournaments = [];
+              }
+
+              return res.status(200).json({
+                  success: true,
+                  data: venue,
+                  total: 1,
+                  hasGpsData: hasGps,
+              });
+          }
+
+          // --- Filter by games (NLH, PLO, Mixed) ---
+          if (hasNLH === 'true') {
+              venues = venues.filter(v => v.games_offered && v.games_offered.includes('NLH'));
+          }
+          if (hasPLO === 'true') {
+              venues = venues.filter(v => v.games_offered && v.games_offered.includes('PLO'));
+          }
+          if (hasMixed === 'true') {
+              venues = venues.filter(v => v.games_offered && v.games_offered.includes('Mixed'));
+          }
+
+          // --- Apply limit and return ---
+          const total = venues.length;
+          const limited = venues.slice(0, maxResults);
+
+          return res.status(200).json({
+              success: true,
+              data: limited,
+              total,
+              hasGpsData: hasGps,
+          });
+      } catch (error) {
+          console.error('Venues API error:', error);
+          captureError(error, {
+              tags: { api: 'poker-venues', stage: 'handler' },
+              extra: { query: req.query },
+          });
+
+          // Last resort: return JSON data unfiltered
+          const fallbackVenues = getJsonVenues();
+          return res.status(200).json({
+              success: true,
+              data: fallbackVenues.slice(0, 500),
+              total: fallbackVenues.length,
+              hasGpsData: false,
+          });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-  if (!applyRateLimit(req, res, LIMITS.read)) return;
-
-    if (req.method !== 'GET') {
-        return res.status(405).json({ success: false, error: { code: 'METHOD_NOT_ALLOWED', message: 'Only GET allowed' } });
-    }
-
-    try {
-        const {
-            id,
-            state,
-            city,
-            type,
-            tournaments,
-            search,
-            lat,
-            lng,
-            radius = 100,
-            limit = 500,
-            featured,
-            hasNLH,
-            hasPLO,
-            hasMixed,
-        } = req.query;
-
-        const maxResults = Math.min(parseInt(limit, 10) || 50, 200);
-        let venues = [];
-
-        if (id) {
-            // --- Single venue lookup: validate integer ID ---
-            const numericId = parseInt(id, 10);
-            if (isNaN(numericId) || numericId < 1) {
-                return res.status(400).json({ success: false, error: { code: 'INVALID_ID', message: 'Invalid venue id' } });
-            }
-
-            // Try Supabase first (has real-time data)
-            try {
-                const { data, error } = await supabase
-                    .from('poker_venues')
-                    .select('*')
-                    .eq('id', numericId)
-                    .maybeSingle();
-
-                if (!error && data) {
-                    venues = [data];
-                } else {
-                    throw new Error(error?.message || 'Not found in Supabase');
-                }
-            } catch (dbError) {
-                // Fall back to JSON for single venue
-                venues = applyFilters(getJsonVenues(), { id });
-            }
-        } else {
-            // --- Venue listing: use JSON (complete 483-venue dataset) ---
-            venues = applyFilters(getJsonVenues(), { state, city, type, tournaments, search, featured });
-            venues.sort((a, b) => (b.trust_score || 0) - (a.trust_score || 0));
-
-            // --- Merge public social pages (clubs, charities, home games) ---
-            // Linked pages enrich their parent JSON venue; unlinked pages create new entries
-            try {
-                let spQuery = supabase
-                    .from('social_pages')
-                    .select('id, name, description, avatar_url, page_type, location_city, location_state, follower_count, metadata, linked_venue_id, owner_id')
-                    .eq('is_public', true)
-                    .not('location_city', 'is', null)
-                        .limit(100);
-
-                // Apply matching filters to social pages query
-                if (state) spQuery = spQuery.ilike('location_state', state)
-                    .limit(100);
-                if (city) spQuery = spQuery.ilike('location_city', `%${city}%`)
-                    .limit(100);
-                if (type && ['club', 'charity', 'home_game'].includes(type)) {
-                    spQuery = spQuery.eq('page_type', type)
-                        .limit(100);
-                } else if (type && ['poker_club'].includes(type)) {
-                    // poker_club maps to club page_type
-                    spQuery = spQuery.eq('page_type', 'club')
-                        .limit(100);
-                } else if (type && !['club', 'charity', 'home_game', 'poker_club'].includes(type)) {
-                    // Type filter is for a poker_venues-only type (e.g. 'casino'), skip social pages
-                    spQuery = null;
-                }
-                if (search) {
-                    const searchAbbrev = resolveStateAbbrev(search);
-                    const searchStateName = STATE_ABBREV_TO_NAME[search.toUpperCase()];
-                    // Build OR filter: name, city, state (verbatim), plus abbreviation/full-name if resolved
-                    let orParts = [`name.ilike.%${search}%`, `location_city.ilike.%${search}%`, `location_state.ilike.%${search}%`];
-                    if (searchAbbrev) orParts.push(`location_state.ilike.${searchAbbrev}`);
-                    if (searchStateName) orParts.push(`location_state.ilike.${searchStateName}`);
-                    spQuery = spQuery?.or(orParts.join(','));
-                }
-
-                if (spQuery) {
-                    const { data: socialPages } = await spQuery.limit(200);
-                    if (socialPages && socialPages.length > 0) {
-                        const DAYS_ORDER = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-                        const todayIdx = new Date().getDay();
-                        const todayKey = DAYS_ORDER[todayIdx];
-
-                        // --- Batch tournament detection ---
-                        // Resolve owner_ids → club_ids → tournament counts
-                        const ownerIds = [...new Set(socialPages.map(sp => sp.owner_id).filter(Boolean))];
-                        let clubsByOwner = {};
-                        let tournamentCountByClub = {};
-                        if (ownerIds.length > 0) {
-                            try {
-                                const { data: clubs } = await supabase
-                                    .from('clubs')
-                                    .select('id, owner_id, name')
-                                    .in('owner_id', ownerIds)
-                                        .limit(100);
-                                if (clubs) {
-                                    for (const c of clubs) {
-                                        if (!clubsByOwner[c.owner_id]) clubsByOwner[c.owner_id] = [];
-                                        clubsByOwner[c.owner_id].push(c);
-                                    }
-                                    const clubIds = clubs.map(c => c.id);
-                                    if (clubIds.length > 0) {
-                                        const { data: tourneys } = await supabase
-                                            .from('tournaments')
-                                            .select('club_id')
-                                            .in('club_id', clubIds)
-                                            .in('status', ['ANNOUNCED', 'RUNNING', 'SCHEDULED'])
-                                            .gte('start_time', new Date().toISOString())
-                                                .limit(100);
-                                        if (tourneys) {
-                                            for (const t of tourneys) {
-                                                tournamentCountByClub[t.club_id] = (tournamentCountByClub[t.club_id] || 0) + 1;
-                                            }
-                                        }
-                                    }
-                                }
-                            } catch (clubErr) {
-                                console.warn('[venues] Club/tournament lookup failed (non-fatal):', clubErr.message);
-                                captureError(clubErr, { tags: { api: 'poker-venues', stage: 'tournament-detection' } });
-                            }
-                        }
-
-                        // Helper: check if a social page has upcoming tournaments
-                        const pageHasTournaments = (sp) => {
-                            const ownerClubs = clubsByOwner[sp.owner_id] || [];
-                            // Try name match first, then fallback to any club by this owner
-                            const matchedClub = ownerClubs.find(c => c.name.toLowerCase() === sp.name.toLowerCase()) || ownerClubs[0];
-                            return matchedClub ? (tournamentCountByClub[matchedClub.id] || 0) > 0 : false;
-                        };
-
-                        // Helper: extract game types from run_schedule metadata
-                        const extractGames = (schedule) => {
-                            const games = new Set();
-                            for (const dayData of Object.values(schedule)) {
-                                if (dayData && dayData.games && Array.isArray(dayData.games)) {
-                                    dayData.games.forEach(g => games.add(g));
-                                }
-                            }
-                            return [...games];
-                        };
-
-                        // Separate linked vs unlinked pages
-                        const linkedPages = socialPages.filter(sp => sp.linked_venue_id);
-                        const unlinkedPages = socialPages.filter(sp => !sp.linked_venue_id);
-
-                        addBreadcrumb({
-                            category: 'poker-venues',
-                            message: `Social page merge: ${socialPages.length} total, ${linkedPages.length} linked, ${unlinkedPages.length} unlinked`,
-                            data: { total: socialPages.length, linked: linkedPages.length, unlinked: unlinkedPages.length },
-                        });
-
-                        // --- Enrich JSON venues that have a linked social page ---
-                        const missedLinkedPages = []; // Pages whose linked_venue_id is NOT in JSON
-                        for (const sp of linkedPages) {
-                            const jsonVenue = getVenueById(sp.linked_venue_id);
-                            if (jsonVenue) {
-                                jsonVenue.is_social_page = true;
-                                jsonVenue.social_page_id = sp.id;
-                                jsonVenue.follower_count = sp.follower_count || jsonVenue.follower_count || 0;
-                                jsonVenue.has_tournaments = jsonVenue.has_tournaments || pageHasTournaments(sp);
-                                if (sp.avatar_url || (sp.metadata && sp.metadata.logo_url)) {
-                                    jsonVenue.profile_photo_url = jsonVenue.profile_photo_url || sp.avatar_url || sp.metadata.logo_url;
-                                }
-                                // Inherit coordinates from social page geocoding if JSON venue has none
-                                if (!jsonVenue.latitude && !jsonVenue.longitude) {
-                                    const geocoded = (sp.metadata && sp.metadata.geocoded_locations) || {};
-                                    const locStr = sp.location_city + (sp.location_state ? ', ' + sp.location_state : '');
-                                    const coords = geocoded[locStr] || geocoded[sp.location_city] || null;
-                                    if (coords) {
-                                        jsonVenue.latitude = coords.lat;
-                                        jsonVenue.longitude = coords.lng;
-                                    }
-                                }
-                                const schedule = (sp.metadata && sp.metadata.run_schedule) || {};
-                                const schedGames = extractGames(schedule);
-                                if (schedGames.length > 0) {
-                                    jsonVenue.games_offered = [...new Set([...(jsonVenue.games_offered || []), ...schedGames])];
-                                }
-                            } else {
-                                // Linked venue not in JSON dataset — try Supabase poker_venues
-                                missedLinkedPages.push(sp);
-                            }
-                        }
-
-                        // --- Look up Supabase poker_venues for linked pages not in JSON ---
-                        let supabaseVenuesByIdMap = {};
-                        if (missedLinkedPages.length > 0) {
-                            try {
-                                const missedIds = [...new Set(missedLinkedPages.map(sp => sp.linked_venue_id))];
-                                const { data: pvRows } = await supabase
-                                    .from('poker_venues')
-                                    .select('id, games_offered, stakes_cash, trust_score, is_featured, has_tournaments, hours_weekday, hours_weekend, poker_tables')
-                                    .in('id', missedIds)
-                                    .eq('is_active', true)
-                                        .limit(100);
-                                if (pvRows) {
-                                    for (const pv of pvRows) supabaseVenuesByIdMap[pv.id] = pv;
-                                }
-                            } catch (pvErr) {
-                                console.warn('[venues] poker_venues lookup for missed linked pages failed (non-fatal):', pvErr.message);
-                                captureError(pvErr, { tags: { api: 'poker-venues', stage: 'missed-linked-enrichment' } });
-                            }
-                        }
-
-                        for (const sp of missedLinkedPages) {
-                            const pv = supabaseVenuesByIdMap[sp.linked_venue_id];
-                            const geocoded = (sp.metadata && sp.metadata.geocoded_locations) || {};
-                            const schedule = (sp.metadata && sp.metadata.run_schedule) || {};
-                            const hasTourneys = pageHasTournaments(sp) || (pv ? pv.has_tournaments : false);
-                            const schedGames = extractGames(schedule);
-                            const pvGames = pv ? (pv.games_offered || []) : [];
-                            const allGames = [...new Set([...schedGames, ...pvGames])];
-                            const primaryLocStr = sp.location_city + (sp.location_state ? ', ' + sp.location_state : '');
-                            const primaryCoords = geocoded[primaryLocStr] || geocoded[sp.location_city] || null;
-
-                            unlinkedPages.push({
-                                ...sp,
-                                _enrichedFromPokerVenue: pv || null,
-                                _resolvedGames: allGames,
-                                _resolvedTrustScore: pv ? pv.trust_score : null,
-                                _resolvedIsFeatured: pv ? pv.is_featured : false,
-                                _resolvedHasTournaments: hasTourneys,
-                                _resolvedLatitude: primaryCoords ? primaryCoords.lat : null,
-                                _resolvedLongitude: primaryCoords ? primaryCoords.lng : null,
-                            });
-                        }
-
-                        // --- Map unlinked pages into venue entries ---
-                        const mappedPages = [];
-                        for (const sp of unlinkedPages) {
-                            const geocoded = (sp.metadata && sp.metadata.geocoded_locations) || {};
-                            const schedule = (sp.metadata && sp.metadata.run_schedule) || {};
-                            const hasTourneys = sp._resolvedHasTournaments != null ? sp._resolvedHasTournaments : pageHasTournaments(sp);
-                            const schedGames = sp._resolvedGames || extractGames(schedule);
-
-                            // Determine primary lat/lng from geocoded_locations (or pre-resolved)
-                            let primaryLat = sp._resolvedLatitude || null;
-                            let primaryLng = sp._resolvedLongitude || null;
-                            if (!primaryLat && !primaryLng) {
-                                const primaryLocStr = sp.location_city + (sp.location_state ? ', ' + sp.location_state : '');
-                                const primaryCoords = geocoded[primaryLocStr] || geocoded[sp.location_city] || null;
-                                primaryLat = primaryCoords ? primaryCoords.lat : null;
-                                primaryLng = primaryCoords ? primaryCoords.lng : null;
-                            }
-
-                            // Use enriched data when available from poker_venues lookup
-                            const trustScore = sp._resolvedTrustScore || null;
-                            const isFeatured = sp._resolvedIsFeatured || false;
-
-                            // For charities: create one entry per unique geocoded schedule location
-                            if (sp.page_type === 'charity' && Object.keys(schedule).length > 0) {
-                                const seenLocs = new Set();
-                                for (const dayKey of DAYS_ORDER) {
-                                    const dayData = schedule[dayKey];
-                                    if (!dayData || !dayData.open || !dayData.location) continue;
-                                    const locKey = dayData.location.trim();
-                                    if (seenLocs.has(locKey)) continue;
-                                    seenLocs.add(locKey);
-
-                                    const coords = geocoded[locKey] || null;
-                                    mappedPages.push({
-                                        id: `sp-${sp.id}-${dayKey}`,
-                                        name: sp.name,
-                                        city: locKey.split(',')[0]?.trim() || sp.location_city,
-                                        state: locKey.split(',')[1]?.trim() || sp.location_state,
-                                        venue_type: 'charity',
-                                        profile_photo_url: sp.avatar_url,
-                                        about: sp.description,
-                                        trust_score: trustScore,
-                                        is_social_page: true,
-                                        social_page_id: sp.id,
-                                        follower_count: sp.follower_count || 0,
-                                        latitude: coords ? coords.lat : null,
-                                        longitude: coords ? coords.lng : null,
-                                        games_offered: dayData.games || [],
-                                        has_tournaments: hasTourneys,
-                                        is_featured: isFeatured,
-                                        schedule_location: locKey,
-                                        schedule_day: dayKey,
-                                        is_today: dayKey === todayKey,
-                                    });
-                                }
-                                // If no schedule locations found, still add primary entry
-                                if (seenLocs.size === 0) {
-                                    mappedPages.push({
-                                        id: `sp-${sp.id}`,
-                                        name: sp.name,
-                                        city: sp.location_city,
-                                        state: sp.location_state,
-                                        venue_type: 'charity',
-                                        profile_photo_url: sp.avatar_url,
-                                        about: sp.description,
-                                        trust_score: trustScore,
-                                        is_social_page: true,
-                                        social_page_id: sp.id,
-                                        follower_count: sp.follower_count || 0,
-                                        latitude: primaryLat,
-                                        longitude: primaryLng,
-                                        games_offered: schedGames,
-                                        has_tournaments: hasTourneys,
-                                        is_featured: isFeatured,
-                                    });
-                                }
-                            } else {
-                                // Clubs and home games: single entry with primary coords
-                                mappedPages.push({
-                                    id: `sp-${sp.id}`,
-                                    name: sp.name,
-                                    city: sp.location_city,
-                                    state: sp.location_state,
-                                    venue_type: sp.page_type === 'club' ? 'poker_club' : sp.page_type,
-                                    profile_photo_url: sp.avatar_url || (sp.metadata && sp.metadata.logo_url) || null,
-                                    about: sp.description,
-                                    trust_score: trustScore,
-                                    is_social_page: true,
-                                    social_page_id: sp.id,
-                                    follower_count: sp.follower_count || 0,
-                                    latitude: primaryLat,
-                                    longitude: primaryLng,
-                                    games_offered: schedGames,
-                                    has_tournaments: hasTourneys,
-                                    is_featured: isFeatured,
-                                });
-                            }
-                        }
-                        venues = venues.concat(mappedPages);
-
-                        addBreadcrumb({
-                            category: 'poker-venues',
-                            message: `Merge complete: ${mappedPages.length} social entries added, ${missedLinkedPages.length} enriched from poker_venues`,
-                            data: { mapped: mappedPages.length, missed: missedLinkedPages.length, enriched: Object.keys(supabaseVenuesByIdMap).length },
-                        });
-                    }
-                }
-            } catch (spErr) {
-                console.warn('[venues] Social pages merge failed (non-fatal):', spErr.message);
-                captureError(spErr, { tags: { api: 'poker-venues', stage: 'social-merge' }, level: 'warning' });
-            }
-        }
-
-        // --- GPS-based distance calculation and filtering ---
-        const hasGps = !!(lat && lng);
-        if (hasGps) {
-            const userLat = parseFloat(lat);
-            const userLng = parseFloat(lng);
-            const maxRadius = Math.max(0, parseFloat(radius) || 100);
-
-            // Validate GPS coordinates
-            if (isNaN(userLat) || isNaN(userLng) || userLat < -90 || userLat > 90 || userLng < -180 || userLng > 180) {
-                return res.status(400).json({ success: false, error: 'Invalid GPS coordinates. lat must be -90 to 90, lng must be -180 to 180.' });
-            }
-
-            venues = venues.map(venue => {
-                const venueLat = venue.latitude ?? venue.lat;
-                const venueLng = venue.longitude ?? venue.lng;
-
-                if (venueLat == null || venueLng == null) {
-                    return { ...venue, distance_km: null, distance_mi: null };
-                }
-
-                const distance = calculateDistance(userLat, userLng, parseFloat(venueLat), parseFloat(venueLng));
-                return {
-                    ...venue,
-                    distance_km: Math.round(distance * 10) / 10,
-                    distance_mi: Math.round(distance * 0.621371 * 10) / 10,
-                };
-            });
-
-            // Filter by radius (exclude venues with no coordinates)
-            venues = venues.filter(v => v.distance_km != null && v.distance_km <= maxRadius);
-
-            // Sort by distance when GPS is provided
-            venues.sort((a, b) => a.distance_km - b.distance_km);
-        }
-
-        // --- Single venue by ID: attach daily tournament schedules ---
-        if (id && venues.length > 0) {
-            const venue = venues[0];
-            const tournamentMatch = findDailyTournaments(venue.name, venue.city, venue.state);
-
-            if (tournamentMatch) {
-                venue.daily_tournaments = tournamentMatch.schedules || [];
-                venue.daily_tournaments_source = tournamentMatch.source_url || null;
-            } else {
-                venue.daily_tournaments = [];
-            }
-
-            return res.status(200).json({
-                success: true,
-                data: venue,
-                total: 1,
-                hasGpsData: hasGps,
-            });
-        }
-
-        // --- Filter by games (NLH, PLO, Mixed) ---
-        if (hasNLH === 'true') {
-            venues = venues.filter(v => v.games_offered && v.games_offered.includes('NLH'));
-        }
-        if (hasPLO === 'true') {
-            venues = venues.filter(v => v.games_offered && v.games_offered.includes('PLO'));
-        }
-        if (hasMixed === 'true') {
-            venues = venues.filter(v => v.games_offered && v.games_offered.includes('Mixed'));
-        }
-
-        // --- Apply limit and return ---
-        const total = venues.length;
-        const limited = venues.slice(0, maxResults);
-
-        return res.status(200).json({
-            success: true,
-            data: limited,
-            total,
-            hasGpsData: hasGps,
-        });
-    } catch (error) {
-        console.error('Venues API error:', error);
-        captureError(error, {
-            tags: { api: 'poker-venues', stage: 'handler' },
-            extra: { query: req.query },
-        });
-
-        // Last resort: return JSON data unfiltered
-        const fallbackVenues = getJsonVenues();
-        return res.status(200).json({
-            success: true,
-            data: fallbackVenues.slice(0, 500),
-            total: fallbackVenues.length,
-            hasGpsData: false,
-        });
-    }
 }

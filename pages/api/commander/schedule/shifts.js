@@ -12,19 +12,25 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  // CDN cache: fresh for 60s, serve stale up to 300s
-  if (req.method === 'GET') {
-    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
-  }
+  try {
+    // CDN cache: fresh for 60s, serve stale up to 300s
+    if (req.method === 'GET') {
+      res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+    }
 
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
 
-    if (req.method === 'GET') return handleGet(req, res);
-    if (req.method === 'POST') return handlePost(req, res);
-    if (req.method === 'DELETE') return handleDelete(req, res);
-    return res.status(405).json({ success: false, error: { message: 'Method not allowed' } });
+      if (req.method === 'GET') return handleGet(req, res);
+      if (req.method === 'POST') return handlePost(req, res);
+      if (req.method === 'DELETE') return handleDelete(req, res);
+      return res.status(405).json({ success: false, error: { message: 'Method not allowed' } });
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }
 
 /** GET — fetch shifts for a week (7 days from week_start) */

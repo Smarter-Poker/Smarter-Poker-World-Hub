@@ -39,60 +39,66 @@ function extractYouTubeId(url) {
 }
 
 export default async function handler(req, res) {
-    if (req.method !== 'GET') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
+  try {
+      if (req.method !== 'GET') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
 
-    try {
-        const { limit = 20, channel } = req.query;
+      try {
+          const { limit = 20, channel } = req.query;
 
-        // Read from social_reels — the table pokernews-videos cron populates
-        let query = supabase
-            .from('social_reels')
-            .select('*')
-            .eq('is_public', true)
-            .order('created_at', { ascending: false })
-            .limit(parseInt(limit));
+          // Read from social_reels — the table pokernews-videos cron populates
+          let query = supabase
+              .from('social_reels')
+              .select('*')
+              .eq('is_public', true)
+              .order('created_at', { ascending: false })
+              .limit(parseInt(limit));
 
-        const { data, error } = await query;
+          const { data, error } = await query;
 
-        if (error) {
-            console.error('Videos API error:', error.message);
-            return res.status(200).json({ success: true, data: FALLBACK_VIDEOS.slice(0, parseInt(limit)) });
-        }
+          if (error) {
+              console.error('Videos API error:', error.message);
+              return res.status(200).json({ success: true, data: FALLBACK_VIDEOS.slice(0, parseInt(limit)) });
+          }
 
-        if (!data?.length) {
-            return res.status(200).json({ success: true, data: FALLBACK_VIDEOS.slice(0, parseInt(limit)) });
-        }
+          if (!data?.length) {
+              return res.status(200).json({ success: true, data: FALLBACK_VIDEOS.slice(0, parseInt(limit)) });
+          }
 
-        // Transform social_reels rows into video-card-compatible format
-        const videos = data.map(reel => {
-            const youtubeId = extractYouTubeId(reel.video_url);
-            const thumbnailUrl = reel.thumbnail_url ||
-                (youtubeId ? `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg` : null);
+          // Transform social_reels rows into video-card-compatible format
+          const videos = data.map(reel => {
+              const youtubeId = extractYouTubeId(reel.video_url);
+              const thumbnailUrl = reel.thumbnail_url ||
+                  (youtubeId ? `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg` : null);
 
-            return {
-                id: reel.id,
-                title: reel.caption?.split('\n')[0]?.replace(/^🎬\s*/, '') || 'Poker Video',
-                youtube_id: youtubeId,
-                video_url: reel.video_url,
-                thumbnail_url: thumbnailUrl,
-                duration: reel.duration || '',
-                views: reel.view_count || 0,
-                channel: 'PokerNews',
-                published_at: reel.created_at,
-                scraped_at: reel.created_at
-            };
-        });
+              return {
+                  id: reel.id,
+                  title: reel.caption?.split('\n')[0]?.replace(/^🎬\s*/, '') || 'Poker Video',
+                  youtube_id: youtubeId,
+                  video_url: reel.video_url,
+                  thumbnail_url: thumbnailUrl,
+                  duration: reel.duration || '',
+                  views: reel.view_count || 0,
+                  channel: 'PokerNews',
+                  published_at: reel.created_at,
+                  scraped_at: reel.created_at
+              };
+          });
 
-        // Filter by channel if specified
-        const filtered = channel
-            ? videos.filter(v => v.channel?.toLowerCase().includes(channel.toLowerCase()))
-            : videos;
+          // Filter by channel if specified
+          const filtered = channel
+              ? videos.filter(v => v.channel?.toLowerCase().includes(channel.toLowerCase()))
+              : videos;
 
-        return res.status(200).json({ success: true, data: filtered });
-    } catch (error) {
-        console.error('Videos API exception:', error.message);
-        return res.status(200).json({ success: true, data: FALLBACK_VIDEOS });
-    }
+          return res.status(200).json({ success: true, data: filtered });
+      } catch (error) {
+          console.error('Videos API exception:', error.message);
+          return res.status(200).json({ success: true, data: FALLBACK_VIDEOS });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

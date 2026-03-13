@@ -20,84 +20,90 @@ const FALLBACK_REELS = [
 ];
 
 export default async function handler(req, res) {
-    if (req.method !== 'GET') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
+  try {
+      if (req.method !== 'GET') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
 
-    try {
-        const { limit = 20, featured, sort = 'recent' } = req.query;
+      try {
+          const { limit = 20, featured, sort = 'recent' } = req.query;
 
-        // First fetch reels without join to avoid schema cache issues
-        let query = supabase
-            .from('social_reels')
-            .select('*')
-            .eq('is_public', true)
-                .limit(100);
+          // First fetch reels without join to avoid schema cache issues
+          let query = supabase
+              .from('social_reels')
+              .select('*')
+              .eq('is_public', true)
+                  .limit(100);
 
-        // Sorting options
-        if (sort === 'popular') {
-            query = query.order('view_count', { ascending: false })
-                .limit(100);
-        } else if (sort === 'random') {
-            query = query.order('created_at', { ascending: false })
-                .limit(100);
-        } else {
-            query = query.order('created_at', { ascending: false })
-                .limit(100);
-        }
+          // Sorting options
+          if (sort === 'popular') {
+              query = query.order('view_count', { ascending: false })
+                  .limit(100);
+          } else if (sort === 'random') {
+              query = query.order('created_at', { ascending: false })
+                  .limit(100);
+          } else {
+              query = query.order('created_at', { ascending: false })
+                  .limit(100);
+          }
 
-        query = query.limit(parseInt(limit));
+          query = query.limit(parseInt(limit));
 
-        const { data, error } = await query;
+          const { data, error } = await query;
 
-        if (error) {
-            console.error('Reels API error:', error.message);
-            return res.status(200).json({ success: true, data: FALLBACK_REELS.slice(0, parseInt(limit)) });
-        }
+          if (error) {
+              console.error('Reels API error:', error.message);
+              return res.status(200).json({ success: true, data: FALLBACK_REELS.slice(0, parseInt(limit)) });
+          }
 
-        if (!data?.length) {
-            return res.status(200).json({ success: true, data: FALLBACK_REELS.slice(0, parseInt(limit)) });
-        }
+          if (!data?.length) {
+              return res.status(200).json({ success: true, data: FALLBACK_REELS.slice(0, parseInt(limit)) });
+          }
 
-        // Fetch profiles separately to avoid schema cache join errors
-        const authorIds = [...new Set(data.map(r => r.author_id).filter(Boolean))];
-        let profilesMap = {};
+          // Fetch profiles separately to avoid schema cache join errors
+          const authorIds = [...new Set(data.map(r => r.author_id).filter(Boolean))];
+          let profilesMap = {};
 
-        if (authorIds.length > 0) {
-            const { data: profiles } = await supabase
-                .from('profiles')
-                .select('id, username, full_name, avatar_url')
-                .in('id', authorIds)
-                    .limit(100);
+          if (authorIds.length > 0) {
+              const { data: profiles } = await supabase
+                  .from('profiles')
+                  .select('id, username, full_name, avatar_url')
+                  .in('id', authorIds)
+                      .limit(100);
 
-            if (profiles) {
-                profilesMap = profiles.reduce((acc, p) => {
-                    acc[p.id] = p;
-                    return acc;
-                }, {});
-            }
-        }
+              if (profiles) {
+                  profilesMap = profiles.reduce((acc, p) => {
+                      acc[p.id] = p;
+                      return acc;
+                  }, {});
+              }
+          }
 
-        // Transform data to include author info and extract title from caption
-        let result = data.map(reel => {
-            const profile = profilesMap[reel.author_id];
-            return {
-                ...reel,
-                title: reel.caption?.split('\n')[0]?.replace(/^🎬\s*/, '') || 'Poker Reel',
-                channel_name: profile?.full_name || profile?.username || 'Smarter.Poker',
-                profiles: profile,
-                author: profile
-            };
-        });
+          // Transform data to include author info and extract title from caption
+          let result = data.map(reel => {
+              const profile = profilesMap[reel.author_id];
+              return {
+                  ...reel,
+                  title: reel.caption?.split('\n')[0]?.replace(/^🎬\s*/, '') || 'Poker Reel',
+                  channel_name: profile?.full_name || profile?.username || 'Smarter.Poker',
+                  profiles: profile,
+                  author: profile
+              };
+          });
 
-        // Shuffle if random sort requested
-        if (sort === 'random') {
-            result = result.sort(() => Math.random() - 0.5);
-        }
+          // Shuffle if random sort requested
+          if (sort === 'random') {
+              result = result.sort(() => Math.random() - 0.5);
+          }
 
-        return res.status(200).json({ success: true, data: result });
-    } catch (error) {
-        console.error('Reels API exception:', error.message);
-        return res.status(200).json({ success: true, data: FALLBACK_REELS });
-    }
+          return res.status(200).json({ success: true, data: result });
+      } catch (error) {
+          console.error('Reels API exception:', error.message);
+          return res.status(200).json({ success: true, data: FALLBACK_REELS });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

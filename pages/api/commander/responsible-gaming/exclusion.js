@@ -13,20 +13,26 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
 
-  if (req.method === 'POST') {
-    return handleCreate(req, res);
-  } else if (req.method === 'DELETE') {
-    return handleRemove(req, res);
-  }
+    if (req.method === 'POST') {
+      return handleCreate(req, res);
+    } else if (req.method === 'DELETE') {
+      return handleRemove(req, res);
+    }
 
-  return res.status(405).json({
-    success: false,
-    error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' }
-  });
+    return res.status(405).json({
+      success: false,
+      error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' }
+    });
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }
 
 async function handleCreate(req, res) {

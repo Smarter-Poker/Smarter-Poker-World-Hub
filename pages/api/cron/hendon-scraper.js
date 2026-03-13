@@ -19,98 +19,104 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-    // Only allow POST
-    if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
-    }
+  try {
+      // Only allow POST
+      if (req.method !== 'POST') {
+          return res.status(405).json({ error: 'Method not allowed' });
+      }
 
-    // Verify cron secret
-    const authHeader = req.headers.authorization;
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
+      // Verify cron secret
+      const authHeader = req.headers.authorization;
+      if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+          return res.status(401).json({ error: 'Unauthorized' });
+      }
 
-    try {
-        // Get all profiles with HendonMob URLs that need scraping
-        // Either never scraped or scraped more than 7 days ago
-        const { data: profiles, error: fetchError } = await supabase
-            .from('profiles')
-            .select('id, hendon_url, hendon_last_scraped')
-            .not('hendon_url', 'is', null)
-            .or('hendon_last_scraped.is.null,hendon_last_scraped.lt.' + new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
-                .limit(100);
+      try {
+          // Get all profiles with HendonMob URLs that need scraping
+          // Either never scraped or scraped more than 7 days ago
+          const { data: profiles, error: fetchError } = await supabase
+              .from('profiles')
+              .select('id, hendon_url, hendon_last_scraped')
+              .not('hendon_url', 'is', null)
+              .or('hendon_last_scraped.is.null,hendon_last_scraped.lt.' + new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+                  .limit(100);
 
-        if (fetchError) {
-            console.error('Error fetching profiles:', fetchError);
-            return res.status(500).json({ error: 'Failed to fetch profiles' });
-        }
+          if (fetchError) {
+              console.error('Error fetching profiles:', fetchError);
+              return res.status(500).json({ error: 'Failed to fetch profiles' });
+          }
 
-        if (!profiles || profiles.length === 0) {
-            return res.status(200).json({ message: 'No profiles to scrape', count: 0 });
-        }
+          if (!profiles || profiles.length === 0) {
+              return res.status(200).json({ message: 'No profiles to scrape', count: 0 });
+          }
 
 
-        const results = [];
+          const results = [];
 
-        for (const profile of profiles) {
-            try {
-                const scraped = await scrapeHendonMob(profile.hendon_url);
+          for (const profile of profiles) {
+              try {
+                  const scraped = await scrapeHendonMob(profile.hendon_url);
 
-                if (scraped) {
-                    // Update profile with scraped data
-                    await supabase.rpc('fn_update_hendon_data', {
-                        p_profile_id: profile.id,
-                        p_total_cashes: scraped.totalCashes,
-                        p_total_earnings: scraped.totalEarnings,
-                        p_best_finish: scraped.bestFinish,
-                        p_biggest_cash: scraped.biggestCash,
-                    });
+                  if (scraped) {
+                      // Update profile with scraped data
+                      await supabase.rpc('fn_update_hendon_data', {
+                          p_profile_id: profile.id,
+                          p_total_cashes: scraped.totalCashes,
+                          p_total_earnings: scraped.totalEarnings,
+                          p_best_finish: scraped.bestFinish,
+                          p_biggest_cash: scraped.biggestCash,
+                      });
 
-                    // Log success
-                    await supabase.from('hendon_scrape_log').insert({
-                        profile_id: profile.id,
-                        hendon_url: profile.hendon_url,
-                        status: 'success',
-                        total_cashes: scraped.totalCashes,
-                        total_earnings: scraped.totalEarnings,
-                        best_finish: scraped.bestFinish,
-                        biggest_cash: scraped.biggestCash,
-                        raw_data: scraped.rawData,
-                    });
+                      // Log success
+                      await supabase.from('hendon_scrape_log').insert({
+                          profile_id: profile.id,
+                          hendon_url: profile.hendon_url,
+                          status: 'success',
+                          total_cashes: scraped.totalCashes,
+                          total_earnings: scraped.totalEarnings,
+                          best_finish: scraped.bestFinish,
+                          biggest_cash: scraped.biggestCash,
+                          raw_data: scraped.rawData,
+                      });
 
-                    results.push({ id: profile.id, status: 'success' });
-                } else {
-                    results.push({ id: profile.id, status: 'no_data' });
-                }
+                      results.push({ id: profile.id, status: 'success' });
+                  } else {
+                      results.push({ id: profile.id, status: 'no_data' });
+                  }
 
-                // Rate limiting - wait 2 seconds between requests
-                await new Promise(r => setTimeout(r, 2000));
+                  // Rate limiting - wait 2 seconds between requests
+                  await new Promise(r => setTimeout(r, 2000));
 
-            } catch (scrapeError) {
-                console.error(`Error scraping ${profile.hendon_url}:`, scrapeError);
+              } catch (scrapeError) {
+                  console.error(`Error scraping ${profile.hendon_url}:`, scrapeError);
 
-                // Log failure
-                await supabase.from('hendon_scrape_log').insert({
-                    profile_id: profile.id,
-                    hendon_url: profile.hendon_url,
-                    status: 'failed',
-                    error_message: scrapeError.message,
-                });
+                  // Log failure
+                  await supabase.from('hendon_scrape_log').insert({
+                      profile_id: profile.id,
+                      hendon_url: profile.hendon_url,
+                      status: 'failed',
+                      error_message: scrapeError.message,
+                  });
 
-                results.push({ id: profile.id, status: 'error', error: scrapeError.message });
-            }
-        }
+                  results.push({ id: profile.id, status: 'error', error: scrapeError.message });
+              }
+          }
 
-        return res.status(200).json({
-            message: 'Scraping complete',
-            count: profiles.length,
-            results
-        });
+          return res.status(200).json({
+              message: 'Scraping complete',
+              count: profiles.length,
+              results
+          });
 
-    } catch (error) {
-        console.error('Scraper error:', error);
-        return res.status(500).json({ error: 'Internal server error' });
-    }
+      } catch (error) {
+          console.error('Scraper error:', error);
+          return res.status(500).json({ error: 'Internal server error' });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }
 
 /**

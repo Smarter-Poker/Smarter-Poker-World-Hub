@@ -37,47 +37,53 @@ export const config = {
 };
 
 export default async function handler(req, res) {
-    if (!applyRateLimit(req, res, LIMITS.ai)) return;
+  try {
+      if (!applyRateLimit(req, res, LIMITS.ai)) return;
 
-    if (req.method !== 'POST') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
+      if (req.method !== 'POST') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
 
-    const authHeader = req.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-        return res.status(401).json({ success: false, error: 'Unauthorized' });
-    }
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+          return res.status(401).json({ success: false, error: 'Unauthorized' });
+      }
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
-        return res.status(401).json({ success: false, error: 'Invalid token' });
-    }
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      if (authError || !user) {
+          return res.status(401).json({ success: false, error: 'Invalid token' });
+      }
 
-    // SERVER-SIDE GUARD: Verify user has Bankroll Pro access
-    const access = await checkFeatureAccess(user.id, 'bankroll_pro');
-    if (!access.hasAccess) {
-        return res.status(403).json({ success: false, error: 'Premium feature access required' });
-    }
+      // SERVER-SIDE GUARD: Verify user has Bankroll Pro access
+      const access = await checkFeatureAccess(user.id, 'bankroll_pro');
+      if (!access.hasAccess) {
+          return res.status(403).json({ success: false, error: 'Premium feature access required' });
+      }
 
-    try {
-        const { image } = req.body;
+      try {
+          const { image } = req.body;
 
-        if (!image) {
-            return res.status(400).json({ success: false, error: 'No image provided' });
-        }
+          if (!image) {
+              return res.status(400).json({ success: false, error: 'No image provided' });
+          }
 
-        // Call Grok Vision API for OCR
-        const extractedData = await analyzeReceipt(image);
+          // Call Grok Vision API for OCR
+          const extractedData = await analyzeReceipt(image);
 
-        return res.status(200).json({
-            success: true,
-            data: extractedData
-        });
-    } catch (error) {
-        console.error('Receipt scan error:', error);
-        return res.status(500).json({ success: false, error: 'Failed to scan receipt' });
-    }
+          return res.status(200).json({
+              success: true,
+              data: extractedData
+          });
+      } catch (error) {
+          console.error('Receipt scan error:', error);
+          return res.status(500).json({ success: false, error: 'Failed to scan receipt' });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }
 
 async function analyzeReceipt(imageBase64) {

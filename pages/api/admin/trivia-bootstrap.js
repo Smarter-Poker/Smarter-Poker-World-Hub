@@ -220,119 +220,125 @@ Return ONLY valid JSON array:
 }
 
 export default async function handler(req, res) {
-    // Allow both GET and POST, but require auth
-    const authHeader = req.headers.authorization;
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-        // Also allow without auth for admin testing
-        const { secret } = req.query;
-        if (secret !== process.env.CRON_SECRET) {
-            return res.status(401).json({ error: 'Unauthorized - pass secret as query param or Bearer token' });
-        }
-    }
+  try {
+      // Allow both GET and POST, but require auth
+      const authHeader = req.headers.authorization;
+      if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+          // Also allow without auth for admin testing
+          const { secret } = req.query;
+          if (secret !== process.env.CRON_SECRET) {
+              return res.status(401).json({ error: 'Unauthorized - pass secret as query param or Bearer token' });
+          }
+      }
 
-    // Get target category from query or do all
-    const { category: targetCat } = req.query;
-    const categoriesToProcess = targetCat
-        ? CATEGORIES.filter(c => c.id === targetCat)
-        : CATEGORIES;
+      // Get target category from query or do all
+      const { category: targetCat } = req.query;
+      const categoriesToProcess = targetCat
+          ? CATEGORIES.filter(c => c.id === targetCat)
+          : CATEGORIES;
 
-    if (categoriesToProcess.length === 0) {
-        return res.status(400).json({ error: 'Invalid category' });
-    }
-
-
-    const results = {
-        started: new Date().toISOString(),
-        targetPerCategory: TARGET_PER_CATEGORY,
-        categories: {}
-    };
-
-    // Process each category
-    for (const category of categoriesToProcess) {
-
-        // Get current count
-        const { count: existingCount } = await supabase
-            .from('trivia_questions')
-            .select('*', { count: 'exact', head: true })
-            .eq('category', category.id);
-
-        const needed = Math.max(0, TARGET_PER_CATEGORY - (existingCount || 0));
-
-        if (needed === 0) {
-            results.categories[category.id] = {
-                name: category.name,
-                existing: existingCount,
-                generated: 0,
-                message: 'Already at target'
-            };
-            continue;
-        }
+      if (categoriesToProcess.length === 0) {
+          return res.status(400).json({ error: 'Invalid category' });
+      }
 
 
-        let generated = 0;
-        const difficulties = ['easy', 'medium', 'medium', 'medium', 'hard']; // 20/60/20 distribution
+      const results = {
+          started: new Date().toISOString(),
+          targetPerCategory: TARGET_PER_CATEGORY,
+          categories: {}
+      };
 
-        // Generate in batches across topics
-        let batchCount = 0;
-        while (generated < needed && batchCount < 15) { // Max 15 batches per category
-            const topic = category.topics[batchCount % category.topics.length];
-            const difficulty = difficulties[batchCount % difficulties.length];
-            const batchNeeded = Math.min(BATCH_SIZE, needed - generated);
+      // Process each category
+      for (const category of categoriesToProcess) {
 
+          // Get current count
+          const { count: existingCount } = await supabase
+              .from('trivia_questions')
+              .select('*', { count: 'exact', head: true })
+              .eq('category', category.id);
 
-            const questions = await generateBatch(category, topic, difficulty, batchNeeded);
+          const needed = Math.max(0, TARGET_PER_CATEGORY - (existingCount || 0));
 
-            if (questions.length > 0) {
-                // ═══ QA VALIDATION GATE ═══
-                const { valid: validQuestions, rejected } = validateBatch(questions);
-                if (rejected.length > 0) {
-                    rejected.forEach(r => r.errors.forEach(e => console.log(`  → ${e}`)));
-                }
-
-                if (validQuestions.length > 0) {
-                    const { data, error } = await supabase
-                        .from('trivia_questions')
-                        .insert(validQuestions)
-                        .select();
-
-                    if (!error && data) {
-                        generated += data.length;
-                    } else if (error) {
-                        console.error(`[Bootstrap] Insert error:`, error.message);
-                    }
-                }
-            }
-
-            batchCount++;
-
-            // Rate limiting
-            await new Promise(r => setTimeout(r, 500));
-        }
-
-        results.categories[category.id] = {
-            name: category.name,
-            existing: existingCount || 0,
-            generated,
-            total: (existingCount || 0) + generated,
-            target: TARGET_PER_CATEGORY
-        };
-    }
-
-    // Get final counts
-    let totalQuestions = 0;
-    for (const cat of CATEGORIES) {
-        const { count } = await supabase
-            .from('trivia_questions')
-            .select('*', { count: 'exact', head: true })
-            .eq('category', cat.id);
-        totalQuestions += count || 0;
-    }
-
-    results.completed = new Date().toISOString();
-    results.totalQuestions = totalQuestions;
-    results.targetTotal = CATEGORIES.length * TARGET_PER_CATEGORY;
-    results.progress = `${Math.round((totalQuestions / results.targetTotal) * 100)}%`;
+          if (needed === 0) {
+              results.categories[category.id] = {
+                  name: category.name,
+                  existing: existingCount,
+                  generated: 0,
+                  message: 'Already at target'
+              };
+              continue;
+          }
 
 
-    return res.status(200).json(results);
+          let generated = 0;
+          const difficulties = ['easy', 'medium', 'medium', 'medium', 'hard']; // 20/60/20 distribution
+
+          // Generate in batches across topics
+          let batchCount = 0;
+          while (generated < needed && batchCount < 15) { // Max 15 batches per category
+              const topic = category.topics[batchCount % category.topics.length];
+              const difficulty = difficulties[batchCount % difficulties.length];
+              const batchNeeded = Math.min(BATCH_SIZE, needed - generated);
+
+
+              const questions = await generateBatch(category, topic, difficulty, batchNeeded);
+
+              if (questions.length > 0) {
+                  // ═══ QA VALIDATION GATE ═══
+                  const { valid: validQuestions, rejected } = validateBatch(questions);
+                  if (rejected.length > 0) {
+                      rejected.forEach(r => r.errors.forEach(e => console.log(`  → ${e}`)));
+                  }
+
+                  if (validQuestions.length > 0) {
+                      const { data, error } = await supabase
+                          .from('trivia_questions')
+                          .insert(validQuestions)
+                          .select();
+
+                      if (!error && data) {
+                          generated += data.length;
+                      } else if (error) {
+                          console.error(`[Bootstrap] Insert error:`, error.message);
+                      }
+                  }
+              }
+
+              batchCount++;
+
+              // Rate limiting
+              await new Promise(r => setTimeout(r, 500));
+          }
+
+          results.categories[category.id] = {
+              name: category.name,
+              existing: existingCount || 0,
+              generated,
+              total: (existingCount || 0) + generated,
+              target: TARGET_PER_CATEGORY
+          };
+      }
+
+      // Get final counts
+      let totalQuestions = 0;
+      for (const cat of CATEGORIES) {
+          const { count } = await supabase
+              .from('trivia_questions')
+              .select('*', { count: 'exact', head: true })
+              .eq('category', cat.id);
+          totalQuestions += count || 0;
+      }
+
+      results.completed = new Date().toISOString();
+      results.totalQuestions = totalQuestions;
+      results.targetTotal = CATEGORIES.length * TARGET_PER_CATEGORY;
+      results.progress = `${Math.round((totalQuestions / results.targetTotal) * 100)}%`;
+
+
+      return res.status(200).json(results);
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

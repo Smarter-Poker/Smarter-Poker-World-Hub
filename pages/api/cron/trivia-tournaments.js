@@ -19,108 +19,114 @@ const ENTRY_FEE = 25;
 const HOUSE_RAKE_PERCENT = 10;
 
 export default async function handler(req, res) {
-    const authHeader = req.headers.authorization;
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
+  try {
+      const authHeader = req.headers.authorization;
+      if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+          return res.status(401).json({ error: 'Unauthorized' });
+      }
 
-    try {
-        const now = new Date();
-        const results = {
-            created: null,
-            started: null,
-            cancelled: null
-        };
+      try {
+          const now = new Date();
+          const results = {
+              created: null,
+              started: null,
+              cancelled: null
+          };
 
-        // 1. Start any tournament whose start_time has passed and is still 'upcoming'
-        const { data: upcomingTournaments } = await supabase
-            .from('trivia_tournaments')
-            .select('*')
-            .eq('status', 'upcoming')
-            .lte('start_time', now.toISOString())
-                .limit(100);
+          // 1. Start any tournament whose start_time has passed and is still 'upcoming'
+          const { data: upcomingTournaments } = await supabase
+              .from('trivia_tournaments')
+              .select('*')
+              .eq('status', 'upcoming')
+              .lte('start_time', now.toISOString())
+                  .limit(100);
 
-        for (const tournament of upcomingTournaments || []) {
-            // Get registered entries
-            const { data: entries } = await supabase
-                .from('trivia_tournament_entries')
-                .select('*')
-                .eq('tournament_id', tournament.id)
-                .order('created_at', { ascending: true })
-                    .limit(100);
+          for (const tournament of upcomingTournaments || []) {
+              // Get registered entries
+              const { data: entries } = await supabase
+                  .from('trivia_tournament_entries')
+                  .select('*')
+                  .eq('tournament_id', tournament.id)
+                  .order('created_at', { ascending: true })
+                      .limit(100);
 
-            if (!entries || entries.length < 2) {
-                // Not enough players — cancel and refund
-                await cancelAndRefund(tournament, entries || []);
-                results.cancelled = tournament.id;
-                continue;
-            }
+              if (!entries || entries.length < 2) {
+                  // Not enough players — cancel and refund
+                  await cancelAndRefund(tournament, entries || []);
+                  results.cancelled = tournament.id;
+                  continue;
+              }
 
-            // Generate bracket
-            const bracketResult = await generateBracket(tournament, entries);
-            results.started = { id: tournament.id, players: entries.length, rounds: bracketResult.totalRounds };
-        }
+              // Generate bracket
+              const bracketResult = await generateBracket(tournament, entries);
+              results.started = { id: tournament.id, players: entries.length, rounds: bracketResult.totalRounds };
+          }
 
-        // 2. Create tomorrow's tournament
-        const tomorrow7pmCST = getNext7pmCST();
+          // 2. Create tomorrow's tournament
+          const tomorrow7pmCST = getNext7pmCST();
 
-        // Check if tournament already exists for that time
-        const startOfDay = new Date(tomorrow7pmCST);
-        startOfDay.setUTCHours(0, 0, 0, 0);
-        const endOfDay = new Date(tomorrow7pmCST);
-        endOfDay.setUTCHours(23, 59, 59, 999);
+          // Check if tournament already exists for that time
+          const startOfDay = new Date(tomorrow7pmCST);
+          startOfDay.setUTCHours(0, 0, 0, 0);
+          const endOfDay = new Date(tomorrow7pmCST);
+          endOfDay.setUTCHours(23, 59, 59, 999);
 
-        const { data: existingTournament } = await supabase
-            .from('trivia_tournaments')
-            .select('id')
-            .gte('start_time', startOfDay.toISOString())
-            .lt('start_time', endOfDay.toISOString())
-            .limit(1)
-            .maybeSingle();
+          const { data: existingTournament } = await supabase
+              .from('trivia_tournaments')
+              .select('id')
+              .gte('start_time', startOfDay.toISOString())
+              .lt('start_time', endOfDay.toISOString())
+              .limit(1)
+              .maybeSingle();
 
-        if (!existingTournament) {
-            // Load questions for the tournament
-            const { data: questions } = await supabase
-                .from('trivia_questions')
-                .select('*')
-                .limit(100);
+          if (!existingTournament) {
+              // Load questions for the tournament
+              const { data: questions } = await supabase
+                  .from('trivia_questions')
+                  .select('*')
+                  .limit(100);
 
-            const tournamentQuestions = questions
-                ?.sort(() => Math.random() - 0.5)
-                .slice(0, 20) || []; // 20 questions per round (all categories)
+              const tournamentQuestions = questions
+                  ?.sort(() => Math.random() - 0.5)
+                  .slice(0, 20) || []; // 20 questions per round (all categories)
 
-            const { data: newTournament, error } = await supabase
-                .from('trivia_tournaments')
-                .insert({
-                    name: `Daily Championship — ${tomorrow7pmCST.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}`,
-                    start_time: tomorrow7pmCST.toISOString(),
-                    end_time: null, // Ends when final round completes
-                    entry_fee: ENTRY_FEE,
-                    prize_pool: 0,
-                    questions: tournamentQuestions,
-                    status: 'upcoming',
-                    tournament_type: 'bracket',
-                    current_round: 0,
-                    created_at: now.toISOString()
-                })
-                .select()
-                .maybeSingle();
+              const { data: newTournament, error } = await supabase
+                  .from('trivia_tournaments')
+                  .insert({
+                      name: `Daily Championship — ${tomorrow7pmCST.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}`,
+                      start_time: tomorrow7pmCST.toISOString(),
+                      end_time: null, // Ends when final round completes
+                      entry_fee: ENTRY_FEE,
+                      prize_pool: 0,
+                      questions: tournamentQuestions,
+                      status: 'upcoming',
+                      tournament_type: 'bracket',
+                      current_round: 0,
+                      created_at: now.toISOString()
+                  })
+                  .select()
+                  .maybeSingle();
 
-            if (!error && newTournament) {
-                results.created = newTournament.id;
-            }
-        }
+              if (!error && newTournament) {
+                  results.created = newTournament.id;
+              }
+          }
 
-        return res.status(200).json({
-            success: true,
-            results,
-            timestamp: now.toISOString()
-        });
+          return res.status(200).json({
+              success: true,
+              results,
+              timestamp: now.toISOString()
+          });
 
-    } catch (error) {
-        console.error('[Tournament Cron] Error:', error);
-        return res.status(500).json({ error: error.message });
-    }
+      } catch (error) {
+          console.error('[Tournament Cron] Error:', error);
+          return res.status(500).json({ error: error.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }
 
 /**

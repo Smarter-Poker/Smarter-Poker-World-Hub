@@ -16,78 +16,84 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-    if (!applyRateLimit(req, res, LIMITS.read)) return;
+  try {
+      if (!applyRateLimit(req, res, LIMITS.read)) return;
 
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-    const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
-    if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
+      const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+      if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-    if (req.method !== 'GET') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
+      if (req.method !== 'GET') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
 
-    const { gameId, limit = '50' } = req.query;
+      const { gameId, limit = '50' } = req.query;
 
-    try {
-        // Try training_sessions first (rich data)
-        let query = supabase
-            .from('training_sessions')
-            .select('*')
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false })
-            .limit(parseInt(limit) || 50);
+      try {
+          // Try training_sessions first (rich data)
+          let query = supabase
+              .from('training_sessions')
+              .select('*')
+              .eq('user_id', user.id)
+              .order('created_at', { ascending: false })
+              .limit(parseInt(limit) || 50);
 
-        // Only filter by game_id if provided
-        if (gameId) {
-            query = query.eq('game_id', gameId);
-        }
+          // Only filter by game_id if provided
+          if (gameId) {
+              query = query.eq('game_id', gameId);
+          }
 
-        const { data: sessions, error: sessErr } = await query;
+          const { data: sessions, error: sessErr } = await query;
 
-        if (!sessErr && sessions && sessions.length > 0) {
-            return res.status(200).json({ success: true, sessions });
-        }
+          if (!sessErr && sessions && sessions.length > 0) {
+              return res.status(200).json({ success: true, sessions });
+          }
 
-        // Fallback to training_level_history
-        let histQuery = supabase
-            .from('training_level_history')
-            .select('*')
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false })
-            .limit(parseInt(limit) || 50);
+          // Fallback to training_level_history
+          let histQuery = supabase
+              .from('training_level_history')
+              .select('*')
+              .eq('user_id', user.id)
+              .order('created_at', { ascending: false })
+              .limit(parseInt(limit) || 50);
 
-        if (gameId) {
-            histQuery = histQuery.eq('game_id', gameId);
-        }
+          if (gameId) {
+              histQuery = histQuery.eq('game_id', gameId);
+          }
 
-        const { data: history, error: histErr } = await histQuery;
+          const { data: history, error: histErr } = await histQuery;
 
-        if (histErr) {
-            console.warn('[GetSessions] History query failed:', histErr.message);
-            return res.status(200).json({ success: true, sessions: [] });
-        }
+          if (histErr) {
+              console.warn('[GetSessions] History query failed:', histErr.message);
+              return res.status(200).json({ success: true, sessions: [] });
+          }
 
-        // Normalize history format
-        const normalized = (history || []).map(h => ({
-            id: h.id,
-            game_id: h.game_id,
-            gtow_score: h.accuracy_percentage,
-            hands_played: h.questions_answered,
-            total_ev_loss: 0,
-            mistake_count: 0,
-            accuracy: h.accuracy_percentage,
-            correct_count: h.questions_correct,
-            best_streak: h.best_streak || 0,
-            level_passed: h.passed,
-            level: h.level,
-            created_at: h.created_at,
-        }));
+          // Normalize history format
+          const normalized = (history || []).map(h => ({
+              id: h.id,
+              game_id: h.game_id,
+              gtow_score: h.accuracy_percentage,
+              hands_played: h.questions_answered,
+              total_ev_loss: 0,
+              mistake_count: 0,
+              accuracy: h.accuracy_percentage,
+              correct_count: h.questions_correct,
+              best_streak: h.best_streak || 0,
+              level_passed: h.passed,
+              level: h.level,
+              created_at: h.created_at,
+          }));
 
-        return res.status(200).json({ success: true, sessions: normalized });
+          return res.status(200).json({ success: true, sessions: normalized });
 
-    } catch (err) {
-        console.error('[GetSessions] Error:', err);
-        return res.status(500).json({ success: false, error: err.message });
-    }
+      } catch (err) {
+          console.error('[GetSessions] Error:', err);
+          return res.status(500).json({ success: false, error: err.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

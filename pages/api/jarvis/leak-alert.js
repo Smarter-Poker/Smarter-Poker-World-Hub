@@ -14,38 +14,44 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+      const { method } = req;
+
+      // Get user from auth header
+      const authHeader = req.headers.authorization;
+      let userId = null;
+
+      if (authHeader?.startsWith('Bearer ')) {
+          const token = authHeader.substring(7);
+          const { data: { user }, error } = await supabase.auth.getUser(token);
+          if (!error && user) {
+              userId = user.id;
+          }
+      }
+
+      // BUG #242 FIX: Removed req.query.userId fallback — IDOR allowed viewing anyone's leak alerts
+      if (!userId) {
+          return res.status(401).json({ success: false, error: 'Unauthorized' });
+      }
+
+      switch (method) {
+          case 'GET':
+              return getUnreadAlerts(userId, res);
+          case 'POST':
+              return markAlertRead(userId, req.body, res);
+          default:
+              res.setHeader('Allow', ['GET', 'POST']);
+              return res.status(405).end(`Method ${method} Not Allowed`);
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-    const { method } = req;
-
-    // Get user from auth header
-    const authHeader = req.headers.authorization;
-    let userId = null;
-
-    if (authHeader?.startsWith('Bearer ')) {
-        const token = authHeader.substring(7);
-        const { data: { user }, error } = await supabase.auth.getUser(token);
-        if (!error && user) {
-            userId = user.id;
-        }
-    }
-
-    // BUG #242 FIX: Removed req.query.userId fallback — IDOR allowed viewing anyone's leak alerts
-    if (!userId) {
-        return res.status(401).json({ success: false, error: 'Unauthorized' });
-    }
-
-    switch (method) {
-        case 'GET':
-            return getUnreadAlerts(userId, res);
-        case 'POST':
-            return markAlertRead(userId, req.body, res);
-        default:
-            res.setHeader('Allow', ['GET', 'POST']);
-            return res.status(405).end(`Method ${method} Not Allowed`);
-    }
 }
 
 /**

@@ -15,66 +15,72 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  // BUG #244 FIX: Require JWT auth — these routes use paid AI APIs
-  const _authSupa = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-  const _token = req.headers.authorization?.replace('Bearer ', '');
-  if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
-  const { data: { user: _authUser }, error: _authErr } = await _authSupa.auth.getUser(_token);
-  if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+  try {
+    // BUG #244 FIX: Require JWT auth — these routes use paid AI APIs
+    const _authSupa = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+    const _token = req.headers.authorization?.replace('Bearer ', '');
+    if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
+    const { data: { user: _authUser }, error: _authErr } = await _authSupa.auth.getUser(_token);
+    if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-    if (req.method !== 'GET') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
+      if (req.method !== 'GET') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
 
-    try {
-        const userId = _authUser.id; // Trust JWT, not client-supplied query param
+      try {
+          const userId = _authUser.id; // Trust JWT, not client-supplied query param
 
-        // Get user's training profile
-        const { data: profile } = await supabase
-            .from('jarvis_user_training_profile')
-            .select('*')
-            .eq('user_id', userId)
-            .maybeSingle();
+          // Get user's training profile
+          const { data: profile } = await supabase
+              .from('jarvis_user_training_profile')
+              .select('*')
+              .eq('user_id', userId)
+              .maybeSingle();
 
-        // Get last session
-        const { data: lastSession } = await supabase
-            .from('jarvis_training_sessions')
-            .select('created_at, category, accuracy')
-            .eq('user_id', userId)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
+          // Get last session
+          const { data: lastSession } = await supabase
+              .from('jarvis_training_sessions')
+              .select('created_at, category, accuracy')
+              .eq('user_id', userId)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
 
-        // Calculate time since last session
-        const hoursSinceLastSession = lastSession
-            ? (Date.now() - new Date(lastSession.created_at).getTime()) / (1000 * 60 * 60)
-            : 999;
+          // Calculate time since last session
+          const hoursSinceLastSession = lastSession
+              ? (Date.now() - new Date(lastSession.created_at).getTime()) / (1000 * 60 * 60)
+              : 999;
 
-        // Generate suggestions
-        const suggestions = generateLobbySuggestions(
-            profile,
-            lastSession,
-            hoursSinceLastSession
-        );
+          // Generate suggestions
+          const suggestions = generateLobbySuggestions(
+              profile,
+              lastSession,
+              hoursSinceLastSession
+          );
 
-        return res.status(200).json({
-            success: true,
-            suggestions,
-            context: {
-                hoursSinceLastSession: Math.floor(hoursSinceLastSession),
-                lastCategory: lastSession?.category,
-                skillLevel: profile?.skill_assessment || 'New Player'
-            }
-        });
+          return res.status(200).json({
+              success: true,
+              suggestions,
+              context: {
+                  hoursSinceLastSession: Math.floor(hoursSinceLastSession),
+                  lastCategory: lastSession?.category,
+                  skillLevel: profile?.skill_assessment || 'New Player'
+              }
+          });
 
-    } catch (error) {
-        console.error('[LobbySuggestions] Error:', error);
-        return res.status(200).json({
-            success: true,
-            suggestions: getDefaultSuggestions(),
-            fallback: true
-        });
-    }
+      } catch (error) {
+          console.error('[LobbySuggestions] Error:', error);
+          return res.status(200).json({
+              success: true,
+              suggestions: getDefaultSuggestions(),
+              fallback: true
+          });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }
 
 function generateLobbySuggestions(profile, lastSession, hoursSinceLastSession) {

@@ -136,148 +136,154 @@ async function buildSocialPages(pageType) {
 }
 
 export default async function handler(req, res) {
-  if (!applyRateLimit(req, res, LIMITS.read)) return;
+  try {
+    if (!applyRateLimit(req, res, LIMITS.read)) return;
 
-    if (req.method !== 'GET') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
+      if (req.method !== 'GET') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
 
-    try {
-        const {
-            category = 'all',
-            search,
-            user_id,
-            followed_only,
-            state,
-            sort = 'popular',
-            limit = 60,
-        } = req.query;
+      try {
+          const {
+              category = 'all',
+              search,
+              user_id,
+              followed_only,
+              state,
+              sort = 'popular',
+              limit = 60,
+          } = req.query;
 
-        // Build pages from each source
-        let pages = [];
-        if (category === 'all' || category === 'venues') {
-            pages.push(...buildVenuePages());
-        }
-        if (category === 'all' || category === 'tours') {
-            pages.push(...buildTourPages());
-        }
-        if (category === 'all' || category === 'series') {
-            pages.push(...buildSeriesPages(followed_only === 'true'));
-        }
-        // Social pages: home games, charity, clubs from Supabase
-        if (category === 'all' || category === 'home_games') {
-            pages.push(...await buildSocialPages('home_game'));
-        }
-        if (category === 'all' || category === 'charity') {
-            pages.push(...await buildSocialPages('charity'));
-        }
-        if (category === 'all' || category === 'clubs') {
-            pages.push(...await buildSocialPages('club'));
-        }
+          // Build pages from each source
+          let pages = [];
+          if (category === 'all' || category === 'venues') {
+              pages.push(...buildVenuePages());
+          }
+          if (category === 'all' || category === 'tours') {
+              pages.push(...buildTourPages());
+          }
+          if (category === 'all' || category === 'series') {
+              pages.push(...buildSeriesPages(followed_only === 'true'));
+          }
+          // Social pages: home games, charity, clubs from Supabase
+          if (category === 'all' || category === 'home_games') {
+              pages.push(...await buildSocialPages('home_game'));
+          }
+          if (category === 'all' || category === 'charity') {
+              pages.push(...await buildSocialPages('charity'));
+          }
+          if (category === 'all' || category === 'clubs') {
+              pages.push(...await buildSocialPages('club'));
+          }
 
-        // Filter by state (venues only)
-        if (state) {
-            pages = pages.filter(p => p.page_type !== 'venue' || p.state === state.toUpperCase());
-        }
+          // Filter by state (venues only)
+          if (state) {
+              pages = pages.filter(p => p.page_type !== 'venue' || p.state === state.toUpperCase());
+          }
 
-        // Search filter
-        if (search) {
-            const searchLower = search.toLowerCase();
-            pages = pages.filter(p =>
-                p.name?.toLowerCase().includes(searchLower) ||
-                p.subtitle?.toLowerCase().includes(searchLower) ||
-                p.category?.toLowerCase().includes(searchLower) ||
-                p.page_id?.toLowerCase().includes(searchLower)
-            );
-        }
+          // Search filter
+          if (search) {
+              const searchLower = search.toLowerCase();
+              pages = pages.filter(p =>
+                  p.name?.toLowerCase().includes(searchLower) ||
+                  p.subtitle?.toLowerCase().includes(searchLower) ||
+                  p.category?.toLowerCase().includes(searchLower) ||
+                  p.page_id?.toLowerCase().includes(searchLower)
+              );
+          }
 
-        // Get follower counts from Supabase
-        let followerCounts = {};
-        let userFollows = new Set();
+          // Get follower counts from Supabase
+          let followerCounts = {};
+          let userFollows = new Set();
 
-        try {
-            // Get follower counts for all page types
-            const { data: countData } = await supabase
-                .from('page_followers')
-                .select('page_type, page_id');
+          try {
+              // Get follower counts for all page types
+              const { data: countData } = await supabase
+                  .from('page_followers')
+                  .select('page_type, page_id');
 
-            if (countData) {
-                countData.forEach(row => {
-                    const key = `${row.page_type}:${row.page_id}`;
-                    followerCounts[key] = (followerCounts[key] || 0) + 1;
-                });
-            }
+              if (countData) {
+                  countData.forEach(row => {
+                      const key = `${row.page_type}:${row.page_id}`;
+                      followerCounts[key] = (followerCounts[key] || 0) + 1;
+                  });
+              }
 
-            // Get user's follows if user_id provided (must be valid UUID for Supabase)
-            if (user_id && UUID_RE.test(user_id)) {
-                const { data: follows } = await supabase
-                    .from('page_followers')
-                    .select('page_type, page_id')
-                    .eq('user_id', user_id)
-                        .limit(100);
+              // Get user's follows if user_id provided (must be valid UUID for Supabase)
+              if (user_id && UUID_RE.test(user_id)) {
+                  const { data: follows } = await supabase
+                      .from('page_followers')
+                      .select('page_type, page_id')
+                      .eq('user_id', user_id)
+                          .limit(100);
 
-                if (follows) {
-                    follows.forEach(f => {
-                        userFollows.add(`${f.page_type}:${f.page_id}`);
-                    });
-                }
-            }
-        } catch (e) {
-            // Supabase unavailable, continue without follow data
-        }
+                  if (follows) {
+                      follows.forEach(f => {
+                          userFollows.add(`${f.page_type}:${f.page_id}`);
+                      });
+                  }
+              }
+          } catch (e) {
+              // Supabase unavailable, continue without follow data
+          }
 
-        // Attach follow data to pages
-        pages = pages.map(p => ({
-            ...p,
-            follower_count: followerCounts[`${p.page_type}:${p.page_id}`] || 0,
-            is_following: userFollows.has(`${p.page_type}:${p.page_id}`),
-        }));
+          // Attach follow data to pages
+          pages = pages.map(p => ({
+              ...p,
+              follower_count: followerCounts[`${p.page_type}:${p.page_id}`] || 0,
+              is_following: userFollows.has(`${p.page_type}:${p.page_id}`),
+          }));
 
-        // Filter to followed only
-        if (followed_only === 'true') {
-            pages = pages.filter(p => p.is_following);
-        }
+          // Filter to followed only
+          if (followed_only === 'true') {
+              pages = pages.filter(p => p.is_following);
+          }
 
-        // Sort
-        if (sort === 'popular') {
-            pages.sort((a, b) => {
-                // Tours first, then series, then venues, then social pages
-                const typeOrder = { tour: 0, series: 1, venue: 2, club: 3, home_game: 4, charity: 5 };
-                const typeA = typeOrder[a.page_type] ?? 6;
-                const typeB = typeOrder[b.page_type] ?? 6;
-                if (typeA !== typeB) return typeA - typeB;
-                // Then by follower count
-                return (b.follower_count || 0) - (a.follower_count || 0);
-            });
-        } else if (sort === 'name') {
-            pages.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-        } else if (sort === 'newest') {
-            // Series by start date, tours by priority, venues by trust
-            pages.sort((a, b) => {
-                if (a.start_date && b.start_date) return new Date(a.start_date) - new Date(b.start_date);
-                if (a.start_date) return -1;
-                if (b.start_date) return 1;
-                return (b.follower_count || 0) - (a.follower_count || 0);
-            });
-        }
+          // Sort
+          if (sort === 'popular') {
+              pages.sort((a, b) => {
+                  // Tours first, then series, then venues, then social pages
+                  const typeOrder = { tour: 0, series: 1, venue: 2, club: 3, home_game: 4, charity: 5 };
+                  const typeA = typeOrder[a.page_type] ?? 6;
+                  const typeB = typeOrder[b.page_type] ?? 6;
+                  if (typeA !== typeB) return typeA - typeB;
+                  // Then by follower count
+                  return (b.follower_count || 0) - (a.follower_count || 0);
+              });
+          } else if (sort === 'name') {
+              pages.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+          } else if (sort === 'newest') {
+              // Series by start date, tours by priority, venues by trust
+              pages.sort((a, b) => {
+                  if (a.start_date && b.start_date) return new Date(a.start_date) - new Date(b.start_date);
+                  if (a.start_date) return -1;
+                  if (b.start_date) return 1;
+                  return (b.follower_count || 0) - (a.follower_count || 0);
+              });
+          }
 
-        const total = pages.length;
-        pages = pages.slice(0, parseInt(limit));
+          const total = pages.length;
+          pages = pages.slice(0, parseInt(limit));
 
-        return res.status(200).json({
-            success: true,
-            data: pages,
-            total,
-            summary: {
-                venues: total - pages.filter(p => p.page_type !== 'venue').length <= total ? buildVenuePages().length : 0,
-                tours: buildTourPages().length,
-                series: buildSeriesPages().length,
-                user_following: userFollows.size,
-            },
-        });
+          return res.status(200).json({
+              success: true,
+              data: pages,
+              total,
+              summary: {
+                  venues: total - pages.filter(p => p.page_type !== 'venue').length <= total ? buildVenuePages().length : 0,
+                  tours: buildTourPages().length,
+                  series: buildSeriesPages().length,
+                  user_following: userFollows.size,
+              },
+          });
 
-    } catch (error) {
-        console.error('Pages API error:', error);
-        return res.status(500).json({ success: false, error: error.message });
-    }
+      } catch (error) {
+          console.error('Pages API error:', error);
+          return res.status(500).json({ success: false, error: error.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

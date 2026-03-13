@@ -69,99 +69,105 @@ const SCENARIO_TYPES = {
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+    // BUG #244 FIX: Require JWT auth — these routes use paid AI APIs
+    const _authSupa = _createAuthClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+    const _token = req.headers.authorization?.replace('Bearer ', '');
+    if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
+    const { data: { user: _authUser }, error: _authErr } = await _authSupa.auth.getUser(_token);
+    if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+
+      if (req.method !== 'POST') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
+
+      try {
+          const { level = 1, position, stackDepth, format, scenarioType } = req.body;
+
+          // Validate level
+          if (level < 1 || level > 10) {
+              return res.status(400).json({ success: false, error: 'Level must be between 1 and 10' });
+          }
+
+          // Get random config if not specified
+          const selectedPosition = position || POSITION_CONFIGS[level][Math.floor(Math.random() * POSITION_CONFIGS[level].length)];
+          const selectedStackDepth = stackDepth || STACK_DEPTHS[level][Math.floor(Math.random() * STACK_DEPTHS[level].length)];
+          const selectedFormat = format || FORMATS[level][Math.floor(Math.random() * FORMATS[level].length)];
+          const selectedType = scenarioType || SCENARIO_TYPES[level][Math.floor(Math.random() * SCENARIO_TYPES[level].length)];
+
+          // Build the prompt
+          const prompt = buildScenarioPrompt(level, selectedPosition, selectedStackDepth, selectedFormat, selectedType);
+
+          // Call Grok API
+          const grok = getGrokClient();
+          const completion = await grok.chat.completions.create({
+              model: 'grok-3',
+              messages: [
+                  {
+                      role: 'system',
+                      content: `You are a GTO poker expert and training content creator. You create precise, solver-accurate poker training scenarios. Your solutions must be based on equilibrium strategies from modern solvers. Always respond with valid JSON only, no markdown.`
+                  },
+                  {
+                      role: 'user',
+                      content: prompt
+                  }
+              ],
+              temperature: 0.7,
+              max_tokens: 2000,
+          });
+
+          const responseText = completion.choices[0]?.message?.content;
+
+          if (!responseText) {
+              throw new Error('Empty response from Grok');
+          }
+
+          // Parse the JSON response
+          let scenario;
+          try {
+              // Clean up any markdown code blocks if present
+              const cleanedResponse = responseText
+                  .replace(/```json\n?/g, '')
+                  .replace(/```\n?/g, '')
+                  .trim();
+              scenario = JSON.parse(cleanedResponse);
+          } catch (parseError) {
+              console.error('[GenerateScenario] Failed to parse Grok response:', responseText);
+              throw new Error('Failed to parse scenario from AI response');
+          }
+
+          // Validate and enhance the scenario
+          const validatedScenario = validateScenario(scenario, level, selectedPosition, selectedStackDepth);
+
+          return res.status(200).json({
+              success: true,
+              scenario: validatedScenario,
+              meta: {
+                  level,
+                  position: selectedPosition,
+                  stackDepth: selectedStackDepth,
+                  format: selectedFormat,
+                  type: selectedType,
+                  generatedAt: new Date().toISOString(),
+              }
+          });
+
+      } catch (error) {
+          console.error('[GenerateScenario] Error:', error);
+          return res.status(500).json({
+              success: false,
+              error: error.message || 'Failed to generate scenario',
+          });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-  // BUG #244 FIX: Require JWT auth — these routes use paid AI APIs
-  const _authSupa = _createAuthClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-  const _token = req.headers.authorization?.replace('Bearer ', '');
-  if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
-  const { data: { user: _authUser }, error: _authErr } = await _authSupa.auth.getUser(_token);
-  if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
-
-    if (req.method !== 'POST') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
-
-    try {
-        const { level = 1, position, stackDepth, format, scenarioType } = req.body;
-
-        // Validate level
-        if (level < 1 || level > 10) {
-            return res.status(400).json({ success: false, error: 'Level must be between 1 and 10' });
-        }
-
-        // Get random config if not specified
-        const selectedPosition = position || POSITION_CONFIGS[level][Math.floor(Math.random() * POSITION_CONFIGS[level].length)];
-        const selectedStackDepth = stackDepth || STACK_DEPTHS[level][Math.floor(Math.random() * STACK_DEPTHS[level].length)];
-        const selectedFormat = format || FORMATS[level][Math.floor(Math.random() * FORMATS[level].length)];
-        const selectedType = scenarioType || SCENARIO_TYPES[level][Math.floor(Math.random() * SCENARIO_TYPES[level].length)];
-
-        // Build the prompt
-        const prompt = buildScenarioPrompt(level, selectedPosition, selectedStackDepth, selectedFormat, selectedType);
-
-        // Call Grok API
-        const grok = getGrokClient();
-        const completion = await grok.chat.completions.create({
-            model: 'grok-3',
-            messages: [
-                {
-                    role: 'system',
-                    content: `You are a GTO poker expert and training content creator. You create precise, solver-accurate poker training scenarios. Your solutions must be based on equilibrium strategies from modern solvers. Always respond with valid JSON only, no markdown.`
-                },
-                {
-                    role: 'user',
-                    content: prompt
-                }
-            ],
-            temperature: 0.7,
-            max_tokens: 2000,
-        });
-
-        const responseText = completion.choices[0]?.message?.content;
-
-        if (!responseText) {
-            throw new Error('Empty response from Grok');
-        }
-
-        // Parse the JSON response
-        let scenario;
-        try {
-            // Clean up any markdown code blocks if present
-            const cleanedResponse = responseText
-                .replace(/```json\n?/g, '')
-                .replace(/```\n?/g, '')
-                .trim();
-            scenario = JSON.parse(cleanedResponse);
-        } catch (parseError) {
-            console.error('[GenerateScenario] Failed to parse Grok response:', responseText);
-            throw new Error('Failed to parse scenario from AI response');
-        }
-
-        // Validate and enhance the scenario
-        const validatedScenario = validateScenario(scenario, level, selectedPosition, selectedStackDepth);
-
-        return res.status(200).json({
-            success: true,
-            scenario: validatedScenario,
-            meta: {
-                level,
-                position: selectedPosition,
-                stackDepth: selectedStackDepth,
-                format: selectedFormat,
-                type: selectedType,
-                generatedAt: new Date().toISOString(),
-            }
-        });
-
-    } catch (error) {
-        console.error('[GenerateScenario] Error:', error);
-        return res.status(500).json({
-            success: false,
-            error: error.message || 'Failed to generate scenario',
-        });
-    }
 }
 
 function buildScenarioPrompt(level, position, stackDepth, format, scenarioType) {

@@ -16,68 +16,74 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
-
-  const _g = await guardManager(req, res); if (!_g) return;
-
   try {
-    // Get venue_id from staff session header
-    let venueId;
-    try {
-      const staffSession = JSON.parse(req.headers['x-staff-session'] || '{}');
-      if (staffSession.venue_id) {
-        venueId = staffSession.venue_id;
-      } else if (staffSession.id) {
-        const { data: staffData } = await supabase
-          .from('commander_staff')
-          .select('venue_id')
-          .eq('id', staffSession.id)
-          .eq('is_active', true)
-          .maybeSingle();
-        venueId = staffData?.venue_id;
-      } else if (staffSession.user_id) {
-        venueId = staffSession.venue_id;
-      }
-    } catch { }
-
-    // Fallback: Bearer token
-    if (!venueId) {
-      try {
-        const authHeader = req.headers.authorization;
-        if (authHeader) {
-          const token = authHeader.replace('Bearer ', '');
-          const { data: { user } } = await supabase.auth.getUser(token);
-          if (user) {
-            const { data: staff } = await supabase
-              .from('commander_staff')
-              .select('venue_id')
-              .eq('user_id', user.id)
-              .eq('is_active', true)
-              .maybeSingle();
-            venueId = staff?.venue_id;
-          }
-        }
-      } catch { }
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
 
-    if (!venueId) return res.status(403).json({ success: false, error: 'Could not determine venue' });
+    const _g = await guardManager(req, res); if (!_g) return;
 
-    // Extract staff info
-    let staffUserId = null;
     try {
-      const sess = JSON.parse(req.headers['x-staff-session'] || '{}');
-      staffUserId = sess.user_id || sess.id || null;
-    } catch { }
+      // Get venue_id from staff session header
+      let venueId;
+      try {
+        const staffSession = JSON.parse(req.headers['x-staff-session'] || '{}');
+        if (staffSession.venue_id) {
+          venueId = staffSession.venue_id;
+        } else if (staffSession.id) {
+          const { data: staffData } = await supabase
+            .from('commander_staff')
+            .select('venue_id')
+            .eq('id', staffSession.id)
+            .eq('is_active', true)
+            .maybeSingle();
+          venueId = staffData?.venue_id;
+        } else if (staffSession.user_id) {
+          venueId = staffSession.venue_id;
+        }
+      } catch { }
 
-    if (req.method === 'GET') return handleGet(req, res, venueId);
-    if (req.method === 'PUT') return handlePut(req, res, venueId, staffUserId);
-    if (req.method === 'POST') return handleClose(req, res, venueId, staffUserId);
-    return res.status(405).json({ success: false, error: 'Method not allowed' });
+      // Fallback: Bearer token
+      if (!venueId) {
+        try {
+          const authHeader = req.headers.authorization;
+          if (authHeader) {
+            const token = authHeader.replace('Bearer ', '');
+            const { data: { user } } = await supabase.auth.getUser(token);
+            if (user) {
+              const { data: staff } = await supabase
+                .from('commander_staff')
+                .select('venue_id')
+                .eq('user_id', user.id)
+                .eq('is_active', true)
+                .maybeSingle();
+              venueId = staff?.venue_id;
+            }
+          }
+        } catch { }
+      }
+
+      if (!venueId) return res.status(403).json({ success: false, error: 'Could not determine venue' });
+
+      // Extract staff info
+      let staffUserId = null;
+      try {
+        const sess = JSON.parse(req.headers['x-staff-session'] || '{}');
+        staffUserId = sess.user_id || sess.id || null;
+      } catch { }
+
+      if (req.method === 'GET') return handleGet(req, res, venueId);
+      if (req.method === 'PUT') return handlePut(req, res, venueId, staffUserId);
+      if (req.method === 'POST') return handleClose(req, res, venueId, staffUserId);
+      return res.status(405).json({ success: false, error: 'Method not allowed' });
+    } catch (err) {
+      console.error('Table assignment error:', err);
+      return res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+
   } catch (err) {
-    console.error('Table assignment error:', err);
-    return res.status(500).json({ success: false, error: 'Internal server error' });
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }
 

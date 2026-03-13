@@ -103,148 +103,154 @@ const TEXTURE_META = {
 };
 
 export default async function handler(req, res) {
-    if (req.method !== 'GET') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
+  try {
+      if (req.method !== 'GET') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
 
-    // BUG FIX: No auth — paid solver content exposed without gate
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-    const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
-    if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+      // BUG FIX: No auth — paid solver content exposed without gate
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
+      const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+      if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-    try {
-        const {
-            gameType = 'hu_cash',
-            stackDepth = '100',
-            heroPosition,
-        } = req.query;
+      try {
+          const {
+              gameType = 'hu_cash',
+              stackDepth = '100',
+              heroPosition,
+          } = req.query;
 
-        // Fetch all spots matching criteria (select only what we need)
-        let query = supabase
-            .from('solved_spots_gold')
-            .select('scenario_hash, strategy_matrix')
-            .eq('game_type', gameType)
-            .eq('stack_depth', parseInt(stackDepth))
-            .limit(2000);
+          // Fetch all spots matching criteria (select only what we need)
+          let query = supabase
+              .from('solved_spots_gold')
+              .select('scenario_hash, strategy_matrix')
+              .eq('game_type', gameType)
+              .eq('stack_depth', parseInt(stackDepth))
+              .limit(2000);
 
-        if (heroPosition) {
-            query = query.ilike('scenario_hash', `%_${heroPosition}_%`);
-        }
+          if (heroPosition) {
+              query = query.ilike('scenario_hash', `%_${heroPosition}_%`);
+          }
 
-        const { data: spots, error } = await query;
+          const { data: spots, error } = await query;
 
-        if (error) {
-            console.error('[AggregateReport] Query error:', error);
-            return res.status(500).json({ success: false, error: 'Database query failed' });
-        }
+          if (error) {
+              console.error('[AggregateReport] Query error:', error);
+              return res.status(500).json({ success: false, error: 'Database query failed' });
+          }
 
-        // Aggregate by texture
-        const textureAgg = {};
-        let totalSpots = 0;
-        let totalCbet = 0;
-        let totalCheck = 0;
-        const positionAgg = {};
+          // Aggregate by texture
+          const textureAgg = {};
+          let totalSpots = 0;
+          let totalCbet = 0;
+          let totalCheck = 0;
+          const positionAgg = {};
 
-        (spots || []).forEach(spot => {
-            const board = parseBoardFromHash(spot.scenario_hash);
-            if (board.length < 3) return;
+          (spots || []).forEach(spot => {
+              const board = parseBoardFromHash(spot.scenario_hash);
+              if (board.length < 3) return;
 
-            const texture = classifyFlopTexture(board);
-            const position = extractPositionFromHash(spot.scenario_hash);
-            const matrix = spot.strategy_matrix || {};
-            const actions = matrix.actions || [];
-            const frequencies = matrix.frequencies || {};
+              const texture = classifyFlopTexture(board);
+              const position = extractPositionFromHash(spot.scenario_hash);
+              const matrix = spot.strategy_matrix || {};
+              const actions = matrix.actions || [];
+              const frequencies = matrix.frequencies || {};
 
-            // Calculate aggregate action frequencies
-            let cbetFreq = 0;
-            let checkFreq = 0;
-            let raiseFreq = 0;
-            let handCount = 0;
+              // Calculate aggregate action frequencies
+              let cbetFreq = 0;
+              let checkFreq = 0;
+              let raiseFreq = 0;
+              let handCount = 0;
 
-            actions.forEach(action => {
-                const freqMap = frequencies[action] || {};
-                const actionLower = action.toLowerCase();
-                const totalFreq = Object.values(freqMap).reduce((sum, f) => sum + (f || 0), 0);
-                const count = Object.keys(freqMap).length || 1;
-                const avgFreq = totalFreq / count;
+              actions.forEach(action => {
+                  const freqMap = frequencies[action] || {};
+                  const actionLower = action.toLowerCase();
+                  const totalFreq = Object.values(freqMap).reduce((sum, f) => sum + (f || 0), 0);
+                  const count = Object.keys(freqMap).length || 1;
+                  const avgFreq = totalFreq / count;
 
-                if (actionLower.includes('bet') || actionLower.includes('raise') || actionLower.includes('cbet')) {
-                    cbetFreq += avgFreq;
-                } else if (actionLower.includes('check') || actionLower.includes('call')) {
-                    checkFreq += avgFreq;
-                }
-                handCount = Math.max(handCount, count);
-            });
+                  if (actionLower.includes('bet') || actionLower.includes('raise') || actionLower.includes('cbet')) {
+                      cbetFreq += avgFreq;
+                  } else if (actionLower.includes('check') || actionLower.includes('call')) {
+                      checkFreq += avgFreq;
+                  }
+                  handCount = Math.max(handCount, count);
+              });
 
-            // Normalize
-            const total = cbetFreq + checkFreq;
-            if (total > 0) {
-                cbetFreq = (cbetFreq / total) * 100;
-                checkFreq = (checkFreq / total) * 100;
-            }
+              // Normalize
+              const total = cbetFreq + checkFreq;
+              if (total > 0) {
+                  cbetFreq = (cbetFreq / total) * 100;
+                  checkFreq = (checkFreq / total) * 100;
+              }
 
-            // Accumulate per texture
-            if (!textureAgg[texture]) {
-                textureAgg[texture] = { spotCount: 0, cbetSum: 0, checkSum: 0, raiseSum: 0 };
-            }
-            textureAgg[texture].spotCount += 1;
-            textureAgg[texture].cbetSum += cbetFreq;
-            textureAgg[texture].checkSum += checkFreq;
+              // Accumulate per texture
+              if (!textureAgg[texture]) {
+                  textureAgg[texture] = { spotCount: 0, cbetSum: 0, checkSum: 0, raiseSum: 0 };
+              }
+              textureAgg[texture].spotCount += 1;
+              textureAgg[texture].cbetSum += cbetFreq;
+              textureAgg[texture].checkSum += checkFreq;
 
-            // Accumulate per position
-            if (!positionAgg[position]) {
-                positionAgg[position] = { spotCount: 0, cbetSum: 0, checkSum: 0 };
-            }
-            positionAgg[position].spotCount += 1;
-            positionAgg[position].cbetSum += cbetFreq;
-            positionAgg[position].checkSum += checkFreq;
+              // Accumulate per position
+              if (!positionAgg[position]) {
+                  positionAgg[position] = { spotCount: 0, cbetSum: 0, checkSum: 0 };
+              }
+              positionAgg[position].spotCount += 1;
+              positionAgg[position].cbetSum += cbetFreq;
+              positionAgg[position].checkSum += checkFreq;
 
-            totalSpots += 1;
-            totalCbet += cbetFreq;
-            totalCheck += checkFreq;
-        });
+              totalSpots += 1;
+              totalCbet += cbetFreq;
+              totalCheck += checkFreq;
+          });
 
-        // Build texture breakdown
-        const textures = Object.entries(textureAgg)
-            .map(([key, data]) => ({
-                texture: key,
-                ...(TEXTURE_META[key] || TEXTURE_META.unknown),
-                spotCount: data.spotCount,
-                cbetFreq: data.spotCount > 0 ? Math.round(data.cbetSum / data.spotCount) : 0,
-                checkFreq: data.spotCount > 0 ? Math.round(data.checkSum / data.spotCount) : 0,
-            }))
-            .sort((a, b) => b.spotCount - a.spotCount);
+          // Build texture breakdown
+          const textures = Object.entries(textureAgg)
+              .map(([key, data]) => ({
+                  texture: key,
+                  ...(TEXTURE_META[key] || TEXTURE_META.unknown),
+                  spotCount: data.spotCount,
+                  cbetFreq: data.spotCount > 0 ? Math.round(data.cbetSum / data.spotCount) : 0,
+                  checkFreq: data.spotCount > 0 ? Math.round(data.checkSum / data.spotCount) : 0,
+              }))
+              .sort((a, b) => b.spotCount - a.spotCount);
 
-        // Build position breakdown
-        const positions = Object.entries(positionAgg)
-            .map(([pos, data]) => ({
-                position: pos,
-                spotCount: data.spotCount,
-                cbetFreq: data.spotCount > 0 ? Math.round(data.cbetSum / data.spotCount) : 0,
-                checkFreq: data.spotCount > 0 ? Math.round(data.checkSum / data.spotCount) : 0,
-            }))
-            .sort((a, b) => b.spotCount - a.spotCount);
+          // Build position breakdown
+          const positions = Object.entries(positionAgg)
+              .map(([pos, data]) => ({
+                  position: pos,
+                  spotCount: data.spotCount,
+                  cbetFreq: data.spotCount > 0 ? Math.round(data.cbetSum / data.spotCount) : 0,
+                  checkFreq: data.spotCount > 0 ? Math.round(data.checkSum / data.spotCount) : 0,
+              }))
+              .sort((a, b) => b.spotCount - a.spotCount);
 
-        return res.status(200).json({
-            success: true,
-            report: {
-                gameType,
-                stackDepth: parseInt(stackDepth),
-                heroPosition: heroPosition || 'ALL',
-                totalSpots,
-                overall: {
-                    cbetFreq: totalSpots > 0 ? Math.round(totalCbet / totalSpots) : 0,
-                    checkFreq: totalSpots > 0 ? Math.round(totalCheck / totalSpots) : 0,
-                },
-                textures,
-                positions,
-                textureMeta: TEXTURE_META,
-            },
-        });
+          return res.status(200).json({
+              success: true,
+              report: {
+                  gameType,
+                  stackDepth: parseInt(stackDepth),
+                  heroPosition: heroPosition || 'ALL',
+                  totalSpots,
+                  overall: {
+                      cbetFreq: totalSpots > 0 ? Math.round(totalCbet / totalSpots) : 0,
+                      checkFreq: totalSpots > 0 ? Math.round(totalCheck / totalSpots) : 0,
+                  },
+                  textures,
+                  positions,
+                  textureMeta: TEXTURE_META,
+              },
+          });
 
-    } catch (err) {
-        console.error('[AggregateReport] Error:', err);
-        return res.status(500).json({ success: false, error: err.message });
-    }
+      } catch (err) {
+          console.error('[AggregateReport] Error:', err);
+          return res.status(500).json({ success: false, error: err.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

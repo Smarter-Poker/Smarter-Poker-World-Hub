@@ -24,92 +24,98 @@ const W2G_THRESHOLDS = {
 };
 
 export default async function handler(req, res) {
-    if (!applyRateLimit(req, res, LIMITS.ai)) return;
+  try {
+      if (!applyRateLimit(req, res, LIMITS.ai)) return;
 
-    if (req.method !== 'GET') {
-        return res.status(405).json({ error: 'Method not allowed' });
-    }
+      if (req.method !== 'GET') {
+          return res.status(405).json({ error: 'Method not allowed' });
+      }
 
-    const authHeader = req.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+          return res.status(401).json({ error: 'Unauthorized' });
+      }
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
-        return res.status(401).json({ error: 'Invalid token' });
-    }
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      if (authError || !user) {
+          return res.status(401).json({ error: 'Invalid token' });
+      }
 
-    // SERVER-SIDE GUARD: Verify user has Bankroll Pro access
-    const access = await checkFeatureAccess(user.id, 'bankroll_pro');
-    if (!access.hasAccess) {
-        return res.status(403).json({ error: 'Premium feature access required' });
-    }
+      // SERVER-SIDE GUARD: Verify user has Bankroll Pro access
+      const access = await checkFeatureAccess(user.id, 'bankroll_pro');
+      if (!access.hasAccess) {
+          return res.status(403).json({ error: 'Premium feature access required' });
+      }
 
-    const { year = new Date().getFullYear(), format = 'pdf' } = req.query;
+      const { year = new Date().getFullYear(), format = 'pdf' } = req.query;
 
-    try {
-        // Fetch all sessions for the year
-        const startDate = `${year}-01-01`;
-        const endDate = `${year}-12-31`;
+      try {
+          // Fetch all sessions for the year
+          const startDate = `${year}-01-01`;
+          const endDate = `${year}-12-31`;
 
-        const { data: sessions, error: sessionsError } = await supabase
-            .from('bankroll_ledger')
-            .select('*')
-            .eq('user_id', user.id)
-            .gte('entry_date', startDate)
-            .lte('entry_date', endDate)
-            .order('entry_date', { ascending: true })
-            .limit(500);
+          const { data: sessions, error: sessionsError } = await supabase
+              .from('bankroll_ledger')
+              .select('*')
+              .eq('user_id', user.id)
+              .gte('entry_date', startDate)
+              .lte('entry_date', endDate)
+              .order('entry_date', { ascending: true })
+              .limit(500);
 
-        if (sessionsError) throw sessionsError;
+          if (sessionsError) throw sessionsError;
 
-        // Fetch all expenses for the year (from trips)
-        const { data: trips } = await supabase
-            .from('trips')
-            .select('*')
-            .eq('user_id', user.id)
-            .gte('start_date', startDate)
-            .lte('end_date', endDate)
-            .limit(100);
+          // Fetch all expenses for the year (from trips)
+          const { data: trips } = await supabase
+              .from('trips')
+              .select('*')
+              .eq('user_id', user.id)
+              .gte('start_date', startDate)
+              .lte('end_date', endDate)
+              .limit(100);
 
-        // Fetch uploaded W-2G forms for the year
-        const { data: uploadedW2g } = await supabase
-            .from('w2g_forms')
-            .select('*')
-            .eq('user_id', user.id)
-            .eq('tax_year', parseInt(year))
-            .order('upload_date', { ascending: true })
-            .limit(100);
+          // Fetch uploaded W-2G forms for the year
+          const { data: uploadedW2g } = await supabase
+              .from('w2g_forms')
+              .select('*')
+              .eq('user_id', user.id)
+              .eq('tax_year', parseInt(year))
+              .order('upload_date', { ascending: true })
+              .limit(100);
 
-        // Calculate totals
-        const report = calculateTaxReport(sessions || [], trips || [], year);
+          // Calculate totals
+          const report = calculateTaxReport(sessions || [], trips || [], year);
 
-        // Merge uploaded W-2G forms into report
-        report.uploadedW2gForms = (uploadedW2g || []).map(f => ({
-            date: f.upload_date || f.created_at?.split('T')[0],
-            type: f.form_type,
-            description: f.source_description || f.file_name,
-            amount: f.amount ? parseFloat(f.amount) : null,
-            fileUrl: f.file_url,
-        }));
+          // Merge uploaded W-2G forms into report
+          report.uploadedW2gForms = (uploadedW2g || []).map(f => ({
+              date: f.upload_date || f.created_at?.split('T')[0],
+              type: f.form_type,
+              description: f.source_description || f.file_name,
+              amount: f.amount ? parseFloat(f.amount) : null,
+              fileUrl: f.file_url,
+          }));
 
-        if (format === 'json') {
-            return res.status(200).json(report);
-        }
+          if (format === 'json') {
+              return res.status(200).json(report);
+          }
 
-        // Generate PDF
-        const pdfBuffer = generateTaxPDF(report, user);
+          // Generate PDF
+          const pdfBuffer = generateTaxPDF(report, user);
 
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename=poker_tax_report_${year}.pdf`);
-        return res.send(Buffer.from(pdfBuffer));
+          res.setHeader('Content-Type', 'application/pdf');
+          res.setHeader('Content-Disposition', `attachment; filename=poker_tax_report_${year}.pdf`);
+          return res.send(Buffer.from(pdfBuffer));
 
-    } catch (error) {
-        console.error('Tax report error:', error);
-        return res.status(500).json({ error: 'Failed to generate tax report' });
-    }
+      } catch (error) {
+          console.error('Tax report error:', error);
+          return res.status(500).json({ error: 'Failed to generate tax report' });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }
 
 function calculateTaxReport(sessions, trips, year) {

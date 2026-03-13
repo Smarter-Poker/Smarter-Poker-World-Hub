@@ -157,129 +157,135 @@ function getLetterGrade(score) {
 }
 
 export default async function handler(req, res) {
-    if (req.method !== 'POST') {
-        return res.status(405).json({ success: false, error: 'POST only' });
-    }
+  try {
+      if (req.method !== 'POST') {
+          return res.status(405).json({ success: false, error: 'POST only' });
+      }
 
-    try {
-        // Auth check
-        const token = req.headers.authorization?.replace('Bearer ', '');
-        if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-        const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
-        if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+      try {
+          // Auth check
+          const token = req.headers.authorization?.replace('Bearer ', '');
+          if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
+          const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+          if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-        const { position = 'BTN', scenario = 'rfi', selectedHands = [] } = req.body;
+          const { position = 'BTN', scenario = 'rfi', selectedHands = [] } = req.body;
 
-        if (!Array.isArray(selectedHands)) {
-            return res.status(400).json({ success: false, error: 'selectedHands must be an array' });
-        }
+          if (!Array.isArray(selectedHands)) {
+              return res.status(400).json({ success: false, error: 'selectedHands must be an array' });
+          }
 
-        const pos = position.toUpperCase();
-        const gtoRange = GTO_RFI[pos] || GTO_RFI['BTN'];
-        const allHands = getAllHands();
-        const userSet = new Set(selectedHands.map(h => h.toUpperCase ? h : h));
+          const pos = position.toUpperCase();
+          const gtoRange = GTO_RFI[pos] || GTO_RFI['BTN'];
+          const allHands = getAllHands();
+          const userSet = new Set(selectedHands.map(h => h.toUpperCase ? h : h));
 
-        // ─── Classify each hand ────────────────────────────────────────
-        const correct = [];    // User included, GTO freq >= 0.5
-        const missed = [];     // GTO freq >= 0.5, user didn't include
-        const wrong = [];      // User included, GTO freq < 0.1 (definitely not in range)
-        const mixed = {};      // User included but GTO has partial frequency
+          // ─── Classify each hand ────────────────────────────────────────
+          const correct = [];    // User included, GTO freq >= 0.5
+          const missed = [];     // GTO freq >= 0.5, user didn't include
+          const wrong = [];      // User included, GTO freq < 0.1 (definitely not in range)
+          const mixed = {};      // User included but GTO has partial frequency
 
-        let totalGTOCombos = 0;
-        let userCombos = 0;
-        let overlapCombos = 0;
-        let weightedScore = 0;
-        let totalWeight = 0;
+          let totalGTOCombos = 0;
+          let userCombos = 0;
+          let overlapCombos = 0;
+          let weightedScore = 0;
+          let totalWeight = 0;
 
-        allHands.forEach(hand => {
-            const gtoFreq = gtoRange[hand] || 0;
-            const userIncluded = userSet.has(hand);
-            const combos = getCombos(hand);
+          allHands.forEach(hand => {
+              const gtoFreq = gtoRange[hand] || 0;
+              const userIncluded = userSet.has(hand);
+              const combos = getCombos(hand);
 
-            if (gtoFreq >= 0.5) totalGTOCombos += combos;
-            if (userIncluded) userCombos += combos;
+              if (gtoFreq >= 0.5) totalGTOCombos += combos;
+              if (userIncluded) userCombos += combos;
 
-            // Weight by combos — offsuit hands (12 combos) matter more
-            const weight = combos;
-            totalWeight += weight;
+              // Weight by combos — offsuit hands (12 combos) matter more
+              const weight = combos;
+              totalWeight += weight;
 
-            if (userIncluded && gtoFreq >= 0.5) {
-                // Correct: user included a hand that GTO includes
-                correct.push(hand);
-                overlapCombos += combos;
-                weightedScore += weight * 1.0;
-            } else if (!userIncluded && gtoFreq < 0.1) {
-                // Correct: user correctly excluded a hand GTO doesn't play
-                weightedScore += weight * 1.0;
-            } else if (userIncluded && gtoFreq < 0.1) {
-                // Wrong: user included a hand that's clearly not in GTO range
-                wrong.push(hand);
-                weightedScore += weight * 0;
-            } else if (!userIncluded && gtoFreq >= 0.5) {
-                // Missed: user forgot a hand that's in GTO range
-                missed.push(hand);
-                weightedScore += weight * 0;
-            } else if (userIncluded && gtoFreq >= 0.1 && gtoFreq < 0.5) {
-                // Partially correct: user included a mixed hand (GTO plays it sometimes)
-                mixed[hand] = { userIncluded: true, gtoFreq };
-                weightedScore += weight * gtoFreq; // Partial credit
-            } else if (!userIncluded && gtoFreq >= 0.1 && gtoFreq < 0.5) {
-                // Partially correct: user excluded a mixed hand (acceptable)
-                mixed[hand] = { userIncluded: false, gtoFreq };
-                weightedScore += weight * (1 - gtoFreq); // Partial credit for not including
-            }
-        });
+              if (userIncluded && gtoFreq >= 0.5) {
+                  // Correct: user included a hand that GTO includes
+                  correct.push(hand);
+                  overlapCombos += combos;
+                  weightedScore += weight * 1.0;
+              } else if (!userIncluded && gtoFreq < 0.1) {
+                  // Correct: user correctly excluded a hand GTO doesn't play
+                  weightedScore += weight * 1.0;
+              } else if (userIncluded && gtoFreq < 0.1) {
+                  // Wrong: user included a hand that's clearly not in GTO range
+                  wrong.push(hand);
+                  weightedScore += weight * 0;
+              } else if (!userIncluded && gtoFreq >= 0.5) {
+                  // Missed: user forgot a hand that's in GTO range
+                  missed.push(hand);
+                  weightedScore += weight * 0;
+              } else if (userIncluded && gtoFreq >= 0.1 && gtoFreq < 0.5) {
+                  // Partially correct: user included a mixed hand (GTO plays it sometimes)
+                  mixed[hand] = { userIncluded: true, gtoFreq };
+                  weightedScore += weight * gtoFreq; // Partial credit
+              } else if (!userIncluded && gtoFreq >= 0.1 && gtoFreq < 0.5) {
+                  // Partially correct: user excluded a mixed hand (acceptable)
+                  mixed[hand] = { userIncluded: false, gtoFreq };
+                  weightedScore += weight * (1 - gtoFreq); // Partial credit for not including
+              }
+          });
 
-        const score = totalWeight > 0 ? Math.round(weightedScore / totalWeight * 100) : 0;
-        const accuracy = totalGTOCombos > 0 ? Math.round(overlapCombos / totalGTOCombos * 1000) / 10 : 0;
+          const score = totalWeight > 0 ? Math.round(weightedScore / totalWeight * 100) : 0;
+          const accuracy = totalGTOCombos > 0 ? Math.round(overlapCombos / totalGTOCombos * 1000) / 10 : 0;
 
-        // Build grid diff for visual display
-        const gridDiff = {};
-        allHands.forEach(hand => {
-            const gtoFreq = gtoRange[hand] || 0;
-            const userIncluded = userSet.has(hand);
+          // Build grid diff for visual display
+          const gridDiff = {};
+          allHands.forEach(hand => {
+              const gtoFreq = gtoRange[hand] || 0;
+              const userIncluded = userSet.has(hand);
 
-            if (userIncluded && gtoFreq >= 0.5) {
-                gridDiff[hand] = 'correct';     // Green
-            } else if (userIncluded && gtoFreq < 0.1) {
-                gridDiff[hand] = 'wrong';        // Red
-            } else if (!userIncluded && gtoFreq >= 0.5) {
-                gridDiff[hand] = 'missed';       // Yellow
-            } else if (userIncluded && gtoFreq >= 0.1) {
-                gridDiff[hand] = 'partial';      // Orange (mixed)
-            } else {
-                gridDiff[hand] = 'neutral';      // Gray (correctly excluded)
-            }
-        });
+              if (userIncluded && gtoFreq >= 0.5) {
+                  gridDiff[hand] = 'correct';     // Green
+              } else if (userIncluded && gtoFreq < 0.1) {
+                  gridDiff[hand] = 'wrong';        // Red
+              } else if (!userIncluded && gtoFreq >= 0.5) {
+                  gridDiff[hand] = 'missed';       // Yellow
+              } else if (userIncluded && gtoFreq >= 0.1) {
+                  gridDiff[hand] = 'partial';      // Orange (mixed)
+              } else {
+                  gridDiff[hand] = 'neutral';      // Gray (correctly excluded)
+              }
+          });
 
-        return res.status(200).json({
-            success: true,
-            grade: {
-                letter: getLetterGrade(score),
-                score,
-                accuracy,
-            },
-            diff: {
-                correct,
-                missed,
-                wrong,
-                mixed,
-                gridDiff,
-            },
-            stats: {
-                totalGTOCombos,
-                userCombos,
-                overlapCombos,
-                totalHands: allHands.length,
-                correctCount: correct.length,
-                missedCount: missed.length,
-                wrongCount: wrong.length,
-                mixedCount: Object.keys(mixed).length,
-            },
-        });
+          return res.status(200).json({
+              success: true,
+              grade: {
+                  letter: getLetterGrade(score),
+                  score,
+                  accuracy,
+              },
+              diff: {
+                  correct,
+                  missed,
+                  wrong,
+                  mixed,
+                  gridDiff,
+              },
+              stats: {
+                  totalGTOCombos,
+                  userCombos,
+                  overlapCombos,
+                  totalHands: allHands.length,
+                  correctCount: correct.length,
+                  missedCount: missed.length,
+                  wrongCount: wrong.length,
+                  mixedCount: Object.keys(mixed).length,
+              },
+          });
 
-    } catch (err) {
-        console.error('[GradeRange] Error:', err);
-        return res.status(500).json({ success: false, error: err.message });
-    }
+      } catch (err) {
+          console.error('[GradeRange] Error:', err);
+          return res.status(500).json({ success: false, error: err.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

@@ -12,47 +12,53 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
-
-  const _g = await guardWriteStaff(req, res); if (!_g) return;
-
-  if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method not allowed' });
-
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ success: false, error: 'Authorization required' });
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user } } = await supabase.auth.getUser(token);
-    if (!user) return res.status(401).json({ success: false, error: 'Invalid token' });
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
 
-    const { id } = req.query;
-    const { amount } = req.body;
-    if (!amount || amount <= 0) return res.status(400).json({ success: false, error: 'Valid amount required' });
+    const _g = await guardWriteStaff(req, res); if (!_g) return;
 
-    const { data: session } = await supabase
-      .from('commander_table_sessions')
-      .select('amount_paid')
-      .eq('id', id)
-      .maybeSingle();
+    if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method not allowed' });
 
-    if (!session) return res.status(404).json({ success: false, error: 'Session not found' });
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader) return res.status(401).json({ success: false, error: 'Authorization required' });
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user } } = await supabase.auth.getUser(token);
+      if (!user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-    const newTotal = (session.amount_paid || 0) + parseFloat(amount);
+      const { id } = req.query;
+      const { amount } = req.body;
+      if (!amount || amount <= 0) return res.status(400).json({ success: false, error: 'Valid amount required' });
 
-    const { data: updated, error } = await supabase
-      .from('commander_table_sessions')
-      .update({ amount_paid: Math.round(newTotal * 100) / 100 })
-      .eq('id', id)
-      .select()
-      .maybeSingle();
+      const { data: session } = await supabase
+        .from('commander_table_sessions')
+        .select('amount_paid')
+        .eq('id', id)
+        .maybeSingle();
 
-    if (error) return res.status(500).json({ success: false, error: error.message });
-    if (!updated) return res.status(404).json({ success: false, error: 'Session not found' });
-    return res.status(200).json({ success: true, data: updated });
+      if (!session) return res.status(404).json({ success: false, error: 'Session not found' });
+
+      const newTotal = (session.amount_paid || 0) + parseFloat(amount);
+
+      const { data: updated, error } = await supabase
+        .from('commander_table_sessions')
+        .update({ amount_paid: Math.round(newTotal * 100) / 100 })
+        .eq('id', id)
+        .select()
+        .maybeSingle();
+
+      if (error) return res.status(500).json({ success: false, error: error.message });
+      if (!updated) return res.status(404).json({ success: false, error: 'Session not found' });
+      return res.status(200).json({ success: true, data: updated });
+    } catch (err) {
+      console.error('Payment error:', err);
+      return res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+
   } catch (err) {
-    console.error('Payment error:', err);
-    return res.status(500).json({ success: false, error: 'Internal server error' });
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

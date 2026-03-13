@@ -15,52 +15,58 @@ if (!supabaseUrl || !supabaseServiceKey) {
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+      if (req.method !== 'POST') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
+
+      try {
+          // Get auth token
+          const authHeader = req.headers.authorization;
+          if (!authHeader || !authHeader.startsWith('Bearer ')) {
+              return res.status(401).json({ success: false, error: 'Unauthorized' });
+          }
+
+          const token = authHeader.substring(7);
+          const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+          if (authError || !user) {
+              return res.status(401).json({ success: false, error: 'Invalid token' });
+          }
+
+          const { event_type, conversation_id, metadata } = req.body;
+
+          if (!event_type) {
+              return res.status(400).json({ success: false, error: 'Event type required' });
+          }
+
+          // Insert analytics event
+          const { error: insertError } = await supabase
+              .from('live_help_analytics')
+              .insert({
+                  user_id: user.id,
+                  conversation_id,
+                  event_type,
+                  metadata: metadata || {}
+              });
+
+          if (insertError) {
+              throw insertError;
+          }
+
+          return res.status(200).json({ success: true });
+
+      } catch (error) {
+          console.error('[Track Analytics] Error:', error);
+          return res.status(500).json({ success: false, error: 'Internal server error' });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-    if (req.method !== 'POST') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
-
-    try {
-        // Get auth token
-        const authHeader = req.headers.authorization;
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return res.status(401).json({ success: false, error: 'Unauthorized' });
-        }
-
-        const token = authHeader.substring(7);
-        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-
-        if (authError || !user) {
-            return res.status(401).json({ success: false, error: 'Invalid token' });
-        }
-
-        const { event_type, conversation_id, metadata } = req.body;
-
-        if (!event_type) {
-            return res.status(400).json({ success: false, error: 'Event type required' });
-        }
-
-        // Insert analytics event
-        const { error: insertError } = await supabase
-            .from('live_help_analytics')
-            .insert({
-                user_id: user.id,
-                conversation_id,
-                event_type,
-                metadata: metadata || {}
-            });
-
-        if (insertError) {
-            throw insertError;
-        }
-
-        return res.status(200).json({ success: true });
-
-    } catch (error) {
-        console.error('[Track Analytics] Error:', error);
-        return res.status(500).json({ success: false, error: 'Internal server error' });
-    }
 }

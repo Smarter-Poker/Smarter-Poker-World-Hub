@@ -54,36 +54,42 @@ const CURATED_SPOTS = [
 ];
 
 export default async function handler(req, res) {
-    if (req.method !== 'GET') {
-        return res.status(405).json({ error: 'Method not allowed' });
-    }
+  try {
+      if (req.method !== 'GET') {
+          return res.status(405).json({ error: 'Method not allowed' });
+      }
 
-    try {
-        // Try to fetch from DB first
-        if (supabaseUrl && supabaseServiceKey) {
-            const supabase = createClient(supabaseUrl, supabaseServiceKey);
-            const today = new Date().toISOString().split('T')[0];
+      try {
+          // Try to fetch from DB first
+          if (supabaseUrl && supabaseServiceKey) {
+              const supabase = createClient(supabaseUrl, supabaseServiceKey);
+              const today = new Date().toISOString().split('T')[0];
 
-            const { data, error } = await supabase
-                .from('sandbox_weekly_spots')
-                .select('*')
-                .lte('week_start', today)
-                .order('week_start', { ascending: false })
-                .limit(1);
+              const { data, error } = await supabase
+                  .from('sandbox_weekly_spots')
+                  .select('*')
+                  .lte('week_start', today)
+                  .order('week_start', { ascending: false })
+                  .limit(1);
 
-            if (!error && data && data.length > 0) {
-                return res.status(200).json({ spot: data[0], source: 'database' });
-            }
-        }
+              if (!error && data && data.length > 0) {
+                  return res.status(200).json({ spot: data[0], source: 'database' });
+              }
+          }
 
-        // Fallback: use curated spots based on week number
-        const weekNum = Math.floor((Date.now() - new Date('2026-01-01').getTime()) / (7 * 24 * 60 * 60 * 1000));
-        const spot = CURATED_SPOTS[weekNum % CURATED_SPOTS.length];
+          // Fallback: use curated spots based on week number
+          const weekNum = Math.floor((Date.now() - new Date('2026-01-01').getTime()) / (7 * 24 * 60 * 60 * 1000));
+          const spot = CURATED_SPOTS[weekNum % CURATED_SPOTS.length];
 
-        return res.status(200).json({ spot, source: 'curated' });
-    } catch (err) {
-        console.error('Weekly spot error:', err);
-        // Always return a spot, even on error
-        return res.status(200).json({ spot: CURATED_SPOTS[0], source: 'fallback' });
-    }
+          return res.status(200).json({ spot, source: 'curated' });
+      } catch (err) {
+          console.error('Weekly spot error:', err);
+          // Always return a spot, even on error
+          return res.status(200).json({ spot: CURATED_SPOTS[0], source: 'fallback' });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

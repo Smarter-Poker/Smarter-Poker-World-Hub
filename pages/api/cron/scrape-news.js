@@ -211,75 +211,81 @@ async function parseRSS(url, category, sourceName) {
 
 
 export default async function handler(req, res) {
-    // Verify cron secret for Vercel Cron jobs
-    const authHeader = req.headers.authorization;
-    if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-        // Allow manual triggers in development
-        if (process.env.NODE_ENV === 'production' && req.method !== 'POST') {
-            return res.status(401).json({ error: 'Unauthorized' });
-        }
-    }
+  try {
+      // Verify cron secret for Vercel Cron jobs
+      const authHeader = req.headers.authorization;
+      if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+          // Allow manual triggers in development
+          if (process.env.NODE_ENV === 'production' && req.method !== 'POST') {
+              return res.status(401).json({ error: 'Unauthorized' });
+          }
+      }
 
-    try {
+      try {
 
-        let allArticles = [];
+          let allArticles = [];
 
-        // Try to fetch from RSS sources
-        for (const source of NEWS_SOURCES) {
-            const articles = await parseRSS(source.url, source.category, source.source_name);
-            allArticles = [...allArticles, ...articles];
-        }
+          // Try to fetch from RSS sources
+          for (const source of NEWS_SOURCES) {
+              const articles = await parseRSS(source.url, source.category, source.source_name);
+              allArticles = [...allArticles, ...articles];
+          }
 
-        // If no articles found from RSS, just log and return - no fake data
-        if (allArticles.length === 0) {
-            return res.status(200).json({
-                success: true,
-                message: 'No new articles found',
-                scraped: 0,
-                inserted: 0,
-                timestamp: new Date().toISOString()
-            });
-        }
+          // If no articles found from RSS, just log and return - no fake data
+          if (allArticles.length === 0) {
+              return res.status(200).json({
+                  success: true,
+                  message: 'No new articles found',
+                  scraped: 0,
+                  inserted: 0,
+                  timestamp: new Date().toISOString()
+              });
+          }
 
-        // Filter out duplicates by checking existing slugs
-        const { data: existingSlugs } = await supabase
-            .from('poker_news')
-            .select('slug')
-            .in('slug', allArticles.map(a => a.slug))
-                .limit(100);
+          // Filter out duplicates by checking existing slugs
+          const { data: existingSlugs } = await supabase
+              .from('poker_news')
+              .select('slug')
+              .in('slug', allArticles.map(a => a.slug))
+                  .limit(100);
 
-        const existingSet = new Set(existingSlugs?.map(e => e.slug) || []);
-        const newArticles = allArticles.filter(a => !existingSet.has(a.slug))
-            .limit(100);
+          const existingSet = new Set(existingSlugs?.map(e => e.slug) || []);
+          const newArticles = allArticles.filter(a => !existingSet.has(a.slug))
+              .limit(100);
 
-        // Insert new articles
-        let insertedCount = 0;
-        if (newArticles.length > 0) {
-            const { data, error } = await supabase
-                .from('poker_news')
-                .insert(newArticles)
-                .select();
+          // Insert new articles
+          let insertedCount = 0;
+          if (newArticles.length > 0) {
+              const { data, error } = await supabase
+                  .from('poker_news')
+                  .insert(newArticles)
+                  .select();
 
-            if (error) {
-                console.error('[News Scraper] Insert error:', error);
-            } else {
-                insertedCount = data?.length || 0;
-            }
-        }
+              if (error) {
+                  console.error('[News Scraper] Insert error:', error);
+              } else {
+                  insertedCount = data?.length || 0;
+              }
+          }
 
 
-        return res.status(200).json({
-            success: true,
-            message: `Scraper complete`,
-            scraped: allArticles.length,
-            inserted: insertedCount,
-            timestamp: new Date().toISOString()
-        });
+          return res.status(200).json({
+              success: true,
+              message: `Scraper complete`,
+              scraped: allArticles.length,
+              inserted: insertedCount,
+              timestamp: new Date().toISOString()
+          });
 
-    } catch (error) {
-        console.error('[News Scraper] Error:', error);
-        return res.status(500).json({ success: false, error: error.message });
-    }
+      } catch (error) {
+          console.error('[News Scraper] Error:', error);
+          return res.status(500).json({ success: false, error: error.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }
 
 // Vercel Cron config - runs every hour

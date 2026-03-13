@@ -13,192 +13,198 @@ const CORS_HEADERS = {
 };
 
 export default async function handler(req, res) {
-  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
-
-  Object.entries(CORS_HEADERS).forEach(([key, value]) => {
-    res.setHeader(key, value);
-  });
-
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
   try {
-    if (req.method === 'POST') {
-      // Require JWT for writes
-      const token = req.headers.authorization?.replace('Bearer ', '');
-      if (!token) return res.status(401).json({ success: false, error: 'Auth required for reviews' });
-      const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
-      if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
-
-      const { venue_id, rating, review_text, reviewer_name } = req.body;
-      const user_id = authUser.id;
-
-      if (!venue_id || !rating || !review_text || !reviewer_name) {
-        return res.status(400).json({ success: false, error: 'Missing required fields: venue_id, rating, review_text, reviewer_name' });
-      }
-
-      const venueIdNum = parseInt(venue_id, 10);
-      if (isNaN(venueIdNum) || venueIdNum < 1) {
-        return res.status(400).json({ success: false, error: 'venue_id must be a valid positive integer' });
-      }
-
-      const ratingNum = parseInt(rating, 10);
-      if (isNaN(ratingNum) || ratingNum < 1 || ratingNum > 5) {
-        return res.status(400).json({ success: false, error: 'Rating must be an integer between 1 and 5' });
-      }
-
-      const { data, error } = await supabase
-        .from('venue_reviews')
-        .insert({
-          venue_id: String(venueIdNum),
-          user_id,
-          rating: ratingNum,
-          review_text,
-          reviewer_name,
-          created_at: new Date().toISOString(),
-          helpful_count: 0,
-        })
-        .select()
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error creating review:', error);
-        return res.status(500).json({ success: false, error: error.message });
-      }
-
-      return res.status(201).json({ success: true, review: data });
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
 
-    if (req.method === 'GET') {
-      const { venue_id, limit = '20', offset = '0' } = req.query;
+    Object.entries(CORS_HEADERS).forEach(([key, value]) => {
+      res.setHeader(key, value);
+    });
 
-      if (!venue_id) {
-        return res.status(400).json({ success: false, error: 'venue_id is required' });
+    if (req.method === 'OPTIONS') {
+      return res.status(200).end();
+    }
+
+    try {
+      if (req.method === 'POST') {
+        // Require JWT for writes
+        const token = req.headers.authorization?.replace('Bearer ', '');
+        if (!token) return res.status(401).json({ success: false, error: 'Auth required for reviews' });
+        const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+        if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+
+        const { venue_id, rating, review_text, reviewer_name } = req.body;
+        const user_id = authUser.id;
+
+        if (!venue_id || !rating || !review_text || !reviewer_name) {
+          return res.status(400).json({ success: false, error: 'Missing required fields: venue_id, rating, review_text, reviewer_name' });
+        }
+
+        const venueIdNum = parseInt(venue_id, 10);
+        if (isNaN(venueIdNum) || venueIdNum < 1) {
+          return res.status(400).json({ success: false, error: 'venue_id must be a valid positive integer' });
+        }
+
+        const ratingNum = parseInt(rating, 10);
+        if (isNaN(ratingNum) || ratingNum < 1 || ratingNum > 5) {
+          return res.status(400).json({ success: false, error: 'Rating must be an integer between 1 and 5' });
+        }
+
+        const { data, error } = await supabase
+          .from('venue_reviews')
+          .insert({
+            venue_id: String(venueIdNum),
+            user_id,
+            rating: ratingNum,
+            review_text,
+            reviewer_name,
+            created_at: new Date().toISOString(),
+            helpful_count: 0,
+          })
+          .select()
+          .maybeSingle();
+
+        if (error) {
+          console.error('Error creating review:', error);
+          return res.status(500).json({ success: false, error: error.message });
+        }
+
+        return res.status(201).json({ success: true, review: data });
       }
 
-      const venueIdNum = parseInt(venue_id, 10);
-      if (isNaN(venueIdNum) || venueIdNum < 1) {
-        return res.status(400).json({ success: false, error: 'venue_id must be a valid positive integer' });
-      }
+      if (req.method === 'GET') {
+        const { venue_id, limit = '20', offset = '0' } = req.query;
 
-      const limitNum = parseInt(limit, 10) || 20;
-      const offsetNum = parseInt(offset, 10) || 0;
+        if (!venue_id) {
+          return res.status(400).json({ success: false, error: 'venue_id is required' });
+        }
 
-      // Fetch reviews
-      const { data: reviews, error: reviewError } = await supabase
-        .from('venue_reviews')
-        .select('*')
-        .eq('venue_id', String(venueIdNum))
-        .order('created_at', { ascending: false })
-        .range(offsetNum, offsetNum + limitNum - 1);
+        const venueIdNum = parseInt(venue_id, 10);
+        if (isNaN(venueIdNum) || venueIdNum < 1) {
+          return res.status(400).json({ success: false, error: 'venue_id must be a valid positive integer' });
+        }
 
-      if (reviewError) {
-        console.error('Error fetching reviews:', reviewError);
-        return res.status(500).json({ success: false, error: reviewError.message });
-      }
+        const limitNum = parseInt(limit, 10) || 20;
+        const offsetNum = parseInt(offset, 10) || 0;
 
-      // Fetch all ratings for stats
-      const { data: allRatings, error: ratingsError } = await supabase
-        .from('venue_reviews')
-        .select('rating')
-        .eq('venue_id', String(venueIdNum))
-        .limit(100);
+        // Fetch reviews
+        const { data: reviews, error: reviewError } = await supabase
+          .from('venue_reviews')
+          .select('*')
+          .eq('venue_id', String(venueIdNum))
+          .order('created_at', { ascending: false })
+          .range(offsetNum, offsetNum + limitNum - 1);
 
-      if (ratingsError) {
-        console.error('Error fetching ratings:', ratingsError);
-        return res.status(500).json({ success: false, error: ratingsError.message });
-      }
+        if (reviewError) {
+          console.error('Error fetching reviews:', reviewError);
+          return res.status(500).json({ success: false, error: reviewError.message });
+        }
 
-      const total_reviews = allRatings ? allRatings.length : 0;
-      const avg_rating = total_reviews > 0
-        ? parseFloat((allRatings.reduce((sum, r) => sum + r.rating, 0) / total_reviews).toFixed(2))
-        : 0;
+        // Fetch all ratings for stats
+        const { data: allRatings, error: ratingsError } = await supabase
+          .from('venue_reviews')
+          .select('rating')
+          .eq('venue_id', String(venueIdNum))
+          .limit(100);
 
-      const rating_distribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
-      if (allRatings) {
-        allRatings.forEach((r) => {
-          rating_distribution[r.rating] = (rating_distribution[r.rating] || 0) + 1;
+        if (ratingsError) {
+          console.error('Error fetching ratings:', ratingsError);
+          return res.status(500).json({ success: false, error: ratingsError.message });
+        }
+
+        const total_reviews = allRatings ? allRatings.length : 0;
+        const avg_rating = total_reviews > 0
+          ? parseFloat((allRatings.reduce((sum, r) => sum + r.rating, 0) / total_reviews).toFixed(2))
+          : 0;
+
+        const rating_distribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+        if (allRatings) {
+          allRatings.forEach((r) => {
+            rating_distribution[r.rating] = (rating_distribution[r.rating] || 0) + 1;
+          });
+        }
+
+        return res.status(200).json({
+          success: true,
+          reviews: reviews || [],
+          avg_rating,
+          total_reviews,
+          rating_distribution,
         });
       }
 
-      return res.status(200).json({
-        success: true,
-        reviews: reviews || [],
-        avg_rating,
-        total_reviews,
-        rating_distribution,
-      });
+      if (req.method === 'DELETE') {
+        // CRITICAL FIX #1: Require JWT auth instead of query param user_id
+        const token = req.headers.authorization?.replace('Bearer ', '');
+        if (!token) return res.status(401).json({ success: false, error: 'Auth required for delete' });
+        const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+        if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+
+        const { review_id } = req.query;
+        const user_id = authUser.id;
+
+        if (!review_id) {
+          return res.status(400).json({ success: false, error: 'review_id is required' });
+        }
+
+        const { data, error } = await supabase
+          .from('venue_reviews')
+          .delete()
+          .eq('id', review_id)
+          .eq('user_id', user_id)
+          .select();
+
+        if (error) {
+          console.error('Error deleting review:', error);
+          return res.status(500).json({ success: false, error: error.message });
+        }
+
+        if (!data || data.length === 0) {
+          return res.status(404).json({ success: false, error: 'Review not found or not owned by user' });
+        }
+
+        return res.status(200).json({ success: true, deleted: data[0] });
+      }
+
+      if (req.method === 'PATCH') {
+        const { review_id, action } = req.body;
+        if (!review_id || action !== 'helpful') {
+          return res.status(400).json({ success: false, error: 'review_id and action="helpful" required' });
+        }
+
+        // Fetch current helpful_count then increment
+        const { data: existing, error: fetchErr } = await supabase
+          .from('venue_reviews')
+          .select('helpful_count')
+          .eq('id', review_id)
+          .maybeSingle();
+
+        if (fetchErr || !existing) {
+          return res.status(404).json({ success: false, error: 'Review not found' });
+        }
+
+        const { error: updateErr } = await supabase
+          .from('venue_reviews')
+          .update({ helpful_count: (existing.helpful_count || 0) + 1 })
+          .eq('id', review_id);
+
+        if (updateErr) {
+          console.error('Error updating helpful count:', updateErr);
+          return res.status(500).json({ success: false, error: updateErr.message });
+        }
+
+        return res.status(200).json({ success: true });
+      }
+
+      return res.status(405).json({ success: false, error: `Method ${req.method} not allowed` });
+    } catch (err) {
+      console.error('Reviews API error:', err);
+      return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 
-    if (req.method === 'DELETE') {
-      // CRITICAL FIX #1: Require JWT auth instead of query param user_id
-      const token = req.headers.authorization?.replace('Bearer ', '');
-      if (!token) return res.status(401).json({ success: false, error: 'Auth required for delete' });
-      const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
-      if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
-
-      const { review_id } = req.query;
-      const user_id = authUser.id;
-
-      if (!review_id) {
-        return res.status(400).json({ success: false, error: 'review_id is required' });
-      }
-
-      const { data, error } = await supabase
-        .from('venue_reviews')
-        .delete()
-        .eq('id', review_id)
-        .eq('user_id', user_id)
-        .select();
-
-      if (error) {
-        console.error('Error deleting review:', error);
-        return res.status(500).json({ success: false, error: error.message });
-      }
-
-      if (!data || data.length === 0) {
-        return res.status(404).json({ success: false, error: 'Review not found or not owned by user' });
-      }
-
-      return res.status(200).json({ success: true, deleted: data[0] });
-    }
-
-    if (req.method === 'PATCH') {
-      const { review_id, action } = req.body;
-      if (!review_id || action !== 'helpful') {
-        return res.status(400).json({ success: false, error: 'review_id and action="helpful" required' });
-      }
-
-      // Fetch current helpful_count then increment
-      const { data: existing, error: fetchErr } = await supabase
-        .from('venue_reviews')
-        .select('helpful_count')
-        .eq('id', review_id)
-        .maybeSingle();
-
-      if (fetchErr || !existing) {
-        return res.status(404).json({ success: false, error: 'Review not found' });
-      }
-
-      const { error: updateErr } = await supabase
-        .from('venue_reviews')
-        .update({ helpful_count: (existing.helpful_count || 0) + 1 })
-        .eq('id', review_id);
-
-      if (updateErr) {
-        console.error('Error updating helpful count:', updateErr);
-        return res.status(500).json({ success: false, error: updateErr.message });
-      }
-
-      return res.status(200).json({ success: true });
-    }
-
-    return res.status(405).json({ success: false, error: `Method ${req.method} not allowed` });
   } catch (err) {
-    console.error('Reviews API error:', err);
-    return res.status(500).json({ success: false, error: 'Internal server error' });
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

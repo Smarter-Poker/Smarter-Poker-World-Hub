@@ -12,45 +12,51 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (!applyRateLimit(req, res, LIMITS.read)) return;
-
   try {
-  // Auth guard: require staff auth for write operations
-  const _authResult = await guardWriteStaff(req, res);
-  if (!_authResult) return;
+    if (!applyRateLimit(req, res, LIMITS.read)) return;
 
-    if (req.method !== 'GET') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
+    try {
+    // Auth guard: require staff auth for write operations
+    const _authResult = await guardWriteStaff(req, res);
+    if (!_authResult) return;
+
+      if (req.method !== 'GET') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
+
+      const { memberId } = req.query;
+
+      if (!memberId) {
+          return res.status(400).json({ success: false, error: 'memberId is required' });
+      }
+
+      const { data: member, error } = await supabase
+          .from('commander_members')
+          .select('*, venue:poker_venues(id, name, city, state)')
+          .eq('id', memberId)
+          .maybeSingle();
+
+      if (error || !member) {
+          return res.status(404).json({ success: false, error: 'Member not found' });
+      }
+
+      // Generate QR code URL
+      const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(member.qr_code)}&bgcolor=ffffff&color=000000`;
+
+      return res.status(200).json({
+          success: true,
+          data: {
+              member,
+              qrCodeUrl,
+          },
+      });
+    } catch (err) {
+      console.error('[pages/api/commander/members/card.js]', err);
+      return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 
-    const { memberId } = req.query;
-
-    if (!memberId) {
-        return res.status(400).json({ success: false, error: 'memberId is required' });
-    }
-
-    const { data: member, error } = await supabase
-        .from('commander_members')
-        .select('*, venue:poker_venues(id, name, city, state)')
-        .eq('id', memberId)
-        .maybeSingle();
-
-    if (error || !member) {
-        return res.status(404).json({ success: false, error: 'Member not found' });
-    }
-
-    // Generate QR code URL
-    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(member.qr_code)}&bgcolor=ffffff&color=000000`;
-
-    return res.status(200).json({
-        success: true,
-        data: {
-            member,
-            qrCodeUrl,
-        },
-    });
   } catch (err) {
-    console.error('[pages/api/commander/members/card.js]', err);
-    return res.status(500).json({ success: false, error: 'Internal server error' });
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

@@ -18,28 +18,34 @@ const FALLBACK_LEADERBOARD = [
 ];
 
 export default async function handler(req, res) {
-    if (req.method !== 'GET') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
+  try {
+      if (req.method !== 'GET') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
 
-    try {
-        const { year = new Date().getFullYear(), limit = 10 } = req.query;
+      try {
+          const { year = new Date().getFullYear(), limit = 10 } = req.query;
 
-        const { data, error } = await supabase
-            .from('poy_leaderboard')
-            .select('*')
-            .eq('year', parseInt(year))
-            .order('points', { ascending: false })
-            .limit(parseInt(limit));
+          const { data, error } = await supabase
+              .from('poy_leaderboard')
+              .select('*')
+              .eq('year', parseInt(year))
+              .order('points', { ascending: false })
+              .limit(parseInt(limit));
 
-        if (error || !data?.length) {
-            // Return fallback data if table missing or empty
-            return res.status(200).json({ success: true, data: FALLBACK_LEADERBOARD.slice(0, parseInt(limit)) });
-        }
+          if (error || !data?.length) {
+              // Return fallback data if table missing or empty
+              return res.status(200).json({ success: true, data: FALLBACK_LEADERBOARD.slice(0, parseInt(limit)) });
+          }
 
-        return res.status(200).json({ success: true, data });
-    } catch (error) {
-        // Return fallback on any error
-        return res.status(200).json({ success: true, data: FALLBACK_LEADERBOARD });
-    }
+          return res.status(200).json({ success: true, data });
+      } catch (error) {
+          // Return fallback on any error
+          return res.status(200).json({ success: true, data: FALLBACK_LEADERBOARD });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

@@ -22,254 +22,260 @@ const VALID_VARIANTS = ['nlh', 'flh', 'plo4', 'plo5', 'plo6', 'plo8', 'short_dec
 const VALID_GAME_TYPES = ['cash', 'tournament', 'sng'];
 
 export default async function handler(req, res) {
-    // ── E-13: Rate limiter ─────────────────────────────────────────────
-    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-        try {
-            const { applyRateLimit: rl, LIMITS } = require('../../../src/lib/apiRateLimit');
-            if (!rl(req, res, LIMITS.write)) return;
-        } catch (_) { /* rate limiter not available — proceed */ }
-    }
+  try {
+      // ── E-13: Rate limiter ─────────────────────────────────────────────
+      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+          try {
+              const { applyRateLimit: rl, LIMITS } = require('../../../src/lib/apiRateLimit');
+              if (!rl(req, res, LIMITS.write)) return;
+          } catch (_) { /* rate limiter not available — proceed */ }
+      }
 
-    if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
+      if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
-    // ── C-05: Idempotency Guard (Fat-Finger Defense) ──
-    if (checkIdempotency(req, res)) return;
+      // ── C-05: Idempotency Guard (Fat-Finger Defense) ──
+      if (checkIdempotency(req, res)) return;
 
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ error: 'No auth token' });
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      if (!token) return res.status(401).json({ error: 'No auth token' });
 
-    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+      const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+      if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
-    const { clubId, name, variant, gameType, smallBlind, bigBlind, maxPlayers, minBuyIn, maxBuyIn, ante, actionTime, settings } = req.body;
+      const { clubId, name, variant, gameType, smallBlind, bigBlind, maxPlayers, minBuyIn, maxBuyIn, ante, actionTime, settings } = req.body;
 
-    // ── E-04: UUID validation ──────────────────────────────────────────
-    if (!clubId || !isUUID(clubId)) {
-        return res.status(400).json({ error: 'clubId must be a valid UUID' });
-    }
+      // ── E-04: UUID validation ──────────────────────────────────────────
+      if (!clubId || !isUUID(clubId)) {
+          return res.status(400).json({ error: 'clubId must be a valid UUID' });
+      }
 
-    try {
-        // Load club info (needed for BBJ config + union admin fallback)
-        const { data: clubInfo } = await supabaseAdmin
-            .from('clubs')
-            .select('union_id, bbj_enabled')
-            .eq('id', clubId)
-            .maybeSingle();
+      try {
+          // Load club info (needed for BBJ config + union admin fallback)
+          const { data: clubInfo } = await supabaseAdmin
+              .from('clubs')
+              .select('union_id, bbj_enabled')
+              .eq('id', clubId)
+              .maybeSingle();
 
-        // Verify role — ALWAYS uses JWT user.id, never body userId
-        const { data: member } = await supabaseAdmin
-            .from('club_members')
-            .select('role')
-            .eq('club_id', clubId)
-            .eq('user_id', user.id)
-            .maybeSingle();
+          // Verify role — ALWAYS uses JWT user.id, never body userId
+          const { data: member } = await supabaseAdmin
+              .from('club_members')
+              .select('role')
+              .eq('club_id', clubId)
+              .eq('user_id', user.id)
+              .maybeSingle();
 
-        if (!member || !['owner', 'admin'].includes(member.role)) {
-            // Union admin fallback
-            let unionAuth = false;
-            if (clubInfo?.union_id) {
-                const { data: ua } = await supabaseAdmin.from('union_admins').select('role').eq('union_id', clubInfo.union_id).eq('user_id', user.id).maybeSingle();
-                if (ua) {
-                    unionAuth = true;
-                } else {
-                    // Owner fallback
-                    const { data: union } = await supabaseAdmin.from('unions').select('id').eq('id', clubInfo.union_id).eq('owner_id', user.id).maybeSingle();
-                    if (union) unionAuth = true;
-                }
-            }
-            if (!unionAuth) {
-                return res.status(403).json({ error: 'Only owners, admins, or union admins can create tables' });
-            }
-        }
+          if (!member || !['owner', 'admin'].includes(member.role)) {
+              // Union admin fallback
+              let unionAuth = false;
+              if (clubInfo?.union_id) {
+                  const { data: ua } = await supabaseAdmin.from('union_admins').select('role').eq('union_id', clubInfo.union_id).eq('user_id', user.id).maybeSingle();
+                  if (ua) {
+                      unionAuth = true;
+                  } else {
+                      // Owner fallback
+                      const { data: union } = await supabaseAdmin.from('unions').select('id').eq('id', clubInfo.union_id).eq('owner_id', user.id).maybeSingle();
+                      if (union) unionAuth = true;
+                  }
+              }
+              if (!unionAuth) {
+                  return res.status(403).json({ error: 'Only owners, admins, or union admins can create tables' });
+              }
+          }
 
-        // ── E-02: Validate numeric inputs — reject NaN/Infinity ────────
-        const sbResult = clampFloat(smallBlind, 0.01, 100000, 1);
-        const bbResult = clampFloat(bigBlind, 0.02, 200000, 2);
-        if (!sbResult.valid) return res.status(400).json({ error: `smallBlind: ${sbResult.error}` });
-        if (!bbResult.valid) return res.status(400).json({ error: `bigBlind: ${bbResult.error}` });
-        const sb = sbResult.value;
-        const bb = bbResult.value;
+          // ── E-02: Validate numeric inputs — reject NaN/Infinity ────────
+          const sbResult = clampFloat(smallBlind, 0.01, 100000, 1);
+          const bbResult = clampFloat(bigBlind, 0.02, 200000, 2);
+          if (!sbResult.valid) return res.status(400).json({ error: `smallBlind: ${sbResult.error}` });
+          if (!bbResult.valid) return res.status(400).json({ error: `bigBlind: ${bbResult.error}` });
+          const sb = sbResult.value;
+          const bb = bbResult.value;
 
-        // Validate BB > SB
-        if (bb <= sb) {
-            return res.status(400).json({ error: 'bigBlind must be greater than smallBlind' });
-        }
+          // Validate BB > SB
+          if (bb <= sb) {
+              return res.status(400).json({ error: 'bigBlind must be greater than smallBlind' });
+          }
 
-        const seats = Math.min(Math.max(parseInt(maxPlayers) || 9, 2), 10);
-        const gv = VALID_VARIANTS.includes(variant) ? variant : 'nlh';
-        const gt = VALID_GAME_TYPES.includes(gameType) ? gameType : 'cash';
+          const seats = Math.min(Math.max(parseInt(maxPlayers) || 9, 2), 10);
+          const gv = VALID_VARIANTS.includes(variant) ? variant : 'nlh';
+          const gt = VALID_GAME_TYPES.includes(gameType) ? gameType : 'cash';
 
-        // Ante validation
-        const anteResult = clampFloat(ante, 0, bb * 10, 0);
-        if (!anteResult.valid) return res.status(400).json({ error: `ante: ${anteResult.error}` });
-        const cleanAnte = anteResult.value;
+          // Ante validation
+          const anteResult = clampFloat(ante, 0, bb * 10, 0);
+          if (!anteResult.valid) return res.status(400).json({ error: `ante: ${anteResult.error}` });
+          const cleanAnte = anteResult.value;
 
-        // Action time validation
-        const atResult = clampFloat(actionTime, 10, 120, 30);
-        const cleanActionTime = atResult.value;
+          // Action time validation
+          const atResult = clampFloat(actionTime, 10, 120, 30);
+          const cleanActionTime = atResult.value;
 
-        // Auto-fill rake/BBJ from tier config based on stakes
-        const { getRakeConfig, findScheduleMatch, getAllowedStakes } = require('../../../src/lib/poker-engine/RakeConfig');
-        const tierConfig = getRakeConfig(bb, gv, sb);
+          // Auto-fill rake/BBJ from tier config based on stakes
+          const { getRakeConfig, findScheduleMatch, getAllowedStakes } = require('../../../src/lib/poker-engine/RakeConfig');
+          const tierConfig = getRakeConfig(bb, gv, sb);
 
-        // Validate stakes against official schedule for cash games
-        if (gt === 'cash') {
-            const scheduleMatch = findScheduleMatch(sb, bb);
-            if (!scheduleMatch) {
-                const allowed = getAllowedStakes().map(s => s.label).join(', ');
-                return res.status(400).json({
-                    error: `Invalid stakes ${sb}/${bb}. Allowed cash game stakes: ${allowed}`,
-                });
-            }
-        }
+          // Validate stakes against official schedule for cash games
+          if (gt === 'cash') {
+              const scheduleMatch = findScheduleMatch(sb, bb);
+              if (!scheduleMatch) {
+                  const allowed = getAllowedStakes().map(s => s.label).join(', ');
+                  return res.status(400).json({
+                      error: `Invalid stakes ${sb}/${bb}. Allowed cash game stakes: ${allowed}`,
+                  });
+              }
+          }
 
-        // Buy-in validation with cross-field check (E-07 defense-in-depth)
-        const minBuyResult = clampFloat(minBuyIn, bb, bb * 500, bb * 40);
-        const maxBuyResult = clampFloat(maxBuyIn, bb * 2, bb * 1000, bb * 200);
-        const resolvedMinBuyIn = minBuyResult.value;
-        let resolvedMaxBuyIn = maxBuyResult.value;
-        // Ensure max >= min
-        if (resolvedMaxBuyIn < resolvedMinBuyIn) resolvedMaxBuyIn = resolvedMinBuyIn;
+          // Buy-in validation with cross-field check (E-07 defense-in-depth)
+          const minBuyResult = clampFloat(minBuyIn, bb, bb * 500, bb * 40);
+          const maxBuyResult = clampFloat(maxBuyIn, bb * 2, bb * 1000, bb * 200);
+          const resolvedMinBuyIn = minBuyResult.value;
+          let resolvedMaxBuyIn = maxBuyResult.value;
+          // Ensure max >= min
+          if (resolvedMaxBuyIn < resolvedMinBuyIn) resolvedMaxBuyIn = resolvedMinBuyIn;
 
-        // ── E-01: Sanitize table name (strip HTML/XSS) ────────────────
-        const cleanName = sanitizeTableName(name, 50) || `New ${gv.toUpperCase()} Table`;
+          // ── E-01: Sanitize table name (strip HTML/XSS) ────────────────
+          const cleanName = sanitizeTableName(name, 50) || `New ${gv.toUpperCase()} Table`;
 
-        // ── E-03: Whitelist settings keys ──────────────────────────────
-        const cleanSettings = sanitizeSettings(settings || {});
+          // ── E-03: Whitelist settings keys ──────────────────────────────
+          const cleanSettings = sanitizeSettings(settings || {});
 
-        const { data: table, error: createErr } = await supabaseAdmin
-            .from('tables')
-            .insert({
-                club_id: clubId,
-                created_by: user.id,
-                name: cleanName,
-                game_type: gt,
-                game_variant: gv,
-                stakes: `${sb}/${bb}`,
-                max_players: seats,
-                small_blind: sb,
-                big_blind: bb,
-                min_buy_in: resolvedMinBuyIn,
-                max_buy_in: resolvedMaxBuyIn,
-                ante: cleanAnte,
-                action_time_seconds: Math.round(cleanActionTime),
-                // Cash games: rake/BBJ locked to official schedule (no overrides)
-                rake_percent: gt === 'cash'
-                    ? tierConfig.rakePercent
-                    : Math.min(Math.max(parseFloat(cleanSettings.rakePercent) || tierConfig.rakePercent, 0), 33),
-                rake_cap_bb: gt === 'cash'
-                    ? tierConfig.rakeCap
-                    : Math.max(parseFloat(cleanSettings.rakeCap) || tierConfig.rakeCapBB, 0),
-                bbj_percent: (clubInfo?.bbj_enabled === false ? false : tierConfig.bbjEnabled)
-                    ? (gt === 'cash' ? tierConfig.bbjFeeBB : parseFloat(cleanSettings.bbjPercent) || tierConfig.bbjFeeBB)
-                    : 0,
-                current_players: 0,
-                status: 'waiting',
-                settings: {
-                    // ── Core Game Options ──
-                    straddle_enabled: cleanSettings.straddle_enabled || cleanSettings.auto_utg_straddle || cleanSettings.voluntary_straddle || false,
-                    auto_utg_straddle: cleanSettings.auto_utg_straddle || false,
-                    voluntary_straddle: cleanSettings.voluntary_straddle || false,
-                    run_it_twice: cleanSettings.run_it_twice || false,
-                    run_it_thrice: cleanSettings.run_it_thrice || false,
-                    run_it_mode: cleanSettings.run_it_mode || 'none',
-                    insurance: cleanSettings.insurance || false,
-                    bomb_pot_enabled: cleanSettings.bomb_pot || cleanSettings.bomb_pot_enabled || false,
-                    bomb_pot_frequency: parseInt(cleanSettings.bomb_pot_frequency) || 0,
-                    bomb_pot_ante_multiplier: Math.max(1, Math.min(10, parseInt(cleanSettings.bomb_pot_ante_multiplier) || 2)),
-                    auto_muck: cleanSettings.auto_muck !== false,
-                    // ── Game Modes ──
-                    private_game: cleanSettings.private_game || false,
-                    vip_only: cleanSettings.vip_only || false,
-                    double_board: cleanSettings.double_board || false,
-                    triple_board: cleanSettings.triple_board || false,
-                    pineapple: cleanSettings.pineapple || false,
-                    seven_deuce: cleanSettings.seven_deuce || false,
-                    nit_game: cleanSettings.nit_game || false,
-                    anonymous_table: cleanSettings.anonymous_table || false,
-                    cap: cleanSettings.cap || false,
-                    cap_amount: cleanSettings.cap_amount || 0,
-                    ban_chat: cleanSettings.ban_chat || false,
-                    label_new: cleanSettings.label_new || false,
-                    featured_table: cleanSettings.featured_table || false,
-                    no_rathole: cleanSettings.no_rathole || false,
-                    // ── Player Requirements ──
-                    calltime: cleanSettings.calltime || false,
-                    career_percent: cleanSettings.career_percent || 0,
-                    maintain_percent: cleanSettings.maintain_percent || 0,
-                    maintain_hands: cleanSettings.maintain_hands || 10,
-                    // ── Auto Settings ──
-                    auto_start_players: cleanSettings.auto_start_players || 2,
-                    auto_extension: cleanSettings.auto_extension || false,
-                    auto_restart: cleanSettings.auto_restart || false,
-                    auto_create_table: cleanSettings.auto_create_table || false,
-                    // ── Rake/Fee ──
-                    fee_cap_bb: cleanSettings.fee_cap_bb || 3,
-                    same_agent_downline_limit: cleanSettings.same_agent_downline_limit || 0,
-                    buy_in_authorization: cleanSettings.buy_in_authorization || false,
-                    // ── Security/Restrictions ──
-                    restrict_device: cleanSettings.restrict_device !== false,
-                    restrict_observers: cleanSettings.restrict_observers || false,
-                    gps_restriction: cleanSettings.gps_restriction !== false,
-                    ip_restriction: cleanSettings.ip_restriction !== false,
-                    emulator_restriction: cleanSettings.emulator_restriction || false,
-                    photo_rotation_verification: cleanSettings.photo_rotation_verification || false,
-                    hide_club_name: cleanSettings.hide_club_name || false,
-                    game_length_hours: cleanSettings.game_length_hours || 12,
-                    // ── Tier/BBJ info ──
-                    stakes_tier: tierConfig.tier,
-                    bbj_payout_total: tierConfig.bbjPayoutTotal,
-                    bbj_payout_loser: tierConfig.bbjPayoutLoser,
-                    bbj_payout_winner: tierConfig.bbjPayoutWinner,
-                    bbj_payout_table: tierConfig.bbjPayoutTable,
-                    bbj_qualifying_hand: tierConfig.qualifyingHand?.minLosingHand || null,
-                    bbj_eligible: tierConfig.bbjEnabled,
-                },
-            })
-            .select()
-            .maybeSingle();
+          const { data: table, error: createErr } = await supabaseAdmin
+              .from('tables')
+              .insert({
+                  club_id: clubId,
+                  created_by: user.id,
+                  name: cleanName,
+                  game_type: gt,
+                  game_variant: gv,
+                  stakes: `${sb}/${bb}`,
+                  max_players: seats,
+                  small_blind: sb,
+                  big_blind: bb,
+                  min_buy_in: resolvedMinBuyIn,
+                  max_buy_in: resolvedMaxBuyIn,
+                  ante: cleanAnte,
+                  action_time_seconds: Math.round(cleanActionTime),
+                  // Cash games: rake/BBJ locked to official schedule (no overrides)
+                  rake_percent: gt === 'cash'
+                      ? tierConfig.rakePercent
+                      : Math.min(Math.max(parseFloat(cleanSettings.rakePercent) || tierConfig.rakePercent, 0), 33),
+                  rake_cap_bb: gt === 'cash'
+                      ? tierConfig.rakeCap
+                      : Math.max(parseFloat(cleanSettings.rakeCap) || tierConfig.rakeCapBB, 0),
+                  bbj_percent: (clubInfo?.bbj_enabled === false ? false : tierConfig.bbjEnabled)
+                      ? (gt === 'cash' ? tierConfig.bbjFeeBB : parseFloat(cleanSettings.bbjPercent) || tierConfig.bbjFeeBB)
+                      : 0,
+                  current_players: 0,
+                  status: 'waiting',
+                  settings: {
+                      // ── Core Game Options ──
+                      straddle_enabled: cleanSettings.straddle_enabled || cleanSettings.auto_utg_straddle || cleanSettings.voluntary_straddle || false,
+                      auto_utg_straddle: cleanSettings.auto_utg_straddle || false,
+                      voluntary_straddle: cleanSettings.voluntary_straddle || false,
+                      run_it_twice: cleanSettings.run_it_twice || false,
+                      run_it_thrice: cleanSettings.run_it_thrice || false,
+                      run_it_mode: cleanSettings.run_it_mode || 'none',
+                      insurance: cleanSettings.insurance || false,
+                      bomb_pot_enabled: cleanSettings.bomb_pot || cleanSettings.bomb_pot_enabled || false,
+                      bomb_pot_frequency: parseInt(cleanSettings.bomb_pot_frequency) || 0,
+                      bomb_pot_ante_multiplier: Math.max(1, Math.min(10, parseInt(cleanSettings.bomb_pot_ante_multiplier) || 2)),
+                      auto_muck: cleanSettings.auto_muck !== false,
+                      // ── Game Modes ──
+                      private_game: cleanSettings.private_game || false,
+                      vip_only: cleanSettings.vip_only || false,
+                      double_board: cleanSettings.double_board || false,
+                      triple_board: cleanSettings.triple_board || false,
+                      pineapple: cleanSettings.pineapple || false,
+                      seven_deuce: cleanSettings.seven_deuce || false,
+                      nit_game: cleanSettings.nit_game || false,
+                      anonymous_table: cleanSettings.anonymous_table || false,
+                      cap: cleanSettings.cap || false,
+                      cap_amount: cleanSettings.cap_amount || 0,
+                      ban_chat: cleanSettings.ban_chat || false,
+                      label_new: cleanSettings.label_new || false,
+                      featured_table: cleanSettings.featured_table || false,
+                      no_rathole: cleanSettings.no_rathole || false,
+                      // ── Player Requirements ──
+                      calltime: cleanSettings.calltime || false,
+                      career_percent: cleanSettings.career_percent || 0,
+                      maintain_percent: cleanSettings.maintain_percent || 0,
+                      maintain_hands: cleanSettings.maintain_hands || 10,
+                      // ── Auto Settings ──
+                      auto_start_players: cleanSettings.auto_start_players || 2,
+                      auto_extension: cleanSettings.auto_extension || false,
+                      auto_restart: cleanSettings.auto_restart || false,
+                      auto_create_table: cleanSettings.auto_create_table || false,
+                      // ── Rake/Fee ──
+                      fee_cap_bb: cleanSettings.fee_cap_bb || 3,
+                      same_agent_downline_limit: cleanSettings.same_agent_downline_limit || 0,
+                      buy_in_authorization: cleanSettings.buy_in_authorization || false,
+                      // ── Security/Restrictions ──
+                      restrict_device: cleanSettings.restrict_device !== false,
+                      restrict_observers: cleanSettings.restrict_observers || false,
+                      gps_restriction: cleanSettings.gps_restriction !== false,
+                      ip_restriction: cleanSettings.ip_restriction !== false,
+                      emulator_restriction: cleanSettings.emulator_restriction || false,
+                      photo_rotation_verification: cleanSettings.photo_rotation_verification || false,
+                      hide_club_name: cleanSettings.hide_club_name || false,
+                      game_length_hours: cleanSettings.game_length_hours || 12,
+                      // ── Tier/BBJ info ──
+                      stakes_tier: tierConfig.tier,
+                      bbj_payout_total: tierConfig.bbjPayoutTotal,
+                      bbj_payout_loser: tierConfig.bbjPayoutLoser,
+                      bbj_payout_winner: tierConfig.bbjPayoutWinner,
+                      bbj_payout_table: tierConfig.bbjPayoutTable,
+                      bbj_qualifying_hand: tierConfig.qualifyingHand?.minLosingHand || null,
+                      bbj_eligible: tierConfig.bbjEnabled,
+                  },
+              })
+              .select()
+              .maybeSingle();
 
-        if (createErr) throw createErr;
+          if (createErr) throw createErr;
 
-        // ── C-03: Update table count on club (prioritize atomic RPC) ──
-        await supabaseAdmin.rpc('increment_club_table_count', { p_club_id: clubId }).catch(async () => {
-            // Fallback: Optimistic lock table count update if RPC doesn't exist
-            const { data: club } = await supabaseAdmin.from('clubs').select('table_count').eq('id', clubId).maybeSingle();
-            if (club) {
-                const oldCount = club.table_count || 0;
-                const { data: upd } = await supabaseAdmin
-                    .from('clubs')
-                    .update({ table_count: oldCount + 1 })
-                    .eq('id', clubId)
-                    .eq('table_count', oldCount)
-                    .select('id')
-                    .limit(200);
+          // ── C-03: Update table count on club (prioritize atomic RPC) ──
+          await supabaseAdmin.rpc('increment_club_table_count', { p_club_id: clubId }).catch(async () => {
+              // Fallback: Optimistic lock table count update if RPC doesn't exist
+              const { data: club } = await supabaseAdmin.from('clubs').select('table_count').eq('id', clubId).maybeSingle();
+              if (club) {
+                  const oldCount = club.table_count || 0;
+                  const { data: upd } = await supabaseAdmin
+                      .from('clubs')
+                      .update({ table_count: oldCount + 1 })
+                      .eq('id', clubId)
+                      .eq('table_count', oldCount)
+                      .select('id')
+                      .limit(200);
 
-                if (!upd?.length) {
-                    const { data: fresh } = await supabaseAdmin.from('clubs').select('table_count').eq('id', clubId).maybeSingle();
-                    if (fresh) {
-                        await supabaseAdmin.from('clubs').update({ table_count: (fresh.table_count || 0) + 1 }).eq('id', clubId);
-                    }
-                }
-            }
-        });
+                  if (!upd?.length) {
+                      const { data: fresh } = await supabaseAdmin.from('clubs').select('table_count').eq('id', clubId).maybeSingle();
+                      if (fresh) {
+                          await supabaseAdmin.from('clubs').update({ table_count: (fresh.table_count || 0) + 1 }).eq('id', clubId);
+                      }
+                  }
+              }
+          });
 
-        // Notify club members of new table (fire-and-forget)
-        const tableName = table?.name || `${gv.toUpperCase()} ${sb}/${bb}`;
-        notifyClubMembers(supabaseAdmin, {
-            clubId, type: 'table_created',
-            title: `🎲 New Table: ${tableName}`,
-            message: `A new ${gv.toUpperCase()} ${sb}/${bb} cash game is now open!`,
-            data: { tableId: table?.id, variant: gv, stakes: `${sb}/${bb}` },
-            pushUrl: `/hub/club-arena/lobby?club=${clubId}`,
-            excludeUserId: user.id,
-        }).catch(() => { });
+          // Notify club members of new table (fire-and-forget)
+          const tableName = table?.name || `${gv.toUpperCase()} ${sb}/${bb}`;
+          notifyClubMembers(supabaseAdmin, {
+              clubId, type: 'table_created',
+              title: `🎲 New Table: ${tableName}`,
+              message: `A new ${gv.toUpperCase()} ${sb}/${bb} cash game is now open!`,
+              data: { tableId: table?.id, variant: gv, stakes: `${sb}/${bb}` },
+              pushUrl: `/hub/club-arena/lobby?club=${clubId}`,
+              excludeUserId: user.id,
+          }).catch(() => { });
 
-        const responseBody = { success: true, table };
-        cacheResponse(req, 200, responseBody);
-        return res.status(200).json(responseBody);
-    } catch (err) {
-        console.error('[create-table]', err);
-        return res.status(500).json(safeErrorResponse(err, 'Failed to create table'));
-    }
+          const responseBody = { success: true, table };
+          cacheResponse(req, 200, responseBody);
+          return res.status(200).json(responseBody);
+      } catch (err) {
+          console.error('[create-table]', err);
+          return res.status(500).json(safeErrorResponse(err, 'Failed to create table'));
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

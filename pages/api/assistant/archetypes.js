@@ -24,43 +24,49 @@ const DEFAULT_ARCHETYPES = [
 ];
 
 export default async function handler(req, res) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ success: false, error: 'Method not allowed' });
-  }
-
   try {
-    const { data: archetypes, error } = await supabase
-      .from('villain_archetypes')
-      .select('*')
-      .order('id')
-          .limit(100);
+    if (req.method !== 'GET') {
+      return res.status(405).json({ success: false, error: 'Method not allowed' });
+    }
 
-    if (error || !archetypes || archetypes.length === 0) {
+    try {
+      const { data: archetypes, error } = await supabase
+        .from('villain_archetypes')
+        .select('*')
+        .order('id')
+            .limit(100);
+
+      if (error || !archetypes || archetypes.length === 0) {
+        return res.status(200).json({
+          success: true,
+          archetypes: DEFAULT_ARCHETYPES
+        });
+      }
+
+      // Transform to match frontend format
+      const formatted = archetypes.map(a => ({
+        id: a.id,
+        name: a.display_name,
+        description: a.description,
+        color: a.color,
+        bluff_frequency: a.bluff_frequency
+      }));
+
+      return res.status(200).json({
+        success: true,
+        archetypes: formatted
+      });
+
+    } catch (error) {
+      console.error('Archetypes error:', error);
       return res.status(200).json({
         success: true,
         archetypes: DEFAULT_ARCHETYPES
       });
     }
 
-    // Transform to match frontend format
-    const formatted = archetypes.map(a => ({
-      id: a.id,
-      name: a.display_name,
-      description: a.description,
-      color: a.color,
-      bluff_frequency: a.bluff_frequency
-    }));
-
-    return res.status(200).json({
-      success: true,
-      archetypes: formatted
-    });
-
-  } catch (error) {
-    console.error('Archetypes error:', error);
-    return res.status(200).json({
-      success: true,
-      archetypes: DEFAULT_ARCHETYPES
-    });
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

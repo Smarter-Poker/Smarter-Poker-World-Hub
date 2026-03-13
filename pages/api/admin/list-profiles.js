@@ -9,40 +9,46 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export default async function handler(req, res) {
-  // BUG #167 FIX: Block in production
-  if (process.env.NODE_ENV === "production") {
-    return res.status(404).json({ error: "Not found" });
-  }
-    const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
-        auth: { autoRefreshToken: false, persistSession: false }
-    });
-
-    try {
-        // Get all profiles
-        const { data: profiles, error } = await supabase
-            .from('profiles')
-            .select('id, username, full_name, email, role, created_at')
-            .order('created_at', { ascending: false })
-            .limit(50);
-
-        if (error) {
-            return res.status(500).json({ error: error.message });
-        }
-
-        // Also check for the system account
-        const { data: systemAccount } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', '00000000-0000-0000-0000-000000000001')
-            .maybeSingle();
-
-        return res.status(200).json({
-            totalProfiles: profiles?.length || 0,
-            profiles: profiles,
-            systemAccount: systemAccount || 'NOT FOUND'
-        });
-
-    } catch (error) {
-        return res.status(500).json({ error: error.message });
+  try {
+    // BUG #167 FIX: Block in production
+    if (process.env.NODE_ENV === "production") {
+      return res.status(404).json({ error: "Not found" });
     }
+      const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
+          auth: { autoRefreshToken: false, persistSession: false }
+      });
+
+      try {
+          // Get all profiles
+          const { data: profiles, error } = await supabase
+              .from('profiles')
+              .select('id, username, full_name, email, role, created_at')
+              .order('created_at', { ascending: false })
+              .limit(50);
+
+          if (error) {
+              return res.status(500).json({ error: error.message });
+          }
+
+          // Also check for the system account
+          const { data: systemAccount } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', '00000000-0000-0000-0000-000000000001')
+              .maybeSingle();
+
+          return res.status(200).json({
+              totalProfiles: profiles?.length || 0,
+              profiles: profiles,
+              systemAccount: systemAccount || 'NOT FOUND'
+          });
+
+      } catch (error) {
+          return res.status(500).json({ error: error.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

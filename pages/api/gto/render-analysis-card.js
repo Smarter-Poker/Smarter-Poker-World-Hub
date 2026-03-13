@@ -33,74 +33,80 @@ const ACTION_COLORS = {
 };
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+      if (req.method !== 'POST') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
+
+      // BUG #267 FIX: Require JWT auth — calls paid Grok AI image generation API
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
+      const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+      if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+
+      try {
+          const {
+              action = 'RAISE',
+              frequency = 85,
+              explanation = '',
+              gtoApproach = '',
+              evValue = '+1.50BB',
+              evDescription = '',
+              alternateLines = [],
+          } = req.body;
+
+          // Generate cache key
+          const cacheKey = generateCacheKey({
+              action, frequency, explanation, gtoApproach,
+              evValue, evDescription, alternateLines,
+          });
+
+          // Check if image already exists in storage
+          const existingUrl = await checkCachedImage(cacheKey);
+          if (existingUrl) {
+              return res.status(200).json({
+                  success: true,
+                  imageUrl: existingUrl,
+                  fromCache: true,
+              });
+          }
+
+          // Generate image using Grok AI
+          const imageBuffer = await generateWithGrok({
+              action,
+              frequency,
+              explanation,
+              gtoApproach,
+              evValue,
+              evDescription,
+              alternateLines,
+          });
+
+          // Upload directly to Supabase storage
+          const imageUrl = await uploadToStorage(cacheKey, imageBuffer);
+
+          return res.status(200).json({
+              success: true,
+              imageUrl,
+              fromCache: false,
+          });
+
+      } catch (error) {
+          console.error('[GTO-Render] Error:', error);
+          return res.status(500).json({
+              success: false,
+              error: error.message,
+          });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-    if (req.method !== 'POST') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
-
-    // BUG #267 FIX: Require JWT auth — calls paid Grok AI image generation API
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
-    const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
-    if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
-
-    try {
-        const {
-            action = 'RAISE',
-            frequency = 85,
-            explanation = '',
-            gtoApproach = '',
-            evValue = '+1.50BB',
-            evDescription = '',
-            alternateLines = [],
-        } = req.body;
-
-        // Generate cache key
-        const cacheKey = generateCacheKey({
-            action, frequency, explanation, gtoApproach,
-            evValue, evDescription, alternateLines,
-        });
-
-        // Check if image already exists in storage
-        const existingUrl = await checkCachedImage(cacheKey);
-        if (existingUrl) {
-            return res.status(200).json({
-                success: true,
-                imageUrl: existingUrl,
-                fromCache: true,
-            });
-        }
-
-        // Generate image using Grok AI
-        const imageBuffer = await generateWithGrok({
-            action,
-            frequency,
-            explanation,
-            gtoApproach,
-            evValue,
-            evDescription,
-            alternateLines,
-        });
-
-        // Upload directly to Supabase storage
-        const imageUrl = await uploadToStorage(cacheKey, imageBuffer);
-
-        return res.status(200).json({
-            success: true,
-            imageUrl,
-            fromCache: false,
-        });
-
-    } catch (error) {
-        console.error('[GTO-Render] Error:', error);
-        return res.status(500).json({
-            success: false,
-            error: error.message,
-        });
-    }
 }
 
 /**

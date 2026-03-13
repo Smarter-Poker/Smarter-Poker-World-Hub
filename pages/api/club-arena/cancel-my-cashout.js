@@ -15,68 +15,74 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
-  if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
-
-  // RED TEAM: Payload size + field allowlist
-  if (rejectBadPayload(req, res, ['cashoutId'])) return;
-
-  // CONCURRENCY: Idempotency guard — dedup rapid double-taps
-  if (checkIdempotency(req, res)) return;
-
-  const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-
-  const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-  if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
-
-  const { cashoutId } = req.body;
-  // RED TEAM: Strict UUID validation
-  if (!isUUID(cashoutId)) return res.status(400).json({ success: false, error: 'Invalid cashoutId format' });
-
   try {
-    // Fetch cashout — must be owned by this user and still pending
-    const { data: cashout } = await supabaseAdmin
-      .from('cashout_requests')
-      .select('id, player_id, club_id, amount, status')
-      .eq('id', cashoutId)
-      .maybeSingle();
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+    if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 
-    if (!cashout) return res.status(404).json({ success: false, error: 'Cashout not found' });
-    if (cashout.player_id !== user.id) return res.status(403).json({ success: false, error: 'Not your cashout' });
-    if (cashout.status !== 'pending') {
-      return res.status(400).json({ success: false, error: `Cannot cancel — status is ${cashout.status}` });
+    // RED TEAM: Payload size + field allowlist
+    if (rejectBadPayload(req, res, ['cashoutId'])) return;
+
+    // CONCURRENCY: Idempotency guard — dedup rapid double-taps
+    if (checkIdempotency(req, res)) return;
+
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
+
+    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+    if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+
+    const { cashoutId } = req.body;
+    // RED TEAM: Strict UUID validation
+    if (!isUUID(cashoutId)) return res.status(400).json({ success: false, error: 'Invalid cashoutId format' });
+
+    try {
+      // Fetch cashout — must be owned by this user and still pending
+      const { data: cashout } = await supabaseAdmin
+        .from('cashout_requests')
+        .select('id, player_id, club_id, amount, status')
+        .eq('id', cashoutId)
+        .maybeSingle();
+
+      if (!cashout) return res.status(404).json({ success: false, error: 'Cashout not found' });
+      if (cashout.player_id !== user.id) return res.status(403).json({ success: false, error: 'Not your cashout' });
+      if (cashout.status !== 'pending') {
+        return res.status(400).json({ success: false, error: `Cannot cancel — status is ${cashout.status}` });
+      }
+
+      // Atomic cancellation (updates status + credits player chips + logs transaction)
+      const { data: rpcResult, error: rpcErr } = await supabaseAdmin.rpc('fn_cancel_cashout_atomic', {
+        p_cashout_id: cashoutId,
+        p_user_id: user.id,
+        p_is_agent: false,
+        p_note: 'Cancelled by player'
+      });
+
+      if (rpcErr || !rpcResult?.success) {
+        return res.status(409).json({ success: false, error: rpcResult?.error || 'Cancellation failed', details: rpcErr?.message });
+      }
+
+      // Transaction already recorded atomically inside fn_cancel_cashout_atomic
+
+      cacheResponse(req, 200, {
+        success: true,
+        returned: cashout.amount,
+        message: `Cashout cancelled — ${cashout.amount.toLocaleString()} chips returned`,
+      });
+
+      return res.status(200).json({
+        success: true,
+        returned: cashout.amount,
+        message: `Cashout cancelled — ${cashout.amount.toLocaleString()} chips returned`,
+      });
+    } catch (err) {
+      console.error('[cancel-my-cashout]', err);
+      return res.status(500).json({ success: false, error: 'Cancel failed' });
     }
 
-    // Atomic cancellation (updates status + credits player chips + logs transaction)
-    const { data: rpcResult, error: rpcErr } = await supabaseAdmin.rpc('fn_cancel_cashout_atomic', {
-      p_cashout_id: cashoutId,
-      p_user_id: user.id,
-      p_is_agent: false,
-      p_note: 'Cancelled by player'
-    });
-
-    if (rpcErr || !rpcResult?.success) {
-      return res.status(409).json({ success: false, error: rpcResult?.error || 'Cancellation failed', details: rpcErr?.message });
-    }
-
-    // Transaction already recorded atomically inside fn_cancel_cashout_atomic
-
-    cacheResponse(req, 200, {
-      success: true,
-      returned: cashout.amount,
-      message: `Cashout cancelled — ${cashout.amount.toLocaleString()} chips returned`,
-    });
-
-    return res.status(200).json({
-      success: true,
-      returned: cashout.amount,
-      message: `Cashout cancelled — ${cashout.amount.toLocaleString()} chips returned`,
-    });
   } catch (err) {
-    console.error('[cancel-my-cashout]', err);
-    return res.status(500).json({ success: false, error: 'Cancel failed' });
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

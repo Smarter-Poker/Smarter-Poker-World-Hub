@@ -99,142 +99,148 @@ async function removeBackgroundWithSharp(inputBuffer) {
 }
 
 export default async function handler(req, res) {
-  if (!applyRateLimit(req, res, LIMITS.ai)) return;
+  try {
+    if (!applyRateLimit(req, res, LIMITS.ai)) return;
 
-    // Require JWT auth for write operations
-    if (req.method !== 'GET') {
-        const _token = req.headers.authorization?.replace('Bearer ', '');
-        if (!_token) return res.status(401).json({ success: false, error: 'Authentication required' });
-        const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
-        if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
-        if (req.body) req.body.userId = _authUser.id;
-    }
-    if (req.method !== 'POST') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
+      // Require JWT auth for write operations
+      if (req.method !== 'GET') {
+          const _token = req.headers.authorization?.replace('Bearer ', '');
+          if (!_token) return res.status(401).json({ success: false, error: 'Authentication required' });
+          const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
+          if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+          if (req.body) req.body.userId = _authUser.id;
+      }
+      if (req.method !== 'POST') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
 
-    try {
-        const { imageUrl, editPrompt, userId } = req.body;
+      try {
+          const { imageUrl, editPrompt, userId } = req.body;
 
-        if (!imageUrl) {
-            return res.status(400).json({ success: false, error: 'Image URL is required' });
-        }
+          if (!imageUrl) {
+              return res.status(400).json({ success: false, error: 'Image URL is required' });
+          }
 
-        if (!editPrompt) {
-            return res.status(400).json({ success: false, error: 'Edit prompt is required' });
-        }
+          if (!editPrompt) {
+              return res.status(400).json({ success: false, error: 'Edit prompt is required' });
+          }
 
-        // Get the original prompt to preserve the character
-        const { originalPrompt } = req.body;
-
-
-        // Download the original image and convert to base64
-        // IMPROVED APPROACH: Combine original prompt with edit to preserve character
-
-        const editedPrompt = `Create a 3D Pixar-style CHARACTER PORTRAIT.
-
-ORIGINAL CHARACTER: ${originalPrompt || 'A character'}
-
-MODIFICATION: ${editPrompt}
-
-STRICT RULES:
-- Keep the SAME character as described in "ORIGINAL CHARACTER"
-- Apply ONLY the modification described in "MODIFICATION"
-- PURE WHITE BACKGROUND (#FFFFFF)
-- Head and upper shoulders only (bust portrait)
-- High quality 3D render
-- Professional character design
-- Maintain the same art style and character identity`;
-
-        const imageResponse = await grok.images.generate({
-            model: "dall-e-3", // Mapped to grok-2-image by grokClient
-            prompt: editedPrompt,
-            n: 1,
-        });
-
-        if (!imageResponse?.data?.[0]?.url) {
-            throw new Error('Grok API returned no image URL');
-        }
-
-        const newImageUrl = imageResponse.data[0].url;
-
-        // Download the edited image
-        const editedImageResponse = await fetch(newImageUrl);
-        const editedBuffer = Buffer.from(await editedImageResponse.arrayBuffer());
-
-        const transparentBuffer = await removeBackgroundWithSharp(editedBuffer);
-
-        const timestamp = Date.now();
-        const safeUserId = userId || 'anonymous';
-        const filename = `edited_${safeUserId}_${timestamp}.png`;
-        const storagePath = `generated/${filename}`;
-
-        const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('custom-avatars')
-            .upload(storagePath, transparentBuffer, {
-                contentType: 'image/png',
-                cacheControl: '3600',
-                upsert: true
-            });
-
-        if (uploadError) {
-            console.error('❌ Supabase upload error:', uploadError);
-            throw new Error('Failed to upload avatar to storage');
-        }
-
-        const { data: { publicUrl } } = supabase.storage
-            .from('custom-avatars')
-            .getPublicUrl(storagePath);
+          // Get the original prompt to preserve the character
+          const { originalPrompt } = req.body;
 
 
-        // Update the avatar in the database gallery
-        // Find the most recent avatar for this user and update it with the edited version
-        if (userId) {
-            const { data: existingAvatars, error: fetchError } = await supabase
-                .from('custom_avatar_gallery')
-                .select('id')
-                .eq('user_id', userId)
-                .eq('is_deleted', false)
-                .order('created_at', { ascending: false })
-                .limit(1);
+          // Download the original image and convert to base64
+          // IMPROVED APPROACH: Combine original prompt with edit to preserve character
 
-            if (!fetchError && existingAvatars && existingAvatars.length > 0) {
-                // Update the most recent avatar with the edited version
-                const { error: updateError } = await supabase
-                    .from('custom_avatar_gallery')
-                    .update({
-                        image_url: publicUrl,
-                        prompt: `${editPrompt} (edited)`,
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq('id', existingAvatars[0].id);
+          const editedPrompt = `Create a 3D Pixar-style CHARACTER PORTRAIT.
 
-                if (updateError) {
-                    console.error('⚠️ Failed to update gallery:', updateError);
-                } else {
-                }
-            }
-        }
+  ORIGINAL CHARACTER: ${originalPrompt || 'A character'}
 
-        return res.status(200).json({
-            success: true,
-            imageUrl: publicUrl,
-            editApplied: editPrompt
-        });
+  MODIFICATION: ${editPrompt}
 
-    } catch (error) {
-        console.error('❌ Avatar edit error:', error);
-        console.error('Error details:', {
-            message: error.message,
-            status: error.status,
-            response: error.response?.data,
-            stack: error.stack
-        });
-        return res.status(500).json({
-            success: false,
-            error: error.message || 'Failed to edit avatar',
-            details: error.response?.data || error.toString()
-        });
-    }
+  STRICT RULES:
+  - Keep the SAME character as described in "ORIGINAL CHARACTER"
+  - Apply ONLY the modification described in "MODIFICATION"
+  - PURE WHITE BACKGROUND (#FFFFFF)
+  - Head and upper shoulders only (bust portrait)
+  - High quality 3D render
+  - Professional character design
+  - Maintain the same art style and character identity`;
+
+          const imageResponse = await grok.images.generate({
+              model: "dall-e-3", // Mapped to grok-2-image by grokClient
+              prompt: editedPrompt,
+              n: 1,
+          });
+
+          if (!imageResponse?.data?.[0]?.url) {
+              throw new Error('Grok API returned no image URL');
+          }
+
+          const newImageUrl = imageResponse.data[0].url;
+
+          // Download the edited image
+          const editedImageResponse = await fetch(newImageUrl);
+          const editedBuffer = Buffer.from(await editedImageResponse.arrayBuffer());
+
+          const transparentBuffer = await removeBackgroundWithSharp(editedBuffer);
+
+          const timestamp = Date.now();
+          const safeUserId = userId || 'anonymous';
+          const filename = `edited_${safeUserId}_${timestamp}.png`;
+          const storagePath = `generated/${filename}`;
+
+          const { data: uploadData, error: uploadError } = await supabase.storage
+              .from('custom-avatars')
+              .upload(storagePath, transparentBuffer, {
+                  contentType: 'image/png',
+                  cacheControl: '3600',
+                  upsert: true
+              });
+
+          if (uploadError) {
+              console.error('❌ Supabase upload error:', uploadError);
+              throw new Error('Failed to upload avatar to storage');
+          }
+
+          const { data: { publicUrl } } = supabase.storage
+              .from('custom-avatars')
+              .getPublicUrl(storagePath);
+
+
+          // Update the avatar in the database gallery
+          // Find the most recent avatar for this user and update it with the edited version
+          if (userId) {
+              const { data: existingAvatars, error: fetchError } = await supabase
+                  .from('custom_avatar_gallery')
+                  .select('id')
+                  .eq('user_id', userId)
+                  .eq('is_deleted', false)
+                  .order('created_at', { ascending: false })
+                  .limit(1);
+
+              if (!fetchError && existingAvatars && existingAvatars.length > 0) {
+                  // Update the most recent avatar with the edited version
+                  const { error: updateError } = await supabase
+                      .from('custom_avatar_gallery')
+                      .update({
+                          image_url: publicUrl,
+                          prompt: `${editPrompt} (edited)`,
+                          updated_at: new Date().toISOString()
+                      })
+                      .eq('id', existingAvatars[0].id);
+
+                  if (updateError) {
+                      console.error('⚠️ Failed to update gallery:', updateError);
+                  } else {
+                  }
+              }
+          }
+
+          return res.status(200).json({
+              success: true,
+              imageUrl: publicUrl,
+              editApplied: editPrompt
+          });
+
+      } catch (error) {
+          console.error('❌ Avatar edit error:', error);
+          console.error('Error details:', {
+              message: error.message,
+              status: error.status,
+              response: error.response?.data,
+              stack: error.stack
+          });
+          return res.status(500).json({
+              success: false,
+              error: error.message || 'Failed to edit avatar',
+              details: error.response?.data || error.toString()
+          });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }
 // Force fresh deployment 1769671621

@@ -14,49 +14,55 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+      if (req.method !== 'POST') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
+
+      const { table_number, venue_id, device_type = 'tablet' } = req.body;
+
+      if (!table_number || !venue_id) {
+          return res.status(400).json({ success: false, error: 'table_number and venue_id required' });
+      }
+
+      try {
+          // Generate a deterministic device_id from venue + table
+          const deviceId = `tablet-${venue_id}-table-${table_number}`;
+          const now = new Date().toISOString();
+
+          // Upsert: create if not exists, update heartbeat if it does
+          const { error } = await supabase
+              .from('commander_table_displays')
+              .upsert({
+                  device_id: deviceId,
+                  venue_id,
+                  device_name: `Table ${table_number} Tablet`,
+                  device_type,
+                  is_online: true,
+                  last_heartbeat: now,
+                  updated_at: now,
+              }, {
+                  onConflict: 'device_id',
+                  ignoreDuplicates: false,
+              });
+
+          if (error) {
+              // If upsert fails (e.g. table doesn't exist), try plain insert
+          }
+
+          return res.status(200).json({ success: true, timestamp: now });
+
+      } catch (err) {
+          console.error('Heartbeat error:', err);
+          return res.status(500).json({ success: false, error: err.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-    if (req.method !== 'POST') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
-
-    const { table_number, venue_id, device_type = 'tablet' } = req.body;
-
-    if (!table_number || !venue_id) {
-        return res.status(400).json({ success: false, error: 'table_number and venue_id required' });
-    }
-
-    try {
-        // Generate a deterministic device_id from venue + table
-        const deviceId = `tablet-${venue_id}-table-${table_number}`;
-        const now = new Date().toISOString();
-
-        // Upsert: create if not exists, update heartbeat if it does
-        const { error } = await supabase
-            .from('commander_table_displays')
-            .upsert({
-                device_id: deviceId,
-                venue_id,
-                device_name: `Table ${table_number} Tablet`,
-                device_type,
-                is_online: true,
-                last_heartbeat: now,
-                updated_at: now,
-            }, {
-                onConflict: 'device_id',
-                ignoreDuplicates: false,
-            });
-
-        if (error) {
-            // If upsert fails (e.g. table doesn't exist), try plain insert
-        }
-
-        return res.status(200).json({ success: true, timestamp: now });
-
-    } catch (err) {
-        console.error('Heartbeat error:', err);
-        return res.status(500).json({ success: false, error: err.message });
-    }
 }

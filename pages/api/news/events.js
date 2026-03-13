@@ -16,32 +16,38 @@ const FALLBACK_EVENTS = [
 ];
 
 export default async function handler(req, res) {
-    if (req.method !== 'GET') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
+  try {
+      if (req.method !== 'GET') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
 
-    try {
-        const { limit = 5, featured } = req.query;
+      try {
+          const { limit = 5, featured } = req.query;
 
-        let query = supabase
-            .from('poker_events')
-            .select('*')
-            .gte('event_date', new Date().toISOString().split('T')[0])
-            .order('event_date', { ascending: true })
-            .limit(parseInt(limit));
+          let query = supabase
+              .from('poker_events')
+              .select('*')
+              .gte('event_date', new Date().toISOString().split('T')[0])
+              .order('event_date', { ascending: true })
+              .limit(parseInt(limit));
 
-        if (featured === 'true') {
-            query = query.eq('is_featured', true);
-        }
+          if (featured === 'true') {
+              query = query.eq('is_featured', true);
+          }
 
-        const { data, error } = await query;
+          const { data, error } = await query;
 
-        if (error || !data?.length) {
-            return res.status(200).json({ success: true, data: FALLBACK_EVENTS.slice(0, parseInt(limit)) });
-        }
+          if (error || !data?.length) {
+              return res.status(200).json({ success: true, data: FALLBACK_EVENTS.slice(0, parseInt(limit)) });
+          }
 
-        return res.status(200).json({ success: true, data });
-    } catch (error) {
-        return res.status(200).json({ success: true, data: FALLBACK_EVENTS });
-    }
+          return res.status(200).json({ success: true, data });
+      } catch (error) {
+          return res.status(200).json({ success: true, data: FALLBACK_EVENTS });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

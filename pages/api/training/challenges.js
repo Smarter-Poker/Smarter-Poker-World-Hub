@@ -127,318 +127,324 @@ async function getCurrentStreak(supabase, userId) {
 }
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+      const supabase = createClient(supabaseUrl, supabaseKey);
+      const periods = getPeriodKeys();
+
+      // ── Auth: verify JWT identity ──
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
+      const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+      if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+      const userId = user.id; // From JWT, not request
+
+      // GET: Fetch active challenges with user progress
+      if (req.method === 'GET') {
+
+          try {
+              // Get active challenge definitions
+              const { data: definitions } = await supabase
+                  .from('training_challenge_definitions')
+                  .select('*')
+                  .eq('is_active', true)
+                  .order('challenge_type', { ascending: true })
+                      .limit(100);
+
+              // Get user's progress for current periods
+              const { data: userProgress } = await supabase
+                  .from('training_user_challenges')
+                  .select('*')
+                  .eq('user_id', userId)
+                  .in('period_key', [periods.weekly, periods.monthly])
+                      .limit(100);
+
+              const progressMap = new Map(
+                  (userProgress || []).map(p => [`${p.challenge_id}-${p.period_key}`, p])
+              );
+
+              // Calculate dynamic progress for some challenge types
+              const avgAccuracyWeekly = await getAverageAccuracy(supabase, userId, periods.weekly, true);
+              const avgAccuracyMonthly = await getAverageAccuracy(supabase, userId, periods.monthly, false);
+              const uniqueCategoriesMonthly = await getUniqueCategoriesPlayed(supabase, userId, periods.monthly, false);
+              const currentStreak = await getCurrentStreak(supabase, userId);
+
+              // Combine definitions with progress
+              const challenges = (definitions || []).map(def => {
+                  const periodKey = def.challenge_type === 'weekly' ? periods.weekly : periods.monthly;
+                  const existingProgress = progressMap.get(`${def.id}-${periodKey}`);
+
+                  // Determine current progress based on target type
+                  let progress = existingProgress?.progress || 0;
+
+                  // Dynamic progress for certain types
+                  switch (def.target_type) {
+                      case 'accuracy_avg':
+                          progress = def.challenge_type === 'weekly' ? avgAccuracyWeekly : avgAccuracyMonthly;
+                          break;
+                      case 'unique_categories':
+                          progress = uniqueCategoriesMonthly;
+                          break;
+                      case 'streak_days':
+                          progress = currentStreak;
+                          break;
+                  }
+
+                  const completed = progress >= def.target_value;
+
+                  return {
+                      ...def,
+                      periodKey,
+                      progress,
+                      completed: completed || existingProgress?.completed || false,
+                      claimed: existingProgress?.claimed || false,
+                      percentage: Math.min(100, Math.round((progress / def.target_value) * 100))
+                  };
+              });
+
+              // Separate by type
+              const weekly = challenges.filter(c => c.challenge_type === 'weekly');
+              const monthly = challenges.filter(c => c.challenge_type === 'monthly');
+
+              return res.status(200).json({
+                  success: true,
+                  periods,
+                  weekly,
+                  monthly,
+                  totalCompleted: challenges.filter(c => c.completed).length,
+                  totalClaimed: challenges.filter(c => c.claimed).length,
+                  debug: { avgAccuracyWeekly, avgAccuracyMonthly, uniqueCategoriesMonthly, currentStreak }
+              });
+
+          } catch (error) {
+              console.error('[Challenges] Error:', error.message);
+              return res.status(500).json({ success: false, error: 'Failed to fetch challenges' });
+          }
+      }
+
+      // POST: Update challenge progress after session
+      if (req.method === 'POST') {
+          const { sessionData } = req.body;
+          // userId from JWT (set at top of handler)
+
+          try {
+              const {
+                  accuracy = 0,
+                  gameId = '',
+                  isPerfect = false
+              } = sessionData || {};
+
+              // Determine category from gameId
+              const category = getGameCategory(gameId);
+
+              // Get active challenges
+              const { data: definitions } = await supabase
+                  .from('training_challenge_definitions')
+                  .select('*')
+                  .eq('is_active', true)
+                      .limit(100);
+
+              const updatedChallenges = [];
+
+              for (const def of definitions || []) {
+                  const periodKey = def.challenge_type === 'weekly' ? periods.weekly : periods.monthly;
+                  let incrementBy = 0;
+                  let directProgress = null;
+
+                  // Determine if this session contributes to the challenge
+                  switch (def.target_type) {
+                      case 'sessions':
+                          incrementBy = 1;
+                          break;
+
+                      case 'perfect_rounds':
+                          if (isPerfect || accuracy === 100) incrementBy = 1;
+                          break;
+
+                      case 'category_sessions':
+                          // Check if category matches
+                          const targetCat = def.target_category?.toLowerCase();
+                          if (targetCat && category === targetCat) {
+                              incrementBy = 1;
+                          }
+                          // Also match preflop/postflop based on game focus
+                          if (targetCat === 'preflop' && gameId.toLowerCase().includes('preflop')) {
+                              incrementBy = 1;
+                          }
+                          if (targetCat === 'postflop' && (
+                              gameId.toLowerCase().includes('postflop') ||
+                              gameId.toLowerCase().includes('c-bet') ||
+                              gameId.toLowerCase().includes('river')
+                          )) {
+                              incrementBy = 1;
+                          }
+                          break;
+
+                      case 'accuracy_avg':
+                          // This is calculated dynamically on GET, but we update the record
+                          const isWeekly = def.challenge_type === 'weekly';
+                          directProgress = await getAverageAccuracy(supabase, userId, periodKey, isWeekly);
+                          break;
+
+                      case 'unique_categories':
+                          // Recalculate unique categories
+                          directProgress = await getUniqueCategoriesPlayed(supabase, userId, periodKey, def.challenge_type === 'weekly');
+                          break;
+
+                      case 'streak_days':
+                          // Get current streak value
+                          directProgress = await getCurrentStreak(supabase, userId);
+                          break;
+                  }
+
+                  // Skip if no change needed
+                  if (incrementBy === 0 && directProgress === null) continue;
+
+                  // Upsert progress
+                  const { data: existing } = await supabase
+                      .from('training_user_challenges')
+                      .select('*')
+                      .eq('user_id', userId)
+                      .eq('challenge_id', def.id)
+                      .eq('period_key', periodKey)
+                      .maybeSingle();
+
+                  const newProgress = directProgress !== null
+                      ? directProgress
+                      : (existing?.progress || 0) + incrementBy;
+
+                  const isNowComplete = newProgress >= def.target_value;
+
+                  if (existing) {
+                      await supabase
+                          .from('training_user_challenges')
+                          .update({
+                              progress: newProgress,
+                              completed: isNowComplete,
+                              completed_at: isNowComplete && !existing.completed ? new Date().toISOString() : existing.completed_at
+                          })
+                          .eq('id', existing.id);
+                  } else {
+                      await supabase
+                          .from('training_user_challenges')
+                          .insert({
+                              user_id: userId,
+                              challenge_id: def.id,
+                              period_key: periodKey,
+                              progress: newProgress,
+                              completed: isNowComplete,
+                              completed_at: isNowComplete ? new Date().toISOString() : null
+                          });
+                  }
+
+                  if (isNowComplete && !existing?.completed) {
+                      // Send push notification
+                      await notifyChallengeComplete(userId, def)
+                          .catch(e => console.warn('[Challenges] Push failed:', e.message));
+
+                      updatedChallenges.push({
+                          ...def,
+                          justCompleted: true
+                      });
+                  }
+              }
+
+              return res.status(200).json({
+                  success: true,
+                  category,
+                  updatedChallenges,
+                  newlyCompleted: updatedChallenges.filter(c => c.justCompleted)
+              });
+
+          } catch (error) {
+              console.error('[Challenges] Update error:', error.message);
+              return res.status(500).json({ success: false, error: 'Failed to update challenges' });
+          }
+      }
+
+      // PUT: Claim completed challenge reward
+      if (req.method === 'PUT') {
+          const { challengeId, periodKey } = req.body;
+          // userId from JWT (set at top of handler)
+
+          if (!challengeId || !periodKey) {
+              return res.status(400).json({ success: false, error: 'challengeId and periodKey required' });
+          }
+
+          try {
+              // Get challenge progress
+              const { data: progress } = await supabase
+                  .from('training_user_challenges')
+                  .select('*, training_challenge_definitions(*)')
+                  .eq('user_id', userId)
+                  .eq('challenge_id', challengeId)
+                  .eq('period_key', periodKey)
+                  .maybeSingle();
+
+              if (!progress) {
+                  return res.status(404).json({ success: false, error: 'Challenge progress not found' });
+              }
+
+              if (!progress.completed) {
+                  return res.status(400).json({ success: false, error: 'Challenge not completed yet' });
+              }
+
+              if (progress.claimed) {
+                  return res.status(400).json({ success: false, error: 'Already claimed' });
+              }
+
+              // BUG #256 FIX: Atomic claim — prevents TOCTOU double-diamond exploit.
+              // Two concurrent requests could both read claimed=false, both award diamonds.
+              // Fix: update WHERE claimed=false, check if row was actually updated.
+              const { data: claimedRow, error: claimErr } = await supabase
+                  .from('training_user_challenges')
+                  .update({
+                      claimed: true,
+                      claimed_at: new Date().toISOString()
+                  })
+                  .eq('id', progress.id)
+                  .eq('claimed', false)  // Only succeeds if still unclaimed
+                  .select('id')
+                  .maybeSingle();
+
+              if (claimErr || !claimedRow) {
+                  return res.status(409).json({ success: false, error: 'Already claimed (concurrent request)' });
+              }
+
+              // Award diamonds via logging RPC
+              const reward = progress.training_challenge_definitions?.diamond_reward || 0;
+              if (reward > 0) {
+                  await supabase.rpc('add_diamonds_to_balance', {
+                      p_user_id: userId,
+                      p_amount: reward,
+                      p_type: 'challenge',
+                      p_description: `${progress.training_challenge_definitions?.name || 'Challenge'} completed — ${reward}💎`,
+                      p_reference_id: challengeId
+                  });
+              }
+
+              return res.status(200).json({
+                  success: true,
+                  claimed: {
+                      challengeId,
+                      name: progress.training_challenge_definitions?.name,
+                      diamondsAwarded: reward
+                  }
+              });
+
+          } catch (error) {
+              console.error('[Challenges] Claim error:', error.message);
+              return res.status(500).json({ success: false, error: 'Failed to claim challenge' });
+          }
+      }
+
+      return res.status(405).json({ success: false, error: 'Method not allowed' });
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-    const supabase = createClient(supabaseUrl, supabaseKey);
-    const periods = getPeriodKeys();
-
-    // ── Auth: verify JWT identity ──
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-    const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
-    if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
-    const userId = user.id; // From JWT, not request
-
-    // GET: Fetch active challenges with user progress
-    if (req.method === 'GET') {
-
-        try {
-            // Get active challenge definitions
-            const { data: definitions } = await supabase
-                .from('training_challenge_definitions')
-                .select('*')
-                .eq('is_active', true)
-                .order('challenge_type', { ascending: true })
-                    .limit(100);
-
-            // Get user's progress for current periods
-            const { data: userProgress } = await supabase
-                .from('training_user_challenges')
-                .select('*')
-                .eq('user_id', userId)
-                .in('period_key', [periods.weekly, periods.monthly])
-                    .limit(100);
-
-            const progressMap = new Map(
-                (userProgress || []).map(p => [`${p.challenge_id}-${p.period_key}`, p])
-            );
-
-            // Calculate dynamic progress for some challenge types
-            const avgAccuracyWeekly = await getAverageAccuracy(supabase, userId, periods.weekly, true);
-            const avgAccuracyMonthly = await getAverageAccuracy(supabase, userId, periods.monthly, false);
-            const uniqueCategoriesMonthly = await getUniqueCategoriesPlayed(supabase, userId, periods.monthly, false);
-            const currentStreak = await getCurrentStreak(supabase, userId);
-
-            // Combine definitions with progress
-            const challenges = (definitions || []).map(def => {
-                const periodKey = def.challenge_type === 'weekly' ? periods.weekly : periods.monthly;
-                const existingProgress = progressMap.get(`${def.id}-${periodKey}`);
-
-                // Determine current progress based on target type
-                let progress = existingProgress?.progress || 0;
-
-                // Dynamic progress for certain types
-                switch (def.target_type) {
-                    case 'accuracy_avg':
-                        progress = def.challenge_type === 'weekly' ? avgAccuracyWeekly : avgAccuracyMonthly;
-                        break;
-                    case 'unique_categories':
-                        progress = uniqueCategoriesMonthly;
-                        break;
-                    case 'streak_days':
-                        progress = currentStreak;
-                        break;
-                }
-
-                const completed = progress >= def.target_value;
-
-                return {
-                    ...def,
-                    periodKey,
-                    progress,
-                    completed: completed || existingProgress?.completed || false,
-                    claimed: existingProgress?.claimed || false,
-                    percentage: Math.min(100, Math.round((progress / def.target_value) * 100))
-                };
-            });
-
-            // Separate by type
-            const weekly = challenges.filter(c => c.challenge_type === 'weekly');
-            const monthly = challenges.filter(c => c.challenge_type === 'monthly');
-
-            return res.status(200).json({
-                success: true,
-                periods,
-                weekly,
-                monthly,
-                totalCompleted: challenges.filter(c => c.completed).length,
-                totalClaimed: challenges.filter(c => c.claimed).length,
-                debug: { avgAccuracyWeekly, avgAccuracyMonthly, uniqueCategoriesMonthly, currentStreak }
-            });
-
-        } catch (error) {
-            console.error('[Challenges] Error:', error.message);
-            return res.status(500).json({ success: false, error: 'Failed to fetch challenges' });
-        }
-    }
-
-    // POST: Update challenge progress after session
-    if (req.method === 'POST') {
-        const { sessionData } = req.body;
-        // userId from JWT (set at top of handler)
-
-        try {
-            const {
-                accuracy = 0,
-                gameId = '',
-                isPerfect = false
-            } = sessionData || {};
-
-            // Determine category from gameId
-            const category = getGameCategory(gameId);
-
-            // Get active challenges
-            const { data: definitions } = await supabase
-                .from('training_challenge_definitions')
-                .select('*')
-                .eq('is_active', true)
-                    .limit(100);
-
-            const updatedChallenges = [];
-
-            for (const def of definitions || []) {
-                const periodKey = def.challenge_type === 'weekly' ? periods.weekly : periods.monthly;
-                let incrementBy = 0;
-                let directProgress = null;
-
-                // Determine if this session contributes to the challenge
-                switch (def.target_type) {
-                    case 'sessions':
-                        incrementBy = 1;
-                        break;
-
-                    case 'perfect_rounds':
-                        if (isPerfect || accuracy === 100) incrementBy = 1;
-                        break;
-
-                    case 'category_sessions':
-                        // Check if category matches
-                        const targetCat = def.target_category?.toLowerCase();
-                        if (targetCat && category === targetCat) {
-                            incrementBy = 1;
-                        }
-                        // Also match preflop/postflop based on game focus
-                        if (targetCat === 'preflop' && gameId.toLowerCase().includes('preflop')) {
-                            incrementBy = 1;
-                        }
-                        if (targetCat === 'postflop' && (
-                            gameId.toLowerCase().includes('postflop') ||
-                            gameId.toLowerCase().includes('c-bet') ||
-                            gameId.toLowerCase().includes('river')
-                        )) {
-                            incrementBy = 1;
-                        }
-                        break;
-
-                    case 'accuracy_avg':
-                        // This is calculated dynamically on GET, but we update the record
-                        const isWeekly = def.challenge_type === 'weekly';
-                        directProgress = await getAverageAccuracy(supabase, userId, periodKey, isWeekly);
-                        break;
-
-                    case 'unique_categories':
-                        // Recalculate unique categories
-                        directProgress = await getUniqueCategoriesPlayed(supabase, userId, periodKey, def.challenge_type === 'weekly');
-                        break;
-
-                    case 'streak_days':
-                        // Get current streak value
-                        directProgress = await getCurrentStreak(supabase, userId);
-                        break;
-                }
-
-                // Skip if no change needed
-                if (incrementBy === 0 && directProgress === null) continue;
-
-                // Upsert progress
-                const { data: existing } = await supabase
-                    .from('training_user_challenges')
-                    .select('*')
-                    .eq('user_id', userId)
-                    .eq('challenge_id', def.id)
-                    .eq('period_key', periodKey)
-                    .maybeSingle();
-
-                const newProgress = directProgress !== null
-                    ? directProgress
-                    : (existing?.progress || 0) + incrementBy;
-
-                const isNowComplete = newProgress >= def.target_value;
-
-                if (existing) {
-                    await supabase
-                        .from('training_user_challenges')
-                        .update({
-                            progress: newProgress,
-                            completed: isNowComplete,
-                            completed_at: isNowComplete && !existing.completed ? new Date().toISOString() : existing.completed_at
-                        })
-                        .eq('id', existing.id);
-                } else {
-                    await supabase
-                        .from('training_user_challenges')
-                        .insert({
-                            user_id: userId,
-                            challenge_id: def.id,
-                            period_key: periodKey,
-                            progress: newProgress,
-                            completed: isNowComplete,
-                            completed_at: isNowComplete ? new Date().toISOString() : null
-                        });
-                }
-
-                if (isNowComplete && !existing?.completed) {
-                    // Send push notification
-                    await notifyChallengeComplete(userId, def)
-                        .catch(e => console.warn('[Challenges] Push failed:', e.message));
-
-                    updatedChallenges.push({
-                        ...def,
-                        justCompleted: true
-                    });
-                }
-            }
-
-            return res.status(200).json({
-                success: true,
-                category,
-                updatedChallenges,
-                newlyCompleted: updatedChallenges.filter(c => c.justCompleted)
-            });
-
-        } catch (error) {
-            console.error('[Challenges] Update error:', error.message);
-            return res.status(500).json({ success: false, error: 'Failed to update challenges' });
-        }
-    }
-
-    // PUT: Claim completed challenge reward
-    if (req.method === 'PUT') {
-        const { challengeId, periodKey } = req.body;
-        // userId from JWT (set at top of handler)
-
-        if (!challengeId || !periodKey) {
-            return res.status(400).json({ success: false, error: 'challengeId and periodKey required' });
-        }
-
-        try {
-            // Get challenge progress
-            const { data: progress } = await supabase
-                .from('training_user_challenges')
-                .select('*, training_challenge_definitions(*)')
-                .eq('user_id', userId)
-                .eq('challenge_id', challengeId)
-                .eq('period_key', periodKey)
-                .maybeSingle();
-
-            if (!progress) {
-                return res.status(404).json({ success: false, error: 'Challenge progress not found' });
-            }
-
-            if (!progress.completed) {
-                return res.status(400).json({ success: false, error: 'Challenge not completed yet' });
-            }
-
-            if (progress.claimed) {
-                return res.status(400).json({ success: false, error: 'Already claimed' });
-            }
-
-            // BUG #256 FIX: Atomic claim — prevents TOCTOU double-diamond exploit.
-            // Two concurrent requests could both read claimed=false, both award diamonds.
-            // Fix: update WHERE claimed=false, check if row was actually updated.
-            const { data: claimedRow, error: claimErr } = await supabase
-                .from('training_user_challenges')
-                .update({
-                    claimed: true,
-                    claimed_at: new Date().toISOString()
-                })
-                .eq('id', progress.id)
-                .eq('claimed', false)  // Only succeeds if still unclaimed
-                .select('id')
-                .maybeSingle();
-
-            if (claimErr || !claimedRow) {
-                return res.status(409).json({ success: false, error: 'Already claimed (concurrent request)' });
-            }
-
-            // Award diamonds via logging RPC
-            const reward = progress.training_challenge_definitions?.diamond_reward || 0;
-            if (reward > 0) {
-                await supabase.rpc('add_diamonds_to_balance', {
-                    p_user_id: userId,
-                    p_amount: reward,
-                    p_type: 'challenge',
-                    p_description: `${progress.training_challenge_definitions?.name || 'Challenge'} completed — ${reward}💎`,
-                    p_reference_id: challengeId
-                });
-            }
-
-            return res.status(200).json({
-                success: true,
-                claimed: {
-                    challengeId,
-                    name: progress.training_challenge_definitions?.name,
-                    diamondsAwarded: reward
-                }
-            });
-
-        } catch (error) {
-            console.error('[Challenges] Claim error:', error.message);
-            return res.status(500).json({ success: false, error: 'Failed to claim challenge' });
-        }
-    }
-
-    return res.status(405).json({ success: false, error: 'Method not allowed' });
 }

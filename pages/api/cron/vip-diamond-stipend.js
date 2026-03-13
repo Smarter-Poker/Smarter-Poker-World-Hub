@@ -22,98 +22,104 @@ export const config = {
 };
 
 export default async function handler(req, res) {
-    // Verify cron secret
-    if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
+  try {
+      // Verify cron secret
+      if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+          return res.status(401).json({ error: 'Unauthorized' });
+      }
 
-    const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
+      const supabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL,
+          process.env.SUPABASE_SERVICE_ROLE_KEY
+      );
 
-    try {
-        const now = new Date();
-        const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      try {
+          const now = new Date();
+          const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
-        // 1. Get all active VIP users
-        const { data: vipUsers, error: fetchErr } = await supabase
-            .from('profiles')
-            .select('id, username')
-            .eq('is_vip', true)
-            .gt('vip_expires_at', now.toISOString())
-                .limit(100);
+          // 1. Get all active VIP users
+          const { data: vipUsers, error: fetchErr } = await supabase
+              .from('profiles')
+              .select('id, username')
+              .eq('is_vip', true)
+              .gt('vip_expires_at', now.toISOString())
+                  .limit(100);
 
-        if (fetchErr) {
-            console.error('[VIP Stipend] Error fetching VIP users:', fetchErr);
-            return res.status(500).json({ error: fetchErr.message });
-        }
+          if (fetchErr) {
+              console.error('[VIP Stipend] Error fetching VIP users:', fetchErr);
+              return res.status(500).json({ error: fetchErr.message });
+          }
 
-        if (!vipUsers || vipUsers.length === 0) {
-            return res.status(200).json({
-                success: true,
-                message: 'No active VIP users found',
-                credited: 0
-            });
-        }
+          if (!vipUsers || vipUsers.length === 0) {
+              return res.status(200).json({
+                  success: true,
+                  message: 'No active VIP users found',
+                  credited: 0
+              });
+          }
 
-        let credited = 0;
-        let skipped = 0;
-        const errors = [];
+          let credited = 0;
+          let skipped = 0;
+          const errors = [];
 
-        for (const user of vipUsers) {
-            try {
-                // 2. Check if stipend already granted this month
-                //    Uses unique reference_id per user per month for reliable idempotency
-                const stipendRefId = `vip_stipend_${user.id}_${monthKey}`;
+          for (const user of vipUsers) {
+              try {
+                  // 2. Check if stipend already granted this month
+                  //    Uses unique reference_id per user per month for reliable idempotency
+                  const stipendRefId = `vip_stipend_${user.id}_${monthKey}`;
 
-                const { data: existing } = await supabase
-                    .from('diamond_transactions')
-                    .select('id')
-                    .eq('user_id', user.id)
-                    .eq('reference_id', stipendRefId)
-                    .limit(1);
+                  const { data: existing } = await supabase
+                      .from('diamond_transactions')
+                      .select('id')
+                      .eq('user_id', user.id)
+                      .eq('reference_id', stipendRefId)
+                      .limit(1);
 
-                if (existing && existing.length > 0) {
-                    skipped++;
-                    continue;
-                }
+                  if (existing && existing.length > 0) {
+                      skipped++;
+                      continue;
+                  }
 
-                // 3. Credit diamonds atomically via RPC with unique reference_id
-                const { error: rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
-                    p_user_id: user.id,
-                    p_amount: VIP_MONTHLY_STIPEND,
-                    p_type: 'bonus',
-                    p_description: `VIP Monthly Stipend — ${monthKey}`,
-                    p_reference_id: stipendRefId
-                });
+                  // 3. Credit diamonds atomically via RPC with unique reference_id
+                  const { error: rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
+                      p_user_id: user.id,
+                      p_amount: VIP_MONTHLY_STIPEND,
+                      p_type: 'bonus',
+                      p_description: `VIP Monthly Stipend — ${monthKey}`,
+                      p_reference_id: stipendRefId
+                  });
 
-                if (rpcErr) {
-                    console.error(`[VIP Stipend] RPC error for ${user.id}:`, rpcErr.message);
-                    errors.push({ userId: user.id, error: rpcErr.message });
-                    continue;
-                }
+                  if (rpcErr) {
+                      console.error(`[VIP Stipend] RPC error for ${user.id}:`, rpcErr.message);
+                      errors.push({ userId: user.id, error: rpcErr.message });
+                      continue;
+                  }
 
-                credited++;
+                  credited++;
 
-            } catch (userErr) {
-                console.error(`[VIP Stipend] Error for user ${user.id}:`, userErr);
-                errors.push({ userId: user.id, error: userErr.message });
-            }
-        }
+              } catch (userErr) {
+                  console.error(`[VIP Stipend] Error for user ${user.id}:`, userErr);
+                  errors.push({ userId: user.id, error: userErr.message });
+              }
+          }
 
 
-        return res.status(200).json({
-            success: true,
-            month: monthKey,
-            totalVipUsers: vipUsers.length,
-            credited,
-            skipped,
-            errors: errors.length > 0 ? errors : undefined
-        });
+          return res.status(200).json({
+              success: true,
+              month: monthKey,
+              totalVipUsers: vipUsers.length,
+              credited,
+              skipped,
+              errors: errors.length > 0 ? errors : undefined
+          });
 
-    } catch (error) {
-        console.error('[VIP Stipend] Cron error:', error);
-        return res.status(500).json({ error: error.message });
-    }
+      } catch (error) {
+          console.error('[VIP Stipend] Cron error:', error);
+          return res.status(500).json({ error: error.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

@@ -24,108 +24,114 @@ const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_P
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 export default async function handler(req, res) {
-    // Verify admin access
-    const authHeader = req.headers.authorization;
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-        return res.status(401).json({ success: false, error: 'Unauthorized' });
-    }
+  try {
+      // Verify admin access
+      const authHeader = req.headers.authorization;
+      if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+          return res.status(401).json({ success: false, error: 'Unauthorized' });
+      }
 
-    try {
+      try {
 
-        // Get all active horses
-        const { data: horses, error: horsesError } = await supabase
-            .from('content_authors')
-            .select('profile_id, alias')
-            .eq('is_active', true)
-            .not('profile_id', 'is', null)
-            .order('alias');
+          // Get all active horses
+          const { data: horses, error: horsesError } = await supabase
+              .from('content_authors')
+              .select('profile_id, alias')
+              .eq('is_active', true)
+              .not('profile_id', 'is', null)
+              .order('alias');
 
-        if (horsesError || !horses?.length) {
-            console.error('Error fetching horses:', horsesError);
-            return res.status(500).json({ success: false, error: 'Failed to fetch horses' });
-        }
-
-
-        // Poker sources
-        const pokerSourceKeys = Object.keys(CLIP_SOURCES);
-
-        // Sports sources
-        const sportsSourceKeys = Object.keys(SPORTS_CLIP_SOURCES);
-
-        const SOURCES_PER_HORSE = 3; // Each horse gets 3 sources
-        const assignments = [];
-        let pokerIndex = 0;
-        let sportsIndex = 0;
-
-        for (const horse of horses) {
-            // Assign 2 poker sources
-            const pokerSources = [];
-            for (let i = 0; i < 2; i++) {
-                pokerSources.push(pokerSourceKeys[pokerIndex % pokerSourceKeys.length]);
-                pokerIndex++;
-            }
-
-            // Assign 1 sports source
-            const sportsSources = [];
-            sportsSources.push(sportsSourceKeys[sportsIndex % sportsSourceKeys.length]);
-            sportsIndex++;
-
-            // Create assignment records
-            pokerSources.forEach((sourceKey, index) => {
-                assignments.push({
-                    horse_profile_id: horse.profile_id,
-                    source_key: sourceKey,
-                    source_type: 'poker',
-                    is_primary: index === 0
-                });
-            });
-
-            sportsSources.forEach((sourceKey, index) => {
-                assignments.push({
-                    horse_profile_id: horse.profile_id,
-                    source_key: sourceKey,
-                    source_type: 'sports',
-                    is_primary: index === 0
-                });
-            });
-
-        }
+          if (horsesError || !horses?.length) {
+              console.error('Error fetching horses:', horsesError);
+              return res.status(500).json({ success: false, error: 'Failed to fetch horses' });
+          }
 
 
-        // Batch insert all assignments
-        const { data, error } = await supabase
-            .from('horse_source_assignments')
-            .upsert(assignments, { onConflict: 'horse_profile_id,source_key' })
-            .select();
+          // Poker sources
+          const pokerSourceKeys = Object.keys(CLIP_SOURCES);
 
-        if (error) {
-            console.error('Error inserting assignments:', error);
-            return res.status(500).json({ success: false, error: error.message });
-        }
+          // Sports sources
+          const sportsSourceKeys = Object.keys(SPORTS_CLIP_SOURCES);
+
+          const SOURCES_PER_HORSE = 3; // Each horse gets 3 sources
+          const assignments = [];
+          let pokerIndex = 0;
+          let sportsIndex = 0;
+
+          for (const horse of horses) {
+              // Assign 2 poker sources
+              const pokerSources = [];
+              for (let i = 0; i < 2; i++) {
+                  pokerSources.push(pokerSourceKeys[pokerIndex % pokerSourceKeys.length]);
+                  pokerIndex++;
+              }
+
+              // Assign 1 sports source
+              const sportsSources = [];
+              sportsSources.push(sportsSourceKeys[sportsIndex % sportsSourceKeys.length]);
+              sportsIndex++;
+
+              // Create assignment records
+              pokerSources.forEach((sourceKey, index) => {
+                  assignments.push({
+                      horse_profile_id: horse.profile_id,
+                      source_key: sourceKey,
+                      source_type: 'poker',
+                      is_primary: index === 0
+                  });
+              });
+
+              sportsSources.forEach((sourceKey, index) => {
+                  assignments.push({
+                      horse_profile_id: horse.profile_id,
+                      source_key: sourceKey,
+                      source_type: 'sports',
+                      is_primary: index === 0
+                  });
+              });
+
+          }
 
 
-        // Verify assignments
-        const { data: verification, error: verifyError } = await supabase
-            .from('horse_source_assignments')
-            .select('horse_profile_id, source_key, source_type')
-            .limit(10);
+          // Batch insert all assignments
+          const { data, error } = await supabase
+              .from('horse_source_assignments')
+              .upsert(assignments, { onConflict: 'horse_profile_id,source_key' })
+              .select();
 
-        if (!verifyError && verification) {
-            verification.forEach(v => {
-            });
-        }
+          if (error) {
+              console.error('Error inserting assignments:', error);
+              return res.status(500).json({ success: false, error: error.message });
+          }
 
-        return res.status(200).json({
-            success: true,
-            horses: horses.length,
-            assignments: assignments.length,
-            poker_sources: pokerSourceKeys.length,
-            sports_sources: sportsSourceKeys.length,
-            sample: verification
-        });
 
-    } catch (error) {
-        console.error('Initialization error:', error);
-        return res.status(500).json({ success: false, error: error.message });
-    }
+          // Verify assignments
+          const { data: verification, error: verifyError } = await supabase
+              .from('horse_source_assignments')
+              .select('horse_profile_id, source_key, source_type')
+              .limit(10);
+
+          if (!verifyError && verification) {
+              verification.forEach(v => {
+              });
+          }
+
+          return res.status(200).json({
+              success: true,
+              horses: horses.length,
+              assignments: assignments.length,
+              poker_sources: pokerSourceKeys.length,
+              sports_sources: sportsSourceKeys.length,
+              sample: verification
+          });
+
+      } catch (error) {
+          console.error('Initialization error:', error);
+          return res.status(500).json({ success: false, error: error.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

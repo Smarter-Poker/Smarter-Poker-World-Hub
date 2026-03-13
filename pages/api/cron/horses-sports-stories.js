@@ -155,129 +155,135 @@ async function postSportsStory(horse, storyType, content) {
 }
 
 export default async function handler(req, res) {
-    // Verify cron secret
-    if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
+  try {
+      // Verify cron secret
+      if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+          return res.status(401).json({ error: 'Unauthorized' });
+      }
 
-    try {
-        // Fetch active horses
-        const { data: horses, error: horsesError } = await supabase
-            .from('content_authors')
-            .select('id, name, profile_id')
-            .eq('is_active', true)
-            .not('profile_id', 'is', null)
-            .limit(CONFIG.HORSES_PER_TRIGGER * 3); // Get extra to account for filtering
+      try {
+          // Fetch active horses
+          const { data: horses, error: horsesError } = await supabase
+              .from('content_authors')
+              .select('id, name, profile_id')
+              .eq('is_active', true)
+              .not('profile_id', 'is', null)
+              .limit(CONFIG.HORSES_PER_TRIGGER * 3); // Get extra to account for filtering
 
-        if (horsesError || !horses || horses.length === 0) {
-            console.error('Failed to fetch horses:', horsesError);
-            console.error('Horses data:', horses);
-            console.error('Horses count:', horses?.length);
-            return res.status(200).json({
-                success: true,
-                message: horsesError ? 'Database error' : 'No horses available',
-                posted: 0,
-                video_stories: 0,
-                text_stories: 0,
-                results: [],
-                timestamp: new Date().toISOString()
-            });
-        }
-
-
-        const results = [];
-        let videoStories = 0;
-        let textStories = 0;
-        let postsAttempted = 0;
-
-        for (const horse of horses) {
-            if (postsAttempted >= CONFIG.HORSES_PER_TRIGGER) break;
-
-            // Check if horse should post today
-            if (!shouldHorseBeActive(horse.profile_id)) {
-                continue;
-            }
-
-            // Check if it's an active hour for this horse
-            if (!isHorseActiveHour(horse.profile_id)) {
-                continue;
-            }
-
-            postsAttempted++;
-
-            // Decide: video or text story
-            const isVideoStory = Math.random() < CONFIG.VIDEO_STORY_PROBABILITY;
-
-            if (isVideoStory) {
-                // Post video story from sports_clips
-                const clip = await getRandomSportsClip();
-
-                if (!clip) {
-                    continue;
-                }
-
-                const result = await postSportsStory(horse, 'video', clip);
-
-                if (result.success) {
-                    videoStories++;
-                    results.push({
-                        horse: horse.name,
-                        type: 'video_story',
-                        sport: clip.sport_type,
-                        story_id: result.story_id,
-                        success: true,
-                    });
-                } else {
-                    results.push({
-                        horse: horse.name,
-                        type: 'video_story',
-                        success: false,
-                        error: result.error,
-                    });
-                }
-
-            } else {
-                // Post text story
-                const text = await generateSportsTextStory(horse.name);
-                const result = await postSportsStory(horse, 'text', { text });
-
-                if (result.success) {
-                    textStories++;
-                    results.push({
-                        horse: horse.name,
-                        type: 'text_story',
-                        story_id: result.story_id,
-                        success: true,
-                    });
-                } else {
-                    results.push({
-                        horse: horse.name,
-                        type: 'text_story',
-                        success: false,
-                        error: result.error,
-                    });
-                }
-            }
-        }
-
-        const posted = videoStories + textStories;
+          if (horsesError || !horses || horses.length === 0) {
+              console.error('Failed to fetch horses:', horsesError);
+              console.error('Horses data:', horses);
+              console.error('Horses count:', horses?.length);
+              return res.status(200).json({
+                  success: true,
+                  message: horsesError ? 'Database error' : 'No horses available',
+                  posted: 0,
+                  video_stories: 0,
+                  text_stories: 0,
+                  results: [],
+                  timestamp: new Date().toISOString()
+              });
+          }
 
 
-        return res.status(200).json({
-            success: true,
-            posted,
-            video_stories: videoStories,
-            text_stories: textStories,
-            results,
-            timestamp: new Date().toISOString(),
-        });
+          const results = [];
+          let videoStories = 0;
+          let textStories = 0;
+          let postsAttempted = 0;
 
-    } catch (error) {
-        console.error('Sports stories cron error:', error);
-        return res.status(500).json({
-            success: false,
-            error: error.message,
-            posted: 0,
-        });
-    }
+          for (const horse of horses) {
+              if (postsAttempted >= CONFIG.HORSES_PER_TRIGGER) break;
+
+              // Check if horse should post today
+              if (!shouldHorseBeActive(horse.profile_id)) {
+                  continue;
+              }
+
+              // Check if it's an active hour for this horse
+              if (!isHorseActiveHour(horse.profile_id)) {
+                  continue;
+              }
+
+              postsAttempted++;
+
+              // Decide: video or text story
+              const isVideoStory = Math.random() < CONFIG.VIDEO_STORY_PROBABILITY;
+
+              if (isVideoStory) {
+                  // Post video story from sports_clips
+                  const clip = await getRandomSportsClip();
+
+                  if (!clip) {
+                      continue;
+                  }
+
+                  const result = await postSportsStory(horse, 'video', clip);
+
+                  if (result.success) {
+                      videoStories++;
+                      results.push({
+                          horse: horse.name,
+                          type: 'video_story',
+                          sport: clip.sport_type,
+                          story_id: result.story_id,
+                          success: true,
+                      });
+                  } else {
+                      results.push({
+                          horse: horse.name,
+                          type: 'video_story',
+                          success: false,
+                          error: result.error,
+                      });
+                  }
+
+              } else {
+                  // Post text story
+                  const text = await generateSportsTextStory(horse.name);
+                  const result = await postSportsStory(horse, 'text', { text });
+
+                  if (result.success) {
+                      textStories++;
+                      results.push({
+                          horse: horse.name,
+                          type: 'text_story',
+                          story_id: result.story_id,
+                          success: true,
+                      });
+                  } else {
+                      results.push({
+                          horse: horse.name,
+                          type: 'text_story',
+                          success: false,
+                          error: result.error,
+                      });
+                  }
+              }
+          }
+
+          const posted = videoStories + textStories;
+
+
+          return res.status(200).json({
+              success: true,
+              posted,
+              video_stories: videoStories,
+              text_stories: textStories,
+              results,
+              timestamp: new Date().toISOString(),
+          });
+
+      } catch (error) {
+          console.error('Sports stories cron error:', error);
+          return res.status(500).json({
+              success: false,
+              error: error.message,
+              posted: 0,
+          });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

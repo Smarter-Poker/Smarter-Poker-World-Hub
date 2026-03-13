@@ -10,78 +10,84 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  // CDN cache: fresh for 60s, serve stale up to 300s
-  if (req.method === 'GET') {
-    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
-  }
-
-  if (req.method !== 'GET') {
-    return res.status(405).json({
-      success: false,
-      error: { code: 'METHOD_NOT_ALLOWED', message: 'Only GET allowed' }
-    });
-  }
-
   try {
-    const { id, category, limit = 30, offset = 0 } = req.query;
+    // CDN cache: fresh for 60s, serve stale up to 300s
+    if (req.method === 'GET') {
+      res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+    }
 
-    if (!id) {
-      return res.status(400).json({
+    if (req.method !== 'GET') {
+      return res.status(405).json({
         success: false,
-        error: { code: 'MISSING_ID', message: 'Venue ID required' }
+        error: { code: 'METHOD_NOT_ALLOWED', message: 'Only GET allowed' }
       });
     }
 
-    let query = supabase
-      .from('commander_venue_photos')
-      .select(`
-        id,
-        url,
-        thumbnail_url,
-        caption,
-        category,
-        is_cover_photo,
-        is_featured,
-        likes_count,
-        created_at
-      `, { count: 'exact' })
-      .eq('venue_id', id)
-      .order('is_featured', { ascending: false })
-      .order('display_order', { ascending: true })
-      .order('created_at', { ascending: false })
-      .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
+    try {
+      const { id, category, limit = 30, offset = 0 } = req.query;
 
-    if (category) {
-      query = query.eq('category', category);
-    }
-
-    const { data: photos, error, count } = await query;
-
-    // Gracefully handle type mismatch (UUID passed to integer column for social pages)
-    if (error) {
-      if (error.code === '22P02') {
-        return res.status(200).json({
-          success: true,
-          data: { photos: [], total: 0, limit: parseInt(limit), offset: parseInt(offset) }
+      if (!id) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'MISSING_ID', message: 'Venue ID required' }
         });
       }
-      throw error;
+
+      let query = supabase
+        .from('commander_venue_photos')
+        .select(`
+          id,
+          url,
+          thumbnail_url,
+          caption,
+          category,
+          is_cover_photo,
+          is_featured,
+          likes_count,
+          created_at
+        `, { count: 'exact' })
+        .eq('venue_id', id)
+        .order('is_featured', { ascending: false })
+        .order('display_order', { ascending: true })
+        .order('created_at', { ascending: false })
+        .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
+
+      if (category) {
+        query = query.eq('category', category);
+      }
+
+      const { data: photos, error, count } = await query;
+
+      // Gracefully handle type mismatch (UUID passed to integer column for social pages)
+      if (error) {
+        if (error.code === '22P02') {
+          return res.status(200).json({
+            success: true,
+            data: { photos: [], total: 0, limit: parseInt(limit), offset: parseInt(offset) }
+          });
+        }
+        throw error;
+      }
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          photos: photos || [],
+          total: count,
+          limit: parseInt(limit),
+          offset: parseInt(offset)
+        }
+      });
+    } catch (error) {
+      console.error('Public venue photos API error:', error);
+      return res.status(500).json({
+        success: false,
+        error: { code: 'SERVER_ERROR', message: 'Failed to fetch photos' }
+      });
     }
 
-    return res.status(200).json({
-      success: true,
-      data: {
-        photos: photos || [],
-        total: count,
-        limit: parseInt(limit),
-        offset: parseInt(offset)
-      }
-    });
-  } catch (error) {
-    console.error('Public venue photos API error:', error);
-    return res.status(500).json({
-      success: false,
-      error: { code: 'SERVER_ERROR', message: 'Failed to fetch photos' }
-    });
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

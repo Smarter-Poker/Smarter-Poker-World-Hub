@@ -19,72 +19,78 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-    // Verify cron secret
-    const authHeader = req.headers.authorization;
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
+  try {
+      // Verify cron secret
+      const authHeader = req.headers.authorization;
+      if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+          return res.status(401).json({ error: 'Unauthorized' });
+      }
 
-    try {
-        const now = new Date();
-        const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
+      try {
+          const now = new Date();
+          const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
 
-        // Find abandoned active matches (older than 10 minutes)
-        const { data: abandonedMatches } = await supabase
-            .from('trivia_pvp_matches')
-            .select('*')
-            .eq('status', 'active')
-            .lt('created_at', tenMinutesAgo.toISOString())
-                .limit(100);
+          // Find abandoned active matches (older than 10 minutes)
+          const { data: abandonedMatches } = await supabase
+              .from('trivia_pvp_matches')
+              .select('*')
+              .eq('status', 'active')
+              .lt('created_at', tenMinutesAgo.toISOString())
+                  .limit(100);
 
-        let refunded = 0;
-        let forfeited = 0;
+          let refunded = 0;
+          let forfeited = 0;
 
-        for (const match of abandonedMatches || []) {
-            const p1Submitted = match.player1_score !== null;
-            const p2Submitted = match.player2_score !== null;
-            const stakeAmount = match.stake_amount || 10;
+          for (const match of abandonedMatches || []) {
+              const p1Submitted = match.player1_score !== null;
+              const p2Submitted = match.player2_score !== null;
+              const stakeAmount = match.stake_amount || 10;
 
-            if (!p1Submitted && !p2Submitted) {
-                // Neither played — refund both
-                await refundPlayer(match.player1_id, stakeAmount);
-                await refundPlayer(match.player2_id, stakeAmount);
+              if (!p1Submitted && !p2Submitted) {
+                  // Neither played — refund both
+                  await refundPlayer(match.player1_id, stakeAmount);
+                  await refundPlayer(match.player2_id, stakeAmount);
 
-                await supabase
-                    .from('trivia_pvp_matches')
-                    .update({ status: 'abandoned' })
-                    .eq('id', match.id);
+                  await supabase
+                      .from('trivia_pvp_matches')
+                      .update({ status: 'abandoned' })
+                      .eq('id', match.id);
 
-                refunded++;
-            } else if (p1Submitted && !p2Submitted) {
-                // Player 1 played, Player 2 didn't — Player 1 wins by forfeit
-                await awardForfeitWin(match.player1_id, match.player2_id, stakeAmount, match.id);
-                forfeited++;
-            } else if (!p1Submitted && p2Submitted) {
-                // Player 2 played, Player 1 didn't — Player 2 wins by forfeit
-                await awardForfeitWin(match.player2_id, match.player1_id, stakeAmount, match.id);
-                forfeited++;
-            }
-        }
+                  refunded++;
+              } else if (p1Submitted && !p2Submitted) {
+                  // Player 1 played, Player 2 didn't — Player 1 wins by forfeit
+                  await awardForfeitWin(match.player1_id, match.player2_id, stakeAmount, match.id);
+                  forfeited++;
+              } else if (!p1Submitted && p2Submitted) {
+                  // Player 2 played, Player 1 didn't — Player 2 wins by forfeit
+                  await awardForfeitWin(match.player2_id, match.player1_id, stakeAmount, match.id);
+                  forfeited++;
+              }
+          }
 
-        // Also clean up stale queue entries (older than 5 minutes)
-        await supabase
-            .from('trivia_pvp_queue')
-            .update({ status: 'expired' })
-            .eq('status', 'waiting')
-            .lt('created_at', new Date(now.getTime() - 5 * 60 * 1000).toISOString());
+          // Also clean up stale queue entries (older than 5 minutes)
+          await supabase
+              .from('trivia_pvp_queue')
+              .update({ status: 'expired' })
+              .eq('status', 'waiting')
+              .lt('created_at', new Date(now.getTime() - 5 * 60 * 1000).toISOString());
 
-        return res.status(200).json({
-            success: true,
-            refunded,
-            forfeited,
-            timestamp: now.toISOString()
-        });
+          return res.status(200).json({
+              success: true,
+              refunded,
+              forfeited,
+              timestamp: now.toISOString()
+          });
 
-    } catch (error) {
-        console.error('[PvP Cleanup] Error:', error);
-        return res.status(500).json({ error: error.message });
-    }
+      } catch (error) {
+          console.error('[PvP Cleanup] Error:', error);
+          return res.status(500).json({ error: error.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }
 
 async function refundPlayer(playerId, amount) {

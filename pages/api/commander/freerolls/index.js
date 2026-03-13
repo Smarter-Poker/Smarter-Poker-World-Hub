@@ -20,22 +20,28 @@ function getVenueIdFromSession(req) {
 }
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
-
-    const guard = await guardWriteStaff(req, res);
-    if (!guard) return;
-
-    if (req.method === 'POST') return createFreeroll(req, res, guard);
-    if (req.method !== 'GET') {
-        return res.status(405).json({
-            success: false,
-            error: { code: 'METHOD_NOT_ALLOWED', message: 'GET and POST allowed' }
-        });
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
 
-    return listFreerolls(req, res);
+      const guard = await guardWriteStaff(req, res);
+      if (!guard) return;
+
+      if (req.method === 'POST') return createFreeroll(req, res, guard);
+      if (req.method !== 'GET') {
+          return res.status(405).json({
+              success: false,
+              error: { code: 'METHOD_NOT_ALLOWED', message: 'GET and POST allowed' }
+          });
+      }
+
+      return listFreerolls(req, res);
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }
 
 async function listFreerolls(req, res) {

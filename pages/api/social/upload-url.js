@@ -24,85 +24,91 @@ const ALLOWED_TYPES = [
 ];
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+      if (req.method !== 'POST') {
+          return res.status(405).json({ success: false, error: 'POST only' });
+      }
+
+      const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
+      const serviceKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
+
+      if (!supabaseUrl || !serviceKey) {
+          return res.status(500).json({ success: false, error: 'Server configuration error' });
+      }
+
+      const supabase = createClient(supabaseUrl, serviceKey);
+
+      // ── Auth: verify JWT identity ──
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
+      const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+      if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+
+      try {
+          const { fileName, fileSize, mimeType, folder, prefix } = req.body || {};
+
+          if (!fileName || !fileSize || !mimeType) {
+              return res.status(400).json({ success: false, error: 'Missing required fields: fileName, fileSize, mimeType' });
+          }
+
+          // Validate file type
+          if (!ALLOWED_TYPES.includes(mimeType)) {
+              return res.status(400).json({ success: false, error: `File type not allowed: ${mimeType}` });
+          }
+
+          // Validate file size based on type
+          const isVideo = mimeType.startsWith('video/');
+          const maxSize = isVideo ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE;
+          if (fileSize > maxSize) {
+              const maxMB = Math.round(maxSize / 1024 / 1024);
+              return res.status(400).json({
+                  success: false, error: `File too large (max ${maxMB}MB for ${isVideo ? 'video' : 'image'})`
+              });
+          }
+
+          // Build storage path
+          const ext = fileName.split('.').pop() || 'bin';
+          const timestamp = Date.now();
+          const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+          const subFolder = isVideo ? (folder || 'videos') : (folder || 'photos');
+          const pathParts = [subFolder, prefix, `${timestamp}_${safeName}`].filter(Boolean);
+          const storagePath = pathParts.join('/');
+
+          // Create signed upload URL (one-time use, expires in 5 minutes)
+          const { data, error: signError } = await supabase.storage
+              .from(BUCKET)
+              .createSignedUploadUrl(storagePath);
+
+          if (signError) {
+              console.error('[Upload-URL API] Signed URL error:', signError.message);
+              return res.status(500).json({ success: false, error: 'Failed to create upload URL: ' + signError.message });
+          }
+
+          // Get the public URL for after upload completes
+          const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(storagePath);
+          const publicUrl = urlData?.publicUrl;
+
+
+          return res.status(200).json({
+              success: true,
+              signedUrl: data.signedUrl,
+              token: data.token,
+              path: storagePath,
+              publicUrl,
+              type: isVideo ? 'video' : 'photo',
+          });
+
+      } catch (err) {
+          console.error('[Upload-URL API] Error:', err.message);
+          return res.status(500).json({ success: false, error: 'Upload URL generation failed: ' + err.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-    if (req.method !== 'POST') {
-        return res.status(405).json({ success: false, error: 'POST only' });
-    }
-
-    const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
-    const serviceKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
-
-    if (!supabaseUrl || !serviceKey) {
-        return res.status(500).json({ success: false, error: 'Server configuration error' });
-    }
-
-    const supabase = createClient(supabaseUrl, serviceKey);
-
-    // ── Auth: verify JWT identity ──
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-    const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
-    if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
-
-    try {
-        const { fileName, fileSize, mimeType, folder, prefix } = req.body || {};
-
-        if (!fileName || !fileSize || !mimeType) {
-            return res.status(400).json({ success: false, error: 'Missing required fields: fileName, fileSize, mimeType' });
-        }
-
-        // Validate file type
-        if (!ALLOWED_TYPES.includes(mimeType)) {
-            return res.status(400).json({ success: false, error: `File type not allowed: ${mimeType}` });
-        }
-
-        // Validate file size based on type
-        const isVideo = mimeType.startsWith('video/');
-        const maxSize = isVideo ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE;
-        if (fileSize > maxSize) {
-            const maxMB = Math.round(maxSize / 1024 / 1024);
-            return res.status(400).json({
-                success: false, error: `File too large (max ${maxMB}MB for ${isVideo ? 'video' : 'image'})`
-            });
-        }
-
-        // Build storage path
-        const ext = fileName.split('.').pop() || 'bin';
-        const timestamp = Date.now();
-        const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
-        const subFolder = isVideo ? (folder || 'videos') : (folder || 'photos');
-        const pathParts = [subFolder, prefix, `${timestamp}_${safeName}`].filter(Boolean);
-        const storagePath = pathParts.join('/');
-
-        // Create signed upload URL (one-time use, expires in 5 minutes)
-        const { data, error: signError } = await supabase.storage
-            .from(BUCKET)
-            .createSignedUploadUrl(storagePath);
-
-        if (signError) {
-            console.error('[Upload-URL API] Signed URL error:', signError.message);
-            return res.status(500).json({ success: false, error: 'Failed to create upload URL: ' + signError.message });
-        }
-
-        // Get the public URL for after upload completes
-        const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(storagePath);
-        const publicUrl = urlData?.publicUrl;
-
-
-        return res.status(200).json({
-            success: true,
-            signedUrl: data.signedUrl,
-            token: data.token,
-            path: storagePath,
-            publicUrl,
-            type: isVideo ? 'video' : 'photo',
-        });
-
-    } catch (err) {
-        console.error('[Upload-URL API] Error:', err.message);
-        return res.status(500).json({ success: false, error: 'Upload URL generation failed: ' + err.message });
-    }
 }

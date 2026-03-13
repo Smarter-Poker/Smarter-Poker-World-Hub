@@ -40,73 +40,79 @@ function checkRate(key) {
 }
 
 export default async function handler(req, res) {
-  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ success: false, error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' } });
-  }
-
   try {
-    const { venue_id, pin_code } = req.body;
-    if (!venue_id || !pin_code) {
-      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'venue_id and pin_code are required' } });
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
 
-    const key = getKey(req, venue_id);
-    const rl = checkRate(key);
-    if (!rl.ok) {
-      res.setHeader('Retry-After', rl.retry);
-      return res.status(429).json({
-        success: false,
-        error: { code: rl.reason, message: `Too many attempts. Try again in ${rl.retry}s.` }
-      });
+    if (req.method !== 'POST') {
+      return res.status(405).json({ success: false, error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' } });
     }
 
-    const { data: staffRows, error } = await supabase
-      .from('commander_staff')
-      .select('id, venue_id, role, is_active, display_name, permissions, profiles ( id, display_name, avatar_url )')
-      .eq('venue_id', venue_id)
-      .eq('pin_code', pin_code)
-      .eq('is_active', true)
-      .limit(1);
-
-    const staff = staffRows?.[0] || null;
-
-    if (error || !staff) {
-      const e = attempts.get(key);
-      if (e) { e.fails++; if (e.fails >= LOCKOUT_AFTER) { e.lockUntil = Date.now() + LOCKOUT_MS; e.fails = 0; } }
-      return res.status(200).json({ success: true, data: { valid: false, staff: null, permissions: null } });
-    }
-
-    // Success — reset failures
-    const e = attempts.get(key);
-    if (e) e.fails = 0;
-
-    const permissions = { ...DEFAULT_PERMISSIONS[staff.role], ...(staff.permissions || {}) };
-    const name = staff.profiles?.display_name || staff.display_name || staff.role.charAt(0).toUpperCase() + staff.role.slice(1);
-
-    // Audit log
-    await logAction(AuditActions.AUTH_PIN_VERIFY, {
-      venueId: venue_id,
-      staffId: staff.id,
-      targetId: staff.id,
-      targetType: 'commander_staff',
-      targetName: name,
-      req
-    });
-
-    return res.status(200).json({
-      success: true,
-      data: {
-        valid: true,
-        staff: { id: staff.id, role: staff.role, user_id: staff.profiles?.id || null, display_name: name, avatar_url: staff.profiles?.avatar_url || null },
-        permissions
+    try {
+      const { venue_id, pin_code } = req.body;
+      if (!venue_id || !pin_code) {
+        return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'venue_id and pin_code are required' } });
       }
-    });
-  } catch (error) {
-    console.error('Commander verify PIN error:', error);
-    return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } });
+
+      const key = getKey(req, venue_id);
+      const rl = checkRate(key);
+      if (!rl.ok) {
+        res.setHeader('Retry-After', rl.retry);
+        return res.status(429).json({
+          success: false,
+          error: { code: rl.reason, message: `Too many attempts. Try again in ${rl.retry}s.` }
+        });
+      }
+
+      const { data: staffRows, error } = await supabase
+        .from('commander_staff')
+        .select('id, venue_id, role, is_active, display_name, permissions, profiles ( id, display_name, avatar_url )')
+        .eq('venue_id', venue_id)
+        .eq('pin_code', pin_code)
+        .eq('is_active', true)
+        .limit(1);
+
+      const staff = staffRows?.[0] || null;
+
+      if (error || !staff) {
+        const e = attempts.get(key);
+        if (e) { e.fails++; if (e.fails >= LOCKOUT_AFTER) { e.lockUntil = Date.now() + LOCKOUT_MS; e.fails = 0; } }
+        return res.status(200).json({ success: true, data: { valid: false, staff: null, permissions: null } });
+      }
+
+      // Success — reset failures
+      const e = attempts.get(key);
+      if (e) e.fails = 0;
+
+      const permissions = { ...DEFAULT_PERMISSIONS[staff.role], ...(staff.permissions || {}) };
+      const name = staff.profiles?.display_name || staff.display_name || staff.role.charAt(0).toUpperCase() + staff.role.slice(1);
+
+      // Audit log
+      await logAction(AuditActions.AUTH_PIN_VERIFY, {
+        venueId: venue_id,
+        staffId: staff.id,
+        targetId: staff.id,
+        targetType: 'commander_staff',
+        targetName: name,
+        req
+      });
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          valid: true,
+          staff: { id: staff.id, role: staff.role, user_id: staff.profiles?.id || null, display_name: name, avatar_url: staff.profiles?.avatar_url || null },
+          permissions
+        }
+      });
+    } catch (error) {
+      console.error('Commander verify PIN error:', error);
+      return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } });
+    }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

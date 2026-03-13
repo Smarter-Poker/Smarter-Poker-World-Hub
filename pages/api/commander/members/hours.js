@@ -16,141 +16,147 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (!applyRateLimit(req, res, LIMITS.read)) return;
+  try {
+    if (!applyRateLimit(req, res, LIMITS.read)) return;
 
-    const _g = await guardWriteStaff(req, res); if (!_g) return;
+      const _g = await guardWriteStaff(req, res); if (!_g) return;
 
-    if (req.method !== 'GET') {
-        return res.status(405).json({ success: false, error: 'GET only' });
-    }
+      if (req.method !== 'GET') {
+          return res.status(405).json({ success: false, error: 'GET only' });
+      }
 
-    const { venue_id, period = 'all', limit = 50 } = req.query;
-    if (!venue_id) {
-        return res.status(400).json({ success: false, error: 'venue_id required' });
-    }
+      const { venue_id, period = 'all', limit = 50 } = req.query;
+      if (!venue_id) {
+          return res.status(400).json({ success: false, error: 'venue_id required' });
+      }
 
-    try {
-        // ── 1. Try commander_player_sessions first ──
-        let sessionQuery = supabase
-            .from('commander_player_sessions')
-            .select('player_id, total_time_minutes, check_in_time, status')
-            .eq('venue_id', venue_id)
-            .eq('status', 'completed')
-                .limit(100)
+      try {
+          // ── 1. Try commander_player_sessions first ──
+          let sessionQuery = supabase
+              .from('commander_player_sessions')
+              .select('player_id, total_time_minutes, check_in_time, status')
+              .eq('venue_id', venue_id)
+              .eq('status', 'completed')
+                  .limit(100)
 
-        // Apply period filter
-        if (period !== 'all') {
-            const now = new Date();
-            let startDate;
-            if (period === 'today') {
-                startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            } else if (period === 'week') {
-                startDate = new Date(now); startDate.setDate(startDate.getDate() - 7);
-            } else if (period === 'month') {
-                startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-            } else if (period === 'year') {
-                startDate = new Date(now.getFullYear(), 0, 1);
-            }
-            if (startDate) {
-                sessionQuery = sessionQuery.gte('check_in_time', startDate.toISOString());
-            }
-        }
+          // Apply period filter
+          if (period !== 'all') {
+              const now = new Date();
+              let startDate;
+              if (period === 'today') {
+                  startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+              } else if (period === 'week') {
+                  startDate = new Date(now); startDate.setDate(startDate.getDate() - 7);
+              } else if (period === 'month') {
+                  startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+              } else if (period === 'year') {
+                  startDate = new Date(now.getFullYear(), 0, 1);
+              }
+              if (startDate) {
+                  sessionQuery = sessionQuery.gte('check_in_time', startDate.toISOString());
+              }
+          }
 
-        const { data: sessions, error: sessError } = await sessionQuery;
+          const { data: sessions, error: sessError } = await sessionQuery;
 
-        // Aggregate by player
-        const playerHours = {};
-        if (!sessError && sessions && sessions.length > 0) {
-            sessions.forEach(s => {
-                if (!s.player_id) return;
-                if (!playerHours[s.player_id]) {
-                    playerHours[s.player_id] = { totalMinutes: 0, sessionCount: 0 };
-                }
-                playerHours[s.player_id].totalMinutes += (s.total_time_minutes || 0);
-                playerHours[s.player_id].sessionCount++;
-            });
-        }
+          // Aggregate by player
+          const playerHours = {};
+          if (!sessError && sessions && sessions.length > 0) {
+              sessions.forEach(s => {
+                  if (!s.player_id) return;
+                  if (!playerHours[s.player_id]) {
+                      playerHours[s.player_id] = { totalMinutes: 0, sessionCount: 0 };
+                  }
+                  playerHours[s.player_id].totalMinutes += (s.total_time_minutes || 0);
+                  playerHours[s.player_id].sessionCount++;
+              });
+          }
 
-        // ── 2. Enrich with member data ──
-        const { data: members } = await supabase
-            .from('commander_members')
-            .select('id, first_name, last_name, member_number, photo_url, visit_count, last_checkin, membership_tier, created_at')
-            .eq('venue_id', venue_id)
-            .eq('membership_status', 'active')
-            .order('visit_count', { ascending: false })
-            .limit(Math.min(parseInt(limit) || 50, 500));
+          // ── 2. Enrich with member data ──
+          const { data: members } = await supabase
+              .from('commander_members')
+              .select('id, first_name, last_name, member_number, photo_url, visit_count, last_checkin, membership_tier, created_at')
+              .eq('venue_id', venue_id)
+              .eq('membership_status', 'active')
+              .order('visit_count', { ascending: false })
+              .limit(Math.min(parseInt(limit) || 50, 500));
 
-        // ── 3. Build ranked list ──
-        const ranked = (members || []).map(m => {
-            const sess = playerHours[m.id] || null;
-            // If we have session data, use it. Otherwise estimate from visit count.
-            const totalMinutes = sess ? sess.totalMinutes : (m.visit_count || 0) * 180; // 3hr avg estimate
-            const sessionCount = sess ? sess.sessionCount : (m.visit_count || 0);
-            const totalHours = Math.round((totalMinutes / 60) * 10) / 10; // 1 decimal
+          // ── 3. Build ranked list ──
+          const ranked = (members || []).map(m => {
+              const sess = playerHours[m.id] || null;
+              // If we have session data, use it. Otherwise estimate from visit count.
+              const totalMinutes = sess ? sess.totalMinutes : (m.visit_count || 0) * 180; // 3hr avg estimate
+              const sessionCount = sess ? sess.sessionCount : (m.visit_count || 0);
+              const totalHours = Math.round((totalMinutes / 60) * 10) / 10; // 1 decimal
 
-            return {
-                member_id: m.id,
-                first_name: m.first_name,
-                last_name: m.last_name,
-                member_number: m.member_number,
-                photo_url: m.photo_url,
-                membership_tier: m.membership_tier,
-                visit_count: m.visit_count || 0,
-                last_checkin: m.last_checkin,
-                created_at: m.created_at,
-                total_hours: totalHours,
-                total_minutes: totalMinutes,
-                session_count: sessionCount,
-                has_session_data: !!sess,
-            };
-        })
-            .filter(m => m.total_hours > 0 || m.visit_count > 0)
-            .sort((a, b) => b.total_hours - a.total_hours)
-            .map((m, i) => ({ ...m, rank: i + 1 }));
+              return {
+                  member_id: m.id,
+                  first_name: m.first_name,
+                  last_name: m.last_name,
+                  member_number: m.member_number,
+                  photo_url: m.photo_url,
+                  membership_tier: m.membership_tier,
+                  visit_count: m.visit_count || 0,
+                  last_checkin: m.last_checkin,
+                  created_at: m.created_at,
+                  total_hours: totalHours,
+                  total_minutes: totalMinutes,
+                  session_count: sessionCount,
+                  has_session_data: !!sess,
+              };
+          })
+              .filter(m => m.total_hours > 0 || m.visit_count > 0)
+              .sort((a, b) => b.total_hours - a.total_hours)
+              .map((m, i) => ({ ...m, rank: i + 1 }));
 
-        return res.status(200).json({
-            success: true,
-            data: {
-                players: ranked.slice(0, parseInt(limit)),
-                total: ranked.length,
-                period,
-                has_session_data: ranked.some(r => r.has_session_data),
-            }
-        });
+          return res.status(200).json({
+              success: true,
+              data: {
+                  players: ranked.slice(0, parseInt(limit)),
+                  total: ranked.length,
+                  period,
+                  has_session_data: ranked.some(r => r.has_session_data),
+              }
+          });
 
-    } catch (err) {
-        console.error('[Hours API] Error:', err);
-        // If commander_player_sessions table doesn't exist, fall back to visit_count estimate
-        try {
-            const { data: members } = await supabase
-                .from('commander_members')
-                .select('id, first_name, last_name, member_number, photo_url, visit_count, last_checkin, membership_tier, created_at')
-                .eq('venue_id', venue_id)
-                .eq('membership_status', 'active')
-                .gt('visit_count', 0)
-                .order('visit_count', { ascending: false })
-                .limit(Math.min(parseInt(limit) || 50, 500));
+      } catch (err) {
+          console.error('[Hours API] Error:', err);
+          // If commander_player_sessions table doesn't exist, fall back to visit_count estimate
+          try {
+              const { data: members } = await supabase
+                  .from('commander_members')
+                  .select('id, first_name, last_name, member_number, photo_url, visit_count, last_checkin, membership_tier, created_at')
+                  .eq('venue_id', venue_id)
+                  .eq('membership_status', 'active')
+                  .gt('visit_count', 0)
+                  .order('visit_count', { ascending: false })
+                  .limit(Math.min(parseInt(limit) || 50, 500));
 
-            const ranked = (members || []).map((m, i) => ({
-                member_id: m.id,
-                first_name: m.first_name,
-                last_name: m.last_name,
-                photo_url: m.photo_url,
-                membership_tier: m.membership_tier,
-                visit_count: m.visit_count || 0,
-                total_hours: Math.round(((m.visit_count || 0) * 3) * 10) / 10,
-                total_minutes: (m.visit_count || 0) * 180,
-                session_count: m.visit_count || 0,
-                has_session_data: false,
-                rank: i + 1,
-            }));
+              const ranked = (members || []).map((m, i) => ({
+                  member_id: m.id,
+                  first_name: m.first_name,
+                  last_name: m.last_name,
+                  photo_url: m.photo_url,
+                  membership_tier: m.membership_tier,
+                  visit_count: m.visit_count || 0,
+                  total_hours: Math.round(((m.visit_count || 0) * 3) * 10) / 10,
+                  total_minutes: (m.visit_count || 0) * 180,
+                  session_count: m.visit_count || 0,
+                  has_session_data: false,
+                  rank: i + 1,
+              }));
 
-            return res.status(200).json({
-                success: true,
-                data: { players: ranked, total: ranked.length, period, has_session_data: false }
-            });
-        } catch (fallbackErr) {
-            return res.status(500).json({ success: false, error: 'Failed to fetch hours data' });
-        }
-    }
+              return res.status(200).json({
+                  success: true,
+                  data: { players: ranked, total: ranked.length, period, has_session_data: false }
+              });
+          } catch (fallbackErr) {
+              return res.status(500).json({ success: false, error: 'Failed to fetch hours data' });
+          }
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

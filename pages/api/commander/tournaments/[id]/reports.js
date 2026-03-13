@@ -13,24 +13,30 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (!applyRateLimit(req, res, LIMITS.read)) return;
+  try {
+    if (!applyRateLimit(req, res, LIMITS.read)) return;
 
-    const _staff = await guardStaff(req, res);
-    if (!_staff) return;
+      const _staff = await guardStaff(req, res);
+      if (!_staff) return;
 
-    if (req.method !== 'GET') {
-        return res.status(405).json({ success: false, error: { message: 'Method not allowed' } });
-    }
+      if (req.method !== 'GET') {
+          return res.status(405).json({ success: false, error: { message: 'Method not allowed' } });
+      }
 
-    const { id: tournamentId, type } = req.query;
+      const { id: tournamentId, type } = req.query;
 
-    switch (type) {
-        case 'registration': return registrationReport(req, res, tournamentId);
-        case 'cashier': return cashierReport(req, res, tournamentId);
-        case 'activity': return activityReport(req, res, tournamentId);
-        default:
-            return res.status(400).json({ success: false, error: { message: 'type required: registration, cashier, or activity' } });
-    }
+      switch (type) {
+          case 'registration': return registrationReport(req, res, tournamentId);
+          case 'cashier': return cashierReport(req, res, tournamentId);
+          case 'activity': return activityReport(req, res, tournamentId);
+          default:
+              return res.status(400).json({ success: false, error: { message: 'type required: registration, cashier, or activity' } });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }
 
 /**

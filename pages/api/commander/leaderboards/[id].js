@@ -14,33 +14,39 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  // CDN cache: fresh for 30s, serve stale up to 120s
-  if (req.method === 'GET') {
-    res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=120');
+  try {
+    // CDN cache: fresh for 30s, serve stale up to 120s
+    if (req.method === 'GET') {
+      res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=120');
+    }
+
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+    const _g = await guardWriteStaff(req, res); if (!_g) return;
+
+    const { id } = req.query;
+
+    if (!id) {
+      return res.status(400).json({ error: 'Leaderboard ID required' });
+    }
+
+    if (req.method === 'GET') {
+      return getLeaderboard(req, res, id);
+    }
+
+    if (req.method === 'PUT') {
+      return updateLeaderboard(req, res, id);
+    }
+
+    res.setHeader('Allow', ['GET', 'PUT']);
+    return res.status(405).json({ error: 'Method not allowed' });
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
-
-  const _g = await guardWriteStaff(req, res); if (!_g) return;
-
-  const { id } = req.query;
-
-  if (!id) {
-    return res.status(400).json({ error: 'Leaderboard ID required' });
-  }
-
-  if (req.method === 'GET') {
-    return getLeaderboard(req, res, id);
-  }
-
-  if (req.method === 'PUT') {
-    return updateLeaderboard(req, res, id);
-  }
-
-  res.setHeader('Allow', ['GET', 'PUT']);
-  return res.status(405).json({ error: 'Method not allowed' });
 }
 
 async function getLeaderboard(req, res, id) {

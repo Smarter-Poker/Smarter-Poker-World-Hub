@@ -13,36 +13,42 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
-
-  const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) return res.status(401).json({ error: 'Auth required' });
-
-  const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-  if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
-
   try {
-    const { notificationId } = req.body || {};
+    if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
-    if (notificationId) {
-      // Mark single notification
-      await supabaseAdmin
-        .from('notifications')
-        .update({ is_read: true, read_at: new Date().toISOString() })
-        .eq('id', notificationId)
-        .eq('user_id', user.id);
-    } else {
-      // Mark all unread
-      await supabaseAdmin
-        .from('notifications')
-        .update({ is_read: true, read_at: new Date().toISOString() })
-        .eq('user_id', user.id)
-        .eq('is_read', false);
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'Auth required' });
+
+    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+
+    try {
+      const { notificationId } = req.body || {};
+
+      if (notificationId) {
+        // Mark single notification
+        await supabaseAdmin
+          .from('notifications')
+          .update({ is_read: true, read_at: new Date().toISOString() })
+          .eq('id', notificationId)
+          .eq('user_id', user.id);
+      } else {
+        // Mark all unread
+        await supabaseAdmin
+          .from('notifications')
+          .update({ is_read: true, read_at: new Date().toISOString() })
+          .eq('user_id', user.id)
+          .eq('is_read', false);
+      }
+
+      return res.json({ success: true });
+    } catch (err) {
+      console.error('[mark-read]', err);
+      return res.status(500).json({ error: 'Failed to mark notifications' });
     }
 
-    return res.json({ success: true });
   } catch (err) {
-    console.error('[mark-read]', err);
-    return res.status(500).json({ error: 'Failed to mark notifications' });
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

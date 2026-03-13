@@ -37,169 +37,175 @@ const ALLOWED_BODY_FIELDS = new Set(['clubId', 'amount', 'notes']);
 const MAX_BODY_SIZE = 1024; // 1KB payload limit
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
-
-  // Idempotency guard — prevent double-tap on laggy mobile networks
-  if (checkIdempotency(req, res)) return;
-
-  // MANDATE 3: Payload size validation
-  const bodyStr = JSON.stringify(req.body || {});
-  if (bodyStr.length > MAX_BODY_SIZE) {
-    return res.status(413).json({ success: false, error: 'Request body too large' });
-  }
-
-  // RED TEAM: Zod Contract Validation (MANDATE: Reject 100% with 400 Bad Request before hitting Postgres)
-  const validation = validateMintChips(req.body);
-  if (!validation.success) {
-    return res.status(400).json({ success: false, error: validation.error });
-  }
-
-  const payload = validation.data;
-  const { clubId, amount, notes } = payload;
-
-  const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
-
-  const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-  if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
-
-  // BUG #153 FIX: Verify caller is club owner or union admin
-  // Without this, ANY authenticated user could mint chips into ANY club's treasury.
-  let callerRole = null; // 'club_owner' or 'union_admin'
   try {
-    const { data: club } = await supabaseAdmin
-      .from('clubs')
-      .select('id, owner_id, union_id')
-      .eq('id', clubId)
-      .maybeSingle();
+    if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 
-    if (!club) return res.status(404).json({ success: false, error: 'Club not found' });
+    // Idempotency guard — prevent double-tap on laggy mobile networks
+    if (checkIdempotency(req, res)) return;
 
-    if (club.owner_id === user.id) {
-      callerRole = 'club_owner';
-    } else if (club.union_id) {
-      const { data: ua } = await supabaseAdmin
-        .from('union_admins')
-        .select('role')
-        .eq('union_id', club.union_id)
-        .eq('user_id', user.id)
+    // MANDATE 3: Payload size validation
+    const bodyStr = JSON.stringify(req.body || {});
+    if (bodyStr.length > MAX_BODY_SIZE) {
+      return res.status(413).json({ success: false, error: 'Request body too large' });
+    }
+
+    // RED TEAM: Zod Contract Validation (MANDATE: Reject 100% with 400 Bad Request before hitting Postgres)
+    const validation = validateMintChips(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ success: false, error: validation.error });
+    }
+
+    const payload = validation.data;
+    const { clubId, amount, notes } = payload;
+
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
+
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+
+    // BUG #153 FIX: Verify caller is club owner or union admin
+    // Without this, ANY authenticated user could mint chips into ANY club's treasury.
+    let callerRole = null; // 'club_owner' or 'union_admin'
+    try {
+      const { data: club } = await supabaseAdmin
+        .from('clubs')
+        .select('id, owner_id, union_id')
+        .eq('id', clubId)
         .maybeSingle();
-      if (ua) {
-          callerRole = 'union_admin';
-      } else {
-          // Owner fallback
-          const { data: union } = await supabaseAdmin.from('unions').select('id').eq('id', club.union_id).eq('owner_id', user.id).maybeSingle();
-          if (union) callerRole = 'union_admin';
+
+      if (!club) return res.status(404).json({ success: false, error: 'Club not found' });
+
+      if (club.owner_id === user.id) {
+        callerRole = 'club_owner';
+      } else if (club.union_id) {
+        const { data: ua } = await supabaseAdmin
+          .from('union_admins')
+          .select('role')
+          .eq('union_id', club.union_id)
+          .eq('user_id', user.id)
+          .maybeSingle();
+        if (ua) {
+            callerRole = 'union_admin';
+        } else {
+            // Owner fallback
+            const { data: union } = await supabaseAdmin.from('unions').select('id').eq('id', club.union_id).eq('owner_id', user.id).maybeSingle();
+            if (union) callerRole = 'union_admin';
+        }
       }
+
+      if (!callerRole) {
+        return res.status(403).json({ success: false, error: 'Only club owner or union admin can mint chips' });
+      }
+    } catch (authCheckErr) {
+      return res.status(500).json({ success: false, error: 'Authorization check failed' });
     }
 
-    if (!callerRole) {
-      return res.status(403).json({ success: false, error: 'Only club owner or union admin can mint chips' });
-    }
-  } catch (authCheckErr) {
-    return res.status(500).json({ success: false, error: 'Authorization check failed' });
-  }
-
-  // MANDATE 3: Per-request cap (role-tiered)
-  const requestCap = MINT_CAPS[callerRole] || MINT_CAPS.club_owner;
-  if (amount > requestCap) {
-    // Audit log: cap enforcement event
-    await supabaseAdmin.from('chip_transactions').insert({
-      club_id: clubId,
-      amount: 0,
-      transaction_type: 'mint_cap_blocked',
-      notes: `Mint blocked: requested ${amount.toLocaleString()}, cap ${requestCap.toLocaleString()} (${callerRole})`,
-      metadata: { requested_amount: amount, cap_applied: requestCap, caller_role: callerRole, user_id: user.id },
-    }).catch(() => { });
-
-    return res.status(400).json({
-      success: false,
-      error: `Amount exceeds ${callerRole === 'union_admin' ? 'union admin' : 'club owner'} per-request cap of ${requestCap.toLocaleString()}`,
-      cap: requestCap,
-    });
-  }
-
-  // MANDATE 3: Per-club daily ceiling (UTC day boundary)
-  const utcToday = new Date();
-  const utcDayStart = new Date(Date.UTC(utcToday.getUTCFullYear(), utcToday.getUTCMonth(), utcToday.getUTCDate())).toISOString();
-  try {
-    const { data: todayMints } = await supabaseAdmin
-      .from('chip_transactions')
-      .select('amount')
-      .eq('club_id', clubId)
-      .eq('transaction_type', 'mint')
-      .gte('created_at', utcDayStart)
-      .limit(500);
-
-    const dailyTotal = (todayMints || []).reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
-    const remaining = DAILY_CLUB_CEILING - dailyTotal;
-
-    if (amount > remaining) {
-      // Audit log: daily ceiling enforcement
+    // MANDATE 3: Per-request cap (role-tiered)
+    const requestCap = MINT_CAPS[callerRole] || MINT_CAPS.club_owner;
+    if (amount > requestCap) {
+      // Audit log: cap enforcement event
       await supabaseAdmin.from('chip_transactions').insert({
         club_id: clubId,
         amount: 0,
         transaction_type: 'mint_cap_blocked',
-        notes: `Daily ceiling blocked: requested ${amount.toLocaleString()}, today total ${dailyTotal.toLocaleString()}, ceiling ${DAILY_CLUB_CEILING.toLocaleString()}`,
-        metadata: { requested_amount: amount, daily_total: dailyTotal, daily_ceiling: DAILY_CLUB_CEILING, remaining, caller_role: callerRole, user_id: user.id },
+        notes: `Mint blocked: requested ${amount.toLocaleString()}, cap ${requestCap.toLocaleString()} (${callerRole})`,
+        metadata: { requested_amount: amount, cap_applied: requestCap, caller_role: callerRole, user_id: user.id },
       }).catch(() => { });
 
-      return res.status(429).json({
+      return res.status(400).json({
         success: false,
-        error: `Daily minting ceiling exceeded. Today: ${dailyTotal.toLocaleString()}, Remaining: ${Math.max(0, remaining).toLocaleString()}, Ceiling: ${DAILY_CLUB_CEILING.toLocaleString()}`,
-        dailyTotal,
-        remaining: Math.max(0, remaining),
-        ceiling: DAILY_CLUB_CEILING,
+        error: `Amount exceeds ${callerRole === 'union_admin' ? 'union admin' : 'club owner'} per-request cap of ${requestCap.toLocaleString()}`,
+        cap: requestCap,
       });
     }
-  } catch (ceilErr) {
-    console.error('[mint-chips] Daily ceiling check failed:', ceilErr.message);
-    // Non-fatal — allow mint if ceiling check fails (fail-open for operational continuity)
-  }
 
-  // Rate limit
-  if (!applyRateLimit(req, res, 'club-arena/mint-chips')) return;
+    // MANDATE 3: Per-club daily ceiling (UTC day boundary)
+    const utcToday = new Date();
+    const utcDayStart = new Date(Date.UTC(utcToday.getUTCFullYear(), utcToday.getUTCMonth(), utcToday.getUTCDate())).toISOString();
+    try {
+      const { data: todayMints } = await supabaseAdmin
+        .from('chip_transactions')
+        .select('amount')
+        .eq('club_id', clubId)
+        .eq('transaction_type', 'mint')
+        .gte('created_at', utcDayStart)
+        .limit(500);
 
-  // Settlement lock check
-  const lockCheck = await checkSettlementLock(supabaseAdmin, clubId);
-  if (lockCheck.locked) return sendLockedResponse(res, lockCheck);
+      const dailyTotal = (todayMints || []).reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
+      const remaining = DAILY_CLUB_CEILING - dailyTotal;
 
-  try {
-    // Call atomic RPC — handles FOR UPDATE locking, auth check, and transaction logging
-    const { data: result, error: rpcErr } = await supabaseAdmin.rpc('mint_club_chips', {
-      p_club_id: clubId,
-      p_amount: amount,
-      p_minted_by: user.id,
-    });
+      if (amount > remaining) {
+        // Audit log: daily ceiling enforcement
+        await supabaseAdmin.from('chip_transactions').insert({
+          club_id: clubId,
+          amount: 0,
+          transaction_type: 'mint_cap_blocked',
+          notes: `Daily ceiling blocked: requested ${amount.toLocaleString()}, today total ${dailyTotal.toLocaleString()}, ceiling ${DAILY_CLUB_CEILING.toLocaleString()}`,
+          metadata: { requested_amount: amount, daily_total: dailyTotal, daily_ceiling: DAILY_CLUB_CEILING, remaining, caller_role: callerRole, user_id: user.id },
+        }).catch(() => { });
 
-    if (rpcErr) {
-      console.error('[mint-chips] RPC error:', rpcErr);
-      return res.status(500).json(safeErrorResponse(rpcErr, 'Mint failed'));
+        return res.status(429).json({
+          success: false,
+          error: `Daily minting ceiling exceeded. Today: ${dailyTotal.toLocaleString()}, Remaining: ${Math.max(0, remaining).toLocaleString()}, Ceiling: ${DAILY_CLUB_CEILING.toLocaleString()}`,
+          dailyTotal,
+          remaining: Math.max(0, remaining),
+          ceiling: DAILY_CLUB_CEILING,
+        });
+      }
+    } catch (ceilErr) {
+      console.error('[mint-chips] Daily ceiling check failed:', ceilErr.message);
+      // Non-fatal — allow mint if ceiling check fails (fail-open for operational continuity)
     }
 
-    if (!result?.success) {
-      return res.status(400).json({ success: false, error: result?.error || 'Mint failed' });
+    // Rate limit
+    if (!applyRateLimit(req, res, 'club-arena/mint-chips')) return;
+
+    // Settlement lock check
+    const lockCheck = await checkSettlementLock(supabaseAdmin, clubId);
+    if (lockCheck.locked) return sendLockedResponse(res, lockCheck);
+
+    try {
+      // Call atomic RPC — handles FOR UPDATE locking, auth check, and transaction logging
+      const { data: result, error: rpcErr } = await supabaseAdmin.rpc('mint_club_chips', {
+        p_club_id: clubId,
+        p_amount: amount,
+        p_minted_by: user.id,
+      });
+
+      if (rpcErr) {
+        console.error('[mint-chips] RPC error:', rpcErr);
+        return res.status(500).json(safeErrorResponse(rpcErr, 'Mint failed'));
+      }
+
+      if (!result?.success) {
+        return res.status(400).json({ success: false, error: result?.error || 'Mint failed' });
+      }
+
+      // Notify club admins
+      notifyClubAdmins(supabaseAdmin, {
+        clubId, type: 'chips_minted',
+        title: `🪙 ${amount.toLocaleString()} Chips Minted`,
+        message: `${amount.toLocaleString()} chips minted to treasury${notes ? ` — ${notes}` : ''}.`,
+        data: { amount },
+        excludeUserId: user.id,
+      }).catch(() => { });
+
+      logAudit(supabaseAdmin, { actionType: 'chips_minted', userId: user.id, clubId, amount, ip: extractIP(req), details: { treasuryBefore: result.old_treasury, treasuryAfter: result.new_treasury, notes } });
+      return res.status(200).json({
+        success: true,
+        clubId,
+        amount,
+        treasuryBefore: result.old_treasury,
+        treasuryAfter: result.new_treasury,
+      });
+    } catch (err) {
+      console.error('[mint-chips]', err);
+      return res.status(500).json(safeErrorResponse(err, 'Mint failed'));
     }
 
-    // Notify club admins
-    notifyClubAdmins(supabaseAdmin, {
-      clubId, type: 'chips_minted',
-      title: `🪙 ${amount.toLocaleString()} Chips Minted`,
-      message: `${amount.toLocaleString()} chips minted to treasury${notes ? ` — ${notes}` : ''}.`,
-      data: { amount },
-      excludeUserId: user.id,
-    }).catch(() => { });
-
-    logAudit(supabaseAdmin, { actionType: 'chips_minted', userId: user.id, clubId, amount, ip: extractIP(req), details: { treasuryBefore: result.old_treasury, treasuryAfter: result.new_treasury, notes } });
-    return res.status(200).json({
-      success: true,
-      clubId,
-      amount,
-      treasuryBefore: result.old_treasury,
-      treasuryAfter: result.new_treasury,
-    });
   } catch (err) {
-    console.error('[mint-chips]', err);
-    return res.status(500).json(safeErrorResponse(err, 'Mint failed'));
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

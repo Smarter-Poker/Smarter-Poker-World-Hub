@@ -18,135 +18,141 @@ const supabase = createClient(
 function escapeIlike(s) { return (s || '').replace(/[%_\\]/g, c => '\\' + c); }
 
 export default async function handler(req, res) {
-  if (!applyRateLimit(req, res, LIMITS.ai)) return;
-
-  if (req.method !== 'GET') {
-    res.setHeader('Allow', ['GET']);
-    return res.status(405).json({
-      success: false,
-      error: { code: 'METHOD_NOT_ALLOWED', message: 'Only GET allowed' }
-    });
-  }
-
-  const authHeader = req.headers.authorization;
-  if (!authHeader) {
-    return res.status(401).json({
-      success: false,
-      error: { code: 'AUTH_REQUIRED', message: 'Authentication required' }
-    });
-  }
-
   try {
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (!applyRateLimit(req, res, LIMITS.ai)) return;
 
-    if (authError || !user) {
-      return res.status(401).json({
+    if (req.method !== 'GET') {
+      res.setHeader('Allow', ['GET']);
+      return res.status(405).json({
         success: false,
-        error: { code: 'INVALID_TOKEN', message: 'Invalid or expired token' }
+        error: { code: 'METHOD_NOT_ALLOWED', message: 'Only GET allowed' }
       });
     }
 
-    const { city, state, game_type, max_results = 5 } = req.query;
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({
+        success: false,
+        error: { code: 'AUTH_REQUIRED', message: 'Authentication required' }
+      });
+    }
 
-    // Gather player context in parallel
-    const [
-      profileResult,
-      preferencesResult,
-      membershipsResult,
-      sessionHistoryResult,
-      groupsResult,
-      upcomingGamesResult
-    ] = await Promise.all([
-      // 1. Player profile
-      supabase
-        .from('profiles')
-        .select('id, display_name, city, state')
-        .eq('id', user.id)
-        .maybeSingle(),
+    try {
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
-      // 2. Player preferences (all venues — general prefs)
-      supabase
-        .from('commander_player_preferences')
-        .select('preferred_games, preferred_stakes, auto_join_waitlist, notes')
-        .eq('player_id', user.id)
-        .limit(5),
+      if (authError || !user) {
+        return res.status(401).json({
+          success: false,
+          error: { code: 'INVALID_TOKEN', message: 'Invalid or expired token' }
+        });
+      }
 
-      // 3. Existing group memberships (so we don't recommend groups they're in)
-      supabase
-        .from('commander_home_members')
-        .select('group_id, status, role')
-        .eq('user_id', user.id)
-        .in('status', ['approved', 'pending']),
+      const { city, state, game_type, max_results = 5 } = req.query;
 
-      // 4. Recent session history (last 30 days, up to 20 sessions)
-      supabase
-        .from('commander_player_sessions')
-        .select('venue_id, check_in_at, total_buyin, total_time_minutes, games_played')
-        .eq('player_id', user.id)
-        .gte('check_in_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
-        .order('check_in_at', { ascending: false })
-        .limit(20),
+      // Gather player context in parallel
+      const [
+        profileResult,
+        preferencesResult,
+        membershipsResult,
+        sessionHistoryResult,
+        groupsResult,
+        upcomingGamesResult
+      ] = await Promise.all([
+        // 1. Player profile
+        supabase
+          .from('profiles')
+          .select('id, display_name, city, state')
+          .eq('id', user.id)
+          .maybeSingle(),
 
-      // 5. Public groups (exclude ones player is already in)
-      fetchAvailableGroups({ city, state, game_type }),
+        // 2. Player preferences (all venues — general prefs)
+        supabase
+          .from('commander_player_preferences')
+          .select('preferred_games, preferred_stakes, auto_join_waitlist, notes')
+          .eq('player_id', user.id)
+          .limit(5),
 
-      // 6. Upcoming home games with open seats
-      fetchUpcomingGames({ city, state, game_type })
-    ]);
+        // 3. Existing group memberships (so we don't recommend groups they're in)
+        supabase
+          .from('commander_home_members')
+          .select('group_id, status, role')
+          .eq('user_id', user.id)
+          .in('status', ['approved', 'pending']),
 
-    const profile = profileResult.data;
-    const preferences = preferencesResult.data || [];
-    const memberships = membershipsResult.data || [];
-    const sessions = sessionHistoryResult.data || [];
-    const availableGroups = groupsResult || [];
-    const upcomingGames = upcomingGamesResult || [];
+        // 4. Recent session history (last 30 days, up to 20 sessions)
+        supabase
+          .from('commander_player_sessions')
+          .select('venue_id, check_in_at, total_buyin, total_time_minutes, games_played')
+          .eq('player_id', user.id)
+          .gte('check_in_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+          .order('check_in_at', { ascending: false })
+          .limit(20),
 
-    // Filter out groups the player is already in
-    const memberGroupIds = new Set(memberships.map(m => m.group_id));
-    const newGroups = availableGroups.filter(g => !memberGroupIds.has(g.id));
+        // 5. Public groups (exclude ones player is already in)
+        fetchAvailableGroups({ city, state, game_type }),
 
-    // Build player profile summary for Grok
-    const playerContext = buildPlayerContext(profile, preferences, sessions);
-    const groupContext = buildGroupContext(newGroups);
-    const gameContext = buildGameContext(upcomingGames);
+        // 6. Upcoming home games with open seats
+        fetchUpcomingGames({ city, state, game_type })
+      ]);
 
-    // If no groups or games to match against, return empty
-    if (newGroups.length === 0 && upcomingGames.length === 0) {
+      const profile = profileResult.data;
+      const preferences = preferencesResult.data || [];
+      const memberships = membershipsResult.data || [];
+      const sessions = sessionHistoryResult.data || [];
+      const availableGroups = groupsResult || [];
+      const upcomingGames = upcomingGamesResult || [];
+
+      // Filter out groups the player is already in
+      const memberGroupIds = new Set(memberships.map(m => m.group_id));
+      const newGroups = availableGroups.filter(g => !memberGroupIds.has(g.id));
+
+      // Build player profile summary for Grok
+      const playerContext = buildPlayerContext(profile, preferences, sessions);
+      const groupContext = buildGroupContext(newGroups);
+      const gameContext = buildGameContext(upcomingGames);
+
+      // If no groups or games to match against, return empty
+      if (newGroups.length === 0 && upcomingGames.length === 0) {
+        return res.status(200).json({
+          success: true,
+          data: {
+            matches: [],
+            player_summary: playerContext.summary,
+            message: 'No available groups or upcoming games found in your area. Try broadening your search.'
+          }
+        });
+      }
+
+      // Call Grok for intelligent matching
+      const matches = await getGrokMatches(
+        playerContext,
+        groupContext,
+        gameContext,
+        parseInt(max_results) || 5
+      );
+
       return res.status(200).json({
         success: true,
         data: {
-          matches: [],
+          matches,
           player_summary: playerContext.summary,
-          message: 'No available groups or upcoming games found in your area. Try broadening your search.'
+          groups_considered: newGroups.length,
+          games_considered: upcomingGames.length
         }
+      });
+
+    } catch (error) {
+      console.error('Matchmaker error:', error);
+      return res.status(500).json({
+        success: false,
+        error: { code: 'SERVER_ERROR', message: 'Matchmaker failed' }
       });
     }
 
-    // Call Grok for intelligent matching
-    const matches = await getGrokMatches(
-      playerContext,
-      groupContext,
-      gameContext,
-      parseInt(max_results) || 5
-    );
-
-    return res.status(200).json({
-      success: true,
-      data: {
-        matches,
-        player_summary: playerContext.summary,
-        groups_considered: newGroups.length,
-        games_considered: upcomingGames.length
-      }
-    });
-
-  } catch (error) {
-    console.error('Matchmaker error:', error);
-    return res.status(500).json({
-      success: false,
-      error: { code: 'SERVER_ERROR', message: 'Matchmaker failed' }
-    });
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }
 

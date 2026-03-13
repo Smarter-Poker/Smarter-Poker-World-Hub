@@ -492,74 +492,80 @@ async function postNewsLink(horse, horseIndex, newsType) {
 
 // MAIN HANDLER - VIDEO or NEWS LINK only (no text-only posts)
 export default async function handler(req, res) {
-    // Verify cron secret
-    if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
-    const { horseIndex } = req.query;
-    const index = parseInt(horseIndex, 10);
+  try {
+      // Verify cron secret
+      if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+          return res.status(401).json({ error: 'Unauthorized' });
+      }
+      const { horseIndex } = req.query;
+      const index = parseInt(horseIndex, 10);
 
-    if (isNaN(index) || index < 0 || index > 99) {
-        return res.status(400).json({ error: 'horseIndex must be 0-99' });
-    }
+      if (isNaN(index) || index < 0 || index > 99) {
+          return res.status(400).json({ error: 'horseIndex must be 0-99' });
+      }
 
-    try {
+      try {
 
-        // Load ClipLibrary for poker video clips
-        await loadClipLibrary();
+          // Load ClipLibrary for poker video clips
+          await loadClipLibrary();
 
-        const { data: horses, error: horseError } = await supabase
-            .from('content_authors')
-            .select('*')
-            .eq('is_active', true)
-            .not('profile_id', 'is', null)
-            .order('profile_id')
-                .limit(100);
+          const { data: horses, error: horseError } = await supabase
+              .from('content_authors')
+              .select('*')
+              .eq('is_active', true)
+              .not('profile_id', 'is', null)
+              .order('profile_id')
+                  .limit(100);
 
-        if (horseError || !horses?.length || index >= horses.length) {
-            return res.status(200).json({ success: false, error: 'No horse' });
-        }
+          if (horseError || !horses?.length || index >= horses.length) {
+              return res.status(200).json({ success: false, error: 'No horse' });
+          }
 
-        const horse = horses[index];
+          const horse = horses[index];
 
-        // CONTENT: 75% POKER / 25% SPORTS SPLIT (for BOTH videos AND news)
-        // Hours 0,1,2,4,5,6,8,9,10,12,13,14,16,17,18,20,21,22 = POKER (75%)
-        // Hours 3,7,11,15,19,23 = SPORTS (25%)
-        const hour = new Date().getUTCHours();
-        const isPokerHour = (hour % 4 !== 3);
-        const contentCategory = isPokerHour ? 'poker' : 'sports';
-
-
-        const assignedSources = await getHorseSources(horse.profile_id);
-
-        // Try news first, fallback to video clip of SAME CATEGORY
-        let result;
-        if (isPokerHour) {
-            // POKER HOUR: Try poker news, fallback to poker video
-            result = await postNewsLink(horse, index, 'poker');
-            if (!result.success) {
-                result = await postVideoClip(horse, assignedSources, index, 'poker');
-            }
-        } else {
-            // SPORTS HOUR: Try sports news, fallback to sports video
-            result = await postNewsLink(horse, index, 'sports');
-            if (!result.success) {
-                result = await postVideoClip(horse, assignedSources, index, 'sports');
-            }
-        }
+          // CONTENT: 75% POKER / 25% SPORTS SPLIT (for BOTH videos AND news)
+          // Hours 0,1,2,4,5,6,8,9,10,12,13,14,16,17,18,20,21,22 = POKER (75%)
+          // Hours 3,7,11,15,19,23 = SPORTS (25%)
+          const hour = new Date().getUTCHours();
+          const isPokerHour = (hour % 4 !== 3);
+          const contentCategory = isPokerHour ? 'poker' : 'sports';
 
 
-        return res.status(200).json({
-            success: result.success,
-            horse: horse.name,
-            horseIndex: index,
-            contentCategory,
-            hour,
-            ...result
-        });
+          const assignedSources = await getHorseSources(horse.profile_id);
 
-    } catch (error) {
-        console.error('Horse cron error:', error);
-        return res.status(500).json({ success: false, error: error.message });
-    }
+          // Try news first, fallback to video clip of SAME CATEGORY
+          let result;
+          if (isPokerHour) {
+              // POKER HOUR: Try poker news, fallback to poker video
+              result = await postNewsLink(horse, index, 'poker');
+              if (!result.success) {
+                  result = await postVideoClip(horse, assignedSources, index, 'poker');
+              }
+          } else {
+              // SPORTS HOUR: Try sports news, fallback to sports video
+              result = await postNewsLink(horse, index, 'sports');
+              if (!result.success) {
+                  result = await postVideoClip(horse, assignedSources, index, 'sports');
+              }
+          }
+
+
+          return res.status(200).json({
+              success: result.success,
+              horse: horse.name,
+              horseIndex: index,
+              contentCategory,
+              hour,
+              ...result
+          });
+
+      } catch (error) {
+          console.error('Horse cron error:', error);
+          return res.status(500).json({ success: false, error: error.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

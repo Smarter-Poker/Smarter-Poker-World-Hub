@@ -5,102 +5,108 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbk
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export default async function handler(req, res) {
-    if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
-    }
+  try {
+      if (req.method !== 'POST') {
+          return res.status(405).json({ error: 'Method not allowed' });
+      }
 
-    if (!SUPABASE_SERVICE_ROLE_KEY) {
-        return res.status(500).json({ error: 'Service key not configured' });
-    }
+      if (!SUPABASE_SERVICE_ROLE_KEY) {
+          return res.status(500).json({ error: 'Service key not configured' });
+      }
 
-    const supabase = createClient(SUPABASE_URL.trim(), SUPABASE_SERVICE_ROLE_KEY);
+      const supabase = createClient(SUPABASE_URL.trim(), SUPABASE_SERVICE_ROLE_KEY);
 
-    // HARDENED: Local JWT decode (no GoTrue network call) + fallback
-    const localUser = getServerUser(req);
-    let userId;
-    if (localUser) {
-        userId = localUser.id;
-    } else {
-        // Fallback to GoTrue
-        const token = req.headers.authorization?.replace('Bearer ', '');
-        if (!token) return res.status(401).json({ error: 'Auth required' });
-        const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
-        if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
-        userId = user.id;
-    }
+      // HARDENED: Local JWT decode (no GoTrue network call) + fallback
+      const localUser = getServerUser(req);
+      let userId;
+      if (localUser) {
+          userId = localUser.id;
+      } else {
+          // Fallback to GoTrue
+          const token = req.headers.authorization?.replace('Bearer ', '');
+          if (!token) return res.status(401).json({ error: 'Auth required' });
+          const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+          if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+          userId = user.id;
+      }
 
-    try {
-        // Fetch profile data for header
-        const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('username, full_name, avatar_url, diamonds, is_vip')
-            .eq('id', userId)
-            .maybeSingle();
+      try {
+          // Fetch profile data for header
+          const { data: profile, error } = await supabase
+              .from('profiles')
+              .select('username, full_name, avatar_url, diamonds, is_vip')
+              .eq('id', userId)
+              .maybeSingle();
 
-        if (error) {
-            console.error('[get-header-stats] Profile error:', error);
-            return res.status(500).json({ error: error.message });
-        }
+          if (error) {
+              console.error('[get-header-stats] Profile error:', error);
+              return res.status(500).json({ error: error.message });
+          }
 
-        if (!profile) {
-            return res.status(404).json({ error: 'Profile not found' });
-        }
+          if (!profile) {
+              return res.status(404).json({ error: 'Profile not found' });
+          }
 
-        // Level system removed - no longer using XP
+          // Level system removed - no longer using XP
 
-        // Count unread notifications
-        const { count: notificationCount } = await supabase
-            .from('notifications')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', userId)
-            .eq('read', false);
+          // Count unread notifications
+          const { count: notificationCount } = await supabase
+              .from('notifications')
+              .select('*', { count: 'exact', head: true })
+              .eq('user_id', userId)
+              .eq('read', false);
 
-        // Count unread messages - using social messaging schema
-        // Get user's conversations with their last_read_at timestamp
-        const { data: conversations } = await supabase
-            .from('social_conversation_participants')
-            .select('conversation_id, last_read_at')
-            .eq('user_id', userId);
+          // Count unread messages - using social messaging schema
+          // Get user's conversations with their last_read_at timestamp
+          const { data: conversations } = await supabase
+              .from('social_conversation_participants')
+              .select('conversation_id, last_read_at')
+              .eq('user_id', userId);
 
-        let unreadMessages = 0;
-        if (conversations && conversations.length > 0) {
-            // OPTIMIZED: Single batch query instead of N+1 per-conversation queries
-            const conversationIds = conversations.map(c => c.conversation_id);
-            const earliestRead = conversations.reduce((earliest, c) => {
-                const ts = c.last_read_at || '1970-01-01';
-                return ts < earliest ? ts : earliest;
-            }, conversations[0].last_read_at || '1970-01-01');
+          let unreadMessages = 0;
+          if (conversations && conversations.length > 0) {
+              // OPTIMIZED: Single batch query instead of N+1 per-conversation queries
+              const conversationIds = conversations.map(c => c.conversation_id);
+              const earliestRead = conversations.reduce((earliest, c) => {
+                  const ts = c.last_read_at || '1970-01-01';
+                  return ts < earliest ? ts : earliest;
+              }, conversations[0].last_read_at || '1970-01-01');
 
-            const { data: allMessages } = await supabase
-                .from('social_messages')
-                .select('conversation_id, created_at')
-                .in('conversation_id', conversationIds)
-                .neq('sender_id', userId)
-                .eq('is_deleted', false)
-                .gt('created_at', earliestRead);
+              const { data: allMessages } = await supabase
+                  .from('social_messages')
+                  .select('conversation_id, created_at')
+                  .in('conversation_id', conversationIds)
+                  .neq('sender_id', userId)
+                  .eq('is_deleted', false)
+                  .gt('created_at', earliestRead);
 
-            // Count locally per-conversation last_read_at
-            const readMap = new Map(conversations.map(c => [c.conversation_id, c.last_read_at || '1970-01-01']));
-            (allMessages || []).forEach(msg => {
-                const lastRead = readMap.get(msg.conversation_id);
-                if (lastRead && msg.created_at > lastRead) unreadMessages++;
-            });
-        }
+              // Count locally per-conversation last_read_at
+              const readMap = new Map(conversations.map(c => [c.conversation_id, c.last_read_at || '1970-01-01']));
+              (allMessages || []).forEach(msg => {
+                  const lastRead = readMap.get(msg.conversation_id);
+                  if (lastRead && msg.created_at > lastRead) unreadMessages++;
+              });
+          }
 
-        return res.json({
-            success: true,
-            profile: {
-                username: profile.username,
-                full_name: profile.full_name,
-                avatar_url: profile.avatar_url,
-                diamonds: profile.diamonds || 0,
-                is_vip: profile.is_vip || false
-            },
-            notificationCount: notificationCount || 0,
-            unreadMessages
-        });
-    } catch (e) {
-        console.error('[get-header-stats] Exception:', e);
-        return res.status(500).json({ error: e.message });
-    }
+          return res.json({
+              success: true,
+              profile: {
+                  username: profile.username,
+                  full_name: profile.full_name,
+                  avatar_url: profile.avatar_url,
+                  diamonds: profile.diamonds || 0,
+                  is_vip: profile.is_vip || false
+              },
+              notificationCount: notificationCount || 0,
+              unreadMessages
+          });
+      } catch (e) {
+          console.error('[get-header-stats] Exception:', e);
+          return res.status(500).json({ error: e.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

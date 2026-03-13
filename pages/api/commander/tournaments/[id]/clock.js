@@ -24,34 +24,40 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
+  try {
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
 
-  const _g = await guardWriteStaff(req, res); if (!_g) return;
+    const _g = await guardWriteStaff(req, res); if (!_g) return;
 
-  const { id: tournamentId } = req.query;
+    const { id: tournamentId } = req.query;
 
-  if (!tournamentId) {
-    return res.status(400).json({
+    if (!tournamentId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: 'Tournament ID required' }
+      });
+    }
+
+    if (req.method === 'GET') {
+      return getClockState(req, res, tournamentId);
+    }
+
+    if (req.method === 'POST') {
+      return handleClockAction(req, res, tournamentId, _g);
+    }
+
+    res.setHeader('Allow', ['GET', 'POST']);
+    return res.status(405).json({
       success: false,
-      error: { code: 'VALIDATION_ERROR', message: 'Tournament ID required' }
+      error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' }
     });
-  }
 
-  if (req.method === 'GET') {
-    return getClockState(req, res, tournamentId);
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-  if (req.method === 'POST') {
-    return handleClockAction(req, res, tournamentId, _g);
-  }
-
-  res.setHeader('Allow', ['GET', 'POST']);
-  return res.status(405).json({
-    success: false,
-    error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' }
-  });
 }
 
 async function getClockState(req, res, tournamentId) {

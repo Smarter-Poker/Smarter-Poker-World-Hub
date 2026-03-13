@@ -13,40 +13,46 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
 
-  if (req.method !== 'GET') { const _u = await guardUser(req, res); if (!_u) return; }
+    if (req.method !== 'GET') { const _u = await guardUser(req, res); if (!_u) return; }
 
-  const authHeader = req.headers.authorization;
-  if (!authHeader) {
-    return res.status(401).json({
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({
+        success: false,
+        error: { code: 'AUTH_REQUIRED', message: 'Authentication required' }
+      });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+    if (authError || !user) {
+      return res.status(401).json({
+        success: false,
+        error: { code: 'INVALID_TOKEN', message: 'Invalid or expired token' }
+      });
+    }
+
+    if (req.method === 'GET') {
+      return getProfile(req, res, user);
+    } else if (req.method === 'PATCH') {
+      return updateProfile(req, res, user);
+    }
+
+    return res.status(405).json({
       success: false,
-      error: { code: 'AUTH_REQUIRED', message: 'Authentication required' }
+      error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' }
     });
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-  const token = authHeader.replace('Bearer ', '');
-  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-
-  if (authError || !user) {
-    return res.status(401).json({
-      success: false,
-      error: { code: 'INVALID_TOKEN', message: 'Invalid or expired token' }
-    });
-  }
-
-  if (req.method === 'GET') {
-    return getProfile(req, res, user);
-  } else if (req.method === 'PATCH') {
-    return updateProfile(req, res, user);
-  }
-
-  return res.status(405).json({
-    success: false,
-    error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' }
-  });
 }
 
 async function getProfile(req, res, user) {

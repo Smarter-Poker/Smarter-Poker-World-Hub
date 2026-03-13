@@ -14,28 +14,34 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+    if (req.method !== 'GET') { const _u = await guardUser(req, res); if (!_u) return; }
+
+    const { code } = req.query;
+
+    if (!code) {
+      return res.status(400).json({ error: 'Club code required' });
+    }
+
+    if (req.method === 'GET') {
+      return getClubByCode(req, res, code);
+    }
+
+    if (req.method === 'POST') {
+      return joinClubByCode(req, res, code);
+    }
+
+    res.setHeader('Allow', ['GET', 'POST']);
+    return res.status(405).json({ error: 'Method not allowed' });
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-  if (req.method !== 'GET') { const _u = await guardUser(req, res); if (!_u) return; }
-
-  const { code } = req.query;
-
-  if (!code) {
-    return res.status(400).json({ error: 'Club code required' });
-  }
-
-  if (req.method === 'GET') {
-    return getClubByCode(req, res, code);
-  }
-
-  if (req.method === 'POST') {
-    return joinClubByCode(req, res, code);
-  }
-
-  res.setHeader('Allow', ['GET', 'POST']);
-  return res.status(405).json({ error: 'Method not allowed' });
 }
 
 async function getClubByCode(req, res, code) {

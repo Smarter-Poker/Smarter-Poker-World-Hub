@@ -16,57 +16,63 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
-  // CDN cache: fresh for 60s, serve stale up to 300s
-  if (req.method === 'GET') {
-    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
-  }
-
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
-
-    const { id } = req.query;
-
-    if (!id) {
-        return res.status(400).json({ success: false, error: 'Venue ID required' });
-    }
-
-    // Get auth user
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ success: false, error: 'Authentication required' });
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-
-    if (authError || !user) {
-        return res.status(401).json({ success: false, error: 'Invalid or expired token' });
-    }
-
-    // Check if user is a manager of this venue
-    const { data: manager, error: managerError } = await supabaseAdmin
-        .from('venue_managers')
-        .select('*')
-        .eq('venue_id', parseInt(id))
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .maybeSingle();
-
-    if (managerError || !manager) {
-        return res.status(403).json({
-            success: false, error: 'Not authorized',
-            message: 'You do not have permission to manage this venue.'
-        });
-    }
-
+  try {
+    // CDN cache: fresh for 60s, serve stale up to 300s
     if (req.method === 'GET') {
-        return handleGet(req, res, id, user, manager);
-    } else if (req.method === 'PATCH') {
-        return handlePatch(req, res, id, user, manager);
+      res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
     }
 
-    return res.status(405).json({ success: false, error: 'Method not allowed' });
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+      const { id } = req.query;
+
+      if (!id) {
+          return res.status(400).json({ success: false, error: 'Venue ID required' });
+      }
+
+      // Get auth user
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+          return res.status(401).json({ success: false, error: 'Authentication required' });
+      }
+
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+      if (authError || !user) {
+          return res.status(401).json({ success: false, error: 'Invalid or expired token' });
+      }
+
+      // Check if user is a manager of this venue
+      const { data: manager, error: managerError } = await supabaseAdmin
+          .from('venue_managers')
+          .select('*')
+          .eq('venue_id', parseInt(id))
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .maybeSingle();
+
+      if (managerError || !manager) {
+          return res.status(403).json({
+              success: false, error: 'Not authorized',
+              message: 'You do not have permission to manage this venue.'
+          });
+      }
+
+      if (req.method === 'GET') {
+          return handleGet(req, res, id, user, manager);
+      } else if (req.method === 'PATCH') {
+          return handlePatch(req, res, id, user, manager);
+      }
+
+      return res.status(405).json({ success: false, error: 'Method not allowed' });
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }
 
 async function handleGet(req, res, venueId, user, manager) {

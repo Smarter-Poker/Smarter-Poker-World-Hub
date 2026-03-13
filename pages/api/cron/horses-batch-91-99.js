@@ -35,80 +35,86 @@ function convertToEmbedUrl(url) {
 }
 
 export default async function handler(req, res) {
-    // Verify cron secret
-    if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
-    try {
+  try {
+      // Verify cron secret
+      if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+          return res.status(401).json({ error: 'Unauthorized' });
+      }
+      try {
 
-        // Get all active horses ordered by profile_id
-        const { data: horses, error: horseError } = await supabase
-            .from('content_authors')
-            .select('*')
-            .eq('is_active', true)
-            .not('profile_id', 'is', null)
-            .order('profile_id')
-                .limit(100);
+          // Get all active horses ordered by profile_id
+          const { data: horses, error: horseError } = await supabase
+              .from('content_authors')
+              .select('*')
+              .eq('is_active', true)
+              .not('profile_id', 'is', null)
+              .order('profile_id')
+                  .limit(100);
 
-        if (horseError || !horses?.length) {
-            return res.status(200).json({ success: false, error: 'No horses found' });
-        }
+          if (horseError || !horses?.length) {
+              return res.status(200).json({ success: false, error: 'No horses found' });
+          }
 
-        // Get horses 90-99 (last 10 horses)
-        const batchHorses = horses.slice(90, 100);
-        const results = [];
+          // Get horses 90-99 (last 10 horses)
+          const batchHorses = horses.slice(90, 100);
+          const results = [];
 
-        for (const horse of batchHorses) {
+          for (const horse of batchHorses) {
 
-            // Get a clip
-            const { data: clips } = await supabase
-                .from('poker_clips')
-                .select('*')
-                .eq('is_active', true)
-                .order('last_used_at', { ascending: true, nullsFirst: true })
-                .limit(20);
+              // Get a clip
+              const { data: clips } = await supabase
+                  .from('poker_clips')
+                  .select('*')
+                  .eq('is_active', true)
+                  .order('last_used_at', { ascending: true, nullsFirst: true })
+                  .limit(20);
 
-            if (!clips?.length) continue;
+              if (!clips?.length) continue;
 
-            const clip = clips[Math.floor(Math.random() * Math.min(10, clips.length))];
-            if (!clip) continue;
+              const clip = clips[Math.floor(Math.random() * Math.min(10, clips.length))];
+              if (!clip) continue;
 
-            // Generate caption
-            let caption = clip.title?.slice(0, 80) || 'Check this 🔥';
-            caption = applyWritingStyle(caption, horse.profile_id);
+              // Generate caption
+              let caption = clip.title?.slice(0, 80) || 'Check this 🔥';
+              caption = applyWritingStyle(caption, horse.profile_id);
 
-            // Create post
-            const { data: post, error } = await supabase
-                .from('social_posts')
-                .insert({
-                    author_id: horse.profile_id,
-                    content: caption,
-                    content_type: 'video',
-                    media_urls: [convertToEmbedUrl(clip.source_url)],
-                    visibility: 'public',
-                    metadata: {
-                        clip_id: clip.id,
-                        source_video_id: clip.video_id,
-                        posted_by_cron: 'batch-91-99'
-                    }
-                })
-                .select()
-                .maybeSingle();
+              // Create post
+              const { data: post, error } = await supabase
+                  .from('social_posts')
+                  .insert({
+                      author_id: horse.profile_id,
+                      content: caption,
+                      content_type: 'video',
+                      media_urls: [convertToEmbedUrl(clip.source_url)],
+                      visibility: 'public',
+                      metadata: {
+                          clip_id: clip.id,
+                          source_video_id: clip.video_id,
+                          posted_by_cron: 'batch-91-99'
+                      }
+                  })
+                  .select()
+                  .maybeSingle();
 
-            if (!error) {
-                results.push({ horse: horse.name, postId: post.id });
-                await supabase.from('poker_clips').update({ last_used_at: new Date().toISOString() }).eq('id', clip.id);
-            }
-        }
+              if (!error) {
+                  results.push({ horse: horse.name, postId: post.id });
+                  await supabase.from('poker_clips').update({ last_used_at: new Date().toISOString() }).eq('id', clip.id);
+              }
+          }
 
-        return res.status(200).json({
-            success: true,
-            posted: results.length,
-            horses: results.map(r => r.horse)
-        });
+          return res.status(200).json({
+              success: true,
+              posted: results.length,
+              horses: results.map(r => r.horse)
+          });
 
-    } catch (error) {
-        console.error('Batch horse cron error:', error);
-        return res.status(500).json({ success: false, error: error.message });
-    }
+      } catch (error) {
+          console.error('Batch horse cron error:', error);
+          return res.status(500).json({ success: false, error: error.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

@@ -33,215 +33,221 @@ const ALLOWED_BODY_FIELDS = new Set(['transactionId', 'clubId', 'amount']);
 const MAX_BODY_SIZE = 512; // 512B payload limit
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
-
-  const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
-
-  // CONCURRENCY: Idempotency guard — dedup rapid double-taps
-  if (checkIdempotency(req, res)) return;
-
-  const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-  if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
-
-  const { transactionId, clubId, amount: rawRequestedAmount } = req.body;
-
-  // MANDATE 3: Payload size + field allowlist validation
-  const bodyStr = JSON.stringify(req.body || {});
-  if (bodyStr.length > MAX_BODY_SIZE) {
-    return res.status(413).json({ success: false, error: 'Request body too large' });
-  }
-  const unknownFields = Object.keys(req.body || {}).filter(k => !ALLOWED_BODY_FIELDS.has(k));
-  if (unknownFields.length > 0) {
-    return res.status(400).json({ success: false, error: `Unknown fields: ${unknownFields.join(', ')}` });
-  }
-
-  if (!transactionId || !clubId) {
-    return res.status(400).json({ success: false, error: 'transactionId and clubId required' });
-  }
-
-  // UUID format validation — block SQL injection via transactionId
-  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (!UUID_RE.test(transactionId) || !UUID_RE.test(clubId)) {
-    return res.status(400).json({ success: false, error: 'Invalid transactionId or clubId format' });
-  }
-
-  // Settlement lock check — block during Monday 4:00-4:10 AM CST
-  const lockCheck = await checkSettlementLock(supabaseAdmin, clubId);
-  if (lockCheck.locked) return sendLockedResponse(res, lockCheck);
-
-  // Rate limit
-  if (!applyRateLimit(req, res, 'club-arena/clawback-chips')) return;
-
-  // ── Anti-Fraud: Velocity Check (detect rapid clawback-redistribute cycles) ──
-  const vel = await checkVelocity(supabaseAdmin, { userId: user.id, clubId, actionType: 'clawback', amount: rawRequestedAmount || 0 });
-  if (!vel.passed) {
-    return res.status(429).json({ success: false, error: vel.reason, flagged: true });
-  }
-
   try {
-    // ═════════════════════════════════════════════════════════════
-    // 1. Get the original transaction
-    // ═════════════════════════════════════════════════════════════
-    const { data: txn, error: txnErr } = await supabaseAdmin
-      .from('chip_transactions')
-      .select('id, from_user_id, to_user_id, amount, club_id, created_at, transaction_type, notes')
-      .eq('id', transactionId)
-      .maybeSingle();
+    if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 
-    if (txnErr || !txn) {
-      return res.status(404).json({ success: false, error: 'Transaction not found' });
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
+
+    // CONCURRENCY: Idempotency guard — dedup rapid double-taps
+    if (checkIdempotency(req, res)) return;
+
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+
+    const { transactionId, clubId, amount: rawRequestedAmount } = req.body;
+
+    // MANDATE 3: Payload size + field allowlist validation
+    const bodyStr = JSON.stringify(req.body || {});
+    if (bodyStr.length > MAX_BODY_SIZE) {
+      return res.status(413).json({ success: false, error: 'Request body too large' });
+    }
+    const unknownFields = Object.keys(req.body || {}).filter(k => !ALLOWED_BODY_FIELDS.has(k));
+    if (unknownFields.length > 0) {
+      return res.status(400).json({ success: false, error: `Unknown fields: ${unknownFields.join(', ')}` });
     }
 
-    // ═════════════════════════════════════════════════════════════
-    // 2. Verify this is the agent who sent the chips
-    // ═════════════════════════════════════════════════════════════
-    if (txn.from_user_id !== user.id) {
-      return res.status(403).json({ success: false, error: 'You can only clawback your own distributions' });
+    if (!transactionId || !clubId) {
+      return res.status(400).json({ success: false, error: 'transactionId and clubId required' });
     }
 
-    if (txn.club_id !== clubId) {
-      return res.status(400).json({ success: false, error: 'Club ID mismatch' });
+    // UUID format validation — block SQL injection via transactionId
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!UUID_RE.test(transactionId) || !UUID_RE.test(clubId)) {
+      return res.status(400).json({ success: false, error: 'Invalid transactionId or clubId format' });
     }
 
-    // Must be an agent→player distribution, not a cashout or other type
-    const clawbackableTypes = ['agent_to_player', 'promo_agent_to_player', 'send'];
-    if (!clawbackableTypes.includes(txn.transaction_type) || txn.from_user_id === txn.to_user_id) {
-      return res.status(400).json({ success: false, error: 'Can only clawback agent→player distributions' });
+    // Settlement lock check — block during Monday 4:00-4:10 AM CST
+    const lockCheck = await checkSettlementLock(supabaseAdmin, clubId);
+    if (lockCheck.locked) return sendLockedResponse(res, lockCheck);
+
+    // Rate limit
+    if (!applyRateLimit(req, res, 'club-arena/clawback-chips')) return;
+
+    // ── Anti-Fraud: Velocity Check (detect rapid clawback-redistribute cycles) ──
+    const vel = await checkVelocity(supabaseAdmin, { userId: user.id, clubId, actionType: 'clawback', amount: rawRequestedAmount || 0 });
+    if (!vel.passed) {
+      return res.status(429).json({ success: false, error: vel.reason, flagged: true });
     }
 
-    // Check if already clawed back (idempotency)
-    if (txn.notes?.includes('[CLAWED BACK]')) {
-      return res.status(409).json({ success: false, error: 'This transaction has already been clawed back' });
-    }
-
-    // ═════════════════════════════════════════════════════════════
-    // 3. Check the 10-minute window
-    // ═════════════════════════════════════════════════════════════
-    const txnTime = new Date(txn.created_at).getTime();
-    const now = Date.now();
-    const elapsed = now - txnTime;
-
-    if (elapsed > CLAWBACK_WINDOW_MS) {
-      const minutesAgo = Math.floor(elapsed / 60000);
-      return res.status(403).json({
-        success: false, error: 'Clawback window expired',
-        message: `This distribution was ${minutesAgo} minutes ago. The 10-minute clawback window has closed.`,
-        suggestion: 'The player must submit a cashout request for you to approve.',
-      });
-    }
-
-    const remainingSeconds = Math.ceil((CLAWBACK_WINDOW_MS - elapsed) / 1000);
-
-    // ═════════════════════════════════════════════════════════════
-    // 4. Determine clawback amount — sanitized
-    // ═════════════════════════════════════════════════════════════
-    let clawbackAmount;
-    if (rawRequestedAmount != null) {
-      clawbackAmount = Math.floor(Number(rawRequestedAmount));
-      if (!Number.isFinite(clawbackAmount) || clawbackAmount <= 0 || clawbackAmount > 100_000_000) {
-        return res.status(400).json({ success: false, error: 'amount must be a positive integer (max 100M)' });
-      }
-      clawbackAmount = Math.min(clawbackAmount, txn.amount); // cap at original amount
-    } else {
-      clawbackAmount = txn.amount; // default to full original
-    }
-
-    if (clawbackAmount <= 0) {
-      return res.status(400).json({ success: false, error: 'Invalid clawback amount' });
-    }
-
-    // ═════════════════════════════════════════════════════════════
-    // 5. Atomically claim the transaction (prevents double-clawback)
-    // ═════════════════════════════════════════════════════════════
-    const clawbackNote = `${txn.notes || ''} [CLAWED BACK: ${clawbackAmount} at ${new Date().toISOString()}]`;
-    const { data: claimed, error: claimErr } = await supabaseAdmin
-      .from('chip_transactions')
-      .update({ notes: clawbackNote })
-      .eq('id', transactionId)
-      .not('notes', 'like', '%[CLAWED BACK]%')  // Only if not already claimed
-      .select('id')
-      .maybeSingle();
-
-    if (claimErr || !claimed) {
-      return res.status(409).json({ success: false, error: 'Transaction already clawed back or claim failed' });
-    }
-
-    // ═════════════════════════════════════════════════════════════
-    // 6. Execute atomic clawback via RPC
-    // ═════════════════════════════════════════════════════════════
-    const { data: rpcResult, error: rpcErr } = await supabaseAdmin.rpc('fn_clawback_chips_atomic', {
-      p_transaction_id: transactionId,
-      p_club_id: clubId,
-      p_agent_id: user.id,
-      p_amount: clawbackAmount
-    });
-
-    if (rpcErr || !rpcResult?.success) {
-      // Revert claim note
-      await supabaseAdmin
+    try {
+      // ═════════════════════════════════════════════════════════════
+      // 1. Get the original transaction
+      // ═════════════════════════════════════════════════════════════
+      const { data: txn, error: txnErr } = await supabaseAdmin
         .from('chip_transactions')
-        .update({ notes: txn.notes || '' })
-        .eq('id', transactionId);
+        .select('id, from_user_id, to_user_id, amount, club_id, created_at, transaction_type, notes')
+        .eq('id', transactionId)
+        .maybeSingle();
+
+      if (txnErr || !txn) {
+        return res.status(404).json({ success: false, error: 'Transaction not found' });
+      }
+
+      // ═════════════════════════════════════════════════════════════
+      // 2. Verify this is the agent who sent the chips
+      // ═════════════════════════════════════════════════════════════
+      if (txn.from_user_id !== user.id) {
+        return res.status(403).json({ success: false, error: 'You can only clawback your own distributions' });
+      }
+
+      if (txn.club_id !== clubId) {
+        return res.status(400).json({ success: false, error: 'Club ID mismatch' });
+      }
+
+      // Must be an agent→player distribution, not a cashout or other type
+      const clawbackableTypes = ['agent_to_player', 'promo_agent_to_player', 'send'];
+      if (!clawbackableTypes.includes(txn.transaction_type) || txn.from_user_id === txn.to_user_id) {
+        return res.status(400).json({ success: false, error: 'Can only clawback agent→player distributions' });
+      }
+
+      // Check if already clawed back (idempotency)
+      if (txn.notes?.includes('[CLAWED BACK]')) {
+        return res.status(409).json({ success: false, error: 'This transaction has already been clawed back' });
+      }
+
+      // ═════════════════════════════════════════════════════════════
+      // 3. Check the 10-minute window
+      // ═════════════════════════════════════════════════════════════
+      const txnTime = new Date(txn.created_at).getTime();
+      const now = Date.now();
+      const elapsed = now - txnTime;
+
+      if (elapsed > CLAWBACK_WINDOW_MS) {
+        const minutesAgo = Math.floor(elapsed / 60000);
+        return res.status(403).json({
+          success: false, error: 'Clawback window expired',
+          message: `This distribution was ${minutesAgo} minutes ago. The 10-minute clawback window has closed.`,
+          suggestion: 'The player must submit a cashout request for you to approve.',
+        });
+      }
+
+      const remainingSeconds = Math.ceil((CLAWBACK_WINDOW_MS - elapsed) / 1000);
+
+      // ═════════════════════════════════════════════════════════════
+      // 4. Determine clawback amount — sanitized
+      // ═════════════════════════════════════════════════════════════
+      let clawbackAmount;
+      if (rawRequestedAmount != null) {
+        clawbackAmount = Math.floor(Number(rawRequestedAmount));
+        if (!Number.isFinite(clawbackAmount) || clawbackAmount <= 0 || clawbackAmount > 100_000_000) {
+          return res.status(400).json({ success: false, error: 'amount must be a positive integer (max 100M)' });
+        }
+        clawbackAmount = Math.min(clawbackAmount, txn.amount); // cap at original amount
+      } else {
+        clawbackAmount = txn.amount; // default to full original
+      }
+
+      if (clawbackAmount <= 0) {
+        return res.status(400).json({ success: false, error: 'Invalid clawback amount' });
+      }
+
+      // ═════════════════════════════════════════════════════════════
+      // 5. Atomically claim the transaction (prevents double-clawback)
+      // ═════════════════════════════════════════════════════════════
+      const clawbackNote = `${txn.notes || ''} [CLAWED BACK: ${clawbackAmount} at ${new Date().toISOString()}]`;
+      const { data: claimed, error: claimErr } = await supabaseAdmin
+        .from('chip_transactions')
+        .update({ notes: clawbackNote })
+        .eq('id', transactionId)
+        .not('notes', 'like', '%[CLAWED BACK]%')  // Only if not already claimed
+        .select('id')
+        .maybeSingle();
+
+      if (claimErr || !claimed) {
+        return res.status(409).json({ success: false, error: 'Transaction already clawed back or claim failed' });
+      }
+
+      // ═════════════════════════════════════════════════════════════
+      // 6. Execute atomic clawback via RPC
+      // ═════════════════════════════════════════════════════════════
+      const { data: rpcResult, error: rpcErr } = await supabaseAdmin.rpc('fn_clawback_chips_atomic', {
+        p_transaction_id: transactionId,
+        p_club_id: clubId,
+        p_agent_id: user.id,
+        p_amount: clawbackAmount
+      });
+
+      if (rpcErr || !rpcResult?.success) {
+        // Revert claim note
+        await supabaseAdmin
+          .from('chip_transactions')
+          .update({ notes: txn.notes || '' })
+          .eq('id', transactionId);
+
+        return res.status(200).json({
+          success: true,
+          partial: rpcResult?.partial || false,
+          recovered: rpcResult?.recovered || 0,
+          playerNewBalance: rpcResult?.player_new_balance || 0,
+          message: rpcResult?.error || 'Player balance may be in-play',
+          windowRemaining: `${remainingSeconds}s`
+        });
+      }
+
+      const { partial, requested, recovered, player_new_balance: freshPlayerBal, agent_new_balance: freshAgentBal } = rpcResult;
+
+      // ═════════════════════════════════════════════════════════════
+      // 8. Log and Reply
+      // ═════════════════════════════════════════════════════════════
+
+      // Balances are already returned by the RPC as freshPlayerBal and freshAgentBal
+
+      // ═════════════════════════════════════════════════════════════
+      // 9. ORB-5 MANDATE: Immutable audit log via centralized logger
+      // ═════════════════════════════════════════════════════════════
+      logAudit(supabaseAdmin, {
+        actionType: 'clawback',
+        userId: user.id,
+        targetUserId: txn.to_user_id,
+        clubId,
+        amount: clawbackAmount,
+        ip: extractIP(req),
+        details: {
+          original_transaction_id: transactionId,
+          original_amount: txn.amount,
+          clawback_amount: recovered,
+          player_new_balance: freshPlayerBal,
+          agent_new_balance: freshAgentBal,
+          window_remaining_seconds: remainingSeconds,
+        },
+      });
+
+      notifyUser(supabaseAdmin, {
+        userId: txn.to_user_id,
+        type: 'clawback',
+        title: 'Chips Clawed Back',
+        message: `An agent clawed back ${recovered.toLocaleString()} chips from your balance.`,
+        data: { clubId, amount: recovered }
+      });
 
       return res.status(200).json({
         success: true,
-        partial: rpcResult?.partial || false,
-        recovered: rpcResult?.recovered || 0,
-        playerNewBalance: rpcResult?.player_new_balance || 0,
-        message: rpcResult?.error || 'Player balance may be in-play',
-        windowRemaining: `${remainingSeconds}s`
+        partial,
+        clawbackAmount: recovered,
+        originalAmount: txn.amount,
+        shortfall: requested - recovered,
+        playerNewBalance: freshPlayerBal,
+        agentNewBalance: freshAgentBal,
+        windowRemaining: `${remainingSeconds}s`,
       });
+    } catch (err) {
+      console.error('[clawback-chips]', err);
+      return res.status(500).json(safeErrorResponse(err, 'Clawback failed'));
     }
 
-    const { partial, requested, recovered, player_new_balance: freshPlayerBal, agent_new_balance: freshAgentBal } = rpcResult;
-
-    // ═════════════════════════════════════════════════════════════
-    // 8. Log and Reply
-    // ═════════════════════════════════════════════════════════════
-
-    // Balances are already returned by the RPC as freshPlayerBal and freshAgentBal
-
-    // ═════════════════════════════════════════════════════════════
-    // 9. ORB-5 MANDATE: Immutable audit log via centralized logger
-    // ═════════════════════════════════════════════════════════════
-    logAudit(supabaseAdmin, {
-      actionType: 'clawback',
-      userId: user.id,
-      targetUserId: txn.to_user_id,
-      clubId,
-      amount: clawbackAmount,
-      ip: extractIP(req),
-      details: {
-        original_transaction_id: transactionId,
-        original_amount: txn.amount,
-        clawback_amount: recovered,
-        player_new_balance: freshPlayerBal,
-        agent_new_balance: freshAgentBal,
-        window_remaining_seconds: remainingSeconds,
-      },
-    });
-
-    notifyUser(supabaseAdmin, {
-      userId: txn.to_user_id,
-      type: 'clawback',
-      title: 'Chips Clawed Back',
-      message: `An agent clawed back ${recovered.toLocaleString()} chips from your balance.`,
-      data: { clubId, amount: recovered }
-    });
-
-    return res.status(200).json({
-      success: true,
-      partial,
-      clawbackAmount: recovered,
-      originalAmount: txn.amount,
-      shortfall: requested - recovered,
-      playerNewBalance: freshPlayerBal,
-      agentNewBalance: freshAgentBal,
-      windowRemaining: `${remainingSeconds}s`,
-    });
   } catch (err) {
-    console.error('[clawback-chips]', err);
-    return res.status(500).json(safeErrorResponse(err, 'Clawback failed'));
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

@@ -131,68 +131,74 @@ const FALLBACK_QUESTIONS = [
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default async function handler(req, res) {
-    if (req.method !== 'GET') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
+  try {
+      if (req.method !== 'GET') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
 
-    try {
-        const today = getTodayCST();
+      try {
+          const today = getTodayCST();
 
-        // Try to fetch today's questions from database
-        const { data: questions, error } = await supabase
-            .from('trivia_questions')
-            .select('id, category, difficulty, question, options, correct_index, explanation')
-            .eq('daily_date', today)
-            .order('order_index', { ascending: true })
-                .limit(100);
+          // Try to fetch today's questions from database
+          const { data: questions, error } = await supabase
+              .from('trivia_questions')
+              .select('id, category, difficulty, question, options, correct_index, explanation')
+              .eq('daily_date', today)
+              .order('order_index', { ascending: true })
+                  .limit(100);
 
-        if (error) {
-            console.error('[Trivia API] Database error:', error);
-        }
+          if (error) {
+              console.error('[Trivia API] Database error:', error);
+          }
 
-        // Get user stats if authenticated (placeholder - would use auth)
-        const userStats = {
-            totalPlayed: 0,
-            bestScore: 0,
-            currentStreak: 0
-        };
+          // Get user stats if authenticated (placeholder - would use auth)
+          const userStats = {
+              totalPlayed: 0,
+              bestScore: 0,
+              currentStreak: 0
+          };
 
-        // Get today's leaderboard
-        const { data: leaderboard } = await supabase
-            .from('trivia_scores')
-            .select('username, score')
-            .eq('play_date', today)
-            .order('score', { ascending: false })
-            .limit(10);
+          // Get today's leaderboard
+          const { data: leaderboard } = await supabase
+              .from('trivia_scores')
+              .select('username, score')
+              .eq('play_date', today)
+              .order('score', { ascending: false })
+              .limit(10);
 
-        // Return questions (fallback if none in database)
-        const finalQuestions = (questions && questions.length >= 10)
-            ? questions
-            : shuffleArray([...FALLBACK_QUESTIONS]).slice(0, 10);
+          // Return questions (fallback if none in database)
+          const finalQuestions = (questions && questions.length >= 10)
+              ? questions
+              : shuffleArray([...FALLBACK_QUESTIONS]).slice(0, 10);
 
-        return res.status(200).json({
-            success: true,
-            date: today,
-            questions: finalQuestions,
-            hasPlayedToday: false, // Would check auth
-            todayScore: null,
-            leaderboard: leaderboard || [],
-            userStats
-        });
+          return res.status(200).json({
+              success: true,
+              date: today,
+              questions: finalQuestions,
+              hasPlayedToday: false, // Would check auth
+              todayScore: null,
+              leaderboard: leaderboard || [],
+              userStats
+          });
 
-    } catch (error) {
-        console.error('[Trivia API] Error:', error);
+      } catch (error) {
+          console.error('[Trivia API] Error:', error);
 
-        // Return fallback questions on error
-        return res.status(200).json({
-            success: true,
-            questions: shuffleArray([...FALLBACK_QUESTIONS]).slice(0, 10),
-            hasPlayedToday: false,
-            todayScore: null,
-            leaderboard: [],
-            userStats: { totalPlayed: 0, bestScore: 0, currentStreak: 0 }
-        });
-    }
+          // Return fallback questions on error
+          return res.status(200).json({
+              success: true,
+              questions: shuffleArray([...FALLBACK_QUESTIONS]).slice(0, 10),
+              hasPlayedToday: false,
+              todayScore: null,
+              leaderboard: [],
+              userStats: { totalPlayed: 0, bestScore: 0, currentStreak: 0 }
+          });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

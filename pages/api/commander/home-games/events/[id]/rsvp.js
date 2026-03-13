@@ -15,32 +15,38 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+    if (req.method !== 'GET') { const _u = await guardUser(req, res); if (!_u) return; }
+
+    const { id: eventId } = req.query;
+
+    if (!eventId) {
+      return res.status(400).json({ error: 'Event ID required' });
+    }
+
+    if (req.method === 'GET') {
+      return getRsvps(req, res, eventId);
+    }
+
+    if (req.method === 'POST') {
+      return submitRsvp(req, res, eventId);
+    }
+
+    if (req.method === 'PUT') {
+      return updateRsvp(req, res, eventId);
+    }
+
+    res.setHeader('Allow', ['GET', 'POST', 'PUT']);
+    return res.status(405).json({ error: 'Method not allowed' });
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-  if (req.method !== 'GET') { const _u = await guardUser(req, res); if (!_u) return; }
-
-  const { id: eventId } = req.query;
-
-  if (!eventId) {
-    return res.status(400).json({ error: 'Event ID required' });
-  }
-
-  if (req.method === 'GET') {
-    return getRsvps(req, res, eventId);
-  }
-
-  if (req.method === 'POST') {
-    return submitRsvp(req, res, eventId);
-  }
-
-  if (req.method === 'PUT') {
-    return updateRsvp(req, res, eventId);
-  }
-
-  res.setHeader('Allow', ['GET', 'POST', 'PUT']);
-  return res.status(405).json({ error: 'Method not allowed' });
 }
 
 async function getRsvps(req, res, eventId) {

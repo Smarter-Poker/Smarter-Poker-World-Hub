@@ -15,169 +15,175 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
-
-  const _g = await guardManager(req, res); if (!_g) return;
-
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ success: false, error: 'Authorization required' });
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user } } = await supabase.auth.getUser(token);
-    if (!user) return res.status(401).json({ success: false, error: 'Invalid token' });
-
-    let staff = null;
-    const { data: staffRow } = await supabase
-      .from('commander_staff')
-      .select('venue_id, role, name')
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .maybeSingle();
-    if (staffRow) {
-      staff = staffRow;
-    } else {
-      // Fallback: check if user is a venue owner via subscription
-      const { data: sub } = await supabase
-        .from('commander_subscriptions')
-        .select('id, venue_id, owner_id')
-        .eq('owner_id', user.id)
-        .in('status', ['active', 'trialing'])
-        .limit(1)
-        .maybeSingle();
-      if (sub) staff = { venue_id: sub.venue_id, role: 'owner', name: 'Owner' };
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
-    if (!staff) return res.status(403).json({ success: false, error: 'Staff access required' });
 
-    const venueId = staff.venue_id;
+    const _g = await guardManager(req, res); if (!_g) return;
 
-    // GET - List all game types
-    if (req.method === 'GET') {
-      const showInactive = req.query.include_inactive === 'true';
-      let query = supabase
-        .from('commander_game_types')
-        .select('*')
-        .eq('venue_id', venueId)
-        .order('sort_order', { ascending: true })
-        .order('name', { ascending: true })
-        .limit(100);
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader) return res.status(401).json({ success: false, error: 'Authorization required' });
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user } } = await supabase.auth.getUser(token);
+      if (!user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-      if (!showInactive) {
-        query = query.eq('is_active', true)
+      let staff = null;
+      const { data: staffRow } = await supabase
+        .from('commander_staff')
+        .select('venue_id, role, name')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .maybeSingle();
+      if (staffRow) {
+        staff = staffRow;
+      } else {
+        // Fallback: check if user is a venue owner via subscription
+        const { data: sub } = await supabase
+          .from('commander_subscriptions')
+          .select('id, venue_id, owner_id')
+          .eq('owner_id', user.id)
+          .in('status', ['active', 'trialing'])
+          .limit(1)
+          .maybeSingle();
+        if (sub) staff = { venue_id: sub.venue_id, role: 'owner', name: 'Owner' };
+      }
+      if (!staff) return res.status(403).json({ success: false, error: 'Staff access required' });
+
+      const venueId = staff.venue_id;
+
+      // GET - List all game types
+      if (req.method === 'GET') {
+        const showInactive = req.query.include_inactive === 'true';
+        let query = supabase
+          .from('commander_game_types')
+          .select('*')
+          .eq('venue_id', venueId)
+          .order('sort_order', { ascending: true })
+          .order('name', { ascending: true })
           .limit(100);
-      }
 
-      const { data, error } = await query;
-      if (error) return res.status(500).json({ success: false, error: error.message });
-      return res.status(200).json({ success: true, data: data || [] });
-    }
-
-    // POST - Create new game type
-    if (req.method === 'POST') {
-      if (!['owner', 'manager'].includes(staff.role)) {
-        return res.status(403).json({ success: false, error: 'Manager access required' });
-      }
-
-      const { name, short_code, stakes, min_buyin, max_buyin, max_players,
-        rake_type, rake_percent, rake_cap, time_rate, color, notes, sort_order } = req.body;
-
-      if (!name || !short_code || !stakes) {
-        return res.status(400).json({ success: false, error: 'Name, short code, and stakes are required' });
-      }
-
-      const { data, error } = await supabase
-        .from('commander_game_types')
-        .insert({
-          venue_id: venueId,
-          name, short_code: short_code.toUpperCase(), stakes,
-          min_buyin: min_buyin || 100,
-          max_buyin: max_buyin || 0,
-          max_players: max_players || 9,
-          rake_type: rake_type || 'pot',
-          rake_percent: rake_percent || 5.00,
-          rake_cap: rake_cap || 15.00,
-          time_rate: time_rate || 0,
-          color: color || '#1877F2',
-          notes: notes || null,
-          sort_order: sort_order || 0
-        })
-        .select()
-        .maybeSingle();
-
-      if (error) return res.status(500).json({ success: false, error: error.message });
-      if (!data) return res.status(500).json({ success: false, error: 'Failed to create game type' });
-
-      // Log
-      await supabase.from('commander_system_log').insert({
-        venue_id: venueId,
-        action: 'game_type_created',
-        details: { game_type_id: data.id, name, stakes },
-        performed_by: user.id,
-        performed_by_name: staff.name
-      });
-
-      return res.status(201).json({ success: true, data });
-    }
-
-    // PUT - Update game type
-    if (req.method === 'PUT') {
-      if (!['owner', 'manager'].includes(staff.role)) {
-        return res.status(403).json({ success: false, error: 'Manager access required' });
-      }
-
-      const id = req.query.id;
-      if (!id) return res.status(400).json({ success: false, error: 'Game type ID required' });
-
-      const updates = {};
-      const allowed = ['name', 'short_code', 'stakes', 'min_buyin', 'max_buyin', 'max_players',
-        'rake_type', 'rake_percent', 'rake_cap', 'time_rate', 'color', 'notes',
-        'sort_order', 'is_active'];
-      for (const key of allowed) {
-        if (req.body[key] !== undefined) {
-          updates[key] = key === 'short_code' ? req.body[key].toUpperCase() : req.body[key];
+        if (!showInactive) {
+          query = query.eq('is_active', true)
+            .limit(100);
         }
-      }
-      updates.updated_at = new Date().toISOString();
 
-      const { data, error } = await supabase
-        .from('commander_game_types')
-        .update(updates)
-        .eq('id', id)
-        .eq('venue_id', venueId)
-        .select()
-        .maybeSingle();
-
-      if (error) return res.status(500).json({ success: false, error: error.message });
-      if (!data) return res.status(404).json({ success: false, error: 'Game type not found' });
-      return res.status(200).json({ success: true, data });
-    }
-
-    // DELETE - Soft delete (deactivate)
-    if (req.method === 'DELETE') {
-      if (!['owner', 'manager'].includes(staff.role)) {
-        return res.status(403).json({ success: false, error: 'Manager access required' });
+        const { data, error } = await query;
+        if (error) return res.status(500).json({ success: false, error: error.message });
+        return res.status(200).json({ success: true, data: data || [] });
       }
 
-      const id = req.query.id;
-      if (!id) return res.status(400).json({ success: false, error: 'Game type ID required' });
+      // POST - Create new game type
+      if (req.method === 'POST') {
+        if (!['owner', 'manager'].includes(staff.role)) {
+          return res.status(403).json({ success: false, error: 'Manager access required' });
+        }
 
-      const { data, error } = await supabase
-        .from('commander_game_types')
-        .update({ is_active: false, updated_at: new Date().toISOString() })
-        .eq('id', id)
-        .eq('venue_id', venueId)
-        .select()
-        .maybeSingle();
+        const { name, short_code, stakes, min_buyin, max_buyin, max_players,
+          rake_type, rake_percent, rake_cap, time_rate, color, notes, sort_order } = req.body;
 
-      if (error) return res.status(500).json({ success: false, error: error.message });
-      if (!data) return res.status(404).json({ success: false, error: 'Game type not found' });
-      return res.status(200).json({ success: true, data });
+        if (!name || !short_code || !stakes) {
+          return res.status(400).json({ success: false, error: 'Name, short code, and stakes are required' });
+        }
+
+        const { data, error } = await supabase
+          .from('commander_game_types')
+          .insert({
+            venue_id: venueId,
+            name, short_code: short_code.toUpperCase(), stakes,
+            min_buyin: min_buyin || 100,
+            max_buyin: max_buyin || 0,
+            max_players: max_players || 9,
+            rake_type: rake_type || 'pot',
+            rake_percent: rake_percent || 5.00,
+            rake_cap: rake_cap || 15.00,
+            time_rate: time_rate || 0,
+            color: color || '#1877F2',
+            notes: notes || null,
+            sort_order: sort_order || 0
+          })
+          .select()
+          .maybeSingle();
+
+        if (error) return res.status(500).json({ success: false, error: error.message });
+        if (!data) return res.status(500).json({ success: false, error: 'Failed to create game type' });
+
+        // Log
+        await supabase.from('commander_system_log').insert({
+          venue_id: venueId,
+          action: 'game_type_created',
+          details: { game_type_id: data.id, name, stakes },
+          performed_by: user.id,
+          performed_by_name: staff.name
+        });
+
+        return res.status(201).json({ success: true, data });
+      }
+
+      // PUT - Update game type
+      if (req.method === 'PUT') {
+        if (!['owner', 'manager'].includes(staff.role)) {
+          return res.status(403).json({ success: false, error: 'Manager access required' });
+        }
+
+        const id = req.query.id;
+        if (!id) return res.status(400).json({ success: false, error: 'Game type ID required' });
+
+        const updates = {};
+        const allowed = ['name', 'short_code', 'stakes', 'min_buyin', 'max_buyin', 'max_players',
+          'rake_type', 'rake_percent', 'rake_cap', 'time_rate', 'color', 'notes',
+          'sort_order', 'is_active'];
+        for (const key of allowed) {
+          if (req.body[key] !== undefined) {
+            updates[key] = key === 'short_code' ? req.body[key].toUpperCase() : req.body[key];
+          }
+        }
+        updates.updated_at = new Date().toISOString();
+
+        const { data, error } = await supabase
+          .from('commander_game_types')
+          .update(updates)
+          .eq('id', id)
+          .eq('venue_id', venueId)
+          .select()
+          .maybeSingle();
+
+        if (error) return res.status(500).json({ success: false, error: error.message });
+        if (!data) return res.status(404).json({ success: false, error: 'Game type not found' });
+        return res.status(200).json({ success: true, data });
+      }
+
+      // DELETE - Soft delete (deactivate)
+      if (req.method === 'DELETE') {
+        if (!['owner', 'manager'].includes(staff.role)) {
+          return res.status(403).json({ success: false, error: 'Manager access required' });
+        }
+
+        const id = req.query.id;
+        if (!id) return res.status(400).json({ success: false, error: 'Game type ID required' });
+
+        const { data, error } = await supabase
+          .from('commander_game_types')
+          .update({ is_active: false, updated_at: new Date().toISOString() })
+          .eq('id', id)
+          .eq('venue_id', venueId)
+          .select()
+          .maybeSingle();
+
+        if (error) return res.status(500).json({ success: false, error: error.message });
+        if (!data) return res.status(404).json({ success: false, error: 'Game type not found' });
+        return res.status(200).json({ success: true, data });
+      }
+
+      return res.status(405).json({ success: false, error: 'Method not allowed' });
+    } catch (err) {
+      console.error('Game types API error:', err);
+      return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 
-    return res.status(405).json({ success: false, error: 'Method not allowed' });
   } catch (err) {
-    console.error('Game types API error:', err);
-    return res.status(500).json({ success: false, error: 'Internal server error' });
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

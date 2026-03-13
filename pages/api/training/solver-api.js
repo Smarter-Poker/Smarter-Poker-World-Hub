@@ -83,123 +83,129 @@ function hashScenario({ board, heroPosition, villainPosition, stackDepth, gameTy
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default async function handler(req, res) {
-    // Only POST
-    if (req.method !== 'POST') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
+  try {
+      // Only POST
+      if (req.method !== 'POST') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
 
-    // Auth check
-    const user = await getUserFromToken(req);
-    if (!user) {
-        return res.status(401).json({ success: false, error: 'Authentication required' });
-    }
+      // Auth check
+      const user = await getUserFromToken(req);
+      if (!user) {
+          return res.status(401).json({ success: false, error: 'Authentication required' });
+      }
 
-    // Rate limit
-    if (!checkRateLimit(user.id)) {
-        return res.status(429).json({
-            success: false,
-            error: 'Rate limit exceeded. Maximum 10 requests per minute.',
-            retryAfter: 60,
-        });
-    }
+      // Rate limit
+      if (!checkRateLimit(user.id)) {
+          return res.status(429).json({
+              success: false,
+              error: 'Rate limit exceeded. Maximum 10 requests per minute.',
+              retryAfter: 60,
+          });
+      }
 
-    try {
-        const { board, heroPosition, villainPosition, stackDepth, gameType, street, action } = req.body;
+      try {
+          const { board, heroPosition, villainPosition, stackDepth, gameType, street, action } = req.body;
 
-        // Validate required fields
-        if (!board || !Array.isArray(board) || board.length < 3) {
-            return res.status(400).json({
-                success: false,
-                error: 'Board must be an array of at least 3 cards (e.g., ["Ah", "Kd", "7c"])',
-            });
-        }
+          // Validate required fields
+          if (!board || !Array.isArray(board) || board.length < 3) {
+              return res.status(400).json({
+                  success: false,
+                  error: 'Board must be an array of at least 3 cards (e.g., ["Ah", "Kd", "7c"])',
+              });
+          }
 
-        if (!heroPosition) {
-            return res.status(400).json({
-                success: false,
-                error: 'heroPosition is required (e.g., "BTN", "SB", "BB")',
-            });
-        }
+          if (!heroPosition) {
+              return res.status(400).json({
+                  success: false,
+                  error: 'heroPosition is required (e.g., "BTN", "SB", "BB")',
+              });
+          }
 
-        const scenarioHash = hashScenario({ board, heroPosition, villainPosition, stackDepth, gameType, street });
+          const scenarioHash = hashScenario({ board, heroPosition, villainPosition, stackDepth, gameType, street });
 
-        // 1) Check pre-computed solutions database
-        const supabase = getSupabase();
-        const { data: existing } = await supabase
-            .from('training_scenarios')
-            .select('*')
-            .eq('scenario_hash', scenarioHash)
-            .limit(1)
-            .maybeSingle();
+          // 1) Check pre-computed solutions database
+          const supabase = getSupabase();
+          const { data: existing } = await supabase
+              .from('training_scenarios')
+              .select('*')
+              .eq('scenario_hash', scenarioHash)
+              .limit(1)
+              .maybeSingle();
 
-        if (existing) {
-            // Return pre-computed solution
-            return res.status(200).json({
-                success: true,
-                status: 'solved',
-                source: 'precomputed',
-                scenarioHash,
-                solution: {
-                    actions: existing.gto_strategy || existing.actions || {},
-                    frequencies: existing.frequencies || {},
-                    evByAction: existing.ev_data || {},
-                    board,
-                    heroPosition,
-                    villainPosition: villainPosition || 'BB',
-                    stackDepth: stackDepth || 100,
-                    gameType: gameType || 'cash',
-                },
-            });
-        }
+          if (existing) {
+              // Return pre-computed solution
+              return res.status(200).json({
+                  success: true,
+                  status: 'solved',
+                  source: 'precomputed',
+                  scenarioHash,
+                  solution: {
+                      actions: existing.gto_strategy || existing.actions || {},
+                      frequencies: existing.frequencies || {},
+                      evByAction: existing.ev_data || {},
+                      board,
+                      heroPosition,
+                      villainPosition: villainPosition || 'BB',
+                      stackDepth: stackDepth || 100,
+                      gameType: gameType || 'cash',
+                  },
+              });
+          }
 
-        // 2) Not in DB — queue for solving (stub for remote PIO node)
-        const queueEntry = {
-            scenario_hash: scenarioHash,
-            board: board.join(','),
-            hero_position: heroPosition,
-            villain_position: villainPosition || 'BB',
-            stack_depth: stackDepth || 100,
-            game_type: gameType || 'cash',
-            street: street || (board.length === 3 ? 'flop' : board.length === 4 ? 'turn' : 'river'),
-            status: 'queued',
-            requested_by: user.id,
-            requested_at: new Date().toISOString(),
-        };
+          // 2) Not in DB — queue for solving (stub for remote PIO node)
+          const queueEntry = {
+              scenario_hash: scenarioHash,
+              board: board.join(','),
+              hero_position: heroPosition,
+              villain_position: villainPosition || 'BB',
+              stack_depth: stackDepth || 100,
+              game_type: gameType || 'cash',
+              street: street || (board.length === 3 ? 'flop' : board.length === 4 ? 'turn' : 'river'),
+              status: 'queued',
+              requested_by: user.id,
+              requested_at: new Date().toISOString(),
+          };
 
-        // Try to insert into solver_queue (will succeed if table exists)
-        try {
-            await supabase.from('solver_queue').insert([queueEntry]);
-        } catch {
-            // Table may not exist yet — that's OK for foundation phase
-        }
+          // Try to insert into solver_queue (will succeed if table exists)
+          try {
+              await supabase.from('solver_queue').insert([queueEntry]);
+          } catch {
+              // Table may not exist yet — that's OK for foundation phase
+          }
 
-        // 3) Return queued response with GTO baseline estimate
-        const baselineStrategy = generateBaselineStrategy(board, heroPosition, action);
+          // 3) Return queued response with GTO baseline estimate
+          const baselineStrategy = generateBaselineStrategy(board, heroPosition, action);
 
-        return res.status(202).json({
-            success: true,
-            status: 'queued',
-            source: 'baseline_estimate',
-            scenarioHash,
-            estimatedTime: '2-5 minutes (when solver node is connected)',
-            message: 'Spot queued for precise solving. Showing GTO baseline estimate.',
-            solution: {
-                actions: baselineStrategy.actions,
-                frequencies: baselineStrategy.frequencies,
-                evByAction: baselineStrategy.evByAction,
-                board,
-                heroPosition,
-                villainPosition: villainPosition || 'BB',
-                stackDepth: stackDepth || 100,
-                gameType: gameType || 'cash',
-                isEstimate: true,
-            },
-        });
+          return res.status(202).json({
+              success: true,
+              status: 'queued',
+              source: 'baseline_estimate',
+              scenarioHash,
+              estimatedTime: '2-5 minutes (when solver node is connected)',
+              message: 'Spot queued for precise solving. Showing GTO baseline estimate.',
+              solution: {
+                  actions: baselineStrategy.actions,
+                  frequencies: baselineStrategy.frequencies,
+                  evByAction: baselineStrategy.evByAction,
+                  board,
+                  heroPosition,
+                  villainPosition: villainPosition || 'BB',
+                  stackDepth: stackDepth || 100,
+                  gameType: gameType || 'cash',
+                  isEstimate: true,
+              },
+          });
 
-    } catch (err) {
-        console.error('[Solver API] Error:', err);
-        return res.status(500).json({ success: false, error: 'Internal server error' });
-    }
+      } catch (err) {
+          console.error('[Solver API] Error:', err);
+          return res.status(500).json({ success: false, error: 'Internal server error' });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

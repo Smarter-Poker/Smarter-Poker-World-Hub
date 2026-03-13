@@ -17,70 +17,76 @@ function generateShortId(length = 6) {
 }
 
 export default async function handler(req, res) {
-    if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method not allowed' });
+  try {
+      if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method not allowed' });
 
-    try {
-        let supabase;
-        try {
-            supabase = getSupabase();
-        } catch (err) {
-            console.error('[create-share] Intialization error:', err);
-            return res.status(500).json({ success: false, error: 'Database initialization failed' });
-        }
+      try {
+          let supabase;
+          try {
+              supabase = getSupabase();
+          } catch (err) {
+              console.error('[create-share] Intialization error:', err);
+              return res.status(500).json({ success: false, error: 'Database initialization failed' });
+          }
 
-        // Optional auth
-        let userId = null;
-        const authHeader = req.headers.authorization;
-        if (authHeader?.startsWith('Bearer ')) {
-            const token = authHeader.replace('Bearer ', '');
-            try {
-                const { data: { user } } = await supabase.auth.getUser(token);
-                if (user) userId = user.id;
-            } catch (e) { }
-        }
+          // Optional auth
+          let userId = null;
+          const authHeader = req.headers.authorization;
+          if (authHeader?.startsWith('Bearer ')) {
+              const token = authHeader.replace('Bearer ', '');
+              try {
+                  const { data: { user } } = await supabase.auth.getUser(token);
+                  if (user) userId = user.id;
+              } catch (e) { }
+          }
 
-        const { state_json } = req.body;
-        if (!state_json || typeof state_json !== 'object') {
-            return res.status(400).json({ success: false, error: 'Valid state_json object required' });
-        }
+          const { state_json } = req.body;
+          if (!state_json || typeof state_json !== 'object') {
+              return res.status(400).json({ success: false, error: 'Valid state_json object required' });
+          }
 
-        const shortId = generateShortId();
+          const shortId = generateShortId();
 
-        const { data, error } = await supabase
-            .from('sandbox_shared_scenarios')
-            .insert({
-                id: shortId,
-                creator_id: userId,
-                state_json
-            })
-            .select('id')
-            .maybeSingle();
+          const { data, error } = await supabase
+              .from('sandbox_shared_scenarios')
+              .insert({
+                  id: shortId,
+                  creator_id: userId,
+                  state_json
+              })
+              .select('id')
+              .maybeSingle();
 
-        if (error) {
-            // Auto-create table logic if missing
-            if (error.code === '42P01') {
-                await supabase.rpc('exec_sql', {
-                    query: `
-                    CREATE TABLE IF NOT EXISTS public.sandbox_shared_scenarios (
-                        id TEXT PRIMARY KEY,
-                        creator_id UUID REFERENCES auth.users,
-                        state_json JSONB NOT NULL,
-                        views INT DEFAULT 0,
-                        created_at TIMESTAMPTZ DEFAULT NOW()
-                    );
-                    `
-                });
-                // Retry once
-                const retry = await supabase.from('sandbox_shared_scenarios').insert({ id: shortId, creator_id: userId, state_json }).select('id').maybeSingle();
-                if (retry.error) throw retry.error;
-                return res.status(200).json({ success: true, shareId: retry.data.id });
-            }
-            throw error;
-        }
+          if (error) {
+              // Auto-create table logic if missing
+              if (error.code === '42P01') {
+                  await supabase.rpc('exec_sql', {
+                      query: `
+                      CREATE TABLE IF NOT EXISTS public.sandbox_shared_scenarios (
+                          id TEXT PRIMARY KEY,
+                          creator_id UUID REFERENCES auth.users,
+                          state_json JSONB NOT NULL,
+                          views INT DEFAULT 0,
+                          created_at TIMESTAMPTZ DEFAULT NOW()
+                      );
+                      `
+                  });
+                  // Retry once
+                  const retry = await supabase.from('sandbox_shared_scenarios').insert({ id: shortId, creator_id: userId, state_json }).select('id').maybeSingle();
+                  if (retry.error) throw retry.error;
+                  return res.status(200).json({ success: true, shareId: retry.data.id });
+              }
+              throw error;
+          }
 
-        return res.status(200).json({ success: true, shareId: data.id });
-    } catch (err) {
-        console.error('[create-share] Error:', err);
-        return res.status(500).json({ success: false, error: 'Internal Server Error' });
-    }
+          return res.status(200).json({ success: true, shareId: data.id });
+      } catch (err) {
+          console.error('[create-share] Error:', err);
+          return res.status(500).json({ success: false, error: 'Internal Server Error' });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

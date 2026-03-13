@@ -12,13 +12,19 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
 
-    if (req.method === 'GET') return handleGet(req, res);
-    if (req.method === 'POST') return handlePost(req, res);
-    return res.status(405).json({ success: false, error: 'Method not allowed' });
+      if (req.method === 'GET') return handleGet(req, res);
+      if (req.method === 'POST') return handlePost(req, res);
+      return res.status(405).json({ success: false, error: 'Method not allowed' });
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }
 
 // GET — Check for matching staff records by email

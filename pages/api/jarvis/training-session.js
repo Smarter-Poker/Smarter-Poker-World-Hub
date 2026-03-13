@@ -13,120 +13,126 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+      if (req.method !== 'POST') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
+
+      const supabase = createClient(supabaseUrl, supabaseKey);
+
+      // Auth: require valid JWT — userId must match authenticated user
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
+      const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+      if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+
+      const {
+          userId,
+          sessionId,
+          gameId,
+          gameName,
+          category,
+          level,
+          questionsAnswered,
+          questionsCorrect,
+          accuracy,
+          streak,
+          timeSpentSeconds,
+          answers,     // Array of { questionId, userAnswer, correctAnswer, wasCorrect, scenario }
+          leaksDetected,  // Array of detected patterns/leaks
+          timestamp,
+      } = req.body;
+
+      if (!userId || !gameId) {
+          return res.status(400).json({ success: false, error: 'userId and gameId are required' });
+      }
+
+      // Enforce: userId must match authenticated user (prevents spoofing)
+      if (userId !== user.id) {
+          return res.status(403).json({ success: false, error: 'userId must match authenticated user' });
+      }
+
+
+      try {
+
+          // 1. Store training session data for Jarvis analysis
+          const sessionData = {
+              user_id: userId,
+              session_id: sessionId || `session_${Date.now()}`,
+              game_id: gameId,
+              game_name: gameName || gameId,
+              category: category || 'UNKNOWN',
+              level: level || 1,
+              questions_answered: questionsAnswered || 0,
+              questions_correct: questionsCorrect || 0,
+              accuracy: accuracy || 0,
+              best_streak: streak || 0,
+              time_spent_seconds: timeSpentSeconds || 0,
+              answers_data: answers || [],
+              leaks_detected: leaksDetected || [],
+              created_at: timestamp || new Date().toISOString(),
+          };
+
+          const { error: insertError } = await supabase
+              .from('jarvis_training_sessions')
+              .upsert(sessionData, { onConflict: 'session_id' });
+
+          if (insertError) {
+              console.error('[JarvisTraining] Insert error:', insertError);
+              // Continue anyway - we don't want to break training flow
+          }
+
+          // 2. Analyze patterns and update user's training profile
+          const analysisResult = analyzeSessionForLeaks(answers || []);
+
+          // 3. Update Jarvis knowledge about this user
+          const { data: existingProfile } = await supabase
+              .from('jarvis_user_training_profile')
+              .select('*')
+              .eq('user_id', userId)
+              .maybeSingle();
+
+          const updatedProfile = mergeTrainingProfile(existingProfile, {
+              lastSession: sessionData,
+              analysis: analysisResult,
+              totalSessions: (existingProfile?.total_sessions || 0) + 1,
+              totalQuestions: (existingProfile?.total_questions || 0) + questionsAnswered,
+              overallAccuracy: calculateOverallAccuracy(existingProfile, questionsAnswered, questionsCorrect),
+          });
+
+          await supabase
+              .from('jarvis_user_training_profile')
+              .upsert({
+                  user_id: userId,
+                  ...updatedProfile,
+                  updated_at: new Date().toISOString(),
+              }, { onConflict: 'user_id' });
+
+
+          return res.status(200).json({
+              success: true,
+              message: 'Training session recorded for Jarvis',
+              analysis: analysisResult,
+              sessionId: sessionData.session_id,
+          });
+
+      } catch (error) {
+          console.error('[JarvisTraining] Error:', error);
+          return res.status(200).json({
+              success: true,  // Don't fail the training session
+              message: 'Session recorded (analysis deferred)',
+              error: error.message,
+          });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-    if (req.method !== 'POST') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    // Auth: require valid JWT — userId must match authenticated user
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-    const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
-    if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
-
-    const {
-        userId,
-        sessionId,
-        gameId,
-        gameName,
-        category,
-        level,
-        questionsAnswered,
-        questionsCorrect,
-        accuracy,
-        streak,
-        timeSpentSeconds,
-        answers,     // Array of { questionId, userAnswer, correctAnswer, wasCorrect, scenario }
-        leaksDetected,  // Array of detected patterns/leaks
-        timestamp,
-    } = req.body;
-
-    if (!userId || !gameId) {
-        return res.status(400).json({ success: false, error: 'userId and gameId are required' });
-    }
-
-    // Enforce: userId must match authenticated user (prevents spoofing)
-    if (userId !== user.id) {
-        return res.status(403).json({ success: false, error: 'userId must match authenticated user' });
-    }
-
-
-    try {
-
-        // 1. Store training session data for Jarvis analysis
-        const sessionData = {
-            user_id: userId,
-            session_id: sessionId || `session_${Date.now()}`,
-            game_id: gameId,
-            game_name: gameName || gameId,
-            category: category || 'UNKNOWN',
-            level: level || 1,
-            questions_answered: questionsAnswered || 0,
-            questions_correct: questionsCorrect || 0,
-            accuracy: accuracy || 0,
-            best_streak: streak || 0,
-            time_spent_seconds: timeSpentSeconds || 0,
-            answers_data: answers || [],
-            leaks_detected: leaksDetected || [],
-            created_at: timestamp || new Date().toISOString(),
-        };
-
-        const { error: insertError } = await supabase
-            .from('jarvis_training_sessions')
-            .upsert(sessionData, { onConflict: 'session_id' });
-
-        if (insertError) {
-            console.error('[JarvisTraining] Insert error:', insertError);
-            // Continue anyway - we don't want to break training flow
-        }
-
-        // 2. Analyze patterns and update user's training profile
-        const analysisResult = analyzeSessionForLeaks(answers || []);
-
-        // 3. Update Jarvis knowledge about this user
-        const { data: existingProfile } = await supabase
-            .from('jarvis_user_training_profile')
-            .select('*')
-            .eq('user_id', userId)
-            .maybeSingle();
-
-        const updatedProfile = mergeTrainingProfile(existingProfile, {
-            lastSession: sessionData,
-            analysis: analysisResult,
-            totalSessions: (existingProfile?.total_sessions || 0) + 1,
-            totalQuestions: (existingProfile?.total_questions || 0) + questionsAnswered,
-            overallAccuracy: calculateOverallAccuracy(existingProfile, questionsAnswered, questionsCorrect),
-        });
-
-        await supabase
-            .from('jarvis_user_training_profile')
-            .upsert({
-                user_id: userId,
-                ...updatedProfile,
-                updated_at: new Date().toISOString(),
-            }, { onConflict: 'user_id' });
-
-
-        return res.status(200).json({
-            success: true,
-            message: 'Training session recorded for Jarvis',
-            analysis: analysisResult,
-            sessionId: sessionData.session_id,
-        });
-
-    } catch (error) {
-        console.error('[JarvisTraining] Error:', error);
-        return res.status(200).json({
-            success: true,  // Don't fail the training session
-            message: 'Session recorded (analysis deferred)',
-            error: error.message,
-        });
-    }
 }
 
 /**

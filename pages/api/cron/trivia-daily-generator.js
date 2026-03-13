@@ -136,60 +136,66 @@ async function selectDailyForCategory(category, targetDate, sixtyDaysAgo) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default async function handler(req, res) {
-    const cronSecret = req.headers['x-cron-secret'] || req.query.secret;
-    if (cronSecret !== process.env.CRON_SECRET && process.env.NODE_ENV === 'production') {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
+  try {
+      const cronSecret = req.headers['x-cron-secret'] || req.query.secret;
+      if (cronSecret !== process.env.CRON_SECRET && process.env.NODE_ENV === 'production') {
+          return res.status(401).json({ error: 'Unauthorized' });
+      }
 
-    const targetDate = getTomorrowCST();
-    const sixtyDaysAgo = getSixtyDaysAgoCST();
-
-
-    const results = {
-        date: targetDate,
-        categorySummary: {},
-        totalSelected: 0,
-        totalRecycled: 0
-    };
-
-    try {
-        // Check if questions are already tagged for this date
-        const { count: existingCount } = await supabase
-            .from('trivia_questions')
-            .select('*', { count: 'exact', head: true })
-            .eq('daily_date', targetDate)
-                .limit(100);
-
-        if (existingCount >= QUESTIONS_PER_CATEGORY * CATEGORIES.length) {
-            return res.status(200).json({
-                success: true,
-                message: `Already rotated for ${targetDate}`,
-                alreadyDone: true,
-                existingCount
-            });
-        }
-
-        // Select 20 questions for each category
-        for (const category of CATEGORIES) {
-            const { selected, recycled } = await selectDailyForCategory(category, targetDate, sixtyDaysAgo);
-
-            results.categorySummary[category] = { selected, recycled };
-            results.totalSelected += selected;
-            if (recycled) results.totalRecycled++;
-
-        }
+      const targetDate = getTomorrowCST();
+      const sixtyDaysAgo = getSixtyDaysAgoCST();
 
 
-        return res.status(200).json({
-            success: true,
-            message: `Rotated ${results.totalSelected} questions for ${targetDate}`,
-            ...results
-        });
+      const results = {
+          date: targetDate,
+          categorySummary: {},
+          totalSelected: 0,
+          totalRecycled: 0
+      };
 
-    } catch (error) {
-        console.error('[Rotation] Fatal error:', error);
-        return res.status(500).json({ success: false, error: error.message, ...results });
-    }
+      try {
+          // Check if questions are already tagged for this date
+          const { count: existingCount } = await supabase
+              .from('trivia_questions')
+              .select('*', { count: 'exact', head: true })
+              .eq('daily_date', targetDate)
+                  .limit(100);
+
+          if (existingCount >= QUESTIONS_PER_CATEGORY * CATEGORIES.length) {
+              return res.status(200).json({
+                  success: true,
+                  message: `Already rotated for ${targetDate}`,
+                  alreadyDone: true,
+                  existingCount
+              });
+          }
+
+          // Select 20 questions for each category
+          for (const category of CATEGORIES) {
+              const { selected, recycled } = await selectDailyForCategory(category, targetDate, sixtyDaysAgo);
+
+              results.categorySummary[category] = { selected, recycled };
+              results.totalSelected += selected;
+              if (recycled) results.totalRecycled++;
+
+          }
+
+
+          return res.status(200).json({
+              success: true,
+              message: `Rotated ${results.totalSelected} questions for ${targetDate}`,
+              ...results
+          });
+
+      } catch (error) {
+          console.error('[Rotation] Fatal error:', error);
+          return res.status(500).json({ success: false, error: error.message, ...results });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }
 
 export const config = {

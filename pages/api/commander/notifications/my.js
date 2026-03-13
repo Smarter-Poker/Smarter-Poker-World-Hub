@@ -11,74 +11,80 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (!applyRateLimit(req, res, LIMITS.read)) return;
-
-  if (req.method !== 'GET') {
-    return res.status(405).json({
-      success: false,
-      error: { code: 'METHOD_NOT_ALLOWED', message: 'Only GET allowed' }
-    });
-  }
-
-  // Get player from auth header
-  const authHeader = req.headers.authorization;
-  if (!authHeader) {
-    return res.status(401).json({
-      success: false,
-      error: { code: 'AUTH_REQUIRED', message: 'Authentication required' }
-    });
-  }
-
   try {
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (!applyRateLimit(req, res, LIMITS.read)) return;
 
-    if (authError || !user) {
-      return res.status(401).json({
+    if (req.method !== 'GET') {
+      return res.status(405).json({
         success: false,
-        error: { code: 'AUTH_REQUIRED', message: 'Invalid token' }
+        error: { code: 'METHOD_NOT_ALLOWED', message: 'Only GET allowed' }
       });
     }
 
-    const { unread_only, limit = 50 } = req.query;
-
-    let query = supabase
-      .from('commander_notifications')
-      .select(`
-        *,
-        poker_venues (id, name)
-      `)
-      .eq('player_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(Math.min(parseInt(limit) || 50, 500));
-
-    if (unread_only === 'true') {
-      query = query.is('read_at', null);
+    // Get player from auth header
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({
+        success: false,
+        error: { code: 'AUTH_REQUIRED', message: 'Authentication required' }
+      });
     }
 
-    const { data: notifications, error } = await query;
+    try {
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
-    if (error) throw error;
-
-    // Count unread
-    const { count: unreadCount } = await supabase
-      .from('commander_notifications')
-      .select('id', { count: 'exact', head: true })
-      .eq('player_id', user.id)
-      .is('read_at', null)
-
-    return res.status(200).json({
-      success: true,
-      data: {
-        notifications: notifications || [],
-        unread_count: unreadCount || 0
+      if (authError || !user) {
+        return res.status(401).json({
+          success: false,
+          error: { code: 'AUTH_REQUIRED', message: 'Invalid token' }
+        });
       }
-    });
-  } catch (error) {
-    console.error('Get notifications error:', error);
-    return res.status(500).json({
-      success: false,
-      error: { code: 'SERVER_ERROR', message: 'Failed to fetch notifications' }
-    });
+
+      const { unread_only, limit = 50 } = req.query;
+
+      let query = supabase
+        .from('commander_notifications')
+        .select(`
+          *,
+          poker_venues (id, name)
+        `)
+        .eq('player_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(Math.min(parseInt(limit) || 50, 500));
+
+      if (unread_only === 'true') {
+        query = query.is('read_at', null);
+      }
+
+      const { data: notifications, error } = await query;
+
+      if (error) throw error;
+
+      // Count unread
+      const { count: unreadCount } = await supabase
+        .from('commander_notifications')
+        .select('id', { count: 'exact', head: true })
+        .eq('player_id', user.id)
+        .is('read_at', null)
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          notifications: notifications || [],
+          unread_count: unreadCount || 0
+        }
+      });
+    } catch (error) {
+      console.error('Get notifications error:', error);
+      return res.status(500).json({
+        success: false,
+        error: { code: 'SERVER_ERROR', message: 'Failed to fetch notifications' }
+      });
+    }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

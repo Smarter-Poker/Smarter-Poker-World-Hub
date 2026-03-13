@@ -14,29 +14,35 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+      // Auth guard: require staff auth for write operations
+      const _authResult = await guardWriteStaff(req, res);
+      if (!_authResult) return;
+
+      const { id } = req.query;
+
+      if (!id) {
+          return res.status(400).json({ success: false, error: 'Member ID is required' });
+      }
+
+      if (req.method === 'GET') {
+          return handleGet(req, res, id);
+      } else if (req.method === 'PUT') {
+          return handleUpdate(req, res, id);
+      } else if (req.method === 'DELETE') {
+          return handleDelete(req, res, id);
+      }
+
+      return res.status(405).json({ success: false, error: 'Method not allowed' });
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-    // Auth guard: require staff auth for write operations
-    const _authResult = await guardWriteStaff(req, res);
-    if (!_authResult) return;
-
-    const { id } = req.query;
-
-    if (!id) {
-        return res.status(400).json({ success: false, error: 'Member ID is required' });
-    }
-
-    if (req.method === 'GET') {
-        return handleGet(req, res, id);
-    } else if (req.method === 'PUT') {
-        return handleUpdate(req, res, id);
-    } else if (req.method === 'DELETE') {
-        return handleDelete(req, res, id);
-    }
-
-    return res.status(405).json({ success: false, error: 'Method not allowed' });
 }
 
 async function handleGet(req, res, id) {

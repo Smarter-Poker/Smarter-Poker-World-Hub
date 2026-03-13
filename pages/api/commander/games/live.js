@@ -12,88 +12,94 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (!applyRateLimit(req, res, LIMITS.read)) return;
-
-  if (req.method !== 'GET') {
-    return res.status(405).json({
-      success: false,
-      error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' }
-    });
-  }
-
   try {
-    const { venue_id, game_type, stakes, limit = 100 } = req.query;
+    if (!applyRateLimit(req, res, LIMITS.read)) return;
 
-    let query = supabase
-      .from('commander_games')
-      .select(`
-        *,
-        poker_venues (
-          id,
-          name,
-          city,
-          state
-        ),
-        commander_tables!commander_games_table_id_fkey (
-          id,
-          table_number,
-          table_name
-        )
-      `)
-      .in('status', ['waiting', 'running'])
-      .order('created_at', { ascending: false })
-      .limit(Math.min(parseInt(limit) || 50, 500));
-
-    // Filter by venue
-    if (venue_id) {
-      query = query.eq('venue_id', venue_id);
-    }
-
-    // Filter by game type
-    if (game_type) {
-      query = query.eq('game_type', game_type.toUpperCase());
-    }
-
-    // Filter by stakes
-    if (stakes) {
-      query = query.eq('stakes', stakes);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      console.error('Commander live games query error:', error);
-      return res.status(500).json({
+    if (req.method !== 'GET') {
+      return res.status(405).json({
         success: false,
-        error: { code: 'DATABASE_ERROR', message: 'Failed to fetch games' }
+        error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' }
       });
     }
 
-    // Get waitlist counts for each game
-    const games = await Promise.all((data || []).map(async (game) => {
-      const { count } = await supabase
-        .from('commander_waitlist')
-        .select('id', { count: 'exact', head: true })
-        .eq('venue_id', game.venue_id)
-        .eq('game_type', game.game_type)
-        .eq('stakes', game.stakes)
-        .eq('status', 'waiting')
+    try {
+      const { venue_id, game_type, stakes, limit = 100 } = req.query;
 
-      return {
-        ...game,
-        waitlist_count: count || 0
-      };
-    }));
+      let query = supabase
+        .from('commander_games')
+        .select(`
+          *,
+          poker_venues (
+            id,
+            name,
+            city,
+            state
+          ),
+          commander_tables!commander_games_table_id_fkey (
+            id,
+            table_number,
+            table_name
+          )
+        `)
+        .in('status', ['waiting', 'running'])
+        .order('created_at', { ascending: false })
+        .limit(Math.min(parseInt(limit) || 50, 500));
 
-    return res.status(200).json({
-      success: true,
-      data: { games }
-    });
-  } catch (error) {
-    console.error('Commander live games API error:', error);
-    return res.status(500).json({
-      success: false,
-      error: { code: 'INTERNAL_ERROR', message: 'Internal server error' }
-    });
+      // Filter by venue
+      if (venue_id) {
+        query = query.eq('venue_id', venue_id);
+      }
+
+      // Filter by game type
+      if (game_type) {
+        query = query.eq('game_type', game_type.toUpperCase());
+      }
+
+      // Filter by stakes
+      if (stakes) {
+        query = query.eq('stakes', stakes);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Commander live games query error:', error);
+        return res.status(500).json({
+          success: false,
+          error: { code: 'DATABASE_ERROR', message: 'Failed to fetch games' }
+        });
+      }
+
+      // Get waitlist counts for each game
+      const games = await Promise.all((data || []).map(async (game) => {
+        const { count } = await supabase
+          .from('commander_waitlist')
+          .select('id', { count: 'exact', head: true })
+          .eq('venue_id', game.venue_id)
+          .eq('game_type', game.game_type)
+          .eq('stakes', game.stakes)
+          .eq('status', 'waiting')
+
+        return {
+          ...game,
+          waitlist_count: count || 0
+        };
+      }));
+
+      return res.status(200).json({
+        success: true,
+        data: { games }
+      });
+    } catch (error) {
+      console.error('Commander live games API error:', error);
+      return res.status(500).json({
+        success: false,
+        error: { code: 'INTERNAL_ERROR', message: 'Internal server error' }
+      });
+    }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

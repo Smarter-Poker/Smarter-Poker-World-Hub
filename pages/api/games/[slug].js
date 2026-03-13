@@ -11,41 +11,47 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-    const { slug } = req.query;
+  try {
+      const { slug } = req.query;
 
-    if (!slug) {
-        return res.status(400).json({ error: 'Missing slug parameter' });
-    }
+      if (!slug) {
+          return res.status(400).json({ error: 'Missing slug parameter' });
+      }
 
-    try {
-        console.log(`[API GAMES] Request received for slug: ${slug}`);
-        // Try to find game by slug
-        console.log(`[API GAMES] Querying Supabase for slug...`);
-        const { data: game, error } = await supabase
-            .from('game_registry')
-            .select('*')
-            .eq('slug', slug)
-            .maybeSingle();
+      try {
+          console.log(`[API GAMES] Request received for slug: ${slug}`);
+          // Try to find game by slug
+          console.log(`[API GAMES] Querying Supabase for slug...`);
+          const { data: game, error } = await supabase
+              .from('game_registry')
+              .select('*')
+              .eq('slug', slug)
+              .maybeSingle();
 
-        if (error || !game) {
-            // Try by ID as fallback
-            const { data: gameById } = await supabase
-                .from('game_registry')
-                .select('*')
-                .eq('id', slug)
-                .maybeSingle();
+          if (error || !game) {
+              // Try by ID as fallback
+              const { data: gameById } = await supabase
+                  .from('game_registry')
+                  .select('*')
+                  .eq('id', slug)
+                  .maybeSingle();
 
-            if (!gameById) {
-                return res.status(404).json({ error: 'Game not found', slug });
-            }
+              if (!gameById) {
+                  return res.status(404).json({ error: 'Game not found', slug });
+              }
 
-            return res.status(200).json(gameById);
-        }
+              return res.status(200).json(gameById);
+          }
 
-        return res.status(200).json(game);
+          return res.status(200).json(game);
 
-    } catch (err) {
-        console.error('Error fetching game:', err);
-        return res.status(500).json({ error: 'Internal server error' });
-    }
+      } catch (err) {
+          console.error('Error fetching game:', err);
+          return res.status(500).json({ error: 'Internal server error' });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

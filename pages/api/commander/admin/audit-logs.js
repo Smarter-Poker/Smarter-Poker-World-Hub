@@ -5,32 +5,38 @@ import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
 export default async function handler(req, res) {
-  if (!applyRateLimit(req, res, LIMITS.read)) return;
-
   try {
-  const _g = await guardManager(req, res); if (!_g) return;
+    if (!applyRateLimit(req, res, LIMITS.read)) return;
 
-  if (req.method !== 'GET') return res.status(405).json({ success: false, error: 'Method not allowed' });
+    try {
+    const _g = await guardManager(req, res); if (!_g) return;
 
-  const { venue_id, page = 1, limit = 50, action, staff_id } = req.query;
-  if (!venue_id) return res.status(400).json({ success: false, error: 'venue_id required' });
+    if (req.method !== 'GET') return res.status(405).json({ success: false, error: 'Method not allowed' });
 
-  let query = supabase
-    .from('commander_audit_logs')
-    .select('*', { count: 'exact' })
-    .eq('venue_id', venue_id)
-    .order('created_at', { ascending: false })
-    .range((page - 1) * limit, page * limit - 1);
+    const { venue_id, page = 1, limit = 50, action, staff_id } = req.query;
+    if (!venue_id) return res.status(400).json({ success: false, error: 'venue_id required' });
 
-  if (action) query = query.eq('action', action);
-  if (staff_id) query = query.eq('staff_id', staff_id);
+    let query = supabase
+      .from('commander_audit_logs')
+      .select('*', { count: 'exact' })
+      .eq('venue_id', venue_id)
+      .order('created_at', { ascending: false })
+      .range((page - 1) * limit, page * limit - 1);
 
-  const { data, error, count } = await query;
-  if (error) return res.status(500).json({ success: false, error: error.message });
+    if (action) query = query.eq('action', action);
+    if (staff_id) query = query.eq('staff_id', staff_id);
 
-  return res.json({ success: true, data: { logs: data, total: count, page: Number(page), limit: Number(limit) } });
+    const { data, error, count } = await query;
+    if (error) return res.status(500).json({ success: false, error: error.message });
+
+    return res.json({ success: true, data: { logs: data, total: count, page: Number(page), limit: Number(limit) } });
+    } catch (err) {
+      console.error('[pages/api/commander/admin/audit-logs.js]', err);
+      return res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+
   } catch (err) {
-    console.error('[pages/api/commander/admin/audit-logs.js]', err);
-    return res.status(500).json({ success: false, error: 'Internal server error' });
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

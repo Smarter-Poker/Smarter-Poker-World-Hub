@@ -79,93 +79,99 @@ async function postNewsArticle(article) {
 // MAIN HANDLER
 // ═══════════════════════════════════════════════════════════════════════════
 export default async function handler(req, res) {
-    // Verify cron secret
-    if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
-    // Security: validate cron auth for external callers
-    const { validateCronAuth } = await import('../../../src/utils/cron-auth.js');
-    if (!validateCronAuth(req)) {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
+  try {
+      // Verify cron secret
+      if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+          return res.status(401).json({ error: 'Unauthorized' });
+      }
+      // Security: validate cron auth for external callers
+      const { validateCronAuth } = await import('../../../src/utils/cron-auth.js');
+      if (!validateCronAuth(req)) {
+          return res.status(401).json({ error: 'Unauthorized' });
+      }
 
 
-    if (!SUPABASE_URL) {
-        return res.status(500).json({ error: 'Missing env vars' });
-    }
+      if (!SUPABASE_URL) {
+          return res.status(500).json({ error: 'Missing env vars' });
+      }
 
-    try {
-        // Verify official account exists
-        const { data: officialAccount, error: accountError } = await supabase
-            .from('profiles')
-            .select('id, username')
-            .eq('id', OFFICIAL_ACCOUNT_UUID)
-            .maybeSingle();
+      try {
+          // Verify official account exists
+          const { data: officialAccount, error: accountError } = await supabase
+              .from('profiles')
+              .select('id, username')
+              .eq('id', OFFICIAL_ACCOUNT_UUID)
+              .maybeSingle();
 
-        if (accountError || !officialAccount) {
-            console.error('❌ SmarterPokerOfficial account not found!');
-            return res.status(500).json({
-                success: false,
-                error: 'Official account not found'
-            });
-        }
-
-
-        // Get recent news articles that haven't been posted yet
-        const { data: articles, error: articlesError } = await supabase
-            .from('poker_news')
-            .select('*')
-            .eq('is_published', true)
-            .order('published_at', { ascending: false })
-            .limit(20);
-
-        if (articlesError || !articles?.length) {
-            return res.status(200).json({
-                success: true,
-                message: 'No news available',
-                posted: 0
-            });
-        }
+          if (accountError || !officialAccount) {
+              console.error('❌ SmarterPokerOfficial account not found!');
+              return res.status(500).json({
+                  success: false,
+                  error: 'Official account not found'
+              });
+          }
 
 
-        const results = [];
-        let posted = 0;
+          // Get recent news articles that haven't been posted yet
+          const { data: articles, error: articlesError } = await supabase
+              .from('poker_news')
+              .select('*')
+              .eq('is_published', true)
+              .order('published_at', { ascending: false })
+              .limit(20);
 
-        for (const article of articles) {
-            if (posted >= CONFIG.POSTS_PER_RUN) break;
-
-            // Check if already posted
-            const alreadyPosted = await isArticleAlreadyPosted(article.slug);
-            if (alreadyPosted) {
-                continue;
-            }
-
-            // Post the article
-            const post = await postNewsArticle(article);
-            if (post) {
-                results.push({
-                    article: article.title,
-                    post_id: post.id,
-                    success: true
-                });
-                posted++;
-
-                // Small delay between posts
-                await new Promise(r => setTimeout(r, 2000));
-            }
-        }
+          if (articlesError || !articles?.length) {
+              return res.status(200).json({
+                  success: true,
+                  message: 'No news available',
+                  posted: 0
+              });
+          }
 
 
-        return res.status(200).json({
-            success: true,
-            account: officialAccount.username,
-            posted,
-            results,
-            timestamp: new Date().toISOString()
-        });
+          const results = [];
+          let posted = 0;
 
-    } catch (error) {
-        console.error('Cron error:', error);
-        return res.status(500).json({ success: false, error: error.message });
-    }
+          for (const article of articles) {
+              if (posted >= CONFIG.POSTS_PER_RUN) break;
+
+              // Check if already posted
+              const alreadyPosted = await isArticleAlreadyPosted(article.slug);
+              if (alreadyPosted) {
+                  continue;
+              }
+
+              // Post the article
+              const post = await postNewsArticle(article);
+              if (post) {
+                  results.push({
+                      article: article.title,
+                      post_id: post.id,
+                      success: true
+                  });
+                  posted++;
+
+                  // Small delay between posts
+                  await new Promise(r => setTimeout(r, 2000));
+              }
+          }
+
+
+          return res.status(200).json({
+              success: true,
+              account: officialAccount.username,
+              posted,
+              results,
+              timestamp: new Date().toISOString()
+          });
+
+      } catch (error) {
+          console.error('Cron error:', error);
+          return res.status(500).json({ success: false, error: error.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

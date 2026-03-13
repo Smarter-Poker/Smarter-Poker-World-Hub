@@ -12,54 +12,60 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
-
-  // Auth guard: require staff auth
-  const _staff = await guardStaff(req, res);
-  if (!_staff) return;
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({
-      success: false,
-      error: { code: 'METHOD_NOT_ALLOWED', message: 'Only POST allowed' }
-    });
-  }
-
-  const { tableId } = req.query;
-
   try {
-    const { data: stream, error } = await supabase
-      .from('commander_streams')
-      .update({
-        status: 'offline',
-        ended_at: new Date().toISOString()
-      })
-      .eq('table_id', tableId)
-      .eq('status', 'live')
-      .select()
-      .maybeSingle();
-
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return res.status(404).json({
-          success: false,
-          error: { code: 'NOT_FOUND', message: 'No active stream found' }
-        });
-      }
-      throw error;
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
 
-    return res.status(200).json({
-      success: true,
-      data: { stream }
-    });
-  } catch (error) {
-    console.error('Stop stream error:', error);
-    return res.status(500).json({
-      success: false,
-      error: { code: 'SERVER_ERROR', message: 'Failed to stop stream' }
-    });
+    // Auth guard: require staff auth
+    const _staff = await guardStaff(req, res);
+    if (!_staff) return;
+
+    if (req.method !== 'POST') {
+      return res.status(405).json({
+        success: false,
+        error: { code: 'METHOD_NOT_ALLOWED', message: 'Only POST allowed' }
+      });
+    }
+
+    const { tableId } = req.query;
+
+    try {
+      const { data: stream, error } = await supabase
+        .from('commander_streams')
+        .update({
+          status: 'offline',
+          ended_at: new Date().toISOString()
+        })
+        .eq('table_id', tableId)
+        .eq('status', 'live')
+        .select()
+        .maybeSingle();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          return res.status(404).json({
+            success: false,
+            error: { code: 'NOT_FOUND', message: 'No active stream found' }
+          });
+        }
+        throw error;
+      }
+
+      return res.status(200).json({
+        success: true,
+        data: { stream }
+      });
+    } catch (error) {
+      console.error('Stop stream error:', error);
+      return res.status(500).json({
+        success: false,
+        error: { code: 'SERVER_ERROR', message: 'Failed to stop stream' }
+      });
+    }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

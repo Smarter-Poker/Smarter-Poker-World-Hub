@@ -13,108 +13,114 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
-
-  const _g = await guardWriteStaff(req, res); if (!_g) return;
-
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', ['POST']);
-    return res.status(405).json({ success: false, error: 'Method not allowed' });
-  }
-
-  const { id: tournamentId } = req.query;
-  if (!tournamentId) return res.status(400).json({ success: false, error: 'Tournament ID required' });
-
   try {
-
-    const { moves } = req.body;
-    if (!Array.isArray(moves) || moves.length === 0) {
-      return res.status(400).json({ success: false, error: 'moves array required' });
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
 
-    const results = [];
-    const errors = [];
-    const timestamp = new Date().toISOString();
+    const _g = await guardWriteStaff(req, res); if (!_g) return;
 
-    // --- RACE CONDITION GUARD: Verify all destination seats are still empty ---
-    const { data: conflictingSeats } = await supabase
-      .from('commander_tournament_entries')
-      .select('table_number, seat_number, player_name')
-      .eq('tournament_id', tournamentId)
-      .in('status', ['active', 'seated'])
-          .limit(100);
-
-    const occupiedList = (conflictingSeats || []).filter(e =>
-      moves.some(m => m.to_table === e.table_number && m.to_seat === e.seat_number)
-    );
-
-    if (occupiedList.length > 0) {
-      const e = occupiedList[0];
-      return res.status(409).json({
-        success: false,
-        error: `Balance aborted: Seat ${e.seat_number} at Table ${e.table_number} is now occupied by ${e.player_name}`
-      });
+    if (req.method !== 'POST') {
+      res.setHeader('Allow', ['POST']);
+      return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
-    for (const move of moves) {
-      if (!move.entry_id || move.to_table === undefined || move.to_seat === undefined) {
-        errors.push({ entry_id: move.entry_id, error: 'Missing to_table or to_seat' });
-        continue;
+    const { id: tournamentId } = req.query;
+    if (!tournamentId) return res.status(400).json({ success: false, error: 'Tournament ID required' });
+
+    try {
+
+      const { moves } = req.body;
+      if (!Array.isArray(moves) || moves.length === 0) {
+        return res.status(400).json({ success: false, error: 'moves array required' });
       }
 
-      const { data: entry } = await supabase
+      const results = [];
+      const errors = [];
+      const timestamp = new Date().toISOString();
+
+      // --- RACE CONDITION GUARD: Verify all destination seats are still empty ---
+      const { data: conflictingSeats } = await supabase
         .from('commander_tournament_entries')
-        .select('table_number, seat_number, player_name, metadata')
-        .eq('id', move.entry_id)
+        .select('table_number, seat_number, player_name')
         .eq('tournament_id', tournamentId)
-        .maybeSingle();
+        .in('status', ['active', 'seated'])
+            .limit(100);
 
-      if (!entry) {
-        errors.push({ entry_id: move.entry_id, error: 'Entry not found' });
-        continue;
-      }
+      const occupiedList = (conflictingSeats || []).filter(e =>
+        moves.some(m => m.to_table === e.table_number && m.to_seat === e.seat_number)
+      );
 
-      const { error: uErr } = await supabase
-        .from('commander_tournament_entries')
-        .update({
-          table_number: move.to_table,
-          seat_number: move.to_seat,
-          metadata: {
-            ...(entry.metadata || {}),
-            last_moved_at: timestamp,
-            last_moved_from: { table: entry.table_number, seat: entry.seat_number },
-            move_reason: move.reason || 'balance'
-          }
-        })
-        .eq('id', move.entry_id);
-
-      if (uErr) {
-        errors.push({ entry_id: move.entry_id, error: uErr.message });
-      } else {
-        results.push({
-          entry_id: move.entry_id,
-          player_name: entry.player_name,
-          from_table: entry.table_number,
-          from_seat: entry.seat_number,
-          to_table: move.to_table,
-          to_seat: move.to_seat
+      if (occupiedList.length > 0) {
+        const e = occupiedList[0];
+        return res.status(409).json({
+          success: false,
+          error: `Balance aborted: Seat ${e.seat_number} at Table ${e.table_number} is now occupied by ${e.player_name}`
         });
       }
+
+      for (const move of moves) {
+        if (!move.entry_id || move.to_table === undefined || move.to_seat === undefined) {
+          errors.push({ entry_id: move.entry_id, error: 'Missing to_table or to_seat' });
+          continue;
+        }
+
+        const { data: entry } = await supabase
+          .from('commander_tournament_entries')
+          .select('table_number, seat_number, player_name, metadata')
+          .eq('id', move.entry_id)
+          .eq('tournament_id', tournamentId)
+          .maybeSingle();
+
+        if (!entry) {
+          errors.push({ entry_id: move.entry_id, error: 'Entry not found' });
+          continue;
+        }
+
+        const { error: uErr } = await supabase
+          .from('commander_tournament_entries')
+          .update({
+            table_number: move.to_table,
+            seat_number: move.to_seat,
+            metadata: {
+              ...(entry.metadata || {}),
+              last_moved_at: timestamp,
+              last_moved_from: { table: entry.table_number, seat: entry.seat_number },
+              move_reason: move.reason || 'balance'
+            }
+          })
+          .eq('id', move.entry_id);
+
+        if (uErr) {
+          errors.push({ entry_id: move.entry_id, error: uErr.message });
+        } else {
+          results.push({
+            entry_id: move.entry_id,
+            player_name: entry.player_name,
+            from_table: entry.table_number,
+            from_seat: entry.seat_number,
+            to_table: move.to_table,
+            to_seat: move.to_seat
+          });
+        }
+      }
+
+      return res.status(200).json({
+        success: errors.length === 0,
+        data: {
+          executed: results.length,
+          failed: errors.length,
+          moves: results,
+          errors: errors.length > 0 ? errors : undefined
+        }
+      });
+    } catch (err) {
+      console.error('Balance execute error:', err);
+      return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 
-    return res.status(200).json({
-      success: errors.length === 0,
-      data: {
-        executed: results.length,
-        failed: errors.length,
-        moves: results,
-        errors: errors.length > 0 ? errors : undefined
-      }
-    });
   } catch (err) {
-    console.error('Balance execute error:', err);
-    return res.status(500).json({ success: false, error: 'Internal server error' });
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

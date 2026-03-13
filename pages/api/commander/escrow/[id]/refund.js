@@ -12,116 +12,122 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
-
-  const _g = await guardWriteStaff(req, res); if (!_g) return;
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({
-      success: false,
-      error: { code: 'METHOD_NOT_ALLOWED', message: 'Only POST allowed' }
-    });
-  }
-
-  const { id } = req.query;
-
-  if (!id) {
-    return res.status(400).json({
-      success: false,
-      error: { code: 'MISSING_ID', message: 'Escrow ID required' }
-    });
-  }
-
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return res.status(401).json({
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+    const _g = await guardWriteStaff(req, res); if (!_g) return;
+
+    if (req.method !== 'POST') {
+      return res.status(405).json({
         success: false,
-        error: { code: 'AUTH_REQUIRED', message: 'Authorization required' }
+        error: { code: 'METHOD_NOT_ALLOWED', message: 'Only POST allowed' }
       });
     }
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { id } = req.query;
 
-    if (authError || !user) {
-      return res.status(401).json({
-        success: false,
-        error: { code: 'INVALID_TOKEN', message: 'Invalid token' }
-      });
-    }
-
-    const { reason } = req.body;
-
-    // Get escrow transaction
-    const { data: escrow, error: escrowError } = await supabase
-      .from('commander_escrow_transactions')
-      .select(`
-        *,
-        commander_home_games:home_game_id (id, host_id, status)
-      `)
-      .eq('id', id)
-      .maybeSingle();
-
-    if (escrowError || !escrow) {
-      return res.status(404).json({
-        success: false,
-        error: { code: 'NOT_FOUND', message: 'Escrow transaction not found' }
-      });
-    }
-
-    const isHost = escrow.commander_home_games?.host_id === user.id;
-    const isPlayer = escrow.player_id === user.id;
-    const gameStatus = escrow.commander_home_games?.status;
-
-    // Host can refund, or player can refund if game is cancelled
-    if (!isHost && !isPlayer) {
-      return res.status(403).json({
-        success: false,
-        error: { code: 'FORBIDDEN', message: 'Not authorized to refund this escrow' }
-      });
-    }
-
-    // Player can only refund if game is cancelled
-    if (isPlayer && !isHost && gameStatus !== 'cancelled') {
-      return res.status(403).json({
-        success: false,
-        error: { code: 'FORBIDDEN', message: 'Players can only request refunds for cancelled games' }
-      });
-    }
-
-    if (escrow.status !== 'held' && escrow.status !== 'pending') {
+    if (!id) {
       return res.status(400).json({
         success: false,
-        error: { code: 'INVALID_STATUS', message: `Cannot refund escrow with status: ${escrow.status}` }
+        error: { code: 'MISSING_ID', message: 'Escrow ID required' }
       });
     }
 
-    // Update escrow to refunded
-    const { data: updated, error } = await supabase
-      .from('commander_escrow_transactions')
-      .update({
-        status: 'refunded',
-        refunded_at: new Date().toISOString(),
-        notes: reason || 'Refund requested'
-      })
-      .eq('id', id)
-      .select()
-      .maybeSingle();
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader) {
+        return res.status(401).json({
+          success: false,
+          error: { code: 'AUTH_REQUIRED', message: 'Authorization required' }
+        });
+      }
 
-    if (error) throw error;
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
-    return res.status(200).json({
-      success: true,
-      data: { escrow: updated }
-    });
-  } catch (error) {
-    console.error('Escrow refund error:', error);
-    return res.status(500).json({
-      success: false,
-      error: { code: 'SERVER_ERROR', message: 'Failed to refund escrow' }
-    });
+      if (authError || !user) {
+        return res.status(401).json({
+          success: false,
+          error: { code: 'INVALID_TOKEN', message: 'Invalid token' }
+        });
+      }
+
+      const { reason } = req.body;
+
+      // Get escrow transaction
+      const { data: escrow, error: escrowError } = await supabase
+        .from('commander_escrow_transactions')
+        .select(`
+          *,
+          commander_home_games:home_game_id (id, host_id, status)
+        `)
+        .eq('id', id)
+        .maybeSingle();
+
+      if (escrowError || !escrow) {
+        return res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'Escrow transaction not found' }
+        });
+      }
+
+      const isHost = escrow.commander_home_games?.host_id === user.id;
+      const isPlayer = escrow.player_id === user.id;
+      const gameStatus = escrow.commander_home_games?.status;
+
+      // Host can refund, or player can refund if game is cancelled
+      if (!isHost && !isPlayer) {
+        return res.status(403).json({
+          success: false,
+          error: { code: 'FORBIDDEN', message: 'Not authorized to refund this escrow' }
+        });
+      }
+
+      // Player can only refund if game is cancelled
+      if (isPlayer && !isHost && gameStatus !== 'cancelled') {
+        return res.status(403).json({
+          success: false,
+          error: { code: 'FORBIDDEN', message: 'Players can only request refunds for cancelled games' }
+        });
+      }
+
+      if (escrow.status !== 'held' && escrow.status !== 'pending') {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'INVALID_STATUS', message: `Cannot refund escrow with status: ${escrow.status}` }
+        });
+      }
+
+      // Update escrow to refunded
+      const { data: updated, error } = await supabase
+        .from('commander_escrow_transactions')
+        .update({
+          status: 'refunded',
+          refunded_at: new Date().toISOString(),
+          notes: reason || 'Refund requested'
+        })
+        .eq('id', id)
+        .select()
+        .maybeSingle();
+
+      if (error) throw error;
+
+      return res.status(200).json({
+        success: true,
+        data: { escrow: updated }
+      });
+    } catch (error) {
+      console.error('Escrow refund error:', error);
+      return res.status(500).json({
+        success: false,
+        error: { code: 'SERVER_ERROR', message: 'Failed to refund escrow' }
+      });
+    }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

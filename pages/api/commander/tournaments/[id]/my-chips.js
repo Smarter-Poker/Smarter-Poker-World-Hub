@@ -17,96 +17,102 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+      if (req.method !== 'POST') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
+
+      const { id: tournamentId } = req.query;
+
+      // Authenticate player
+      const authHeader = req.headers.authorization;
+      if (!authHeader) {
+          return res.status(401).json({ success: false, error: 'Authentication required' });
+      }
+
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+      if (authError || !user) {
+          return res.status(401).json({ success: false, error: 'Invalid or expired token' });
+      }
+
+      try {
+          const { chips } = req.body;
+
+          if (chips === undefined || chips === null || isNaN(Number(chips)) || Number(chips) < 0) {
+              return res.status(400).json({ success: false, error: 'Valid chip count required' });
+          }
+
+          // Verify tournament exists and is running
+          const { data: tournament, error: tErr } = await supabase
+              .from('commander_tournaments')
+              .select('id, status, name')
+              .eq('id', tournamentId)
+              .maybeSingle();
+
+          if (tErr || !tournament) {
+              return res.status(404).json({ success: false, error: 'Tournament not found' });
+          }
+
+          if (!['running', 'break', 'final_table'].includes(tournament.status)) {
+              return res.status(400).json({ success: false, error: 'Tournament is not currently running' });
+          }
+
+          // Find the player's active entry
+          const { data: entry, error: eErr } = await supabase
+              .from('commander_tournament_entries')
+              .select('id, player_id, current_chips, status, metadata')
+              .eq('tournament_id', tournamentId)
+              .eq('player_id', user.id)
+              .in('status', ['active', 'seated', 'registered'])
+              .maybeSingle();
+
+          if (eErr || !entry) {
+              return res.status(404).json({ success: false, error: 'You are not registered in this tournament' });
+          }
+
+          // Update chip count
+          const previousChips = entry.current_chips || 0;
+          const newChips = Math.floor(Number(chips));
+
+          const { error: updateErr } = await supabase
+              .from('commander_tournament_entries')
+              .update({
+                  current_chips: newChips,
+                  metadata: {
+                      ...(entry.metadata || {}),
+                      last_self_reported: new Date().toISOString(),
+                      previous_chips: previousChips,
+                      reported_by: 'player'
+                  }
+              })
+              .eq('id', entry.id);
+
+          if (updateErr) {
+              console.error('Update chips error:', updateErr);
+              return res.status(500).json({ success: false, error: 'Failed to update chips' });
+          }
+
+          return res.status(200).json({
+              success: true,
+              data: {
+                  previous_chips: previousChips,
+                  current_chips: newChips,
+                  tournament_name: tournament.name
+              }
+          });
+      } catch (err) {
+          console.error('My chips error:', err);
+          return res.status(500).json({ success: false, error: 'Internal server error' });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-    if (req.method !== 'POST') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
-
-    const { id: tournamentId } = req.query;
-
-    // Authenticate player
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-        return res.status(401).json({ success: false, error: 'Authentication required' });
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-
-    if (authError || !user) {
-        return res.status(401).json({ success: false, error: 'Invalid or expired token' });
-    }
-
-    try {
-        const { chips } = req.body;
-
-        if (chips === undefined || chips === null || isNaN(Number(chips)) || Number(chips) < 0) {
-            return res.status(400).json({ success: false, error: 'Valid chip count required' });
-        }
-
-        // Verify tournament exists and is running
-        const { data: tournament, error: tErr } = await supabase
-            .from('commander_tournaments')
-            .select('id, status, name')
-            .eq('id', tournamentId)
-            .maybeSingle();
-
-        if (tErr || !tournament) {
-            return res.status(404).json({ success: false, error: 'Tournament not found' });
-        }
-
-        if (!['running', 'break', 'final_table'].includes(tournament.status)) {
-            return res.status(400).json({ success: false, error: 'Tournament is not currently running' });
-        }
-
-        // Find the player's active entry
-        const { data: entry, error: eErr } = await supabase
-            .from('commander_tournament_entries')
-            .select('id, player_id, current_chips, status, metadata')
-            .eq('tournament_id', tournamentId)
-            .eq('player_id', user.id)
-            .in('status', ['active', 'seated', 'registered'])
-            .maybeSingle();
-
-        if (eErr || !entry) {
-            return res.status(404).json({ success: false, error: 'You are not registered in this tournament' });
-        }
-
-        // Update chip count
-        const previousChips = entry.current_chips || 0;
-        const newChips = Math.floor(Number(chips));
-
-        const { error: updateErr } = await supabase
-            .from('commander_tournament_entries')
-            .update({
-                current_chips: newChips,
-                metadata: {
-                    ...(entry.metadata || {}),
-                    last_self_reported: new Date().toISOString(),
-                    previous_chips: previousChips,
-                    reported_by: 'player'
-                }
-            })
-            .eq('id', entry.id);
-
-        if (updateErr) {
-            console.error('Update chips error:', updateErr);
-            return res.status(500).json({ success: false, error: 'Failed to update chips' });
-        }
-
-        return res.status(200).json({
-            success: true,
-            data: {
-                previous_chips: previousChips,
-                current_chips: newChips,
-                tournament_name: tournament.name
-            }
-        });
-    } catch (err) {
-        console.error('My chips error:', err);
-        return res.status(500).json({ success: false, error: 'Internal server error' });
-    }
 }

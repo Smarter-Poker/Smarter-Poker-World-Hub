@@ -32,137 +32,143 @@ const NOTIFICATION_TYPES = [
 ];
 
 export default async function handler(req, res) {
-    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-        if (!applyRateLimit(req, res, LIMITS.write)) return;
-    }
+  try {
+      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+          if (!applyRateLimit(req, res, LIMITS.write)) return;
+      }
 
-    const _g = await guardWriteStaff(req, res); if (!_g) return;
+      const _g = await guardWriteStaff(req, res); if (!_g) return;
 
-    if (req.method !== 'POST') {
-        res.setHeader('Allow', ['POST']);
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
+      if (req.method !== 'POST') {
+          res.setHeader('Allow', ['POST']);
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
 
-    const { id: tournamentId } = req.query;
-    const { type, player_id, message: customMessage, table_number, seat_number } = req.body;
+      const { id: tournamentId } = req.query;
+      const { type, player_id, message: customMessage, table_number, seat_number } = req.body;
 
-    if (!type || !NOTIFICATION_TYPES.includes(type)) {
-        return res.status(400).json({
-            success: false,
-            error: `Invalid type. Must be one of: ${NOTIFICATION_TYPES.join(', ')}`
-        });
-    }
+      if (!type || !NOTIFICATION_TYPES.includes(type)) {
+          return res.status(400).json({
+              success: false,
+              error: `Invalid type. Must be one of: ${NOTIFICATION_TYPES.join(', ')}`
+          });
+      }
 
-    try {
-        // Get tournament details
-        const { data: tournament, error: tErr } = await supabase
-            .from('commander_tournaments')
-            .select('*, poker_venues:venue_id (name)')
-            .eq('id', tournamentId)
-            .maybeSingle();
+      try {
+          // Get tournament details
+          const { data: tournament, error: tErr } = await supabase
+              .from('commander_tournaments')
+              .select('*, poker_venues:venue_id (name)')
+              .eq('id', tournamentId)
+              .maybeSingle();
 
-        if (tErr || !tournament) {
-            return res.status(404).json({ success: false, error: 'Tournament not found' });
-        }
+          if (tErr || !tournament) {
+              return res.status(404).json({ success: false, error: 'Tournament not found' });
+          }
 
-        const venueName = tournament.poker_venues?.name || 'Venue';
-        const tournamentName = tournament.name || 'Tournament';
+          const venueName = tournament.poker_venues?.name || 'Venue';
+          const tournamentName = tournament.name || 'Tournament';
 
-        // Build notification content based on type
-        const notification = buildNotification(type, {
-            tournamentName,
-            venueName,
-            tournamentId,
-            customMessage,
-            table_number,
-            seat_number,
-            tournament
-        });
+          // Build notification content based on type
+          const notification = buildNotification(type, {
+              tournamentName,
+              venueName,
+              tournamentId,
+              customMessage,
+              table_number,
+              seat_number,
+              tournament
+          });
 
-        let targetUserIds = [];
-        let sentCount = 0;
+          let targetUserIds = [];
+          let sentCount = 0;
 
-        if (player_id) {
-            // Single player notification
-            targetUserIds = [player_id];
-        } else {
-            // Mass notification to all active/registered players
-            const { data: entries } = await supabase
-                .from('commander_tournament_entries')
-                .select('player_id')
-                .eq('tournament_id', tournamentId)
-                .in('status', ['registered', 'seated', 'active'])
-                .limit(100);
+          if (player_id) {
+              // Single player notification
+              targetUserIds = [player_id];
+          } else {
+              // Mass notification to all active/registered players
+              const { data: entries } = await supabase
+                  .from('commander_tournament_entries')
+                  .select('player_id')
+                  .eq('tournament_id', tournamentId)
+                  .in('status', ['registered', 'seated', 'active'])
+                  .limit(100);
 
-            targetUserIds = (entries || [])
-                .map(e => e.player_id)
-                .filter(Boolean);
-        }
+              targetUserIds = (entries || [])
+                  .map(e => e.player_id)
+                  .filter(Boolean);
+          }
 
-        if (targetUserIds.length === 0) {
-            return res.status(200).json({
-                success: true,
-                data: { sent: 0, message: 'No players to notify' }
-            });
-        }
+          if (targetUserIds.length === 0) {
+              return res.status(200).json({
+                  success: true,
+                  data: { sent: 0, message: 'No players to notify' }
+              });
+          }
 
-        // Send push notification via OneSignal
-        if (isOneSignalConfigured()) {
-            try {
-                await sendPushNotification({
-                    externalUserIds: targetUserIds,
-                    title: notification.title,
-                    message: notification.body,
-                    url: `/hub/commander/tournament/${tournamentId}/my-status`,
-                    data: {
-                        type: 'tournament_notification',
-                        tournament_id: tournamentId,
-                        notification_type: type
-                    }
-                });
-                sentCount = targetUserIds.length;
-            } catch (pushErr) {
-                console.error('[notify.js] Push notification error:', pushErr.message);
-            }
-        } else {
-        }
+          // Send push notification via OneSignal
+          if (isOneSignalConfigured()) {
+              try {
+                  await sendPushNotification({
+                      externalUserIds: targetUserIds,
+                      title: notification.title,
+                      message: notification.body,
+                      url: `/hub/commander/tournament/${tournamentId}/my-status`,
+                      data: {
+                          type: 'tournament_notification',
+                          tournament_id: tournamentId,
+                          notification_type: type
+                      }
+                  });
+                  sentCount = targetUserIds.length;
+              } catch (pushErr) {
+                  console.error('[notify.js] Push notification error:', pushErr.message);
+              }
+          } else {
+          }
 
-        // Also insert in-app notifications for each player
-        const notificationRows = targetUserIds.map(uid => ({
-            player_id: uid,
-            venue_id: tournament.venue_id,
-            notification_type: type === 'custom' ? 'custom' : 'tournament_starting',
-            title: notification.title,
-            message: notification.body,
-            channel: 'push',
-            status: 'sent',
-            metadata: {
-                tournament_id: tournamentId,
-                tournament_name: tournamentName,
-                sub_type: type
-            }
-        }));
+          // Also insert in-app notifications for each player
+          const notificationRows = targetUserIds.map(uid => ({
+              player_id: uid,
+              venue_id: tournament.venue_id,
+              notification_type: type === 'custom' ? 'custom' : 'tournament_starting',
+              title: notification.title,
+              message: notification.body,
+              channel: 'push',
+              status: 'sent',
+              metadata: {
+                  tournament_id: tournamentId,
+                  tournament_name: tournamentName,
+                  sub_type: type
+              }
+          }));
 
-        const { error: insertErr } = await supabase
-            .from('commander_notifications')
-            .insert(notificationRows);
+          const { error: insertErr } = await supabase
+              .from('commander_notifications')
+              .insert(notificationRows);
 
-        if (insertErr) {
-        }
+          if (insertErr) {
+          }
 
-        return res.status(200).json({
-            success: true,
-            data: {
-                sent: sentCount,
-                in_app: targetUserIds.length,
-                type,
-                message: notification.body
-            }
-        });
-    } catch (error) {
-        console.error('[notify.js] Error:', error);
-        return res.status(500).json({ success: false, error: 'Internal server error' });
-    }
+          return res.status(200).json({
+              success: true,
+              data: {
+                  sent: sentCount,
+                  in_app: targetUserIds.length,
+                  type,
+                  message: notification.body
+              }
+          });
+      } catch (error) {
+          console.error('[notify.js] Error:', error);
+          return res.status(500).json({ success: false, error: 'Internal server error' });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }
 
 function buildNotification(type, ctx) {

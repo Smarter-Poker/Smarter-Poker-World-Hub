@@ -14,66 +14,72 @@ const supabase = createClient(
 function escapeIlike(s) { return (s || '').replace(/[%_\\]/g, c => '\\' + c); }
 
 export default async function handler(req, res) {
-  if (!applyRateLimit(req, res, LIMITS.read)) return;
-
-  if (req.method !== 'GET') {
-    res.setHeader('Allow', ['GET']);
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
   try {
-    const authHeader = req.headers.authorization;
-    const token = authHeader?.replace('Bearer ', '');
+    if (!applyRateLimit(req, res, LIMITS.read)) return;
 
-    let userId = null;
-    if (token) {
-      const { data: { user } } = await supabase.auth.getUser(token);
-      userId = user?.id;
+    if (req.method !== 'GET') {
+      res.setHeader('Allow', ['GET']);
+      return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const {
-      type = 'groups', // 'groups' or 'players'
-      city,
-      state,
-      zip_code,
-      latitude,
-      longitude,
-      radius = 50, // miles
-      game_type,
-      stakes,
-      limit: rawLimit = '20'
-    } = req.query;
-    const limit = Math.min(parseInt(rawLimit) || 20, 100);
+    try {
+      const authHeader = req.headers.authorization;
+      const token = authHeader?.replace('Bearer ', '');
 
-    if (type === 'groups') {
-      return discoverGroups(req, res, {
-        userId,
+      let userId = null;
+      if (token) {
+        const { data: { user } } = await supabase.auth.getUser(token);
+        userId = user?.id;
+      }
+
+      const {
+        type = 'groups', // 'groups' or 'players'
         city,
         state,
         zip_code,
         latitude,
         longitude,
-        radius,
-        game_type,
-        limit
-      });
-    }
-
-    if (type === 'players') {
-      return discoverPlayers(req, res, {
-        userId,
-        city,
-        state,
+        radius = 50, // miles
         game_type,
         stakes,
-        limit
-      });
+        limit: rawLimit = '20'
+      } = req.query;
+      const limit = Math.min(parseInt(rawLimit) || 20, 100);
+
+      if (type === 'groups') {
+        return discoverGroups(req, res, {
+          userId,
+          city,
+          state,
+          zip_code,
+          latitude,
+          longitude,
+          radius,
+          game_type,
+          limit
+        });
+      }
+
+      if (type === 'players') {
+        return discoverPlayers(req, res, {
+          userId,
+          city,
+          state,
+          game_type,
+          stakes,
+          limit
+        });
+      }
+
+      return res.status(400).json({ error: 'Invalid type. Use "groups" or "players"' });
+    } catch (error) {
+      console.error('Discovery error:', error);
+      return res.status(500).json({ error: 'Internal server error' });
     }
 
-    return res.status(400).json({ error: 'Invalid type. Use "groups" or "players"' });
-  } catch (error) {
-    console.error('Discovery error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }
 

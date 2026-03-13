@@ -13,60 +13,66 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
-
-  const _g = await guardWriteStaff(req, res); if (!_g) return;
-
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', ['POST']);
-    return res.status(405).json({ success: false, error: 'Method not allowed' });
-  }
-
-  const { id: tournamentId } = req.query;
-  if (!tournamentId) return res.status(400).json({ success: false, error: 'Tournament ID required' });
-
   try {
-    // Staff is already validated by guardWriteStaff at the handler level
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
 
-    // Get tournament for clock_state
-    const { data: tournament, error: tErr } = await supabase
-      .from('commander_tournaments')
-      .select('*')
-      .eq('id', tournamentId)
-      .maybeSingle();
-    if (tErr || !tournament) return res.status(404).json({ success: false, error: 'Tournament not found' });
+    const _g = await guardWriteStaff(req, res); if (!_g) return;
 
-    const { active } = req.body;
-    // Read clock_state from settings JSONB (canonical path — matches clock.js and floor-view.js)
-    const settings = tournament.settings || {};
-    const clockState = settings.clock_state || {};
+    if (req.method !== 'POST') {
+      res.setHeader('Allow', ['POST']);
+      return res.status(405).json({ success: false, error: 'Method not allowed' });
+    }
 
-    const updatedClockState = {
-      ...clockState,
-      hand_for_hand: active !== false,
-      hand_for_hand_started_at: active !== false ? new Date().toISOString() : null
-    };
+    const { id: tournamentId } = req.query;
+    if (!tournamentId) return res.status(400).json({ success: false, error: 'Tournament ID required' });
 
-    const updatedSettings = { ...settings, clock_state: updatedClockState };
+    try {
+      // Staff is already validated by guardWriteStaff at the handler level
 
-    const { error: uErr } = await supabase
-      .from('commander_tournaments')
-      .update({ settings: updatedSettings })
-      .eq('id', tournamentId);
+      // Get tournament for clock_state
+      const { data: tournament, error: tErr } = await supabase
+        .from('commander_tournaments')
+        .select('*')
+        .eq('id', tournamentId)
+        .maybeSingle();
+      if (tErr || !tournament) return res.status(404).json({ success: false, error: 'Tournament not found' });
 
-    if (uErr) return res.status(500).json({ success: false, error: 'Failed to update' });
+      const { active } = req.body;
+      // Read clock_state from settings JSONB (canonical path — matches clock.js and floor-view.js)
+      const settings = tournament.settings || {};
+      const clockState = settings.clock_state || {};
 
-    return res.status(200).json({
-      success: true,
-      data: {
-        hand_for_hand: updatedClockState.hand_for_hand,
-        started_at: updatedClockState.hand_for_hand_started_at
-      }
-    });
+      const updatedClockState = {
+        ...clockState,
+        hand_for_hand: active !== false,
+        hand_for_hand_started_at: active !== false ? new Date().toISOString() : null
+      };
+
+      const updatedSettings = { ...settings, clock_state: updatedClockState };
+
+      const { error: uErr } = await supabase
+        .from('commander_tournaments')
+        .update({ settings: updatedSettings })
+        .eq('id', tournamentId);
+
+      if (uErr) return res.status(500).json({ success: false, error: 'Failed to update' });
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          hand_for_hand: updatedClockState.hand_for_hand,
+          started_at: updatedClockState.hand_for_hand_started_at
+        }
+      });
+    } catch (err) {
+      console.error('Hand-for-hand error:', err);
+      return res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+
   } catch (err) {
-    console.error('Hand-for-hand error:', err);
-    return res.status(500).json({ success: false, error: 'Internal server error' });
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

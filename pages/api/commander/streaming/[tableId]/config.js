@@ -12,99 +12,105 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
-
-  // Auth guard: require staff auth
-  const _staff = await guardStaff(req, res);
-  if (!_staff) return;
-
-  if (req.method !== 'PATCH') {
-    return res.status(405).json({
-      success: false,
-      error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' }
-    });
-  }
-
-  const { tableId } = req.query;
-  const { venue_id, platforms, delay_minutes, overlay_config } = req.body;
-
-  if (!venue_id) {
-    return res.status(400).json({
-      success: false,
-      error: { code: 'MISSING_FIELDS', message: 'venue_id required' }
-    });
-  }
-
   try {
-    // Check if table exists
-    const { data: table, error: tableError } = await supabase
-      .from('commander_tables')
-      .select('id, venue_id')
-      .eq('id', tableId)
-      .eq('venue_id', venue_id)
-      .maybeSingle();
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
 
-    if (tableError || !table) {
-      return res.status(404).json({
+    // Auth guard: require staff auth
+    const _staff = await guardStaff(req, res);
+    if (!_staff) return;
+
+    if (req.method !== 'PATCH') {
+      return res.status(405).json({
         success: false,
-        error: { code: 'NOT_FOUND', message: 'Table not found' }
+        error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' }
       });
     }
 
-    // Update or insert stream config
-    const { data: existingStream } = await supabase
-      .from('commander_streams')
-      .select('id')
-      .eq('table_id', tableId)
-      .maybeSingle();
+    const { tableId } = req.query;
+    const { venue_id, platforms, delay_minutes, overlay_config } = req.body;
 
-    let result;
-    if (existingStream) {
-      // Update existing
-      const { data, error } = await supabase
-        .from('commander_streams')
-        .update({
-          platforms: platforms || [],
-          delay_minutes: delay_minutes || 15,
-          overlay_config: overlay_config || {},
-          updated_at: new Date().toISOString()
-        })
-        .eq('table_id', tableId)
-        .select()
-        .maybeSingle();
-
-      if (error) throw error;
-      result = data;
-    } else {
-      // Insert new
-      const { data, error } = await supabase
-        .from('commander_streams')
-        .insert({
-          table_id: tableId,
-          venue_id: venue_id,
-          platforms: platforms || [],
-          delay_minutes: delay_minutes || 15,
-          overlay_config: overlay_config || {},
-          status: 'offline'
-        })
-        .select()
-        .maybeSingle();
-
-      if (error) throw error;
-      result = data;
+    if (!venue_id) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'MISSING_FIELDS', message: 'venue_id required' }
+      });
     }
 
-    return res.status(200).json({
-      success: true,
-      data: { stream: result }
-    });
-  } catch (error) {
-    console.error('Update stream config error:', error);
-    return res.status(500).json({
-      success: false,
-      error: { code: 'SERVER_ERROR', message: 'Failed to update stream config' }
-    });
+    try {
+      // Check if table exists
+      const { data: table, error: tableError } = await supabase
+        .from('commander_tables')
+        .select('id, venue_id')
+        .eq('id', tableId)
+        .eq('venue_id', venue_id)
+        .maybeSingle();
+
+      if (tableError || !table) {
+        return res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'Table not found' }
+        });
+      }
+
+      // Update or insert stream config
+      const { data: existingStream } = await supabase
+        .from('commander_streams')
+        .select('id')
+        .eq('table_id', tableId)
+        .maybeSingle();
+
+      let result;
+      if (existingStream) {
+        // Update existing
+        const { data, error } = await supabase
+          .from('commander_streams')
+          .update({
+            platforms: platforms || [],
+            delay_minutes: delay_minutes || 15,
+            overlay_config: overlay_config || {},
+            updated_at: new Date().toISOString()
+          })
+          .eq('table_id', tableId)
+          .select()
+          .maybeSingle();
+
+        if (error) throw error;
+        result = data;
+      } else {
+        // Insert new
+        const { data, error } = await supabase
+          .from('commander_streams')
+          .insert({
+            table_id: tableId,
+            venue_id: venue_id,
+            platforms: platforms || [],
+            delay_minutes: delay_minutes || 15,
+            overlay_config: overlay_config || {},
+            status: 'offline'
+          })
+          .select()
+          .maybeSingle();
+
+        if (error) throw error;
+        result = data;
+      }
+
+      return res.status(200).json({
+        success: true,
+        data: { stream: result }
+      });
+    } catch (error) {
+      console.error('Update stream config error:', error);
+      return res.status(500).json({
+        success: false,
+        error: { code: 'SERVER_ERROR', message: 'Failed to update stream config' }
+      });
+    }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

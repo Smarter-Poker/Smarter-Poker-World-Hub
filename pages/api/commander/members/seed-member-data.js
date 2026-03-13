@@ -76,99 +76,105 @@ function generateEmail(firstName, lastName) {
 }
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+      const _g = await guardWriteStaff(req, res); if (!_g) return;
+
+      if (req.method !== 'POST') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
+
+      const { venue_id } = req.body;
+      if (!venue_id) {
+          return res.status(400).json({ success: false, error: 'venue_id required' });
+      }
+
+      try {
+          // Get all members for this venue
+          const { data: members, error: fetchErr } = await supabase
+              .from('commander_members')
+              .select('id, first_name, last_name, email, phone, address, date_of_birth, id_type, id_number, id_state, id_expiry, time_balance_minutes, comp_balance')
+              .eq('venue_id', venue_id)
+                  .limit(100)
+
+          if (fetchErr) throw fetchErr;
+          if (!members || members.length === 0) {
+              return res.status(200).json({ success: true, data: { seeded: 0, message: 'No members found in this venue' } });
+          }
+
+          let seeded = 0;
+
+          for (const m of members) {
+              const updates = {};
+
+              // Fill missing email
+              if (!m.email && m.first_name && m.last_name) {
+                  updates.email = generateEmail(m.first_name, m.last_name);
+              }
+
+              // Fill missing phone
+              if (!m.phone) {
+                  updates.phone = randomPhone();
+              }
+
+              // Fill missing address
+              if (!m.address || !m.address.street) {
+                  const loc = randomPick(CITIES_TX);
+                  updates.address = {
+                      street: randomPick(STREETS),
+                      city: loc.city,
+                      state: 'TX',
+                      zip: loc.zip,
+                  };
+              }
+
+              // Fill missing DOB
+              if (!m.date_of_birth) {
+                  updates.date_of_birth = randomDOB();
+              }
+
+              // Fill missing ID info
+              if (!m.id_number) {
+                  updates.id_type = 'drivers_license';
+                  updates.id_number = randomIdNumber();
+                  updates.id_state = randomPick(ID_STATES);
+                  updates.id_expiry = randomIdExpiry();
+              }
+
+              // Fill missing time balance
+              if (!m.time_balance_minutes && m.time_balance_minutes !== 0) {
+                  updates.time_balance_minutes = Math.floor(Math.random() * 480) + 60; // 1-9 hours
+              }
+
+              // Fill missing comp balance
+              if (!m.comp_balance && m.comp_balance !== 0) {
+                  updates.comp_balance = Math.floor(Math.random() * 15000) / 100; // $0-$150
+              }
+
+              if (Object.keys(updates).length > 0) {
+                  updates.updated_at = new Date().toISOString();
+                  const { error: upErr } = await supabase
+                      .from('commander_members')
+                      .update(updates)
+                      .eq('id', m.id);
+                  if (!upErr) seeded++;
+              }
+          }
+
+          return res.status(200).json({
+              success: true,
+              data: { seeded, total: members.length, message: `Seeded ${seeded} of ${members.length} members with simulated data` }
+          });
+      } catch (err) {
+          console.error('Seed member data error:', err);
+          return res.status(500).json({ success: false, error: err.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-    const _g = await guardWriteStaff(req, res); if (!_g) return;
-
-    if (req.method !== 'POST') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
-
-    const { venue_id } = req.body;
-    if (!venue_id) {
-        return res.status(400).json({ success: false, error: 'venue_id required' });
-    }
-
-    try {
-        // Get all members for this venue
-        const { data: members, error: fetchErr } = await supabase
-            .from('commander_members')
-            .select('id, first_name, last_name, email, phone, address, date_of_birth, id_type, id_number, id_state, id_expiry, time_balance_minutes, comp_balance')
-            .eq('venue_id', venue_id)
-                .limit(100)
-
-        if (fetchErr) throw fetchErr;
-        if (!members || members.length === 0) {
-            return res.status(200).json({ success: true, data: { seeded: 0, message: 'No members found in this venue' } });
-        }
-
-        let seeded = 0;
-
-        for (const m of members) {
-            const updates = {};
-
-            // Fill missing email
-            if (!m.email && m.first_name && m.last_name) {
-                updates.email = generateEmail(m.first_name, m.last_name);
-            }
-
-            // Fill missing phone
-            if (!m.phone) {
-                updates.phone = randomPhone();
-            }
-
-            // Fill missing address
-            if (!m.address || !m.address.street) {
-                const loc = randomPick(CITIES_TX);
-                updates.address = {
-                    street: randomPick(STREETS),
-                    city: loc.city,
-                    state: 'TX',
-                    zip: loc.zip,
-                };
-            }
-
-            // Fill missing DOB
-            if (!m.date_of_birth) {
-                updates.date_of_birth = randomDOB();
-            }
-
-            // Fill missing ID info
-            if (!m.id_number) {
-                updates.id_type = 'drivers_license';
-                updates.id_number = randomIdNumber();
-                updates.id_state = randomPick(ID_STATES);
-                updates.id_expiry = randomIdExpiry();
-            }
-
-            // Fill missing time balance
-            if (!m.time_balance_minutes && m.time_balance_minutes !== 0) {
-                updates.time_balance_minutes = Math.floor(Math.random() * 480) + 60; // 1-9 hours
-            }
-
-            // Fill missing comp balance
-            if (!m.comp_balance && m.comp_balance !== 0) {
-                updates.comp_balance = Math.floor(Math.random() * 15000) / 100; // $0-$150
-            }
-
-            if (Object.keys(updates).length > 0) {
-                updates.updated_at = new Date().toISOString();
-                const { error: upErr } = await supabase
-                    .from('commander_members')
-                    .update(updates)
-                    .eq('id', m.id);
-                if (!upErr) seeded++;
-            }
-        }
-
-        return res.status(200).json({
-            success: true,
-            data: { seeded, total: members.length, message: `Seeded ${seeded} of ${members.length} members with simulated data` }
-        });
-    } catch (err) {
-        console.error('Seed member data error:', err);
-        return res.status(500).json({ success: false, error: err.message });
-    }
 }

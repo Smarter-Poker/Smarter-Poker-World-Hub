@@ -14,76 +14,82 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
-
-  const _g = await guardWriteStaff(req, res); if (!_g) return;
-
-  if (req.method !== 'PUT') {
-    res.setHeader('Allow', ['PUT']);
-    return res.status(405).json({ success: false, error: 'Method not allowed' });
-  }
-
-  const { id: tournamentId, entryId } = req.query;
-  if (!tournamentId || !entryId) {
-    return res.status(400).json({ success: false, error: 'Tournament ID and Entry ID required' });
-  }
-
   try {
-    // Staff is already validated by guardWriteStaff at the handler level
-
-    const { data: tournament } = await supabase
-      .from('commander_tournaments')
-      .select('id, venue_id')
-      .eq('id', tournamentId)
-      .maybeSingle();
-    if (!tournament) return res.status(404).json({ success: false, error: 'Tournament not found' });
-
-
-    const { chips } = req.body;
-    if (chips === undefined || chips < 0) {
-      return res.status(400).json({ success: false, error: 'Valid chip count required (>= 0)' });
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
 
-    const { data: entry } = await supabase
-      .from('commander_tournament_entries')
-      .select('id, player_name, current_chips, status, metadata')
-      .eq('id', entryId)
-      .eq('tournament_id', tournamentId)
-      .maybeSingle();
-    if (!entry) return res.status(404).json({ success: false, error: 'Entry not found' });
+    const _g = await guardWriteStaff(req, res); if (!_g) return;
 
-    const previousChips = entry.current_chips || 0;
+    if (req.method !== 'PUT') {
+      res.setHeader('Allow', ['PUT']);
+      return res.status(405).json({ success: false, error: 'Method not allowed' });
+    }
 
-    const { data: updated, error: uErr } = await supabase
-      .from('commander_tournament_entries')
-      .update({
-        current_chips: chips,
-        metadata: {
-          ...(entry.metadata || {}),
-          chip_updated_at: new Date().toISOString(),
-          previous_chips: previousChips,
-          updated_by: _g.id || null
-        }
-      })
-      .eq('id', entryId)
-      .select()
-      .maybeSingle();
+    const { id: tournamentId, entryId } = req.query;
+    if (!tournamentId || !entryId) {
+      return res.status(400).json({ success: false, error: 'Tournament ID and Entry ID required' });
+    }
 
-    if (uErr) return res.status(500).json({ success: false, error: 'Failed to update chips' });
+    try {
+      // Staff is already validated by guardWriteStaff at the handler level
 
-    return res.status(200).json({
-      success: true,
-      data: {
-        entry_id: entryId,
-        player_name: entry.player_name,
-        previous_chips: previousChips,
-        current_chips: chips
+      const { data: tournament } = await supabase
+        .from('commander_tournaments')
+        .select('id, venue_id')
+        .eq('id', tournamentId)
+        .maybeSingle();
+      if (!tournament) return res.status(404).json({ success: false, error: 'Tournament not found' });
+
+
+      const { chips } = req.body;
+      if (chips === undefined || chips < 0) {
+        return res.status(400).json({ success: false, error: 'Valid chip count required (>= 0)' });
       }
-    });
+
+      const { data: entry } = await supabase
+        .from('commander_tournament_entries')
+        .select('id, player_name, current_chips, status, metadata')
+        .eq('id', entryId)
+        .eq('tournament_id', tournamentId)
+        .maybeSingle();
+      if (!entry) return res.status(404).json({ success: false, error: 'Entry not found' });
+
+      const previousChips = entry.current_chips || 0;
+
+      const { data: updated, error: uErr } = await supabase
+        .from('commander_tournament_entries')
+        .update({
+          current_chips: chips,
+          metadata: {
+            ...(entry.metadata || {}),
+            chip_updated_at: new Date().toISOString(),
+            previous_chips: previousChips,
+            updated_by: _g.id || null
+          }
+        })
+        .eq('id', entryId)
+        .select()
+        .maybeSingle();
+
+      if (uErr) return res.status(500).json({ success: false, error: 'Failed to update chips' });
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          entry_id: entryId,
+          player_name: entry.player_name,
+          previous_chips: previousChips,
+          current_chips: chips
+        }
+      });
+    } catch (err) {
+      console.error('Update chips error:', err);
+      return res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+
   } catch (err) {
-    console.error('Update chips error:', err);
-    return res.status(500).json({ success: false, error: 'Internal server error' });
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

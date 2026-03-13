@@ -146,71 +146,77 @@ Return ONLY a valid JSON array:
 }
 
 export default async function handler(req, res) {
-    // Admin-only endpoint
-    const authHeader = req.headers.authorization;
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
+  try {
+      // Admin-only endpoint
+      const authHeader = req.headers.authorization;
+      if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+          return res.status(401).json({ error: 'Unauthorized' });
+      }
 
-    const { category: targetCategory, batchCount = 5 } = req.query;
-    const categories = targetCategory
-        ? NEW_CATEGORIES.filter(c => c.id === targetCategory)
-        : NEW_CATEGORIES;
+      const { category: targetCategory, batchCount = 5 } = req.query;
+      const categories = targetCategory
+          ? NEW_CATEGORIES.filter(c => c.id === targetCategory)
+          : NEW_CATEGORIES;
 
-    const results = { generated: 0, categories: {} };
+      const results = { generated: 0, categories: {} };
 
-    for (const cat of categories) {
-        // Check current count
-        const { count: existing } = await supabase
-            .from('trivia_questions')
-            .select('*', { count: 'exact', head: true })
-            .eq('category', cat.id);
+      for (const cat of categories) {
+          // Check current count
+          const { count: existing } = await supabase
+              .from('trivia_questions')
+              .select('*', { count: 'exact', head: true })
+              .eq('category', cat.id);
 
-        const needed = TARGET_PER_CATEGORY - (existing || 0);
-        if (needed <= 0) {
-            results.categories[cat.id] = { existing: existing || 0, needed: 0, generated: 0 };
-            continue;
-        }
+          const needed = TARGET_PER_CATEGORY - (existing || 0);
+          if (needed <= 0) {
+              results.categories[cat.id] = { existing: existing || 0, needed: 0, generated: 0 };
+              continue;
+          }
 
-        let catGenerated = 0;
-        const difficulties = ['easy', 'medium', 'hard'];
+          let catGenerated = 0;
+          const difficulties = ['easy', 'medium', 'hard'];
 
-        for (let batch = 0; batch < Math.min(batchCount, Math.ceil(needed / BATCH_SIZE)); batch++) {
-            const diff = difficulties[batch % 3];
-            const subcat = cat.subcategories[batch % cat.subcategories.length];
+          for (let batch = 0; batch < Math.min(batchCount, Math.ceil(needed / BATCH_SIZE)); batch++) {
+              const diff = difficulties[batch % 3];
+              const subcat = cat.subcategories[batch % cat.subcategories.length];
 
-            const questions = await generateBatch(cat, subcat, diff, BATCH_SIZE);
+              const questions = await generateBatch(cat, subcat, diff, BATCH_SIZE);
 
-            if (questions.length > 0) {
-                // ═══ QA VALIDATION GATE ═══
-                const { valid: validQuestions, rejected } = validateBatch(questions);
-                if (rejected.length > 0) {
-                    rejected.forEach(r => r.errors.forEach(e => console.log(`  → ${e}`)));
-                }
+              if (questions.length > 0) {
+                  // ═══ QA VALIDATION GATE ═══
+                  const { valid: validQuestions, rejected } = validateBatch(questions);
+                  if (rejected.length > 0) {
+                      rejected.forEach(r => r.errors.forEach(e => console.log(`  → ${e}`)));
+                  }
 
-                if (validQuestions.length > 0) {
-                    const { data, error } = await supabase
-                        .from('trivia_questions')
-                        .insert(validQuestions)
-                        .select();
+                  if (validQuestions.length > 0) {
+                      const { data, error } = await supabase
+                          .from('trivia_questions')
+                          .insert(validQuestions)
+                          .select();
 
-                    if (!error && data) {
-                        catGenerated += data.length;
-                    }
-                }
-            }
+                      if (!error && data) {
+                          catGenerated += data.length;
+                      }
+                  }
+              }
 
-            // Rate limit
-            await new Promise(r => setTimeout(r, 1500));
-        }
+              // Rate limit
+              await new Promise(r => setTimeout(r, 1500));
+          }
 
-        results.generated += catGenerated;
-        results.categories[cat.id] = { existing: existing || 0, needed, generated: catGenerated };
-    }
+          results.generated += catGenerated;
+          results.categories[cat.id] = { existing: existing || 0, needed, generated: catGenerated };
+      }
 
-    return res.status(200).json({
-        success: true,
-        message: `Bootstrap complete: ${results.generated} questions generated`,
-        results
-    });
+      return res.status(200).json({
+          success: true,
+          message: `Bootstrap complete: ${results.generated} questions generated`,
+          results
+      });
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

@@ -264,196 +264,202 @@ function normalizeAddress(addr) {
 // Main handler
 // ---------------------------------------------------------------------------
 export default async function handler(req, res) {
-    // CRON_SECRET auth — optional, skip in dev
-    if (process.env.NODE_ENV === 'production' && process.env.CRON_SECRET) {
-        if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
-            return res.status(401).json({ error: 'Unauthorized' });
-        }
-    }
+  try {
+      // CRON_SECRET auth — optional, skip in dev
+      if (process.env.NODE_ENV === 'production' && process.env.CRON_SECRET) {
+          if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+              return res.status(401).json({ error: 'Unauthorized' });
+          }
+      }
 
-    const { batch: batchParam, state } = req.query;
-    const batchNumber = parseInt(batchParam) || 1;
+      const { batch: batchParam, state } = req.query;
+      const batchNumber = parseInt(batchParam) || 1;
 
-    const stats = {
-        success: true,
-        batch: batchNumber,
-        venuesChecked: 0,
-        updatesFound: 0,
-        phoneUpdates: 0,
-        hoursUpdates: 0,
-        addressUpdates: 0,
-        errors: [],
-        skipped: 0,
-        startedAt: new Date().toISOString()
-    };
+      const stats = {
+          success: true,
+          batch: batchNumber,
+          venuesChecked: 0,
+          updatesFound: 0,
+          phoneUpdates: 0,
+          hoursUpdates: 0,
+          addressUpdates: 0,
+          errors: [],
+          skipped: 0,
+          startedAt: new Date().toISOString()
+      };
 
-    try {
-        // ----- Load venue data -----
-        const venuesData = loadJsonFile(VENUES_JSON_PATH);
-        if (!venuesData || !venuesData.venues) {
-            return res.status(500).json({
-                success: false,
-                error: 'Could not load all-venues.json'
-            });
-        }
+      try {
+          // ----- Load venue data -----
+          const venuesData = loadJsonFile(VENUES_JSON_PATH);
+          if (!venuesData || !venuesData.venues) {
+              return res.status(500).json({
+                  success: false,
+                  error: 'Could not load all-venues.json'
+              });
+          }
 
-        let allVenues = venuesData.venues;
-        let venueSubset;
+          let allVenues = venuesData.venues;
+          let venueSubset;
 
-        // Optional: filter by state (overrides batch)
-        if (state) {
-            venueSubset = allVenues.filter(v =>
-                v.state && v.state.toUpperCase() === state.toUpperCase()
-            );
-        } else {
-            // Apply batch slicing (5 batches, ~100 venues each)
-            const startIdx = (batchNumber - 1) * BATCH_SIZE;
-            const endIdx = Math.min(startIdx + BATCH_SIZE, allVenues.length);
-            venueSubset = allVenues.slice(startIdx, endIdx);
-        }
+          // Optional: filter by state (overrides batch)
+          if (state) {
+              venueSubset = allVenues.filter(v =>
+                  v.state && v.state.toUpperCase() === state.toUpperCase()
+              );
+          } else {
+              // Apply batch slicing (5 batches, ~100 venues each)
+              const startIdx = (batchNumber - 1) * BATCH_SIZE;
+              const endIdx = Math.min(startIdx + BATCH_SIZE, allVenues.length);
+              venueSubset = allVenues.slice(startIdx, endIdx);
+          }
 
-        // Track whether we made any changes to venues data
-        let venuesModified = false;
+          // Track whether we made any changes to venues data
+          let venuesModified = false;
 
-        // ----- Process each venue -----
-        for (let i = 0; i < venueSubset.length; i++) {
-            const venue = venueSubset[i];
+          // ----- Process each venue -----
+          for (let i = 0; i < venueSubset.length; i++) {
+              const venue = venueSubset[i];
 
-            // Skip venues without a website
-            if (!venue.website) {
-                stats.skipped++;
-                continue;
-            }
+              // Skip venues without a website
+              if (!venue.website) {
+                  stats.skipped++;
+                  continue;
+              }
 
-            stats.venuesChecked++;
+              stats.venuesChecked++;
 
-            let url = venue.website;
-            if (!url.startsWith('http')) {
-                url = 'https://' + url;
-            }
+              let url = venue.website;
+              if (!url.startsWith('http')) {
+                  url = 'https://' + url;
+              }
 
-            try {
-                const html = await fetchUrl(url);
-                const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+              try {
+                  const html = await fetchUrl(url);
+                  const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
 
-                let venueUpdated = false;
-                const updates = {};
+                  let venueUpdated = false;
+                  const updates = {};
 
-                // ----- Check phone number -----
-                const foundPhone = extractPhone(text);
-                if (foundPhone) {
-                    const normalizedFound = normalizePhone(foundPhone);
-                    const normalizedExisting = normalizePhone(venue.phone);
+                  // ----- Check phone number -----
+                  const foundPhone = extractPhone(text);
+                  if (foundPhone) {
+                      const normalizedFound = normalizePhone(foundPhone);
+                      const normalizedExisting = normalizePhone(venue.phone);
 
-                    if (normalizedFound !== normalizedExisting && normalizedFound.length === 10) {
-                        updates.phone = foundPhone;
-                        venueUpdated = true;
-                        stats.phoneUpdates++;
-                    }
-                }
+                      if (normalizedFound !== normalizedExisting && normalizedFound.length === 10) {
+                          updates.phone = foundPhone;
+                          venueUpdated = true;
+                          stats.phoneUpdates++;
+                      }
+                  }
 
-                // ----- Check hours -----
-                const foundHours = extractHours(text);
-                if (foundHours) {
-                    const normalizedFound = normalizeHours(foundHours);
-                    const normalizedExisting = normalizeHours(venue.hours);
+                  // ----- Check hours -----
+                  const foundHours = extractHours(text);
+                  if (foundHours) {
+                      const normalizedFound = normalizeHours(foundHours);
+                      const normalizedExisting = normalizeHours(venue.hours);
 
-                    if (normalizedFound !== normalizedExisting && normalizedFound.length > 3) {
-                        updates.hours = foundHours;
-                        venueUpdated = true;
-                        stats.hoursUpdates++;
-                    }
-                }
+                      if (normalizedFound !== normalizedExisting && normalizedFound.length > 3) {
+                          updates.hours = foundHours;
+                          venueUpdated = true;
+                          stats.hoursUpdates++;
+                      }
+                  }
 
-                // ----- Check address -----
-                const foundAddress = extractAddress(text);
-                if (foundAddress) {
-                    const normalizedFound = normalizeAddress(foundAddress);
-                    const normalizedExisting = normalizeAddress(venue.address);
+                  // ----- Check address -----
+                  const foundAddress = extractAddress(text);
+                  if (foundAddress) {
+                      const normalizedFound = normalizeAddress(foundAddress);
+                      const normalizedExisting = normalizeAddress(venue.address);
 
-                    // Only update if it looks substantially different (not just a formatting change)
-                    if (normalizedFound !== normalizedExisting && normalizedFound.length > 5) {
-                        // Additional check: must share at least one number to avoid false positives
-                        const existingNumbers = (venue.address || '').match(/\d+/g) || [];
-                        const foundNumbers = foundAddress.match(/\d+/g) || [];
-                        const sharedNumber = foundNumbers.some(n => existingNumbers.includes(n));
+                      // Only update if it looks substantially different (not just a formatting change)
+                      if (normalizedFound !== normalizedExisting && normalizedFound.length > 5) {
+                          // Additional check: must share at least one number to avoid false positives
+                          const existingNumbers = (venue.address || '').match(/\d+/g) || [];
+                          const foundNumbers = foundAddress.match(/\d+/g) || [];
+                          const sharedNumber = foundNumbers.some(n => existingNumbers.includes(n));
 
-                        // If existing address is empty, or addresses share a number (likely same place, updated format)
-                        if (!venue.address || sharedNumber || existingNumbers.length === 0) {
-                            updates.address = foundAddress;
-                            venueUpdated = true;
-                            stats.addressUpdates++;
-                        }
-                    }
-                }
+                          // If existing address is empty, or addresses share a number (likely same place, updated format)
+                          if (!venue.address || sharedNumber || existingNumbers.length === 0) {
+                              updates.address = foundAddress;
+                              venueUpdated = true;
+                              stats.addressUpdates++;
+                          }
+                      }
+                  }
 
-                // ----- Apply updates -----
-                if (venueUpdated) {
-                    stats.updatesFound++;
+                  // ----- Apply updates -----
+                  if (venueUpdated) {
+                      stats.updatesFound++;
 
-                    // Find venue in main array and update
-                    const venueIdx = allVenues.findIndex(v => v.id === venue.id);
-                    if (venueIdx !== -1) {
-                        if (updates.phone) allVenues[venueIdx].phone = updates.phone;
-                        if (updates.hours) allVenues[venueIdx].hours = updates.hours;
-                        if (updates.address) allVenues[venueIdx].address = updates.address;
-                        allVenues[venueIdx].last_info_check = new Date().toISOString();
-                        venuesModified = true;
-                    }
+                      // Find venue in main array and update
+                      const venueIdx = allVenues.findIndex(v => v.id === venue.id);
+                      if (venueIdx !== -1) {
+                          if (updates.phone) allVenues[venueIdx].phone = updates.phone;
+                          if (updates.hours) allVenues[venueIdx].hours = updates.hours;
+                          if (updates.address) allVenues[venueIdx].address = updates.address;
+                          allVenues[venueIdx].last_info_check = new Date().toISOString();
+                          venuesModified = true;
+                      }
 
-                    // Update Supabase if available
-                    if (supabase && venue.id) {
-                        try {
-                            const supabaseUpdates = { ...updates };
-                            supabaseUpdates.last_info_check = new Date().toISOString();
+                      // Update Supabase if available
+                      if (supabase && venue.id) {
+                          try {
+                              const supabaseUpdates = { ...updates };
+                              supabaseUpdates.last_info_check = new Date().toISOString();
 
-                            await supabase
-                                .from('poker_venues')
-                                .update(supabaseUpdates)
-                                .eq('id', venue.id);
-                        } catch (_) {
-                            // Supabase update failure is non-fatal
-                        }
-                    }
-                } else {
-                    // No changes found, but mark as checked
-                    const venueIdx = allVenues.findIndex(v => v.id === venue.id);
-                    if (venueIdx !== -1) {
-                        allVenues[venueIdx].last_info_check = new Date().toISOString();
-                        venuesModified = true;
-                    }
-                }
-            } catch (error) {
-                stats.errors.push({
-                    venue: venue.name,
-                    website: venue.website,
-                    error: error.message
-                });
-            }
+                              await supabase
+                                  .from('poker_venues')
+                                  .update(supabaseUpdates)
+                                  .eq('id', venue.id);
+                          } catch (_) {
+                              // Supabase update failure is non-fatal
+                          }
+                      }
+                  } else {
+                      // No changes found, but mark as checked
+                      const venueIdx = allVenues.findIndex(v => v.id === venue.id);
+                      if (venueIdx !== -1) {
+                          allVenues[venueIdx].last_info_check = new Date().toISOString();
+                          venuesModified = true;
+                      }
+                  }
+              } catch (error) {
+                  stats.errors.push({
+                      venue: venue.name,
+                      website: venue.website,
+                      error: error.message
+                  });
+              }
 
-            // Rate limiting between venues
-            if (i < venueSubset.length - 1) {
-                await sleep(RATE_LIMIT_MS);
-            }
-        }
+              // Rate limiting between venues
+              if (i < venueSubset.length - 1) {
+                  await sleep(RATE_LIMIT_MS);
+              }
+          }
 
-        // ----- Save updated venues JSON -----
-        if (venuesModified) {
-            venuesData.venues = allVenues;
-            venuesData.metadata.last_info_check = new Date().toISOString();
-            const saved = saveJsonFile(VENUES_JSON_PATH, venuesData);
-            stats.jsonSaved = saved;
-        } else {
-            stats.jsonSaved = false;
-        }
+          // ----- Save updated venues JSON -----
+          if (venuesModified) {
+              venuesData.venues = allVenues;
+              venuesData.metadata.last_info_check = new Date().toISOString();
+              const saved = saveJsonFile(VENUES_JSON_PATH, venuesData);
+              stats.jsonSaved = saved;
+          } else {
+              stats.jsonSaved = false;
+          }
 
-        stats.finishedAt = new Date().toISOString();
-        return res.status(200).json(stats);
+          stats.finishedAt = new Date().toISOString();
+          return res.status(200).json(stats);
 
-    } catch (error) {
-        stats.success = false;
-        stats.error = error.message;
-        stats.finishedAt = new Date().toISOString();
-        return res.status(500).json(stats);
-    }
+      } catch (error) {
+          stats.success = false;
+          stats.error = error.message;
+          stats.finishedAt = new Date().toISOString();
+          return res.status(500).json(stats);
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

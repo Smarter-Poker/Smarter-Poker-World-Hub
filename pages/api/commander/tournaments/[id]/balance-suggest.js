@@ -21,180 +21,186 @@ function findAvailableSeat(maxSeats, occupiedSeats) {
 }
 
 export default async function handler(req, res) {
-  if (!applyRateLimit(req, res, LIMITS.read)) return;
-
-  const _g = await guardWriteStaff(req, res); if (!_g) return;
-
-  if (req.method !== 'GET') {
-    res.setHeader('Allow', ['GET']);
-    return res.status(405).json({ success: false, error: 'Method not allowed' });
-  }
-
-  const { id: tournamentId } = req.query;
-  if (!tournamentId) {
-    return res.status(400).json({ success: false, error: 'Tournament ID required' });
-  }
-
   try {
-    // Staff is already validated by guardWriteStaff at the handler level
+    if (!applyRateLimit(req, res, LIMITS.read)) return;
 
-    // Get tournament for venue_id
-    const { data: tournament, error: tErr } = await supabase
-      .from('commander_tournaments')
-      .select('id, venue_id')
-      .eq('id', tournamentId)
-      .maybeSingle();
-    if (tErr || !tournament) return res.status(404).json({ success: false, error: 'Tournament not found' });
+    const _g = await guardWriteStaff(req, res); if (!_g) return;
 
-    // Get all active entries with table/seat info
-    const { data: entries } = await supabase
-      .from('commander_tournament_entries')
-      .select('id, player_name, table_number, seat_number, status, current_chips, metadata')
-      .eq('tournament_id', tournamentId)
-      .in('status', ['active', 'seated']);
-
-    if (!entries || entries.length === 0) {
-      return res.status(200).json({ success: true, data: { type: 'none', moves: [], message: 'No active players' } });
+    if (req.method !== 'GET') {
+      res.setHeader('Allow', ['GET']);
+      return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
-    // Get unique table numbers from entries
-    const tableNumbers = [...new Set(entries.map(e => e.table_number).filter(Boolean))]
-        .limit(100);
-    if (tableNumbers.length < 2) {
-      return res.status(200).json({ success: true, data: { type: 'none', moves: [], message: 'Only one table active' } });
+    const { id: tournamentId } = req.query;
+    if (!tournamentId) {
+      return res.status(400).json({ success: false, error: 'Tournament ID required' });
     }
 
-    // Get table configs
-    const { data: tables } = await supabase
-      .from('commander_tables')
-      .select('id, table_number, max_seats, status')
-      .eq('venue_id', tournament.venue_id)
-      .in('table_number', tableNumbers)
-          .limit(100)
+    try {
+      // Staff is already validated by guardWriteStaff at the handler level
 
-    const maxSeats = tables?.[0]?.max_seats || 9;
+      // Get tournament for venue_id
+      const { data: tournament, error: tErr } = await supabase
+        .from('commander_tournaments')
+        .select('id, venue_id')
+        .eq('id', tournamentId)
+        .maybeSingle();
+      if (tErr || !tournament) return res.status(404).json({ success: false, error: 'Tournament not found' });
 
-    // Count players per table
-    const tableCounts = {};
-    tableNumbers.forEach(tn => { tableCounts[tn] = 0; });
-    entries.forEach(e => {
-      if (e.table_number) tableCounts[e.table_number] = (tableCounts[e.table_number] || 0) + 1;
-    });
+      // Get all active entries with table/seat info
+      const { data: entries } = await supabase
+        .from('commander_tournament_entries')
+        .select('id, player_name, table_number, seat_number, status, current_chips, metadata')
+        .eq('tournament_id', tournamentId)
+        .in('status', ['active', 'seated']);
 
-    const totalPlayers = entries.length;
-    const minTablesNeeded = Math.ceil(totalPlayers / maxSeats);
-    const moves = [];
+      if (!entries || entries.length === 0) {
+        return res.status(200).json({ success: true, data: { type: 'none', moves: [], message: 'No active players' } });
+      }
 
-    // --- CAN WE BREAK A TABLE? ---
-    if (tableNumbers.length > minTablesNeeded) {
-      const sorted = Object.entries(tableCounts).sort((a, b) => a[1] - b[1]);
-      const tableToBreak = parseInt(sorted[0][0]);
-      const playersToMove = entries
-        .filter(e => e.table_number === tableToBreak)
-        .sort((a, b) => (a.seat_number || 0) - (b.seat_number || 0));
+      // Get unique table numbers from entries
+      const tableNumbers = [...new Set(entries.map(e => e.table_number).filter(Boolean))]
+          .limit(100);
+      if (tableNumbers.length < 2) {
+        return res.status(200).json({ success: true, data: { type: 'none', moves: [], message: 'Only one table active' } });
+      }
 
-      const otherCounts = sorted.slice(1)
-        .map(([tn, count]) => ({ tn: parseInt(tn), count }))
-        .sort((a, b) => a.count - b.count);
+      // Get table configs
+      const { data: tables } = await supabase
+        .from('commander_tables')
+        .select('id, table_number, max_seats, status')
+        .eq('venue_id', tournament.venue_id)
+        .in('table_number', tableNumbers)
+            .limit(100)
 
-      let destIdx = 0;
-      const assignedSeats = {}; // track seats we're assigning in this batch
+      const maxSeats = tables?.[0]?.max_seats || 9;
 
-      for (const player of playersToMove) {
-        while (destIdx < otherCounts.length && otherCounts[destIdx].count >= maxSeats) destIdx++;
-        if (destIdx >= otherCounts.length) destIdx = 0;
+      // Count players per table
+      const tableCounts = {};
+      tableNumbers.forEach(tn => { tableCounts[tn] = 0; });
+      entries.forEach(e => {
+        if (e.table_number) tableCounts[e.table_number] = (tableCounts[e.table_number] || 0) + 1;
+      });
 
-        const targetTable = otherCounts[destIdx].tn;
-        const occupied = entries
-          .filter(e => e.table_number === targetTable)
-          .map(e => e.seat_number)
-          .concat(assignedSeats[targetTable] || []);
+      const totalPlayers = entries.length;
+      const minTablesNeeded = Math.ceil(totalPlayers / maxSeats);
+      const moves = [];
 
-        const seat = findAvailableSeat(maxSeats, occupied);
-        if (seat) {
-          moves.push({
-            entry_id: player.id,
-            player_name: player.player_name,
-            from_table: player.table_number,
-            from_seat: player.seat_number,
-            to_table: targetTable,
-            to_seat: seat,
-            reason: 'table_break'
-          });
-          if (!assignedSeats[targetTable]) assignedSeats[targetTable] = [];
-          assignedSeats[targetTable].push(seat);
-          otherCounts[destIdx].count++;
+      // --- CAN WE BREAK A TABLE? ---
+      if (tableNumbers.length > minTablesNeeded) {
+        const sorted = Object.entries(tableCounts).sort((a, b) => a[1] - b[1]);
+        const tableToBreak = parseInt(sorted[0][0]);
+        const playersToMove = entries
+          .filter(e => e.table_number === tableToBreak)
+          .sort((a, b) => (a.seat_number || 0) - (b.seat_number || 0));
+
+        const otherCounts = sorted.slice(1)
+          .map(([tn, count]) => ({ tn: parseInt(tn), count }))
+          .sort((a, b) => a.count - b.count);
+
+        let destIdx = 0;
+        const assignedSeats = {}; // track seats we're assigning in this batch
+
+        for (const player of playersToMove) {
+          while (destIdx < otherCounts.length && otherCounts[destIdx].count >= maxSeats) destIdx++;
+          if (destIdx >= otherCounts.length) destIdx = 0;
+
+          const targetTable = otherCounts[destIdx].tn;
+          const occupied = entries
+            .filter(e => e.table_number === targetTable)
+            .map(e => e.seat_number)
+            .concat(assignedSeats[targetTable] || []);
+
+          const seat = findAvailableSeat(maxSeats, occupied);
+          if (seat) {
+            moves.push({
+              entry_id: player.id,
+              player_name: player.player_name,
+              from_table: player.table_number,
+              from_seat: player.seat_number,
+              to_table: targetTable,
+              to_seat: seat,
+              reason: 'table_break'
+            });
+            if (!assignedSeats[targetTable]) assignedSeats[targetTable] = [];
+            assignedSeats[targetTable].push(seat);
+            otherCounts[destIdx].count++;
+          }
         }
+
+        return res.status(200).json({
+          success: true,
+          data: {
+            type: 'break',
+            table_to_break: tableToBreak,
+            moves,
+            table_counts: tableCounts,
+            message: `Break Table ${tableToBreak} — move ${playersToMove.length} players`
+          }
+        });
+      }
+
+      // --- BALANCE (move from fullest to emptiest) ---
+      const sorted = Object.entries(tableCounts).sort((a, b) => b[1] - a[1]);
+      const maxCount = sorted[0][1];
+      const minCount = sorted[sorted.length - 1][1];
+
+      if (maxCount - minCount >= 2) {
+        const fromTable = parseInt(sorted[0][0]);
+        const toTable = parseInt(sorted[sorted.length - 1][0]);
+
+        // Pick unlocked player from fullest table
+        const candidates = entries.filter(e =>
+          e.table_number === fromTable && !e.metadata?.locked_seat
+        );
+        const playerToMove = candidates.length > 0
+          ? candidates[Math.floor(Math.random() * candidates.length)]
+          : entries.find(e => e.table_number === fromTable);
+
+        if (playerToMove) {
+          const occupied = entries
+            .filter(e => e.table_number === toTable)
+            .map(e => e.seat_number);
+          const seat = findAvailableSeat(maxSeats, occupied);
+
+          if (seat) {
+            moves.push({
+              entry_id: playerToMove.id,
+              player_name: playerToMove.player_name,
+              from_table: fromTable,
+              from_seat: playerToMove.seat_number,
+              to_table: toTable,
+              to_seat: seat,
+              reason: 'balance'
+            });
+          }
+        }
+
+        return res.status(200).json({
+          success: true,
+          data: {
+            type: 'balance',
+            moves,
+            table_counts: tableCounts,
+            message: moves.length > 0
+              ? `Move ${moves[0].player_name} from Table ${fromTable} to Table ${toTable}`
+              : 'No valid moves found'
+          }
+        });
       }
 
       return res.status(200).json({
         success: true,
-        data: {
-          type: 'break',
-          table_to_break: tableToBreak,
-          moves,
-          table_counts: tableCounts,
-          message: `Break Table ${tableToBreak} — move ${playersToMove.length} players`
-        }
+        data: { type: 'none', moves: [], table_counts: tableCounts, message: 'Tables are balanced' }
       });
+
+    } catch (err) {
+      console.error('Balance suggest error:', err);
+      return res.status(500).json({ success: false, error: 'Internal server error' });
     }
-
-    // --- BALANCE (move from fullest to emptiest) ---
-    const sorted = Object.entries(tableCounts).sort((a, b) => b[1] - a[1]);
-    const maxCount = sorted[0][1];
-    const minCount = sorted[sorted.length - 1][1];
-
-    if (maxCount - minCount >= 2) {
-      const fromTable = parseInt(sorted[0][0]);
-      const toTable = parseInt(sorted[sorted.length - 1][0]);
-
-      // Pick unlocked player from fullest table
-      const candidates = entries.filter(e =>
-        e.table_number === fromTable && !e.metadata?.locked_seat
-      );
-      const playerToMove = candidates.length > 0
-        ? candidates[Math.floor(Math.random() * candidates.length)]
-        : entries.find(e => e.table_number === fromTable);
-
-      if (playerToMove) {
-        const occupied = entries
-          .filter(e => e.table_number === toTable)
-          .map(e => e.seat_number);
-        const seat = findAvailableSeat(maxSeats, occupied);
-
-        if (seat) {
-          moves.push({
-            entry_id: playerToMove.id,
-            player_name: playerToMove.player_name,
-            from_table: fromTable,
-            from_seat: playerToMove.seat_number,
-            to_table: toTable,
-            to_seat: seat,
-            reason: 'balance'
-          });
-        }
-      }
-
-      return res.status(200).json({
-        success: true,
-        data: {
-          type: 'balance',
-          moves,
-          table_counts: tableCounts,
-          message: moves.length > 0
-            ? `Move ${moves[0].player_name} from Table ${fromTable} to Table ${toTable}`
-            : 'No valid moves found'
-        }
-      });
-    }
-
-    return res.status(200).json({
-      success: true,
-      data: { type: 'none', moves: [], table_counts: tableCounts, message: 'Tables are balanced' }
-    });
 
   } catch (err) {
-    console.error('Balance suggest error:', err);
-    return res.status(500).json({ success: false, error: 'Internal server error' });
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

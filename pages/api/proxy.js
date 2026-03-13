@@ -137,191 +137,197 @@ setInterval(() => {
  * Main handler with comprehensive error handling
  */
 export default async function handler(req, res) {
-    const { url } = req.query;
+  try {
+      const { url } = req.query;
 
-    // Rate limit by IP
-    const fwd = req.headers['x-forwarded-for'];
-    const clientIp = fwd ? fwd.split(',')[0].trim() : req.socket?.remoteAddress || 'unknown';
-    if (!checkProxyRate(clientIp)) {
-        return res.status(429).json({ error: 'RATE_LIMITED', message: 'Too many proxy requests. Please slow down.' });
-    }
+      // Rate limit by IP
+      const fwd = req.headers['x-forwarded-for'];
+      const clientIp = fwd ? fwd.split(',')[0].trim() : req.socket?.remoteAddress || 'unknown';
+      if (!checkProxyRate(clientIp)) {
+          return res.status(429).json({ error: 'RATE_LIMITED', message: 'Too many proxy requests. Please slow down.' });
+      }
 
-    // Referer check — only allow requests originating from smarter.poker
-    const referer = req.headers.referer || req.headers.referrer || '';
-    const origin = req.headers.origin || '';
-    const isInternalRequest = referer.includes('smarter.poker') || origin.includes('smarter.poker')
-        || referer.includes('localhost') || origin.includes('localhost')
-        || !referer; // Allow direct browser navigation (iframe src)
+      // Referer check — only allow requests originating from smarter.poker
+      const referer = req.headers.referer || req.headers.referrer || '';
+      const origin = req.headers.origin || '';
+      const isInternalRequest = referer.includes('smarter.poker') || origin.includes('smarter.poker')
+          || referer.includes('localhost') || origin.includes('localhost')
+          || !referer; // Allow direct browser navigation (iframe src)
 
-    if (!isInternalRequest) {
-        return res.status(403).json({ error: 'FORBIDDEN', message: 'Proxy only available from smarter.poker' });
-    }
+      if (!isInternalRequest) {
+          return res.status(403).json({ error: 'FORBIDDEN', message: 'Proxy only available from smarter.poker' });
+      }
 
-    // ═══════════════════════════════════════════════════════════════════
-    // VALIDATION
-    // ═══════════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════════════
+      // VALIDATION
+      // ═══════════════════════════════════════════════════════════════════
 
-    if (!url) {
-        return res.status(400).json({
-            error: 'URL_REQUIRED',
-            message: 'URL parameter is required',
-            help: 'Usage: /api/proxy?url=<encoded_url>'
-        });
-    }
+      if (!url) {
+          return res.status(400).json({
+              error: 'URL_REQUIRED',
+              message: 'URL parameter is required',
+              help: 'Usage: /api/proxy?url=<encoded_url>'
+          });
+      }
 
-    let targetUrl;
-    try {
-        targetUrl = decodeURIComponent(url);
-        const parsed = new URL(targetUrl);
+      let targetUrl;
+      try {
+          targetUrl = decodeURIComponent(url);
+          const parsed = new URL(targetUrl);
 
-        // Validate protocol
-        if (!CONFIG.ALLOWED_PROTOCOLS.includes(parsed.protocol)) {
-            return res.status(400).json({
-                error: 'INVALID_PROTOCOL',
-                message: `Protocol ${parsed.protocol} not allowed`,
-                allowed: CONFIG.ALLOWED_PROTOCOLS
-            });
-        }
+          // Validate protocol
+          if (!CONFIG.ALLOWED_PROTOCOLS.includes(parsed.protocol)) {
+              return res.status(400).json({
+                  error: 'INVALID_PROTOCOL',
+                  message: `Protocol ${parsed.protocol} not allowed`,
+                  allowed: CONFIG.ALLOWED_PROTOCOLS
+              });
+          }
 
-        // Block internal addresses (SSRF prevention)
-        if (CONFIG.BLOCKED_HOSTS.some(h => parsed.hostname === h) || isPrivateOrReservedHost(parsed.hostname)) {
-            return res.status(403).json({
-                error: 'BLOCKED_HOST',
-                message: 'This host is not allowed'
-            });
-        }
-    } catch (e) {
-        return res.status(400).json({
-            error: 'INVALID_URL',
-            message: 'Could not parse URL',
-            details: e.message
-        });
-    }
+          // Block internal addresses (SSRF prevention)
+          if (CONFIG.BLOCKED_HOSTS.some(h => parsed.hostname === h) || isPrivateOrReservedHost(parsed.hostname)) {
+              return res.status(403).json({
+                  error: 'BLOCKED_HOST',
+                  message: 'This host is not allowed'
+              });
+          }
+      } catch (e) {
+          return res.status(400).json({
+              error: 'INVALID_URL',
+              message: 'Could not parse URL',
+              details: e.message
+          });
+      }
 
-    // ═══════════════════════════════════════════════════════════════════
-    // FETCH WITH RETRY
-    // ═══════════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════════════
+      // FETCH WITH RETRY
+      // ═══════════════════════════════════════════════════════════════════
 
-    const targetOrigin = new URL(targetUrl).origin;
-    let response;
-    let lastError;
+      const targetOrigin = new URL(targetUrl).origin;
+      let response;
+      let lastError;
 
-    for (let attempt = 1; attempt <= CONFIG.MAX_RETRIES; attempt++) {
-        try {
-            const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), CONFIG.TIMEOUT_MS);
+      for (let attempt = 1; attempt <= CONFIG.MAX_RETRIES; attempt++) {
+          try {
+              const controller = new AbortController();
+              const timeout = setTimeout(() => controller.abort(), CONFIG.TIMEOUT_MS);
 
-            response = await fetch(targetUrl, {
-                signal: controller.signal,
-                headers: {
-                    'User-Agent': USER_AGENTS[attempt % USER_AGENTS.length],
-                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-                    'Accept-Language': 'en-US,en;q=0.9',
-                    'Accept-Encoding': 'identity',
-                    'Cache-Control': 'no-cache',
-                    'Referer': targetOrigin,
-                },
-            });
+              response = await fetch(targetUrl, {
+                  signal: controller.signal,
+                  headers: {
+                      'User-Agent': USER_AGENTS[attempt % USER_AGENTS.length],
+                      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                      'Accept-Language': 'en-US,en;q=0.9',
+                      'Accept-Encoding': 'identity',
+                      'Cache-Control': 'no-cache',
+                      'Referer': targetOrigin,
+                  },
+              });
 
-            clearTimeout(timeout);
+              clearTimeout(timeout);
 
-            if (response.ok) break;
+              if (response.ok) break;
 
-            // Non-retryable status codes
-            if ([403, 404, 451].includes(response.status)) {
-                return res.status(response.status).json({
-                    error: 'UPSTREAM_ERROR',
-                    message: `External site returned ${response.status}`,
-                    status: response.status
-                });
-            }
+              // Non-retryable status codes
+              if ([403, 404, 451].includes(response.status)) {
+                  return res.status(response.status).json({
+                      error: 'UPSTREAM_ERROR',
+                      message: `External site returned ${response.status}`,
+                      status: response.status
+                  });
+              }
 
-            lastError = new Error(`HTTP ${response.status}`);
+              lastError = new Error(`HTTP ${response.status}`);
 
-        } catch (error) {
-            lastError = error;
+          } catch (error) {
+              lastError = error;
 
-            // Don't retry on abort (timeout)
-            if (error.name === 'AbortError') {
-                return res.status(504).json({
-                    error: 'TIMEOUT',
-                    message: `Request timed out after ${CONFIG.TIMEOUT_MS}ms`,
-                    url: targetUrl
-                });
-            }
-        }
+              // Don't retry on abort (timeout)
+              if (error.name === 'AbortError') {
+                  return res.status(504).json({
+                      error: 'TIMEOUT',
+                      message: `Request timed out after ${CONFIG.TIMEOUT_MS}ms`,
+                      url: targetUrl
+                  });
+              }
+          }
 
-        // Wait before retry (exponential backoff)
-        if (attempt < CONFIG.MAX_RETRIES) {
-            await new Promise(r => setTimeout(r, CONFIG.RETRY_DELAY_MS * Math.pow(2, attempt - 1)));
-        }
-    }
+          // Wait before retry (exponential backoff)
+          if (attempt < CONFIG.MAX_RETRIES) {
+              await new Promise(r => setTimeout(r, CONFIG.RETRY_DELAY_MS * Math.pow(2, attempt - 1)));
+          }
+      }
 
-    if (!response?.ok) {
-        return res.status(502).json({
-            error: 'FETCH_FAILED',
-            message: 'Failed to fetch external content after retries',
-            details: lastError?.message,
-            attempts: CONFIG.MAX_RETRIES
-        });
-    }
+      if (!response?.ok) {
+          return res.status(502).json({
+              error: 'FETCH_FAILED',
+              message: 'Failed to fetch external content after retries',
+              details: lastError?.message,
+              attempts: CONFIG.MAX_RETRIES
+          });
+      }
 
-    // ═══════════════════════════════════════════════════════════════════
-    // PROCESS RESPONSE
-    // ═══════════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════════════
+      // PROCESS RESPONSE
+      // ═══════════════════════════════════════════════════════════════════
 
-    try {
-        const contentType = response.headers.get('content-type') || 'text/html';
+      try {
+          const contentType = response.headers.get('content-type') || 'text/html';
 
-        // For non-HTML content, pass through directly
-        if (!contentType.includes('text/html')) {
-            const buffer = await response.arrayBuffer();
+          // For non-HTML content, pass through directly
+          if (!contentType.includes('text/html')) {
+              const buffer = await response.arrayBuffer();
 
-            // Size check
-            if (buffer.byteLength > CONFIG.MAX_BODY_SIZE) {
-                return res.status(413).json({
-                    error: 'CONTENT_TOO_LARGE',
-                    message: `Content exceeds ${CONFIG.MAX_BODY_SIZE / 1024 / 1024}MB limit`
-                });
-            }
+              // Size check
+              if (buffer.byteLength > CONFIG.MAX_BODY_SIZE) {
+                  return res.status(413).json({
+                      error: 'CONTENT_TOO_LARGE',
+                      message: `Content exceeds ${CONFIG.MAX_BODY_SIZE / 1024 / 1024}MB limit`
+                  });
+              }
 
-            res.setHeader('Content-Type', contentType);
-            res.setHeader('Cache-Control', 'public, max-age=3600');
-            res.setHeader('X-Proxy-Source', targetOrigin);
-            return res.send(Buffer.from(buffer));
-        }
+              res.setHeader('Content-Type', contentType);
+              res.setHeader('Cache-Control', 'public, max-age=3600');
+              res.setHeader('X-Proxy-Source', targetOrigin);
+              return res.send(Buffer.from(buffer));
+          }
 
-        // Get HTML content
-        let html = await response.text();
+          // Get HTML content
+          let html = await response.text();
 
-        // Size check
-        if (html.length > CONFIG.MAX_BODY_SIZE) {
-            return res.status(413).json({
-                error: 'CONTENT_TOO_LARGE',
-                message: `HTML exceeds ${CONFIG.MAX_BODY_SIZE / 1024 / 1024}MB limit`
-            });
-        }
+          // Size check
+          if (html.length > CONFIG.MAX_BODY_SIZE) {
+              return res.status(413).json({
+                  error: 'CONTENT_TOO_LARGE',
+                  message: `HTML exceeds ${CONFIG.MAX_BODY_SIZE / 1024 / 1024}MB limit`
+              });
+          }
 
-        // Rewrite all URLs
-        html = rewriteHtml(html, targetUrl, targetOrigin);
+          // Rewrite all URLs
+          html = rewriteHtml(html, targetUrl, targetOrigin);
 
-        // Set headers
-        res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-        res.setHeader('Content-Security-Policy', "frame-ancestors 'self'");
-        res.setHeader('X-Proxy-Source', targetOrigin);
-        res.setHeader('X-Proxy-Success', 'true');
+          // Set headers
+          res.setHeader('Content-Type', 'text/html; charset=utf-8');
+          res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+          res.setHeader('Content-Security-Policy', "frame-ancestors 'self'");
+          res.setHeader('X-Proxy-Source', targetOrigin);
+          res.setHeader('X-Proxy-Success', 'true');
 
-        return res.send(html);
+          return res.send(html);
 
-    } catch (error) {
-        console.error('[Proxy] Processing error:', error);
-        return res.status(500).json({
-            error: 'PROCESSING_ERROR',
-            message: 'Failed to process proxied content',
-            details: error.message
-        });
-    }
+      } catch (error) {
+          console.error('[Proxy] Processing error:', error);
+          return res.status(500).json({
+              error: 'PROCESSING_ERROR',
+              message: 'Failed to process proxied content',
+              details: error.message
+          });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }
 
 /**

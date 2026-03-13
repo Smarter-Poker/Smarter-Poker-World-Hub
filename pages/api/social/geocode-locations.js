@@ -104,101 +104,107 @@ function sleep(ms) {
 }
 
 export default async function handler(req, res) {
-    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-        if (!applyRateLimit(req, res, LIMITS.write)) return;
-    }
+  try {
+      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+          if (!applyRateLimit(req, res, LIMITS.write)) return;
+      }
 
-    if (req.method !== 'POST') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
+      if (req.method !== 'POST') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
 
-    // BUG #282: No authentication — anyone could trigger external API calls
-    // (Nominatim/Google) and write to social_pages.metadata without auth.
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-    const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
-    if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+      // BUG #282: No authentication — anyone could trigger external API calls
+      // (Nominatim/Google) and write to social_pages.metadata without auth.
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
+      const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+      if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-    const { page_id, locations } = req.body;
+      const { page_id, locations } = req.body;
 
-    if (!page_id) {
-        return res.status(400).json({ success: false, error: 'page_id is required' });
-    }
+      if (!page_id) {
+          return res.status(400).json({ success: false, error: 'page_id is required' });
+      }
 
-    if (!locations || !Array.isArray(locations) || locations.length === 0) {
-        return res.status(400).json({ success: false, error: 'locations array is required' });
-    }
+      if (!locations || !Array.isArray(locations) || locations.length === 0) {
+          return res.status(400).json({ success: false, error: 'locations array is required' });
+      }
 
-    // Cap at 10 locations per request
-    const toGeocode = locations.slice(0, 10);
+      // Cap at 10 locations per request
+      const toGeocode = locations.slice(0, 10);
 
-    try {
-        // Fetch current metadata + verify ownership
-        const { data: page, error: fetchError } = await supabase
-            .from('social_pages')
-            .select('metadata, user_id, owner_id')
-            .eq('id', page_id)
-            .maybeSingle();
+      try {
+          // Fetch current metadata + verify ownership
+          const { data: page, error: fetchError } = await supabase
+              .from('social_pages')
+              .select('metadata, user_id, owner_id')
+              .eq('id', page_id)
+              .maybeSingle();
 
-        if (fetchError || !page) {
-            return res.status(404).json({ success: false, error: 'Page not found' });
-        }
+          if (fetchError || !page) {
+              return res.status(404).json({ success: false, error: 'Page not found' });
+          }
 
-        // BUG #282 cont: Verify caller owns this page
-        const pageOwner = page.user_id || page.owner_id;
-        if (pageOwner && pageOwner !== user.id) {
-            return res.status(403).json({ success: false, error: 'Not authorized to modify this page' });
-        }
+          // BUG #282 cont: Verify caller owns this page
+          const pageOwner = page.user_id || page.owner_id;
+          if (pageOwner && pageOwner !== user.id) {
+              return res.status(403).json({ success: false, error: 'Not authorized to modify this page' });
+          }
 
-        const metadata = page.metadata || {};
-        const existing = metadata.geocoded_locations || {};
-        const geocoded = { ...existing };
-        const results = [];
+          const metadata = page.metadata || {};
+          const existing = metadata.geocoded_locations || {};
+          const geocoded = { ...existing };
+          const results = [];
 
-        for (const loc of toGeocode) {
-            const key = loc.trim();
-            if (!key) continue;
+          for (const loc of toGeocode) {
+              const key = loc.trim();
+              if (!key) continue;
 
-            // Skip if already cached
-            if (geocoded[key] && geocoded[key].lat && geocoded[key].lng) {
-                results.push({ location: key, status: 'cached', ...geocoded[key] });
-                continue;
-            }
+              // Skip if already cached
+              if (geocoded[key] && geocoded[key].lat && geocoded[key].lng) {
+                  results.push({ location: key, status: 'cached', ...geocoded[key] });
+                  continue;
+              }
 
-            // Geocode
-            const coords = await geocodeLocation(key);
-            if (coords) {
-                geocoded[key] = coords;
-                results.push({ location: key, status: 'geocoded', ...coords });
-            } else {
-                results.push({ location: key, status: 'failed' });
-            }
+              // Geocode
+              const coords = await geocodeLocation(key);
+              if (coords) {
+                  geocoded[key] = coords;
+                  results.push({ location: key, status: 'geocoded', ...coords });
+              } else {
+                  results.push({ location: key, status: 'failed' });
+              }
 
-            // Rate limit for Nominatim
-            await sleep(NOMINATIM_DELAY_MS);
-        }
+              // Rate limit for Nominatim
+              await sleep(NOMINATIM_DELAY_MS);
+          }
 
-        // Save updated geocoded_locations to metadata
-        const { error: updateError } = await supabase
-            .from('social_pages')
-            .update({
-                metadata: { ...metadata, geocoded_locations: geocoded },
-                updated_at: new Date().toISOString(),
-            })
-            .eq('id', page_id);
+          // Save updated geocoded_locations to metadata
+          const { error: updateError } = await supabase
+              .from('social_pages')
+              .update({
+                  metadata: { ...metadata, geocoded_locations: geocoded },
+                  updated_at: new Date().toISOString(),
+              })
+              .eq('id', page_id);
 
-        if (updateError) {
-            console.error('[geocode-locations] Update error:', updateError);
-            return res.status(500).json({ success: false, error: 'Failed to save geocoded locations' });
-        }
+          if (updateError) {
+              console.error('[geocode-locations] Update error:', updateError);
+              return res.status(500).json({ success: false, error: 'Failed to save geocoded locations' });
+          }
 
-        return res.status(200).json({
-            success: true,
-            geocoded,
-            results,
-        });
-    } catch (err) {
-        console.error('[geocode-locations] Error:', err);
-        return res.status(500).json({ success: false, error: 'Internal server error' });
-    }
+          return res.status(200).json({
+              success: true,
+              geocoded,
+              results,
+          });
+      } catch (err) {
+          console.error('[geocode-locations] Error:', err);
+          return res.status(500).json({ success: false, error: 'Internal server error' });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

@@ -20,164 +20,170 @@ const INDIFFERENCE_THRESHOLD = 0.40;
 const MAX_CHIP_PENALTY = 25;
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+      if (req.method !== 'POST') {
+          return res.status(405).json({ error: 'Method not allowed' });
+      }
+
+      // Auth: verify JWT
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      if (!token) return res.status(401).json({ error: 'Auth required' });
+      const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+      if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+
+      try {
+          const {
+              gameId,
+              userId: _clientUserId, // ignored - use JWT
+              fileId,
+              variantHash,
+              action,
+              sizing,
+              heroHand,
+              board,
+              potSize = 100,
+              handData, // Full hand data from fetch-hand including solver_node
+          } = req.body;
+
+          // BUG #151 FIX: Always use JWT user.id, ignore client-supplied userId
+          const userId = user.id;
+
+          if (!gameId || !action) {
+              return res.status(400).json({ error: 'Missing required fields' });
+          }
+
+          // Extract data from handData if provided
+          const effectiveFileId = fileId || handData?.fileId;
+          const effectiveVariantHash = variantHash || handData?.variantHash;
+          const effectiveHeroHand = heroHand || handData?.hero_hand;
+          const effectiveBoard = board || handData?.board;
+          const effectivePotSize = potSize || handData?.pot_size || 100;
+
+          // 1. Get the solver node - prefer handData.solver_node (already processed)
+          let solverNode = handData?.solver_node || null;
+
+          // If no solver_node in handData, try database
+          if (!solverNode && effectiveFileId && !effectiveFileId.startsWith('chart_') && !effectiveFileId.startsWith('bb_') && !effectiveFileId.startsWith('tt_')) {
+              const { data: spotData } = await supabase
+                  .from('solved_spots_gold')
+                  .select('strategy_matrix')
+                  .eq('id', effectiveFileId)
+                  .maybeSingle();
+
+              if (spotData?.strategy_matrix) {
+                  // Build solver node from strategy_matrix
+                  const sm = spotData.strategy_matrix;
+                  solverNode = { actions: {} };
+
+                  if (sm.actions && sm.frequencies && sm.hand_evs) {
+                      const hand = effectiveHeroHand?.replace(/[shdc]/g, '').slice(0, 2) || '';
+                      const handEv = sm.hand_evs[hand] || 0;
+
+                      for (const act of sm.actions) {
+                          const freq = sm.frequencies[act]?.[hand] || 0;
+                          solverNode.actions[act] = { frequency: freq, ev: handEv * freq };
+                      }
+                  }
+              }
+          }
+
+          // Fallback to mock solver node only if nothing else
+          if (!solverNode || Object.keys(solverNode.actions || {}).length === 0) {
+              solverNode = getMockSolverNode(action);
+          }
+
+          // 2. Calculate damage
+          const damageResult = calculateDamage(action, sizing, solverNode, effectivePotSize);
+
+          // Extract level from gameId (e.g., "blind-vs-blind-level-3" → 3)
+          const levelMatch = gameId.match(/level-(\d+)/i);
+          const level = levelMatch ? parseInt(levelMatch[1], 10) : 1;
+
+          // Get session data to track round number
+          let roundNumber = 1;
+          try {
+              const { data: sessionData } = await supabase
+                  .from('god_mode_sessions')
+                  .select('hands_played')
+                  .eq('user_id', userId)
+                  .eq('game_id', gameId)
+                  .eq('status', 'active')
+                  .order('started_at', { ascending: false })
+                  .limit(1)
+                  .maybeSingle();
+
+              if (sessionData) {
+                  roundNumber = (sessionData.hands_played || 0) + 1;
+              }
+          } catch (sessionError) {
+              console.error('Could not fetch session data:', sessionError.message);
+          }
+
+          // 3. Record in hand history
+          try {
+              // Lookup game UUID from game_registry by slug
+              let gameUUID = null;
+              if (gameId) {
+                  const { data: gameData } = await supabase
+                      .from('game_registry')
+                      .select('id')
+                      .eq('slug', gameId)
+                      .maybeSingle();
+                  gameUUID = gameData?.id || null;
+              }
+
+              // Only insert if we have a valid game UUID
+              if (gameUUID) {
+                  await supabase.from('god_mode_hand_history').insert({
+                      user_id: user.id,
+                      game_id: gameUUID,
+                      source_file_id: effectiveFileId || 'unknown',
+                      variant_hash: effectiveVariantHash || '0',
+                      hero_hand: effectiveHeroHand || '',
+                      board: effectiveBoard || '',
+                      level_at_play: level,
+                      round_hand_number: roundNumber,
+                      user_action: action,
+                      user_sizing: sizing,
+                      gto_action: damageResult.gtoAction || 'unknown',
+                      gto_frequency: damageResult.gtoFrequency || 0,
+                      ev_of_user_action: damageResult.userEv || 0,
+                      ev_of_gto_action: damageResult.maxEv || 0,
+                      is_correct: damageResult.isCorrect || false,
+                      is_indifferent: damageResult.isIndifferent || false,
+                      chip_penalty: damageResult.chipPenalty || 0,
+                  });
+              } else {
+              }
+          } catch (dbError) {
+              console.error('Failed to record hand history:', dbError.message);
+              // Continue even if recording fails
+          }
+
+          // 4. Return result
+          return res.status(200).json({
+              isCorrect: damageResult.isCorrect,
+              isIndifferent: damageResult.isIndifferent,
+              evLoss: damageResult.evLoss,
+              chipPenalty: damageResult.chipPenalty,
+              feedback: damageResult.feedback,
+              gtoAction: damageResult.gtoAction,
+              gtoFrequency: damageResult.gtoFrequency,
+          });
+
+      } catch (error) {
+          console.error('Submit action error:', error);
+          return res.status(500).json({ error: 'Internal server error' });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-    if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
-    }
-
-    // Auth: verify JWT
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ error: 'Auth required' });
-    const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
-    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
-
-    try {
-        const {
-            gameId,
-            userId: _clientUserId, // ignored - use JWT
-            fileId,
-            variantHash,
-            action,
-            sizing,
-            heroHand,
-            board,
-            potSize = 100,
-            handData, // Full hand data from fetch-hand including solver_node
-        } = req.body;
-
-        // BUG #151 FIX: Always use JWT user.id, ignore client-supplied userId
-        const userId = user.id;
-
-        if (!gameId || !action) {
-            return res.status(400).json({ error: 'Missing required fields' });
-        }
-
-        // Extract data from handData if provided
-        const effectiveFileId = fileId || handData?.fileId;
-        const effectiveVariantHash = variantHash || handData?.variantHash;
-        const effectiveHeroHand = heroHand || handData?.hero_hand;
-        const effectiveBoard = board || handData?.board;
-        const effectivePotSize = potSize || handData?.pot_size || 100;
-
-        // 1. Get the solver node - prefer handData.solver_node (already processed)
-        let solverNode = handData?.solver_node || null;
-
-        // If no solver_node in handData, try database
-        if (!solverNode && effectiveFileId && !effectiveFileId.startsWith('chart_') && !effectiveFileId.startsWith('bb_') && !effectiveFileId.startsWith('tt_')) {
-            const { data: spotData } = await supabase
-                .from('solved_spots_gold')
-                .select('strategy_matrix')
-                .eq('id', effectiveFileId)
-                .maybeSingle();
-
-            if (spotData?.strategy_matrix) {
-                // Build solver node from strategy_matrix
-                const sm = spotData.strategy_matrix;
-                solverNode = { actions: {} };
-
-                if (sm.actions && sm.frequencies && sm.hand_evs) {
-                    const hand = effectiveHeroHand?.replace(/[shdc]/g, '').slice(0, 2) || '';
-                    const handEv = sm.hand_evs[hand] || 0;
-
-                    for (const act of sm.actions) {
-                        const freq = sm.frequencies[act]?.[hand] || 0;
-                        solverNode.actions[act] = { frequency: freq, ev: handEv * freq };
-                    }
-                }
-            }
-        }
-
-        // Fallback to mock solver node only if nothing else
-        if (!solverNode || Object.keys(solverNode.actions || {}).length === 0) {
-            solverNode = getMockSolverNode(action);
-        }
-
-        // 2. Calculate damage
-        const damageResult = calculateDamage(action, sizing, solverNode, effectivePotSize);
-
-        // Extract level from gameId (e.g., "blind-vs-blind-level-3" → 3)
-        const levelMatch = gameId.match(/level-(\d+)/i);
-        const level = levelMatch ? parseInt(levelMatch[1], 10) : 1;
-
-        // Get session data to track round number
-        let roundNumber = 1;
-        try {
-            const { data: sessionData } = await supabase
-                .from('god_mode_sessions')
-                .select('hands_played')
-                .eq('user_id', userId)
-                .eq('game_id', gameId)
-                .eq('status', 'active')
-                .order('started_at', { ascending: false })
-                .limit(1)
-                .maybeSingle();
-
-            if (sessionData) {
-                roundNumber = (sessionData.hands_played || 0) + 1;
-            }
-        } catch (sessionError) {
-            console.error('Could not fetch session data:', sessionError.message);
-        }
-
-        // 3. Record in hand history
-        try {
-            // Lookup game UUID from game_registry by slug
-            let gameUUID = null;
-            if (gameId) {
-                const { data: gameData } = await supabase
-                    .from('game_registry')
-                    .select('id')
-                    .eq('slug', gameId)
-                    .maybeSingle();
-                gameUUID = gameData?.id || null;
-            }
-
-            // Only insert if we have a valid game UUID
-            if (gameUUID) {
-                await supabase.from('god_mode_hand_history').insert({
-                    user_id: user.id,
-                    game_id: gameUUID,
-                    source_file_id: effectiveFileId || 'unknown',
-                    variant_hash: effectiveVariantHash || '0',
-                    hero_hand: effectiveHeroHand || '',
-                    board: effectiveBoard || '',
-                    level_at_play: level,
-                    round_hand_number: roundNumber,
-                    user_action: action,
-                    user_sizing: sizing,
-                    gto_action: damageResult.gtoAction || 'unknown',
-                    gto_frequency: damageResult.gtoFrequency || 0,
-                    ev_of_user_action: damageResult.userEv || 0,
-                    ev_of_gto_action: damageResult.maxEv || 0,
-                    is_correct: damageResult.isCorrect || false,
-                    is_indifferent: damageResult.isIndifferent || false,
-                    chip_penalty: damageResult.chipPenalty || 0,
-                });
-            } else {
-            }
-        } catch (dbError) {
-            console.error('Failed to record hand history:', dbError.message);
-            // Continue even if recording fails
-        }
-
-        // 4. Return result
-        return res.status(200).json({
-            isCorrect: damageResult.isCorrect,
-            isIndifferent: damageResult.isIndifferent,
-            evLoss: damageResult.evLoss,
-            chipPenalty: damageResult.chipPenalty,
-            feedback: damageResult.feedback,
-            gtoAction: damageResult.gtoAction,
-            gtoFrequency: damageResult.gtoFrequency,
-        });
-
-    } catch (error) {
-        console.error('Submit action error:', error);
-        return res.status(500).json({ error: 'Internal server error' });
-    }
 }
 
 /**

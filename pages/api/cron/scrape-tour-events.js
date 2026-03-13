@@ -440,212 +440,218 @@ function parseTextEvents(html, tourCode) {
 // Main handler
 // ---------------------------------------------------------------------------
 export default async function handler(req, res) {
-    // CRON_SECRET auth — optional, skip in dev
-    if (process.env.NODE_ENV === 'production' && process.env.CRON_SECRET) {
-        if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
-            return res.status(401).json({ error: 'Unauthorized' });
-        }
-    }
+  try {
+      // CRON_SECRET auth — optional, skip in dev
+      if (process.env.NODE_ENV === 'production' && process.env.CRON_SECRET) {
+          if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+              return res.status(401).json({ error: 'Unauthorized' });
+          }
+      }
 
-    const { batch: batchParam, tour: tourFilter, force } = req.query;
-    const batchNumber = parseInt(batchParam) || 1;
+      const { batch: batchParam, tour: tourFilter, force } = req.query;
+      const batchNumber = parseInt(batchParam) || 1;
 
-    const stats = {
-        success: true,
-        batch: batchNumber,
-        toursProcessed: 0,
-        totalEventsFound: 0,
-        eventsUpserted: 0,
-        filesWritten: 0,
-        errors: [],
-        skipped: 0,
-        startedAt: new Date().toISOString()
-    };
+      const stats = {
+          success: true,
+          batch: batchNumber,
+          toursProcessed: 0,
+          totalEventsFound: 0,
+          eventsUpserted: 0,
+          filesWritten: 0,
+          errors: [],
+          skipped: 0,
+          startedAt: new Date().toISOString()
+      };
 
-    try {
-        // ----- Load tour registry -----
-        const registry = loadJsonFile(REGISTRY_PATH);
-        if (!registry || !registry.tours) {
-            return res.status(500).json({
-                success: false,
-                error: 'Could not load tour-source-registry.json'
-            });
-        }
+      try {
+          // ----- Load tour registry -----
+          const registry = loadJsonFile(REGISTRY_PATH);
+          if (!registry || !registry.tours) {
+              return res.status(500).json({
+                  success: false,
+                  error: 'Could not load tour-source-registry.json'
+              });
+          }
 
-        // Build tour list (exclude defunct tours)
-        let tourEntries = Object.entries(registry.tours).filter(([_, tour]) => {
-            return tour.is_active !== false && tour.priority !== 99;
-        });
+          // Build tour list (exclude defunct tours)
+          let tourEntries = Object.entries(registry.tours).filter(([_, tour]) => {
+              return tour.is_active !== false && tour.priority !== 99;
+          });
 
-        // Optional: filter by specific tour
-        if (tourFilter) {
-            const code = tourFilter.toUpperCase();
-            tourEntries = tourEntries.filter(([key, _]) => key === code);
-            if (tourEntries.length === 0) {
-                return res.status(404).json({
-                    success: false,
-                    error: `Tour not found: ${tourFilter}`
-                });
-            }
-        } else {
-            // Apply batch slicing (3-day rotation)
-            const startIdx = (batchNumber - 1) * BATCH_SIZE;
-            const endIdx = Math.min(startIdx + BATCH_SIZE, tourEntries.length);
-            tourEntries = tourEntries.slice(startIdx, endIdx);
-        }
+          // Optional: filter by specific tour
+          if (tourFilter) {
+              const code = tourFilter.toUpperCase();
+              tourEntries = tourEntries.filter(([key, _]) => key === code);
+              if (tourEntries.length === 0) {
+                  return res.status(404).json({
+                      success: false,
+                      error: `Tour not found: ${tourFilter}`
+                  });
+              }
+          } else {
+              // Apply batch slicing (3-day rotation)
+              const startIdx = (batchNumber - 1) * BATCH_SIZE;
+              const endIdx = Math.min(startIdx + BATCH_SIZE, tourEntries.length);
+              tourEntries = tourEntries.slice(startIdx, endIdx);
+          }
 
-        // ----- Process each tour -----
-        for (let i = 0; i < tourEntries.length; i++) {
-            const [tourCode, tourConfig] = tourEntries[i];
-            stats.toursProcessed++;
+          // ----- Process each tour -----
+          for (let i = 0; i < tourEntries.length; i++) {
+              const [tourCode, tourConfig] = tourEntries[i];
+              stats.toursProcessed++;
 
-            // Build file path for this tour's events
-            const eventFileName = `${tourCode.toLowerCase()}-${CURRENT_YEAR}-events.json`;
-            const eventFilePath = path.join(DATA_DIR, eventFileName);
+              // Build file path for this tour's events
+              const eventFileName = `${tourCode.toLowerCase()}-${CURRENT_YEAR}-events.json`;
+              const eventFilePath = path.join(DATA_DIR, eventFileName);
 
-            // Check if recently scraped (unless force=true)
-            if (force !== 'true') {
-                const existing = loadJsonFile(eventFilePath);
-                if (existing && existing.metadata && existing.metadata.last_scraped) {
-                    const lastScraped = new Date(existing.metadata.last_scraped);
-                    const refreshDays = tourConfig.refresh_interval_days || 3;
-                    const refreshMs = refreshDays * 24 * 60 * 60 * 1000;
-                    if (Date.now() - lastScraped.getTime() < refreshMs) {
-                        stats.skipped++;
-                        continue;
-                    }
-                }
-            }
+              // Check if recently scraped (unless force=true)
+              if (force !== 'true') {
+                  const existing = loadJsonFile(eventFilePath);
+                  if (existing && existing.metadata && existing.metadata.last_scraped) {
+                      const lastScraped = new Date(existing.metadata.last_scraped);
+                      const refreshDays = tourConfig.refresh_interval_days || 3;
+                      const refreshMs = refreshDays * 24 * 60 * 60 * 1000;
+                      if (Date.now() - lastScraped.getTime() < refreshMs) {
+                          stats.skipped++;
+                          continue;
+                      }
+                  }
+              }
 
-            // Determine the URL to scrape
-            const sourceUrls = tourConfig.source_urls || {};
-            const primaryUrl = sourceUrls.primary || sourceUrls.schedule_2026 || tourConfig.official_website;
+              // Determine the URL to scrape
+              const sourceUrls = tourConfig.source_urls || {};
+              const primaryUrl = sourceUrls.primary || sourceUrls.schedule_2026 || tourConfig.official_website;
 
-            if (!primaryUrl) {
-                stats.skipped++;
-                continue;
-            }
+              if (!primaryUrl) {
+                  stats.skipped++;
+                  continue;
+              }
 
-            // Skip tours marked as manual-only scrape method
-            if (tourConfig.scrape_config && tourConfig.scrape_config.method === 'manual') {
-                stats.skipped++;
-                continue;
-            }
+              // Skip tours marked as manual-only scrape method
+              if (tourConfig.scrape_config && tourConfig.scrape_config.method === 'manual') {
+                  stats.skipped++;
+                  continue;
+              }
 
-            let events = [];
-            let scrapedUrl = primaryUrl;
+              let events = [];
+              let scrapedUrl = primaryUrl;
 
-            try {
-                // Try primary source URL
-                const html = await fetchUrl(primaryUrl);
-                events = parseTourEvents(html, tourCode, tourConfig.scrape_config || {});
+              try {
+                  // Try primary source URL
+                  const html = await fetchUrl(primaryUrl);
+                  events = parseTourEvents(html, tourCode, tourConfig.scrape_config || {});
 
-                // If primary yields nothing, try secondary URLs
-                if (events.length === 0) {
-                    const secondaryUrls = [
-                        sourceUrls.schedule,
-                        sourceUrls.schedule_2026,
-                        sourceUrls.pokeratlas,
-                        sourceUrls.hendonmob
-                    ].filter(Boolean).filter(u => u !== primaryUrl);
+                  // If primary yields nothing, try secondary URLs
+                  if (events.length === 0) {
+                      const secondaryUrls = [
+                          sourceUrls.schedule,
+                          sourceUrls.schedule_2026,
+                          sourceUrls.pokeratlas,
+                          sourceUrls.hendonmob
+                      ].filter(Boolean).filter(u => u !== primaryUrl);
 
-                    for (const altUrl of secondaryUrls) {
-                        try {
-                            const altHtml = await fetchUrl(altUrl);
-                            events = parseTourEvents(altHtml, tourCode, tourConfig.scrape_config || {});
-                            if (events.length > 0) {
-                                scrapedUrl = altUrl;
-                                break;
-                            }
-                        } catch (_) {
-                            // Try next URL
-                        }
-                    }
-                }
+                      for (const altUrl of secondaryUrls) {
+                          try {
+                              const altHtml = await fetchUrl(altUrl);
+                              events = parseTourEvents(altHtml, tourCode, tourConfig.scrape_config || {});
+                              if (events.length > 0) {
+                                  scrapedUrl = altUrl;
+                                  break;
+                              }
+                          } catch (_) {
+                              // Try next URL
+                          }
+                      }
+                  }
 
-                stats.totalEventsFound += events.length;
+                  stats.totalEventsFound += events.length;
 
-                // ----- Write to individual tour event file -----
-                const eventFileData = {
-                    metadata: {
-                        tour: tourConfig.tour_name,
-                        tour_code: tourCode,
-                        year: CURRENT_YEAR,
-                        source_url: scrapedUrl,
-                        last_scraped: new Date().toISOString(),
-                        last_updated: new Date().toISOString().split('T')[0],
-                        events_found: events.length,
-                        notes: `Auto-scraped by cron job. Source: ${scrapedUrl}`
-                    },
-                    events: events
-                };
+                  // ----- Write to individual tour event file -----
+                  const eventFileData = {
+                      metadata: {
+                          tour: tourConfig.tour_name,
+                          tour_code: tourCode,
+                          year: CURRENT_YEAR,
+                          source_url: scrapedUrl,
+                          last_scraped: new Date().toISOString(),
+                          last_updated: new Date().toISOString().split('T')[0],
+                          events_found: events.length,
+                          notes: `Auto-scraped by cron job. Source: ${scrapedUrl}`
+                      },
+                      events: events
+                  };
 
-                // Merge with existing data if we found no new events
-                if (events.length === 0) {
-                    const existing = loadJsonFile(eventFilePath);
-                    if (existing && existing.events && existing.events.length > 0) {
-                        eventFileData.events = existing.events;
-                        eventFileData.metadata.events_found = existing.events.length;
-                        eventFileData.metadata.notes = `No new events scraped; retained existing ${existing.events.length} events.`;
-                    }
-                }
+                  // Merge with existing data if we found no new events
+                  if (events.length === 0) {
+                      const existing = loadJsonFile(eventFilePath);
+                      if (existing && existing.events && existing.events.length > 0) {
+                          eventFileData.events = existing.events;
+                          eventFileData.metadata.events_found = existing.events.length;
+                          eventFileData.metadata.notes = `No new events scraped; retained existing ${existing.events.length} events.`;
+                      }
+                  }
 
-                const saved = saveJsonFile(eventFilePath, eventFileData);
-                if (saved) stats.filesWritten++;
+                  const saved = saveJsonFile(eventFilePath, eventFileData);
+                  if (saved) stats.filesWritten++;
 
-                // ----- Upsert to Supabase if available -----
-                if (supabase && events.length > 0) {
-                    for (const event of events) {
-                        try {
-                            const record = {
-                                tour_code: event.tour_code,
-                                event_number: event.event_number,
-                                event_name: event.event_name,
-                                buy_in: event.buy_in,
-                                start_date: event.start_date,
-                                start_time: event.start_time,
-                                game_type: event.game_type,
-                                format: event.format,
-                                guaranteed: event.guaranteed,
-                                venue: event.venue,
-                                source_url: scrapedUrl,
-                                year: CURRENT_YEAR,
-                                last_scraped: new Date().toISOString()
-                            };
+                  // ----- Upsert to Supabase if available -----
+                  if (supabase && events.length > 0) {
+                      for (const event of events) {
+                          try {
+                              const record = {
+                                  tour_code: event.tour_code,
+                                  event_number: event.event_number,
+                                  event_name: event.event_name,
+                                  buy_in: event.buy_in,
+                                  start_date: event.start_date,
+                                  start_time: event.start_time,
+                                  game_type: event.game_type,
+                                  format: event.format,
+                                  guaranteed: event.guaranteed,
+                                  venue: event.venue,
+                                  source_url: scrapedUrl,
+                                  year: CURRENT_YEAR,
+                                  last_scraped: new Date().toISOString()
+                              };
 
-                            const { error: upsertError } = await supabase
-                                .from('tour_events')
-                                .upsert(record, {
-                                    onConflict: 'tour_code,event_number,year'
-                                });
+                              const { error: upsertError } = await supabase
+                                  .from('tour_events')
+                                  .upsert(record, {
+                                      onConflict: 'tour_code,event_number,year'
+                                  });
 
-                            if (!upsertError) stats.eventsUpserted++;
-                        } catch (_) {
-                            // Individual upsert failure is non-fatal
-                        }
-                    }
-                }
-            } catch (error) {
-                stats.errors.push({
-                    tour: tourCode,
-                    url: primaryUrl,
-                    error: error.message
-                });
-            }
+                              if (!upsertError) stats.eventsUpserted++;
+                          } catch (_) {
+                              // Individual upsert failure is non-fatal
+                          }
+                      }
+                  }
+              } catch (error) {
+                  stats.errors.push({
+                      tour: tourCode,
+                      url: primaryUrl,
+                      error: error.message
+                  });
+              }
 
-            // Rate limiting between tours
-            if (i < tourEntries.length - 1) {
-                await sleep(RATE_LIMIT_MS);
-            }
-        }
+              // Rate limiting between tours
+              if (i < tourEntries.length - 1) {
+                  await sleep(RATE_LIMIT_MS);
+              }
+          }
 
-        stats.finishedAt = new Date().toISOString();
-        return res.status(200).json(stats);
+          stats.finishedAt = new Date().toISOString();
+          return res.status(200).json(stats);
 
-    } catch (error) {
-        stats.success = false;
-        stats.error = error.message;
-        stats.finishedAt = new Date().toISOString();
-        return res.status(500).json(stats);
-    }
+      } catch (error) {
+          stats.success = false;
+          stats.error = error.message;
+          stats.finishedAt = new Date().toISOString();
+          return res.status(500).json(stats);
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

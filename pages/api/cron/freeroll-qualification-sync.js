@@ -247,85 +247,91 @@ async function syncFreeroll(freeroll) {
 
 /* ── Main handler ── */
 export default async function handler(req, res) {
-    if (req.method !== 'GET' && req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
-    }
+  try {
+      if (req.method !== 'GET' && req.method !== 'POST') {
+          return res.status(405).json({ error: 'Method not allowed' });
+      }
 
-    // Auth: Vercel cron secret OR validated JWT
-    const cronSecret = req.headers['authorization']?.replace('Bearer ', '');
+      // Auth: Vercel cron secret OR validated JWT
+      const cronSecret = req.headers['authorization']?.replace('Bearer ', '');
 
-    if (cronSecret !== process.env.CRON_SECRET || !process.env.CRON_SECRET) {
-        // Not a valid cron invocation — require JWT auth
-        const token = req.headers.authorization?.replace('Bearer ', '');
-        if (!token) {
-            return res.status(401).json({ error: 'Unauthorized — no auth token' });
-        }
-        const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
-        if (authErr || !user) {
-            return res.status(401).json({ error: 'Unauthorized — invalid token' });
-        }
-    }
+      if (cronSecret !== process.env.CRON_SECRET || !process.env.CRON_SECRET) {
+          // Not a valid cron invocation — require JWT auth
+          const token = req.headers.authorization?.replace('Bearer ', '');
+          if (!token) {
+              return res.status(401).json({ error: 'Unauthorized — no auth token' });
+          }
+          const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+          if (authErr || !user) {
+              return res.status(401).json({ error: 'Unauthorized — invalid token' });
+          }
+      }
 
-    try {
-        const specificFreerollId = req.body?.freeroll_id || req.query?.freeroll_id;
+      try {
+          const specificFreerollId = req.body?.freeroll_id || req.query?.freeroll_id;
 
-        // Build query for freerolls to sync
-        let query = supabase
-            .from('commander_freerolls')
-            .select('*')
-            .in('status', ['qualifying', 'upcoming'])
-            .in('qualification_type', ['cash_hours', 'tournament_points'])
-                .limit(100);
+          // Build query for freerolls to sync
+          let query = supabase
+              .from('commander_freerolls')
+              .select('*')
+              .in('status', ['qualifying', 'upcoming'])
+              .in('qualification_type', ['cash_hours', 'tournament_points'])
+                  .limit(100);
 
-        if (specificFreerollId) {
-            query = supabase
-                .from('commander_freerolls')
-                .select('*')
-                .eq('id', specificFreerollId)
-                    .limit(100);
-        }
+          if (specificFreerollId) {
+              query = supabase
+                  .from('commander_freerolls')
+                  .select('*')
+                  .eq('id', specificFreerollId)
+                      .limit(100);
+          }
 
-        const { data: freerolls, error: fetchError } = await query;
+          const { data: freerolls, error: fetchError } = await query;
 
-        if (fetchError) {
-            console.error('Fetch freerolls error:', fetchError);
-            return res.status(500).json({ error: fetchError.message });
-        }
+          if (fetchError) {
+              console.error('Fetch freerolls error:', fetchError);
+              return res.status(500).json({ error: fetchError.message });
+          }
 
-        if (!freerolls || freerolls.length === 0) {
-            return res.status(200).json({
-                success: true,
-                message: 'No qualifying freerolls to sync',
-                synced: 0
-            });
-        }
+          if (!freerolls || freerolls.length === 0) {
+              return res.status(200).json({
+                  success: true,
+                  message: 'No qualifying freerolls to sync',
+                  synced: 0
+              });
+          }
 
-        const results = [];
-        for (const freeroll of freerolls) {
-            try {
-                const result = await syncFreeroll(freeroll);
-                results.push(result);
-            } catch (err) {
-                console.error(`Sync error for freeroll ${freeroll.id}:`, err);
-                results.push({
-                    freeroll_id: freeroll.id,
-                    name: freeroll.name,
-                    status: 'error',
-                    error: err.message
-                });
-            }
-        }
+          const results = [];
+          for (const freeroll of freerolls) {
+              try {
+                  const result = await syncFreeroll(freeroll);
+                  results.push(result);
+              } catch (err) {
+                  console.error(`Sync error for freeroll ${freeroll.id}:`, err);
+                  results.push({
+                      freeroll_id: freeroll.id,
+                      name: freeroll.name,
+                      status: 'error',
+                      error: err.message
+                  });
+              }
+          }
 
-        return res.status(200).json({
-            success: true,
-            synced: results.filter(r => r.status === 'synced').length,
-            skipped: results.filter(r => r.status === 'skipped').length,
-            errors: results.filter(r => r.status === 'error').length,
-            results,
-            timestamp: new Date().toISOString()
-        });
-    } catch (error) {
-        console.error('Freeroll qualification sync error:', error);
-        return res.status(500).json({ error: error.message });
-    }
+          return res.status(200).json({
+              success: true,
+              synced: results.filter(r => r.status === 'synced').length,
+              skipped: results.filter(r => r.status === 'skipped').length,
+              errors: results.filter(r => r.status === 'error').length,
+              results,
+              timestamp: new Date().toISOString()
+          });
+      } catch (error) {
+          console.error('Freeroll qualification sync error:', error);
+          return res.status(500).json({ error: error.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

@@ -16,23 +16,29 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  try {
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+    const _g = await guardWriteStaff(req, res); if (!_g) return;
+
+    if (req.method === 'GET') {
+      return listTournaments(req, res);
+    }
+
+    if (req.method === 'POST') {
+      // _g is the staff object for writes, true for reads
+      return createTournament(req, res, _g);
+    }
+
+    res.setHeader('Allow', ['GET', 'POST']);
+    return res.status(405).json({ success: false, error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' } });
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-  const _g = await guardWriteStaff(req, res); if (!_g) return;
-
-  if (req.method === 'GET') {
-    return listTournaments(req, res);
-  }
-
-  if (req.method === 'POST') {
-    // _g is the staff object for writes, true for reads
-    return createTournament(req, res, _g);
-  }
-
-  res.setHeader('Allow', ['GET', 'POST']);
-  return res.status(405).json({ success: false, error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' } });
 }
 
 async function listTournaments(req, res) {

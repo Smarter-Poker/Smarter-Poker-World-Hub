@@ -67,101 +67,107 @@ const SCENARIO_TYPES = {
 };
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+    // BUG #244 FIX: Require JWT auth — these routes use paid AI APIs
+    const _authSupa = _createAuthClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+    const _token = req.headers.authorization?.replace('Bearer ', '');
+    if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
+    const { data: { user: _authUser }, error: _authErr } = await _authSupa.auth.getUser(_token);
+    if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+
+      if (req.method !== 'POST') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
+
+      try {
+          const { level = 1, count = 5 } = req.body;
+
+          if (level < 1 || level > 10) {
+              return res.status(400).json({ success: false, error: 'Level must be between 1 and 10' });
+          }
+
+          if (count < 1 || count > 10) {
+              return res.status(400).json({ success: false, error: 'Count must be between 1 and 10' });
+          }
+
+          const grok = getGrokClient();
+          const scenarios = [];
+          const errors = [];
+
+          // Generate scenarios one at a time to avoid rate limits
+          for (let i = 0; i < count; i++) {
+              try {
+                  const position = POSITION_CONFIGS[level][Math.floor(Math.random() * POSITION_CONFIGS[level].length)];
+                  const stackDepth = STACK_DEPTHS[level][Math.floor(Math.random() * STACK_DEPTHS[level].length)];
+                  const format = FORMATS[level][Math.floor(Math.random() * FORMATS[level].length)];
+                  const scenarioType = SCENARIO_TYPES[level][Math.floor(Math.random() * SCENARIO_TYPES[level].length)];
+
+                  const prompt = buildScenarioPrompt(level, position, stackDepth, format, scenarioType, i);
+
+                  const completion = await grok.chat.completions.create({
+                      model: 'grok-3',
+                      messages: [
+                          {
+                              role: 'system',
+                              content: 'You are a GTO poker expert. Create precise, solver-accurate training scenarios. Respond with valid JSON only.'
+                          },
+                          { role: 'user', content: prompt }
+                      ],
+                      temperature: 0.8, // Higher variance for diversity
+                      max_tokens: 2000,
+                  });
+
+                  const responseText = completion.choices[0]?.message?.content;
+                  if (responseText) {
+                      const cleanedResponse = responseText
+                          .replace(/```json\n?/g, '')
+                          .replace(/```\n?/g, '')
+                          .trim();
+                      const scenario = JSON.parse(cleanedResponse);
+                      scenario.id = `grok-l${level}-${Date.now()}-${i}`;
+                      scenario.level = level;
+                      scenario.position = position;
+                      scenario.stackDepth = stackDepth;
+                      scenarios.push(scenario);
+                  }
+
+                  // Small delay to avoid rate limits
+                  await new Promise(resolve => setTimeout(resolve, 500));
+
+              } catch (genError) {
+                  console.error(`[BatchGenerate] Error on scenario ${i}:`, genError);
+                  errors.push({ index: i, error: genError.message });
+              }
+          }
+
+          return res.status(200).json({
+              success: true,
+              generated: scenarios.length,
+              requested: count,
+              scenarios,
+              errors: errors.length > 0 ? errors : undefined,
+              meta: {
+                  level,
+                  generatedAt: new Date().toISOString(),
+              }
+          });
+
+      } catch (error) {
+          console.error('[BatchGenerate] Error:', error);
+          return res.status(500).json({
+              success: false,
+              error: error.message,
+          });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-  // BUG #244 FIX: Require JWT auth — these routes use paid AI APIs
-  const _authSupa = _createAuthClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-  const _token = req.headers.authorization?.replace('Bearer ', '');
-  if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
-  const { data: { user: _authUser }, error: _authErr } = await _authSupa.auth.getUser(_token);
-  if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
-
-    if (req.method !== 'POST') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
-
-    try {
-        const { level = 1, count = 5 } = req.body;
-
-        if (level < 1 || level > 10) {
-            return res.status(400).json({ success: false, error: 'Level must be between 1 and 10' });
-        }
-
-        if (count < 1 || count > 10) {
-            return res.status(400).json({ success: false, error: 'Count must be between 1 and 10' });
-        }
-
-        const grok = getGrokClient();
-        const scenarios = [];
-        const errors = [];
-
-        // Generate scenarios one at a time to avoid rate limits
-        for (let i = 0; i < count; i++) {
-            try {
-                const position = POSITION_CONFIGS[level][Math.floor(Math.random() * POSITION_CONFIGS[level].length)];
-                const stackDepth = STACK_DEPTHS[level][Math.floor(Math.random() * STACK_DEPTHS[level].length)];
-                const format = FORMATS[level][Math.floor(Math.random() * FORMATS[level].length)];
-                const scenarioType = SCENARIO_TYPES[level][Math.floor(Math.random() * SCENARIO_TYPES[level].length)];
-
-                const prompt = buildScenarioPrompt(level, position, stackDepth, format, scenarioType, i);
-
-                const completion = await grok.chat.completions.create({
-                    model: 'grok-3',
-                    messages: [
-                        {
-                            role: 'system',
-                            content: 'You are a GTO poker expert. Create precise, solver-accurate training scenarios. Respond with valid JSON only.'
-                        },
-                        { role: 'user', content: prompt }
-                    ],
-                    temperature: 0.8, // Higher variance for diversity
-                    max_tokens: 2000,
-                });
-
-                const responseText = completion.choices[0]?.message?.content;
-                if (responseText) {
-                    const cleanedResponse = responseText
-                        .replace(/```json\n?/g, '')
-                        .replace(/```\n?/g, '')
-                        .trim();
-                    const scenario = JSON.parse(cleanedResponse);
-                    scenario.id = `grok-l${level}-${Date.now()}-${i}`;
-                    scenario.level = level;
-                    scenario.position = position;
-                    scenario.stackDepth = stackDepth;
-                    scenarios.push(scenario);
-                }
-
-                // Small delay to avoid rate limits
-                await new Promise(resolve => setTimeout(resolve, 500));
-
-            } catch (genError) {
-                console.error(`[BatchGenerate] Error on scenario ${i}:`, genError);
-                errors.push({ index: i, error: genError.message });
-            }
-        }
-
-        return res.status(200).json({
-            success: true,
-            generated: scenarios.length,
-            requested: count,
-            scenarios,
-            errors: errors.length > 0 ? errors : undefined,
-            meta: {
-                level,
-                generatedAt: new Date().toISOString(),
-            }
-        });
-
-    } catch (error) {
-        console.error('[BatchGenerate] Error:', error);
-        return res.status(500).json({
-            success: false,
-            error: error.message,
-        });
-    }
 }
 
 function buildScenarioPrompt(level, position, stackDepth, format, scenarioType, index) {

@@ -17,107 +17,113 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export default async function handler(req, res) {
-    // Verify cron secret for production
-    if (process.env.NODE_ENV === 'production') {
-        const authHeader = req.headers.authorization;
-        if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-            return res.status(401).json({ error: 'Unauthorized' });
-        }
-    }
+  try {
+      // Verify cron secret for production
+      if (process.env.NODE_ENV === 'production') {
+          const authHeader = req.headers.authorization;
+          if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+              return res.status(401).json({ error: 'Unauthorized' });
+          }
+      }
 
-    if (!supabaseUrl || !supabaseKey) {
-        return res.status(500).json({ error: 'Missing Supabase configuration' });
-    }
+      if (!supabaseUrl || !supabaseKey) {
+          return res.status(500).json({ error: 'Missing Supabase configuration' });
+      }
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
+      const supabase = createClient(supabaseUrl, supabaseKey);
 
-    try {
+      try {
 
-        // Get today's date
-        const today = new Date();
-        const challengeDate = today.toISOString().split('T')[0];
+          // Get today's date
+          const today = new Date();
+          const challengeDate = today.toISOString().split('T')[0];
 
-        // Check if today's challenge already exists
-        const { data: existing } = await supabase
-            .from('training_daily_challenges')
-            .select('id')
-            .eq('challenge_date', challengeDate)
-            .maybeSingle();
+          // Check if today's challenge already exists
+          const { data: existing } = await supabase
+              .from('training_daily_challenges')
+              .select('id')
+              .eq('challenge_date', challengeDate)
+              .maybeSingle();
 
-        if (existing) {
-            return res.status(200).json({
-                success: true,
-                message: 'Challenge already exists for today',
-                date: challengeDate
-            });
-        }
+          if (existing) {
+              return res.status(200).json({
+                  success: true,
+                  message: 'Challenge already exists for today',
+                  date: challengeDate
+              });
+          }
 
-        // Rotate through categories based on day of week
-        const categories = ['MTT', 'CASH', 'ADVANCED', 'SPINS', 'PSYCHOLOGY'];
-        const dayOfWeek = today.getDay();
-        const selectedCategory = categories[dayOfWeek % categories.length];
+          // Rotate through categories based on day of week
+          const categories = ['MTT', 'CASH', 'ADVANCED', 'SPINS', 'PSYCHOLOGY'];
+          const dayOfWeek = today.getDay();
+          const selectedCategory = categories[dayOfWeek % categories.length];
 
-        // Game IDs by category (picking challenging games)
-        const challengeGames = {
-            MTT: ['mtt-004', 'mtt-010', 'mtt-013', 'mtt-015', 'mtt-021'],
-            CASH: ['cash-005', 'cash-008', 'cash-012', 'cash-014', 'cash-021'],
-            ADVANCED: ['adv-002', 'adv-005', 'adv-007', 'adv-014', 'adv-018'],
-            SPINS: ['spins-002', 'spins-005', 'spins-007', 'spins-010'],
-            PSYCHOLOGY: ['psy-003', 'psy-004', 'psy-007', 'psy-016', 'psy-020']
-        };
+          // Game IDs by category (picking challenging games)
+          const challengeGames = {
+              MTT: ['mtt-004', 'mtt-010', 'mtt-013', 'mtt-015', 'mtt-021'],
+              CASH: ['cash-005', 'cash-008', 'cash-012', 'cash-014', 'cash-021'],
+              ADVANCED: ['adv-002', 'adv-005', 'adv-007', 'adv-014', 'adv-018'],
+              SPINS: ['spins-002', 'spins-005', 'spins-007', 'spins-010'],
+              PSYCHOLOGY: ['psy-003', 'psy-004', 'psy-007', 'psy-016', 'psy-020']
+          };
 
-        const categoryGames = challengeGames[selectedCategory] || challengeGames.MTT;
-        const randomIndex = Math.floor(Math.random() * categoryGames.length);
-        const selectedGameId = categoryGames[randomIndex];
+          const categoryGames = challengeGames[selectedCategory] || challengeGames.MTT;
+          const randomIndex = Math.floor(Math.random() * categoryGames.length);
+          const selectedGameId = categoryGames[randomIndex];
 
-        // Determine level (5-8 for daily challenges, harder difficulty)
-        const level = 5 + Math.floor(Math.random() * 4);
+          // Determine level (5-8 for daily challenges, harder difficulty)
+          const level = 5 + Math.floor(Math.random() * 4);
 
-        // 🧠 GENERATE GROK-POWERED COMMUNITY SCENARIO
-        let communityScenario = null;
-        try {
-            communityScenario = await generateCommunityScenario(selectedCategory, level, challengeDate);
-        } catch (grokError) {
-            console.error('[TrainingDailyChallenge] Grok generation failed:', grokError.message);
-        }
+          // 🧠 GENERATE GROK-POWERED COMMUNITY SCENARIO
+          let communityScenario = null;
+          try {
+              communityScenario = await generateCommunityScenario(selectedCategory, level, challengeDate);
+          } catch (grokError) {
+              console.error('[TrainingDailyChallenge] Grok generation failed:', grokError.message);
+          }
 
-        // Insert the daily challenge with community scenario
-        const { data: challenge, error } = await supabase
-            .from('training_daily_challenges')
-            .insert({
-                challenge_date: challengeDate,
-                game_id: selectedGameId,
-                level: level,
-                required_accuracy: 80,
-                bonus_xp_multiplier: 2.0,
-                bonus_diamonds: 50,
-                community_scenario: communityScenario // Store the Grok-generated scenario
-            })
-            .select()
-            .maybeSingle();
+          // Insert the daily challenge with community scenario
+          const { data: challenge, error } = await supabase
+              .from('training_daily_challenges')
+              .insert({
+                  challenge_date: challengeDate,
+                  game_id: selectedGameId,
+                  level: level,
+                  required_accuracy: 80,
+                  bonus_xp_multiplier: 2.0,
+                  bonus_diamonds: 50,
+                  community_scenario: communityScenario // Store the Grok-generated scenario
+              })
+              .select()
+              .maybeSingle();
 
-        if (error || !challenge) {
-            console.error('[TrainingDailyChallenge] Error creating challenge:', error);
-            return res.status(500).json({ error: 'Failed to create challenge', details: error?.message || 'No data returned' });
-        }
+          if (error || !challenge) {
+              console.error('[TrainingDailyChallenge] Error creating challenge:', error);
+              return res.status(500).json({ error: 'Failed to create challenge', details: error?.message || 'No data returned' });
+          }
 
 
-        return res.status(200).json({
-            success: true,
-            message: 'Daily community challenge created',
-            challenge: {
-                date: challengeDate,
-                gameId: selectedGameId,
-                level: level,
-                category: selectedCategory,
-                hasCommunityScenario: !!communityScenario
-            }
-        });
+          return res.status(200).json({
+              success: true,
+              message: 'Daily community challenge created',
+              challenge: {
+                  date: challengeDate,
+                  gameId: selectedGameId,
+                  level: level,
+                  category: selectedCategory,
+                  hasCommunityScenario: !!communityScenario
+              }
+          });
 
-    } catch (err) {
-        console.error('[TrainingDailyChallenge] Unexpected error:', err);
-        return res.status(500).json({ error: 'Internal server error', details: err.message });
-    }
+      } catch (err) {
+          console.error('[TrainingDailyChallenge] Unexpected error:', err);
+          return res.status(500).json({ error: 'Internal server error', details: err.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }
 
 /**

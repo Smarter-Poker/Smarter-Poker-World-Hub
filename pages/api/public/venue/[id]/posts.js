@@ -10,125 +10,131 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  // CDN cache: fresh for 60s, serve stale up to 300s
-  if (req.method === 'GET') {
-    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
-  }
-
-  if (req.method !== 'GET') {
-    return res.status(405).json({
-      success: false,
-      error: { code: 'METHOD_NOT_ALLOWED', message: 'Only GET allowed' }
-    });
-  }
-
   try {
-    const { id, limit = 20, offset = 0 } = req.query;
+    // CDN cache: fresh for 60s, serve stale up to 300s
+    if (req.method === 'GET') {
+      res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+    }
 
-    if (!id) {
-      return res.status(400).json({
+    if (req.method !== 'GET') {
+      return res.status(405).json({
         success: false,
-        error: { code: 'MISSING_ID', message: 'Venue ID required' }
+        error: { code: 'METHOD_NOT_ALLOWED', message: 'Only GET allowed' }
       });
     }
 
-    // Fetch published posts from commander_venue_posts (Commander-managed venues)
-    // Note: commander_venue_posts.venue_id may be integer, so UUID strings will cause a type error
-    let posts = null;
-    let count = null;
-    const { data: cmdPosts, error: cmdError, count: cmdCount } = await supabase
-      .from('commander_venue_posts')
-      .select(`
-        id,
-        author_name,
-        content,
-        post_type,
-        image_urls,
-        video_url,
-        likes_count,
-        comments_count,
-        shares_count,
-        is_pinned,
-        created_at
-      `, { count: 'exact' })
-      .eq('venue_id', id)
-      .eq('is_published', true)
-      .order('is_pinned', { ascending: false })
-      .order('created_at', { ascending: false })
-      .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
+    try {
+      const { id, limit = 20, offset = 0 } = req.query;
 
-    // If no type error, use commander posts
-    if (!cmdError) {
-      posts = cmdPosts;
-      count = cmdCount;
-    }
+      if (!id) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'MISSING_ID', message: 'Venue ID required' }
+        });
+      }
 
-    // If commander posts exist, return them
-    if (posts && posts.length > 0) {
+      // Fetch published posts from commander_venue_posts (Commander-managed venues)
+      // Note: commander_venue_posts.venue_id may be integer, so UUID strings will cause a type error
+      let posts = null;
+      let count = null;
+      const { data: cmdPosts, error: cmdError, count: cmdCount } = await supabase
+        .from('commander_venue_posts')
+        .select(`
+          id,
+          author_name,
+          content,
+          post_type,
+          image_urls,
+          video_url,
+          likes_count,
+          comments_count,
+          shares_count,
+          is_pinned,
+          created_at
+        `, { count: 'exact' })
+        .eq('venue_id', id)
+        .eq('is_published', true)
+        .order('is_pinned', { ascending: false })
+        .order('created_at', { ascending: false })
+        .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
+
+      // If no type error, use commander posts
+      if (!cmdError) {
+        posts = cmdPosts;
+        count = cmdCount;
+      }
+
+      // If commander posts exist, return them
+      if (posts && posts.length > 0) {
+        return res.status(200).json({
+          success: true,
+          data: {
+            posts,
+            total: count,
+            limit: parseInt(limit),
+            offset: parseInt(offset)
+          }
+        });
+      }
+
+      // Fallback: check social_page_posts (social-media ClubPageDashboard posts)
+      const { data: socialPosts, error: spError, count: spCount } = await supabase
+        .from('social_page_posts')
+        .select(`
+          id,
+          author_id,
+          content,
+          content_type,
+          media_urls,
+          like_count,
+          comment_count,
+          share_count,
+          is_pinned,
+          created_at
+        `, { count: 'exact' })
+        .eq('page_id', id)
+        .eq('is_approved', true)
+        .eq('visibility', 'public')
+        .order('is_pinned', { ascending: false })
+        .order('created_at', { ascending: false })
+        .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
+
+      if (spError) throw spError;
+
+      // Map social_page_posts to the expected response shape
+      const mappedPosts = (socialPosts || []).map(p => ({
+        id: p.id,
+        author_name: 'Venue',
+        content: p.content,
+        post_type: p.content_type || 'text',
+        image_urls: Array.isArray(p.media_urls) ? p.media_urls.filter(u => typeof u === 'string') : [],
+        video_url: null,
+        likes_count: p.like_count || 0,
+        comments_count: p.comment_count || 0,
+        shares_count: p.share_count || 0,
+        is_pinned: p.is_pinned || false,
+        created_at: p.created_at,
+      }));
+
       return res.status(200).json({
         success: true,
         data: {
-          posts,
-          total: count,
+          posts: mappedPosts,
+          total: spCount,
           limit: parseInt(limit),
           offset: parseInt(offset)
         }
       });
+    } catch (error) {
+      console.error('Public venue posts API error:', error);
+      return res.status(500).json({
+        success: false,
+        error: { code: 'SERVER_ERROR', message: 'Failed to fetch posts' }
+      });
     }
 
-    // Fallback: check social_page_posts (social-media ClubPageDashboard posts)
-    const { data: socialPosts, error: spError, count: spCount } = await supabase
-      .from('social_page_posts')
-      .select(`
-        id,
-        author_id,
-        content,
-        content_type,
-        media_urls,
-        like_count,
-        comment_count,
-        share_count,
-        is_pinned,
-        created_at
-      `, { count: 'exact' })
-      .eq('page_id', id)
-      .eq('is_approved', true)
-      .eq('visibility', 'public')
-      .order('is_pinned', { ascending: false })
-      .order('created_at', { ascending: false })
-      .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
-
-    if (spError) throw spError;
-
-    // Map social_page_posts to the expected response shape
-    const mappedPosts = (socialPosts || []).map(p => ({
-      id: p.id,
-      author_name: 'Venue',
-      content: p.content,
-      post_type: p.content_type || 'text',
-      image_urls: Array.isArray(p.media_urls) ? p.media_urls.filter(u => typeof u === 'string') : [],
-      video_url: null,
-      likes_count: p.like_count || 0,
-      comments_count: p.comment_count || 0,
-      shares_count: p.share_count || 0,
-      is_pinned: p.is_pinned || false,
-      created_at: p.created_at,
-    }));
-
-    return res.status(200).json({
-      success: true,
-      data: {
-        posts: mappedPosts,
-        total: spCount,
-        limit: parseInt(limit),
-        offset: parseInt(offset)
-      }
-    });
-  } catch (error) {
-    console.error('Public venue posts API error:', error);
-    return res.status(500).json({
-      success: false,
-      error: { code: 'SERVER_ERROR', message: 'Failed to fetch posts' }
-    });
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

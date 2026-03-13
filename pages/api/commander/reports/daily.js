@@ -12,137 +12,143 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (!applyRateLimit(req, res, LIMITS.read)) return;
-
-  // Auth guard: require staff auth for write operations
-  const _authResult = await guardWriteStaff(req, res);
-  if (!_authResult) return;
-
-  if (req.method !== 'GET') {
-    return res.status(405).json({ success: false, error: 'Method not allowed' });
-  }
-
-  const { venue_id, date } = req.query;
-
-  if (!venue_id) {
-    return res.status(400).json({ success: false, error: 'venue_id is required' });
-  }
-
-  const reportDate = date || new Date().toISOString().split('T')[0];
-  const startOfDay = `${reportDate}T00:00:00.000Z`;
-  const endOfDay = `${reportDate}T23:59:59.999Z`;
-
   try {
-    // Fetch games that were active on this date
-    const { data: games, error: gamesError } = await supabase
-      .from('commander_games')
-      .select('*')
-      .eq('venue_id', venue_id)
-      .gte('created_at', startOfDay)
-      .lte('created_at', endOfDay)
+    if (!applyRateLimit(req, res, LIMITS.read)) return;
 
-    if (gamesError) throw gamesError;
+    // Auth guard: require staff auth for write operations
+    const _authResult = await guardWriteStaff(req, res);
+    if (!_authResult) return;
 
-    // Fetch sessions for this date
-    const { data: sessions, error: sessionsError } = await supabase
-      .from('commander_player_sessions')
-      .select('*')
-      .eq('venue_id', venue_id)
-      .gte('check_in_at', startOfDay)
-      .lte('check_in_at', endOfDay)
-
-    if (sessionsError) throw sessionsError;
-
-    // Fetch tournaments for this date
-    const { data: tournaments, error: tournamentsError } = await supabase
-      .from('commander_tournaments')
-      .select('*')
-      .eq('venue_id', venue_id)
-      .gte('scheduled_start', startOfDay)
-      .lte('scheduled_start', endOfDay)
-
-    if (tournamentsError) throw tournamentsError;
-
-    // Fetch waitlist entries for this date
-    const { data: waitlistEntries, error: waitlistError } = await supabase
-      .from('commander_waitlist')
-      .select('*')
-      .eq('venue_id', venue_id)
-      .gte('created_at', startOfDay)
-      .lte('created_at', endOfDay)
-
-    if (waitlistError) throw waitlistError;
-
-    // Calculate summary stats
-    const uniquePlayers = new Set(sessions.map(s => s.player_id)).size;
-    const totalHours = sessions.reduce((sum, s) => {
-      if (s.check_out_at) {
-        const duration = (new Date(s.check_out_at) - new Date(s.check_in_at)) / (1000 * 60 * 60);
-        return sum + duration;
-      }
-      return sum;
-    }, 0);
-
-    // Group games by stakes
-    const gamesByStakes = {};
-    games.forEach(game => {
-      const stakes = game.stakes || 'Unknown';
-      if (!gamesByStakes[stakes]) {
-        gamesByStakes[stakes] = { count: 0, tables: 0 };
-      }
-      gamesByStakes[stakes].count++;
-      gamesByStakes[stakes].tables++;
-    });
-
-    // Calculate peak tables (max concurrent games)
-    const peakTables = games.length > 0 ? Math.max(...Object.values(gamesByStakes).map(g => g.tables)) : 0;
-
-    // Get hourly breakdown
-    const hourlyData = {};
-    for (let i = 0; i < 24; i++) {
-      hourlyData[i] = { players: 0, tables: 0 };
+    if (req.method !== 'GET') {
+      return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
-    sessions.forEach(s => {
-      const hour = new Date(s.check_in_at).getHours();
-      hourlyData[hour].players++;
-    });
 
-    const report = {
-      date: reportDate,
-      venue_id,
-      summary: {
-        total_players: uniquePlayers,
-        total_sessions: sessions.length,
-        total_hours: Math.round(totalHours * 10) / 10,
-        peak_tables: peakTables,
-        active_games: games.filter(g => g.status === 'running').length,
-        tournaments_run: tournaments.length,
-        waitlist_joins: waitlistEntries.length
-      },
-      gamesByStakes: Object.entries(gamesByStakes).map(([stakes, data]) => ({
-        stakes,
-        tables_run: data.tables,
-        sessions: data.count
-      })),
-      tournaments: tournaments.map(t => ({
-        id: t.id,
-        name: t.name,
-        buyin: t.buyin_amount,
-        entries: t.current_entries || 0,
-        prizepool: t.guaranteed_pool || 0,
-        status: t.status
-      })),
-      hourlyBreakdown: Object.entries(hourlyData).map(([hour, data]) => ({
-        hour: parseInt(hour),
-        players: data.players,
-        tables: data.tables
-      }))
-    };
+    const { venue_id, date } = req.query;
 
-    return res.status(200).json({ success: true, data: { report } });
+    if (!venue_id) {
+      return res.status(400).json({ success: false, error: 'venue_id is required' });
+    }
 
-  } catch (error) {
-    console.error('Daily report error:', error);
-    return res.status(500).json({ success: false, error: 'Internal server error' });
+    const reportDate = date || new Date().toISOString().split('T')[0];
+    const startOfDay = `${reportDate}T00:00:00.000Z`;
+    const endOfDay = `${reportDate}T23:59:59.999Z`;
+
+    try {
+      // Fetch games that were active on this date
+      const { data: games, error: gamesError } = await supabase
+        .from('commander_games')
+        .select('*')
+        .eq('venue_id', venue_id)
+        .gte('created_at', startOfDay)
+        .lte('created_at', endOfDay)
+
+      if (gamesError) throw gamesError;
+
+      // Fetch sessions for this date
+      const { data: sessions, error: sessionsError } = await supabase
+        .from('commander_player_sessions')
+        .select('*')
+        .eq('venue_id', venue_id)
+        .gte('check_in_at', startOfDay)
+        .lte('check_in_at', endOfDay)
+
+      if (sessionsError) throw sessionsError;
+
+      // Fetch tournaments for this date
+      const { data: tournaments, error: tournamentsError } = await supabase
+        .from('commander_tournaments')
+        .select('*')
+        .eq('venue_id', venue_id)
+        .gte('scheduled_start', startOfDay)
+        .lte('scheduled_start', endOfDay)
+
+      if (tournamentsError) throw tournamentsError;
+
+      // Fetch waitlist entries for this date
+      const { data: waitlistEntries, error: waitlistError } = await supabase
+        .from('commander_waitlist')
+        .select('*')
+        .eq('venue_id', venue_id)
+        .gte('created_at', startOfDay)
+        .lte('created_at', endOfDay)
+
+      if (waitlistError) throw waitlistError;
+
+      // Calculate summary stats
+      const uniquePlayers = new Set(sessions.map(s => s.player_id)).size;
+      const totalHours = sessions.reduce((sum, s) => {
+        if (s.check_out_at) {
+          const duration = (new Date(s.check_out_at) - new Date(s.check_in_at)) / (1000 * 60 * 60);
+          return sum + duration;
+        }
+        return sum;
+      }, 0);
+
+      // Group games by stakes
+      const gamesByStakes = {};
+      games.forEach(game => {
+        const stakes = game.stakes || 'Unknown';
+        if (!gamesByStakes[stakes]) {
+          gamesByStakes[stakes] = { count: 0, tables: 0 };
+        }
+        gamesByStakes[stakes].count++;
+        gamesByStakes[stakes].tables++;
+      });
+
+      // Calculate peak tables (max concurrent games)
+      const peakTables = games.length > 0 ? Math.max(...Object.values(gamesByStakes).map(g => g.tables)) : 0;
+
+      // Get hourly breakdown
+      const hourlyData = {};
+      for (let i = 0; i < 24; i++) {
+        hourlyData[i] = { players: 0, tables: 0 };
+      }
+      sessions.forEach(s => {
+        const hour = new Date(s.check_in_at).getHours();
+        hourlyData[hour].players++;
+      });
+
+      const report = {
+        date: reportDate,
+        venue_id,
+        summary: {
+          total_players: uniquePlayers,
+          total_sessions: sessions.length,
+          total_hours: Math.round(totalHours * 10) / 10,
+          peak_tables: peakTables,
+          active_games: games.filter(g => g.status === 'running').length,
+          tournaments_run: tournaments.length,
+          waitlist_joins: waitlistEntries.length
+        },
+        gamesByStakes: Object.entries(gamesByStakes).map(([stakes, data]) => ({
+          stakes,
+          tables_run: data.tables,
+          sessions: data.count
+        })),
+        tournaments: tournaments.map(t => ({
+          id: t.id,
+          name: t.name,
+          buyin: t.buyin_amount,
+          entries: t.current_entries || 0,
+          prizepool: t.guaranteed_pool || 0,
+          status: t.status
+        })),
+        hourlyBreakdown: Object.entries(hourlyData).map(([hour, data]) => ({
+          hour: parseInt(hour),
+          players: data.players,
+          tables: data.tables
+        }))
+      };
+
+      return res.status(200).json({ success: true, data: { report } });
+
+    } catch (error) {
+      console.error('Daily report error:', error);
+      return res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

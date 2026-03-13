@@ -51,67 +51,73 @@ const PREMADE_PROMOS = [
 ];
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+      if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
+
+      // Auth check
+      const authHeader = req.headers.authorization;
+      if (!authHeader) return res.status(401).json({ success: false, error: 'Unauthorized' });
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+      if (authError || !user) return res.status(401).json({ success: false, error: 'Unauthorized' });
+
+      // Verify user is owner or manager
+      const { data: staff } = await supabaseAdmin
+          .from('commander_staff')
+          .select('id, role, venue_id')
+          .eq('user_id', user.id)
+          .in('role', ['owner', 'manager'])
+          .eq('is_active', true)
+          .limit(1)
+          .maybeSingle();
+
+      if (!staff) {
+          return res.status(403).json({ success: false, error: 'Only owners and managers can seed promo codes' });
+      }
+
+      try {
+          // Check existing codes to avoid duplicates
+          const { data: existing } = await supabaseAdmin
+              .from('promo_codes')
+              .select('code');
+          const existingCodes = new Set((existing || []).map(c => c.code));
+
+          const toInsert = PREMADE_PROMOS
+              .filter(p => !existingCodes.has(p.code))
+              .map(p => ({
+                  ...p,
+                  is_active: false, // Owner must manually activate each one
+                  created_at: new Date().toISOString(),
+              }));
+
+          if (toInsert.length === 0) {
+              return res.status(200).json({ success: true, message: 'All 25 promotions already exist', created: 0 });
+          }
+
+          const { data, error } = await supabaseAdmin
+              .from('promo_codes')
+              .insert(toInsert)
+              .select();
+
+          if (error) throw error;
+
+          return res.status(201).json({
+              success: true,
+              message: `Created ${data.length} pre-made promotions`,
+              created: data.length,
+              promos: data.map(p => ({ code: p.code, description: p.description })),
+          });
+      } catch (err) {
+          console.error('Seed promos error:', err);
+          return res.status(500).json({ success: false, error: 'Failed to seed promotions' });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-    if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
-
-    // Auth check
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ success: false, error: 'Unauthorized' });
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-    if (authError || !user) return res.status(401).json({ success: false, error: 'Unauthorized' });
-
-    // Verify user is owner or manager
-    const { data: staff } = await supabaseAdmin
-        .from('commander_staff')
-        .select('id, role, venue_id')
-        .eq('user_id', user.id)
-        .in('role', ['owner', 'manager'])
-        .eq('is_active', true)
-        .limit(1)
-        .maybeSingle();
-
-    if (!staff) {
-        return res.status(403).json({ success: false, error: 'Only owners and managers can seed promo codes' });
-    }
-
-    try {
-        // Check existing codes to avoid duplicates
-        const { data: existing } = await supabaseAdmin
-            .from('promo_codes')
-            .select('code');
-        const existingCodes = new Set((existing || []).map(c => c.code));
-
-        const toInsert = PREMADE_PROMOS
-            .filter(p => !existingCodes.has(p.code))
-            .map(p => ({
-                ...p,
-                is_active: false, // Owner must manually activate each one
-                created_at: new Date().toISOString(),
-            }));
-
-        if (toInsert.length === 0) {
-            return res.status(200).json({ success: true, message: 'All 25 promotions already exist', created: 0 });
-        }
-
-        const { data, error } = await supabaseAdmin
-            .from('promo_codes')
-            .insert(toInsert)
-            .select();
-
-        if (error) throw error;
-
-        return res.status(201).json({
-            success: true,
-            message: `Created ${data.length} pre-made promotions`,
-            created: data.length,
-            promos: data.map(p => ({ code: p.code, description: p.description })),
-        });
-    } catch (err) {
-        console.error('Seed promos error:', err);
-        return res.status(500).json({ success: false, error: 'Failed to seed promotions' });
-    }
 }

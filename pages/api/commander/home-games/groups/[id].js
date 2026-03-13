@@ -15,32 +15,38 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+    if (req.method !== 'GET') { const _u = await guardUser(req, res); if (!_u) return; }
+
+    const { id } = req.query;
+
+    if (!id) {
+      return res.status(400).json({ success: false, error: 'Group ID required' });
+    }
+
+    if (req.method === 'GET') {
+      return getGroup(req, res, id);
+    }
+
+    if (req.method === 'PUT' || req.method === 'PATCH') {
+      return updateGroup(req, res, id);
+    }
+
+    if (req.method === 'DELETE') {
+      return deleteGroup(req, res, id);
+    }
+
+    res.setHeader('Allow', ['GET', 'PUT', 'PATCH', 'DELETE']);
+    return res.status(405).json({ success: false, error: 'Method not allowed' });
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-  if (req.method !== 'GET') { const _u = await guardUser(req, res); if (!_u) return; }
-
-  const { id } = req.query;
-
-  if (!id) {
-    return res.status(400).json({ success: false, error: 'Group ID required' });
-  }
-
-  if (req.method === 'GET') {
-    return getGroup(req, res, id);
-  }
-
-  if (req.method === 'PUT' || req.method === 'PATCH') {
-    return updateGroup(req, res, id);
-  }
-
-  if (req.method === 'DELETE') {
-    return deleteGroup(req, res, id);
-  }
-
-  res.setHeader('Allow', ['GET', 'PUT', 'PATCH', 'DELETE']);
-  return res.status(405).json({ success: false, error: 'Method not allowed' });
 }
 
 async function getGroup(req, res, id) {

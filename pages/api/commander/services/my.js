@@ -11,69 +11,75 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (!applyRateLimit(req, res, LIMITS.read)) return;
-
-  if (req.method !== 'GET') {
-    return res.status(405).json({
-      success: false,
-      error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' }
-    });
-  }
-
-  const authHeader = req.headers.authorization;
-  if (!authHeader) {
-    return res.status(401).json({
-      success: false,
-      error: { code: 'AUTH_REQUIRED', message: 'Authentication required' }
-    });
-  }
-
-  const token = authHeader.replace('Bearer ', '');
-  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-
-  if (authError || !user) {
-    return res.status(401).json({
-      success: false,
-      error: { code: 'INVALID_TOKEN', message: 'Invalid or expired token' }
-    });
-  }
-
   try {
-    const { status, limit = 20, offset = 0 } = req.query;
+    if (!applyRateLimit(req, res, LIMITS.read)) return;
 
-    let query = supabase
-      .from('commander_service_requests')
-      .select(`
-        *,
-        poker_venues:venue_id (id, name),
-        commander_staff:assigned_to (id, display_name)
-      `, { count: 'exact' })
-      .eq('player_id', user.id)
-      .order('created_at', { ascending: false })
-      .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
-
-    if (status) {
-      query = query.eq('status', status)
+    if (req.method !== 'GET') {
+      return res.status(405).json({
+        success: false,
+        error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' }
+      });
     }
 
-    const { data: requests, error, count } = await query;
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({
+        success: false,
+        error: { code: 'AUTH_REQUIRED', message: 'Authentication required' }
+      });
+    }
 
-    if (error) throw error;
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
-    return res.status(200).json({
-      success: true,
-      data: {
-        requests: requests || [],
-        total: count,
-        limit: parseInt(limit),
-        offset: parseInt(offset)
+    if (authError || !user) {
+      return res.status(401).json({
+        success: false,
+        error: { code: 'INVALID_TOKEN', message: 'Invalid or expired token' }
+      });
+    }
+
+    try {
+      const { status, limit = 20, offset = 0 } = req.query;
+
+      let query = supabase
+        .from('commander_service_requests')
+        .select(`
+          *,
+          poker_venues:venue_id (id, name),
+          commander_staff:assigned_to (id, display_name)
+        `, { count: 'exact' })
+        .eq('player_id', user.id)
+        .order('created_at', { ascending: false })
+        .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
+
+      if (status) {
+        query = query.eq('status', status)
       }
-    });
-  } catch (error) {
-    console.error('Get my services error:', error);
-    return res.status(500).json({
-      success: false,
-      error: { code: 'SERVER_ERROR', message: 'Failed to fetch service requests' }
-    });
+
+      const { data: requests, error, count } = await query;
+
+      if (error) throw error;
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          requests: requests || [],
+          total: count,
+          limit: parseInt(limit),
+          offset: parseInt(offset)
+        }
+      });
+    } catch (error) {
+      console.error('Get my services error:', error);
+      return res.status(500).json({
+        success: false,
+        error: { code: 'SERVER_ERROR', message: 'Failed to fetch service requests' }
+      });
+    }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

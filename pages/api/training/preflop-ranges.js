@@ -267,155 +267,161 @@ function computeRangeStats(freqMap) {
 }
 
 export default async function handler(req, res) {
-    if (req.method !== 'GET') {
-        return res.status(405).json({ success: false, error: 'GET only' });
-    }
+  try {
+      if (req.method !== 'GET') {
+          return res.status(405).json({ success: false, error: 'GET only' });
+      }
 
-    try {
-        // Auth check
-        const token = req.headers.authorization?.replace('Bearer ', '');
-        if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-        const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
-        if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+      try {
+          // Auth check
+          const token = req.headers.authorization?.replace('Bearer ', '');
+          if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
+          const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+          if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-        const {
-            gameType = 'cash_6max',
-            stackDepth = '100',
-            position = 'BTN',
-            scenario = 'rfi',
-        } = req.query;
+          const {
+              gameType = 'cash_6max',
+              stackDepth = '100',
+              position = 'BTN',
+              scenario = 'rfi',
+          } = req.query;
 
-        const pos = position.toUpperCase();
-        const allHands = getAllHands();
-        let rangeData = {};
-        let actions = [];
-        let source = 'solver_derived';
+          const pos = position.toUpperCase();
+          const allHands = getAllHands();
+          let rangeData = {};
+          let actions = [];
+          let source = 'solver_derived';
 
-        // ─── RFI Ranges ────────────────────────────────────────────────
-        if (scenario === 'rfi') {
-            const posRange = PREFLOP_RFI_RANGES[pos] || {};
-            actions = ['Raise', 'Fold'];
-            allHands.forEach(hand => {
-                const raiseFreq = posRange[hand] || 0;
-                rangeData[hand] = raiseFreq > 0
-                    ? { 'Raise': Math.round(raiseFreq * 1000) / 10, 'Fold': Math.round((1 - raiseFreq) * 1000) / 10 }
-                    : null;
-            });
-        }
+          // ─── RFI Ranges ────────────────────────────────────────────────
+          if (scenario === 'rfi') {
+              const posRange = PREFLOP_RFI_RANGES[pos] || {};
+              actions = ['Raise', 'Fold'];
+              allHands.forEach(hand => {
+                  const raiseFreq = posRange[hand] || 0;
+                  rangeData[hand] = raiseFreq > 0
+                      ? { 'Raise': Math.round(raiseFreq * 1000) / 10, 'Fold': Math.round((1 - raiseFreq) * 1000) / 10 }
+                      : null;
+              });
+          }
 
-        // ─── Vs 3-Bet ──────────────────────────────────────────────────
-        else if (scenario === 'vs3bet') {
-            const posRange = VS_3BET_RANGES[pos] || VS_3BET_RANGES['BTN'] || {};
-            actions = ['4-Bet', 'Call', 'Fold'];
-            allHands.forEach(hand => {
-                const freq = posRange[hand] || 0;
-                if (freq > 0) {
-                    // High freq = 4-bet, medium = call, low = fold
-                    const fourBetFreq = freq > 0.7 ? freq * 0.6 : freq * 0.3;
-                    const callFreq = freq - fourBetFreq;
-                    const foldFreq = 1 - freq;
-                    rangeData[hand] = {
-                        '4-Bet': Math.round(fourBetFreq * 1000) / 10,
-                        'Call': Math.round(callFreq * 1000) / 10,
-                        'Fold': Math.round(foldFreq * 1000) / 10,
-                    };
-                } else {
-                    rangeData[hand] = null;
-                }
-            });
-        }
+          // ─── Vs 3-Bet ──────────────────────────────────────────────────
+          else if (scenario === 'vs3bet') {
+              const posRange = VS_3BET_RANGES[pos] || VS_3BET_RANGES['BTN'] || {};
+              actions = ['4-Bet', 'Call', 'Fold'];
+              allHands.forEach(hand => {
+                  const freq = posRange[hand] || 0;
+                  if (freq > 0) {
+                      // High freq = 4-bet, medium = call, low = fold
+                      const fourBetFreq = freq > 0.7 ? freq * 0.6 : freq * 0.3;
+                      const callFreq = freq - fourBetFreq;
+                      const foldFreq = 1 - freq;
+                      rangeData[hand] = {
+                          '4-Bet': Math.round(fourBetFreq * 1000) / 10,
+                          'Call': Math.round(callFreq * 1000) / 10,
+                          'Fold': Math.round(foldFreq * 1000) / 10,
+                      };
+                  } else {
+                      rangeData[hand] = null;
+                  }
+              });
+          }
 
-        // ─── BB Defense ────────────────────────────────────────────────
-        else if (scenario === 'bb_defense') {
-            // BB defense varies by who opened
-            const vsPos = pos === 'BB' ? 'vs_BTN' : `vs_${pos}`;
-            const defenseRange = BB_DEFENSE_RANGES[vsPos] || BB_DEFENSE_RANGES['vs_BTN'] || {};
-            actions = ['3-Bet', 'Call', 'Fold'];
-            allHands.forEach(hand => {
-                const freq = defenseRange[hand] || 0;
-                if (freq > 0) {
-                    const threeBetFreq = freq > 0.8 ? freq * 0.4 : freq * 0.15;
-                    const callFreq = freq - threeBetFreq;
-                    const foldFreq = 1 - freq;
-                    rangeData[hand] = {
-                        '3-Bet': Math.round(threeBetFreq * 1000) / 10,
-                        'Call': Math.round(callFreq * 1000) / 10,
-                        'Fold': Math.round(foldFreq * 1000) / 10,
-                    };
-                } else {
-                    rangeData[hand] = null;
-                }
-            });
-        }
+          // ─── BB Defense ────────────────────────────────────────────────
+          else if (scenario === 'bb_defense') {
+              // BB defense varies by who opened
+              const vsPos = pos === 'BB' ? 'vs_BTN' : `vs_${pos}`;
+              const defenseRange = BB_DEFENSE_RANGES[vsPos] || BB_DEFENSE_RANGES['vs_BTN'] || {};
+              actions = ['3-Bet', 'Call', 'Fold'];
+              allHands.forEach(hand => {
+                  const freq = defenseRange[hand] || 0;
+                  if (freq > 0) {
+                      const threeBetFreq = freq > 0.8 ? freq * 0.4 : freq * 0.15;
+                      const callFreq = freq - threeBetFreq;
+                      const foldFreq = 1 - freq;
+                      rangeData[hand] = {
+                          '3-Bet': Math.round(threeBetFreq * 1000) / 10,
+                          'Call': Math.round(callFreq * 1000) / 10,
+                          'Fold': Math.round(foldFreq * 1000) / 10,
+                      };
+                  } else {
+                      rangeData[hand] = null;
+                  }
+              });
+          }
 
-        // ─── Push/Fold (Short Stack) ───────────────────────────────────
-        else if (scenario === 'push_fold') {
-            actions = ['Push', 'Fold'];
-            const sd = parseInt(stackDepth) || 15;
+          // ─── Push/Fold (Short Stack) ───────────────────────────────────
+          else if (scenario === 'push_fold') {
+              actions = ['Push', 'Fold'];
+              const sd = parseInt(stackDepth) || 15;
 
-            // Try loading from memory_charts_gold
-            const { data: charts } = await supabase
-                .from('memory_charts_gold')
-                .select('hand_matrix, hero_position, stack_depth')
-                .eq('hero_position', pos)
-                .gte('stack_depth', sd - 3)
-                .lte('stack_depth', sd + 3)
-                .limit(1)
-                .maybeSingle();
+              // Try loading from memory_charts_gold
+              const { data: charts } = await supabase
+                  .from('memory_charts_gold')
+                  .select('hand_matrix, hero_position, stack_depth')
+                  .eq('hero_position', pos)
+                  .gte('stack_depth', sd - 3)
+                  .lte('stack_depth', sd + 3)
+                  .limit(1)
+                  .maybeSingle();
 
-            if (charts?.hand_matrix) {
-                const matrix = charts.hand_matrix;
-                allHands.forEach(hand => {
-                    const pushFreq = matrix[hand]?.push || 0;
-                    rangeData[hand] = pushFreq > 0
-                        ? { 'Push': Math.round(pushFreq * 1000) / 10, 'Fold': Math.round((1 - pushFreq) * 1000) / 10 }
-                        : null;
-                });
-                source = 'memory_charts_gold';
-            } else {
-                // Fallback: generate simplified push/fold based on stack depth
-                const pushThreshold = sd <= 8 ? 0.4 : sd <= 12 ? 0.3 : sd <= 15 ? 0.25 : 0.2;
-                const rfiRange = PREFLOP_RFI_RANGES[pos] || {};
-                allHands.forEach(hand => {
-                    const rfiFreq = rfiRange[hand] || 0;
-                    if (rfiFreq >= pushThreshold) {
-                        rangeData[hand] = { 'Push': Math.round(rfiFreq * 1000) / 10, 'Fold': Math.round((1 - rfiFreq) * 1000) / 10 };
-                    } else {
-                        rangeData[hand] = null;
-                    }
-                });
-                source = 'derived_from_rfi';
-            }
-        }
+              if (charts?.hand_matrix) {
+                  const matrix = charts.hand_matrix;
+                  allHands.forEach(hand => {
+                      const pushFreq = matrix[hand]?.push || 0;
+                      rangeData[hand] = pushFreq > 0
+                          ? { 'Push': Math.round(pushFreq * 1000) / 10, 'Fold': Math.round((1 - pushFreq) * 1000) / 10 }
+                          : null;
+                  });
+                  source = 'memory_charts_gold';
+              } else {
+                  // Fallback: generate simplified push/fold based on stack depth
+                  const pushThreshold = sd <= 8 ? 0.4 : sd <= 12 ? 0.3 : sd <= 15 ? 0.25 : 0.2;
+                  const rfiRange = PREFLOP_RFI_RANGES[pos] || {};
+                  allHands.forEach(hand => {
+                      const rfiFreq = rfiRange[hand] || 0;
+                      if (rfiFreq >= pushThreshold) {
+                          rangeData[hand] = { 'Push': Math.round(rfiFreq * 1000) / 10, 'Fold': Math.round((1 - rfiFreq) * 1000) / 10 };
+                      } else {
+                          rangeData[hand] = null;
+                      }
+                  });
+                  source = 'derived_from_rfi';
+              }
+          }
 
-        // ─── Compute stats ─────────────────────────────────────────────
-        const freqMap = {};
-        allHands.forEach(hand => {
-            if (rangeData[hand]) {
-                const foldKey = Object.keys(rangeData[hand]).find(k => k === 'Fold');
-                const foldPct = foldKey ? rangeData[hand][foldKey] : 0;
-                freqMap[hand] = (100 - foldPct) / 100;
-            }
-        });
+          // ─── Compute stats ─────────────────────────────────────────────
+          const freqMap = {};
+          allHands.forEach(hand => {
+              if (rangeData[hand]) {
+                  const foldKey = Object.keys(rangeData[hand]).find(k => k === 'Fold');
+                  const foldPct = foldKey ? rangeData[hand][foldKey] : 0;
+                  freqMap[hand] = (100 - foldPct) / 100;
+              }
+          });
 
-        const stats = computeRangeStats(freqMap);
+          const stats = computeRangeStats(freqMap);
 
-        return res.status(200).json({
-            success: true,
-            range: {
-                actions,
-                gridData: rangeData,
-                stats,
-                position: pos,
-                scenario,
-                gameType,
-                stackDepth: parseInt(stackDepth),
-                source,
-            },
-        });
+          return res.status(200).json({
+              success: true,
+              range: {
+                  actions,
+                  gridData: rangeData,
+                  stats,
+                  position: pos,
+                  scenario,
+                  gameType,
+                  stackDepth: parseInt(stackDepth),
+                  source,
+              },
+          });
 
-    } catch (err) {
-        console.error('[PreflopRanges] Error:', err);
-        return res.status(500).json({ success: false, error: err.message });
-    }
+      } catch (err) {
+          console.error('[PreflopRanges] Error:', err);
+          return res.status(500).json({ success: false, error: err.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

@@ -13,64 +13,70 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
-    if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
+  try {
+      if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
-    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-    if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+      const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+      if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-    const { name } = req.body;
-    if (!name || !name.trim()) return res.status(400).json({ success: false, error: 'Club name required' });
+      const { name } = req.body;
+      if (!name || !name.trim()) return res.status(400).json({ success: false, error: 'Club name required' });
 
-    // RED TEAM: XSS sanitization + length limit
-    const cleanName = sanitizeClubName(name, 100);
-    if (!cleanName) return res.status(400).json({ success: false, error: 'Club name contains only invalid characters' });
+      // RED TEAM: XSS sanitization + length limit
+      const cleanName = sanitizeClubName(name, 100);
+      if (!cleanName) return res.status(400).json({ success: false, error: 'Club name contains only invalid characters' });
 
-    // Rate limit
-    if (!applyRateLimit(req, res, 'club-arena/create-club')) return;
+      // Rate limit
+      if (!applyRateLimit(req, res, 'club-arena/create-club')) return;
 
-    try {
-        // Generate unique 5-digit code
-        const clubCode = Math.floor(10000 + Math.random() * 90000);
+      try {
+          // Generate unique 5-digit code
+          const clubCode = Math.floor(10000 + Math.random() * 90000);
 
-        // Create club
-        const { data: club, error: clubErr } = await supabaseAdmin
-            .from('clubs')
-            .insert({
-                name: cleanName,
-                owner_id: user.id,
-                club_id: clubCode,
-                member_count: 1,
-                created_at: new Date().toISOString(),
-            })
-            .select()
-            .maybeSingle();
+          // Create club
+          const { data: club, error: clubErr } = await supabaseAdmin
+              .from('clubs')
+              .insert({
+                  name: cleanName,
+                  owner_id: user.id,
+                  club_id: clubCode,
+                  member_count: 1,
+                  created_at: new Date().toISOString(),
+              })
+              .select()
+              .maybeSingle();
 
-        if (clubErr) throw clubErr;
+          if (clubErr) throw clubErr;
 
-        // Create owner membership
-        const { error: memErr } = await supabaseAdmin
-            .from('club_members')
-            .insert({
-                club_id: club.id,
-                user_id: user.id,
-                role: 'owner',
-                status: 'active',
-                chip_balance: 0,
-                joined_at: new Date().toISOString(),
-            });
+          // Create owner membership
+          const { error: memErr } = await supabaseAdmin
+              .from('club_members')
+              .insert({
+                  club_id: club.id,
+                  user_id: user.id,
+                  role: 'owner',
+                  status: 'active',
+                  chip_balance: 0,
+                  joined_at: new Date().toISOString(),
+              });
 
-        if (memErr) {
-            // Rollback club creation
-            await supabaseAdmin.from('clubs').delete().eq('id', club.id);
-            throw memErr;
-        }
+          if (memErr) {
+              // Rollback club creation
+              await supabaseAdmin.from('clubs').delete().eq('id', club.id);
+              throw memErr;
+          }
 
-        return res.status(200).json({ success: true, club });
-    } catch (err) {
-        console.error('[create-club]', err);
-        return res.status(500).json({ success: false, error: 'Failed to create club' });
-    }
+          return res.status(200).json({ success: true, club });
+      } catch (err) {
+          console.error('[create-club]', err);
+          return res.status(500).json({ success: false, error: 'Failed to create club' });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

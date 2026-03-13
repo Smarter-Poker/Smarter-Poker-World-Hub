@@ -13,87 +13,93 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (!applyRateLimit(req, res, LIMITS.read)) return;
-
-  // Auth guard: require staff auth for write operations
-  const _authResult = await guardWriteStaff(req, res);
-  if (!_authResult) return;
-
-  if (req.method !== 'GET') {
-    return res.status(405).json({
-      success: false,
-      error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' }
-    });
-  }
-
-  const { venueId } = req.query;
-
-  if (!venueId) {
-    return res.status(400).json({
-      success: false,
-      error: { code: 'VALIDATION_ERROR', message: 'Venue ID required' }
-    });
-  }
-
   try {
-    // Get games — try with joins first, fallback to simple query
-    let games = [];
-    try {
-      const result = await supabase
-        .from('commander_games')
-        .select(`
-          *,
-          commander_tables!commander_games_table_id_fkey (
-            id,
-            table_number,
-            table_name,
-            max_seats
-          )
-        `)
-        .eq('venue_id', venueId)
-        .in('status', ['waiting', 'running', 'breaking'])
-        .order('created_at', { ascending: false });
+    if (!applyRateLimit(req, res, LIMITS.read)) return;
 
-      if (result.error) throw result.error;
-      games = result.data || [];
-    } catch {
-      // Fallback: simple query without FK joins
-      const result = await supabase
-        .from('commander_games')
-        .select('*')
-        .eq('venue_id', venueId)
-        .in('status', ['waiting', 'running', 'breaking'])
-        .order('created_at', { ascending: false })
-      games = result.data || [];
-    }
+    // Auth guard: require staff auth for write operations
+    const _authResult = await guardWriteStaff(req, res);
+    if (!_authResult) return;
 
-    // Get all tables at venue
-    const { data: tables, error: tablesError } = await supabase
-      .from('commander_tables')
-      .select('*')
-      .eq('venue_id', venueId)
-      .order('table_number', { ascending: true })
-
-    if (tablesError) {
-      console.error('Commander venue tables query error:', tablesError);
-      return res.status(500).json({
+    if (req.method !== 'GET') {
+      return res.status(405).json({
         success: false,
-        error: { code: 'DATABASE_ERROR', message: 'Failed to fetch tables' }
+        error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' }
       });
     }
 
-    return res.status(200).json({
-      success: true,
-      data: {
-        games: games || [],
-        tables: tables || []
+    const { venueId } = req.query;
+
+    if (!venueId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: 'Venue ID required' }
+      });
+    }
+
+    try {
+      // Get games — try with joins first, fallback to simple query
+      let games = [];
+      try {
+        const result = await supabase
+          .from('commander_games')
+          .select(`
+            *,
+            commander_tables!commander_games_table_id_fkey (
+              id,
+              table_number,
+              table_name,
+              max_seats
+            )
+          `)
+          .eq('venue_id', venueId)
+          .in('status', ['waiting', 'running', 'breaking'])
+          .order('created_at', { ascending: false });
+
+        if (result.error) throw result.error;
+        games = result.data || [];
+      } catch {
+        // Fallback: simple query without FK joins
+        const result = await supabase
+          .from('commander_games')
+          .select('*')
+          .eq('venue_id', venueId)
+          .in('status', ['waiting', 'running', 'breaking'])
+          .order('created_at', { ascending: false })
+        games = result.data || [];
       }
-    });
-  } catch (error) {
-    console.error('Commander venue games API error:', error);
-    return res.status(500).json({
-      success: false,
-      error: { code: 'INTERNAL_ERROR', message: 'Internal server error' }
-    });
+
+      // Get all tables at venue
+      const { data: tables, error: tablesError } = await supabase
+        .from('commander_tables')
+        .select('*')
+        .eq('venue_id', venueId)
+        .order('table_number', { ascending: true })
+
+      if (tablesError) {
+        console.error('Commander venue tables query error:', tablesError);
+        return res.status(500).json({
+          success: false,
+          error: { code: 'DATABASE_ERROR', message: 'Failed to fetch tables' }
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          games: games || [],
+          tables: tables || []
+        }
+      });
+    } catch (error) {
+      console.error('Commander venue games API error:', error);
+      return res.status(500).json({
+        success: false,
+        error: { code: 'INTERNAL_ERROR', message: 'Internal server error' }
+      });
+    }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

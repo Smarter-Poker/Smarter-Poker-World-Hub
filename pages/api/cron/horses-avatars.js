@@ -165,78 +165,84 @@ async function generateAndUploadAvatar(horse) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default async function handler(req, res) {
-    // Verify cron secret
-    if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
+  try {
+      // Verify cron secret
+      if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+          return res.status(401).json({ error: 'Unauthorized' });
+      }
 
-    if (!SUPABASE_URL || !SUPABASE_KEY || !process.env.XAI_API_KEY) {
-        return res.status(500).json({
-            error: 'Missing env vars',
-            has_url: !!SUPABASE_URL,
-            has_key: !!SUPABASE_KEY,
-            is_service_role: IS_SERVICE_ROLE,
-            has_xai: !!process.env.XAI_API_KEY
-        });
-    }
+      if (!SUPABASE_URL || !SUPABASE_KEY || !process.env.XAI_API_KEY) {
+          return res.status(500).json({
+              error: 'Missing env vars',
+              has_url: !!SUPABASE_URL,
+              has_key: !!SUPABASE_KEY,
+              is_service_role: IS_SERVICE_ROLE,
+              has_xai: !!process.env.XAI_API_KEY
+          });
+      }
 
-    const limit = parseInt(req.query.limit) || 5;
-    const forceRegenerate = req.query.force === 'true';
+      const limit = parseInt(req.query.limit) || 5;
+      const forceRegenerate = req.query.force === 'true';
 
-    try {
-        // Get horses needing avatars
-        let query = supabase
-            .from('content_authors')
-            .select('id, profile_id, name, avatar_url')
-            .eq('is_active', true)
-            .not('profile_id', 'is', null)
-                .limit(100);
+      try {
+          // Get horses needing avatars
+          let query = supabase
+              .from('content_authors')
+              .select('id, profile_id, name, avatar_url')
+              .eq('is_active', true)
+              .not('profile_id', 'is', null)
+                  .limit(100);
 
-        if (!forceRegenerate) {
-            query = query.is('avatar_url', null);
-        }
+          if (!forceRegenerate) {
+              query = query.is('avatar_url', null);
+          }
 
-        const { data: horses, error: queryError } = await query.limit(limit);
+          const { data: horses, error: queryError } = await query.limit(limit);
 
-        if (queryError) {
-            return res.status(500).json({ error: queryError.message });
-        }
+          if (queryError) {
+              return res.status(500).json({ error: queryError.message });
+          }
 
-        if (!horses?.length) {
-            return res.status(200).json({
-                success: true,
-                message: 'All horses already have avatars!',
-                generated: 0
-            });
-        }
-
-
-        const results = [];
-
-        for (const horse of horses) {
-            // Add delay between generations to avoid rate limits
-            if (results.length > 0) {
-                await new Promise(r => setTimeout(r, 2000));
-            }
-
-            const result = await generateAndUploadAvatar(horse);
-            results.push(result);
-        }
-
-        const successful = results.filter(r => r.success).length;
-        const failed = results.filter(r => !r.success).length;
+          if (!horses?.length) {
+              return res.status(200).json({
+                  success: true,
+                  message: 'All horses already have avatars!',
+                  generated: 0
+              });
+          }
 
 
-        return res.status(200).json({
-            success: true,
-            generated: successful,
-            failed,
-            results,
-            timestamp: new Date().toISOString()
-        });
+          const results = [];
 
-    } catch (error) {
-        console.error('Handler error:', error);
-        return res.status(500).json({ success: false, error: error.message });
-    }
+          for (const horse of horses) {
+              // Add delay between generations to avoid rate limits
+              if (results.length > 0) {
+                  await new Promise(r => setTimeout(r, 2000));
+              }
+
+              const result = await generateAndUploadAvatar(horse);
+              results.push(result);
+          }
+
+          const successful = results.filter(r => r.success).length;
+          const failed = results.filter(r => !r.success).length;
+
+
+          return res.status(200).json({
+              success: true,
+              generated: successful,
+              failed,
+              results,
+              timestamp: new Date().toISOString()
+          });
+
+      } catch (error) {
+          console.error('Handler error:', error);
+          return res.status(500).json({ success: false, error: error.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

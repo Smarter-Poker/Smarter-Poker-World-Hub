@@ -22,145 +22,151 @@ const supabaseAdmin = createClient(
 
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 export default async function handler(req, res) {
-    if (await applyRateLimit(req, res)) return;
-    if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
+  try {
+      if (await applyRateLimit(req, res)) return;
+      if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ error: 'No auth token' });
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      if (!token) return res.status(401).json({ error: 'No auth token' });
 
-    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+      const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+      if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
-    const { clubId, action, limit } = req.body;
-    if (!clubId) return res.status(400).json({ error: 'clubId required' });
-    if (!isUUID(clubId)) return res.status(400).json({ error: 'Invalid clubId format' });
+      const { clubId, action, limit } = req.body;
+      if (!clubId) return res.status(400).json({ error: 'clubId required' });
+      if (!isUUID(clubId)) return res.status(400).json({ error: 'Invalid clubId format' });
 
-    const maxLimit = Math.min(limit || 50, 100);
+      const maxLimit = Math.min(limit || 50, 100);
 
-    // Verify membership
-    const { data: membership } = await supabaseAdmin
-        .from('club_members')
-        .select('role')
-        .eq('club_id', clubId)
-        .eq('user_id', user.id)
-        .maybeSingle();
+      // Verify membership
+      const { data: membership } = await supabaseAdmin
+          .from('club_members')
+          .select('role')
+          .eq('club_id', clubId)
+          .eq('user_id', user.id)
+          .maybeSingle();
 
-    if (!membership) return res.status(403).json({ error: 'Not a club member' });
+      if (!membership) return res.status(403).json({ error: 'Not a club member' });
 
-    // ─── CHIPS: Top players by chip balance ──────────────────
-    if (action === 'chips' || !action) {
-        try {
-            const { data: members } = await supabaseAdmin
-                .from('club_members')
-                .select('user_id, chip_balance, role, joined_at')
-                .eq('club_id', clubId)
-                .eq('status', 'active')
-                .order('chip_balance', { ascending: false })
-                .limit(maxLimit);
+      // ─── CHIPS: Top players by chip balance ──────────────────
+      if (action === 'chips' || !action) {
+          try {
+              const { data: members } = await supabaseAdmin
+                  .from('club_members')
+                  .select('user_id, chip_balance, role, joined_at')
+                  .eq('club_id', clubId)
+                  .eq('status', 'active')
+                  .order('chip_balance', { ascending: false })
+                  .limit(maxLimit);
 
-            const userIds = (members || []).map(m => m.user_id);
-            const { data: profiles } = await supabaseAdmin
-                .from('profiles')
-                .select('id, display_name, username, avatar_url')
-                .in('id', userIds);
+              const userIds = (members || []).map(m => m.user_id);
+              const { data: profiles } = await supabaseAdmin
+                  .from('profiles')
+                  .select('id, display_name, username, avatar_url')
+                  .in('id', userIds);
 
-            const profileMap = {};
-            for (const p of (profiles || [])) profileMap[p.id] = p;
+              const profileMap = {};
+              for (const p of (profiles || [])) profileMap[p.id] = p;
 
-            const rankings = (members || []).map((m, i) => ({
-                rank: i + 1,
-                userId: m.user_id,
-                name: profileMap[m.user_id]?.display_name || profileMap[m.user_id]?.username || m.user_id.substring(0, 8),
-                avatar: profileMap[m.user_id]?.avatar_url || null,
-                role: m.role,
-                chips: m.chip_balance || 0,
-                joinedAt: m.joined_at,
-            }));
+              const rankings = (members || []).map((m, i) => ({
+                  rank: i + 1,
+                  userId: m.user_id,
+                  name: profileMap[m.user_id]?.display_name || profileMap[m.user_id]?.username || m.user_id.substring(0, 8),
+                  avatar: profileMap[m.user_id]?.avatar_url || null,
+                  role: m.role,
+                  chips: m.chip_balance || 0,
+                  joinedAt: m.joined_at,
+              }));
 
-            return res.status(200).json({ success: true, leaderboard: rankings, metric: 'chips' });
-        } catch (err) {
-            return res.status(500).json({ error: 'Leaderboard failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
-        }
-    }
+              return res.status(200).json({ success: true, leaderboard: rankings, metric: 'chips' });
+          } catch (err) {
+              return res.status(500).json({ error: 'Leaderboard failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
+          }
+      }
 
-    // ─── VOLUME: Top players by 7-day transaction volume ─────
-    if (action === 'volume' || action === 'activity' || action === 'big_winners') {
-        try {
-            const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      // ─── VOLUME: Top players by 7-day transaction volume ─────
+      if (action === 'volume' || action === 'activity' || action === 'big_winners') {
+          try {
+              const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-            const { data: transactions } = await supabaseAdmin
-                .from('chip_transactions')
-                .select('from_user_id, to_user_id, amount, transaction_type')
-                .eq('club_id', clubId)
-                .gte('created_at', sevenDaysAgo)
-                .limit(5000);
+              const { data: transactions } = await supabaseAdmin
+                  .from('chip_transactions')
+                  .select('from_user_id, to_user_id, amount, transaction_type')
+                  .eq('club_id', clubId)
+                  .gte('created_at', sevenDaysAgo)
+                  .limit(5000);
 
-            // Build per-user stats
-            const stats = {};
-            for (const tx of (transactions || [])) {
-                const fromId = tx.from_user_id;
-                const toId = tx.to_user_id;
-                const amt = Math.abs(tx.amount || 0);
+              // Build per-user stats
+              const stats = {};
+              for (const tx of (transactions || [])) {
+                  const fromId = tx.from_user_id;
+                  const toId = tx.to_user_id;
+                  const amt = Math.abs(tx.amount || 0);
 
-                if (fromId) {
-                    if (!stats[fromId]) stats[fromId] = { volume: 0, txCount: 0, netFlow: 0 };
-                    stats[fromId].volume += amt;
-                    stats[fromId].txCount++;
-                    stats[fromId].netFlow -= amt;
-                }
-                if (toId) {
-                    if (!stats[toId]) stats[toId] = { volume: 0, txCount: 0, netFlow: 0 };
-                    stats[toId].volume += amt;
-                    stats[toId].txCount++;
-                    stats[toId].netFlow += amt;
-                }
-            }
+                  if (fromId) {
+                      if (!stats[fromId]) stats[fromId] = { volume: 0, txCount: 0, netFlow: 0 };
+                      stats[fromId].volume += amt;
+                      stats[fromId].txCount++;
+                      stats[fromId].netFlow -= amt;
+                  }
+                  if (toId) {
+                      if (!stats[toId]) stats[toId] = { volume: 0, txCount: 0, netFlow: 0 };
+                      stats[toId].volume += amt;
+                      stats[toId].txCount++;
+                      stats[toId].netFlow += amt;
+                  }
+              }
 
-            // Sort by metric
-            let sortKey = 'volume';
-            if (action === 'activity') sortKey = 'txCount';
-            if (action === 'big_winners') sortKey = 'netFlow';
+              // Sort by metric
+              let sortKey = 'volume';
+              if (action === 'activity') sortKey = 'txCount';
+              if (action === 'big_winners') sortKey = 'netFlow';
 
-            const sorted = Object.entries(stats)
-                .sort((a, b) => (b[1][sortKey] || 0) - (a[1][sortKey] || 0))
-                .slice(0, maxLimit);
+              const sorted = Object.entries(stats)
+                  .sort((a, b) => (b[1][sortKey] || 0) - (a[1][sortKey] || 0))
+                  .slice(0, maxLimit);
 
-            // Resolve profiles
-            const userIds = sorted.map(([uid]) => uid);
-            const { data: profiles } = await supabaseAdmin
-                .from('profiles')
-                .select('id, display_name, username, avatar_url')
-                .in('id', userIds);
+              // Resolve profiles
+              const userIds = sorted.map(([uid]) => uid);
+              const { data: profiles } = await supabaseAdmin
+                  .from('profiles')
+                  .select('id, display_name, username, avatar_url')
+                  .in('id', userIds);
 
-            const profileMap = {};
-            for (const p of (profiles || [])) profileMap[p.id] = p;
+              const profileMap = {};
+              for (const p of (profiles || [])) profileMap[p.id] = p;
 
-            // Get roles
-            const { data: members } = await supabaseAdmin
-                .from('club_members')
-                .select('user_id, role')
-                .eq('club_id', clubId)
-                .in('user_id', userIds);
+              // Get roles
+              const { data: members } = await supabaseAdmin
+                  .from('club_members')
+                  .select('user_id, role')
+                  .eq('club_id', clubId)
+                  .in('user_id', userIds);
 
-            const roleMap = {};
-            for (const m of (members || [])) roleMap[m.user_id] = m.role;
+              const roleMap = {};
+              for (const m of (members || [])) roleMap[m.user_id] = m.role;
 
-            const rankings = sorted.map(([userId, data], i) => ({
-                rank: i + 1,
-                userId,
-                name: profileMap[userId]?.display_name || profileMap[userId]?.username || userId.substring(0, 8),
-                avatar: profileMap[userId]?.avatar_url || null,
-                role: roleMap[userId] || 'player',
-                volume: data.volume,
-                txCount: data.txCount,
-                netFlow: data.netFlow,
-            }));
+              const rankings = sorted.map(([userId, data], i) => ({
+                  rank: i + 1,
+                  userId,
+                  name: profileMap[userId]?.display_name || profileMap[userId]?.username || userId.substring(0, 8),
+                  avatar: profileMap[userId]?.avatar_url || null,
+                  role: roleMap[userId] || 'player',
+                  volume: data.volume,
+                  txCount: data.txCount,
+                  netFlow: data.netFlow,
+              }));
 
-            return res.status(200).json({ success: true, leaderboard: rankings, metric: action || 'volume' });
-        } catch (err) {
-            return res.status(500).json({ error: 'Leaderboard failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
-        }
-    }
+              return res.status(200).json({ success: true, leaderboard: rankings, metric: action || 'volume' });
+          } catch (err) {
+              return res.status(500).json({ error: 'Leaderboard failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
+          }
+      }
 
-    return res.status(400).json({ error: `Unknown action: ${action}` });
+      return res.status(400).json({ error: `Unknown action: ${action}` });
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

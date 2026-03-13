@@ -12,56 +12,62 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({
-      success: false,
-      error: { code: 'METHOD_NOT_ALLOWED', message: 'Only POST allowed' }
-    });
-  }
-
-  const { deviceId } = req.query;
-
   try {
-    // Update heartbeat
-    const { data: display, error } = await supabase
-      .from('commander_table_displays')
-      .update({
-        is_online: true,
-        last_heartbeat: new Date().toISOString()
-      })
-      .eq('device_id', deviceId)
-      .select('id, display_mode, rotation_screens, rotation_interval, config, updated_at')
-      .maybeSingle();
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
 
-    if (error || !display) {
-      return res.status(404).json({
+    if (req.method !== 'POST') {
+      return res.status(405).json({
         success: false,
-        error: { code: 'NOT_FOUND', message: 'Display not registered' }
+        error: { code: 'METHOD_NOT_ALLOWED', message: 'Only POST allowed' }
       });
     }
 
-    return res.status(200).json({
-      success: true,
-      data: {
-        display_id: display.id,
-        config: {
-          display_mode: display.display_mode,
-          rotation_screens: display.rotation_screens,
-          rotation_interval: display.rotation_interval,
-          custom: display.config
-        },
-        last_config_update: display.updated_at
+    const { deviceId } = req.query;
+
+    try {
+      // Update heartbeat
+      const { data: display, error } = await supabase
+        .from('commander_table_displays')
+        .update({
+          is_online: true,
+          last_heartbeat: new Date().toISOString()
+        })
+        .eq('device_id', deviceId)
+        .select('id, display_mode, rotation_screens, rotation_interval, config, updated_at')
+        .maybeSingle();
+
+      if (error || !display) {
+        return res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'Display not registered' }
+        });
       }
-    });
-  } catch (error) {
-    console.error('Heartbeat error:', error);
-    return res.status(500).json({
-      success: false,
-      error: { code: 'SERVER_ERROR', message: 'Heartbeat failed' }
-    });
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          display_id: display.id,
+          config: {
+            display_mode: display.display_mode,
+            rotation_screens: display.rotation_screens,
+            rotation_interval: display.rotation_interval,
+            custom: display.config
+          },
+          last_config_update: display.updated_at
+        }
+      });
+    } catch (error) {
+      console.error('Heartbeat error:', error);
+      return res.status(500).json({
+        success: false,
+        error: { code: 'SERVER_ERROR', message: 'Heartbeat failed' }
+      });
+    }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

@@ -433,123 +433,129 @@ function determineNeededQuestions(stats) {
 }
 
 export default async function handler(req, res) {
-    // Verify cron secret
-    const authHeader = req.headers.authorization;
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
+  try {
+      // Verify cron secret
+      const authHeader = req.headers.authorization;
+      if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+          return res.status(401).json({ error: 'Unauthorized' });
+      }
 
-    try {
+      try {
 
-        // Get current stats
-        const stats = await getPoolStats();
-        const totalQuestions = Object.values(stats).reduce((sum, s) => sum + s.total, 0);
-        const targetTotal = CATEGORIES.length * TARGET_PER_CATEGORY;
+          // Get current stats
+          const stats = await getPoolStats();
+          const totalQuestions = Object.values(stats).reduce((sum, s) => sum + s.total, 0);
+          const targetTotal = CATEGORIES.length * TARGET_PER_CATEGORY;
 
 
-        // Check if pool is complete
-        if (totalQuestions >= targetTotal) {
-            return res.status(200).json({
-                success: true,
-                message: 'Question pool is complete!',
-                stats,
-                totalQuestions,
-                targetTotal
-            });
-        }
+          // Check if pool is complete
+          if (totalQuestions >= targetTotal) {
+              return res.status(200).json({
+                  success: true,
+                  message: 'Question pool is complete!',
+                  stats,
+                  totalQuestions,
+                  targetTotal
+              });
+          }
 
-        // Determine what's needed
-        const needs = determineNeededQuestions(stats);
+          // Determine what's needed
+          const needs = determineNeededQuestions(stats);
 
-        if (needs.length === 0) {
-            return res.status(200).json({
-                success: true,
-                message: 'All categories balanced',
-                stats
-            });
-        }
+          if (needs.length === 0) {
+              return res.status(200).json({
+                  success: true,
+                  message: 'All categories balanced',
+                  stats
+              });
+          }
 
-        // Generate questions in batches
-        let generated = 0;
-        const results = [];
+          // Generate questions in batches
+          let generated = 0;
+          const results = [];
 
-        for (let batch = 0; batch < MAX_BATCHES_PER_RUN && needs.length > 0; batch++) {
-            const need = needs[batch % needs.length];
-            if (!need) break;
+          for (let batch = 0; batch < MAX_BATCHES_PER_RUN && needs.length > 0; batch++) {
+              const need = needs[batch % needs.length];
+              if (!need) break;
 
-            // Pick a random subcategory for variety
-            const subcategory = need.category.subcategories[
-                Math.floor(Math.random() * need.category.subcategories.length)
-            ];
+              // Pick a random subcategory for variety
+              const subcategory = need.category.subcategories[
+                  Math.floor(Math.random() * need.category.subcategories.length)
+              ];
 
-            const batchCount = Math.min(BATCH_SIZE, need.needed);
+              const batchCount = Math.min(BATCH_SIZE, need.needed);
 
-            const questions = await generateBatch(need.category, subcategory, need.difficulty, batchCount);
+              const questions = await generateBatch(need.category, subcategory, need.difficulty, batchCount);
 
-            if (questions.length > 0) {
-                // Filter out potential duplicates
-                const uniqueQuestions = [];
-                for (const q of questions) {
-                    const isDupe = await checkForDuplicates(q.question, need.category.id);
-                    if (!isDupe) {
-                        uniqueQuestions.push(q);
-                    } else {
-                    }
-                }
+              if (questions.length > 0) {
+                  // Filter out potential duplicates
+                  const uniqueQuestions = [];
+                  for (const q of questions) {
+                      const isDupe = await checkForDuplicates(q.question, need.category.id);
+                      if (!isDupe) {
+                          uniqueQuestions.push(q);
+                      } else {
+                      }
+                  }
 
-                if (uniqueQuestions.length > 0) {
-                    // ═══ QA VALIDATION GATE — NO QUESTION ENTERS DB WITHOUT PASSING ═══
-                    const { valid: validQuestions, rejected } = validateBatch(uniqueQuestions);
-                    if (rejected.length > 0) {
-                        rejected.forEach(r => {
-                            r.errors.forEach(e => console.log(`  → ${e}`));
-                        });
-                    }
+                  if (uniqueQuestions.length > 0) {
+                      // ═══ QA VALIDATION GATE — NO QUESTION ENTERS DB WITHOUT PASSING ═══
+                      const { valid: validQuestions, rejected } = validateBatch(uniqueQuestions);
+                      if (rejected.length > 0) {
+                          rejected.forEach(r => {
+                              r.errors.forEach(e => console.log(`  → ${e}`));
+                          });
+                      }
 
-                    if (validQuestions.length > 0) {
-                        const { data, error } = await supabase
-                            .from('trivia_questions')
-                            .insert(validQuestions)
-                            .select();
+                      if (validQuestions.length > 0) {
+                          const { data, error } = await supabase
+                              .from('trivia_questions')
+                              .insert(validQuestions)
+                              .select();
 
-                        if (error) {
-                            console.error('[Question Pool] Insert error:', error);
-                        } else {
-                            generated += data.length;
-                            results.push({
-                                category: need.category.name,
-                                subcategory,
-                                difficulty: need.difficulty,
-                                generated: data.length
-                            });
-                        }
-                    }
-                }
-            }
+                          if (error) {
+                              console.error('[Question Pool] Insert error:', error);
+                          } else {
+                              generated += data.length;
+                              results.push({
+                                  category: need.category.name,
+                                  subcategory,
+                                  difficulty: need.difficulty,
+                                  generated: data.length
+                              });
+                          }
+                      }
+                  }
+              }
 
-            // Rate limiting - wait between batches
-            if (batch < MAX_BATCHES_PER_RUN - 1) {
-                await new Promise(r => setTimeout(r, 1000));
-            }
-        }
+              // Rate limiting - wait between batches
+              if (batch < MAX_BATCHES_PER_RUN - 1) {
+                  await new Promise(r => setTimeout(r, 1000));
+              }
+          }
 
-        // Get updated stats
-        const updatedStats = await getPoolStats();
-        const newTotal = Object.values(updatedStats).reduce((sum, s) => sum + s.total, 0);
+          // Get updated stats
+          const updatedStats = await getPoolStats();
+          const newTotal = Object.values(updatedStats).reduce((sum, s) => sum + s.total, 0);
 
-        return res.status(200).json({
-            success: true,
-            message: `Generated ${generated} new questions`,
-            results,
-            previousTotal: totalQuestions,
-            newTotal,
-            targetTotal,
-            progress: `${Math.round((newTotal / targetTotal) * 100)}%`,
-            stats: updatedStats
-        });
+          return res.status(200).json({
+              success: true,
+              message: `Generated ${generated} new questions`,
+              results,
+              previousTotal: totalQuestions,
+              newTotal,
+              targetTotal,
+              progress: `${Math.round((newTotal / targetTotal) * 100)}%`,
+              stats: updatedStats
+          });
 
-    } catch (error) {
-        console.error('[Question Pool] Error:', error);
-        return res.status(500).json({ error: error.message });
-    }
+      } catch (error) {
+          console.error('[Question Pool] Error:', error);
+          return res.status(500).json({ error: error.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

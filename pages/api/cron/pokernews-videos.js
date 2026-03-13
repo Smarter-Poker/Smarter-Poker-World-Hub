@@ -110,32 +110,38 @@ async function ingestLatestVideos() {
 // API HANDLER
 // ═══════════════════════════════════════════════════════════════════════════
 export default async function handler(req, res) {
-    // Verify cron secret
-    if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
-    // Security: validate cron auth for external callers
-    const { validateCronAuth } = await import('../../../src/utils/cron-auth.js');
-    if (!validateCronAuth(req)) {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
+  try {
+      // Verify cron secret
+      if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+          return res.status(401).json({ error: 'Unauthorized' });
+      }
+      // Security: validate cron auth for external callers
+      const { validateCronAuth } = await import('../../../src/utils/cron-auth.js');
+      if (!validateCronAuth(req)) {
+          return res.status(401).json({ error: 'Unauthorized' });
+      }
 
 
-    try {
-        const results = await ingestLatestVideos();
+      try {
+          const results = await ingestLatestVideos();
 
 
-        return res.status(200).json({
-            success: true,
-            timestamp: new Date().toISOString(),
-            results
-        });
+          return res.status(200).json({
+              success: true,
+              timestamp: new Date().toISOString(),
+              results
+          });
 
-    } catch (error) {
-        console.error('❌ CRON FATAL:', error);
-        return res.status(500).json({
-            success: false,
-            error: error.message
-        });
-    }
+      } catch (error) {
+          console.error('❌ CRON FATAL:', error);
+          return res.status(500).json({
+              success: false,
+              error: error.message
+          });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

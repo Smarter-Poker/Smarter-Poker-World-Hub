@@ -302,72 +302,78 @@ function getCategoryEmoji(category) {
 // MAIN HANDLER
 // ═══════════════════════════════════════════════════════════════════════════
 export default async function handler(req, res) {
-    // Verify cron secret
-    if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
+  try {
+      // Verify cron secret
+      if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+          return res.status(401).json({ error: 'Unauthorized' });
+      }
 
-    if (!SUPABASE_URL) {
-        return res.status(500).json({ error: 'Missing Supabase URL' });
-    }
+      if (!SUPABASE_URL) {
+          return res.status(500).json({ error: 'Missing Supabase URL' });
+      }
 
-    try {
-        // Fetch latest news from all sources
-        const articles = await fetchLatestNews();
+      try {
+          // Fetch latest news from all sources
+          const articles = await fetchLatestNews();
 
-        if (articles.length === 0) {
-            return res.status(200).json({
-                success: true,
-                message: 'No news available',
-                posted: 0
-            });
-        }
+          if (articles.length === 0) {
+              return res.status(200).json({
+                  success: true,
+                  message: 'No news available',
+                  posted: 0
+              });
+          }
 
-        // Find a fresh article to post (with dual posting)
-        let posted = null;
-        let newsId = null;
+          // Find a fresh article to post (with dual posting)
+          let posted = null;
+          let newsId = null;
 
-        for (const article of articles) {
-            const recentlyShared = await isArticleRecentlyShared(article.link);
+          for (const article of articles) {
+              const recentlyShared = await isArticleRecentlyShared(article.link);
 
-            if (!recentlyShared) {
-                // STEP 1: Save to news archive
-                newsId = await saveToNewsArchive(article);
+              if (!recentlyShared) {
+                  // STEP 1: Save to news archive
+                  newsId = await saveToNewsArchive(article);
 
-                // STEP 2: Post to social feed (linked to archive)
-                if (newsId) {
-                    posted = await postNewsArticle(article, newsId);
-                    if (posted) {
-                        break; // Post one article per hour
-                    }
-                }
-            }
-        }
+                  // STEP 2: Post to social feed (linked to archive)
+                  if (newsId) {
+                      posted = await postNewsArticle(article, newsId);
+                      if (posted) {
+                          break; // Post one article per hour
+                      }
+                  }
+              }
+          }
 
-        if (!posted) {
-            return res.status(200).json({
-                success: true,
-                message: 'All articles recently shared',
-                posted: 0
-            });
-        }
+          if (!posted) {
+              return res.status(200).json({
+                  success: true,
+                  message: 'All articles recently shared',
+                  posted: 0
+              });
+          }
 
 
-        return res.status(200).json({
-            success: true,
-            posted: 1,
-            post_id: posted.post_id,
-            news_id: posted.news_id,
-            method: posted.method,
-            has_image: posted.has_image,
-            timestamp: new Date().toISOString()
-        });
+          return res.status(200).json({
+              success: true,
+              posted: 1,
+              post_id: posted.post_id,
+              news_id: posted.news_id,
+              method: posted.method,
+              has_image: posted.has_image,
+              timestamp: new Date().toISOString()
+          });
 
-    } catch (error) {
-        console.error('Cron error:', error);
-        return res.status(500).json({
-            success: false,
-            error: error.message
-        });
-    }
+      } catch (error) {
+          console.error('Cron error:', error);
+          return res.status(500).json({
+              success: false,
+              error: error.message
+          });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

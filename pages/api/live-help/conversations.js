@@ -11,53 +11,59 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-    if (req.method !== 'GET') {
-        return res.status(405).json({ error: 'Method not allowed' });
-    }
+  try {
+      if (req.method !== 'GET') {
+          return res.status(405).json({ error: 'Method not allowed' });
+      }
 
-    try {
-        const authHeader = req.headers.authorization;
-        if (!authHeader?.startsWith('Bearer ')) {
-            return res.status(401).json({ error: 'Unauthorized' });
-        }
+      try {
+          const authHeader = req.headers.authorization;
+          if (!authHeader?.startsWith('Bearer ')) {
+              return res.status(401).json({ error: 'Unauthorized' });
+          }
 
-        const token = authHeader.replace('Bearer ', '');
-        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+          const token = authHeader.replace('Bearer ', '');
+          const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
-        if (authError || !user) {
-            return res.status(401).json({ error: 'Invalid token' });
-        }
+          if (authError || !user) {
+              return res.status(401).json({ error: 'Invalid token' });
+          }
 
-        // Get last 5 conversations with first message
-        const { data: conversations, error } = await supabase
-            .from('live_help_conversations')
-            .select(`
-                id,
-                updated_at,
-                live_help_messages!inner (
-                    content
-                )
-            `)
-            .eq('user_id', user.id)
-            .order('updated_at', { ascending: false })
-            .limit(5);
+          // Get last 5 conversations with first message
+          const { data: conversations, error } = await supabase
+              .from('live_help_conversations')
+              .select(`
+                  id,
+                  updated_at,
+                  live_help_messages!inner (
+                      content
+                  )
+              `)
+              .eq('user_id', user.id)
+              .order('updated_at', { ascending: false })
+              .limit(5);
 
-        if (error) {
-            console.error('Failed to fetch conversations:', error);
-            return res.status(500).json({ error: 'Failed to fetch conversations' });
-        }
+          if (error) {
+              console.error('Failed to fetch conversations:', error);
+              return res.status(500).json({ error: 'Failed to fetch conversations' });
+          }
 
-        // Format response with first message
-        const formattedConversations = conversations.map(conv => ({
-            id: conv.id,
-            first_message: conv.live_help_messages[0]?.content || 'New conversation',
-            updated_at: conv.updated_at
-        }));
+          // Format response with first message
+          const formattedConversations = conversations.map(conv => ({
+              id: conv.id,
+              first_message: conv.live_help_messages[0]?.content || 'New conversation',
+              updated_at: conv.updated_at
+          }));
 
-        return res.status(200).json({ conversations: formattedConversations });
+          return res.status(200).json({ conversations: formattedConversations });
 
-    } catch (error) {
-        console.error('Conversations API error:', error);
-        return res.status(500).json({ error: 'Internal server error' });
-    }
+      } catch (error) {
+          console.error('Conversations API error:', error);
+          return res.status(500).json({ error: 'Internal server error' });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

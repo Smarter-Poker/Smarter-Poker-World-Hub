@@ -450,166 +450,172 @@ function generateExplanation(leakType, currentValue, optimalRange) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default async function handler(req, res) {
-  if (!applyRateLimit(req, res, LIMITS.ai)) return;
-
-  // Require JWT auth for write operations
-  if (req.method !== 'GET') {
-    const _token = req.headers.authorization?.replace('Bearer ', '');
-    if (!_token) return res.status(401).json({ success: false, error: 'Authentication required' });
-    const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
-    if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
-    if (req.body) req.body.userId = _authUser.id;
-  }
-  if (req.method !== 'POST') {
-    return res.status(405).json({ success: false, error: 'Method not allowed' });
-  }
-
-  const { userId } = req.body;
-
-  if (!userId) {
-    return res.status(400).json({ success: false, error: 'userId required' });
-  }
-
   try {
-    // Get player stats
-    const stats = await getPlayerStats(supabase, userId);
+    if (!applyRateLimit(req, res, LIMITS.ai)) return;
 
-    if (!stats || stats.handsPlayed < 100) {
+    // Require JWT auth for write operations
+    if (req.method !== 'GET') {
+      const _token = req.headers.authorization?.replace('Bearer ', '');
+      if (!_token) return res.status(401).json({ success: false, error: 'Authentication required' });
+      const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
+      if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+      if (req.body) req.body.userId = _authUser.id;
+    }
+    if (req.method !== 'POST') {
+      return res.status(405).json({ success: false, error: 'Method not allowed' });
+    }
+
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ success: false, error: 'userId required' });
+    }
+
+    try {
+      // Get player stats
+      const stats = await getPlayerStats(supabase, userId);
+
+      if (!stats || stats.handsPlayed < 100) {
+        return res.status(200).json({
+          success: true,
+          message: 'Need more hands to detect leaks (minimum 100)',
+          handsAnalyzed: stats?.handsPlayed || 0,
+          leaksDetected: 0,
+          leaks: [],
+        });
+      }
+
+      // Get existing leaks
+      const { data: existingLeaks } = await supabase
+        .from('user_leaks')
+        .select('*')
+        .eq('user_id', userId)
+        .limit(100);
+
+      const existingLeakMap = {};
+      (existingLeaks || []).forEach(leak => {
+        existingLeakMap[leak.leak_type] = leak;
+      });
+
+      // Detect leaks
+      const detectedLeaks = [];
+      const now = new Date().toISOString();
+
+      for (const [leakType, pattern] of Object.entries(LEAK_PATTERNS)) {
+        if (pattern.check(stats)) {
+          const existingLeak = existingLeakMap[leakType];
+          const currentValue = getCurrentValue(stats, leakType);
+          const status = classifyLeakStatus(existingLeak, currentValue, pattern.optimalRange);
+
+          if (!status) continue;
+
+          const leak = {
+            user_id: userId,
+            leak_type: leakType,
+            leak_category: pattern.category,
+            situation_class: pattern.name,
+            status,
+            source_system: stats._isTrainingDominant ? 'training_arena' : 'live_play',
+            confidence: stats.handsPlayed > 1000 ? 'high' : stats.handsPlayed > 500 ? 'medium' : 'low',
+            avg_ev_loss_bb: pattern.evImpact,
+            occurrence_count: existingLeak ? existingLeak.occurrence_count + 1 : 1,
+            optimal_frequency: pattern.optimalRange[0],
+            current_frequency: currentValue,
+            first_detected_at: existingLeak?.first_detected_at || now,
+            last_detected_at: now,
+            trend_data: updateTrendData(existingLeak?.trend_data, currentValue),
+            explanation: generateExplanation(leakType, currentValue, pattern.optimalRange),
+            why_leaking_ev: getWhyLeakingEV(leakType),
+          };
+
+          detectedLeaks.push(leak);
+        }
+      }
+
+      // Save detected leaks and link hand examples
+      if (detectedLeaks.length > 0) {
+        // Batch upsert all detected leaks — eliminates N+1 (one round-trip)
+        const { data: upsertedLeaks } = await supabase
+          .from('user_leaks')
+          .upsert(
+            detectedLeaks.map(leak => ({ ...leak, user_id: userId })),
+            { onConflict: 'user_id,leak_type', ignoreDuplicates: false }
+          )
+          .select('id, leak_type')
+          .limit(100);
+
+        // Link hand examples using returned IDs
+        if (upsertedLeaks) {
+          for (const { id: savedLeakId, leak_type } of upsertedLeaks) {
+            await linkHandExamplesToLeak(supabase, userId, savedLeakId, leak_type);
+          }
+        }
+      }
+
+      // Batch-update resolved leaks — eliminates N+1
+      const resolvedIds = Object.entries(existingLeakMap)
+        .filter(([leakType, existingLeak]) =>
+          !detectedLeaks.find(l => l.leak_type === leakType) &&
+          existingLeak.status !== 'resolved'
+        )
+        .map(([, existingLeak]) => existingLeak.id);
+
+      if (resolvedIds.length > 0) {
+        await supabase
+          .from('user_leaks')
+          .update({ status: 'resolved', resolved_at: now, updated_at: now })
+          .in('id', resolvedIds);
+      }
+
+      // 🚀 NEW BUG #11 FIX: Update Global PA Stats
+      // Recalculate active/resolved leaks
+      const { data: updatedLeaks } = await supabase
+        .from('user_leaks')
+        .select('status')
+        .eq('user_id', userId)
+        .limit(100);
+
+      const activeLeaks = updatedLeaks?.filter(l => l.status !== 'resolved').length || 0;
+      const resolvedLeaksCount = updatedLeaks?.filter(l => l.status === 'resolved').length || 0;
+
+      // Fetch existing stats to increment hands
+      const { data: existingStats } = await supabase
+        .from('user_assistant_stats')
+        .select('total_hands_analyzed')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      const currentHands = existingStats?.total_hands_analyzed || 0;
+
+      // Atomic Upsert for Stats Sync
+      await supabase
+        .from('user_assistant_stats')
+        .upsert({
+          user_id: userId,
+          total_hands_analyzed: currentHands + stats.handsPlayed,
+          active_leaks_count: activeLeaks,
+          resolved_leaks_count: resolvedLeaksCount,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id' });
+
       return res.status(200).json({
         success: true,
-        message: 'Need more hands to detect leaks (minimum 100)',
-        handsAnalyzed: stats?.handsPlayed || 0,
-        leaksDetected: 0,
-        leaks: [],
+        handsAnalyzed: stats.handsPlayed,
+        leaksDetected: detectedLeaks.length,
+        leaks: detectedLeaks,
+      });
+
+    } catch (error) {
+      console.error('Leak detection error:', error);
+      return res.status(500).json({
+        success: false,
+        error: error.message,
       });
     }
 
-    // Get existing leaks
-    const { data: existingLeaks } = await supabase
-      .from('user_leaks')
-      .select('*')
-      .eq('user_id', userId)
-      .limit(100);
-
-    const existingLeakMap = {};
-    (existingLeaks || []).forEach(leak => {
-      existingLeakMap[leak.leak_type] = leak;
-    });
-
-    // Detect leaks
-    const detectedLeaks = [];
-    const now = new Date().toISOString();
-
-    for (const [leakType, pattern] of Object.entries(LEAK_PATTERNS)) {
-      if (pattern.check(stats)) {
-        const existingLeak = existingLeakMap[leakType];
-        const currentValue = getCurrentValue(stats, leakType);
-        const status = classifyLeakStatus(existingLeak, currentValue, pattern.optimalRange);
-
-        if (!status) continue;
-
-        const leak = {
-          user_id: userId,
-          leak_type: leakType,
-          leak_category: pattern.category,
-          situation_class: pattern.name,
-          status,
-          source_system: stats._isTrainingDominant ? 'training_arena' : 'live_play',
-          confidence: stats.handsPlayed > 1000 ? 'high' : stats.handsPlayed > 500 ? 'medium' : 'low',
-          avg_ev_loss_bb: pattern.evImpact,
-          occurrence_count: existingLeak ? existingLeak.occurrence_count + 1 : 1,
-          optimal_frequency: pattern.optimalRange[0],
-          current_frequency: currentValue,
-          first_detected_at: existingLeak?.first_detected_at || now,
-          last_detected_at: now,
-          trend_data: updateTrendData(existingLeak?.trend_data, currentValue),
-          explanation: generateExplanation(leakType, currentValue, pattern.optimalRange),
-          why_leaking_ev: getWhyLeakingEV(leakType),
-        };
-
-        detectedLeaks.push(leak);
-      }
-    }
-
-    // Save detected leaks and link hand examples
-    if (detectedLeaks.length > 0) {
-      // Batch upsert all detected leaks — eliminates N+1 (one round-trip)
-      const { data: upsertedLeaks } = await supabase
-        .from('user_leaks')
-        .upsert(
-          detectedLeaks.map(leak => ({ ...leak, user_id: userId })),
-          { onConflict: 'user_id,leak_type', ignoreDuplicates: false }
-        )
-        .select('id, leak_type')
-        .limit(100);
-
-      // Link hand examples using returned IDs
-      if (upsertedLeaks) {
-        for (const { id: savedLeakId, leak_type } of upsertedLeaks) {
-          await linkHandExamplesToLeak(supabase, userId, savedLeakId, leak_type);
-        }
-      }
-    }
-
-    // Batch-update resolved leaks — eliminates N+1
-    const resolvedIds = Object.entries(existingLeakMap)
-      .filter(([leakType, existingLeak]) =>
-        !detectedLeaks.find(l => l.leak_type === leakType) &&
-        existingLeak.status !== 'resolved'
-      )
-      .map(([, existingLeak]) => existingLeak.id);
-
-    if (resolvedIds.length > 0) {
-      await supabase
-        .from('user_leaks')
-        .update({ status: 'resolved', resolved_at: now, updated_at: now })
-        .in('id', resolvedIds);
-    }
-
-    // 🚀 NEW BUG #11 FIX: Update Global PA Stats
-    // Recalculate active/resolved leaks
-    const { data: updatedLeaks } = await supabase
-      .from('user_leaks')
-      .select('status')
-      .eq('user_id', userId)
-      .limit(100);
-
-    const activeLeaks = updatedLeaks?.filter(l => l.status !== 'resolved').length || 0;
-    const resolvedLeaksCount = updatedLeaks?.filter(l => l.status === 'resolved').length || 0;
-
-    // Fetch existing stats to increment hands
-    const { data: existingStats } = await supabase
-      .from('user_assistant_stats')
-      .select('total_hands_analyzed')
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    const currentHands = existingStats?.total_hands_analyzed || 0;
-
-    // Atomic Upsert for Stats Sync
-    await supabase
-      .from('user_assistant_stats')
-      .upsert({
-        user_id: userId,
-        total_hands_analyzed: currentHands + stats.handsPlayed,
-        active_leaks_count: activeLeaks,
-        resolved_leaks_count: resolvedLeaksCount,
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'user_id' });
-
-    return res.status(200).json({
-      success: true,
-      handsAnalyzed: stats.handsPlayed,
-      leaksDetected: detectedLeaks.length,
-      leaks: detectedLeaks,
-    });
-
-  } catch (error) {
-    console.error('Leak detection error:', error);
-    return res.status(500).json({
-      success: false,
-      error: error.message,
-    });
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }
 

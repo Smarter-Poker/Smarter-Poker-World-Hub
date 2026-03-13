@@ -27,109 +27,115 @@ const TOURNAMENT_GRADIENTS = {
 const VALID_STORY_TYPES = ['registered', 'chip_update', 'itm', 'final_table', 'winner', 'bubble', 'custom'];
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+      if (req.method !== 'POST') {
+          res.setHeader('Allow', ['POST']);
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
+
+      // Auth via Bearer token (player auth)
+      const authHeader = req.headers.authorization;
+      const token = authHeader?.replace('Bearer ', '');
+      if (!token) {
+          return res.status(401).json({ success: false, error: 'Authorization required' });
+      }
+
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      if (authError || !user) {
+          return res.status(401).json({ success: false, error: 'Invalid token' });
+      }
+
+      const { id: tournamentId } = req.query;
+      const {
+          story_type = 'custom',
+          content,
+          media_url,
+          chip_count,
+          finish_position,
+          payout_amount
+      } = req.body;
+
+      if (!VALID_STORY_TYPES.includes(story_type)) {
+          return res.status(400).json({
+              success: false,
+              error: `Invalid story_type. Must be one of: ${VALID_STORY_TYPES.join(', ')}`
+          });
+      }
+
+      try {
+          // Get tournament details
+          const { data: tournament, error: tErr } = await supabase
+              .from('commander_tournaments')
+              .select('name, venue_id, status, current_level, blind_structure')
+              .eq('id', tournamentId)
+              .maybeSingle();
+
+          if (tErr || !tournament) {
+              return res.status(404).json({ success: false, error: 'Tournament not found' });
+          }
+
+          // Get player's entry to verify participation
+          const { data: entry } = await supabase
+              .from('commander_tournament_entries')
+              .select('id, status, current_chips, finish_position, payout_amount, table_number, seat_number')
+              .eq('tournament_id', tournamentId)
+              .eq('player_id', user.id)
+              .maybeSingle();
+
+          if (!entry) {
+              return res.status(403).json({ success: false, error: 'You are not registered in this tournament' });
+          }
+
+          // Build story content
+          const storyContent = content || buildStoryContent(story_type, {
+              tournamentName: tournament.name,
+              chipCount: chip_count || entry?.current_chips,
+              finishPosition: finish_position || entry?.finish_position,
+              payoutAmount: payout_amount || entry?.payout_amount,
+              level: tournament.current_level,
+              blinds: tournament.blind_structure?.[tournament.current_level]
+          });
+
+          // Create story
+          const { data: story, error: storyErr } = await supabase
+              .from('social_stories')
+              .insert({
+                  author_id: user.id,
+                  content: storyContent,
+                  media_url: media_url || null,
+                  media_type: media_url ? 'image' : 'text',
+                  background_color: TOURNAMENT_GRADIENTS[story_type] || TOURNAMENT_GRADIENTS.custom
+              })
+              .select()
+              .maybeSingle();
+
+          if (storyErr) {
+              console.error('[story.js] Failed to create story:', storyErr);
+              return res.status(500).json({ success: false, error: 'Failed to create story' });
+          }
+
+          return res.status(201).json({
+              success: true,
+              data: {
+                  story_id: story.id,
+                  content: storyContent,
+                  story_type,
+                  tournament_name: tournament.name
+              }
+          });
+      } catch (error) {
+          console.error('[story.js] Error:', error);
+          return res.status(500).json({ success: false, error: 'Internal server error' });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-    if (req.method !== 'POST') {
-        res.setHeader('Allow', ['POST']);
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
-
-    // Auth via Bearer token (player auth)
-    const authHeader = req.headers.authorization;
-    const token = authHeader?.replace('Bearer ', '');
-    if (!token) {
-        return res.status(401).json({ success: false, error: 'Authorization required' });
-    }
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
-        return res.status(401).json({ success: false, error: 'Invalid token' });
-    }
-
-    const { id: tournamentId } = req.query;
-    const {
-        story_type = 'custom',
-        content,
-        media_url,
-        chip_count,
-        finish_position,
-        payout_amount
-    } = req.body;
-
-    if (!VALID_STORY_TYPES.includes(story_type)) {
-        return res.status(400).json({
-            success: false,
-            error: `Invalid story_type. Must be one of: ${VALID_STORY_TYPES.join(', ')}`
-        });
-    }
-
-    try {
-        // Get tournament details
-        const { data: tournament, error: tErr } = await supabase
-            .from('commander_tournaments')
-            .select('name, venue_id, status, current_level, blind_structure')
-            .eq('id', tournamentId)
-            .maybeSingle();
-
-        if (tErr || !tournament) {
-            return res.status(404).json({ success: false, error: 'Tournament not found' });
-        }
-
-        // Get player's entry to verify participation
-        const { data: entry } = await supabase
-            .from('commander_tournament_entries')
-            .select('id, status, current_chips, finish_position, payout_amount, table_number, seat_number')
-            .eq('tournament_id', tournamentId)
-            .eq('player_id', user.id)
-            .maybeSingle();
-
-        if (!entry) {
-            return res.status(403).json({ success: false, error: 'You are not registered in this tournament' });
-        }
-
-        // Build story content
-        const storyContent = content || buildStoryContent(story_type, {
-            tournamentName: tournament.name,
-            chipCount: chip_count || entry?.current_chips,
-            finishPosition: finish_position || entry?.finish_position,
-            payoutAmount: payout_amount || entry?.payout_amount,
-            level: tournament.current_level,
-            blinds: tournament.blind_structure?.[tournament.current_level]
-        });
-
-        // Create story
-        const { data: story, error: storyErr } = await supabase
-            .from('social_stories')
-            .insert({
-                author_id: user.id,
-                content: storyContent,
-                media_url: media_url || null,
-                media_type: media_url ? 'image' : 'text',
-                background_color: TOURNAMENT_GRADIENTS[story_type] || TOURNAMENT_GRADIENTS.custom
-            })
-            .select()
-            .maybeSingle();
-
-        if (storyErr) {
-            console.error('[story.js] Failed to create story:', storyErr);
-            return res.status(500).json({ success: false, error: 'Failed to create story' });
-        }
-
-        return res.status(201).json({
-            success: true,
-            data: {
-                story_id: story.id,
-                content: storyContent,
-                story_type,
-                tournament_name: tournament.name
-            }
-        });
-    } catch (error) {
-        console.error('[story.js] Error:', error);
-        return res.status(500).json({ success: false, error: 'Internal server error' });
-    }
 }
 
 function buildStoryContent(type, ctx) {

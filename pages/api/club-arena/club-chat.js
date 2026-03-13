@@ -15,79 +15,85 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
-  const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) return res.status(401).json({ error: 'Auth required' });
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'Auth required' });
 
-  const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-  if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
-  // GET: List messages
-  if (req.method === 'GET') {
-    if (!applyRateLimit(req, res, 'club-arena/club-chat-read')) return;
+    // GET: List messages
+    if (req.method === 'GET') {
+      if (!applyRateLimit(req, res, 'club-arena/club-chat-read')) return;
 
-    const clubId = req.query.clubId;
-    if (!clubId) return res.status(400).json({ error: 'clubId required' });
+      const clubId = req.query.clubId;
+      if (!clubId) return res.status(400).json({ error: 'clubId required' });
 
-    // Verify membership
-    const { data: member } = await supabaseAdmin
-      .from('club_members').select('role').eq('club_id', clubId).eq('user_id', user.id).eq('status', 'active').maybeSingle();
-    if (!member) return res.status(403).json({ error: 'Not a member of this club' });
+      // Verify membership
+      const { data: member } = await supabaseAdmin
+        .from('club_members').select('role').eq('club_id', clubId).eq('user_id', user.id).eq('status', 'active').maybeSingle();
+      if (!member) return res.status(403).json({ error: 'Not a member of this club' });
 
-    try {
-      const limit = Math.min(parseInt(req.query.limit) || 50, 100);
-      const { data: messages, error } = await supabaseAdmin
-        .from('club_chat')
-        .select('id, user_id, message, display_name, avatar_url, message_type, created_at')
-        .eq('club_id', clubId)
-        .order('created_at', { ascending: false })
-        .limit(limit);
+      try {
+        const limit = Math.min(parseInt(req.query.limit) || 50, 100);
+        const { data: messages, error } = await supabaseAdmin
+          .from('club_chat')
+          .select('id, user_id, message, display_name, avatar_url, message_type, created_at')
+          .eq('club_id', clubId)
+          .order('created_at', { ascending: false })
+          .limit(limit);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      return res.json({ success: true, messages: (messages || []).reverse() });
-    } catch (err) {
-      console.error('[club-chat GET]', err);
-      return res.status(500).json({ error: 'Failed to load messages' });
+        return res.json({ success: true, messages: (messages || []).reverse() });
+      } catch (err) {
+        console.error('[club-chat GET]', err);
+        return res.status(500).json({ error: 'Failed to load messages' });
+      }
     }
-  }
 
-  // POST: Send message
-  if (req.method === 'POST') {
-    if (!applyRateLimit(req, res, 'club-arena/club-chat-write')) return;
+    // POST: Send message
+    if (req.method === 'POST') {
+      if (!applyRateLimit(req, res, 'club-arena/club-chat-write')) return;
 
-    const { clubId, message } = req.body;
-    if (!clubId || !message?.trim()) return res.status(400).json({ error: 'clubId and message required' });
+      const { clubId, message } = req.body;
+      if (!clubId || !message?.trim()) return res.status(400).json({ error: 'clubId and message required' });
 
-    const trimmed = message.trim().slice(0, 500);
+      const trimmed = message.trim().slice(0, 500);
 
-    // Verify membership
-    const { data: member } = await supabaseAdmin
-      .from('club_members').select('role')
-      .eq('club_id', clubId).eq('user_id', user.id).eq('status', 'active').maybeSingle();
-    if (!member) return res.status(403).json({ error: 'Not a member of this club' });
+      // Verify membership
+      const { data: member } = await supabaseAdmin
+        .from('club_members').select('role')
+        .eq('club_id', clubId).eq('user_id', user.id).eq('status', 'active').maybeSingle();
+      if (!member) return res.status(403).json({ error: 'Not a member of this club' });
 
-    // Get display name
-    const { data: profile } = await supabaseAdmin
-      .from('profiles').select('display_name, username, avatar_url').eq('id', user.id).maybeSingle();
+      // Get display name
+      const { data: profile } = await supabaseAdmin
+        .from('profiles').select('display_name, username, avatar_url').eq('id', user.id).maybeSingle();
 
-    try {
-      const { data: msg, error } = await supabaseAdmin.from('club_chat').insert({
-        club_id: clubId,
-        user_id: user.id,
-        message: trimmed,
-        display_name: profile?.display_name || profile?.username || 'Player',
-        avatar_url: profile?.avatar_url,
-        message_type: 'message',
-      }).select('id, created_at').maybeSingle();
+      try {
+        const { data: msg, error } = await supabaseAdmin.from('club_chat').insert({
+          club_id: clubId,
+          user_id: user.id,
+          message: trimmed,
+          display_name: profile?.display_name || profile?.username || 'Player',
+          avatar_url: profile?.avatar_url,
+          message_type: 'message',
+        }).select('id, created_at').maybeSingle();
 
-      if (error) throw error;
+        if (error) throw error;
 
-      return res.json({ success: true, messageId: msg.id, createdAt: msg.created_at });
-    } catch (err) {
-      console.error('[club-chat POST]', err);
-      return res.status(500).json({ error: 'Failed to send message' });
+        return res.json({ success: true, messageId: msg.id, createdAt: msg.created_at });
+      } catch (err) {
+        console.error('[club-chat POST]', err);
+        return res.status(500).json({ error: 'Failed to send message' });
+      }
     }
-  }
 
-  return res.status(405).json({ error: 'GET or POST only' });
+    return res.status(405).json({ error: 'GET or POST only' });
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

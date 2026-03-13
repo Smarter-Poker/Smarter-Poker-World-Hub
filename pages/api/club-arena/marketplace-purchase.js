@@ -15,136 +15,142 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
-    if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
+  try {
+      if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 
-    // RED TEAM: Payload size + field allowlist validation
-    const ALLOWED = new Set(['clubId', 'itemId']);
-    const bodyStr = JSON.stringify(req.body || {});
-    if (bodyStr.length > 512) return res.status(413).json({ success: false, error: 'Request body too large' });
-    const bad = Object.keys(req.body || {}).filter(k => !ALLOWED.has(k));
-    if (bad.length > 0) return res.status(400).json({ success: false, error: `Unknown fields: ${bad.join(', ')}` });
+      // RED TEAM: Payload size + field allowlist validation
+      const ALLOWED = new Set(['clubId', 'itemId']);
+      const bodyStr = JSON.stringify(req.body || {});
+      if (bodyStr.length > 512) return res.status(413).json({ success: false, error: 'Request body too large' });
+      const bad = Object.keys(req.body || {}).filter(k => !ALLOWED.has(k));
+      if (bad.length > 0) return res.status(400).json({ success: false, error: `Unknown fields: ${bad.join(', ')}` });
 
-    // Idempotency guard — prevent double-tap purchases
-    if (checkIdempotency(req, res)) return;
+      // Idempotency guard — prevent double-tap purchases
+      if (checkIdempotency(req, res)) return;
 
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
-    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-    if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+      const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+      if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-    const { clubId, itemId } = req.body;
-    if (!clubId || !itemId) return res.status(400).json({ success: false, error: 'clubId and itemId required' });
+      const { clubId, itemId } = req.body;
+      if (!clubId || !itemId) return res.status(400).json({ success: false, error: 'clubId and itemId required' });
 
-    // Settlement lock check
-    const lockCheck = await checkSettlementLock(supabaseAdmin, clubId);
-    if (lockCheck.locked) return sendLockedResponse(res, lockCheck);
+      // Settlement lock check
+      const lockCheck = await checkSettlementLock(supabaseAdmin, clubId);
+      if (lockCheck.locked) return sendLockedResponse(res, lockCheck);
 
-    // Rate limit
-    if (!applyRateLimit(req, res, 'club-arena/marketplace-purchase')) return;
+      // Rate limit
+      if (!applyRateLimit(req, res, 'club-arena/marketplace-purchase')) return;
 
-    try {
-        // Get member
-        const { data: member, error: memErr } = await supabaseAdmin
-            .from('club_members')
-            .select('chip_balance, user_id')
-            .eq('club_id', clubId)
-            .eq('user_id', user.id)
-            .maybeSingle();
+      try {
+          // Get member
+          const { data: member, error: memErr } = await supabaseAdmin
+              .from('club_members')
+              .select('chip_balance, user_id')
+              .eq('club_id', clubId)
+              .eq('user_id', user.id)
+              .maybeSingle();
 
-        if (memErr || !member) return res.status(404).json({ success: false, error: 'Not a member' });
+          if (memErr || !member) return res.status(404).json({ success: false, error: 'Not a member' });
 
-        // Get item (scoped to this club) — BUG FIX: was .select('id'), making is_active/price undefined
-        const { data: item, error: itemErr } = await supabaseAdmin
-            .from('club_shop_items')
-            .select('id, price, is_active, name, description, item_type')
-            .eq('id', itemId)
-            .eq('club_id', clubId)
-            .maybeSingle();
+          // Get item (scoped to this club) — BUG FIX: was .select('id'), making is_active/price undefined
+          const { data: item, error: itemErr } = await supabaseAdmin
+              .from('club_shop_items')
+              .select('id, price, is_active, name, description, item_type')
+              .eq('id', itemId)
+              .eq('club_id', clubId)
+              .maybeSingle();
 
-        if (itemErr || !item) return res.status(404).json({ success: false, error: 'Item not found' });
-        if (!item.is_active) return res.status(400).json({ success: false, error: 'Item not available' });
+          if (itemErr || !item) return res.status(404).json({ success: false, error: 'Item not found' });
+          if (!item.is_active) return res.status(400).json({ success: false, error: 'Item not available' });
 
-        const price = item.price || 0;
-        const balance = member.chip_balance || 0;
+          const price = item.price || 0;
+          const balance = member.chip_balance || 0;
 
-        if (balance < price) {
-            return res.status(400).json({
-                success: false, error: `Insufficient chips. Have ${balance}, need ${price}`,
-                available: balance,
-                price,
-            });
-        }
+          if (balance < price) {
+              return res.status(400).json({
+                  success: false, error: `Insufficient chips. Have ${balance}, need ${price}`,
+                  available: balance,
+                  price,
+              });
+          }
 
-        // RED TEAM: Check if user already owns this item (prevents duplicate purchases)
-        const { data: existingPurchase } = await supabaseAdmin
-            .from('club_shop_purchases')
-            .select('id')
-            .eq('club_id', clubId)
-            .eq('buyer_id', user.id)
-            .eq('item_id', itemId)
-            .maybeSingle();
+          // RED TEAM: Check if user already owns this item (prevents duplicate purchases)
+          const { data: existingPurchase } = await supabaseAdmin
+              .from('club_shop_purchases')
+              .select('id')
+              .eq('club_id', clubId)
+              .eq('buyer_id', user.id)
+              .eq('item_id', itemId)
+              .maybeSingle();
 
-        if (existingPurchase) {
-            return res.status(400).json({
-                success: false,
-                error: 'You already own this item',
-                alreadyOwned: true,
-            });
-        }
+          if (existingPurchase) {
+              return res.status(400).json({
+                  success: false,
+                  error: 'You already own this item',
+                  alreadyOwned: true,
+              });
+          }
 
-        // Deduct chips atomically
-        const { error: deductErr } = await supabaseAdmin.rpc('fn_debit_chips', {
-            p_club_id: clubId,
-            p_user_id: user.id,
-            p_amount: price,
-        });
+          // Deduct chips atomically
+          const { error: deductErr } = await supabaseAdmin.rpc('fn_debit_chips', {
+              p_club_id: clubId,
+              p_user_id: user.id,
+              p_amount: price,
+          });
 
-        if (deductErr) {
-            if (deductErr.message?.includes('Insufficient')) {
-                return res.status(400).json({ success: false, error: 'Insufficient chips', available: balance, price });
-            }
-            throw deductErr;
-        }
+          if (deductErr) {
+              if (deductErr.message?.includes('Insufficient')) {
+                  return res.status(400).json({ success: false, error: 'Insufficient chips', available: balance, price });
+              }
+              throw deductErr;
+          }
 
-        // Record purchase
-        const { error: purchaseErr } = await supabaseAdmin
-            .from('club_shop_purchases')
-            .insert({
-                club_id: clubId,
-                buyer_id: user.id,
-                item_id: itemId,
-                price_paid: price,
-            });
+          // Record purchase
+          const { error: purchaseErr } = await supabaseAdmin
+              .from('club_shop_purchases')
+              .insert({
+                  club_id: clubId,
+                  buyer_id: user.id,
+                  item_id: itemId,
+                  price_paid: price,
+              });
 
-        if (purchaseErr) {
-            // Rollback chip deduction atomically
-            await supabaseAdmin.rpc('fn_credit_chips', {
-                p_club_id: clubId,
-                p_user_id: user.id,
-                p_amount: price,
-            });
-            throw purchaseErr;
-        }
+          if (purchaseErr) {
+              // Rollback chip deduction atomically
+              await supabaseAdmin.rpc('fn_credit_chips', {
+                  p_club_id: clubId,
+                  p_user_id: user.id,
+                  p_amount: price,
+              });
+              throw purchaseErr;
+          }
 
-        // Record transaction
-        await supabaseAdmin.from('chip_transactions').insert({
-            from_user_id: user.id,
-            to_user_id: user.id,
-            club_id: clubId,
-            transaction_type: 'purchase',
-            amount: -price,
-            notes: `Shop purchase: ${item.name || item.id}`,
-        });
+          // Record transaction
+          await supabaseAdmin.from('chip_transactions').insert({
+              from_user_id: user.id,
+              to_user_id: user.id,
+              club_id: clubId,
+              transaction_type: 'purchase',
+              amount: -price,
+              notes: `Shop purchase: ${item.name || item.id}`,
+          });
 
-        logAudit(supabaseAdmin, { actionType: 'marketplace_purchase', userId: user.id, clubId, amount: price, ip: extractIP(req), details: { itemId, itemName: item.name, itemType: item.item_type, newBalance: balance - price } });
-        return res.status(200).json({
-            success: true,
-            newBalance: balance - price,
-            item: { name: item.name, type: item.item_type },
-        });
-    } catch (err) {
-        console.error('[marketplace-purchase]', err);
-        return res.status(500).json({ success: false, error: 'Purchase failed' });
-    }
+          logAudit(supabaseAdmin, { actionType: 'marketplace_purchase', userId: user.id, clubId, amount: price, ip: extractIP(req), details: { itemId, itemName: item.name, itemType: item.item_type, newBalance: balance - price } });
+          return res.status(200).json({
+              success: true,
+              newBalance: balance - price,
+              item: { name: item.name, type: item.item_type },
+          });
+      } catch (err) {
+          console.error('[marketplace-purchase]', err);
+          return res.status(500).json({ success: false, error: 'Purchase failed' });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

@@ -36,128 +36,134 @@ async function ensureBucket() {
 }
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
-
-    const staff = await guardManager(req, res);
-    if (!staff) return;
-
-    try {
-        // ── DELETE: Remove logo ──────────────────────────────────────
-        if (req.method === 'DELETE') {
-            const { data: settings } = await supabase
-                .from('commander_venue_settings')
-                .select('club_logo_url')
-                .eq('venue_id', staff.venue_id)
-                .maybeSingle();
-
-            if (settings?.club_logo_url) {
-                const urlParts = settings.club_logo_url.split(`/${BUCKET}/`);
-                if (urlParts[1]) {
-                    await supabase.storage.from(BUCKET).remove([urlParts[1]]);
-                }
-            }
-
-            const { error } = await supabase
-                .from('commander_venue_settings')
-                .upsert({
-                    venue_id: staff.venue_id,
-                    club_logo_url: null,
-                    updated_at: new Date().toISOString(),
-                    updated_by: staff.id
-                }, { onConflict: 'venue_id' });
-
-            if (error) return res.status(500).json({ success: false, error: error.message });
-            return res.status(200).json({ success: true, data: { club_logo_url: null } });
-        }
-
-        // ── POST: Upload logo (base64 JSON body) ─────────────────────
-        if (req.method === 'POST') {
-            const { data: base64Data, filename, contentType } = req.body || {};
-
-            if (!base64Data || !contentType) {
-                return res.status(400).json({ success: false, error: 'Missing logo data. Send { data, filename, contentType }.' });
-            }
-
-            // Validate content type
-            const allowedTypes = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml', 'image/gif'];
-            if (!allowedTypes.includes(contentType)) {
-                return res.status(400).json({ success: false, error: 'Invalid file type. Use PNG, JPG, WebP, SVG, or GIF.' });
-            }
-
-            // Decode base64 to buffer
-            const buffer = Buffer.from(base64Data, 'base64');
-
-            // Max 5MB
-            if (buffer.length > 5 * 1024 * 1024) {
-                return res.status(400).json({ success: false, error: 'File too large. Maximum 5MB.' });
-            }
-
-            // Ensure bucket exists
-            await ensureBucket();
-
-            const ext = (filename || 'logo.png').split('.').pop() || 'png';
-            const storagePath = `${staff.venue_id}/logo-${Date.now()}.${ext}`;
-
-            // Delete old logo if exists
-            const { data: existingSettings } = await supabase
-                .from('commander_venue_settings')
-                .select('club_logo_url')
-                .eq('venue_id', staff.venue_id)
-                .maybeSingle();
-
-            if (existingSettings?.club_logo_url) {
-                const urlParts = existingSettings.club_logo_url.split(`/${BUCKET}/`);
-                if (urlParts[1]) {
-                    await supabase.storage.from(BUCKET).remove([urlParts[1]]);
-                }
-            }
-
-            // Upload
-            const { error: uploadError } = await supabase.storage
-                .from(BUCKET)
-                .upload(storagePath, buffer, {
-                    contentType,
-                    cacheControl: '3600',
-                    upsert: true
-                });
-
-            if (uploadError) {
-                console.error('Logo upload error:', uploadError);
-                return res.status(500).json({ success: false, error: `Upload failed: ${uploadError.message}` });
-            }
-
-            // Get public URL
-            const { data: publicUrlData } = supabase.storage
-                .from(BUCKET)
-                .getPublicUrl(storagePath);
-
-            const logoUrl = publicUrlData.publicUrl;
-
-            // Save URL to settings
-            const { error: saveError } = await supabase
-                .from('commander_venue_settings')
-                .upsert({
-                    venue_id: staff.venue_id,
-                    club_logo_url: logoUrl,
-                    updated_at: new Date().toISOString(),
-                    updated_by: staff.id
-                }, { onConflict: 'venue_id' });
-
-            if (saveError) {
-                return res.status(500).json({ success: false, error: saveError.message });
-            }
-
-            return res.status(200).json({
-                success: true,
-                data: { club_logo_url: logoUrl }
-            });
-        }
-
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    } catch (err) {
-        console.error('Logo API error:', err);
-        return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
+
+      const staff = await guardManager(req, res);
+      if (!staff) return;
+
+      try {
+          // ── DELETE: Remove logo ──────────────────────────────────────
+          if (req.method === 'DELETE') {
+              const { data: settings } = await supabase
+                  .from('commander_venue_settings')
+                  .select('club_logo_url')
+                  .eq('venue_id', staff.venue_id)
+                  .maybeSingle();
+
+              if (settings?.club_logo_url) {
+                  const urlParts = settings.club_logo_url.split(`/${BUCKET}/`);
+                  if (urlParts[1]) {
+                      await supabase.storage.from(BUCKET).remove([urlParts[1]]);
+                  }
+              }
+
+              const { error } = await supabase
+                  .from('commander_venue_settings')
+                  .upsert({
+                      venue_id: staff.venue_id,
+                      club_logo_url: null,
+                      updated_at: new Date().toISOString(),
+                      updated_by: staff.id
+                  }, { onConflict: 'venue_id' });
+
+              if (error) return res.status(500).json({ success: false, error: error.message });
+              return res.status(200).json({ success: true, data: { club_logo_url: null } });
+          }
+
+          // ── POST: Upload logo (base64 JSON body) ─────────────────────
+          if (req.method === 'POST') {
+              const { data: base64Data, filename, contentType } = req.body || {};
+
+              if (!base64Data || !contentType) {
+                  return res.status(400).json({ success: false, error: 'Missing logo data. Send { data, filename, contentType }.' });
+              }
+
+              // Validate content type
+              const allowedTypes = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml', 'image/gif'];
+              if (!allowedTypes.includes(contentType)) {
+                  return res.status(400).json({ success: false, error: 'Invalid file type. Use PNG, JPG, WebP, SVG, or GIF.' });
+              }
+
+              // Decode base64 to buffer
+              const buffer = Buffer.from(base64Data, 'base64');
+
+              // Max 5MB
+              if (buffer.length > 5 * 1024 * 1024) {
+                  return res.status(400).json({ success: false, error: 'File too large. Maximum 5MB.' });
+              }
+
+              // Ensure bucket exists
+              await ensureBucket();
+
+              const ext = (filename || 'logo.png').split('.').pop() || 'png';
+              const storagePath = `${staff.venue_id}/logo-${Date.now()}.${ext}`;
+
+              // Delete old logo if exists
+              const { data: existingSettings } = await supabase
+                  .from('commander_venue_settings')
+                  .select('club_logo_url')
+                  .eq('venue_id', staff.venue_id)
+                  .maybeSingle();
+
+              if (existingSettings?.club_logo_url) {
+                  const urlParts = existingSettings.club_logo_url.split(`/${BUCKET}/`);
+                  if (urlParts[1]) {
+                      await supabase.storage.from(BUCKET).remove([urlParts[1]]);
+                  }
+              }
+
+              // Upload
+              const { error: uploadError } = await supabase.storage
+                  .from(BUCKET)
+                  .upload(storagePath, buffer, {
+                      contentType,
+                      cacheControl: '3600',
+                      upsert: true
+                  });
+
+              if (uploadError) {
+                  console.error('Logo upload error:', uploadError);
+                  return res.status(500).json({ success: false, error: `Upload failed: ${uploadError.message}` });
+              }
+
+              // Get public URL
+              const { data: publicUrlData } = supabase.storage
+                  .from(BUCKET)
+                  .getPublicUrl(storagePath);
+
+              const logoUrl = publicUrlData.publicUrl;
+
+              // Save URL to settings
+              const { error: saveError } = await supabase
+                  .from('commander_venue_settings')
+                  .upsert({
+                      venue_id: staff.venue_id,
+                      club_logo_url: logoUrl,
+                      updated_at: new Date().toISOString(),
+                      updated_by: staff.id
+                  }, { onConflict: 'venue_id' });
+
+              if (saveError) {
+                  return res.status(500).json({ success: false, error: saveError.message });
+              }
+
+              return res.status(200).json({
+                  success: true,
+                  data: { club_logo_url: logoUrl }
+              });
+          }
+
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      } catch (err) {
+          console.error('Logo API error:', err);
+          return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

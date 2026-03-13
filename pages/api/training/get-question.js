@@ -32,194 +32,200 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-    if (!applyRateLimit(req, res, LIMITS.read)) return;
+  try {
+      if (!applyRateLimit(req, res, LIMITS.read)) return;
 
-    // BUG #245 FIX: Require JWT auth
-    const _token = req.headers.authorization?.replace('Bearer ', '');
-    if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
-    const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
-    if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+      // BUG #245 FIX: Require JWT auth
+      const _token = req.headers.authorization?.replace('Bearer ', '');
+      if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
+      const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
+      if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-    if (req.method !== 'GET') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
+      if (req.method !== 'GET') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
 
-    const { gameId, level = 1, engineType = 'PIO' } = req.query;
-    // BUG FIX: was reading userId from query — IDOR; use JWT identity instead
-    const userId = _authUser.id;
+      const { gameId, level = 1, engineType = 'PIO' } = req.query;
+      // BUG FIX: was reading userId from query — IDOR; use JWT identity instead
+      const userId = _authUser.id;
 
-    if (!gameId) {
-        return res.status(400).json({ success: false, error: 'gameId required' });
-    }
+      if (!gameId) {
+          return res.status(400).json({ success: false, error: 'gameId required' });
+      }
 
-    try {
-        // ═══════════════════════════════════════════════════════════════════
-        // STEP 1: GET COMPREHENSIVE GAME CONFIGURATION
-        // ═══════════════════════════════════════════════════════════════════
-        const TRAINING_LIBRARY = require('../../../src/data/TRAINING_LIBRARY').default;
-        const game = TRAINING_LIBRARY.find(g => g.id === gameId);
+      try {
+          // ═══════════════════════════════════════════════════════════════════
+          // STEP 1: GET COMPREHENSIVE GAME CONFIGURATION
+          // ═══════════════════════════════════════════════════════════════════
+          const TRAINING_LIBRARY = require('../../../src/data/TRAINING_LIBRARY').default;
+          const game = TRAINING_LIBRARY.find(g => g.id === gameId);
 
-        if (!game) {
-            return res.status(404).json({ success: false, error: 'Game not found' });
-        }
+          if (!game) {
+              return res.status(404).json({ success: false, error: 'Game not found' });
+          }
 
-        // Get comprehensive game configuration
-        const gameConfig = getGameConfig(gameId);
-        const gameType = gameConfig.gameType; // 'cash', 'tournament', or 'sng'
-        const playerCount = gameConfig.players; // 2, 3, 6, or 9
-        const gameFormat = gameConfig.format; // "Heads-Up Cash", "6-Max Cash", etc.
-        const stackDepth = getStackDepthNumber(gameConfig.stackDepth); // Numeric BB
-        const preferredEngine = gameConfig.engine; // 'PIO', 'CHART', or 'SCENARIO'
-
-
-        // ═══════════════════════════════════════════════════════════════════
-        // STEP 2: GET SEEN QUESTIONS (No-Repeat Logic)
-        // ═══════════════════════════════════════════════════════════════════
-        let seenQuestionIds = [];
-        if (userId) {
-            const { data: seen } = await supabase
-                .from('user_seen_questions')
-                .select('question_id')
-                .eq('user_id', userId)
-                .eq('game_id', gameId)
-                .limit(100);
-
-            seenQuestionIds = (seen || []).map(s => s.question_id);
-        }
-
-        // ═══════════════════════════════════════════════════════════════════
-        // STEP 3: DETERMINISTIC ENGINE — PRIMARY SOURCE (No Grok AI)
-        // ═══════════════════════════════════════════════════════════════════
-        let question = null;
-
-        // Get PIO game config for solver data lookup
-        const pioConfig = pioQueryService.getGameConfig(gameId);
-
-        // TRY DETERMINISTIC ENGINE FIRST for PIO/CHART games
-        if (pioConfig && pioConfig.sourceOfTruth !== 'SCENARIO') {
-            try {
-                question = await deterministicEngine.generateQuestion({
-                    gameId,
-                    level: parseInt(level),
-                    seenIds: seenQuestionIds,
-                    gameConfig: pioConfig,
-                });
-                if (question) {
-                    console.log(`[Training] ✅ DETERMINISTIC engine served question for ${gameId} (source: ${question.source})`);
-                }
-            } catch (detErr) {
-                console.error('[Training] ⚠️ Deterministic engine failed, falling back:', detErr.message);
-            }
-        }
-
-        // FALLBACK: Route to legacy engine if deterministic failed
-        if (!question) {
-            if (preferredEngine === 'SCENARIO') {
-                // SCENARIO ENGINE: Mental Game / Psychology - Uses Grok AI
-                question = await generateQuestionWithGrok(gameId, 'SCENARIO', level, gameType, game, gameConfig);
-
-                // CHART ENGINE: Handled by DeterministicGTOEngine.generateFromCharts() in STEP 3
-                // (Legacy generateQuestionFromChart/generateChartQuestionWithGrok were removed in Phase 28)
-
-            } else {
-                // PIO ENGINE: GTO Solver Data (Default)
-                try {
-                    const pioScenarios = await pioQueryService.queryScenarios(gameId, parseInt(level), userId);
-
-                    if (pioScenarios && pioScenarios.length > 0) {
-                        question = await generateQuestionFromPIO(pioScenarios, gameId, level, game);
-                    }
-                } catch (pioError) {
-                    console.error('[Training] ⚠️ PIO query failed:', pioError.message);
-                }
-            }
-        }
-
-        // ═══════════════════════════════════════════════════════════════════
-        // STEP 4: TRY CACHED QUESTIONS (Fallback)
-        // ═══════════════════════════════════════════════════════════════════
-        if (!question) {
-
-            const { data: cachedQuestions } = await supabase
-                .from('training_question_cache')
-                .select('question_data, question_id')
-                .eq('game_id', gameId)
-                .eq('level', level)
-                .not('question_id', 'in', `(${seenQuestionIds.join(',') || 'null'})`)
-                .limit(10);
-
-            if (cachedQuestions && cachedQuestions.length > 0) {
-                const randomIndex = Math.floor(Math.random() * cachedQuestions.length);
-                // Enrich cached questions that were generated before GTO fields were added
-                question = enrichGrokQuestion(cachedQuestions[randomIndex].question_data, gameConfig, parseInt(level), gameType);
-
-                // Increment times_used (supabase.raw() doesn't exist in JS SDK v2)
-                const questionId = cachedQuestions[randomIndex].question_id;
-                const { data: currentQ } = await supabase
-                    .from('training_question_cache')
-                    .select('times_used')
-                    .eq('question_id', questionId)
-                    .maybeSingle();
-                await supabase
-                    .from('training_question_cache')
-                    .update({ times_used: (currentQ?.times_used || 0) + 1 })
-                    .eq('question_id', questionId);
-
-            } else {
-            }
-        }
+          // Get comprehensive game configuration
+          const gameConfig = getGameConfig(gameId);
+          const gameType = gameConfig.gameType; // 'cash', 'tournament', or 'sng'
+          const playerCount = gameConfig.players; // 2, 3, 6, or 9
+          const gameFormat = gameConfig.format; // "Heads-Up Cash", "6-Max Cash", etc.
+          const stackDepth = getStackDepthNumber(gameConfig.stackDepth); // Numeric BB
+          const preferredEngine = gameConfig.engine; // 'PIO', 'CHART', or 'SCENARIO'
 
 
-        // ═══════════════════════════════════════════════════════════════════
-        // STEP 4: GROK AI — SCENARIO (Psychology) GAMES ONLY
-        // BUG-E FIX: Removed Grok fallback for PIO/CHART games.
-        // Grok generates hallucinated GTO data that violates the deterministic standard.
-        // Only SCENARIO (psychology) games use Grok since they have no solver data by design.
-        // ═══════════════════════════════════════════════════════════════════
-        if (!question && preferredEngine === 'SCENARIO') {
-            question = await generateQuestionWithGrok(gameId, 'SCENARIO', level, gameType, game, gameConfig);
+          // ═══════════════════════════════════════════════════════════════════
+          // STEP 2: GET SEEN QUESTIONS (No-Repeat Logic)
+          // ═══════════════════════════════════════════════════════════════════
+          let seenQuestionIds = [];
+          if (userId) {
+              const { data: seen } = await supabase
+                  .from('user_seen_questions')
+                  .select('question_id')
+                  .eq('user_id', userId)
+                  .eq('game_id', gameId)
+                  .limit(100);
 
-            // Save to cache for future use
-            if (question) {
-                try {
-                    await supabase
-                        .from('training_question_cache')
-                        .insert({
-                            question_id: question.id,
-                            game_id: gameId,
-                            engine_type: 'SCENARIO',
-                            game_type: gameType,
-                            level: parseInt(level),
-                            question_data: question,
-                            times_used: 1,
-                        });
-                } catch (cacheError) {
-                    if (!cacheError.message?.includes('duplicate')) {
-                        console.error('[Training] ⚠️ Cache save failed:', cacheError.message);
-                    }
-                }
-            }
-        }
+              seenQuestionIds = (seen || []).map(s => s.question_id);
+          }
 
-        if (!question) {
-            return res.status(404).json({
-                success: false, error: 'No questions available',
-                message: 'All questions for this game have been completed'
-            });
-        }
+          // ═══════════════════════════════════════════════════════════════════
+          // STEP 3: DETERMINISTIC ENGINE — PRIMARY SOURCE (No Grok AI)
+          // ═══════════════════════════════════════════════════════════════════
+          let question = null;
 
-        return res.status(200).json({
-            success: true,
-            question,
-            level: parseInt(level),
-            passThreshold: TRAINING_CONFIG.passThresholds[level] || 85,
-            gameType, // Return game type for debugging
-        });
+          // Get PIO game config for solver data lookup
+          const pioConfig = pioQueryService.getGameConfig(gameId);
 
-    } catch (error) {
-        console.error('[Training] ❌ Get question error:', error);
-        return res.status(500).json({ success: false, error: error.message });
-    }
+          // TRY DETERMINISTIC ENGINE FIRST for PIO/CHART games
+          if (pioConfig && pioConfig.sourceOfTruth !== 'SCENARIO') {
+              try {
+                  question = await deterministicEngine.generateQuestion({
+                      gameId,
+                      level: parseInt(level),
+                      seenIds: seenQuestionIds,
+                      gameConfig: pioConfig,
+                  });
+                  if (question) {
+                      console.log(`[Training] ✅ DETERMINISTIC engine served question for ${gameId} (source: ${question.source})`);
+                  }
+              } catch (detErr) {
+                  console.error('[Training] ⚠️ Deterministic engine failed, falling back:', detErr.message);
+              }
+          }
+
+          // FALLBACK: Route to legacy engine if deterministic failed
+          if (!question) {
+              if (preferredEngine === 'SCENARIO') {
+                  // SCENARIO ENGINE: Mental Game / Psychology - Uses Grok AI
+                  question = await generateQuestionWithGrok(gameId, 'SCENARIO', level, gameType, game, gameConfig);
+
+                  // CHART ENGINE: Handled by DeterministicGTOEngine.generateFromCharts() in STEP 3
+                  // (Legacy generateQuestionFromChart/generateChartQuestionWithGrok were removed in Phase 28)
+
+              } else {
+                  // PIO ENGINE: GTO Solver Data (Default)
+                  try {
+                      const pioScenarios = await pioQueryService.queryScenarios(gameId, parseInt(level), userId);
+
+                      if (pioScenarios && pioScenarios.length > 0) {
+                          question = await generateQuestionFromPIO(pioScenarios, gameId, level, game);
+                      }
+                  } catch (pioError) {
+                      console.error('[Training] ⚠️ PIO query failed:', pioError.message);
+                  }
+              }
+          }
+
+          // ═══════════════════════════════════════════════════════════════════
+          // STEP 4: TRY CACHED QUESTIONS (Fallback)
+          // ═══════════════════════════════════════════════════════════════════
+          if (!question) {
+
+              const { data: cachedQuestions } = await supabase
+                  .from('training_question_cache')
+                  .select('question_data, question_id')
+                  .eq('game_id', gameId)
+                  .eq('level', level)
+                  .not('question_id', 'in', `(${seenQuestionIds.join(',') || 'null'})`)
+                  .limit(10);
+
+              if (cachedQuestions && cachedQuestions.length > 0) {
+                  const randomIndex = Math.floor(Math.random() * cachedQuestions.length);
+                  // Enrich cached questions that were generated before GTO fields were added
+                  question = enrichGrokQuestion(cachedQuestions[randomIndex].question_data, gameConfig, parseInt(level), gameType);
+
+                  // Increment times_used (supabase.raw() doesn't exist in JS SDK v2)
+                  const questionId = cachedQuestions[randomIndex].question_id;
+                  const { data: currentQ } = await supabase
+                      .from('training_question_cache')
+                      .select('times_used')
+                      .eq('question_id', questionId)
+                      .maybeSingle();
+                  await supabase
+                      .from('training_question_cache')
+                      .update({ times_used: (currentQ?.times_used || 0) + 1 })
+                      .eq('question_id', questionId);
+
+              } else {
+              }
+          }
+
+
+          // ═══════════════════════════════════════════════════════════════════
+          // STEP 4: GROK AI — SCENARIO (Psychology) GAMES ONLY
+          // BUG-E FIX: Removed Grok fallback for PIO/CHART games.
+          // Grok generates hallucinated GTO data that violates the deterministic standard.
+          // Only SCENARIO (psychology) games use Grok since they have no solver data by design.
+          // ═══════════════════════════════════════════════════════════════════
+          if (!question && preferredEngine === 'SCENARIO') {
+              question = await generateQuestionWithGrok(gameId, 'SCENARIO', level, gameType, game, gameConfig);
+
+              // Save to cache for future use
+              if (question) {
+                  try {
+                      await supabase
+                          .from('training_question_cache')
+                          .insert({
+                              question_id: question.id,
+                              game_id: gameId,
+                              engine_type: 'SCENARIO',
+                              game_type: gameType,
+                              level: parseInt(level),
+                              question_data: question,
+                              times_used: 1,
+                          });
+                  } catch (cacheError) {
+                      if (!cacheError.message?.includes('duplicate')) {
+                          console.error('[Training] ⚠️ Cache save failed:', cacheError.message);
+                      }
+                  }
+              }
+          }
+
+          if (!question) {
+              return res.status(404).json({
+                  success: false, error: 'No questions available',
+                  message: 'All questions for this game have been completed'
+              });
+          }
+
+          return res.status(200).json({
+              success: true,
+              question,
+              level: parseInt(level),
+              passThreshold: TRAINING_CONFIG.passThresholds[level] || 85,
+              gameType, // Return game type for debugging
+          });
+
+      } catch (error) {
+          console.error('[Training] ❌ Get question error:', error);
+          return res.status(500).json({ success: false, error: error.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }
 
 /**

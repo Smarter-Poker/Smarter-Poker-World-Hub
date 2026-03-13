@@ -500,76 +500,82 @@ async function processHorse(horse, horseIndex, horses) {
 
 // MAIN HANDLER - Process 10 horses in batch
 export default async function handler(req, res) {
-    // Verify cron secret
-    if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
-    const { batchIndex } = req.query;
-    const batch = parseInt(batchIndex, 10);
+  try {
+      // Verify cron secret
+      if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+          return res.status(401).json({ error: 'Unauthorized' });
+      }
+      const { batchIndex } = req.query;
+      const batch = parseInt(batchIndex, 10);
 
-    if (isNaN(batch) || batch < 0 || batch > 9) {
-        return res.status(400).json({ error: 'batchIndex must be 0-9' });
-    }
+      if (isNaN(batch) || batch < 0 || batch > 9) {
+          return res.status(400).json({ error: 'batchIndex must be 0-9' });
+      }
 
-    const startIndex = batch * 10;
-    const endIndex = startIndex + 9;
+      const startIndex = batch * 10;
+      const endIndex = startIndex + 9;
 
-    try {
+      try {
 
-        // Load ClipLibrary for poker video clips
-        await loadClipLibrary();
+          // Load ClipLibrary for poker video clips
+          await loadClipLibrary();
 
-        // Get all active horses
-        const { data: horses, error: horseError } = await supabase
-            .from('content_authors')
-            .select('*')
-            .eq('is_active', true)
-            .not('profile_id', 'is', null)
-            .order('profile_id')
-                .limit(100);
+          // Get all active horses
+          const { data: horses, error: horseError } = await supabase
+              .from('content_authors')
+              .select('*')
+              .eq('is_active', true)
+              .not('profile_id', 'is', null)
+              .order('profile_id')
+                  .limit(100);
 
-        if (horseError || !horses?.length) {
-            return res.status(200).json({ success: false, error: 'No horses found' });
-        }
+          if (horseError || !horses?.length) {
+              return res.status(200).json({ success: false, error: 'No horses found' });
+          }
 
-        if (!horses?.length) {
-            return res.status(200).json({ success: false, error: 'No horses found' });
-        }
-
-
-        // Process horses in this batch
-        const results = [];
-        for (let i = startIndex; i <= endIndex && i < horses.length; i++) {
-            const horse = horses[i];
-            if (!horse) continue;
-
-            try {
-                const result = await processHorse(horse, i, horses);
-                results.push(result);
-
-                // Small delay between horses to avoid rate limiting
-                await new Promise(r => setTimeout(r, 500));
-            } catch (err) {
-                console.error(`Error processing horse ${i}:`, err.message);
-                results.push({ horse: horse?.name, index: i, success: false, error: err.message });
-            }
-        }
-
-        const successCount = results.filter(r => r.success).length;
-        const failCount = results.filter(r => !r.success).length;
+          if (!horses?.length) {
+              return res.status(200).json({ success: false, error: 'No horses found' });
+          }
 
 
-        return res.status(200).json({
-            success: true,
-            batch,
-            horsesRange: `${startIndex}-${endIndex}`,
-            successCount,
-            failCount,
-            results
-        });
+          // Process horses in this batch
+          const results = [];
+          for (let i = startIndex; i <= endIndex && i < horses.length; i++) {
+              const horse = horses[i];
+              if (!horse) continue;
 
-    } catch (error) {
-        console.error('Batch horse cron error:', error);
-        return res.status(500).json({ success: false, error: error.message });
-    }
+              try {
+                  const result = await processHorse(horse, i, horses);
+                  results.push(result);
+
+                  // Small delay between horses to avoid rate limiting
+                  await new Promise(r => setTimeout(r, 500));
+              } catch (err) {
+                  console.error(`Error processing horse ${i}:`, err.message);
+                  results.push({ horse: horse?.name, index: i, success: false, error: err.message });
+              }
+          }
+
+          const successCount = results.filter(r => r.success).length;
+          const failCount = results.filter(r => !r.success).length;
+
+
+          return res.status(200).json({
+              success: true,
+              batch,
+              horsesRange: `${startIndex}-${endIndex}`,
+              successCount,
+              failCount,
+              results
+          });
+
+      } catch (error) {
+          console.error('Batch horse cron error:', error);
+          return res.status(500).json({ success: false, error: error.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

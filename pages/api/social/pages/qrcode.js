@@ -20,74 +20,80 @@ function getQRCodeUrl(data, size = 300) {
 }
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+      if (req.method !== 'GET') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
+
+      if (!supabaseUrl || !supabaseServiceKey) {
+          return res.status(500).json({ success: false, error: 'Server configuration error' });
+      }
+
+      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+      const { page_id, ref } = req.query;
+
+      // === Lookup page by referral code ===
+      if (ref) {
+          const { data: page, error } = await supabase
+              .from('social_pages')
+              .select('id, name, slug, avatar_url, cover_url, description, category, follower_count')
+              .eq('metadata->>referral_code', ref)
+              .maybeSingle();
+
+          if (error || !page) {
+              return res.status(404).json({ success: false, error: 'Invalid referral code' });
+          }
+          return res.status(200).json({ success: true, data: page });
+      }
+
+      // === Generate QR code for a page ===
+      if (!page_id) {
+          return res.status(400).json({ success: false, error: 'page_id or ref required' });
+      }
+
+      // Get page with referral code
+      const { data: page, error } = await supabase
+          .from('social_pages')
+          .select('id, name, slug, metadata')
+          .eq('id', page_id)
+          .maybeSingle();
+
+      if (error || !page) {
+          return res.status(404).json({ success: false, error: 'Page not found' });
+      }
+
+      // Generate referral code if it doesn't exist
+      let referralCode = page.metadata?.referral_code;
+      if (!referralCode) {
+          referralCode = page.slug ? page.slug.substring(0, 20) : page.id.substring(0, 8);
+          referralCode = referralCode + '-' + Math.random().toString(36).substring(2, 6);
+
+          // Save to metadata
+          const newMeta = { ...page.metadata, referral_code: referralCode };
+          await supabase.from('social_pages').update({ metadata: newMeta }).eq('id', page_id);
+      }
+
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://smarter.poker';
+      const followUrl = `${siteUrl}/hub/social-media?ref=${referralCode}`;
+      const qrCodeUrl = getQRCodeUrl(followUrl);
+
+      return res.status(200).json({
+          success: true,
+          data: {
+              referral_code: referralCode,
+              follow_url: followUrl,
+              qr_code_url: qrCodeUrl,
+              page_name: page.name,
+              page_id: page.id,
+          }
+      });
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-    if (req.method !== 'GET') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-        return res.status(500).json({ success: false, error: 'Server configuration error' });
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const { page_id, ref } = req.query;
-
-    // === Lookup page by referral code ===
-    if (ref) {
-        const { data: page, error } = await supabase
-            .from('social_pages')
-            .select('id, name, slug, avatar_url, cover_url, description, category, follower_count')
-            .eq('metadata->>referral_code', ref)
-            .maybeSingle();
-
-        if (error || !page) {
-            return res.status(404).json({ success: false, error: 'Invalid referral code' });
-        }
-        return res.status(200).json({ success: true, data: page });
-    }
-
-    // === Generate QR code for a page ===
-    if (!page_id) {
-        return res.status(400).json({ success: false, error: 'page_id or ref required' });
-    }
-
-    // Get page with referral code
-    const { data: page, error } = await supabase
-        .from('social_pages')
-        .select('id, name, slug, metadata')
-        .eq('id', page_id)
-        .maybeSingle();
-
-    if (error || !page) {
-        return res.status(404).json({ success: false, error: 'Page not found' });
-    }
-
-    // Generate referral code if it doesn't exist
-    let referralCode = page.metadata?.referral_code;
-    if (!referralCode) {
-        referralCode = page.slug ? page.slug.substring(0, 20) : page.id.substring(0, 8);
-        referralCode = referralCode + '-' + Math.random().toString(36).substring(2, 6);
-
-        // Save to metadata
-        const newMeta = { ...page.metadata, referral_code: referralCode };
-        await supabase.from('social_pages').update({ metadata: newMeta }).eq('id', page_id);
-    }
-
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://smarter.poker';
-    const followUrl = `${siteUrl}/hub/social-media?ref=${referralCode}`;
-    const qrCodeUrl = getQRCodeUrl(followUrl);
-
-    return res.status(200).json({
-        success: true,
-        data: {
-            referral_code: referralCode,
-            follow_url: followUrl,
-            qr_code_url: qrCodeUrl,
-            page_name: page.name,
-            page_id: page.id,
-        }
-    });
 }

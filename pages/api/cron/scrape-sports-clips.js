@@ -203,41 +203,47 @@ async function saveClips(clips) {
 }
 
 export default async function handler(req, res) {
-    // Verify cron secret
-    if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
+  try {
+      // Verify cron secret
+      if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+          return res.status(401).json({ error: 'Unauthorized' });
+      }
 
-    try {
-        const allClips = [];
+      try {
+          const allClips = [];
 
-        for (const channel of SPORTS_CHANNELS) {
-            if (allClips.length >= CONFIG.MAX_TOTAL_CLIPS) {
-                break;
-            }
+          for (const channel of SPORTS_CHANNELS) {
+              if (allClips.length >= CONFIG.MAX_TOTAL_CLIPS) {
+                  break;
+              }
 
-            const clips = await scrapeChannelShorts(channel);
-            allClips.push(...clips);
+              const clips = await scrapeChannelShorts(channel);
+              allClips.push(...clips);
 
-            // Be respectful with rate limiting
-            await delay(CONFIG.REQUEST_DELAY);
-        }
-
-
-        const { saved, skipped } = await saveClips(allClips);
+              // Be respectful with rate limiting
+              await delay(CONFIG.REQUEST_DELAY);
+          }
 
 
-        return res.status(200).json({
-            success: true,
-            timestamp: new Date().toISOString(),
-            channels_scraped: SPORTS_CHANNELS.length,
-            found: allClips.length,
-            saved,
-            skipped
-        });
+          const { saved, skipped } = await saveClips(allClips);
 
-    } catch (error) {
-        console.error('❌ Scraper error:', error);
-        return res.status(500).json({ success: false, error: error.message });
-    }
+
+          return res.status(200).json({
+              success: true,
+              timestamp: new Date().toISOString(),
+              channels_scraped: SPORTS_CHANNELS.length,
+              found: allClips.length,
+              saved,
+              skipped
+          });
+
+      } catch (error) {
+          console.error('❌ Scraper error:', error);
+          return res.status(500).json({ success: false, error: error.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

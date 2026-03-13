@@ -117,6 +117,16 @@ export default function ClubArenaHandHistoriesPage() {
     return () => { cancelled = true; authUnsub?.unsubscribe?.(); };
   }, [router.query.club, router.query.clubId, loadHands]);
 
+  // Refresh on tab visibility change
+  useEffect(() => {
+    if (!clubId) return;
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') loadHands(clubId, page);
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [clubId, page, loadHands]);
+
   return (
     <HubErrorBoundary name="Hand Histories">
       <SEOHead title="My Hand Histories | Smarter.Poker" />
@@ -161,6 +171,9 @@ export default function ClubArenaHandHistoriesPage() {
                   <div className={s.emptyState}>
                     <span className={s.emptyIcon}>🎬</span>
                     <span className={s.emptyText}>You haven't played any hands yet.</span>
+                    <Link href="/hub/club-arena/lobby" style={{ textDecoration: 'none', marginTop: '12px' }}>
+                      <button className={s.btnPrimary} style={{ padding: '8px 20px', fontSize: '13px' }}>🏠 Join a Table</button>
+                    </Link>
                   </div>
                 ) : (
                   <div className={s.tableScroll}>

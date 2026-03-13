@@ -14,72 +14,78 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (!applyRateLimit(req, res, LIMITS.read)) return;
-
-  // Auth guard: require staff auth for write operations
-  const _authResult = await guardWriteStaff(req, res);
-  if (!_authResult) return;
-
-  if (req.method !== 'GET') {
-    return res.status(405).json({
-      success: false,
-      error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' }
-    });
-  }
-
-  const { venueId } = req.query;
-
-  if (!venueId) {
-    return res.status(400).json({
-      success: false,
-      error: { code: 'VALIDATION_ERROR', message: 'venueId is required' }
-    });
-  }
-
   try {
-    const { status = 'active', limit = 100 } = req.query;
+    if (!applyRateLimit(req, res, LIMITS.read)) return;
 
-    let query = supabase
-      .from('commander_player_sessions')
-      .select(`
-        *,
-        profiles (
-          id,
-          display_name,
-          avatar_url
-        )
-      `)
-      .eq('venue_id', venueId)
-      .order('check_in_at', { ascending: false })
-      .limit(Math.min(parseInt(limit) || 50, 500));
+    // Auth guard: require staff auth for write operations
+    const _authResult = await guardWriteStaff(req, res);
+    if (!_authResult) return;
 
-    if (status) {
-      query = query.eq('status', status);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      console.error('Commander sessions by venue query error:', error);
-      return res.status(500).json({
+    if (req.method !== 'GET') {
+      return res.status(405).json({
         success: false,
-        error: { code: 'DATABASE_ERROR', message: 'Failed to fetch sessions' }
+        error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' }
       });
     }
 
-    return res.status(200).json({
-      success: true,
-      data: { sessions: data || [] }
-    });
-  } catch (error) {
-    captureException(error, {
-      action: 'sessions_by_venue',
-      endpoint: `/api/commander/sessions/venue/${venueId}`,
-      venue_id: venueId
-    });
-    return res.status(500).json({
-      success: false,
-      error: { code: 'INTERNAL_ERROR', message: 'Internal server error' }
-    });
+    const { venueId } = req.query;
+
+    if (!venueId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: 'venueId is required' }
+      });
+    }
+
+    try {
+      const { status = 'active', limit = 100 } = req.query;
+
+      let query = supabase
+        .from('commander_player_sessions')
+        .select(`
+          *,
+          profiles (
+            id,
+            display_name,
+            avatar_url
+          )
+        `)
+        .eq('venue_id', venueId)
+        .order('check_in_at', { ascending: false })
+        .limit(Math.min(parseInt(limit) || 50, 500));
+
+      if (status) {
+        query = query.eq('status', status);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Commander sessions by venue query error:', error);
+        return res.status(500).json({
+          success: false,
+          error: { code: 'DATABASE_ERROR', message: 'Failed to fetch sessions' }
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        data: { sessions: data || [] }
+      });
+    } catch (error) {
+      captureException(error, {
+        action: 'sessions_by_venue',
+        endpoint: `/api/commander/sessions/venue/${venueId}`,
+        venue_id: venueId
+      });
+      return res.status(500).json({
+        success: false,
+        error: { code: 'INTERNAL_ERROR', message: 'Internal server error' }
+      });
+    }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

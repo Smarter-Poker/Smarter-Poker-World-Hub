@@ -62,137 +62,143 @@ function extractPositionFromHash(hash) {
 }
 
 export default async function handler(req, res) {
-    if (req.method !== 'GET') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
+  try {
+      if (req.method !== 'GET') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
 
-    try {
-        // Auth check
-        const token = req.headers.authorization?.replace('Bearer ', '');
-        if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-        const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
-        if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+      try {
+          // Auth check
+          const token = req.headers.authorization?.replace('Bearer ', '');
+          if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
+          const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+          if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-        const { scenarioHash, nextCard, gameType, stackDepth } = req.query;
+          const { scenarioHash, nextCard, gameType, stackDepth } = req.query;
 
-        if (!scenarioHash) {
-            return res.status(400).json({ success: false, error: 'scenarioHash is required' });
-        }
+          if (!scenarioHash) {
+              return res.status(400).json({ success: false, error: 'scenarioHash is required' });
+          }
 
-        // ─── STRATEGY 1: Exact hash extension ──────────────────────────
-        // If nextCard is provided, append it to the current board in the hash
-        // to find the child node for the next street.
-        if (nextCard) {
-            const cardStr = nextCard.toLowerCase();
-            // Build the child hash by appending the card to the parent hash
-            const childHash = `${scenarioHash}${cardStr}`;
+          // ─── STRATEGY 1: Exact hash extension ──────────────────────────
+          // If nextCard is provided, append it to the current board in the hash
+          // to find the child node for the next street.
+          if (nextCard) {
+              const cardStr = nextCard.toLowerCase();
+              // Build the child hash by appending the card to the parent hash
+              const childHash = `${scenarioHash}${cardStr}`;
 
-            // Try exact match first
-            let { data: childSpot, error } = await supabase
-                .from('solved_spots_gold')
-                .select('id, scenario_hash, game_type, stack_depth, strategy_matrix, hand_evs')
-                .eq('scenario_hash', childHash)
-                .maybeSingle();
+              // Try exact match first
+              let { data: childSpot, error } = await supabase
+                  .from('solved_spots_gold')
+                  .select('id, scenario_hash, game_type, stack_depth, strategy_matrix, hand_evs')
+                  .eq('scenario_hash', childHash)
+                  .maybeSingle();
 
-            // If exact match fails, try with appended card directly to the board part
-            if (!childSpot) {
-                // Some hashes might have different separators or formats
-                // Try the child hash with underscore separation in case board is a separate segment
-                const hashParts = scenarioHash.split('_');
-                const boardSegment = hashParts[hashParts.length - 1];
-                const prefix = hashParts.slice(0, -1).join('_');
-                const altChildHash = `${prefix}_${boardSegment}${cardStr}`;
+              // If exact match fails, try with appended card directly to the board part
+              if (!childSpot) {
+                  // Some hashes might have different separators or formats
+                  // Try the child hash with underscore separation in case board is a separate segment
+                  const hashParts = scenarioHash.split('_');
+                  const boardSegment = hashParts[hashParts.length - 1];
+                  const prefix = hashParts.slice(0, -1).join('_');
+                  const altChildHash = `${prefix}_${boardSegment}${cardStr}`;
 
-                const { data: altSpots } = await supabase
-                    .from('solved_spots_gold')
-                    .select('id, scenario_hash, game_type, stack_depth, strategy_matrix, hand_evs')
-                    .eq('scenario_hash', altChildHash)
-                    .limit(1);
-                childSpot = altSpots?.[0] || null;
-            }
+                  const { data: altSpots } = await supabase
+                      .from('solved_spots_gold')
+                      .select('id, scenario_hash, game_type, stack_depth, strategy_matrix, hand_evs')
+                      .eq('scenario_hash', altChildHash)
+                      .limit(1);
+                  childSpot = altSpots?.[0] || null;
+              }
 
-            if (childSpot) {
-                const matrix = childSpot.strategy_matrix || {};
-                const actions = matrix.actions || [];
-                const frequencies = matrix.frequencies || {};
-                const allHands = getAllHandNotations();
-                const gridData = {};
+              if (childSpot) {
+                  const matrix = childSpot.strategy_matrix || {};
+                  const actions = matrix.actions || [];
+                  const frequencies = matrix.frequencies || {};
+                  const allHands = getAllHandNotations();
+                  const gridData = {};
 
-                allHands.forEach(hand => {
-                    gridData[hand] = {};
-                    let hasData = false;
-                    actions.forEach(action => {
-                        const freq = frequencies[action]?.[hand];
-                        if (freq !== undefined && freq >= 0) {
-                            gridData[hand][action] = Math.round(freq * 1000) / 10;
-                            hasData = true;
-                        }
-                    });
-                    if (!hasData) gridData[hand] = null;
-                });
+                  allHands.forEach(hand => {
+                      gridData[hand] = {};
+                      let hasData = false;
+                      actions.forEach(action => {
+                          const freq = frequencies[action]?.[hand];
+                          if (freq !== undefined && freq >= 0) {
+                              gridData[hand][action] = Math.round(freq * 1000) / 10;
+                              hasData = true;
+                          }
+                      });
+                      if (!hasData) gridData[hand] = null;
+                  });
 
-                return res.status(200).json({
-                    success: true,
-                    childSpot: {
-                        id: childSpot.id,
-                        scenarioHash: childSpot.scenario_hash,
-                        gameType: childSpot.game_type,
-                        stackDepth: childSpot.stack_depth,
-                        board: parseBoardFromHash(childSpot.scenario_hash),
-                        heroPosition: extractPositionFromHash(childSpot.scenario_hash),
-                        actions,
-                        gridData,
-                        handEVs: childSpot.hand_evs || {},
-                        handCount: Object.keys(gridData).filter(h => gridData[h] !== null).length,
-                    },
-                });
-            }
+                  return res.status(200).json({
+                      success: true,
+                      childSpot: {
+                          id: childSpot.id,
+                          scenarioHash: childSpot.scenario_hash,
+                          gameType: childSpot.game_type,
+                          stackDepth: childSpot.stack_depth,
+                          board: parseBoardFromHash(childSpot.scenario_hash),
+                          heroPosition: extractPositionFromHash(childSpot.scenario_hash),
+                          actions,
+                          gridData,
+                          handEVs: childSpot.hand_evs || {},
+                          handCount: Object.keys(gridData).filter(h => gridData[h] !== null).length,
+                      },
+                  });
+              }
 
-            // No child found
-            return res.status(200).json({
-                success: false,
-                error: 'No solver data found for this runout card',
-                queriedHash: childHash,
-            });
-        }
+              // No child found
+              return res.status(200).json({
+                  success: false,
+                  error: 'No solver data found for this runout card',
+                  queriedHash: childHash,
+              });
+          }
 
-        // ─── STRATEGY 2: List available children ────────────────────────
-        // Without nextCard, find all possible child nodes (next street extensions).
-        // This powers the Card Selector Modal by showing which cards have data.
-        const currentBoard = parseBoardFromHash(scenarioHash);
-        const boardStr = currentBoard.join('').toLowerCase();
+          // ─── STRATEGY 2: List available children ────────────────────────
+          // Without nextCard, find all possible child nodes (next street extensions).
+          // This powers the Card Selector Modal by showing which cards have data.
+          const currentBoard = parseBoardFromHash(scenarioHash);
+          const boardStr = currentBoard.join('').toLowerCase();
 
-        // Query all spots that have the same hash prefix with exactly 2 more chars (1 card)
-        const { data: childSpots, error } = await supabase
-            .from('solved_spots_gold')
-            .select('scenario_hash')
-            .ilike('scenario_hash', `${scenarioHash}__`)
-            .limit(100);
+          // Query all spots that have the same hash prefix with exactly 2 more chars (1 card)
+          const { data: childSpots, error } = await supabase
+              .from('solved_spots_gold')
+              .select('scenario_hash')
+              .ilike('scenario_hash', `${scenarioHash}__`)
+              .limit(100);
 
-        if (error) {
-            console.error('[TreeNavigate] Children query error:', error);
-            return res.status(500).json({ success: false, error: 'Query failed' });
-        }
+          if (error) {
+              console.error('[TreeNavigate] Children query error:', error);
+              return res.status(500).json({ success: false, error: 'Query failed' });
+          }
 
-        // Extract the unique next cards from child hashes
-        const availableCards = new Set();
-        (childSpots || []).forEach(s => {
-            const childBoard = parseBoardFromHash(s.scenario_hash);
-            if (childBoard.length > currentBoard.length) {
-                const nextCard = childBoard[currentBoard.length];
-                if (nextCard) availableCards.add(nextCard);
-            }
-        });
+          // Extract the unique next cards from child hashes
+          const availableCards = new Set();
+          (childSpots || []).forEach(s => {
+              const childBoard = parseBoardFromHash(s.scenario_hash);
+              if (childBoard.length > currentBoard.length) {
+                  const nextCard = childBoard[currentBoard.length];
+                  if (nextCard) availableCards.add(nextCard);
+              }
+          });
 
-        return res.status(200).json({
-            success: true,
-            currentBoard,
-            availableCards: [...availableCards],
-            childCount: availableCards.size,
-        });
+          return res.status(200).json({
+              success: true,
+              currentBoard,
+              availableCards: [...availableCards],
+              childCount: availableCards.size,
+          });
 
-    } catch (err) {
-        console.error('[TreeNavigate] Error:', err);
-        return res.status(500).json({ success: false, error: err.message });
-    }
+      } catch (err) {
+          console.error('[TreeNavigate] Error:', err);
+          return res.status(500).json({ success: false, error: err.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

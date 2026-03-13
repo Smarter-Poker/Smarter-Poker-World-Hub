@@ -39,153 +39,159 @@ function parseTime(timeStr) {
 }
 
 export default async function handler(req, res) {
-  // CDN cache: fresh for 120s, serve stale up to 600s
-  if (req.method === 'GET') {
-    res.setHeader('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=600');
+  try {
+    // CDN cache: fresh for 120s, serve stale up to 600s
+    if (req.method === 'GET') {
+      res.setHeader('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=600');
+    }
+
+    if (!applyRateLimit(req, res, LIMITS.read)) return;
+
+      if (req.method !== 'GET') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
+
+      try {
+          const {
+              day,
+              state,
+              venue,
+              type,      // Card Room, Casino, Charity
+              minBuyin,
+              maxBuyin,
+              limit = 200
+          } = req.query;
+
+          // Try to get tournaments from database first
+          let query = supabase
+              .from('venue_daily_tournaments')
+              .select(`
+                  id,
+                  venue_id,
+                  venue_name,
+                  day_of_week,
+                  start_time,
+                  buy_in,
+                  game_type,
+                  format,
+                  guaranteed,
+                  tournament_name,
+                  rebuy_addon,
+                  starting_stack,
+                  blind_levels,
+                  source_url,
+                  last_scraped,
+                  is_active
+              `)
+              .eq('is_active', true)
+              .order('buy_in', { ascending: true });
+
+          // Filter by day
+          const targetDay = (day || getCurrentDay()).replace(/[,().]/g, '');
+          query = query.or(`day_of_week.eq.${targetDay},day_of_week.eq.Daily`);
+
+          // Filter by venue name
+          if (venue) {
+              const safeVenue = venue.replace(/[,().]/g, ' ').trim();
+              if (safeVenue) {
+                  query = query.ilike('venue_name', `%${safeVenue}%`);
+              }
+          }
+
+          // Filter by buy-in range
+          if (minBuyin) {
+              query = query.gte('buy_in', parseInt(minBuyin, 10) || 0);
+          }
+          if (maxBuyin) {
+              query = query.lte('buy_in', parseInt(maxBuyin, 10) || 100000);
+          }
+
+          const parsedLimit = parseInt(limit, 10) || 50;
+          query = query.limit(parsedLimit);
+
+          const { data: dbTournaments, error } = await query;
+
+          let tournaments = [];
+
+          if (!error && dbTournaments && dbTournaments.length > 0) {
+              // Enrich with venue data from source of truth
+              const venueMap = new Map();
+              tournamentVenues.venues.forEach(v => {
+                  venueMap.set(v.name.toLowerCase(), v);
+              });
+
+              tournaments = dbTournaments.map(t => {
+                  const venueInfo = venueMap.get(t.venue_name?.toLowerCase()) || {};
+                  return {
+                      ...t,
+                      state: venueInfo.state || null,
+                      city: venueInfo.city || null,
+                      venueType: venueInfo.type || 'Unknown',
+                      pokerAtlasUrl: venueInfo.pokerAtlasUrl || t.source_url
+                  };
+              });
+
+              // Filter by state if provided
+              if (state) {
+                  tournaments = tournaments.filter(t =>
+                      t.state?.toUpperCase() === state.toUpperCase()
+                  );
+              }
+
+              // Filter by venue type
+              if (type) {
+                  tournaments = tournaments.filter(t =>
+                      t.venueType?.toLowerCase().includes(type.toLowerCase())
+                  );
+              }
+          } else {
+              // Fallback: Generate schedule from source of truth venues
+              tournaments = generateFallbackSchedule(tournamentVenues.venues, targetDay, {
+                  state,
+                  venue,
+                  type,
+                  minBuyin: minBuyin ? parseInt(minBuyin, 10) || 0 : null,
+                  maxBuyin: maxBuyin ? parseInt(maxBuyin, 10) || 100000 : null
+              });
+          }
+
+          // Sort by time
+          tournaments.sort((a, b) => parseTime(a.start_time) - parseTime(b.start_time));
+
+          // Group by time slot
+          const byTimeSlot = groupByTimeSlot(tournaments);
+
+          return res.status(200).json({
+              success: true,
+              day: targetDay,
+              totalVenues: tournamentVenues.metadata.totalVenues,
+              lastUpdated: tournamentVenues.metadata.lastUpdated,
+              tournaments: tournaments.slice(0, parsedLimit),
+              byTimeSlot,
+              byState: groupByState(tournaments),
+              stats: {
+                  total: tournaments.length,
+                  avgBuyin: tournaments.length > 0
+                      ? Math.round(tournaments.reduce((sum, t) => sum + (t.buy_in || 0), 0) / tournaments.length)
+                      : 0,
+                  byType: countByField(tournaments, 'venueType'),
+                  byGameType: countByField(tournaments, 'game_type')
+              }
+          });
+
+      } catch (error) {
+          console.error('Daily tournaments API error:', error);
+          return res.status(500).json({
+              success: false,
+              error: error.message,
+              tournaments: []
+          });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-  if (!applyRateLimit(req, res, LIMITS.read)) return;
-
-    if (req.method !== 'GET') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
-
-    try {
-        const {
-            day,
-            state,
-            venue,
-            type,      // Card Room, Casino, Charity
-            minBuyin,
-            maxBuyin,
-            limit = 200
-        } = req.query;
-
-        // Try to get tournaments from database first
-        let query = supabase
-            .from('venue_daily_tournaments')
-            .select(`
-                id,
-                venue_id,
-                venue_name,
-                day_of_week,
-                start_time,
-                buy_in,
-                game_type,
-                format,
-                guaranteed,
-                tournament_name,
-                rebuy_addon,
-                starting_stack,
-                blind_levels,
-                source_url,
-                last_scraped,
-                is_active
-            `)
-            .eq('is_active', true)
-            .order('buy_in', { ascending: true });
-
-        // Filter by day
-        const targetDay = (day || getCurrentDay()).replace(/[,().]/g, '');
-        query = query.or(`day_of_week.eq.${targetDay},day_of_week.eq.Daily`);
-
-        // Filter by venue name
-        if (venue) {
-            const safeVenue = venue.replace(/[,().]/g, ' ').trim();
-            if (safeVenue) {
-                query = query.ilike('venue_name', `%${safeVenue}%`);
-            }
-        }
-
-        // Filter by buy-in range
-        if (minBuyin) {
-            query = query.gte('buy_in', parseInt(minBuyin, 10) || 0);
-        }
-        if (maxBuyin) {
-            query = query.lte('buy_in', parseInt(maxBuyin, 10) || 100000);
-        }
-
-        const parsedLimit = parseInt(limit, 10) || 50;
-        query = query.limit(parsedLimit);
-
-        const { data: dbTournaments, error } = await query;
-
-        let tournaments = [];
-
-        if (!error && dbTournaments && dbTournaments.length > 0) {
-            // Enrich with venue data from source of truth
-            const venueMap = new Map();
-            tournamentVenues.venues.forEach(v => {
-                venueMap.set(v.name.toLowerCase(), v);
-            });
-
-            tournaments = dbTournaments.map(t => {
-                const venueInfo = venueMap.get(t.venue_name?.toLowerCase()) || {};
-                return {
-                    ...t,
-                    state: venueInfo.state || null,
-                    city: venueInfo.city || null,
-                    venueType: venueInfo.type || 'Unknown',
-                    pokerAtlasUrl: venueInfo.pokerAtlasUrl || t.source_url
-                };
-            });
-
-            // Filter by state if provided
-            if (state) {
-                tournaments = tournaments.filter(t =>
-                    t.state?.toUpperCase() === state.toUpperCase()
-                );
-            }
-
-            // Filter by venue type
-            if (type) {
-                tournaments = tournaments.filter(t =>
-                    t.venueType?.toLowerCase().includes(type.toLowerCase())
-                );
-            }
-        } else {
-            // Fallback: Generate schedule from source of truth venues
-            tournaments = generateFallbackSchedule(tournamentVenues.venues, targetDay, {
-                state,
-                venue,
-                type,
-                minBuyin: minBuyin ? parseInt(minBuyin, 10) || 0 : null,
-                maxBuyin: maxBuyin ? parseInt(maxBuyin, 10) || 100000 : null
-            });
-        }
-
-        // Sort by time
-        tournaments.sort((a, b) => parseTime(a.start_time) - parseTime(b.start_time));
-
-        // Group by time slot
-        const byTimeSlot = groupByTimeSlot(tournaments);
-
-        return res.status(200).json({
-            success: true,
-            day: targetDay,
-            totalVenues: tournamentVenues.metadata.totalVenues,
-            lastUpdated: tournamentVenues.metadata.lastUpdated,
-            tournaments: tournaments.slice(0, parsedLimit),
-            byTimeSlot,
-            byState: groupByState(tournaments),
-            stats: {
-                total: tournaments.length,
-                avgBuyin: tournaments.length > 0
-                    ? Math.round(tournaments.reduce((sum, t) => sum + (t.buy_in || 0), 0) / tournaments.length)
-                    : 0,
-                byType: countByField(tournaments, 'venueType'),
-                byGameType: countByField(tournaments, 'game_type')
-            }
-        });
-
-    } catch (error) {
-        console.error('Daily tournaments API error:', error);
-        return res.status(500).json({
-            success: false,
-            error: error.message,
-            tournaments: []
-        });
-    }
 }
 
 // Generate deterministic schedule based on confirmed tournament venues

@@ -36,122 +36,128 @@ const TEST_GAMES = [
 ];
 
 export default async function handler(req, res) {
-    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-        if (!applyRateLimit(req, res, LIMITS.write)) return;
-    }
+  try {
+      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+          if (!applyRateLimit(req, res, LIMITS.write)) return;
+      }
 
-    if (req.method !== 'POST') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
+      if (req.method !== 'POST') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
 
-    // ── Auth: Admin-only batch operation (generates 500 questions, very expensive) ──
-    const adminSecret = req.headers['x-admin-secret'];
-    const envSecret = process.env.ADMIN_ROUTE_SECRET;
-    if (!envSecret || !adminSecret || adminSecret !== envSecret) {
-        return res.status(403).json({ success: false, error: 'Admin access required for batch generation' });
-    }
+      // ── Auth: Admin-only batch operation (generates 500 questions, very expensive) ──
+      const adminSecret = req.headers['x-admin-secret'];
+      const envSecret = process.env.ADMIN_ROUTE_SECRET;
+      if (!envSecret || !adminSecret || adminSecret !== envSecret) {
+          return res.status(403).json({ success: false, error: 'Admin access required for batch generation' });
+      }
 
-    try {
-        const results = {
-            total: 0,
-            generated: 0,
-            cached: 0,
-            failed: 0,
-            games: {}
-        };
-
-
-        for (const game of TEST_GAMES) {
-
-            const gameConfig = getGameConfig(game.id);
-            const engineType = gameConfig.engine; // 'PIO' or 'SCENARIO'
-
-            results.games[game.id] = {
-                name: game.name,
-                engine: engineType,
-                levels: {}
-            };
-
-            // Generate for Level 1 and Level 2
-            for (const level of [1, 2]) {
-
-                const levelResults = {
-                    generated: 0,
-                    failed: 0
-                };
-
-                // Generate 25 questions for this level
-                for (let i = 1; i <= 25; i++) {
-                    try {
-
-                        const question = await generateQuestionWithGrok(
-                            game.id,
-                            engineType,
-                            level,
-                            gameConfig.gameType,
-                            game,
-                            gameConfig
-                        );
-
-                        if (question) {
-                            // Save to cache
-                            const { error } = await supabase
-                                .from('training_question_cache')
-                                .insert({
-                                    question_id: question.id,
-                                    game_id: game.id,
-                                    engine_type: engineType.toUpperCase(),
-                                    game_type: gameConfig.gameType,
-                                    level: level,
-                                    question_data: question,
-                                    times_used: 0,
-                                });
-
-                            if (error) {
-                                if (error.message?.includes('duplicate')) {
-                                    results.cached++;
-                                } else {
-                                    console.error(`  ❌ Save failed:`, error.message);
-                                    levelResults.failed++;
-                                    results.failed++;
-                                }
-                            } else {
-                                levelResults.generated++;
-                                results.generated++;
-                            }
-
-                            results.total++;
-                        } else {
-                            console.error(`  ❌ Generation failed`);
-                            levelResults.failed++;
-                            results.failed++;
-                        }
-
-                        // Rate limit: Wait 1 second between Grok calls
-                        await new Promise(resolve => setTimeout(resolve, 1000));
-
-                    } catch (error) {
-                        console.error(`  ❌ Error:`, error.message);
-                        levelResults.failed++;
-                        results.failed++;
-                    }
-                }
-
-                results.games[game.id].levels[level] = levelResults;
-            }
-        }
+      try {
+          const results = {
+              total: 0,
+              generated: 0,
+              cached: 0,
+              failed: 0,
+              games: {}
+          };
 
 
-        return res.status(200).json({
-            success: true,
-            message: 'Batch generation complete',
-            results
-        });
+          for (const game of TEST_GAMES) {
 
-    } catch (error) {
-        console.error('❌ Batch generation error:', error);
-        return res.status(500).json({ success: false, error: error.message });
-    }
+              const gameConfig = getGameConfig(game.id);
+              const engineType = gameConfig.engine; // 'PIO' or 'SCENARIO'
+
+              results.games[game.id] = {
+                  name: game.name,
+                  engine: engineType,
+                  levels: {}
+              };
+
+              // Generate for Level 1 and Level 2
+              for (const level of [1, 2]) {
+
+                  const levelResults = {
+                      generated: 0,
+                      failed: 0
+                  };
+
+                  // Generate 25 questions for this level
+                  for (let i = 1; i <= 25; i++) {
+                      try {
+
+                          const question = await generateQuestionWithGrok(
+                              game.id,
+                              engineType,
+                              level,
+                              gameConfig.gameType,
+                              game,
+                              gameConfig
+                          );
+
+                          if (question) {
+                              // Save to cache
+                              const { error } = await supabase
+                                  .from('training_question_cache')
+                                  .insert({
+                                      question_id: question.id,
+                                      game_id: game.id,
+                                      engine_type: engineType.toUpperCase(),
+                                      game_type: gameConfig.gameType,
+                                      level: level,
+                                      question_data: question,
+                                      times_used: 0,
+                                  });
+
+                              if (error) {
+                                  if (error.message?.includes('duplicate')) {
+                                      results.cached++;
+                                  } else {
+                                      console.error(`  ❌ Save failed:`, error.message);
+                                      levelResults.failed++;
+                                      results.failed++;
+                                  }
+                              } else {
+                                  levelResults.generated++;
+                                  results.generated++;
+                              }
+
+                              results.total++;
+                          } else {
+                              console.error(`  ❌ Generation failed`);
+                              levelResults.failed++;
+                              results.failed++;
+                          }
+
+                          // Rate limit: Wait 1 second between Grok calls
+                          await new Promise(resolve => setTimeout(resolve, 1000));
+
+                      } catch (error) {
+                          console.error(`  ❌ Error:`, error.message);
+                          levelResults.failed++;
+                          results.failed++;
+                      }
+                  }
+
+                  results.games[game.id].levels[level] = levelResults;
+              }
+          }
+
+
+          return res.status(200).json({
+              success: true,
+              message: 'Batch generation complete',
+              results
+          });
+
+      } catch (error) {
+          console.error('❌ Batch generation error:', error);
+          return res.status(500).json({ success: false, error: error.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }
 
 /**

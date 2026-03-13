@@ -114,57 +114,63 @@ async function postMemeToStory(horse) {
  * Main handler
  */
 export default async function handler(req, res) {
-    // Verify cron secret
-    if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
+  try {
+      // Verify cron secret
+      if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+          return res.status(401).json({ error: 'Unauthorized' });
+      }
 
-    if (!SUPABASE_URL) {
-        return res.status(500).json({ error: 'Missing SUPABASE_URL' });
-    }
+      if (!SUPABASE_URL) {
+          return res.status(500).json({ error: 'Missing SUPABASE_URL' });
+      }
 
-    try {
-        // Get random active horses
-        const { data: horses } = await supabase
-            .from('content_authors')
-            .select('*')
-            .eq('is_active', true)
-            .not('profile_id', 'is', null)
-            .limit(CONFIG.HORSES_PER_TRIGGER * 2);
+      try {
+          // Get random active horses
+          const { data: horses } = await supabase
+              .from('content_authors')
+              .select('*')
+              .eq('is_active', true)
+              .not('profile_id', 'is', null)
+              .limit(CONFIG.HORSES_PER_TRIGGER * 2);
 
-        if (!horses?.length) {
-            return res.status(200).json({ success: true, message: 'No horses', posted: 0 });
-        }
+          if (!horses?.length) {
+              return res.status(200).json({ success: true, message: 'No horses', posted: 0 });
+          }
 
-        const shuffled = horses.sort(() => Math.random() - 0.5);
-        const selected = shuffled.slice(0, CONFIG.HORSES_PER_TRIGGER);
+          const shuffled = horses.sort(() => Math.random() - 0.5);
+          const selected = shuffled.slice(0, CONFIG.HORSES_PER_TRIGGER);
 
-        const results = [];
+          const results = [];
 
-        for (const horse of selected) {
-            await new Promise(r => setTimeout(r, Math.random() * 2000 + 1000));
+          for (const horse of selected) {
+              await new Promise(r => setTimeout(r, Math.random() * 2000 + 1000));
 
-            const result = await postMeme(horse);
+              const result = await postMeme(horse);
 
-            if (result) {
-                // Also post to story sometimes
-                if (Math.random() < 0.3) {
-                    await postMemeToStory(horse);
-                }
-                results.push({ horse: horse.alias, ...result });
-            }
-        }
+              if (result) {
+                  // Also post to story sometimes
+                  if (Math.random() < 0.3) {
+                      await postMemeToStory(horse);
+                  }
+                  results.push({ horse: horse.alias, ...result });
+              }
+          }
 
 
-        return res.status(200).json({
-            success: true,
-            posted: results.length,
-            results,
-            timestamp: new Date().toISOString()
-        });
+          return res.status(200).json({
+              success: true,
+              posted: results.length,
+              results,
+              timestamp: new Date().toISOString()
+          });
 
-    } catch (error) {
-        console.error('Cron error:', error);
-        return res.status(500).json({ success: false, error: error.message });
-    }
+      } catch (error) {
+          console.error('Cron error:', error);
+          return res.status(500).json({ success: false, error: error.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

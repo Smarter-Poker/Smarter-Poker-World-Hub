@@ -63,116 +63,122 @@ const SCENARIO_TYPES = {
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 
 export default async function handler(req, res) {
-    // Verify cron secret
-    if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
+  try {
+      // Verify cron secret
+      if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+          return res.status(401).json({ error: 'Unauthorized' });
+      }
 
-    const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
+      const supabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL,
+          process.env.SUPABASE_SERVICE_ROLE_KEY
+      );
 
-    try {
-        const today = new Date();
-        const challengeDate = today.toISOString().split('T')[0];
+      try {
+          const today = new Date();
+          const challengeDate = today.toISOString().split('T')[0];
 
-        // Check if challenge already exists for today
-        const { data: existing } = await supabase
-            .from('memory_daily_challenges')
-            .select('id')
-            .eq('challenge_date', challengeDate)
-            .maybeSingle();
+          // Check if challenge already exists for today
+          const { data: existing } = await supabase
+              .from('memory_daily_challenges')
+              .select('id')
+              .eq('challenge_date', challengeDate)
+              .maybeSingle();
 
-        if (existing) {
-            return res.status(200).json({
-                message: 'Daily challenge already exists for today',
-                challengeDate,
-                id: existing.id
-            });
-        }
+          if (existing) {
+              return res.status(200).json({
+                  message: 'Daily challenge already exists for today',
+                  challengeDate,
+                  id: existing.id
+              });
+          }
 
-        // Calculate level based on day of month (progressive difficulty)
-        const dayOfMonth = today.getDate();
-        let level;
-        if (dayOfMonth <= 3) level = Math.min(dayOfMonth, 3);
-        else if (dayOfMonth <= 10) level = Math.min(3 + Math.floor((dayOfMonth - 3) / 2), 6);
-        else if (dayOfMonth <= 20) level = Math.min(5 + Math.floor((dayOfMonth - 10) / 3), 8);
-        else if (dayOfMonth <= 28) level = Math.min(7 + Math.floor((dayOfMonth - 20) / 3), 9);
-        else level = 10;
+          // Calculate level based on day of month (progressive difficulty)
+          const dayOfMonth = today.getDate();
+          let level;
+          if (dayOfMonth <= 3) level = Math.min(dayOfMonth, 3);
+          else if (dayOfMonth <= 10) level = Math.min(3 + Math.floor((dayOfMonth - 3) / 2), 6);
+          else if (dayOfMonth <= 20) level = Math.min(5 + Math.floor((dayOfMonth - 10) / 3), 8);
+          else if (dayOfMonth <= 28) level = Math.min(7 + Math.floor((dayOfMonth - 20) / 3), 9);
+          else level = 10;
 
-        // Weekend bonus
-        const dayOfWeek = today.getDay();
-        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-        const targetAccuracy = isWeekend ? 90 : 85;
-        const diamondReward = isWeekend ? 75 : 50;
-        const bonusReward = isWeekend ? 150 : 100;
+          // Weekend bonus
+          const dayOfWeek = today.getDay();
+          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+          const targetAccuracy = isWeekend ? 90 : 85;
+          const diamondReward = isWeekend ? 75 : 50;
+          const bonusReward = isWeekend ? 150 : 100;
 
-        // Get random parameters for this level
-        const position = POSITION_CONFIGS[level][Math.floor(Math.random() * POSITION_CONFIGS[level].length)];
-        const stackDepth = STACK_DEPTHS[level][Math.floor(Math.random() * STACK_DEPTHS[level].length)];
-        const scenarioType = SCENARIO_TYPES[level][Math.floor(Math.random() * SCENARIO_TYPES[level].length)];
+          // Get random parameters for this level
+          const position = POSITION_CONFIGS[level][Math.floor(Math.random() * POSITION_CONFIGS[level].length)];
+          const stackDepth = STACK_DEPTHS[level][Math.floor(Math.random() * STACK_DEPTHS[level].length)];
+          const scenarioType = SCENARIO_TYPES[level][Math.floor(Math.random() * SCENARIO_TYPES[level].length)];
 
-        // Generate scenario with Grok
+          // Generate scenario with Grok
 
-        const scenario = await generateGrokScenario(level, position, stackDepth, scenarioType);
+          const scenario = await generateGrokScenario(level, position, stackDepth, scenarioType);
 
-        if (!scenario) {
-            throw new Error('Failed to generate scenario from Grok');
-        }
+          if (!scenario) {
+              throw new Error('Failed to generate scenario from Grok');
+          }
 
 
-        // Insert the daily challenge
-        const { data: challenge, error } = await supabase
-            .from('memory_daily_challenges')
-            .insert({
-                challenge_date: challengeDate,
-                game_mode: 'range',
-                level: level,
-                scenario_id: JSON.stringify(scenario), // Store full scenario as JSON
-                target_accuracy: targetAccuracy,
-                target_time: 90 + (10 - level) * 10, // More time for lower levels
-                diamond_reward: diamondReward,
-                bonus_reward: bonusReward
-            })
-            .select()
-            .maybeSingle();
+          // Insert the daily challenge
+          const { data: challenge, error } = await supabase
+              .from('memory_daily_challenges')
+              .insert({
+                  challenge_date: challengeDate,
+                  game_mode: 'range',
+                  level: level,
+                  scenario_id: JSON.stringify(scenario), // Store full scenario as JSON
+                  target_accuracy: targetAccuracy,
+                  target_time: 90 + (10 - level) * 10, // More time for lower levels
+                  diamond_reward: diamondReward,
+                  bonus_reward: bonusReward
+              })
+              .select()
+              .maybeSingle();
 
-        if (error || !challenge) {
-            console.error('[DailyChallenge] Insert error:', error);
-            throw error || new Error('No data returned from insert');
-        }
+          if (error || !challenge) {
+              console.error('[DailyChallenge] Insert error:', error);
+              throw error || new Error('No data returned from insert');
+          }
 
-        console.log('[DailyChallenge] Created:', {
-            id: challenge.id,
-            level,
-            title: scenario.title,
-            position,
-            stackDepth,
-            diamondReward,
-            bonusReward
-        });
+          console.log('[DailyChallenge] Created:', {
+              id: challenge.id,
+              level,
+              title: scenario.title,
+              position,
+              stackDepth,
+              diamondReward,
+              bonusReward
+          });
 
-        return res.status(200).json({
-            success: true,
-            challenge: {
-                id: challenge.id,
-                date: challengeDate,
-                level,
-                title: scenario.title,
-                position,
-                stackDepth,
-                targetAccuracy,
-                diamondReward,
-                bonusReward,
-                isWeekend
-            }
-        });
+          return res.status(200).json({
+              success: true,
+              challenge: {
+                  id: challenge.id,
+                  date: challengeDate,
+                  level,
+                  title: scenario.title,
+                  position,
+                  stackDepth,
+                  targetAccuracy,
+                  diamondReward,
+                  bonusReward,
+                  isWeekend
+              }
+          });
 
-    } catch (error) {
-        console.error('[DailyChallenge] Cron error:', error);
-        return res.status(500).json({ error: error.message });
-    }
+      } catch (error) {
+          console.error('[DailyChallenge] Cron error:', error);
+          return res.status(500).json({ error: error.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }
 
 /**

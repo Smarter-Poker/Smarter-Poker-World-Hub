@@ -11,69 +11,75 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-    // Verify cron secret
-    if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
+  try {
+      // Verify cron secret
+      if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+          return res.status(401).json({ error: 'Unauthorized' });
+      }
 
 
-    try {
-        // Get all active goals
-        const { data: goals, error: goalsError } = await supabase
-            .from('bankroll_goals')
-            .select('id, user_id, goal_type, target_amount, current_amount, stop_loss_amount, notified_complete, notified_stop_loss')
-            .eq('is_active', true)
-                .limit(100);
+      try {
+          // Get all active goals
+          const { data: goals, error: goalsError } = await supabase
+              .from('bankroll_goals')
+              .select('id, user_id, goal_type, target_amount, current_amount, stop_loss_amount, notified_complete, notified_stop_loss')
+              .eq('is_active', true)
+                  .limit(100);
 
-        if (goalsError) throw goalsError;
-        if (!goals?.length) {
-            return res.json({ success: true, message: 'No active goals' });
-        }
+          if (goalsError) throw goalsError;
+          if (!goals?.length) {
+              return res.json({ success: true, message: 'No active goals' });
+          }
 
-        const alertsSent = [];
+          const alertsSent = [];
 
-        for (const goal of goals) {
-            // Check goal completion
-            if (goal.current_amount >= goal.target_amount && !goal.notified_complete) {
-                // Goal reached!
-                await sendPushNotification(
-                    goal.user_id,
-                    '🎯 Goal Reached!',
-                    `You hit your ${goal.goal_type} goal of $${goal.target_amount.toLocaleString()}!`
-                );
+          for (const goal of goals) {
+              // Check goal completion
+              if (goal.current_amount >= goal.target_amount && !goal.notified_complete) {
+                  // Goal reached!
+                  await sendPushNotification(
+                      goal.user_id,
+                      '🎯 Goal Reached!',
+                      `You hit your ${goal.goal_type} goal of $${goal.target_amount.toLocaleString()}!`
+                  );
 
-                await supabase
-                    .from('bankroll_goals')
-                    .update({ notified_complete: true })
-                    .eq('id', goal.id);
+                  await supabase
+                      .from('bankroll_goals')
+                      .update({ notified_complete: true })
+                      .eq('id', goal.id);
 
-                alertsSent.push({ type: 'goal_complete', userId: goal.user_id, goalId: goal.id });
-            }
+                  alertsSent.push({ type: 'goal_complete', userId: goal.user_id, goalId: goal.id });
+              }
 
-            // Check stop-loss trigger
-            if (goal.stop_loss_amount && goal.current_amount <= goal.stop_loss_amount && !goal.notified_stop_loss) {
-                // Stop-loss triggered!
-                await sendPushNotification(
-                    goal.user_id,
-                    '⚠️ Stop-Loss Alert',
-                    `Your bankroll dropped to $${goal.current_amount.toLocaleString()}. Consider taking a break.`
-                );
+              // Check stop-loss trigger
+              if (goal.stop_loss_amount && goal.current_amount <= goal.stop_loss_amount && !goal.notified_stop_loss) {
+                  // Stop-loss triggered!
+                  await sendPushNotification(
+                      goal.user_id,
+                      '⚠️ Stop-Loss Alert',
+                      `Your bankroll dropped to $${goal.current_amount.toLocaleString()}. Consider taking a break.`
+                  );
 
-                await supabase
-                    .from('bankroll_goals')
-                    .update({ notified_stop_loss: true })
-                    .eq('id', goal.id);
+                  await supabase
+                      .from('bankroll_goals')
+                      .update({ notified_stop_loss: true })
+                      .eq('id', goal.id);
 
-                alertsSent.push({ type: 'stop_loss', userId: goal.user_id, goalId: goal.id });
-            }
-        }
+                  alertsSent.push({ type: 'stop_loss', userId: goal.user_id, goalId: goal.id });
+              }
+          }
 
-        res.json({ success: true, alertsSent });
+          res.json({ success: true, alertsSent });
 
-    } catch (err) {
-        console.error('[Bankroll Alerts] Error:', err);
-        res.status(500).json({ error: err.message });
-    }
+      } catch (err) {
+          console.error('[Bankroll Alerts] Error:', err);
+          res.status(500).json({ error: err.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }
 
 async function sendPushNotification(userId, title, message) {

@@ -19,18 +19,24 @@ const supabase = createClient(
 const FEDERAL_WITHHOLDING_RATE = 0.24;
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+    // Auth guard: require staff auth
+    const _staff = await guardStaff(req, res);
+    if (!_staff) return;
+
+    if (req.method === 'GET') return listTaxEvents(req, res);
+    if (req.method === 'POST') return generateW2G(req, res);
+    if (req.method === 'PATCH') return updateTaxEvent(req, res);
+    return res.status(405).json({ success: false, error: { code: 'METHOD_NOT_ALLOWED' } });
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-  // Auth guard: require staff auth
-  const _staff = await guardStaff(req, res);
-  if (!_staff) return;
-
-  if (req.method === 'GET') return listTaxEvents(req, res);
-  if (req.method === 'POST') return generateW2G(req, res);
-  if (req.method === 'PATCH') return updateTaxEvent(req, res);
-  return res.status(405).json({ success: false, error: { code: 'METHOD_NOT_ALLOWED' } });
 }
 
 async function listTaxEvents(req, res) {

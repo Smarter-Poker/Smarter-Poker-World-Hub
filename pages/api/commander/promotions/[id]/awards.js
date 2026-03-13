@@ -14,28 +14,34 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+    const _g = await guardWriteStaff(req, res); if (!_g) return;
+
+    const { id: promotionId } = req.query;
+
+    if (!promotionId) {
+      return res.status(400).json({ error: 'Promotion ID required' });
+    }
+
+    if (req.method === 'GET') {
+      return listAwards(req, res, promotionId);
+    }
+
+    if (req.method === 'POST') {
+      return createAward(req, res, promotionId);
+    }
+
+    res.setHeader('Allow', ['GET', 'POST']);
+    return res.status(405).json({ error: 'Method not allowed' });
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-  const _g = await guardWriteStaff(req, res); if (!_g) return;
-
-  const { id: promotionId } = req.query;
-
-  if (!promotionId) {
-    return res.status(400).json({ error: 'Promotion ID required' });
-  }
-
-  if (req.method === 'GET') {
-    return listAwards(req, res, promotionId);
-  }
-
-  if (req.method === 'POST') {
-    return createAward(req, res, promotionId);
-  }
-
-  res.setHeader('Allow', ['GET', 'POST']);
-  return res.status(405).json({ error: 'Method not allowed' });
 }
 
 async function listAwards(req, res, promotionId) {

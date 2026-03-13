@@ -25,142 +25,148 @@ const DAILY_CAP = 500;
 const COOLDOWN_MINUTES = 1;
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+      if (req.method !== 'POST') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
+
+      const supabase = createClient(supabaseUrl, supabaseKey);
+      // ── Auth: JWT required (awards diamonds) ──
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
+      const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+      if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+
+      const { followingId } = req.body;
+      const userId = authUser.id; // Use JWT identity
+
+      if (!userId || !followingId) {
+          return res.status(400).json({ success: false, error: 'userId and followingId required' });
+      }
+
+      if (userId === followingId) {
+          return res.status(200).json({ success: false, message: 'Cannot follow yourself' });
+      }
+
+      const now = new Date();
+      const cstDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+      const today = `${cstDate.getFullYear()}-${String(cstDate.getMonth() + 1).padStart(2, '0')}-${String(cstDate.getDate()).padStart(2, '0')}`;
+
+      try {
+          // SAFEGUARD 1: Account age (24h)
+          const { data: profile } = await supabase
+              .from('profiles')
+              .select('created_at')
+              .eq('id', userId)
+              .maybeSingle();
+
+          if (profile?.created_at && (now - new Date(profile.created_at)) < 24 * 60 * 60 * 1000) {
+              return res.status(200).json({ success: false, message: 'Account must be 24h old' });
+          }
+
+          // SAFEGUARD 2: Verify connection exists
+          const { data: connection } = await supabase
+              .from('social_connections')
+              .select('id')
+              .eq('follower_id', userId)
+              .eq('following_id', followingId)
+              .maybeSingle();
+
+          if (!connection) {
+              return res.status(200).json({ success: false, message: 'Follow connection not found' });
+          }
+
+          // SAFEGUARD 3: No double-claiming same follow target today
+          const { data: existingClaim } = await supabase
+              .from('diamond_reward_claims')
+              .select('id')
+              .eq('user_id', userId)
+              .eq('reward_type', 'follow')
+              .eq('claim_date', today)
+              .contains('metadata', { following_id: followingId })
+              .maybeSingle();
+
+          if (existingClaim) {
+              return res.status(200).json({ success: true, alreadyClaimed: true, message: 'Already earned for this follow today' });
+          }
+
+          // SAFEGUARD 4: Daily limit
+          const { count } = await supabase
+              .from('diamond_reward_claims')
+              .select('*', { count: 'exact', head: true })
+              .eq('user_id', userId)
+              .eq('reward_type', 'follow')
+              .eq('claim_date', today);
+
+          if ((count || 0) >= MAX_PER_DAY) {
+              return res.status(200).json({ success: true, alreadyClaimed: true, message: `Follow limit (${MAX_PER_DAY}/day) reached` });
+          }
+
+          // SAFEGUARD 5: Cooldown (1 min)
+          const { data: lastClaim } = await supabase
+              .from('diamond_reward_claims')
+              .select('claimed_at')
+              .eq('user_id', userId)
+              .eq('reward_type', 'follow')
+              .order('claimed_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+          if (lastClaim?.claimed_at && (now - new Date(lastClaim.claimed_at)) < COOLDOWN_MINUTES * 60 * 1000) {
+              return res.status(200).json({ success: false, cooldown: true });
+          }
+
+          // SAFEGUARD 6: Daily cap
+          const { data: todayClaims } = await supabase
+              .from('diamond_reward_claims')
+              .select('diamonds_awarded')
+              .eq('user_id', userId)
+              .eq('claim_date', today)
+              .neq('reward_type', 'referral');
+
+          const todayTotal = (todayClaims || []).reduce((sum, c) => sum + (c.diamonds_awarded || 0), 0);
+          if (todayTotal + FOLLOW_REWARD > DAILY_CAP) {
+              return res.status(200).json({ success: false, dailyCapReached: true });
+          }
+
+          // Record & award
+          // BUG #271 FIX: Check insert result before awarding diamonds
+          const { error: claimErr } = await supabase.from('diamond_reward_claims').insert({
+              user_id: userId,
+              reward_type: 'follow',
+              diamonds_awarded: FOLLOW_REWARD,
+              claim_date: today,
+              metadata: { following_id: followingId }
+          });
+
+          if (claimErr) {
+              if (claimErr.code === '23505') {
+                  return res.status(200).json({ success: true, alreadyClaimed: true });
+              }
+              throw claimErr;
+          }
+
+          await supabase.rpc('add_diamonds_to_balance', {
+              p_user_id: userId,
+              p_amount: FOLLOW_REWARD,
+              p_type: 'follow',
+              p_description: `Follow reward — ${FOLLOW_REWARD}💎`,
+              p_reference_id: followingId
+          });
+
+          return res.status(200).json({ success: true, claimed: true, diamondsAwarded: FOLLOW_REWARD });
+
+      } catch (error) {
+          console.error('[FollowReward] Error:', error.message || error);
+          return res.status(500).json({ success: false, error: 'Failed to claim follow reward' });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-    if (req.method !== 'POST') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseKey);
-    // ── Auth: JWT required (awards diamonds) ──
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-    const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
-    if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
-
-    const { followingId } = req.body;
-    const userId = authUser.id; // Use JWT identity
-
-    if (!userId || !followingId) {
-        return res.status(400).json({ success: false, error: 'userId and followingId required' });
-    }
-
-    if (userId === followingId) {
-        return res.status(200).json({ success: false, message: 'Cannot follow yourself' });
-    }
-
-    const now = new Date();
-    const cstDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
-    const today = `${cstDate.getFullYear()}-${String(cstDate.getMonth() + 1).padStart(2, '0')}-${String(cstDate.getDate()).padStart(2, '0')}`;
-
-    try {
-        // SAFEGUARD 1: Account age (24h)
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('created_at')
-            .eq('id', userId)
-            .maybeSingle();
-
-        if (profile?.created_at && (now - new Date(profile.created_at)) < 24 * 60 * 60 * 1000) {
-            return res.status(200).json({ success: false, message: 'Account must be 24h old' });
-        }
-
-        // SAFEGUARD 2: Verify connection exists
-        const { data: connection } = await supabase
-            .from('social_connections')
-            .select('id')
-            .eq('follower_id', userId)
-            .eq('following_id', followingId)
-            .maybeSingle();
-
-        if (!connection) {
-            return res.status(200).json({ success: false, message: 'Follow connection not found' });
-        }
-
-        // SAFEGUARD 3: No double-claiming same follow target today
-        const { data: existingClaim } = await supabase
-            .from('diamond_reward_claims')
-            .select('id')
-            .eq('user_id', userId)
-            .eq('reward_type', 'follow')
-            .eq('claim_date', today)
-            .contains('metadata', { following_id: followingId })
-            .maybeSingle();
-
-        if (existingClaim) {
-            return res.status(200).json({ success: true, alreadyClaimed: true, message: 'Already earned for this follow today' });
-        }
-
-        // SAFEGUARD 4: Daily limit
-        const { count } = await supabase
-            .from('diamond_reward_claims')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', userId)
-            .eq('reward_type', 'follow')
-            .eq('claim_date', today);
-
-        if ((count || 0) >= MAX_PER_DAY) {
-            return res.status(200).json({ success: true, alreadyClaimed: true, message: `Follow limit (${MAX_PER_DAY}/day) reached` });
-        }
-
-        // SAFEGUARD 5: Cooldown (1 min)
-        const { data: lastClaim } = await supabase
-            .from('diamond_reward_claims')
-            .select('claimed_at')
-            .eq('user_id', userId)
-            .eq('reward_type', 'follow')
-            .order('claimed_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-        if (lastClaim?.claimed_at && (now - new Date(lastClaim.claimed_at)) < COOLDOWN_MINUTES * 60 * 1000) {
-            return res.status(200).json({ success: false, cooldown: true });
-        }
-
-        // SAFEGUARD 6: Daily cap
-        const { data: todayClaims } = await supabase
-            .from('diamond_reward_claims')
-            .select('diamonds_awarded')
-            .eq('user_id', userId)
-            .eq('claim_date', today)
-            .neq('reward_type', 'referral');
-
-        const todayTotal = (todayClaims || []).reduce((sum, c) => sum + (c.diamonds_awarded || 0), 0);
-        if (todayTotal + FOLLOW_REWARD > DAILY_CAP) {
-            return res.status(200).json({ success: false, dailyCapReached: true });
-        }
-
-        // Record & award
-        // BUG #271 FIX: Check insert result before awarding diamonds
-        const { error: claimErr } = await supabase.from('diamond_reward_claims').insert({
-            user_id: userId,
-            reward_type: 'follow',
-            diamonds_awarded: FOLLOW_REWARD,
-            claim_date: today,
-            metadata: { following_id: followingId }
-        });
-
-        if (claimErr) {
-            if (claimErr.code === '23505') {
-                return res.status(200).json({ success: true, alreadyClaimed: true });
-            }
-            throw claimErr;
-        }
-
-        await supabase.rpc('add_diamonds_to_balance', {
-            p_user_id: userId,
-            p_amount: FOLLOW_REWARD,
-            p_type: 'follow',
-            p_description: `Follow reward — ${FOLLOW_REWARD}💎`,
-            p_reference_id: followingId
-        });
-
-        return res.status(200).json({ success: true, claimed: true, diamondsAwarded: FOLLOW_REWARD });
-
-    } catch (error) {
-        console.error('[FollowReward] Error:', error.message || error);
-        return res.status(500).json({ success: false, error: 'Failed to claim follow reward' });
-    }
 }

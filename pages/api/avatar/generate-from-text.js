@@ -123,110 +123,116 @@ async function removeBackgroundWithSharp(inputBuffer) {
 }
 
 export default async function handler(req, res) {
-  if (!applyRateLimit(req, res, LIMITS.ai)) return;
+  try {
+    if (!applyRateLimit(req, res, LIMITS.ai)) return;
 
-    if (req.method !== 'POST') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
+      if (req.method !== 'POST') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
 
-    // BUG #266 FIX: Require JWT auth — this endpoint calls paid Grok API
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
-    const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
-    if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+      // BUG #266 FIX: Require JWT auth — this endpoint calls paid Grok API
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
+      const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+      if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-    try {
-        const { prompt, userId: _clientUserId } = req.body;
-        const userId = authUser.id; // Always use JWT user ID
+      try {
+          const { prompt, userId: _clientUserId } = req.body;
+          const userId = authUser.id; // Always use JWT user ID
 
-        if (!prompt) {
-            return res.status(400).json({ success: false, error: 'Prompt is required' });
-        }
-
-
-        // STRICT AVATAR PROMPT - Character only, pure white background
-        const strictAvatarPrompt = `Create a 3D Pixar-style CHARACTER PORTRAIT ONLY. 
-Subject: ${prompt}
-STRICT RULES:
-- ONLY the character's head and upper shoulders (bust portrait)
-- PURE WHITE BACKGROUND (#FFFFFF) - absolutely no gradients, textures, or shadows
-- NO poker tables, NO cards, NO chips, NO props in the background
-- NO scene, NO environment, NO accessories around character  
-- Face must be the MAIN FOCUS with clear edges
-- High quality 3D render like Pixar/Disney animation
-- Vibrant colors, detailed facial features
-- Professional avatar suitable for profile picture
-- The character should embody the description given: ${prompt}
-IMPORTANT: This is for a poker player avatar - just the character portrait with a PURE WHITE background for easy removal.`;
-
-        // Use Grok image generation (mapped from dall-e-3 to grok-2-image-1212)
-        let response;
-        try {
-            response = await grok.images.generate({
-                model: "dall-e-3",  // Will be mapped to grok-2-image-1212 by grokClient
-                prompt: strictAvatarPrompt,
-                n: 1,
-                // Note: xAI API doesn't support size/quality params
-            });
-        } catch (apiError) {
-            console.error('❌ Grok API call failed:', apiError.message);
-            console.error('❌ Full error:', JSON.stringify(apiError, null, 2));
-            throw new Error(`Grok API error: ${apiError.message}`);
-        }
-
-        if (!response?.data?.[0]?.url) {
-            console.error('❌ Grok API returned no image URL:', JSON.stringify(response));
-            throw new Error('Grok API returned no image URL');
-        }
-
-        const imageUrl = response.data[0].url;
-
-        // Download the image (server-side, no CORS issue)
-        const imageResponse = await fetch(imageUrl);
-        const arrayBuffer = await imageResponse.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
+          if (!prompt) {
+              return res.status(400).json({ success: false, error: 'Prompt is required' });
+          }
 
 
-        // Remove background using Sharp for serverless-compatible transparency
-        const transparentBuffer = await removeBackgroundWithSharp(buffer);
+          // STRICT AVATAR PROMPT - Character only, pure white background
+          const strictAvatarPrompt = `Create a 3D Pixar-style CHARACTER PORTRAIT ONLY. 
+  Subject: ${prompt}
+  STRICT RULES:
+  - ONLY the character's head and upper shoulders (bust portrait)
+  - PURE WHITE BACKGROUND (#FFFFFF) - absolutely no gradients, textures, or shadows
+  - NO poker tables, NO cards, NO chips, NO props in the background
+  - NO scene, NO environment, NO accessories around character  
+  - Face must be the MAIN FOCUS with clear edges
+  - High quality 3D render like Pixar/Disney animation
+  - Vibrant colors, detailed facial features
+  - Professional avatar suitable for profile picture
+  - The character should embody the description given: ${prompt}
+  IMPORTANT: This is for a poker player avatar - just the character portrait with a PURE WHITE background for easy removal.`;
+
+          // Use Grok image generation (mapped from dall-e-3 to grok-2-image-1212)
+          let response;
+          try {
+              response = await grok.images.generate({
+                  model: "dall-e-3",  // Will be mapped to grok-2-image-1212 by grokClient
+                  prompt: strictAvatarPrompt,
+                  n: 1,
+                  // Note: xAI API doesn't support size/quality params
+              });
+          } catch (apiError) {
+              console.error('❌ Grok API call failed:', apiError.message);
+              console.error('❌ Full error:', JSON.stringify(apiError, null, 2));
+              throw new Error(`Grok API error: ${apiError.message}`);
+          }
+
+          if (!response?.data?.[0]?.url) {
+              console.error('❌ Grok API returned no image URL:', JSON.stringify(response));
+              throw new Error('Grok API returned no image URL');
+          }
+
+          const imageUrl = response.data[0].url;
+
+          // Download the image (server-side, no CORS issue)
+          const imageResponse = await fetch(imageUrl);
+          const arrayBuffer = await imageResponse.arrayBuffer();
+          const buffer = Buffer.from(arrayBuffer);
 
 
-        // Generate unique filename
-        const timestamp = Date.now();
-        const safeUserId = userId || 'anonymous';
-        const filename = `${safeUserId}_${timestamp}.png`;
-        const storagePath = `generated/${filename}`;
-
-        // Upload to Supabase Storage
-        const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('custom-avatars')
-            .upload(storagePath, transparentBuffer, {
-                contentType: 'image/png',
-                cacheControl: '3600',
-                upsert: true
-            });
-
-        if (uploadError) {
-            console.error('❌ Supabase upload error:', uploadError);
-            throw new Error('Failed to upload avatar to storage');
-        }
-
-        // Get public URL
-        const { data: { publicUrl } } = supabase.storage
-            .from('custom-avatars')
-            .getPublicUrl(storagePath);
+          // Remove background using Sharp for serverless-compatible transparency
+          const transparentBuffer = await removeBackgroundWithSharp(buffer);
 
 
-        return res.status(200).json({
-            success: true,
-            imageUrl: publicUrl
-        });
+          // Generate unique filename
+          const timestamp = Date.now();
+          const safeUserId = userId || 'anonymous';
+          const filename = `${safeUserId}_${timestamp}.png`;
+          const storagePath = `generated/${filename}`;
 
-    } catch (error) {
-        console.error('❌ Avatar generation error:', error);
-        return res.status(500).json({
-            success: false,
-            error: error.message || 'Failed to generate avatar'
-        });
-    }
+          // Upload to Supabase Storage
+          const { data: uploadData, error: uploadError } = await supabase.storage
+              .from('custom-avatars')
+              .upload(storagePath, transparentBuffer, {
+                  contentType: 'image/png',
+                  cacheControl: '3600',
+                  upsert: true
+              });
+
+          if (uploadError) {
+              console.error('❌ Supabase upload error:', uploadError);
+              throw new Error('Failed to upload avatar to storage');
+          }
+
+          // Get public URL
+          const { data: { publicUrl } } = supabase.storage
+              .from('custom-avatars')
+              .getPublicUrl(storagePath);
+
+
+          return res.status(200).json({
+              success: true,
+              imageUrl: publicUrl
+          });
+
+      } catch (error) {
+          console.error('❌ Avatar generation error:', error);
+          return res.status(500).json({
+              success: false,
+              error: error.message || 'Failed to generate avatar'
+          });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

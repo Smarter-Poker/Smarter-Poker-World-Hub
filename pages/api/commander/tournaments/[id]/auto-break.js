@@ -20,32 +20,38 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
-
-  const _g = await guardWriteStaff(req, res); if (!_g) return;
-
-  const { id: tournamentId } = req.query;
-  if (!tournamentId) return res.status(400).json({ success: false, error: 'Tournament ID required' });
-
   try {
-    // Staff is already validated by guardWriteStaff at the handler level
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
 
-    // Get tournament
-    const { data: tournament, error: tErr } = await supabase
-      .from('commander_tournaments')
-      .select('*')
-      .eq('id', tournamentId)
-      .maybeSingle();
-    if (tErr || !tournament) return res.status(404).json({ success: false, error: 'Tournament not found' });
+    const _g = await guardWriteStaff(req, res); if (!_g) return;
 
-    if (req.method === 'GET') return handleCheck(req, res, tournament);
-    if (req.method === 'POST') return handleExecute(req, res, tournament);
-    return res.status(405).json({ success: false, error: 'Method not allowed' });
+    const { id: tournamentId } = req.query;
+    if (!tournamentId) return res.status(400).json({ success: false, error: 'Tournament ID required' });
+
+    try {
+      // Staff is already validated by guardWriteStaff at the handler level
+
+      // Get tournament
+      const { data: tournament, error: tErr } = await supabase
+        .from('commander_tournaments')
+        .select('*')
+        .eq('id', tournamentId)
+        .maybeSingle();
+      if (tErr || !tournament) return res.status(404).json({ success: false, error: 'Tournament not found' });
+
+      if (req.method === 'GET') return handleCheck(req, res, tournament);
+      if (req.method === 'POST') return handleExecute(req, res, tournament);
+      return res.status(405).json({ success: false, error: 'Method not allowed' });
+    } catch (err) {
+      console.error('Auto-break error:', err);
+      return res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+
   } catch (err) {
-    console.error('Auto-break error:', err);
-    return res.status(500).json({ success: false, error: 'Internal server error' });
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }
 

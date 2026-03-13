@@ -649,116 +649,122 @@ async function postToStory(authorId, mediaUrl, mediaType = 'video') {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default async function handler(req, res) {
-    // Verify cron secret
-    if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
+  try {
+      // Verify cron secret
+      if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+          return res.status(401).json({ error: 'Unauthorized' });
+      }
 
-    if (!SUPABASE_URL || !process.env.XAI_API_KEY) {
-        return res.status(500).json({ error: 'Missing env vars' });
-    }
+      if (!SUPABASE_URL || !process.env.XAI_API_KEY) {
+          return res.status(500).json({ error: 'Missing env vars' });
+      }
 
-    // Load ClipLibrary dynamically
-    const libLoaded = await loadClipLibrary();
-    if (!libLoaded) {
-        return res.status(500).json({ error: 'Failed to load ClipLibrary' });
-    }
+      // Load ClipLibrary dynamically
+      const libLoaded = await loadClipLibrary();
+      if (!libLoaded) {
+          return res.status(500).json({ error: 'Failed to load ClipLibrary' });
+      }
 
-    // Load ClipDeduplicationService - CRITICAL for preventing duplicates
-    await loadDeduplicationService();
-    if (!dedupLoaded) {
-    }
+      // Load ClipDeduplicationService - CRITICAL for preventing duplicates
+      await loadDeduplicationService();
+      if (!dedupLoaded) {
+      }
 
-    try {
-        // Get recently posted clips to avoid duplicates (horse coordination)
-        const recentlyUsedClips = await getRecentlyPostedClipIds();
+      try {
+          // Get recently posted clips to avoid duplicates (horse coordination)
+          const recentlyUsedClips = await getRecentlyPostedClipIds();
 
-        // Get current time for per-horse scheduling
-        const now = new Date();
-        const currentMinute = now.getMinutes();
-        const currentHour = now.getHours();
+          // Get current time for per-horse scheduling
+          const now = new Date();
+          const currentMinute = now.getMinutes();
+          const currentHour = now.getHours();
 
-        // Get ALL active horses
-        const { data: allHorses, error: horseError } = await supabase
-            .from('content_authors')
-            .select('*')
-            .eq('is_active', true)
-            .not('profile_id', 'is', null)
-                .limit(100);
+          // Get ALL active horses
+          const { data: allHorses, error: horseError } = await supabase
+              .from('content_authors')
+              .select('*')
+              .eq('is_active', true)
+              .not('profile_id', 'is', null)
+                  .limit(100);
 
-        if (horseError || !allHorses?.length) {
-            return res.status(200).json({
-                success: true,
-                message: 'No horses available',
-                posted: 0
-            });
-        }
+          if (horseError || !allHorses?.length) {
+              return res.status(200).json({
+                  success: true,
+                  message: 'No horses available',
+                  posted: 0
+              });
+          }
 
-        // FILTER: Only horses who are "awake" during their 12-hour active window
-        // Each horse has a unique sleep schedule based on their profile_id hash
-        const awakeHorses = allHorses.filter(horse => {
-            if (!horse.profile_id) return false;
-            return isHorseActiveHour(horse.profile_id, currentHour);
-        });
-
-
-        // INDIVIDUAL SCHEDULING: Each horse has their own assigned minute (0-59)
-        // shouldHorseBeActive checks if current minute is within ±7 of their slot
-        const selectedHorses = awakeHorses.filter(horse => {
-            const isMyTime = shouldHorseBeActive(horse.profile_id, currentMinute, 7);
-            if (isMyTime) {
-            }
-            return isMyTime;
-        });
+          // FILTER: Only horses who are "awake" during their 12-hour active window
+          // Each horse has a unique sleep schedule based on their profile_id hash
+          const awakeHorses = allHorses.filter(horse => {
+              if (!horse.profile_id) return false;
+              return isHorseActiveHour(horse.profile_id, currentHour);
+          });
 
 
-        if (selectedHorses.length === 0) {
-            return res.status(200).json({
-                success: true,
-                message: `No horses scheduled for minute ${currentMinute}`,
-                posted: 0,
-                awakeHorses: awakeHorses.length
-            });
-        }
-
-        const results = [];
-
-        for (const horse of selectedHorses) {
-            // Random delay 5-15 seconds between posts (stay under 60s timeout)
-            await new Promise(r => setTimeout(r, Math.random() * 10000 + 5000));
-
-            // 100% VIDEO CLIPS ONLY - no AI generated content
-            const result = await postVideoClip(horse, recentlyUsedClips);
-
-            if (result) {
-                results.push({
-                    horse: horse.name,
-                    ...result,
-                    success: true
-                });
-            } else {
-                results.push({
-                    horse: horse.name,
-                    success: false
-                });
-            }
-        }
-
-        const videoClips = results.filter(r => r.type === 'video_clip').length;
-        const originalPosts = results.filter(r => r.type === 'original').length;
+          // INDIVIDUAL SCHEDULING: Each horse has their own assigned minute (0-59)
+          // shouldHorseBeActive checks if current minute is within ±7 of their slot
+          const selectedHorses = awakeHorses.filter(horse => {
+              const isMyTime = shouldHorseBeActive(horse.profile_id, currentMinute, 7);
+              if (isMyTime) {
+              }
+              return isMyTime;
+          });
 
 
-        return res.status(200).json({
-            success: true,
-            posted: results.filter(r => r.success).length,
-            video_clips: videoClips,
-            original_posts: originalPosts,
-            results,
-            timestamp: new Date().toISOString()
-        });
+          if (selectedHorses.length === 0) {
+              return res.status(200).json({
+                  success: true,
+                  message: `No horses scheduled for minute ${currentMinute}`,
+                  posted: 0,
+                  awakeHorses: awakeHorses.length
+              });
+          }
 
-    } catch (error) {
-        console.error('Cron error:', error);
-        return res.status(500).json({ success: false, error: error.message });
-    }
+          const results = [];
+
+          for (const horse of selectedHorses) {
+              // Random delay 5-15 seconds between posts (stay under 60s timeout)
+              await new Promise(r => setTimeout(r, Math.random() * 10000 + 5000));
+
+              // 100% VIDEO CLIPS ONLY - no AI generated content
+              const result = await postVideoClip(horse, recentlyUsedClips);
+
+              if (result) {
+                  results.push({
+                      horse: horse.name,
+                      ...result,
+                      success: true
+                  });
+              } else {
+                  results.push({
+                      horse: horse.name,
+                      success: false
+                  });
+              }
+          }
+
+          const videoClips = results.filter(r => r.type === 'video_clip').length;
+          const originalPosts = results.filter(r => r.type === 'original').length;
+
+
+          return res.status(200).json({
+              success: true,
+              posted: results.filter(r => r.success).length,
+              video_clips: videoClips,
+              original_posts: originalPosts,
+              results,
+              timestamp: new Date().toISOString()
+          });
+
+      } catch (error) {
+          console.error('Cron error:', error);
+          return res.status(500).json({ success: false, error: error.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

@@ -15,94 +15,100 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
-
-  const _g = await guardWriteStaff(req, res); if (!_g) return;
-
-  if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method not allowed' });
-
   try {
-    const staff = _g; // from guardWriteStaff
-    const { waitlist_id, table_number } = req.body;
-    if (!waitlist_id) return res.status(400).json({ success: false, error: 'waitlist_id required' });
-
-    // Get current waitlist entry
-    const { data: entry } = await supabase
-      .from('commander_waitlist')
-      .select('*')
-      .eq('id', waitlist_id)
-      .maybeSingle();
-
-    if (!entry) return res.status(404).json({ success: false, error: 'Waitlist entry not found' });
-    if (entry.status !== 'waiting') {
-      return res.status(400).json({ success: false, error: `Player already ${entry.status}` });
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
 
-    // Update status to called
-    const { data, error } = await supabase
-      .from('commander_waitlist')
-      .update({
-        status: 'called',
-        last_called_at: new Date().toISOString(),
-        call_count: (entry.call_count || 0) + 1
-      })
-      .eq('id', waitlist_id)
-      .select()
-      .maybeSingle();
+    const _g = await guardWriteStaff(req, res); if (!_g) return;
 
-    if (error) return res.status(500).json({ success: false, error: error.message });
+    if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method not allowed' });
 
-    // Send SMS notification if phone on file
-    let smsResult = null;
-    if (entry.player_phone) {
-      let venueName = 'Your poker room';
-      try {
-        const { data: venue } = await supabase
-          .from('poker_venues')
-          .select('name')
-          .eq('id', entry.venue_id)
-          .maybeSingle();
-        if (venue?.name) venueName = venue.name;
-      } catch { }
+    try {
+      const staff = _g; // from guardWriteStaff
+      const { waitlist_id, table_number } = req.body;
+      if (!waitlist_id) return res.status(400).json({ success: false, error: 'waitlist_id required' });
 
-      const gameLabel = `${entry.stakes || ''} ${(entry.game_type || 'Cash Game').toUpperCase()}`.trim();
-      const tableInfo = table_number ? ` at Table ${table_number}` : '';
+      // Get current waitlist entry
+      const { data: entry } = await supabase
+        .from('commander_waitlist')
+        .select('*')
+        .eq('id', waitlist_id)
+        .maybeSingle();
 
-      if (isTwilioConfigured()) {
-        smsResult = await sendSeatNotification(
-          entry.player_phone,
-          venueName,
-          `${gameLabel}${tableInfo}`,
-          { timeout: 5 }
-        );
-      } else {
-        smsResult = { success: false, reason: 'Twilio not configured' };
+      if (!entry) return res.status(404).json({ success: false, error: 'Waitlist entry not found' });
+      if (entry.status !== 'waiting') {
+        return res.status(400).json({ success: false, error: `Player already ${entry.status}` });
       }
+
+      // Update status to called
+      const { data, error } = await supabase
+        .from('commander_waitlist')
+        .update({
+          status: 'called',
+          last_called_at: new Date().toISOString(),
+          call_count: (entry.call_count || 0) + 1
+        })
+        .eq('id', waitlist_id)
+        .select()
+        .maybeSingle();
+
+      if (error) return res.status(500).json({ success: false, error: error.message });
+
+      // Send SMS notification if phone on file
+      let smsResult = null;
+      if (entry.player_phone) {
+        let venueName = 'Your poker room';
+        try {
+          const { data: venue } = await supabase
+            .from('poker_venues')
+            .select('name')
+            .eq('id', entry.venue_id)
+            .maybeSingle();
+          if (venue?.name) venueName = venue.name;
+        } catch { }
+
+        const gameLabel = `${entry.stakes || ''} ${(entry.game_type || 'Cash Game').toUpperCase()}`.trim();
+        const tableInfo = table_number ? ` at Table ${table_number}` : '';
+
+        if (isTwilioConfigured()) {
+          smsResult = await sendSeatNotification(
+            entry.player_phone,
+            venueName,
+            `${gameLabel}${tableInfo}`,
+            { timeout: 5 }
+          );
+        } else {
+          smsResult = { success: false, reason: 'Twilio not configured' };
+        }
+      }
+
+      // Audit log
+      await logAction(AuditActions.WAITLIST_CALL, {
+        venueId: staff.venue_id,
+        staffId: staff.id,
+        targetId: waitlist_id,
+        targetType: 'commander_waitlist',
+        targetName: entry.player_name || 'Player',
+        metadata: { table_number },
+        req
+      });
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          ...data,
+          sms_sent: smsResult?.success || false,
+          sms_status: smsResult?.success ? 'sent' : (entry.player_phone ? (smsResult?.reason || 'no_config') : 'no_phone'),
+        }
+      });
+    } catch (err) {
+      console.error('Waitlist call error:', err);
+      return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 
-    // Audit log
-    await logAction(AuditActions.WAITLIST_CALL, {
-      venueId: staff.venue_id,
-      staffId: staff.id,
-      targetId: waitlist_id,
-      targetType: 'commander_waitlist',
-      targetName: entry.player_name || 'Player',
-      metadata: { table_number },
-      req
-    });
-
-    return res.status(200).json({
-      success: true,
-      data: {
-        ...data,
-        sms_sent: smsResult?.success || false,
-        sms_status: smsResult?.success ? 'sent' : (entry.player_phone ? (smsResult?.reason || 'no_config') : 'no_phone'),
-      }
-    });
   } catch (err) {
-    console.error('Waitlist call error:', err);
-    return res.status(500).json({ success: false, error: 'Internal server error' });
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

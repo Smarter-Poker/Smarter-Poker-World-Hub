@@ -15,39 +15,45 @@ const _supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+      if (req.method !== 'POST') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
+
+      // BUG #267 FIX: Require JWT auth — calls paid Grok API
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
+      const { data: { user: authUser }, error: authErr } = await _supabase.auth.getUser(token);
+      if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+
+      const { scenario } = req.body;
+
+      if (!scenario) {
+          return res.status(400).json({ success: false, error: 'Missing scenario data' });
+      }
+
+      try {
+          const alternateLines = await generateAlternateLines(scenario);
+          return res.status(200).json({
+              success: true,
+              alternate_lines: alternateLines
+          });
+      } catch (error) {
+          console.error('Alternate lines generation error:', error);
+          return res.status(500).json({
+              success: false, error: 'Failed to generate alternate lines',
+              details: error.message
+          });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-    if (req.method !== 'POST') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
-
-    // BUG #267 FIX: Require JWT auth — calls paid Grok API
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
-    const { data: { user: authUser }, error: authErr } = await _supabase.auth.getUser(token);
-    if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
-
-    const { scenario } = req.body;
-
-    if (!scenario) {
-        return res.status(400).json({ success: false, error: 'Missing scenario data' });
-    }
-
-    try {
-        const alternateLines = await generateAlternateLines(scenario);
-        return res.status(200).json({
-            success: true,
-            alternate_lines: alternateLines
-        });
-    } catch (error) {
-        console.error('Alternate lines generation error:', error);
-        return res.status(500).json({
-            success: false, error: 'Failed to generate alternate lines',
-            details: error.message
-        });
-    }
 }
 
 async function generateAlternateLines(scenario) {

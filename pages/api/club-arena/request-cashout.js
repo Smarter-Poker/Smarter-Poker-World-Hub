@@ -33,192 +33,198 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
-
-  // RED TEAM: Payload size + field allowlist (shared utility)
-  if (rejectBadPayload(req, res, ['clubId', 'amount', 'note'])) return;
-
-  // Idempotency guard — prevent double-charges on laggy mobile networks
-  if (checkIdempotency(req, res)) return;
-
-  const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
-
-  const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-  if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
-
-  const { clubId, amount: rawAmount, note: rawNote } = req.body;
-
-  // RED TEAM: Strict UUID validation
-  if (!isUUID(clubId)) return res.status(400).json({ success: false, error: 'Invalid clubId format' });
-
-  // RED TEAM: Strict amount validation (min 100, no fractionals, max 100M)
-  const amtResult = validateAmount(rawAmount, 100, 100_000_000);
-  if (!amtResult.valid) return res.status(400).json({ success: false, error: amtResult.error });
-  const amount = amtResult.value;
-
-  // RED TEAM: Sanitize note
-  const note = sanitizeNote(rawNote, 200);
-
-  // Settlement lock check — block during Monday 4:00-4:10 AM CST
-  const lockCheck = await checkSettlementLock(supabaseAdmin, clubId);
-  if (lockCheck.locked) return sendLockedResponse(res, lockCheck);
-
-  // Rate limit
-  if (!applyRateLimit(req, res, 'club-arena/request-cashout')) return;
-
   try {
-    // ═════════════════════════════════════════════════════════════
-    // 1. Get player's membership
-    // ═════════════════════════════════════════════════════════════
-    const { data: member, error: memErr } = await supabaseAdmin
-      .from('club_members')
-      .select('user_id, role, chip_balance, agent_id, nickname')
-      .eq('club_id', clubId)
-      .eq('user_id', user.id)
-      .maybeSingle();
+    if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 
-    if (memErr || !member) return res.status(404).json({ success: false, error: 'Not a member of this club' });
+    // RED TEAM: Payload size + field allowlist (shared utility)
+    if (rejectBadPayload(req, res, ['clubId', 'amount', 'note'])) return;
 
-    // ═════════════════════════════════════════════════════════════
-    // IN-PLAY LOCK — Block cashout while seated at an active table
-    // ═════════════════════════════════════════════════════════════
-    const { data: activeSeat } = await supabaseAdmin
-      .from('table_sessions')
-      .select('id, table_id')
-      .eq('club_id', clubId)
-      .eq('player_id', user.id)
-      .eq('is_active', true)
-      .limit(1);
+    // Idempotency guard — prevent double-charges on laggy mobile networks
+    if (checkIdempotency(req, res)) return;
 
-    if (activeSeat?.length > 0) {
-      return res.status(409).json({
-        success: false,
-        error: 'Cannot cash out while seated at a table. Leave the table first.',
-        in_play: true,
-        table_id: activeSeat[0].table_id,
-      });
-    }
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
-    if (amount > member.chip_balance) {
-      return res.status(400).json({
-        success: false, error: 'Insufficient chips',
-        available: member.chip_balance,
-        requested: amount,
-      });
-    }
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-    if (!member.agent_id) {
-      return res.status(400).json({ success: false, error: 'No agent assigned. Contact club owner.' });
-    }
+    const { clubId, amount: rawAmount, note: rawNote } = req.body;
 
-    // ═════════════════════════════════════════════════════════════
-    // 2. ATOMIC CASHOUT REQUEST (Debit + Escrow Transaction + Request)
-    // ═════════════════════════════════════════════════════════════
-    const { data: result, error: rpcErr } = await supabaseAdmin.rpc('fn_request_cashout', {
-      p_club_id: clubId,
-      p_player_id: user.id,
-      p_agent_id: member.agent_id,
-      p_amount: amount,
-      p_note: note || `Cashout request: ${amount.toLocaleString()} chips`
-    });
+    // RED TEAM: Strict UUID validation
+    if (!isUUID(clubId)) return res.status(400).json({ success: false, error: 'Invalid clubId format' });
 
-    if (rpcErr) {
-      console.error('[request-cashout] RPC Error:', rpcErr);
-      throw rpcErr;
-    }
+    // RED TEAM: Strict amount validation (min 100, no fractionals, max 100M)
+    const amtResult = validateAmount(rawAmount, 100, 100_000_000);
+    if (!amtResult.valid) return res.status(400).json({ success: false, error: amtResult.error });
+    const amount = amtResult.value;
 
-    if (!result?.success) {
-      const isBalanceErr = result?.error === 'Insufficient balance';
-      return res.status(isBalanceErr ? 400 : 409).json({ 
-          success: false, 
-          error: result?.error || 'Cashout request failed',
-          details: result
-      });
-    }
+    // RED TEAM: Sanitize note
+    const note = sanitizeNote(rawNote, 200);
 
-    const cashoutId = result.cashout_id;
+    // Settlement lock check — block during Monday 4:00-4:10 AM CST
+    const lockCheck = await checkSettlementLock(supabaseAdmin, clubId);
+    if (lockCheck.locked) return sendLockedResponse(res, lockCheck);
 
-    // Removed manual chip_transactions log — handled atomically by fn_request_cashout
-
-    // ═════════════════════════════════════════════════════════════
-    // 6. Get player display name for notifications
-    // ═════════════════════════════════════════════════════════════
-    const { data: playerProfile } = await supabaseAdmin
-      .from('profiles')
-      .select('username, display_name, full_name')
-      .eq('id', user.id)
-      .maybeSingle();
-
-    const playerName = playerProfile?.display_name
-      || playerProfile?.full_name
-      || playerProfile?.username
-      || member.nickname
-      || 'A player';
-
-    // ═════════════════════════════════════════════════════════════
-    // 7. Send in-app message to agent via messenger
-    // ═════════════════════════════════════════════════════════════
     // Rate limit
+    if (!applyRateLimit(req, res, 'club-arena/request-cashout')) return;
 
     try {
-      const { data: convId } = await supabaseAdmin.rpc('fn_get_or_create_conversation', {
-        user1_id: user.id,
-        user2_id: member.agent_id,
+      // ═════════════════════════════════════════════════════════════
+      // 1. Get player's membership
+      // ═════════════════════════════════════════════════════════════
+      const { data: member, error: memErr } = await supabaseAdmin
+        .from('club_members')
+        .select('user_id, role, chip_balance, agent_id, nickname')
+        .eq('club_id', clubId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (memErr || !member) return res.status(404).json({ success: false, error: 'Not a member of this club' });
+
+      // ═════════════════════════════════════════════════════════════
+      // IN-PLAY LOCK — Block cashout while seated at an active table
+      // ═════════════════════════════════════════════════════════════
+      const { data: activeSeat } = await supabaseAdmin
+        .from('table_sessions')
+        .select('id, table_id')
+        .eq('club_id', clubId)
+        .eq('player_id', user.id)
+        .eq('is_active', true)
+        .limit(1);
+
+      if (activeSeat?.length > 0) {
+        return res.status(409).json({
+          success: false,
+          error: 'Cannot cash out while seated at a table. Leave the table first.',
+          in_play: true,
+          table_id: activeSeat[0].table_id,
+        });
+      }
+
+      if (amount > member.chip_balance) {
+        return res.status(400).json({
+          success: false, error: 'Insufficient chips',
+          available: member.chip_balance,
+          requested: amount,
+        });
+      }
+
+      if (!member.agent_id) {
+        return res.status(400).json({ success: false, error: 'No agent assigned. Contact club owner.' });
+      }
+
+      // ═════════════════════════════════════════════════════════════
+      // 2. ATOMIC CASHOUT REQUEST (Debit + Escrow Transaction + Request)
+      // ═════════════════════════════════════════════════════════════
+      const { data: result, error: rpcErr } = await supabaseAdmin.rpc('fn_request_cashout', {
+        p_club_id: clubId,
+        p_player_id: user.id,
+        p_agent_id: member.agent_id,
+        p_amount: amount,
+        p_note: note || `Cashout request: ${amount.toLocaleString()} chips`
       });
-      if (convId) {
-        await supabaseAdmin.rpc('fn_send_message', {
-          p_conversation_id: convId,
-          p_sender_id: user.id,
-          p_content: `[CASHOUT REQUEST]\n\n${playerName} is requesting to cash out ${amount.toLocaleString()} chips.\n\nGo to your Agent Dashboard to approve or cancel.`,
+
+      if (rpcErr) {
+        console.error('[request-cashout] RPC Error:', rpcErr);
+        throw rpcErr;
+      }
+
+      if (!result?.success) {
+        const isBalanceErr = result?.error === 'Insufficient balance';
+        return res.status(isBalanceErr ? 400 : 409).json({ 
+            success: false, 
+            error: result?.error || 'Cashout request failed',
+            details: result
         });
       }
-    } catch (msgErr) {
-      console.warn('[request-cashout] Messenger notification failed:', msgErr.message);
-    }
 
-    // ═════════════════════════════════════════════════════════════
-    // 8. Send push notification to agent
-    // ═════════════════════════════════════════════════════════════
-    // Rate limit
+      const cashoutId = result.cashout_id;
 
-    try {
-      const baseUrl = process.env.NEXT_PUBLIC_SITE_URL
-        || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '');
+      // Removed manual chip_transactions log — handled atomically by fn_request_cashout
 
-      if (baseUrl) {
-        await fetch(`${baseUrl}/api/notifications/send`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-admin-secret': process.env.ADMIN_ROUTE_SECRET || '',
-          },
-          body: JSON.stringify({
-            userId: member.agent_id,
-            title: 'Cashout Request',
-            message: `${playerName} wants to cash out ${amount.toLocaleString()} chips`,
-            url: '/hub/club-arena/admin?tab=cashouts',
-          }),
+      // ═════════════════════════════════════════════════════════════
+      // 6. Get player display name for notifications
+      // ═════════════════════════════════════════════════════════════
+      const { data: playerProfile } = await supabaseAdmin
+        .from('profiles')
+        .select('username, display_name, full_name')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      const playerName = playerProfile?.display_name
+        || playerProfile?.full_name
+        || playerProfile?.username
+        || member.nickname
+        || 'A player';
+
+      // ═════════════════════════════════════════════════════════════
+      // 7. Send in-app message to agent via messenger
+      // ═════════════════════════════════════════════════════════════
+      // Rate limit
+
+      try {
+        const { data: convId } = await supabaseAdmin.rpc('fn_get_or_create_conversation', {
+          user1_id: user.id,
+          user2_id: member.agent_id,
         });
+        if (convId) {
+          await supabaseAdmin.rpc('fn_send_message', {
+            p_conversation_id: convId,
+            p_sender_id: user.id,
+            p_content: `[CASHOUT REQUEST]\n\n${playerName} is requesting to cash out ${amount.toLocaleString()} chips.\n\nGo to your Agent Dashboard to approve or cancel.`,
+          });
+        }
+      } catch (msgErr) {
+        console.warn('[request-cashout] Messenger notification failed:', msgErr.message);
       }
-    } catch (pushErr) {
-      console.warn('[request-cashout] Push notification failed:', pushErr.message);
+
+      // ═════════════════════════════════════════════════════════════
+      // 8. Send push notification to agent
+      // ═════════════════════════════════════════════════════════════
+      // Rate limit
+
+      try {
+        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL
+          || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '');
+
+        if (baseUrl) {
+          await fetch(`${baseUrl}/api/notifications/send`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-admin-secret': process.env.ADMIN_ROUTE_SECRET || '',
+            },
+            body: JSON.stringify({
+              userId: member.agent_id,
+              title: 'Cashout Request',
+              message: `${playerName} wants to cash out ${amount.toLocaleString()} chips`,
+              url: '/hub/club-arena/admin?tab=cashouts',
+            }),
+          });
+        }
+      } catch (pushErr) {
+        console.warn('[request-cashout] Push notification failed:', pushErr.message);
+      }
+
+      const responseBody = {
+        success: true,
+        cashoutId: cashoutId,
+        amount,
+        status: 'pending',
+        remainingBalance: member.chip_balance - amount,
+        agentNotified: true,
+        message: `${amount.toLocaleString()} chips held. Your agent has been notified.`,
+      };
+      logAudit(supabaseAdmin, { actionType: 'cashout_requested', userId: user.id, clubId, amount, ip: extractIP(req), details: { cashoutId: cashoutId, remainingBalance: member.chip_balance - amount, agentId: member.agent_id } });
+      cacheResponse(req, 200, responseBody);
+      return res.status(200).json(responseBody);
+    } catch (err) {
+      console.error('[request-cashout]', err);
+      return res.status(500).json(safeErrorResponse(err, 'Cashout request failed'));
     }
 
-    const responseBody = {
-      success: true,
-      cashoutId: cashoutId,
-      amount,
-      status: 'pending',
-      remainingBalance: member.chip_balance - amount,
-      agentNotified: true,
-      message: `${amount.toLocaleString()} chips held. Your agent has been notified.`,
-    };
-    logAudit(supabaseAdmin, { actionType: 'cashout_requested', userId: user.id, clubId, amount, ip: extractIP(req), details: { cashoutId: cashoutId, remainingBalance: member.chip_balance - amount, agentId: member.agent_id } });
-    cacheResponse(req, 200, responseBody);
-    return res.status(200).json(responseBody);
   } catch (err) {
-    console.error('[request-cashout]', err);
-    return res.status(500).json(safeErrorResponse(err, 'Cashout request failed'));
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

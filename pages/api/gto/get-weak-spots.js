@@ -15,57 +15,63 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  // BUG #244 FIX: Require JWT auth — these routes use paid AI APIs
-  const _authSupa = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-  const _token = req.headers.authorization?.replace('Bearer ', '');
-  if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
-  const { data: { user: _authUser }, error: _authErr } = await _authSupa.auth.getUser(_token);
-  if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+  try {
+    // BUG #244 FIX: Require JWT auth — these routes use paid AI APIs
+    const _authSupa = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+    const _token = req.headers.authorization?.replace('Bearer ', '');
+    if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
+    const { data: { user: _authUser }, error: _authErr } = await _authSupa.auth.getUser(_token);
+    if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-    if (req.method !== 'GET') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
+      if (req.method !== 'GET') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
 
-    try {
-        const userId = _authUser.id; // Trust JWT, not client-supplied query param
+      try {
+          const userId = _authUser.id; // Trust JWT, not client-supplied query param
 
-        // Fetch recent training sessions
-        const { data: sessions, error } = await supabase
-            .from('jarvis_training_sessions')
-            .select('answers_data, leaks_detected, accuracy, game_id, level')
-            .eq('user_id', userId)
-            .order('created_at', { ascending: false })
-            .limit(20);
+          // Fetch recent training sessions
+          const { data: sessions, error } = await supabase
+              .from('jarvis_training_sessions')
+              .select('answers_data, leaks_detected, accuracy, game_id, level')
+              .eq('user_id', userId)
+              .order('created_at', { ascending: false })
+              .limit(20);
 
-        if (error) {
-            console.error('[GetWeakSpots] DB Error:', error);
-            throw error;
-        }
+          if (error) {
+              console.error('[GetWeakSpots] DB Error:', error);
+              throw error;
+          }
 
-        if (!sessions || sessions.length === 0) {
-            return res.status(200).json({
-                success: true,
-                weakSpots: [],
-                message: 'No training data yet. Play some games to get personalized insights!'
-            });
-        }
+          if (!sessions || sessions.length === 0) {
+              return res.status(200).json({
+                  success: true,
+                  weakSpots: [],
+                  message: 'No training data yet. Play some games to get personalized insights!'
+              });
+          }
 
-        // Analyze patterns across sessions
-        const weakSpots = analyzeWeakSpots(sessions);
+          // Analyze patterns across sessions
+          const weakSpots = analyzeWeakSpots(sessions);
 
-        return res.status(200).json({
-            success: true,
-            weakSpots,
-            sessionsAnalyzed: sessions.length
-        });
+          return res.status(200).json({
+              success: true,
+              weakSpots,
+              sessionsAnalyzed: sessions.length
+          });
 
-    } catch (error) {
-        console.error('[GetWeakSpots] Error:', error);
-        return res.status(500).json({
-            success: false, error: 'Failed to analyze weak spots',
-            success: false
-        });
-    }
+      } catch (error) {
+          console.error('[GetWeakSpots] Error:', error);
+          return res.status(500).json({
+              success: false, error: 'Failed to analyze weak spots',
+              success: false
+          });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }
 
 function analyzeWeakSpots(sessions) {

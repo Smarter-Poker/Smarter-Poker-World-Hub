@@ -17,16 +17,22 @@ const supabase = createClient(
 const VALID_TYPES = ['buy_in', 'cash_out', 'add_on', 'time_purchase', 'membership', 'void'];
 
 export default async function handler(req, res) {
-  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  try {
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+    const staff = await guardStaff(req, res); if (!staff) return;
+
+    if (req.method === 'GET') return handleGet(req, res, staff);
+    if (req.method === 'POST') return handlePost(req, res, staff);
+    if (req.method === 'PATCH') return handlePatch(req, res, staff);
+    return res.status(405).json({ success: false, error: 'Method not allowed' });
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-  const staff = await guardStaff(req, res); if (!staff) return;
-
-  if (req.method === 'GET') return handleGet(req, res, staff);
-  if (req.method === 'POST') return handlePost(req, res, staff);
-  if (req.method === 'PATCH') return handlePatch(req, res, staff);
-  return res.status(405).json({ success: false, error: 'Method not allowed' });
 }
 
 async function handleGet(req, res, staff) {

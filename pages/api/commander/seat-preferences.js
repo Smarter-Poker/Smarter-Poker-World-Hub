@@ -13,15 +13,21 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
 
-  // Auth guard: require user auth for writes
-  if (req.method !== "GET") { const _user = await guardUser(req, res); if (!_user) return; }
-  if (req.method === 'GET') return getPreferences(req, res);
-  if (req.method === 'POST') return savePreferences(req, res);
-  return res.status(405).json({ success: false, error: { code: 'METHOD_NOT_ALLOWED' } });
+    // Auth guard: require user auth for writes
+    if (req.method !== "GET") { const _user = await guardUser(req, res); if (!_user) return; }
+    if (req.method === 'GET') return getPreferences(req, res);
+    if (req.method === 'POST') return savePreferences(req, res);
+    return res.status(405).json({ success: false, error: { code: 'METHOD_NOT_ALLOWED' } });
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }
 
 async function getPreferences(req, res) {

@@ -20,159 +20,165 @@ const VALID_TYPES = ['seat_available', 'tournament_starting', 'called_for_seat',
 const VALID_CHANNELS = ['sms', 'push', 'email', 'in_app'];
 
 export default async function handler(req, res) {
-  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
-
-  const _g = await guardWriteStaff(req, res); if (!_g) return;
-
-  // Rate limit: 20 notifications per minute per IP
-  const fwd = req.headers["x-forwarded-for"];
-  const ip = fwd ? fwd.split(",")[0].trim() : req.socket?.remoteAddress || "0";
-  const rl = checkMemoryRateLimit(`notif:${ip}`, 20, 60000);
-  if (!rl.allowed) { return res.status(429).json({ success: false, error: { code: "RATE_LIMITED", message: `Rate limited. Retry in ${rl.retryAfter}s.` } }); }
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({
-      success: false,
-      error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' }
-    });
-  }
-
   try {
-    // Verify staff authentication
-    const staffSession = req.headers['x-staff-session'];
-    if (!staffSession) {
-      return res.status(401).json({
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+    const _g = await guardWriteStaff(req, res); if (!_g) return;
+
+    // Rate limit: 20 notifications per minute per IP
+    const fwd = req.headers["x-forwarded-for"];
+    const ip = fwd ? fwd.split(",")[0].trim() : req.socket?.remoteAddress || "0";
+    const rl = checkMemoryRateLimit(`notif:${ip}`, 20, 60000);
+    if (!rl.allowed) { return res.status(429).json({ success: false, error: { code: "RATE_LIMITED", message: `Rate limited. Retry in ${rl.retryAfter}s.` } }); }
+
+    if (req.method !== 'POST') {
+      return res.status(405).json({
         success: false,
-        error: { code: 'AUTH_REQUIRED', message: 'Staff authentication required' }
+        error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' }
       });
     }
 
-    let sessionData;
     try {
-      sessionData = JSON.parse(staffSession);
-    } catch {
-      return res.status(401).json({
-        success: false,
-        error: { code: 'INVALID_SESSION', message: 'Invalid session format' }
-      });
-    }
+      // Verify staff authentication
+      const staffSession = req.headers['x-staff-session'];
+      if (!staffSession) {
+        return res.status(401).json({
+          success: false,
+          error: { code: 'AUTH_REQUIRED', message: 'Staff authentication required' }
+        });
+      }
 
-    const { data: staff, error: staffError } = await supabase
-      .from('commander_staff')
-      .select('id, venue_id, role, is_active')
-      .eq('id', sessionData.id)
-      .eq('is_active', true)
-      .maybeSingle();
+      let sessionData;
+      try {
+        sessionData = JSON.parse(staffSession);
+      } catch {
+        return res.status(401).json({
+          success: false,
+          error: { code: 'INVALID_SESSION', message: 'Invalid session format' }
+        });
+      }
 
-    if (staffError || !staff) {
-      return res.status(401).json({
-        success: false,
-        error: { code: 'INVALID_STAFF', message: 'Staff member not found or inactive' }
-      });
-    }
-
-    const {
-      player_id,
-      phone,
-      venue_id,
-      type,
-      channels = ['in_app'],
-      title,
-      message,
-      metadata = {}
-    } = req.body;
-
-    // Validation
-    if (!venue_id || !type || !message) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'venue_id, type, and message are required'
-        }
-      });
-    }
-
-    if (!player_id && !phone) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Either player_id or phone is required'
-        }
-      });
-    }
-
-    if (!VALID_TYPES.includes(type)) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: `Invalid type. Must be one of: ${VALID_TYPES.join(', ')}`
-        }
-      });
-    }
-
-    const invalidChannels = channels.filter(c => !VALID_CHANNELS.includes(c));
-    if (invalidChannels.length > 0) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: `Invalid channels: ${invalidChannels.join(', ')}. Must be one of: ${VALID_CHANNELS.join(', ')}`
-        }
-      });
-    }
-
-    // Create notification records for each channel
-    const notifications = [];
-    const errors = [];
-
-    for (const channel of channels) {
-      const { data: notification, error } = await supabase
-        .from('commander_notifications')
-        .insert({
-          venue_id,
-          player_id: player_id || null,
-          notification_type: type,
-          channel,
-          title: title || getDefaultTitle(type),
-          message,
-          status: 'pending',
-          metadata: {
-            ...metadata,
-            phone: phone || null
-          }
-        })
-        .select()
+      const { data: staff, error: staffError } = await supabase
+        .from('commander_staff')
+        .select('id, venue_id, role, is_active')
+        .eq('id', sessionData.id)
+        .eq('is_active', true)
         .maybeSingle();
 
-      if (error) {
-        console.error(`Commander notification insert error (${channel}):`, error);
-        errors.push({ channel, error: error.message });
-      } else {
-        notifications.push(notification);
-
-        // Process notification based on channel
-        await processNotification(notification, channel, phone);
+      if (staffError || !staff) {
+        return res.status(401).json({
+          success: false,
+          error: { code: 'INVALID_STAFF', message: 'Staff member not found or inactive' }
+        });
       }
+
+      const {
+        player_id,
+        phone,
+        venue_id,
+        type,
+        channels = ['in_app'],
+        title,
+        message,
+        metadata = {}
+      } = req.body;
+
+      // Validation
+      if (!venue_id || !type || !message) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'venue_id, type, and message are required'
+          }
+        });
+      }
+
+      if (!player_id && !phone) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Either player_id or phone is required'
+          }
+        });
+      }
+
+      if (!VALID_TYPES.includes(type)) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: `Invalid type. Must be one of: ${VALID_TYPES.join(', ')}`
+          }
+        });
+      }
+
+      const invalidChannels = channels.filter(c => !VALID_CHANNELS.includes(c));
+      if (invalidChannels.length > 0) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: `Invalid channels: ${invalidChannels.join(', ')}. Must be one of: ${VALID_CHANNELS.join(', ')}`
+          }
+        });
+      }
+
+      // Create notification records for each channel
+      const notifications = [];
+      const errors = [];
+
+      for (const channel of channels) {
+        const { data: notification, error } = await supabase
+          .from('commander_notifications')
+          .insert({
+            venue_id,
+            player_id: player_id || null,
+            notification_type: type,
+            channel,
+            title: title || getDefaultTitle(type),
+            message,
+            status: 'pending',
+            metadata: {
+              ...metadata,
+              phone: phone || null
+            }
+          })
+          .select()
+          .maybeSingle();
+
+        if (error) {
+          console.error(`Commander notification insert error (${channel}):`, error);
+          errors.push({ channel, error: error.message });
+        } else {
+          notifications.push(notification);
+
+          // Process notification based on channel
+          await processNotification(notification, channel, phone);
+        }
+      }
+
+      return res.status(201).json({
+        success: true,
+        data: {
+          notifications,
+          errors: errors.length > 0 ? errors : undefined
+        }
+      });
+    } catch (error) {
+      console.error('Commander send notification error:', error);
+      return res.status(500).json({
+        success: false,
+        error: { code: 'INTERNAL_ERROR', message: 'Internal server error' }
+      });
     }
 
-    return res.status(201).json({
-      success: true,
-      data: {
-        notifications,
-        errors: errors.length > 0 ? errors : undefined
-      }
-    });
-  } catch (error) {
-    console.error('Commander send notification error:', error);
-    return res.status(500).json({
-      success: false,
-      error: { code: 'INTERNAL_ERROR', message: 'Internal server error' }
-    });
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }
 

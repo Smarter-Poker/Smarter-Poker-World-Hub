@@ -17,50 +17,56 @@ const DEFAULT_CATEGORY_IMAGES = {
 };
 
 export default async function handler(req, res) {
-    if (!SUPABASE_URL || !SUPABASE_KEY) {
-        return res.status(500).json({ success: false, error: 'Missing Supabase credentials' });
-    }
+  try {
+      if (!SUPABASE_URL || !SUPABASE_KEY) {
+          return res.status(500).json({ success: false, error: 'Missing Supabase credentials' });
+      }
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+      const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    try {
-        // Get all articles with null or empty image_url
-        const { data: articles, error: fetchError } = await supabase
-            .from('poker_news')
-            .select('id, category, image_url')
-            .or('image_url.is.null,image_url.eq.')
-                .limit(100);
+      try {
+          // Get all articles with null or empty image_url
+          const { data: articles, error: fetchError } = await supabase
+              .from('poker_news')
+              .select('id, category, image_url')
+              .or('image_url.is.null,image_url.eq.')
+                  .limit(100);
 
-        if (fetchError) throw fetchError;
+          if (fetchError) throw fetchError;
 
 
-        let updated = 0;
-        const errors = [];
+          let updated = 0;
+          const errors = [];
 
-        for (const article of (articles || [])) {
-            const imageUrl = DEFAULT_CATEGORY_IMAGES[article.category] || DEFAULT_CATEGORY_IMAGES.news;
+          for (const article of (articles || [])) {
+              const imageUrl = DEFAULT_CATEGORY_IMAGES[article.category] || DEFAULT_CATEGORY_IMAGES.news;
 
-            const { error: updateError } = await supabase
-                .from('poker_news')
-                .update({ image_url: imageUrl })
-                .eq('id', article.id);
+              const { error: updateError } = await supabase
+                  .from('poker_news')
+                  .update({ image_url: imageUrl })
+                  .eq('id', article.id);
 
-            if (updateError) {
-                errors.push({ id: article.id, error: updateError.message });
-            } else {
-                updated++;
-            }
-        }
+              if (updateError) {
+                  errors.push({ id: article.id, error: updateError.message });
+              } else {
+                  updated++;
+              }
+          }
 
-        return res.status(200).json({
-            success: true,
-            found: articles?.length || 0,
-            updated,
-            errors: errors.length > 0 ? errors : undefined
-        });
+          return res.status(200).json({
+              success: true,
+              found: articles?.length || 0,
+              updated,
+              errors: errors.length > 0 ? errors : undefined
+          });
 
-    } catch (error) {
-        console.error('Error fixing images:', error);
-        return res.status(500).json({ success: false, error: error.message });
-    }
+      } catch (error) {
+          console.error('Error fixing images:', error);
+          return res.status(500).json({ success: false, error: error.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

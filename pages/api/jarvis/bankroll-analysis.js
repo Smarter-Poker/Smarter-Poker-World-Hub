@@ -15,121 +15,127 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+      if (req.method !== 'POST') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
+
+      // ── Auth: JWT required — userId derived from token, not body ──
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
+      const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+      if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+
+      const userId = authUser.id; // Trust JWT, not request body
+
+      try {
+          // Fetch last 90 days of ledger entries
+          const ninetyDaysAgo = new Date();
+          ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+          // Accounting categories that should NEVER be counted as sessions
+          const ACCOUNTING_CATEGORIES = ['expense', 'deposit', 'withdrawal', 'receipt'];
+
+          const { data: entries, error: entriesError } = await supabase
+              .from('bankroll_ledger')
+              .select('*')
+              .eq('user_id', userId)
+              .gte('entry_date', ninetyDaysAgo.toISOString().split('T')[0])
+              .not('category', 'in', `(${ACCOUNTING_CATEGORIES.join(',')})`)
+              .order('entry_date', { ascending: false })
+                  .limit(500);
+
+          if (entriesError) {
+              console.error('[Jarvis Bankroll] Error fetching entries:', entriesError);
+              return res.status(500).json({ success: false, error: entriesError.message });
+          }
+
+          if (!entries || entries.length === 0) {
+              return res.status(200).json({
+                  success: true,
+                  insights: {
+                      summary: "No session data available for analysis.",
+                      patterns: [],
+                      recommendations: ["Start logging your sessions to get personalized insights!"],
+                      riskLevel: 'unknown'
+                  }
+              });
+          }
+
+          // Calculate key metrics for Jarvis
+          const metrics = calculateMetrics(entries);
+
+          // Generate AI insights using Grok
+          const grokClient = getGrokClient();
+          const prompt = buildAnalysisPrompt(metrics, entries);
+
+          const completion = await grokClient.chat.completions.create({
+              model: 'grok-3-mini',
+              messages: [
+                  {
+                      role: 'system',
+                      content: `You are Jarvis, a personal poker bankroll assistant. Analyze the player's financial data and provide actionable insights. Be direct, supportive, and data-driven. Use emojis sparingly for emphasis. Keep responses concise but insightful.`
+                  },
+                  {
+                      role: 'user',
+                      content: prompt
+                  }
+              ],
+              temperature: 0.7,
+              max_tokens: 500
+          });
+
+          const aiResponse = completion.choices[0]?.message?.content || '';
+
+          // Parse AI response into structured insights
+          const insights = parseAIResponse(aiResponse, metrics);
+
+          return res.status(200).json({
+              success: true,
+              insights,
+              metrics: {
+                  totalSessions: metrics.totalSessions,
+                  netPL: metrics.netPL,
+                  winRate: metrics.winRate,
+                  avgSession: metrics.avgSession
+              }
+          });
+
+      } catch (error) {
+          console.error('[Jarvis Bankroll] Server error:', error);
+
+          // Check for specific API credit/rate limit errors
+          const status = error?.status || error?.response?.status;
+          let userMessage = 'Analysis temporarily unavailable.';
+          let userRecs = ['Try again later or check your connection.'];
+
+          if (status === 429) {
+              userMessage = 'AI analysis is temporarily paused — API credits are being refreshed.';
+              userRecs = ['Insights will resume automatically once credits are replenished.', 'Your data is safe and stats are still updating in real time.'];
+          } else if (status === 401 || status === 403) {
+              userMessage = 'AI service authentication issue.';
+              userRecs = ['Please contact support if this persists.'];
+          }
+
+          return res.status(200).json({
+              success: true,
+              insights: {
+                  summary: userMessage,
+                  patterns: [],
+                  recommendations: userRecs,
+                  riskLevel: 'unknown'
+              }
+          });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-
-    if (req.method !== 'POST') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
-
-    // ── Auth: JWT required — userId derived from token, not body ──
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-    const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
-    if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
-
-    const userId = authUser.id; // Trust JWT, not request body
-
-    try {
-        // Fetch last 90 days of ledger entries
-        const ninetyDaysAgo = new Date();
-        ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-
-        // Accounting categories that should NEVER be counted as sessions
-        const ACCOUNTING_CATEGORIES = ['expense', 'deposit', 'withdrawal', 'receipt'];
-
-        const { data: entries, error: entriesError } = await supabase
-            .from('bankroll_ledger')
-            .select('*')
-            .eq('user_id', userId)
-            .gte('entry_date', ninetyDaysAgo.toISOString().split('T')[0])
-            .not('category', 'in', `(${ACCOUNTING_CATEGORIES.join(',')})`)
-            .order('entry_date', { ascending: false })
-                .limit(500);
-
-        if (entriesError) {
-            console.error('[Jarvis Bankroll] Error fetching entries:', entriesError);
-            return res.status(500).json({ success: false, error: entriesError.message });
-        }
-
-        if (!entries || entries.length === 0) {
-            return res.status(200).json({
-                success: true,
-                insights: {
-                    summary: "No session data available for analysis.",
-                    patterns: [],
-                    recommendations: ["Start logging your sessions to get personalized insights!"],
-                    riskLevel: 'unknown'
-                }
-            });
-        }
-
-        // Calculate key metrics for Jarvis
-        const metrics = calculateMetrics(entries);
-
-        // Generate AI insights using Grok
-        const grokClient = getGrokClient();
-        const prompt = buildAnalysisPrompt(metrics, entries);
-
-        const completion = await grokClient.chat.completions.create({
-            model: 'grok-3-mini',
-            messages: [
-                {
-                    role: 'system',
-                    content: `You are Jarvis, a personal poker bankroll assistant. Analyze the player's financial data and provide actionable insights. Be direct, supportive, and data-driven. Use emojis sparingly for emphasis. Keep responses concise but insightful.`
-                },
-                {
-                    role: 'user',
-                    content: prompt
-                }
-            ],
-            temperature: 0.7,
-            max_tokens: 500
-        });
-
-        const aiResponse = completion.choices[0]?.message?.content || '';
-
-        // Parse AI response into structured insights
-        const insights = parseAIResponse(aiResponse, metrics);
-
-        return res.status(200).json({
-            success: true,
-            insights,
-            metrics: {
-                totalSessions: metrics.totalSessions,
-                netPL: metrics.netPL,
-                winRate: metrics.winRate,
-                avgSession: metrics.avgSession
-            }
-        });
-
-    } catch (error) {
-        console.error('[Jarvis Bankroll] Server error:', error);
-
-        // Check for specific API credit/rate limit errors
-        const status = error?.status || error?.response?.status;
-        let userMessage = 'Analysis temporarily unavailable.';
-        let userRecs = ['Try again later or check your connection.'];
-
-        if (status === 429) {
-            userMessage = 'AI analysis is temporarily paused — API credits are being refreshed.';
-            userRecs = ['Insights will resume automatically once credits are replenished.', 'Your data is safe and stats are still updating in real time.'];
-        } else if (status === 401 || status === 403) {
-            userMessage = 'AI service authentication issue.';
-            userRecs = ['Please contact support if this persists.'];
-        }
-
-        return res.status(200).json({
-            success: true,
-            insights: {
-                summary: userMessage,
-                patterns: [],
-                recommendations: userRecs,
-                riskLevel: 'unknown'
-            }
-        });
-    }
 }
 
 function calculateMetrics(entries) {

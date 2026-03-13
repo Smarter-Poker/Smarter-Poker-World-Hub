@@ -13,24 +13,30 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
+  try {
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
 
-  const staffAuth = await guardWriteStaff(req, res); if (!staffAuth) return;
+    const staffAuth = await guardWriteStaff(req, res); if (!staffAuth) return;
 
-  if (req.method === 'GET') {
-    return getBalances(req, res);
-  }
-  if (req.method === 'POST') {
-    return awardComp(req, res, staffAuth);
-  }
-  if (req.method === 'PATCH') {
-    return voidComp(req, res, staffAuth);
-  }
+    if (req.method === 'GET') {
+      return getBalances(req, res);
+    }
+    if (req.method === 'POST') {
+      return awardComp(req, res, staffAuth);
+    }
+    if (req.method === 'PATCH') {
+      return voidComp(req, res, staffAuth);
+    }
 
-  res.setHeader('Allow', ['GET', 'POST', 'PATCH']);
-  return res.status(405).json({ success: false, error: 'Method not allowed' });
+    res.setHeader('Allow', ['GET', 'POST', 'PATCH']);
+    return res.status(405).json({ success: false, error: 'Method not allowed' });
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }
 
 async function awardComp(req, res, staffAuth) {

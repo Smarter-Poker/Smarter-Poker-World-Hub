@@ -11,68 +11,74 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const TEST_USER_ID = '3bb71bfe-f723-427c-aac7-a853ba04a014';
 
 export default async function handler(req, res) {
-    const startTime = Date.now();
+  try {
+      const startTime = Date.now();
 
-    // Allow GET for easy monitoring
-    if (req.method !== 'GET' && req.method !== 'HEAD') {
-        return res.status(405).json({ status: 'error', message: 'Method not allowed' });
-    }
+      // Allow GET for easy monitoring
+      if (req.method !== 'GET' && req.method !== 'HEAD') {
+          return res.status(405).json({ status: 'error', message: 'Method not allowed' });
+      }
 
-    if (!SUPABASE_SERVICE_ROLE_KEY) {
-        return res.status(500).json({
-            status: 'error',
-            message: 'Service key not configured',
-            latency_ms: Date.now() - startTime
-        });
-    }
+      if (!SUPABASE_SERVICE_ROLE_KEY) {
+          return res.status(500).json({
+              status: 'error',
+              message: 'Service key not configured',
+              latency_ms: Date.now() - startTime
+          });
+      }
 
-    try {
-        const supabase = createClient(SUPABASE_URL.trim(), SUPABASE_SERVICE_ROLE_KEY);
+      try {
+          const supabase = createClient(SUPABASE_URL.trim(), SUPABASE_SERVICE_ROLE_KEY);
 
-        // Test profile fetch with known user
-        const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('id, diamonds')
-            .eq('id', TEST_USER_ID)
-            .maybeSingle();
+          // Test profile fetch with known user
+          const { data: profile, error } = await supabase
+              .from('profiles')
+              .select('id, diamonds')
+              .eq('id', TEST_USER_ID)
+              .maybeSingle();
 
-        const latency = Date.now() - startTime;
+          const latency = Date.now() - startTime;
 
-        if (error) {
-            console.error('[health/header] Database error:', error);
-            return res.status(500).json({
-                status: 'error',
-                message: 'Database query failed',
-                error: error.message,
-                latency_ms: latency
-            });
-        }
+          if (error) {
+              console.error('[health/header] Database error:', error);
+              return res.status(500).json({
+                  status: 'error',
+                  message: 'Database query failed',
+                  error: error.message,
+                  latency_ms: latency
+              });
+          }
 
-        if (!profile) {
-            return res.status(500).json({
-                status: 'error',
-                message: 'Test user profile not found',
-                latency_ms: latency
-            });
-        }
+          if (!profile) {
+              return res.status(500).json({
+                  status: 'error',
+                  message: 'Test user profile not found',
+                  latency_ms: latency
+              });
+          }
 
-        // Health check passed
-        return res.status(200).json({
-            status: 'ok',
-            message: 'Header stats API is healthy',
-            latency_ms: latency,
-            test_data: {
-                diamonds: profile.diamonds,
-                diamonds: profile.diamonds
-            }
-        });
+          // Health check passed
+          return res.status(200).json({
+              status: 'ok',
+              message: 'Header stats API is healthy',
+              latency_ms: latency,
+              test_data: {
+                  diamonds: profile.diamonds,
+                  diamonds: profile.diamonds
+              }
+          });
 
-    } catch (e) {
-        console.error('[health/header] Exception:', e);
-        return res.status(500).json({
-            status: 'error',
-            message: e.message,
-            latency_ms: Date.now() - startTime
-        });
-    }
+      } catch (e) {
+          console.error('[health/header] Exception:', e);
+          return res.status(500).json({
+              status: 'error',
+              message: e.message,
+              latency_ms: Date.now() - startTime
+          });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

@@ -122,188 +122,194 @@ function loadEventsForSeries(series) {
 }
 
 export default async function handler(req, res) {
-  if (!applyRateLimit(req, res, LIMITS.read)) return;
-
-  if (req.method !== 'GET') {
-    return res.status(405).json({ success: false, error: 'Method not allowed' });
-  }
-
   try {
-    const {
-      id,
-      upcoming,
-      type,
-      tour,
-      search,
-      start_date,
-      end_date,
-      limit = 70,
-    } = req.query;
+    if (!applyRateLimit(req, res, LIMITS.read)) return;
 
-    const parsedLimit = parseInt(limit, 10) || 70;
+    if (req.method !== 'GET') {
+      return res.status(405).json({ success: false, error: 'Method not allowed' });
+    }
 
-    // --- Single series by ID ---
-    if (id) {
-      const numericId = parseInt(id, 10);
-      if (isNaN(numericId) || numericId < 1) {
-        return res.status(400).json({ success: false, error: 'Invalid id parameter' });
+    try {
+      const {
+        id,
+        upcoming,
+        type,
+        tour,
+        search,
+        start_date,
+        end_date,
+        limit = 70,
+      } = req.query;
+
+      const parsedLimit = parseInt(limit, 10) || 70;
+
+      // --- Single series by ID ---
+      if (id) {
+        const numericId = parseInt(id, 10);
+        if (isNaN(numericId) || numericId < 1) {
+          return res.status(400).json({ success: false, error: 'Invalid id parameter' });
+        }
+
+        // Try Supabase first for single series
+        let singleSeries = null;
+        try {
+          const { data, error } = await supabase
+            .from('tournament_series')
+            .select('*')
+            .eq('id', numericId)
+            .maybeSingle();
+
+          if (!error && data) {
+            singleSeries = data;
+          }
+        } catch (dbErr) {
+          // DB unavailable, fall through to JSON
+        }
+
+        // Fall back to JSON data
+        if (!singleSeries) {
+          const allSeries = mapSeriesToApi(seriesJson.series_2026 || []);
+          singleSeries = allSeries.find((s) => s.id === numericId) || null;
+        }
+
+        if (!singleSeries) {
+          return res.status(404).json({ success: false, error: 'Series not found' });
+        }
+
+        // Try to load events for this series
+        const events = loadEventsForSeries(singleSeries);
+        if (events) {
+          singleSeries.events = events;
+        }
+
+        return res.status(200).json({
+          success: true,
+          data: singleSeries,
+          total: 1,
+        });
       }
 
-      // Try Supabase first for single series
-      let singleSeries = null;
+      // --- List series with filters ---
+
+      // Try Supabase first
+      let seriesData = null;
       try {
-        const { data, error } = await supabase
+        let query = supabase
           .from('tournament_series')
           .select('*')
-          .eq('id', numericId)
-          .maybeSingle();
+          .order('start_date', { ascending: true })
+          .limit(parsedLimit);
 
-        if (!error && data) {
-          singleSeries = data;
+        if (upcoming === 'true') {
+          const today = new Date().toISOString().split('T')[0];
+          query = query.gte('start_date', today);
+        }
+
+        if (type) {
+          query = query.eq('series_type', type);
+        }
+
+        if (tour) {
+          // BUG #270 FIX: Sanitize to prevent PostgREST filter injection
+          const safeTour = tour.replace(/[,().]/g, ' ').trim();
+          if (safeTour) {
+              query = query.or(`tour.ilike.%${safeTour}%,short_name.ilike.%${safeTour}%`);
+          }
+        }
+
+        if (search) {
+          const safeSearch = search.replace(/[,().]/g, ' ').trim();
+          if (safeSearch) {
+              query = query.or(
+                `name.ilike.%${safeSearch}%,short_name.ilike.%${safeSearch}%,venue.ilike.%${safeSearch}%,city.ilike.%${safeSearch}%`
+              );
+          }
+        }
+
+        if (start_date) {
+          query = query.gte('start_date', start_date);
+        }
+        if (end_date) {
+          query = query.lte('start_date', end_date);
+        }
+
+        const { data, error } = await query;
+
+        if (!error && data && data.length > 0) {
+          seriesData = data;
         }
       } catch (dbErr) {
         // DB unavailable, fall through to JSON
       }
 
       // Fall back to JSON data
-      if (!singleSeries) {
-        const allSeries = mapSeriesToApi(seriesJson.series_2026 || []);
-        singleSeries = allSeries.find((s) => s.id === numericId) || null;
+      if (!seriesData) {
+        let allSeries = mapSeriesToApi(seriesJson.series_2026 || []);
+
+        // Apply filters
+        if (upcoming === 'true') {
+          const today = new Date().toISOString().split('T')[0];
+          allSeries = allSeries.filter((s) => s.start_date >= today);
+        }
+
+        if (type) {
+          allSeries = allSeries.filter((s) => s.series_type === type);
+        }
+
+        if (tour) {
+          const tourLower = tour.toLowerCase();
+          allSeries = allSeries.filter(
+            (s) =>
+              (s.tour && s.tour.toLowerCase().includes(tourLower)) ||
+              (s.tour_code && s.tour_code.toLowerCase().includes(tourLower))
+          );
+        }
+
+        if (search) {
+          const searchLower = search.toLowerCase();
+          allSeries = allSeries.filter(
+            (s) =>
+              (s.name && s.name.toLowerCase().includes(searchLower)) ||
+              (s.short_name && s.short_name.toLowerCase().includes(searchLower)) ||
+              (s.venue && s.venue.toLowerCase().includes(searchLower)) ||
+              (s.city && s.city.toLowerCase().includes(searchLower))
+          );
+        }
+
+        if (start_date) {
+          allSeries = allSeries.filter((s) => s.start_date >= start_date);
+        }
+        if (end_date) {
+          allSeries = allSeries.filter((s) => s.start_date <= end_date);
+        }
+
+        // Sort by start_date ascending
+        allSeries.sort((a, b) => (a.start_date || '').localeCompare(b.start_date || ''));
+
+        seriesData = allSeries;
       }
 
-      if (!singleSeries) {
-        return res.status(404).json({ success: false, error: 'Series not found' });
-      }
-
-      // Try to load events for this series
-      const events = loadEventsForSeries(singleSeries);
-      if (events) {
-        singleSeries.events = events;
-      }
+      const total = seriesData.length;
+      const limited = seriesData.slice(0, parsedLimit);
 
       return res.status(200).json({
         success: true,
-        data: singleSeries,
-        total: 1,
+        data: limited,
+        total,
+      });
+    } catch (error) {
+      console.error('Series API error:', error);
+      // Last resort: return mapped JSON data unsorted
+      const fallback = mapSeriesToApi(seriesJson.series_2026 || []);
+      return res.status(200).json({
+        success: true,
+        data: fallback,
+        total: fallback.length,
       });
     }
 
-    // --- List series with filters ---
-
-    // Try Supabase first
-    let seriesData = null;
-    try {
-      let query = supabase
-        .from('tournament_series')
-        .select('*')
-        .order('start_date', { ascending: true })
-        .limit(parsedLimit);
-
-      if (upcoming === 'true') {
-        const today = new Date().toISOString().split('T')[0];
-        query = query.gte('start_date', today);
-      }
-
-      if (type) {
-        query = query.eq('series_type', type);
-      }
-
-      if (tour) {
-        // BUG #270 FIX: Sanitize to prevent PostgREST filter injection
-        const safeTour = tour.replace(/[,().]/g, ' ').trim();
-        if (safeTour) {
-            query = query.or(`tour.ilike.%${safeTour}%,short_name.ilike.%${safeTour}%`);
-        }
-      }
-
-      if (search) {
-        const safeSearch = search.replace(/[,().]/g, ' ').trim();
-        if (safeSearch) {
-            query = query.or(
-              `name.ilike.%${safeSearch}%,short_name.ilike.%${safeSearch}%,venue.ilike.%${safeSearch}%,city.ilike.%${safeSearch}%`
-            );
-        }
-      }
-
-      if (start_date) {
-        query = query.gte('start_date', start_date);
-      }
-      if (end_date) {
-        query = query.lte('start_date', end_date);
-      }
-
-      const { data, error } = await query;
-
-      if (!error && data && data.length > 0) {
-        seriesData = data;
-      }
-    } catch (dbErr) {
-      // DB unavailable, fall through to JSON
-    }
-
-    // Fall back to JSON data
-    if (!seriesData) {
-      let allSeries = mapSeriesToApi(seriesJson.series_2026 || []);
-
-      // Apply filters
-      if (upcoming === 'true') {
-        const today = new Date().toISOString().split('T')[0];
-        allSeries = allSeries.filter((s) => s.start_date >= today);
-      }
-
-      if (type) {
-        allSeries = allSeries.filter((s) => s.series_type === type);
-      }
-
-      if (tour) {
-        const tourLower = tour.toLowerCase();
-        allSeries = allSeries.filter(
-          (s) =>
-            (s.tour && s.tour.toLowerCase().includes(tourLower)) ||
-            (s.tour_code && s.tour_code.toLowerCase().includes(tourLower))
-        );
-      }
-
-      if (search) {
-        const searchLower = search.toLowerCase();
-        allSeries = allSeries.filter(
-          (s) =>
-            (s.name && s.name.toLowerCase().includes(searchLower)) ||
-            (s.short_name && s.short_name.toLowerCase().includes(searchLower)) ||
-            (s.venue && s.venue.toLowerCase().includes(searchLower)) ||
-            (s.city && s.city.toLowerCase().includes(searchLower))
-        );
-      }
-
-      if (start_date) {
-        allSeries = allSeries.filter((s) => s.start_date >= start_date);
-      }
-      if (end_date) {
-        allSeries = allSeries.filter((s) => s.start_date <= end_date);
-      }
-
-      // Sort by start_date ascending
-      allSeries.sort((a, b) => (a.start_date || '').localeCompare(b.start_date || ''));
-
-      seriesData = allSeries;
-    }
-
-    const total = seriesData.length;
-    const limited = seriesData.slice(0, parsedLimit);
-
-    return res.status(200).json({
-      success: true,
-      data: limited,
-      total,
-    });
-  } catch (error) {
-    console.error('Series API error:', error);
-    // Last resort: return mapped JSON data unsorted
-    const fallback = mapSeriesToApi(seriesJson.series_2026 || []);
-    return res.status(200).json({
-      success: true,
-      data: fallback,
-      total: fallback.length,
-    });
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

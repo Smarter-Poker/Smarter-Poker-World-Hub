@@ -250,38 +250,44 @@ async function generateDailyQuestions() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default async function handler(req, res) {
-    // Verify cron secret for Vercel Cron jobs
-    const authHeader = req.headers.authorization;
-    if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-        // Allow manual triggers in development or with POST
-        if (process.env.NODE_ENV === 'production' && req.method !== 'POST') {
-            return res.status(401).json({ error: 'Unauthorized' });
-        }
-    }
+  try {
+      // Verify cron secret for Vercel Cron jobs
+      const authHeader = req.headers.authorization;
+      if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+          // Allow manual triggers in development or with POST
+          if (process.env.NODE_ENV === 'production' && req.method !== 'POST') {
+              return res.status(401).json({ error: 'Unauthorized' });
+          }
+      }
 
-    try {
+      try {
 
-        const result = await generateDailyQuestions();
+          const result = await generateDailyQuestions();
 
-        if (result.skipped) {
-            return res.status(200).json({
-                success: true,
-                message: 'Questions already exist for today',
-                ...result
-            });
-        }
+          if (result.skipped) {
+              return res.status(200).json({
+                  success: true,
+                  message: 'Questions already exist for today',
+                  ...result
+              });
+          }
 
-        return res.status(200).json({
-            success: true,
-            message: 'Daily trivia generated successfully',
-            ...result,
-            timestamp: new Date().toISOString()
-        });
+          return res.status(200).json({
+              success: true,
+              message: 'Daily trivia generated successfully',
+              ...result,
+              timestamp: new Date().toISOString()
+          });
 
-    } catch (error) {
-        console.error('[Trivia Generator] Error:', error);
-        return res.status(500).json({ success: false, error: error.message });
-    }
+      } catch (error) {
+          console.error('[Trivia Generator] Error:', error);
+          return res.status(500).json({ success: false, error: error.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }
 
 // Vercel Cron config - runs at 11:59 PM CST (5:59 AM UTC)

@@ -23,36 +23,42 @@ const DEFAULT_PROGRESS = {
 };
 
 export default async function handler(req, res) {
-    if (!applyRateLimit(req, res, LIMITS.read)) return;
+  try {
+      if (!applyRateLimit(req, res, LIMITS.read)) return;
 
-    const { gameId } = req.query;
+      const { gameId } = req.query;
 
-    // Auth: require JWT, use authenticated user ID (not query param)
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(200).json(DEFAULT_PROGRESS); // Anonymous = defaults
+      // Auth: require JWT, use authenticated user ID (not query param)
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      if (!token) return res.status(200).json(DEFAULT_PROGRESS); // Anonymous = defaults
 
-    const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
-    if (authErr || !user) return res.status(200).json(DEFAULT_PROGRESS);
+      const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+      if (authErr || !user) return res.status(200).json(DEFAULT_PROGRESS);
 
-    const userId = user.id; // From JWT, not query param
+      const userId = user.id; // From JWT, not query param
 
-    try {
-        // Get user session for this game
-        const { data: session, error } = await supabase
-            .from('god_mode_user_session')
-            .select('current_level, highest_level_unlocked, health_chips, total_hands_played, total_correct, total_rounds_completed')
-            .eq('user_id', userId)
-            .eq('game_id', gameId)
-            .maybeSingle();
+      try {
+          // Get user session for this game
+          const { data: session, error } = await supabase
+              .from('god_mode_user_session')
+              .select('current_level, highest_level_unlocked, health_chips, total_hands_played, total_correct, total_rounds_completed')
+              .eq('user_id', userId)
+              .eq('game_id', gameId)
+              .maybeSingle();
 
-        if (error || !session) {
-            return res.status(200).json(DEFAULT_PROGRESS);
-        }
+          if (error || !session) {
+              return res.status(200).json(DEFAULT_PROGRESS);
+          }
 
-        return res.status(200).json(session);
+          return res.status(200).json(session);
 
-    } catch (err) {
-        console.error('Error fetching progress:', err);
-        return res.status(200).json(DEFAULT_PROGRESS);
-    }
+      } catch (err) {
+          console.error('Error fetching progress:', err);
+          return res.status(200).json(DEFAULT_PROGRESS);
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

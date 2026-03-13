@@ -69,94 +69,100 @@ function isValidUuid(str) {
 }
 
 export default async function handler(req, res) {
-    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-        if (!applyRateLimit(req, res, LIMITS.write)) return;
-    }
+  try {
+      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+          if (!applyRateLimit(req, res, LIMITS.write)) return;
+      }
 
-    // Only allow GET and POST
-    if (req.method !== 'GET' && req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
-    }
+      // Only allow GET and POST
+      if (req.method !== 'GET' && req.method !== 'POST') {
+          return res.status(405).json({ error: 'Method not allowed' });
+      }
 
-    const ip = getClientIp(req);
+      const ip = getClientIp(req);
 
-    // Rate limit check
-    if (isRateLimited(ip)) {
-        return res.status(429).json({ error: 'Too many requests' });
-    }
+      // Rate limit check
+      if (isRateLimited(ip)) {
+          return res.status(429).json({ error: 'Too many requests' });
+      }
 
-    // ─── GET: Check if this IP already responded ───
-    if (req.method === 'GET') {
-        try {
-            const { data, error } = await supabase
-                .from('notification_prompt_log')
-                .select('id')
-                .eq('ip_address', ip)
-                .limit(1);
+      // ─── GET: Check if this IP already responded ───
+      if (req.method === 'GET') {
+          try {
+              const { data, error } = await supabase
+                  .from('notification_prompt_log')
+                  .select('id')
+                  .eq('ip_address', ip)
+                  .limit(1);
 
-            if (error) {
-                // Table may not exist — treat as "not dismissed"
-                return res.status(200).json({ dismissed: false });
-            }
+              if (error) {
+                  // Table may not exist — treat as "not dismissed"
+                  return res.status(200).json({ dismissed: false });
+              }
 
-            return res.status(200).json({ dismissed: data && data.length > 0 });
-        } catch (err) {
-            console.error('[prompt-status] GET exception:', err);
-            return res.status(200).json({ dismissed: false });
-        }
-    }
+              return res.status(200).json({ dismissed: data && data.length > 0 });
+          } catch (err) {
+              console.error('[prompt-status] GET exception:', err);
+              return res.status(200).json({ dismissed: false });
+          }
+      }
 
-    // ─── POST: Record that this IP responded ───
-    if (req.method === 'POST') {
-        const { action, user_id } = req.body || {};
+      // ─── POST: Record that this IP responded ───
+      if (req.method === 'POST') {
+          const { action, user_id } = req.body || {};
 
-        // Input validation
-        const cleanAction = sanitizeAction(action);
-        const cleanUserId = isValidUuid(user_id) ? user_id : null;
+          // Input validation
+          const cleanAction = sanitizeAction(action);
+          const cleanUserId = isValidUuid(user_id) ? user_id : null;
 
-        try {
-            // Check if table exists (cached after first check)
-            const exists = await ensureTable();
-            if (!exists) {
-                return res.status(200).json({ ok: true, note: 'table_pending' });
-            }
+          try {
+              // Check if table exists (cached after first check)
+              const exists = await ensureTable();
+              if (!exists) {
+                  return res.status(200).json({ ok: true, note: 'table_pending' });
+              }
 
-            // Check if already recorded for this IP (idempotent)
-            const { data: existing } = await supabase
-                .from('notification_prompt_log')
-                .select('id')
-                .eq('ip_address', ip)
-                .limit(1);
+              // Check if already recorded for this IP (idempotent)
+              const { data: existing } = await supabase
+                  .from('notification_prompt_log')
+                  .select('id')
+                  .eq('ip_address', ip)
+                  .limit(1);
 
-            if (existing && existing.length > 0) {
-                return res.status(200).json({ ok: true, already_recorded: true });
-            }
+              if (existing && existing.length > 0) {
+                  return res.status(200).json({ ok: true, already_recorded: true });
+              }
 
-            // Insert new record
-            const { error } = await supabase
-                .from('notification_prompt_log')
-                .insert({
-                    ip_address: ip,
-                    user_id: cleanUserId,
-                    action: cleanAction,
-                    responded_at: new Date().toISOString(),
-                });
+              // Insert new record
+              const { error } = await supabase
+                  .from('notification_prompt_log')
+                  .insert({
+                      ip_address: ip,
+                      user_id: cleanUserId,
+                      action: cleanAction,
+                      responded_at: new Date().toISOString(),
+                  });
 
-            if (error) {
-                // Handle unique constraint violation (race condition — two requests at once)
-                if (error.code === '23505') {
-                    return res.status(200).json({ ok: true, already_recorded: true });
-                }
-                console.error('[prompt-status] POST insert error:', error.message);
-                return res.status(200).json({ ok: false });
-            }
+              if (error) {
+                  // Handle unique constraint violation (race condition — two requests at once)
+                  if (error.code === '23505') {
+                      return res.status(200).json({ ok: true, already_recorded: true });
+                  }
+                  console.error('[prompt-status] POST insert error:', error.message);
+                  return res.status(200).json({ ok: false });
+              }
 
-            return res.status(200).json({ ok: true });
-        } catch (err) {
-            console.error('[prompt-status] POST exception:', err);
-            return res.status(200).json({ ok: false });
-        }
-    }
+              return res.status(200).json({ ok: true });
+          } catch (err) {
+              console.error('[prompt-status] POST exception:', err);
+              return res.status(200).json({ ok: false });
+          }
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }
 
 /**

@@ -1315,97 +1315,103 @@ async function archiveOldArticles() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default async function handler(req, res) {
-    // Verify cron secret
-    if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
-    // Security: validate cron auth for external callers
-    const { validateCronAuth } = await import('../../../src/utils/cron-auth.js');
-    if (!validateCronAuth(req)) {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
+  try {
+      // Verify cron secret
+      if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+          return res.status(401).json({ error: 'Unauthorized' });
+      }
+      // Security: validate cron auth for external callers
+      const { validateCronAuth } = await import('../../../src/utils/cron-auth.js');
+      if (!validateCronAuth(req)) {
+          return res.status(401).json({ error: 'Unauthorized' });
+      }
 
 
-    const results = {
-        sources: {},
-        totalSaved: 0,
-        archived: 0,
-        errors: []
-    };
+      const results = {
+          sources: {},
+          totalSaved: 0,
+          archived: 0,
+          errors: []
+      };
 
-    try {
-        // Get news poster account for social feed
-        const newsPosterId = await getNewsPosterId();
+      try {
+          // Get news poster account for social feed
+          const newsPosterId = await getNewsPosterId();
 
-        // ═══════════════════════════════════════════════════════════════
-        // PARALLEL EXECUTION: All 6 sources scraped concurrently
-        // Promise.allSettled ensures one source failure doesn't kill others
-        // ═══════════════════════════════════════════════════════════════
-        const sourceResults = await Promise.allSettled(
-            NEWS_SOURCES.map(async (source) => {
-                try {
-                    let articles = await scrapeSource(source);
-                    const sourceStats = { found: articles.length, saved: 0 };
+          // ═══════════════════════════════════════════════════════════════
+          // PARALLEL EXECUTION: All 6 sources scraped concurrently
+          // Promise.allSettled ensures one source failure doesn't kill others
+          // ═══════════════════════════════════════════════════════════════
+          const sourceResults = await Promise.allSettled(
+              NEWS_SOURCES.map(async (source) => {
+                  try {
+                      let articles = await scrapeSource(source);
+                      const sourceStats = { found: articles.length, saved: 0 };
 
-                    for (const article of articles) {
-                        const saved = await saveArticle(article, newsPosterId);
-                        if (saved) {
-                            sourceStats.saved++;
-                        }
-                    }
+                      for (const article of articles) {
+                          const saved = await saveArticle(article, newsPosterId);
+                          if (saved) {
+                              sourceStats.saved++;
+                          }
+                      }
 
-                    // PokerNews fallback: try videos if all articles were duplicates
-                    if (source.name === 'PokerNews' && source.videoUrl && sourceStats.saved === 0) {
-                        const videoHtml = await fetchPage(source.videoUrl);
-                        if (videoHtml) {
-                            const videoArticles = await scrapePokerNewsVideos(videoHtml, source);
-                            sourceStats.found += videoArticles.length;
+                      // PokerNews fallback: try videos if all articles were duplicates
+                      if (source.name === 'PokerNews' && source.videoUrl && sourceStats.saved === 0) {
+                          const videoHtml = await fetchPage(source.videoUrl);
+                          if (videoHtml) {
+                              const videoArticles = await scrapePokerNewsVideos(videoHtml, source);
+                              sourceStats.found += videoArticles.length;
 
-                            for (const video of videoArticles) {
-                                const saved = await saveArticle(video, newsPosterId);
-                                if (saved) {
-                                    sourceStats.saved++;
-                                }
-                            }
-                        }
-                    }
+                              for (const video of videoArticles) {
+                                  const saved = await saveArticle(video, newsPosterId);
+                                  if (saved) {
+                                      sourceStats.saved++;
+                                  }
+                              }
+                          }
+                      }
 
-                    return { name: source.name, stats: sourceStats };
-                } catch (error) {
-                    console.error(`   ✗ ${source.name} error: ${error.message}`);
-                    throw { name: source.name, message: error.message };
-                }
-            })
-        );
+                      return { name: source.name, stats: sourceStats };
+                  } catch (error) {
+                      console.error(`   ✗ ${source.name} error: ${error.message}`);
+                      throw { name: source.name, message: error.message };
+                  }
+              })
+          );
 
-        // Aggregate results from all parallel sources
-        for (const result of sourceResults) {
-            if (result.status === 'fulfilled') {
-                const { name, stats } = result.value;
-                results.sources[name] = stats;
-                results.totalSaved += stats.saved;
-            } else {
-                const reason = result.reason;
-                results.sources[reason.name] = { found: 0, saved: 0, error: reason.message };
-                results.errors.push(`${reason.name}: ${reason.message}`);
-            }
-        }
+          // Aggregate results from all parallel sources
+          for (const result of sourceResults) {
+              if (result.status === 'fulfilled') {
+                  const { name, stats } = result.value;
+                  results.sources[name] = stats;
+                  results.totalSaved += stats.saved;
+              } else {
+                  const reason = result.reason;
+                  results.sources[reason.name] = { found: 0, saved: 0, error: reason.message };
+                  results.errors.push(`${reason.name}: ${reason.message}`);
+              }
+          }
 
-        results.archived = await archiveOldArticles();
+          results.archived = await archiveOldArticles();
 
-        for (const [name, stats] of Object.entries(results.sources)) {
-        }
+          for (const [name, stats] of Object.entries(results.sources)) {
+          }
 
-        return res.status(200).json({
-            success: true,
-            timestamp: new Date().toISOString(),
-            results
-        });
+          return res.status(200).json({
+              success: true,
+              timestamp: new Date().toISOString(),
+              results
+          });
 
-    } catch (error) {
-        console.error('❌ Scraper error:', error);
-        return res.status(500).json({ success: false, error: error.message, results });
-    }
+      } catch (error) {
+          console.error('❌ Scraper error:', error);
+          return res.status(500).json({ success: false, error: error.message, results });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }
 
 // Vercel config — maxDuration for Pro plan (60s hard limit)

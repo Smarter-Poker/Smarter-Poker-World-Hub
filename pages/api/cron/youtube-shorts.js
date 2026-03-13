@@ -173,68 +173,74 @@ async function saveVideos(videos) {
 }
 
 export default async function handler(req, res) {
-    // Verify cron secret
-    if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
-    // Security: validate cron auth for external callers
-    const { validateCronAuth } = await import('../../../src/utils/cron-auth.js');
-    if (!validateCronAuth(req)) {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
+  try {
+      // Verify cron secret
+      if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+          return res.status(401).json({ error: 'Unauthorized' });
+      }
+      // Security: validate cron auth for external callers
+      const { validateCronAuth } = await import('../../../src/utils/cron-auth.js');
+      if (!validateCronAuth(req)) {
+          return res.status(401).json({ error: 'Unauthorized' });
+      }
 
 
-    try {
-        // Verify system account exists
-        const { data: systemAccount, error: accountError } = await supabase
-            .from('profiles')
-            .select('id, username')
-            .eq('id', SYSTEM_ACCOUNT_UUID)
-            .maybeSingle();
+      try {
+          // Verify system account exists
+          const { data: systemAccount, error: accountError } = await supabase
+              .from('profiles')
+              .select('id, username')
+              .eq('id', SYSTEM_ACCOUNT_UUID)
+              .maybeSingle();
 
-        if (accountError || !systemAccount) {
-            console.error('❌ System account not found!');
-            return res.status(500).json({
-                success: false,
-                error: 'System account not found.'
-            });
-        }
-
-
-        const allVideos = [];
-        const channelResults = {};
-
-        for (const channel of POKER_CHANNELS) {
-            if (allVideos.length >= CONFIG.MAX_TOTAL_VIDEOS) {
-                break;
-            }
-
-            const videos = await fetchChannelVideos(channel);
-            channelResults[channel.name] = videos.length;
-            allVideos.push(...videos);
-
-            // Be respectful with rate limiting
-            await delay(CONFIG.REQUEST_DELAY);
-        }
+          if (accountError || !systemAccount) {
+              console.error('❌ System account not found!');
+              return res.status(500).json({
+                  success: false,
+                  error: 'System account not found.'
+              });
+          }
 
 
-        const { saved, skipped } = await saveVideos(allVideos);
+          const allVideos = [];
+          const channelResults = {};
 
-        for (const [name, count] of Object.entries(channelResults)) {
-        }
+          for (const channel of POKER_CHANNELS) {
+              if (allVideos.length >= CONFIG.MAX_TOTAL_VIDEOS) {
+                  break;
+              }
 
-        return res.status(200).json({
-            success: true,
-            timestamp: new Date().toISOString(),
-            account: systemAccount.username,
-            channels_scraped: POKER_CHANNELS.length,
-            found: allVideos.length,
-            saved,
-            skipped
-        });
+              const videos = await fetchChannelVideos(channel);
+              channelResults[channel.name] = videos.length;
+              allVideos.push(...videos);
 
-    } catch (error) {
-        console.error('❌ Scraper error:', error);
-        return res.status(500).json({ success: false, error: error.message });
-    }
+              // Be respectful with rate limiting
+              await delay(CONFIG.REQUEST_DELAY);
+          }
+
+
+          const { saved, skipped } = await saveVideos(allVideos);
+
+          for (const [name, count] of Object.entries(channelResults)) {
+          }
+
+          return res.status(200).json({
+              success: true,
+              timestamp: new Date().toISOString(),
+              account: systemAccount.username,
+              channels_scraped: POKER_CHANNELS.length,
+              found: allVideos.length,
+              saved,
+              skipped
+          });
+
+      } catch (error) {
+          console.error('❌ Scraper error:', error);
+          return res.status(500).json({ success: false, error: error.message });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

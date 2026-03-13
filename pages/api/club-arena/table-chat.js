@@ -20,170 +20,176 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
-    if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  try {
+      if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ error: 'Not authenticated' });
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      if (!token) return res.status(401).json({ error: 'Not authenticated' });
 
-    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+      const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+      if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
-    const { action, tableId, clubId, message, targetUserId } = req.body;
-    if (!tableId) return res.status(400).json({ error: 'tableId required' });
+      const { action, tableId, clubId, message, targetUserId } = req.body;
+      if (!tableId) return res.status(400).json({ error: 'tableId required' });
 
-    try {
-        switch (action) {
-            case 'send': {
-                if (!message?.trim()) return res.status(400).json({ error: 'Message required' });
-                
-                // 1. Sanitize input to strip XSS, Null Bytes, and Unicode control chars
-                const cleanMessage = sanitizeNote(message, 200);
-                if (!cleanMessage) return res.status(400).json({ error: 'Invalid message content' });
+      try {
+          switch (action) {
+              case 'send': {
+                  if (!message?.trim()) return res.status(400).json({ error: 'Message required' });
 
-                // 2. Centralized Edge-friendly Rate Limiting (1 request per second)
-                // Use custom window for chat to prevent spam, allowing bursts but averaging 1/sec
-                if (!applyRateLimit(req, res, { max: 5, windowMs: 5000, scope: ':chat_send' })) return;
+                  // 1. Sanitize input to strip XSS, Null Bytes, and Unicode control chars
+                  const cleanMessage = sanitizeNote(message, 200);
+                  if (!cleanMessage) return res.status(400).json({ error: 'Invalid message content' });
 
-                // Check if user is muted
-                const { data: muteCheck } = await supabaseAdmin
-                    .from('table_chat_mutes')
-                    .select('id')
-                    .eq('table_id', tableId)
-                    .eq('user_id', user.id)
-                    .gte('expires_at', new Date().toISOString())
-                    .maybeSingle();
+                  // 2. Centralized Edge-friendly Rate Limiting (1 request per second)
+                  // Use custom window for chat to prevent spam, allowing bursts but averaging 1/sec
+                  if (!applyRateLimit(req, res, { max: 5, windowMs: 5000, scope: ':chat_send' })) return;
 
-                if (muteCheck) return res.status(403).json({ error: 'You are muted at this table' });
+                  // Check if user is muted
+                  const { data: muteCheck } = await supabaseAdmin
+                      .from('table_chat_mutes')
+                      .select('id')
+                      .eq('table_id', tableId)
+                      .eq('user_id', user.id)
+                      .gte('expires_at', new Date().toISOString())
+                      .maybeSingle();
 
-                // Check if user is seated at the table
-                const { data: tableData } = await supabaseAdmin
-                    .from('active_tables')
-                    .select('table_state')
-                    .eq('id', tableId)
-                    .maybeSingle();
+                  if (muteCheck) return res.status(403).json({ error: 'You are muted at this table' });
 
-                if (!tableData || !tableData.table_state) {
-                    return res.status(404).json({ error: 'Table not found' });
-                }
+                  // Check if user is seated at the table
+                  const { data: tableData } = await supabaseAdmin
+                      .from('active_tables')
+                      .select('table_state')
+                      .eq('id', tableId)
+                      .maybeSingle();
 
-                // Parse seats from the active_tables state payload
-                const seats = tableData.table_state.seats || [];
-                const isSeated = seats.some(s => s?.player?.id && String(s.player.id) === String(user.id));
-                
-                if (!isSeated) {
-                    // Admins allowed to chat as dealers, but not regular players
-                    const { data: membership } = await supabaseAdmin
-                        .from('club_members')
-                        .select('role')
-                        .eq('user_id', user.id)
-                        .maybeSingle();
-                    if (!membership || !['owner', 'admin'].includes(membership.role)) {
-                        return res.status(403).json({ error: 'Spectators cannot chat at live tables' });
-                    }
-                }
+                  if (!tableData || !tableData.table_state) {
+                      return res.status(404).json({ error: 'Table not found' });
+                  }
 
-                // Get user profile for display
-                const { data: profile } = await supabaseAdmin
-                    .from('profiles')
-                    .select('display_name, avatar_url')
-                    .eq('id', user.id)
-                    .maybeSingle();
+                  // Parse seats from the active_tables state payload
+                  const seats = tableData.table_state.seats || [];
+                  const isSeated = seats.some(s => s?.player?.id && String(s.player.id) === String(user.id));
 
-                const chatMsg = {
-                    table_id: tableId,
-                    user_id: user.id,
-                    message: cleanMessage,
-                    message_type: 'player',
-                    display_name: profile?.display_name || 'Player',
-                    avatar_url: profile?.avatar_url || null,
-                };
+                  if (!isSeated) {
+                      // Admins allowed to chat as dealers, but not regular players
+                      const { data: membership } = await supabaseAdmin
+                          .from('club_members')
+                          .select('role')
+                          .eq('user_id', user.id)
+                          .maybeSingle();
+                      if (!membership || !['owner', 'admin'].includes(membership.role)) {
+                          return res.status(403).json({ error: 'Spectators cannot chat at live tables' });
+                      }
+                  }
 
-                const { data, error } = await supabaseAdmin
-                    .from('table_chat')
-                    .insert(chatMsg)
-                    .select()
-                    .maybeSingle();
+                  // Get user profile for display
+                  const { data: profile } = await supabaseAdmin
+                      .from('profiles')
+                      .select('display_name, avatar_url')
+                      .eq('id', user.id)
+                      .maybeSingle();
 
-                if (error) throw error;
-                return res.status(201).json({ success: true, chat: data });
-            }
+                  const chatMsg = {
+                      table_id: tableId,
+                      user_id: user.id,
+                      message: cleanMessage,
+                      message_type: 'player',
+                      display_name: profile?.display_name || 'Player',
+                      avatar_url: profile?.avatar_url || null,
+                  };
 
-            case 'dealer_msg': {
-                if (!clubId) return res.status(400).json({ error: 'clubId required' });
-                if (!message?.trim()) return res.status(400).json({ error: 'Message required' });
+                  const { data, error } = await supabaseAdmin
+                      .from('table_chat')
+                      .insert(chatMsg)
+                      .select()
+                      .maybeSingle();
 
-                // Verify admin
-                const { data: membership } = await supabaseAdmin
-                    .from('club_members')
-                    .select('role')
-                    .eq('club_id', clubId)
-                    .eq('user_id', user.id)
-                    .maybeSingle();
-                if (!membership || !['owner', 'admin', 'super_agent'].includes(membership.role)) {
-                    return res.status(403).json({ error: 'Admin access required' });
-                }
+                  if (error) throw error;
+                  return res.status(201).json({ success: true, chat: data });
+              }
 
-                const { data, error } = await supabaseAdmin
-                    .from('table_chat')
-                    .insert({
-                        table_id: tableId,
-                        user_id: user.id,
-                        message: message.trim().slice(0, 500),
-                        message_type: 'dealer',
-                        display_name: '🎰 Dealer',
-                    })
-                    .select()
-                    .maybeSingle();
+              case 'dealer_msg': {
+                  if (!clubId) return res.status(400).json({ error: 'clubId required' });
+                  if (!message?.trim()) return res.status(400).json({ error: 'Message required' });
 
-                if (error) throw error;
-                return res.status(201).json({ success: true, chat: data });
-            }
+                  // Verify admin
+                  const { data: membership } = await supabaseAdmin
+                      .from('club_members')
+                      .select('role')
+                      .eq('club_id', clubId)
+                      .eq('user_id', user.id)
+                      .maybeSingle();
+                  if (!membership || !['owner', 'admin', 'super_agent'].includes(membership.role)) {
+                      return res.status(403).json({ error: 'Admin access required' });
+                  }
 
-            case 'history': {
-                const { data, error } = await supabaseAdmin
-                    .from('table_chat')
-                    .select('*')
-                    .eq('table_id', tableId)
-                    .order('created_at', { ascending: false })
-                    .limit(50);
+                  const { data, error } = await supabaseAdmin
+                      .from('table_chat')
+                      .insert({
+                          table_id: tableId,
+                          user_id: user.id,
+                          message: message.trim().slice(0, 500),
+                          message_type: 'dealer',
+                          display_name: '🎰 Dealer',
+                      })
+                      .select()
+                      .maybeSingle();
 
-                if (error) throw error;
-                return res.status(200).json({ success: true, messages: (data || []).reverse() });
-            }
+                  if (error) throw error;
+                  return res.status(201).json({ success: true, chat: data });
+              }
 
-            case 'mute': {
-                if (!clubId || !targetUserId) return res.status(400).json({ error: 'clubId and targetUserId required' });
+              case 'history': {
+                  const { data, error } = await supabaseAdmin
+                      .from('table_chat')
+                      .select('*')
+                      .eq('table_id', tableId)
+                      .order('created_at', { ascending: false })
+                      .limit(50);
 
-                const { data: membership } = await supabaseAdmin
-                    .from('club_members')
-                    .select('role')
-                    .eq('club_id', clubId)
-                    .eq('user_id', user.id)
-                    .maybeSingle();
-                if (!membership || !['owner', 'admin', 'super_agent'].includes(membership.role)) {
-                    return res.status(403).json({ error: 'Admin access required' });
-                }
+                  if (error) throw error;
+                  return res.status(200).json({ success: true, messages: (data || []).reverse() });
+              }
 
-                // Mute for 30 minutes
-                const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
-                const { error } = await supabaseAdmin
-                    .from('table_chat_mutes')
-                    .upsert({
-                        table_id: tableId,
-                        user_id: targetUserId,
-                        muted_by: user.id,
-                        expires_at: expiresAt,
-                    }, { onConflict: 'table_id,user_id' });
+              case 'mute': {
+                  if (!clubId || !targetUserId) return res.status(400).json({ error: 'clubId and targetUserId required' });
 
-                if (error) throw error;
-                return res.status(200).json({ success: true, expiresAt });
-            }
+                  const { data: membership } = await supabaseAdmin
+                      .from('club_members')
+                      .select('role')
+                      .eq('club_id', clubId)
+                      .eq('user_id', user.id)
+                      .maybeSingle();
+                  if (!membership || !['owner', 'admin', 'super_agent'].includes(membership.role)) {
+                      return res.status(403).json({ error: 'Admin access required' });
+                  }
 
-            default:
-                return res.status(400).json({ error: `Unknown action: ${action}` });
-        }
-    } catch (err) {
-        console.error('[table-chat]', err);
-        return res.status(500).json({ error: 'Internal error' });
-    }
+                  // Mute for 30 minutes
+                  const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+                  const { error } = await supabaseAdmin
+                      .from('table_chat_mutes')
+                      .upsert({
+                          table_id: tableId,
+                          user_id: targetUserId,
+                          muted_by: user.id,
+                          expires_at: expiresAt,
+                      }, { onConflict: 'table_id,user_id' });
+
+                  if (error) throw error;
+                  return res.status(200).json({ success: true, expiresAt });
+              }
+
+              default:
+                  return res.status(400).json({ error: `Unknown action: ${action}` });
+          }
+      } catch (err) {
+          console.error('[table-chat]', err);
+          return res.status(500).json({ error: 'Internal error' });
+      }
+
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
 }

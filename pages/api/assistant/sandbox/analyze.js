@@ -721,222 +721,228 @@ function buildExplanation(handAnalysis, matchTier, street, exploitMode, villainA
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ success: false, error: 'Method not allowed' });
-  }
-
   try {
-    // JWT Authentication — optional for guest access
-    let userId = null;
-    const authHeader = req.headers.authorization;
-    if (authHeader?.startsWith('Bearer ')) {
-      const token = authHeader.replace('Bearer ', '');
-      try {
-        const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
-        if (!authError && authUser) {
-          userId = authUser.id;
-        }
-      } catch (e) { console.warn('[Sandbox] Auth token validation failed:', e.message); }
+    if (req.method !== 'POST') {
+      return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
-    const { heroHand, heroPosition, heroStack, gameType, villains, board, betSizing, potSize, actionHistory, exploitMode, villainArchetype, bubbleFactor, villainRange, socratic } = req.body;
-
-    // Context authority check — only for authenticated users
-    if (userId) {
-      try {
-        const contextAccess = await checkSandboxAccess(supabase, userId);
-        if (!contextAccess.allowed) {
-          return res.status(403).json({
-            success: false, blocked: true,
-            contextState: contextAccess.contextState,
-            error: contextAccess.message,
-          });
-        }
-      } catch (accessErr) {
-        // Don't block analysis if context authority check fails
-        console.warn('[Sandbox] Context authority check failed (non-fatal):', accessErr.message);
+    try {
+      // JWT Authentication — optional for guest access
+      let userId = null;
+      const authHeader = req.headers.authorization;
+      if (authHeader?.startsWith('Bearer ')) {
+        const token = authHeader.replace('Bearer ', '');
+        try {
+          const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
+          if (!authError && authUser) {
+            userId = authUser.id;
+          }
+        } catch (e) { console.warn('[Sandbox] Auth token validation failed:', e.message); }
       }
-    }
 
-    // Rate limit — use userId for auth'd users, IP for guests (stricter limit)
-    const rateLimitKey = userId || req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'guest';
-    const rateLimit = checkRateLimit(rateLimitKey);
-    if (!rateLimit.allowed) {
-      return res.status(429).json({ success: false, error: 'Rate limit exceeded.', retryAfter: rateLimit.retryAfter });
-    }
+      const { heroHand, heroPosition, heroStack, gameType, villains, board, betSizing, potSize, actionHistory, exploitMode, villainArchetype, bubbleFactor, villainRange, socratic } = req.body;
 
-    // Check cache
-    const cacheKey = getCacheKey({ heroHand, heroPosition, heroStack, gameType, board, exploitMode, bubbleFactor });
-    const cached = analysisCache.get(cacheKey);
-    if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
-      return res.status(200).json({ success: true, cached: true, ...cached.data });
-    }
-
-    const street = getStreet(board);
-    const heroNotation = heroHandToNotation(heroHand);
-    const calculatedPot = potSize || 6;
-
-    // ━━━ QUERY SOLVER DATA ━━━
-    let analysis = null;
-    let rangeHeatmap = null;
-    let matchTier = 4;
-    let source = 'Grok AI Analysis';
-    let explanation = '';
-
-    const solverResult = await querySolverData({
-      heroHand, heroPosition, heroStack, gameType, board,
-    });
-
-    if (solverResult) {
-      matchTier = solverResult.matchTier;
-      source = solverResult.source;
-
-      if (solverResult.isPreflop && solverResult.chart) {
-        // Preflop chart data
-        analysis = parsePreflopChart(solverResult.chart, heroNotation);
-        rangeHeatmap = buildPreflopHeatmap(solverResult.chart);
-        explanation = buildExplanation(analysis, matchTier, 'preflop', exploitMode, villainArchetype, bubbleFactor);
-      } else if (solverResult.scenario?.strategy_matrix) {
-        // Postflop solver data
-        analysis = parseStrategyForHand(solverResult.scenario.strategy_matrix, heroNotation, calculatedPot);
-        rangeHeatmap = buildRangeHeatmap(solverResult.scenario.strategy_matrix);
-
-        if (analysis) {
-          explanation = buildExplanation(analysis, matchTier, street, exploitMode, villainArchetype, bubbleFactor);
+      // Context authority check — only for authenticated users
+      if (userId) {
+        try {
+          const contextAccess = await checkSandboxAccess(supabase, userId);
+          if (!contextAccess.allowed) {
+            return res.status(403).json({
+              success: false, blocked: true,
+              contextState: contextAccess.contextState,
+              error: contextAccess.message,
+            });
+          }
+        } catch (accessErr) {
+          // Don't block analysis if context authority check fails
+          console.warn('[Sandbox] Context authority check failed (non-fatal):', accessErr.message);
         }
       }
-    }
 
-    // ━━━ GROK FALLBACK (Tier 4) ━━━
-    if (!analysis) {
-      matchTier = 4;
-      source = 'Grok AI Analysis';
+      // Rate limit — use userId for auth'd users, IP for guests (stricter limit)
+      const rateLimitKey = userId || req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'guest';
+      const rateLimit = checkRateLimit(rateLimitKey);
+      if (!rateLimit.allowed) {
+        return res.status(429).json({ success: false, error: 'Rate limit exceeded.', retryAfter: rateLimit.retryAfter });
+      }
 
-      analysis = await analyzeWithGrok({
-        heroHand, heroPosition, heroStack, gameType, villains, board, potSize: calculatedPot,
-        exploitMode, villainArchetype, bubbleFactor, villainRange, socratic,
+      // Check cache
+      const cacheKey = getCacheKey({ heroHand, heroPosition, heroStack, gameType, board, exploitMode, bubbleFactor });
+      const cached = analysisCache.get(cacheKey);
+      if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
+        return res.status(200).json({ success: true, cached: true, ...cached.data });
+      }
+
+      const street = getStreet(board);
+      const heroNotation = heroHandToNotation(heroHand);
+      const calculatedPot = potSize || 6;
+
+      // ━━━ QUERY SOLVER DATA ━━━
+      let analysis = null;
+      let rangeHeatmap = null;
+      let matchTier = 4;
+      let source = 'Grok AI Analysis';
+      let explanation = '';
+
+      const solverResult = await querySolverData({
+        heroHand, heroPosition, heroStack, gameType, board,
       });
 
-      if (!analysis) {
-        // Hard fallback
-        analysis = ruleBasedFallback({
-          heroHand, heroPosition, heroStack, board, potSize: calculatedPot,
-        });
-        source = 'Heuristic Estimation';
+      if (solverResult) {
+        matchTier = solverResult.matchTier;
+        source = solverResult.source;
+
+        if (solverResult.isPreflop && solverResult.chart) {
+          // Preflop chart data
+          analysis = parsePreflopChart(solverResult.chart, heroNotation);
+          rangeHeatmap = buildPreflopHeatmap(solverResult.chart);
+          explanation = buildExplanation(analysis, matchTier, 'preflop', exploitMode, villainArchetype, bubbleFactor);
+        } else if (solverResult.scenario?.strategy_matrix) {
+          // Postflop solver data
+          analysis = parseStrategyForHand(solverResult.scenario.strategy_matrix, heroNotation, calculatedPot);
+          rangeHeatmap = buildRangeHeatmap(solverResult.scenario.strategy_matrix);
+
+          if (analysis) {
+            explanation = buildExplanation(analysis, matchTier, street, exploitMode, villainArchetype, bubbleFactor);
+          }
+        }
       }
 
-      explanation = analysis.explanation || buildExplanation(analysis, matchTier, street, exploitMode, villainArchetype, bubbleFactor);
-    }
+      // ━━━ GROK FALLBACK (Tier 4) ━━━
+      if (!analysis) {
+        matchTier = 4;
+        source = 'Grok AI Analysis';
 
-    // ━━━ BUILD RESPONSE ━━━
-    const responseData = {
-      // Core analysis
-      heroHand: analysis.heroHand,
-      actions: analysis.actions,
-      optimalAction: analysis.optimalAction,
-      isMixed: analysis.isMixed,
-      ev: analysis.ev,
-      explanation,
-
-      // Metadata
-      source,
-      matchTier,
-      street,
-      confidence: matchTier <= 2 ? 'High' : matchTier === 3 ? 'Medium' : 'Low',
-
-      // Range heatmap (may be null for Grok fallback)
-      rangeHeatmap,
-
-      // Context
-      context: `${gameType === 'tournament' ? 'Tournament' : 'Cash Game'} — ${heroStack} BB — ${heroPosition} `,
-    };
-
-    // ━━━ ICM-ADJUSTED EV (Tournament mode with bubble factor) ━━━
-    if (gameType === 'tournament' && bubbleFactor && bubbleFactor !== 1.0 && analysis.ev) {
-      const icmHero = parseFloat((analysis.ev.hero * bubbleFactor).toFixed(3));
-      responseData.icmAdjusted = true;
-      responseData.bubbleFactor = bubbleFactor;
-      responseData.icmEV = {
-        hero: icmHero,
-        heroDisplay: `${icmHero >= 0 ? '+' : ''}${icmHero.toFixed(2)} BB(ICM)`,
-      };
-    }
-
-    // Cache
-    analysisCache.set(cacheKey, { data: responseData, ts: Date.now() });
-    if (analysisCache.size > 500) {
-      const keysToDelete = Array.from(analysisCache.keys()).slice(0, 50);
-      keysToDelete.forEach(k => analysisCache.delete(k));
-    }
-
-    // Save session
-    try {
-      const { data: session } = await supabase
-        .from('sandbox_sessions')
-        .insert({
-          user_id: userId,
-          hero_hand: `${heroHand?.card1 || ''}${heroHand?.card2 || ''} `,
-          hero_position: heroPosition,
-          hero_stack_bb: heroStack,
-          game_type: gameType,
-          num_opponents: villains?.length || 0,
-          board_flop: board?.flop?.join('') || null,
-          board_turn: board?.turn || null,
-          board_river: board?.river || null,
-          villain_config: villains || [],
-          action_history: actionHistory || [],
-          bet_sizing_preset: betSizing || 'standard',
-          pot_size_bb: calculatedPot,
-        })
-        .select()
-        .maybeSingle();
-
-      if (session) {
-        await supabase.from('sandbox_results').insert({
-          session_id: session.id,
-          primary_action: analysis.optimalAction?.label,
-          primary_frequency: analysis.optimalAction?.frequency,
-          alternative_actions: analysis.actions?.filter(a => !a.isOptimal),
-          data_source: matchTier <= 3 ? 'solver_verified' : 'ai_approx',
-          confidence: responseData.confidence?.toLowerCase(),
-          sensitivity_flags: heroStack < 50 ? ['stack_sensitive'] : [],
-          why_not_check: explanation,
-          full_analysis: responseData,
-          truth_seal: {
-            source: matchTier <= 2 ? 'solver_verified' : matchTier === 3 ? 'solver_approx' : 'ai_approx',
-            matchTier,
-            timestamp: new Date().toISOString(),
-          },
+        analysis = await analyzeWithGrok({
+          heroHand, heroPosition, heroStack, gameType, villains, board, potSize: calculatedPot,
+          exploitMode, villainArchetype, bubbleFactor, villainRange, socratic,
         });
 
-        // Update user stats
-        const { data: existing } = await supabase
-          .from('user_assistant_stats')
-          .select('sandbox_sessions_count, total_sessions_reviewed, total_hands_analyzed')
-          .eq('user_id', userId)
+        if (!analysis) {
+          // Hard fallback
+          analysis = ruleBasedFallback({
+            heroHand, heroPosition, heroStack, board, potSize: calculatedPot,
+          });
+          source = 'Heuristic Estimation';
+        }
+
+        explanation = analysis.explanation || buildExplanation(analysis, matchTier, street, exploitMode, villainArchetype, bubbleFactor);
+      }
+
+      // ━━━ BUILD RESPONSE ━━━
+      const responseData = {
+        // Core analysis
+        heroHand: analysis.heroHand,
+        actions: analysis.actions,
+        optimalAction: analysis.optimalAction,
+        isMixed: analysis.isMixed,
+        ev: analysis.ev,
+        explanation,
+
+        // Metadata
+        source,
+        matchTier,
+        street,
+        confidence: matchTier <= 2 ? 'High' : matchTier === 3 ? 'Medium' : 'Low',
+
+        // Range heatmap (may be null for Grok fallback)
+        rangeHeatmap,
+
+        // Context
+        context: `${gameType === 'tournament' ? 'Tournament' : 'Cash Game'} — ${heroStack} BB — ${heroPosition} `,
+      };
+
+      // ━━━ ICM-ADJUSTED EV (Tournament mode with bubble factor) ━━━
+      if (gameType === 'tournament' && bubbleFactor && bubbleFactor !== 1.0 && analysis.ev) {
+        const icmHero = parseFloat((analysis.ev.hero * bubbleFactor).toFixed(3));
+        responseData.icmAdjusted = true;
+        responseData.bubbleFactor = bubbleFactor;
+        responseData.icmEV = {
+          hero: icmHero,
+          heroDisplay: `${icmHero >= 0 ? '+' : ''}${icmHero.toFixed(2)} BB(ICM)`,
+        };
+      }
+
+      // Cache
+      analysisCache.set(cacheKey, { data: responseData, ts: Date.now() });
+      if (analysisCache.size > 500) {
+        const keysToDelete = Array.from(analysisCache.keys()).slice(0, 50);
+        keysToDelete.forEach(k => analysisCache.delete(k));
+      }
+
+      // Save session
+      try {
+        const { data: session } = await supabase
+          .from('sandbox_sessions')
+          .insert({
+            user_id: userId,
+            hero_hand: `${heroHand?.card1 || ''}${heroHand?.card2 || ''} `,
+            hero_position: heroPosition,
+            hero_stack_bb: heroStack,
+            game_type: gameType,
+            num_opponents: villains?.length || 0,
+            board_flop: board?.flop?.join('') || null,
+            board_turn: board?.turn || null,
+            board_river: board?.river || null,
+            villain_config: villains || [],
+            action_history: actionHistory || [],
+            bet_sizing_preset: betSizing || 'standard',
+            pot_size_bb: calculatedPot,
+          })
+          .select()
           .maybeSingle();
 
-        await supabase.from('user_assistant_stats').upsert({
-          user_id: userId,
-          sandbox_sessions_count: (existing?.sandbox_sessions_count || 0) + 1,
-          total_sessions_reviewed: (existing?.total_sessions_reviewed || 0) + 1,
-          total_hands_analyzed: (existing?.total_hands_analyzed || 0) + 1,
-          last_sandbox_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'user_id' });
+        if (session) {
+          await supabase.from('sandbox_results').insert({
+            session_id: session.id,
+            primary_action: analysis.optimalAction?.label,
+            primary_frequency: analysis.optimalAction?.frequency,
+            alternative_actions: analysis.actions?.filter(a => !a.isOptimal),
+            data_source: matchTier <= 3 ? 'solver_verified' : 'ai_approx',
+            confidence: responseData.confidence?.toLowerCase(),
+            sensitivity_flags: heroStack < 50 ? ['stack_sensitive'] : [],
+            why_not_check: explanation,
+            full_analysis: responseData,
+            truth_seal: {
+              source: matchTier <= 2 ? 'solver_verified' : matchTier === 3 ? 'solver_approx' : 'ai_approx',
+              matchTier,
+              timestamp: new Date().toISOString(),
+            },
+          });
+
+          // Update user stats
+          const { data: existing } = await supabase
+            .from('user_assistant_stats')
+            .select('sandbox_sessions_count, total_sessions_reviewed, total_hands_analyzed')
+            .eq('user_id', userId)
+            .maybeSingle();
+
+          await supabase.from('user_assistant_stats').upsert({
+            user_id: userId,
+            sandbox_sessions_count: (existing?.sandbox_sessions_count || 0) + 1,
+            total_sessions_reviewed: (existing?.total_sessions_reviewed || 0) + 1,
+            total_hands_analyzed: (existing?.total_hands_analyzed || 0) + 1,
+            last_sandbox_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'user_id' });
+        }
+      } catch (dbErr) {
+        console.error('[Sandbox] Session save error (non-fatal):', dbErr.message);
       }
-    } catch (dbErr) {
-      console.error('[Sandbox] Session save error (non-fatal):', dbErr.message);
+
+      return res.status(200).json({
+        success: true,
+        rateLimit: { remaining: rateLimit.remaining },
+        ...responseData,
+      });
+
+    } catch (error) {
+      console.error('[Sandbox] Analysis error:', error);
+      return res.status(500).json({ success: false, error: error.message });
     }
 
-    return res.status(200).json({
-      success: true,
-      rateLimit: { remaining: rateLimit.remaining },
-      ...responseData,
-    });
-
-  } catch (error) {
-    console.error('[Sandbox] Analysis error:', error);
-    return res.status(500).json({ success: false, error: error.message });
+  } catch (err) {
+    console.error('[API Error]', err);
+    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }
