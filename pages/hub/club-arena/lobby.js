@@ -9,7 +9,7 @@ import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { apiCall, apiGet } from '../../../src/lib/club-arena/apiClient';
+import { apiGet } from '../../../src/lib/club-arena/apiClient';
 import { eventBus } from '../../../src/engine/EventBus';
 import s from '../../../src/styles/UnionDashboard.module.css';
 
@@ -69,19 +69,39 @@ export default function ClubArenaLobbyPage() {
       const targetClubId = cId || clubId;
       if (!targetClubId) { setError('No club selected.'); setLoading(false); return; }
 
-      // Parallel fetch: sessions (tables + summary), BBJ, announcements
+      const { supabase } = await import('../../../src/lib/supabase');
+
+      // Parallel fetch: tables (direct Supabase — works for ALL members), BBJ, announcements, member count
       const results = await Promise.allSettled([
-        apiGet(`/api/club-arena/player-sessions?clubId=${targetClubId}`),
+        supabase.from('tables')
+          .select('id, name, status, current_players, max_players, game_variant, small_blind, big_blind, min_buy_in, max_buy_in')
+          .eq('club_id', targetClubId)
+          .order('status', { ascending: true }),
         apiGet(`/api/club-arena/bbj?clubId=${targetClubId}`),
         apiGet(`/api/club-arena/announcements?clubId=${targetClubId}`),
+        supabase.from('club_members')
+          .select('user_id', { count: 'exact', head: false })
+          .eq('club_id', targetClubId)
+          .eq('status', 'active'),
       ]);
 
       if (mountedRef.current) {
-        // Sessions / tables
+        // Tables (direct query — no admin role needed)
         if (results[0].status === 'fulfilled') {
-          const sessData = results[0].value;
-          setTables(sessData.tables || []);
-          setSummary(sessData.summary || null);
+          const { data: tableData, error: tErr } = results[0].value;
+          if (!tErr) {
+            setTables(tableData || []);
+            const active = (tableData || []).filter(t => ['active', 'playing', 'waiting', 'between_hands'].includes(t.status));
+            const totalSeated = active.reduce((s, t) => s + (t.current_players || 0), 0);
+            // Build summary from tables data
+            const memberCount = results[3]?.status === 'fulfilled' ? (results[3].value?.count || results[3].value?.data?.length || 0) : 0;
+            setSummary({
+              activeTables: active.length,
+              totalSeated,
+              totalMembers: memberCount,
+              online: totalSeated, // best approximation from table data
+            });
+          }
         }
         // BBJ
         if (results[1].status === 'fulfilled') {
