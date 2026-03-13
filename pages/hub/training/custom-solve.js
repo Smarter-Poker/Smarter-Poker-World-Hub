@@ -889,7 +889,6 @@ export default function CustomSolvePage() {
             },
           }),
         });
-        console.log('[CustomSolve] Session saved ✅');
       } catch (err) {
         console.warn('[CustomSolve] Save error (non-blocking):', err.message);
       }

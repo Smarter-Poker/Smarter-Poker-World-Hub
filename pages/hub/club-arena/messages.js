@@ -35,11 +35,13 @@ export default function ClubArenaMessagesPage() {
   const [messages, setMessages] = useState([]);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
+  const [connectionLost, setConnectionLost] = useState(false);
 
   const chatEndRef = useRef(null);
   const scrollContainerRef = useRef(null);
   const pollRef = useRef(null);
   const mountedRef = useRef(true);
+  const failCountRef = useRef(0);
 
   useEffect(() => () => { mountedRef.current = false; }, []);
 
@@ -57,11 +59,21 @@ export default function ClubArenaMessagesPage() {
     try {
       const res = await apiGet(`/api/club-arena/club-chat?clubId=${cId}&limit=100`);
       if (mountedRef.current && res.messages) {
-        setMessages(res.messages);
+        setMessages(prev => {
+          // Merge optimistic messages (negative ids) with server messages
+          const optimistic = prev.filter(m => m._optimistic && !res.messages.some(rm => rm.message === m.message && rm.user_id === m.user_id));
+          return [...res.messages, ...optimistic];
+        });
         setTimeout(() => scrollToBottom(isInitial), 50);
+        failCountRef.current = 0;
+        if (mountedRef.current) setConnectionLost(false);
       }
     } catch (err) {
       console.error('[messages] load fail:', err);
+      failCountRef.current++;
+      if (failCountRef.current >= 3 && mountedRef.current) {
+        setConnectionLost(true);
+      }
     }
   }, [scrollToBottom]);
 
@@ -118,15 +130,29 @@ export default function ClubArenaMessagesPage() {
     return () => clearInterval(pollRef.current);
   }, [clubId, loadMessages]);
 
-  // Send message
+  // Send message (optimistic)
   const handleSend = async () => {
     if (!draft.trim() || !clubId || sending) return;
+    const msgText = draft.trim();
+    const optimisticMsg = {
+      id: `opt-${Date.now()}`,
+      user_id: userId,
+      message: msgText,
+      created_at: new Date().toISOString(),
+      display_name: 'You',
+      _optimistic: true,
+    };
+    setDraft('');
+    setMessages(prev => [...prev, optimisticMsg]);
+    setTimeout(() => scrollToBottom(true), 50);
+
     try {
       setSending(true);
-      await apiCall('/api/club-arena/club-chat', { clubId, message: draft.trim() });
-      setDraft('');
+      await apiCall('/api/club-arena/club-chat', { clubId, message: msgText });
       await loadMessages(clubId, true);
     } catch (err) {
+      // Remove optimistic message on failure
+      setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id));
       alert('Failed to send: ' + err.message);
     } finally {
       setSending(false);
@@ -163,6 +189,14 @@ export default function ClubArenaMessagesPage() {
             </div>
           ) : error ? <div className={s.error}>{error}</div> : (
             <>
+
+          {/* Connection Lost Banner */}
+          {connectionLost && (
+            <div style={{ background: '#FA383E22', border: '1px solid #FA383E44', borderRadius: '8px', padding: '10px 16px', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ color: '#FA383E', fontSize: '13px', fontWeight: 600 }}>⚠️ Connection lost — retrying...</span>
+              <button onClick={() => { failCountRef.current = 0; setConnectionLost(false); loadMessages(clubId); }} className={s.btnGhost} style={{ fontSize: '12px', padding: '4px 12px', color: '#FA383E', border: '1px solid #FA383E' }}>↻ Retry Now</button>
+            </div>
+          )}
 
           {/* Header */}
           <div className={s.pageHeader}>
@@ -210,10 +244,12 @@ export default function ClubArenaMessagesPage() {
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       overflow: 'hidden', fontSize: '14px',
                     }}>
-                      {msg.avatar_url
-                        ? <img src={msg.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        : (msg.display_name || 'P')[0].toUpperCase()
-                      }
+                    {(() => {
+                      const safeAvatar = msg.avatar_url && /^https:\/\//i.test(msg.avatar_url) ? msg.avatar_url : null;
+                      return safeAvatar
+                        ? <img src={safeAvatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        : (msg.display_name || 'P')[0].toUpperCase();
+                    })()}
                     </div>
 
                     {/* Bubble */}
@@ -230,7 +266,8 @@ export default function ClubArenaMessagesPage() {
                         </div>
                       )}
                       <div style={{ fontSize: '14px', lineHeight: '1.4', wordBreak: 'break-word' }}>{msg.message}</div>
-                      <div style={{ fontSize: '10px', color: isMe ? 'rgba(255,255,255,0.5)' : '#65676B', marginTop: '4px', textAlign: 'right' }}>
+                      <div style={{ fontSize: '10px', color: isMe ? 'rgba(255,255,255,0.5)' : '#65676B', marginTop: '4px', textAlign: 'right', display: 'flex', justifyContent: 'flex-end', gap: '4px', alignItems: 'center' }}>
+                        {msg._optimistic && <span style={{ color: '#F5A623' }}>⏳</span>}
                         {formatTime(msg.created_at)}
                       </div>
                     </div>

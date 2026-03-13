@@ -1037,7 +1037,6 @@ export default function HandHistoryUploadPage() {
   // Bus Listener
   useEffect(() => {
     const unsub = eventBus.on(EventType?.SESSION_END || 'session:end', () => {
-      console.log('[HandHistoryUpload] Session complete event received');
     });
     return unsub;
   }, []);

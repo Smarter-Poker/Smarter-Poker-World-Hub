@@ -1943,7 +1943,6 @@ export default function VirtualSandbox() {
           sessionLog={sessionLog}
           onLoadScenario={(entry) => {
             // Basic scenario reload (you would normally fully parse this back into context depending on entry structure)
-            console.log('[HandReplay] Load scenario:', entry);
             // Note: A full reload would require parsing board cards from space-separated string back into objects, etc.
             // We'll leave the API hook here for now to just log.
           }}

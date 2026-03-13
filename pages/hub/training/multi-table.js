@@ -123,7 +123,6 @@ export default function MultiTablePage() {
               handHistory: [],
             }),
           });
-          console.log('[MultiTable] Combined session saved ✅');
           setSaveStatus('saved');
 
           eventBus?.emit?.(

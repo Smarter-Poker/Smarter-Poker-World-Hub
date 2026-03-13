@@ -970,7 +970,6 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
             mentions.push(match[1]);
         }
         // DEBUG: log linkPreview before passing to parent
-        console.log('[PostCreator]  About to call onPost with linkPreview:', JSON.stringify(linkPreview, null, 2));
         const ok = await onPost(cleanContent, urls, type, mentions, linkPreview);
         if (ok) { setContent(''); setMedia([]); setLinkPreview(null); }
         else setError('Unable to post at this time. Please try again later.');
@@ -2537,7 +2536,6 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
             const token = getAccessToken();
             const mediaUrls = postMedia.map(m => m.url);
             const contentType = postMedia.some(m => m.type === 'video') ? 'video' : (postMedia.length > 0 ? 'image' : 'text');
-            console.log('[ClubPage] Posting:', { page_id: page.id, author_id: userId, content: postContent.trim().substring(0, 50), contentType, mediaUrls });
             const res = await fetch('/api/social/pages/posts', {
                 method: 'POST', headers: { 
                     'Content-Type': 'application/json',
@@ -2547,7 +2545,6 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
             });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
-            console.log('[ClubPage] Post response:', json);
             if (json.success && json.data) {
                 setPosts(prev => [{ ...json.data, author: { username: 'You' }, user_liked: false }, ...prev]);
                 setPostContent('');
@@ -4996,7 +4993,6 @@ function SocialMediaPage() {
                 }
             } else {
                 // Got posts - continue infinite scroll
-                console.log(`[Social] Got ${allPostsData.length} posts - continuing scroll`);
                 setHasMorePosts(true);
             }
 
@@ -5393,7 +5389,6 @@ function SocialMediaPage() {
                         view_count: 0,
                         like_count: 0
                     });
-                    console.log(' Video auto-saved to Reels!');
                 }
             } catch (secondaryErr) {
                 // Mention/Reel failures are non-critical — post was already saved and displayed
@@ -5488,7 +5483,6 @@ function SocialMediaPage() {
             setPosts(prev => prev.filter(p => p.id !== id));
             // Invalidate feed cache so deleted post doesn't flicker on next visit
             try { localStorage.removeItem('sp-feed-cache'); } catch {}
-            console.log(`[Delete] ✅ Post ${id} deleted successfully (${result.deletedBy})`);
             busEmit.dataMutated('social');
         } catch (e) {
             console.error('[Delete] Error:', e);

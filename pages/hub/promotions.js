@@ -81,7 +81,6 @@ export default function PromotionsPage() {
                 schema: 'public',
                 table: 'promotions'
             }, () => {
-                console.log('[Promotions] 🔄 Promotions updated via realtime');
                 refreshPromotions();
             })
             .subscribe();

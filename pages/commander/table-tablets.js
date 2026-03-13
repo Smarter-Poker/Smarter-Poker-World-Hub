@@ -243,7 +243,6 @@ export default function TableTabletsPage() {
             setChipCountInput(null);
         } else {
             if (lockedTournamentId && fullscreenTable.tournament_id !== lockedTournamentId) {
-                console.log('[TableTablets] Tournament mismatch — Locked:', lockedTournamentId, 'Table:', fullscreenTable.tournament_id);
                 setShowTournamentClock(false);
                 setLockedTournamentId(null);
             }

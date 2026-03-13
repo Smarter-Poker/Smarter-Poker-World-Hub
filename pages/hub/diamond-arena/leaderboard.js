@@ -35,7 +35,6 @@ export default function DiamondArenaLeaderboard() {
                 schema: 'public',
                 table: 'diamond_arena_scores'
             }, () => {
-                console.log('[DiamondArena] 🔄 Leaderboard updated via realtime');
                 // Trigger leaderboard refresh when scores change
                 window.dispatchEvent(new CustomEvent('diamond-arena-refresh'));
             })

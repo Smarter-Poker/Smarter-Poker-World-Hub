@@ -112,7 +112,6 @@ export default function HandLabV2() {
   };
 
   const saveScenario = () => {
-    console.log('Scenario saved!');
     // Implement actual save logic here
   };
 

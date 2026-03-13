@@ -483,7 +483,6 @@ export default function VideoLibraryPage() {
                 table: 'user_video_watch_history',
                 filter: `user_id=eq.${userId}`
             }, () => {
-                console.log('[VideoLibrary] 🔄 Watch history updated via realtime');
                 // Reload watch stats and recently watched
                 getWatchStats(userId).then(stats => setWatchStats(stats));
                 getRecentlyWatched(userId, 10).then(recent => setRecentlyWatched(recent));
@@ -494,7 +493,6 @@ export default function VideoLibraryPage() {
                 table: 'user_video_favorites',
                 filter: `user_id=eq.${userId}`
             }, () => {
-                console.log('[VideoLibrary] 🔄 Favorites updated via realtime');
                 getVideoFavorites(userId).then(data => {
                     setFavorites(new Set(data.map(v => v.video_id)));
                 });

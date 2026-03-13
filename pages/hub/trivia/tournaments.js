@@ -141,7 +141,6 @@ export default function TournamentsPage() {
                     filter: `tournament_id=eq.${activeTournament.id}`
                 },
                 () => {
-                    console.log('[Tournament Realtime] Bracket updated');
                     if (userId) loadBracketData(activeTournament, userId);
                 }
             )
@@ -154,13 +153,11 @@ export default function TournamentsPage() {
                     filter: `id=eq.${activeTournament.id}`
                 },
                 () => {
-                    console.log('[Tournament Realtime] Tournament data updated');
                     loadData();
                 }
             )
             .subscribe((status) => {
                 if (status === 'SUBSCRIBED') {
-                    console.log(`[Tournament Realtime] ✅ Connected: ${activeTournament.id.slice(0, 8)}`);
                 }
             });
 

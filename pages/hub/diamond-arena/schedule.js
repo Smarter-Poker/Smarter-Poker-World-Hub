@@ -34,7 +34,6 @@ export default function DiamondArenaSchedule() {
                 schema: 'public',
                 table: 'diamond_arena_events'
             }, () => {
-                console.log('[DiamondArena] 🔄 Schedule updated via realtime');
                 // Trigger schedule refresh when events change
                 window.dispatchEvent(new CustomEvent('diamond-arena-schedule-refresh'));
             })

@@ -47,27 +47,36 @@ function DashboardTab({ clubId }) {
   const [health, setHealth] = useState(null);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const [hRes, sRes] = await Promise.all([
-          apiCall('/api/club-arena/club-health', { action: 'score', clubId }),
-          apiCall('/api/club-arena/audit-trail', { action: 'stats', clubId })
-        ]);
-        setHealth(hRes);
-        setStats(sRes);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
+  const load = useCallback(async () => {
+    try {
+      setLoading(true);
+      setLoadError(null);
+      const [hRes, sRes] = await Promise.all([
+        apiCall('/api/club-arena/club-health', { action: 'score', clubId }),
+        apiCall('/api/club-arena/audit-trail', { action: 'stats', clubId })
+      ]);
+      setHealth(hRes);
+      setStats(sRes);
+    } catch (err) {
+      console.error(err);
+      setLoadError(err.message || 'Failed to load dashboard');
+    } finally {
+      setLoading(false);
     }
-    load();
   }, [clubId]);
 
+  useEffect(() => { load(); }, [load]);
+
   if (loading) return <div className={s.loading}>Loading Dashboard...</div>;
-  if (!health) return <div className={s.error}>Failed to load health metrics</div>;
+  if (loadError || !health) return (
+    <div className={s.error} style={{ textAlign: 'center', padding: '40px' }}>
+      <div style={{ fontSize: '32px', marginBottom: '12px' }}>⚠️</div>
+      <div style={{ marginBottom: '16px' }}>{loadError || 'Failed to load health metrics'}</div>
+      <button onClick={load} className={s.btnPrimary} style={{ padding: '8px 24px' }}>↻ Retry</button>
+    </div>
+  );
 
   const colorMap = { green: '#31A24C', yellow: '#F5A623', red: '#FA383E' };
   const hColor = colorMap[health.color] || '#31A24C';
@@ -250,21 +259,30 @@ function AuditLogTab({ clubId }) {
   const [data, setData] = useState({ logs: [], total: 0, page: 1, totalPages: 1 });
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const [loadError, setLoadError] = useState(null);
 
   const load = useCallback(async (p) => {
     try {
       setLoading(true);
+      setLoadError(null);
       const res = await apiCall('/api/club-arena/audit-trail', { action: 'list', clubId, page: p, pageSize: 50 });
       setData(res);
       setPage(res.page);
     } catch (err) {
-      alert(err.message);
+      setLoadError(err.message);
     } finally {
       setLoading(false);
     }
   }, [clubId]);
 
   useEffect(() => { load(page); }, [load, page]);
+
+  if (loadError) return (
+    <div className={s.error} style={{ textAlign: 'center', padding: '40px' }}>
+      <div style={{ marginBottom: '16px' }}>{loadError}</div>
+      <button onClick={() => load(page)} className={s.btnPrimary} style={{ padding: '8px 24px' }}>↻ Retry</button>
+    </div>
+  );
 
   // Color coding by action type
   const typeColor = (t) => {
@@ -323,26 +341,31 @@ function BrandingTab({ clubId }) {
   const [theme, setTheme] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [loadError, setLoadError] = useState(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const res = await apiCall('/api/club-arena/club-branding', { action: 'get', clubId });
-        setTheme(res.theme || {});
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
+  const loadBranding = useCallback(async () => {
+    try {
+      setLoading(true);
+      setLoadError(null);
+      const res = await apiCall('/api/club-arena/club-branding', { action: 'get', clubId });
+      setTheme(res.theme || {});
+    } catch (err) {
+      setLoadError(err.message || 'Failed to load branding');
+    } finally {
+      setLoading(false);
     }
-    load();
   }, [clubId]);
+
+  useEffect(() => { loadBranding(); }, [loadBranding]);
 
   const handleSave = async () => {
     try {
       setSaving(true);
+      setSaveSuccess(false);
       await apiCall('/api/club-arena/club-branding', { action: 'save', clubId, theme });
-      alert('Club branding updated successfully!');
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
       alert('Failed to save: ' + err.message);
     } finally {
@@ -353,7 +376,13 @@ function BrandingTab({ clubId }) {
   const update = (k, v) => setTheme(p => ({ ...p, [k]: v }));
 
   if (loading) return <div className={s.loading}>Loading Theme Settings...</div>;
-  if (!theme) return null;
+  if (loadError || !theme) return (
+    <div className={s.error} style={{ textAlign: 'center', padding: '40px' }}>
+      <div style={{ fontSize: '32px', marginBottom: '12px' }}>🎨</div>
+      <div style={{ marginBottom: '16px' }}>{loadError || 'Failed to load theme settings'}</div>
+      <button onClick={loadBranding} className={s.btnPrimary} style={{ padding: '8px 24px' }}>↻ Retry</button>
+    </div>
+  );
 
   return (
     <div style={{ animation: 'fadeIn 0.2s ease-out', maxWidth: '600px', margin: '0 auto' }}>
@@ -403,7 +432,7 @@ function BrandingTab({ clubId }) {
         </div>
 
         <button onClick={handleSave} disabled={saving} className={s.btnPrimary} style={{ width: '100%', padding: '14px', fontSize: '16px' }}>
-          {saving ? 'Saving...' : 'Save Branding Identity'}
+          {saving ? 'Saving...' : saveSuccess ? '✅ Saved!' : 'Save Branding Identity'}
         </button>
       </div>
     </div>
@@ -446,8 +475,8 @@ export default function ClubArenaAdminPage() {
         const { data: memRole } = await supabase.from('club_members').select('role').eq('club_id', targetClub).eq('user_id', session.user.id).maybeSingle();
         if (memRole) {
           setRole(memRole.role);
-          if (!['owner', 'admin'].includes(memRole.role)) {
-            setError('ACCESS DENIED: Operations center requires Club Owner or Admin privileges.');
+          if (!['owner', 'admin', 'manager'].includes(memRole.role)) {
+            setError('ACCESS DENIED: Operations center requires Club Owner, Admin, or Manager privileges.');
           }
         } else {
           setError('ACCESS DENIED: Not a member of this club.');

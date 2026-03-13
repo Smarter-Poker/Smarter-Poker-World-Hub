@@ -189,7 +189,6 @@ export default function DrillBuilderPage() {
         .limit(20);
       if (data) setSavedDrills(data);
     } catch (e) {
-      console.log('[DrillBuilder] No saved drills:', e.message);
     }
   };
 

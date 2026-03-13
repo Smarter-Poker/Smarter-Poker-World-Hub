@@ -653,7 +653,6 @@ function usePlayMode() {
         if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const data = await res.json();
         if (data.success) {
-          console.log('[PlayMode] Session saved to Supabase ✅');
         } else {
           console.warn('[PlayMode] Session save failed:', data.error);
         }

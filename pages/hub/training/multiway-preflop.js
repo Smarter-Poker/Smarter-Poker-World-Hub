@@ -306,7 +306,6 @@ export default function MultiwayPreflopPage() {
               handHistory: [],
             }),
           });
-          console.log('[MultiwayQuiz] Session saved ✅');
           eventBus?.emit?.(
             EventType?.SESSION_END || 'session:end',
             {

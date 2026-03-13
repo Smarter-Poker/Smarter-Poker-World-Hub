@@ -519,7 +519,6 @@ export default function BankrollManagerPage() {
         table: 'bankroll_ledger',
         filter: `user_id=eq.${userId}`
       }, () => {
-        console.log('[Bankroll] 🔄 Ledger updated via realtime');
         loadData();
       })
       .on('postgres_changes', {
@@ -528,7 +527,6 @@ export default function BankrollManagerPage() {
         table: 'bankroll_trips',
         filter: `user_id=eq.${userId}`
       }, () => {
-        console.log('[Bankroll] 🔄 Trip updated via realtime');
         loadData();
       })
       .subscribe();

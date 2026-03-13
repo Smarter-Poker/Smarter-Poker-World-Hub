@@ -65,7 +65,6 @@ export default function EvHeatmapPage() {
     const unsub = eventBus.on(EventType?.SESSION_END || 'session:end', (event) => {
       const source = event?.source;
       if (source === 'ev-heatmap') return; // Ignore own emits
-      console.log('[EV Heatmap] Received SESSION_END from:', source);
     });
     return unsub;
   }, []);

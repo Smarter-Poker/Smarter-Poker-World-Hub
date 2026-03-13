@@ -2297,12 +2297,6 @@ function MessengerPage() {
             console.error('❌ CALL ERROR: Attempted to call self!', { otherUser, currentUser: user.id });
             return;
         }
-        console.log('[Messenger] startCall →', {
-            callingUser: otherUser.id,
-            callingUsername: otherUser.username,
-            currentUser: user.id,
-            conversationId: activeConversation.id,
-        });
 
         // Generate unique room name: smarter-poker-{conversationId}-{timestamp}
         const roomName = `smarter-poker-${activeConversation.id.slice(0, 8)}-${Date.now()}`;

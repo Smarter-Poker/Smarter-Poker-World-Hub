@@ -1006,7 +1006,6 @@ export default function NewsHub() {
                 schema: 'public',
                 table: 'poker_news'
             }, () => {
-                console.log('[News] 🔄 New articles detected via realtime');
                 // Dispatch refresh event to trigger SWR revalidation
                 window.dispatchEvent(new CustomEvent('news-refresh'));
             })

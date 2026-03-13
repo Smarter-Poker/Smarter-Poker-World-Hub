@@ -60,7 +60,6 @@ export default function GtoPreloaderPage() {
     const unsub = eventBus.on(EventType?.SESSION_END || 'session:end', (event) => {
       const source = event?.source;
       if (source === 'gto-preloader') return; // Ignore own emits
-      console.log('[GTO Preloader] Received SESSION_END from:', source);
     });
     return unsub;
   }, []);

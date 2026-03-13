@@ -321,7 +321,6 @@ export default function LeaderboardsPage() {
                 schema: 'public',
                 table: 'venue_checkins'
             }, () => {
-                console.log('[Leaderboards] 🔄 Check-in activity detected');
                 refreshLeaderboards();
             })
             .on('postgres_changes', {
@@ -329,7 +328,6 @@ export default function LeaderboardsPage() {
                 schema: 'public',
                 table: 'venue_reviews'
             }, () => {
-                console.log('[Leaderboards] 🔄 Review activity detected');
                 refreshLeaderboards();
             })
             .on('postgres_changes', {
@@ -337,7 +335,6 @@ export default function LeaderboardsPage() {
                 schema: 'public',
                 table: 'social_posts'
             }, () => {
-                console.log('[Leaderboards] 🔄 Post activity detected');
                 refreshLeaderboards();
             })
             .subscribe();

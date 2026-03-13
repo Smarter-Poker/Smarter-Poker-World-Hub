@@ -515,7 +515,6 @@ export default function PvPLobbyPage() {
             },
           }),
         });
-        console.log('[PvP] Match result saved \u2705');
       } catch (err) {
         console.warn('[PvP] Save error:', err.message);
       }

@@ -140,7 +140,6 @@ export default function SettingsPage() {
                     const tokenData = JSON.parse(explicitAuth);
                     if (tokenData?.user) {
                         setLocalUser(tokenData.user);
-                        console.log('[Settings] User loaded from localStorage:', tokenData.user.email);
                     }
                 }
                 // Fallback to legacy sb-* keys
@@ -153,7 +152,6 @@ export default function SettingsPage() {
                         try { tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}'); } catch { /* corrupted */ }
                         if (tokenData?.user) {
                             setLocalUser(tokenData.user);
-                            console.log('[Settings] User loaded from legacy auth key:', tokenData.user.email);
                         }
                     }
                 }
@@ -225,7 +223,6 @@ export default function SettingsPage() {
                 table: 'profiles',
                 filter: `id=eq.${user.id}`
             }, async () => {
-                console.log('[Settings] 🔄 Profile updated via realtime');
                 await loadSettings();
                 // Broadcast to other tabs (debounced to coalesce rapid profile changes)
                 broadcastSyncDebounced('smarter_poker_settings_sync', { action: 'refresh_settings', tabId: BROADCAST_TAB_ID });
@@ -244,7 +241,6 @@ export default function SettingsPage() {
             const isRefresh = msg === 'refresh_settings' || msg?.action === 'refresh_settings';
             const isSameTab = msg?.tabId === BROADCAST_TAB_ID;
             if (isRefresh && !isSameTab) {
-                console.log('[Settings] 📡 Refreshing settings from other tab');
                 if (user?.id) {
                     supabase
                         .from('profiles')
