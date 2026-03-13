@@ -9,8 +9,8 @@ import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { apiGet } from '../../../src/lib/club-arena/apiClient';
-import { eventBus } from '../../../src/engine/EventBus';
+import { apiGet, apiCall } from '../../../src/lib/club-arena/apiClient';
+import { busEmit, eventBus } from '../../../src/engine/EventBus';
 import s from '../../../src/styles/UnionDashboard.module.css';
 
 // ── Helpers ─────────────────────────────────────────────────
@@ -57,6 +57,9 @@ export default function ClubArenaLobbyPage() {
   const [bbj, setBbj] = useState(null);
   const [announcements, setAnnouncements] = useState([]);
   const [waitlistPositions, setWaitlistPositions] = useState({});
+  const [recommendations, setRecommendations] = useState([]);
+  const [userId, setUserId] = useState(null);
+  const [waitlistProcessing, setWaitlistProcessing] = useState(null);
 
   const mountedRef = useRef(true);
   useEffect(() => () => { mountedRef.current = false; }, []);
@@ -120,6 +123,29 @@ export default function ClubArenaLobbyPage() {
     }
   }, [clubId]);
 
+  // ── Load Recommendations (admin-only, non-blocking) ─────────
+  const loadRecommendations = useCallback(async (cId) => {
+    try {
+      const res = await apiGet(`/api/club-arena/smart-recommendations?clubId=${cId}`);
+      if (mountedRef.current) setRecommendations(res.recommendations || []);
+    } catch { /* silently fail for non-admins or errors */ }
+  }, []);
+
+  // ── Load Waitlist Positions ─────────────────────────────────
+  const loadWaitlistPositions = useCallback(async (tableIds) => {
+    if (!tableIds?.length) return;
+    const positions = {};
+    await Promise.allSettled(
+      tableIds.map(async (tid) => {
+        try {
+          const res = await apiCall('/api/club-arena/waitlist', { action: 'position', tableId: tid });
+          if (res.onWaitlist) positions[tid] = res.position;
+        } catch { /* ignore */ }
+      })
+    );
+    if (mountedRef.current) setWaitlistPositions(positions);
+  }, []);
+
   // ── Initial Load + Auth ────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
@@ -127,6 +153,7 @@ export default function ClubArenaLobbyPage() {
 
     const init = async (session) => {
       if (cancelled) return;
+      setUserId(session.user.id);
       const qClub = router.query.club || router.query.clubId;
       const { supabase } = await import('../../../src/lib/supabase');
 
@@ -157,6 +184,10 @@ export default function ClubArenaLobbyPage() {
         setRole(memberRole);
         setClubName(name);
         loadLobby(targetClub);
+        // Non-blocking: load recommendations for admins
+        if (['owner', 'admin', 'super_agent'].includes(memberRole)) {
+          loadRecommendations(targetClub);
+        }
       } else if (!cancelled) {
         setError('No club found. Join or create a club first.');
         setLoading(false);
@@ -182,7 +213,7 @@ export default function ClubArenaLobbyPage() {
     })();
 
     return () => { cancelled = true; authUnsub?.unsubscribe?.(); };
-  }, [router.query.club, router.query.clubId, loadLobby]);
+  }, [router.query.club, router.query.clubId, loadLobby, loadRecommendations]);
 
   // ── Auto-refresh every 30s ──────────────────────────────────
   useEffect(() => {
@@ -202,10 +233,45 @@ export default function ClubArenaLobbyPage() {
   // ── EventBus: cross-page sync ───────────────────────────────
   useEffect(() => {
     const refresh = () => { if (clubId) loadLobby(clubId); };
-    const events = ['TABLE_CREATED', 'ANNOUNCEMENT_CREATED', 'PLAYER_KICKED'];
+    const events = ['TABLE_CREATED', 'ANNOUNCEMENT_CREATED', 'PLAYER_KICKED',
+      'WAITLIST_PLAYER_ADDED', 'WAITLIST_PLAYER_CALLED', 'WAITLIST_PLAYER_SEATED'];
     events.forEach(ev => eventBus.on(ev, refresh));
     return () => events.forEach(ev => eventBus.off(ev, refresh));
   }, [clubId, loadLobby]);
+
+  // ── Load waitlist positions once tables are loaded ──────────
+  useEffect(() => {
+    const fullTables = tables.filter(t => (t.current_players || 0) >= (t.max_players || 999));
+    if (fullTables.length > 0 && userId) loadWaitlistPositions(fullTables.map(t => t.id));
+  }, [tables, userId, loadWaitlistPositions]);
+
+  // ── Waitlist Actions ───────────────────────────────────────
+  const handleWaitlistJoin = async (tableId) => {
+    setWaitlistProcessing(tableId);
+    try {
+      const res = await apiCall('/api/club-arena/waitlist', { action: 'join', tableId });
+      setWaitlistPositions(prev => ({ ...prev, [tableId]: res.position }));
+      busEmit('WAITLIST_PLAYER_ADDED', { tableId, clubId });
+    } catch (err) {
+      setError(err.message);
+      setTimeout(() => setError(null), 3000);
+    } finally {
+      setWaitlistProcessing(null);
+    }
+  };
+
+  const handleWaitlistLeave = async (tableId) => {
+    setWaitlistProcessing(tableId);
+    try {
+      await apiCall('/api/club-arena/waitlist', { action: 'leave', tableId });
+      setWaitlistPositions(prev => { const n = { ...prev }; delete n[tableId]; return n; });
+    } catch (err) {
+      setError(err.message);
+      setTimeout(() => setError(null), 3000);
+    } finally {
+      setWaitlistProcessing(null);
+    }
+  };
 
   // ── Sorted tables ──────────────────────────────────────────
   const activeTables = tables.filter(t => ['active', 'playing', 'waiting', 'between_hands'].includes(t.status));
@@ -355,10 +421,29 @@ export default function ClubArenaLobbyPage() {
                                       </span>
                                     </div>
 
-                                    {/* Full indicator */}
+                                    {/* Full indicator + Waitlist */}
                                     {isFull && (
-                                      <div style={{ marginTop: '8px', fontSize: '12px', color: '#FA383E', fontWeight: 600 }}>
-                                        🚫 Table Full — Join Waitlist
+                                      <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        {waitlistPositions[t.id] ? (
+                                          <>
+                                            <span style={{ fontSize: '12px', color: '#F5A623', fontWeight: 600 }}>📋 Position #{waitlistPositions[t.id]}</span>
+                                            <button
+                                              onClick={(e) => { e.preventDefault(); handleWaitlistLeave(t.id); }}
+                                              disabled={waitlistProcessing === t.id}
+                                              style={{ fontSize: '11px', background: 'rgba(250,56,62,0.15)', color: '#FA383E', border: '1px solid rgba(250,56,62,0.3)', borderRadius: '6px', padding: '3px 10px', cursor: 'pointer', fontWeight: 600 }}
+                                            >
+                                              {waitlistProcessing === t.id ? '...' : '✕ Leave'}
+                                            </button>
+                                          </>
+                                        ) : (
+                                          <button
+                                            onClick={(e) => { e.preventDefault(); handleWaitlistJoin(t.id); }}
+                                            disabled={waitlistProcessing === t.id}
+                                            style={{ fontSize: '12px', background: 'rgba(69,153,255,0.15)', color: '#4599FF', border: '1px solid rgba(69,153,255,0.3)', borderRadius: '6px', padding: '4px 12px', cursor: 'pointer', fontWeight: 600 }}
+                                          >
+                                            {waitlistProcessing === t.id ? 'Joining...' : '📋 Join Waitlist'}
+                                          </button>
+                                        )}
                                       </div>
                                     )}
                                   </div>
@@ -384,6 +469,27 @@ export default function ClubArenaLobbyPage() {
                         </div>
                       )}
                     </>
+                  )}
+
+                  {/* ── Smart Recommendations (Admin Only) ──────── */}
+                  {recommendations.length > 0 && ['owner', 'admin', 'super_agent'].includes(role) && (
+                    <div style={{ marginTop: '20px', marginBottom: '4px' }}>
+                      <div style={{ fontSize: '14px', fontWeight: 700, color: '#E4E6EB', marginBottom: '10px' }}>🎯 Smart Recommendations</div>
+                      <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '4px' }}>
+                        {recommendations.slice(0, 4).map((rec, i) => {
+                          const borderColor = rec.type === 'success' ? '#31A24C' : rec.type === 'warning' ? '#F5A623' : '#4599FF';
+                          return (
+                            <div key={i} style={{
+                              flex: '0 0 260px', background: '#242526', border: `1px solid ${borderColor}33`,
+                              borderRadius: '10px', padding: '12px 16px',
+                            }}>
+                              <div style={{ fontSize: '14px', fontWeight: 700, marginBottom: '4px', color: '#E4E6EB' }}>{rec.icon} {rec.title}</div>
+                              <div style={{ fontSize: '12px', color: '#B0B3B8', lineHeight: 1.4 }}>{rec.desc}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
                   )}
 
                   {/* ── Quick Links ───────────────────────────────── */}
