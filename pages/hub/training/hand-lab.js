@@ -97,9 +97,11 @@ export default function HandLabV2() {
       });
 
       // Save via session protocol
+      const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
+      if (!token) return;
       fetch('/api/training/save-session', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           gameId: 'hand-lab',
           stats: {

@@ -85,9 +85,11 @@ export default function StudyGroupRoom() {
   // Save session data
   useEffect(() => {
     if (!isCreating) {
+      const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
+      if (!token) return;
       fetch('/api/training/save-session', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           gameId: 'study-group',
           stats: {

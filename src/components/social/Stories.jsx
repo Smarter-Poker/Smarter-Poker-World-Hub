@@ -601,8 +601,8 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
     const handleCreate = async () => {
         console.log('[Stories] handleCreate called');
         console.log('[Stories] userId:', userId);
-        console.log('[Stories] text:', Text);
-        Console.log('[Stories] mediaUrl:', mediaUrl);
+        console.log('[Stories] text:', text);
+        console.log('[Stories] mediaUrl:', mediaUrl);
         console.log('[Stories] mode:', mode);
 
         // Validate based on mode
