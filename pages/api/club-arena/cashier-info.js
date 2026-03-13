@@ -29,7 +29,7 @@ export default async function handler(req, res) {
   try {
       // Rate limit
       if (await applyRateLimit(req, res)) return;
-      if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
+      if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });\n\n      // RED TEAM: Payload size + field allowlist\n      if (rejectBadPayload(req, res, ['clubId', 'action', 'amount', 'cashoutId', 'amounts'])) return;
 
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ error: 'No auth token' });

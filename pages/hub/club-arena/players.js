@@ -2,7 +2,7 @@
    Club Arena Players — Native Hub Page (replaces iframe shell)
    4 Tabs: Members | Sessions | Retention | Chip Flow
    ═══════════════════════════════════════════════════════════════ */
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
@@ -224,7 +224,7 @@ export default function ClubArenaPlayersPage() {
   }
 
   // ── Derived Data ───────────────────────────────────────────
-  const filtered = sessions.filter(p => {
+  const filtered = useMemo(() => sessions.filter(p => {
     if (statusFilter !== 'all' && p.status !== statusFilter) return false;
     if (roleFilter !== 'all' && p.role !== roleFilter) return false;
     if (searchQuery) {
@@ -232,20 +232,23 @@ export default function ClubArenaPlayersPage() {
       return (p.displayName || '').toLowerCase().includes(q) || (p.userId || '').toLowerCase().includes(q);
     }
     return true;
-  });
+  }), [sessions, statusFilter, roleFilter, searchQuery]);
 
   const retSummary = retention?.summary || {};
   const atRisk = retention?.atRisk || [];
   const churned = retention?.churned || [];
 
   // Chip flow enriched with names from sessions
-  const nameMap = {};
-  sessions.forEach(p => { nameMap[p.userId] = p.displayName; });
-  const chipFlowEntries = chipFlow ? Object.entries(chipFlow).map(([userId, flow]) => ({
-    userId,
-    name: nameMap[userId] || userId.substring(0, 8),
-    ...flow,
-  })).sort((a, b) => Math.abs(b.net) - Math.abs(a.net)) : [];
+  const chipFlowEntries = useMemo(() => {
+    if (!chipFlow) return [];
+    const nameMap = {};
+    sessions.forEach(p => { nameMap[p.userId] = p.displayName; });
+    return Object.entries(chipFlow).map(([userId, flow]) => ({
+      userId,
+      name: nameMap[userId] || userId.substring(0, 8),
+      ...flow,
+    })).sort((a, b) => Math.abs(b.net) - Math.abs(a.net));
+  }, [chipFlow, sessions]);
 
   return (
     <HubErrorBoundary name="Players">
@@ -599,7 +602,9 @@ export default function ClubArenaPlayersPage() {
           {tab === 'chipflow' && (
             <>
               {!chipFlowLoaded ? (
-                <div className={s.loading}>Loading 7-day chip flow...</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {[1,2,3,4].map(i => <div key={i} className={s.shimmerLine} style={{ height: '50px', borderRadius: '8px' }} />)}
+                </div>
               ) : chipFlowEntries.length === 0 ? (
                 <div className={s.emptyState}><span className={s.emptyIcon}>💸</span><span className={s.emptyText}>No chip flow data for the last 7 days</span></div>
               ) : (

@@ -2,7 +2,7 @@
    Club Arena Cashier — Native Hub Page (replaces iframe shell)
    3 Tabs: Wallet | Cashout | History
    ═══════════════════════════════════════════════════════════════ */
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
@@ -111,7 +111,6 @@ export default function ClubArenaCashierPage() {
       const res = await apiGet(`/api/club-arena/cashout-history?clubId=${clubId}`);
       if (mountedRef.current) { setHistory(res.cashouts || []); setHistoryLoaded(true); }
     } catch (err) {
-      setLoading(false);
       console.warn('[Cashier] History failed:', err.message);
     }
   }, [clubId, historyLoaded]);
@@ -254,7 +253,7 @@ export default function ClubArenaCashierPage() {
     );
   }
 
-  const availableForCashout = balance - totalPending;
+  const availableForCashout = useMemo(() => balance - totalPending, [balance, totalPending]);
 
   return (
     <HubErrorBoundary name="Cashier">

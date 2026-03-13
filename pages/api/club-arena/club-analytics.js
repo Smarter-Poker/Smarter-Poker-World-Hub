@@ -6,7 +6,7 @@
  * GET /api/club-arena/club-analytics?clubId=xxx&action=csv&period=30d
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
