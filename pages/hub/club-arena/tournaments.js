@@ -300,10 +300,9 @@ export default function ClubArenaTournamentsPage() {
   useEffect(() => () => { mountedRef.current = false; }, []);
 
   // ── Load Tournaments ───────────────────────────────────────
-  const loadTournaments = useCallback(async (cId) => {
+  const loadTournaments = useCallback(async (cId, silent = false) => {
     try {
-      setLoading(true);
-      setError(null);
+      if (!silent) { setLoading(true); setError(null); }
       const targetClubId = cId || clubId;
       if (!targetClubId) { setError('No club selected.'); setLoading(false); return; }
       
@@ -367,7 +366,7 @@ export default function ClubArenaTournamentsPage() {
 
   // ── EventBus ───────────────────────────────────────────────
   useEffect(() => {
-    const refresh = () => { if (clubId) loadTournaments(clubId); };
+    const refresh = () => { if (clubId) loadTournaments(clubId, true); };
     const events = ['TOURNAMENT_REGISTERED', 'TOURNAMENT_STARTED', 'TOURNAMENT_COMPLETE', 'TOURNAMENT_CANCELLED'];
     events.forEach(ev => eventBus.on(ev, refresh));
     // Also keep polling every 60s for background freshness
@@ -376,6 +375,16 @@ export default function ClubArenaTournamentsPage() {
       clearInterval(timer);
       events.forEach(ev => eventBus.off(ev, refresh));
     };
+  }, [clubId, loadTournaments]);
+
+  // ── Visibility Refresh ─────────────────────────────────────
+  useEffect(() => {
+    if (!clubId) return;
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') loadTournaments(clubId, true);
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, [clubId, loadTournaments]);
 
   // ── Filtering ──────────────────────────────────────────────
