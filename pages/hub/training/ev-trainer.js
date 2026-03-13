@@ -231,7 +231,7 @@ export default function EVTrainer() {
             total_questions: next.total,
             best_streak: bestStreakRef.current,
           }),
-        }).catch(() => {}).catch(() => {}).catch(() => {});
+        }).catch(() => {});
       }
 
       return next;

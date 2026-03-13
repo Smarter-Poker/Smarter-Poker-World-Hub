@@ -36,8 +36,8 @@ const formatDate = (ts) => {
 let _supabaseClient = null;
 function getSupabase() {
   if (!_supabaseClient && typeof window !== 'undefined') {
-    const { createClient } = require('../../../src/lib/supabase');
-    _supabaseClient = createClient();
+    const { supabase } = require('../../../src/lib/supabase');
+    _supabaseClient = supabase;
   }
   return _supabaseClient;
 }

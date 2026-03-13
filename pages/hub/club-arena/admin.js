@@ -106,7 +106,7 @@ function DashboardTab({ clubId }) {
             <span style={{ color: '#31A24C', fontSize: '18px' }}>Total Vol: {fmtChips(stats.totalVolume)}</span>
           </h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
-            {Object.entries(stats.byActionType).map(([type, data]) => (
+            {Object.entries(stats.byActionType || {}).map(([type, data]) => (
               <div key={type} style={{ background: '#18191A', padding: '16px', borderRadius: '8px', border: '1px solid #3E4042' }}>
                 <div style={{ fontSize: '12px', color: '#B0B3B8', marginBottom: '8px', textTransform: 'uppercase' }}>{toTitleCase(type)}</div>
                 <div style={{ fontSize: '20px', fontWeight: 700, color: '#E4E6EB', marginBottom: '4px' }}>{fmtChips(data.volume)}</div>
@@ -202,14 +202,14 @@ function SettlementsTab({ clubId }) {
       {/* Pending Commissions */}
       <h3 style={{ margin: '0 0 16px', fontSize: '18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         Pending Commissions Payloads
-        {data.pendingCommissions.length > 0 && (
+        {(data.pendingCommissions || []).length > 0 && (
           <button onClick={() => doAction('pay_all', { periodId: cp?.id })} disabled={processing} className={s.btnGhost} style={{ border: '1px solid #31A24C', color: '#31A24C' }}>
             Mark All as Paid
           </button>
         )}
       </h3>
 
-      {data.pendingCommissions.length === 0 ? (
+      {(data.pendingCommissions || []).length === 0 ? (
         <div className={s.emptyState} style={{ padding: '32px' }}><span className={s.emptyIcon}>💸</span><span className={s.emptyText}>No pending commissions to pay.</span></div>
       ) : (
         <div className={s.tableScroll}>
@@ -423,6 +423,7 @@ export default function ClubArenaAdminPage() {
 
   useEffect(() => {
     let cancelled = false;
+    let authSub = null;
 
     const init = async (session) => {
       if (cancelled) return;
@@ -468,9 +469,10 @@ export default function ClubArenaAdminPage() {
         else if (!cancelled) { setError('login_required'); setLoading(false); }
         subscription?.unsubscribe();
       });
+      authSub = subscription;
     })();
 
-    return () => { cancelled = true; };
+    return () => { cancelled = true; authSub?.unsubscribe?.(); };
   }, [router.query.club, router.query.clubId]);
 
   if (loading) {

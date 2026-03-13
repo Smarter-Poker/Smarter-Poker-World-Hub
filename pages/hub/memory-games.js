@@ -2280,7 +2280,7 @@ export default function MemoryGamesPage() {
                         userAction,
                         scenario: currentScenario
                     })
-                }).catch(() => {}).catch(() => {}),
+                }).catch(() => {}),
                 fetch('/api/gto/render-analysis-card', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },

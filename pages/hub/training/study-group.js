@@ -94,7 +94,7 @@ export default function StudyGroupRoom() {
             handsReviewed: activeHandInfo ? 1 : 0,
           },
         }),
-      }).catch((e) => console.error(e)).catch(() => {}).catch(() => {});
+      }).catch((e) => console.error(e)).catch(() => {});
     }
   }, [messages.length, activeHandInfo]);
 
