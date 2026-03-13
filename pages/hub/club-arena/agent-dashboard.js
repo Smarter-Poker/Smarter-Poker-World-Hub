@@ -97,22 +97,21 @@ export default function AgentDashboardPage() {
   }, [success]);
 
   // ── Discover Club & Load Dashboard ────────────────────────
-  const loadDashboard = useCallback(async (cId) => {
+  const loadDashboard = useCallback(async (cId, silent = false) => {
     try {
-      setLoading(true);
-      setError(null);
+      if (!silent) { setLoading(true); setError(null); }
       const targetClubId = cId || clubId;
       if (!targetClubId) {
         setError('No club selected. Navigate from the Club Arena lobby.');
-        setLoading(false);
+        if (!silent) setLoading(false);
         return;
       }
       const res = await apiGet(`/api/club-arena/agent-dashboard?clubId=${targetClubId}`);
       if (mountedRef.current) setData(res);
     } catch (err) {
-      if (mountedRef.current) setError(err.message);
+      if (mountedRef.current && !silent) setError(err.message);
     } finally {
-      if (mountedRef.current) setLoading(false);
+      if (mountedRef.current && !silent) setLoading(false);
     }
   }, [clubId]);
 
@@ -242,7 +241,7 @@ export default function AgentDashboardPage() {
 
   // ── EventBus Listeners (debounced) ────────────────────────
   useEffect(() => {
-    const debouncedRefresh = createDebouncedHandler(() => { if (clubId) loadDashboard(clubId); }, 300);
+    const debouncedRefresh = createDebouncedHandler(() => { if (clubId) loadDashboard(clubId, true); }, 300);
     const events = ['CASHOUT_APPROVED', 'CASHOUT_CANCELLED', 'CASHOUT_REQUESTED', 'CHIPS_DISTRIBUTED', 'AGENT_UPDATED', 'BALANCE_UPDATED', 'CREDIT_UPDATED'];
     events.forEach(ev => eventBus.on(ev, debouncedRefresh));
     return () => { debouncedRefresh.cancel(); events.forEach(ev => eventBus.off(ev, debouncedRefresh)); };

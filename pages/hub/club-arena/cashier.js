@@ -93,7 +93,7 @@ export default function ClubArenaCashierPage() {
       setError(null);
       const targetClubId = cId || clubId;
       if (!targetClubId) { setError('No club selected.'); setLoading(false); return; }
-      const res = await apiCall('/api/club-arena/cashier-info', { clubId: targetClubId, action: 'summary' });
+      const res = await retryAsync(() => apiCall('/api/club-arena/cashier-info', { clubId: targetClubId, action: 'summary' }), { label: 'loadCashier' });
       if (mountedRef.current) {
         setBalance(res.balance || 0);
         setPromoBalance(res.promoBalance || 0);
@@ -683,6 +683,7 @@ export default function ClubArenaCashierPage() {
                         await apiCall('/api/club-arena/distribute-chips', { clubId, toUserId: distUserId, amount: Number(distAmount), notes: distNotes || undefined });
                         setSuccess(`Distributed ${fmtChips(distAmount)} chips!`);
                         busEmit('CHIPS_DISTRIBUTED', { clubId });
+                        busEmit('CASHIER_BALANCE_CHANGED', { clubId });
                         setDistUserId(''); setDistAmount(''); setDistNotes('');
                         loadCashier(clubId);
                       } catch (err) { setError(err.message); }
