@@ -199,10 +199,12 @@ export default function ClubArenaLobbyPage() {
     return () => document.removeEventListener('visibilitychange', h);
   }, [clubId, loadLobby]);
 
-  // ── EventBus: table created ─────────────────────────────────
+  // ── EventBus: cross-page sync ───────────────────────────────
   useEffect(() => {
-    const unsub = eventBus.on('TABLE_CREATED', () => { if (clubId) loadLobby(clubId); });
-    return () => unsub?.();
+    const refresh = () => { if (clubId) loadLobby(clubId); };
+    const events = ['TABLE_CREATED', 'ANNOUNCEMENT_CREATED', 'PLAYER_KICKED'];
+    events.forEach(ev => eventBus.on(ev, refresh));
+    return () => events.forEach(ev => eventBus.off(ev, refresh));
   }, [clubId, loadLobby]);
 
   // ── Sorted tables ──────────────────────────────────────────
