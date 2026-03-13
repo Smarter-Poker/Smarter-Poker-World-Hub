@@ -245,6 +245,11 @@ export default function ClubArenaCashierPage() {
       const res = await apiCall('/api/club-arena/rakeback', { action, clubId });
       setSuccess(action === 'open' ? 'Rakeback period opened!' : `Period closed. ${res.playersProcessed || 0} players processed, ${fmt(res.totalRakebackDistributed || 0)} chips distributed.`);
       setRakebackLoaded(false); // Trigger re-fetch
+      // BUG FIX: Closing a period distributes chips — notify other pages
+      if (action === 'close' && (res.totalRakebackDistributed || 0) > 0) {
+        busEmit('CHIPS_DISTRIBUTED', { clubId });
+        busEmit('CASHIER_BALANCE_CHANGED', { clubId });
+      }
     } catch (err) { setError(err.message); }
     finally { setProcessing(false); }
   };
