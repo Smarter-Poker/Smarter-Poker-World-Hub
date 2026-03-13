@@ -7,7 +7,115 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { BarChart3, Users, DollarSign, Clock, TrendingUp, TrendingDown, Trophy, Target, Loader2 } from 'lucide-react';
-import AnalyticsDashboard from '../../src/components/commander/analytics/AnalyticsDashboard';
+// Peak Hours Grid — visual heatmap of hour-by-hour activity
+function PeakHoursGrid({ analytics }) {
+  // Build hourly counts from analytics data
+  const hourCounts = new Array(24).fill(0);
+  (analytics || []).forEach(day => {
+    if (day.peak_hour != null) {
+      hourCounts[day.peak_hour] += (day.total_sessions || 1);
+    }
+  });
+  const maxCount = Math.max(...hourCounts, 1);
+
+  return (
+    <div className="cmd-panel p-6">
+      <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
+        <Clock className="w-5 h-5 text-[#F59E0B]" />
+        Peak Hours Heatmap
+      </h3>
+      <div className="grid grid-cols-12 gap-1">
+        {hourCounts.map((count, hour) => {
+          const intensity = count / maxCount;
+          const h = hour === 0 ? '12a' : hour < 12 ? `${hour}a` : hour === 12 ? '12p' : `${hour - 12}p`;
+          return (
+            <div key={hour} className="flex flex-col items-center gap-1">
+              <div
+                className="w-full aspect-square rounded-sm transition-colors"
+                style={{
+                  backgroundColor: intensity > 0
+                    ? `rgba(24, 119, 242, ${0.15 + intensity * 0.85})`
+                    : '#3A3B3C'
+                }}
+                title={`${h}: ${count} sessions`}
+              />
+              {hour % 3 === 0 && (
+                <span className="text-[10px] text-[#B0B3B8]">{h}</span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <div className="flex items-center gap-2 mt-3">
+        <span className="text-xs text-[#B0B3B8]">Less</span>
+        {[0.15, 0.35, 0.55, 0.75, 1].map((opacity, i) => (
+          <div key={i} className="w-3 h-3 rounded-sm" style={{ backgroundColor: `rgba(24, 119, 242, ${opacity})` }} />
+        ))}
+        <span className="text-xs text-[#B0B3B8]">More</span>
+      </div>
+    </div>
+  );
+}
+
+// Activity Trend Line — SVG sparkline
+function ActivityTrendLine({ dailyData }) {
+  const data = dailyData || [];
+  if (data.length < 2) return (
+    <div className="cmd-panel p-6">
+      <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
+        <TrendingUp className="w-5 h-5 text-[#31A24C]" />
+        Activity Trend
+      </h3>
+      <p className="text-sm text-[#B0B3B8]">Not enough data for trend visualization</p>
+    </div>
+  );
+
+  const maxVal = Math.max(...data.map(d => d.value), 1);
+  const width = 400;
+  const height = 120;
+  const padding = 10;
+  const usableW = width - padding * 2;
+  const usableH = height - padding * 2;
+
+  const points = data.map((d, i) => {
+    const x = padding + (i / (data.length - 1)) * usableW;
+    const y = padding + usableH - (d.value / maxVal) * usableH;
+    return `${x},${y}`;
+  });
+
+  const areaPoints = [...points, `${padding + usableW},${padding + usableH}`, `${padding},${padding + usableH}`];
+
+  return (
+    <div className="cmd-panel p-6">
+      <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
+        <TrendingUp className="w-5 h-5 text-[#31A24C]" />
+        Activity Trend
+      </h3>
+      <svg viewBox={`0 0 ${width} ${height}`} className="w-full" style={{ maxHeight: 140 }}>
+        {/* Gradient fill */}
+        <defs>
+          <linearGradient id="trendGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#1877F2" stopOpacity="0.3" />
+            <stop offset="100%" stopColor="#1877F2" stopOpacity="0.02" />
+          </linearGradient>
+        </defs>
+        <polygon points={areaPoints.join(' ')} fill="url(#trendGrad)" />
+        <polyline points={points.join(' ')} fill="none" stroke="#1877F2" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        {/* Data point dots */}
+        {data.map((d, i) => {
+          const x = padding + (i / (data.length - 1)) * usableW;
+          const y = padding + usableH - (d.value / maxVal) * usableH;
+          return <circle key={i} cx={x} cy={y} r="3.5" fill="#1877F2" stroke="#18191A" strokeWidth="1.5" />;
+        })}
+      </svg>
+      <div className="flex justify-between mt-2">
+        {data.map((d, i) => (
+          <span key={i} className="text-[10px] text-[#B0B3B8]">{d.label}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
@@ -396,13 +504,11 @@ export default function AnalyticsPage() {
                   <TopPlayersTable players={stats.topPlayers} />
                 </div>
 
-                {/* Analytics Dashboard Component */}
-                <AnalyticsDashboard
-                  analytics={analytics}
-                  summary={summary}
-                  isLoading={loading}
-                  onPeriodChange={(days) => { /* period change handled by existing code */ }}
-                />
+                {/* Peak Hours + Activity Trend */}
+                <div className="grid md:grid-cols-2 gap-6">
+                  <PeakHoursGrid analytics={analytics} />
+                  <ActivityTrendLine dailyData={stats.dailyData} />
+                </div>
               </>
             )}
           </main>
