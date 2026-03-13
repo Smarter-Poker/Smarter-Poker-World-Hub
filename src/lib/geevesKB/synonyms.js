@@ -1,12 +1,12 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    GEEVES SYNONYM ENGINE — Strategy 4
-   Domain-specific synonym groups for Club Arena.
+   Domain-specific synonym groups for Smarter.Poker.
    Any word in a group is treated as equivalent during scoring.
    Reduces Grok fallback by dramatically improving local KB hit rates.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 export const SYNONYM_GROUPS = [
-    // ── / Poker Strategy terms ──
+    // ── AI / Poker Strategy terms ──
     ['gto', 'game theory optimal', 'solver', 'solver analysis', 'equilibrium strategy', 'optimal strategy'],
     ['ev', 'expected value', 'expectation', 'equity value'],
     ['equity', 'hand equity', 'fold equity'],

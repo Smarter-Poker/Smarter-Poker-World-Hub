@@ -16,7 +16,7 @@ import { centralBus } from './CentralBus';
 // Game Library import (will use the 100-game manifest)
 const GAME_CATEGORIES = ['MTT', 'CASH', 'SPINS', 'PSYCHOLOGY', 'ADVANCED'];
 
-// Selection weights for rotation
+// Selection weights for AI rotation
 const SELECTION_WEIGHTS = {
     MASTERY_GAP: 0.35,      // Prioritize games where user is weak
     RECENT_MISTAKES: 0.25,  // Target games where user made errors recently
@@ -148,7 +148,7 @@ class DailyRotationEngineClass {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // PRIVATE METHODS — SELECTION LOGIC
+    // PRIVATE METHODS — AI SELECTION LOGIC
     // ═══════════════════════════════════════════════════════════════════════
 
     async _selectDailyContent() {

@@ -1,5 +1,5 @@
 /**
- * Load Testing Infrastructure for Club Arena
+ * Load Testing Infrastructure for Smarter.Poker
  * Built-in load testing tool that can be run from API or CLI
  *
  * Usage:
@@ -164,7 +164,7 @@ export async function runLoadTestSuite(tests) {
 }
 
 /**
- * Predefined test suite for Club Arena
+ * Predefined test suite for Smarter.Poker
  * @param {string} baseUrl - Base URL (e.g., 'http://localhost:3000')
  */
 export function getDefaultTestSuite(baseUrl) {

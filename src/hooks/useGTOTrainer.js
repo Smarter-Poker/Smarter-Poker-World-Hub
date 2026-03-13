@@ -69,7 +69,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
 
     /**
      * FALLBACK: Fetch single question via deterministic batch-preload (count=1)
-     * Eliminates all Grok dependency — pure solver data only
+     * Eliminates all Grok AI dependency — pure solver data only
      */
     const fetchSingleQuestion = useCallback(async () => {
         if (!gameId) return;

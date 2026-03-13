@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   SCREENSHOT ANALYZER — Upload poker table screenshots for analysis
+   SCREENSHOT ANALYZER — Upload poker table screenshots for AI analysis
    Uses Grok Vision API to read and analyze the game state
    ═══════════════════════════════════════════════════════════════════════════ */
 

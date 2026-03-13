@@ -1,5 +1,5 @@
 /**
- * Club Arena - Core Poker Engine
+ * Smarter.Poker - Core Poker Engine
  * Module: HandEvaluator
  * 
  * Evaluates poker hands, compares them, and determines winners.

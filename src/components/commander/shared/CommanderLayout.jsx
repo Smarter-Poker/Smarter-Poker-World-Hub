@@ -699,7 +699,7 @@ export default function CommanderLayout({ children, title, backHref = '/commande
               <button
                 className="cmd-hub-btn"
                 onClick={() => router.push('/hub')}
-                title="Back To Club Arena Hub"
+                title="Back To Smarter.Poker Hub"
               >
                 <img src="/images/btn-hub.png" alt="Hub" />
               </button>
@@ -890,7 +890,7 @@ export default function CommanderLayout({ children, title, backHref = '/commande
               </div>
               <h2 style={{ margin: '0 0 6px', fontSize: 20, fontWeight: 800, color: '#fff', textAlign: 'center', fontFamily: 'Inter, sans-serif' }}>Create Your Club Page</h2>
               <p style={{ margin: '0 0 20px', fontSize: 14, color: '#999', textAlign: 'center', lineHeight: 1.5, fontFamily: 'Inter, sans-serif' }}>
-                Set up a public page for <strong style={{ color: '#ddd' }}>{venueName}</strong> on Club Arena Social. Attract new players and keep your regulars updated.
+                Set up a public page for <strong style={{ color: '#ddd' }}>{venueName}</strong> on Smarter.Poker Social. Attract new players and keep your regulars updated.
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <button onClick={() => { dismissClubPagePopup(); window.location.href = '/hub/social-media?createPage=true'; }} style={{

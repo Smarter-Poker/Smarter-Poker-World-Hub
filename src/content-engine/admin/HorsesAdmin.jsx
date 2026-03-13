@@ -608,7 +608,7 @@ function HorsesDashboard({ user, onLogout }) {
                             </div>
 
                             <div className="setting-card">
-                                <h3>🤖 Settings</h3>
+                                <h3>🤖 AI Settings</h3>
                                 <div className="setting-item">
                                     <label>Model</label>
                                     <select

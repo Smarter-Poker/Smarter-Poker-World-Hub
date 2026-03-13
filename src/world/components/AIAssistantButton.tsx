@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   ASSISTANT BUTTON — Opens Live Help panel
+   AI ASSISTANT BUTTON — Opens Live Help panel
    Subtle, non-intrusive, always available
    Matching site aesthetics with cyber/poker theme
    ═══════════════════════════════════════════════════════════════════════════ */

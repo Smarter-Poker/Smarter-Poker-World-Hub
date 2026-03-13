@@ -1,5 +1,5 @@
 /**
- * Club Arena - Core Poker Engine
+ * Smarter.Poker - Core Poker Engine
  * Module: PotCalculator
  * 
  * Manages pot creation, side pot calculation for all-in scenarios,

@@ -67,7 +67,7 @@ const DisclaimerPopup: React.FC<DisclaimerPopupProps> = ({ onAccept, isVisible }
                     <div style={popupStyles.policySection}>
                         <h3 style={popupStyles.sectionTitle}>📜 Important Legal Notice</h3>
                         <ul style={popupStyles.policyList}>
-                            <li>Club Arena Provides <strong>Educational Software Tools Only</strong></li>
+                            <li>Smarter.Poker Provides <strong>Educational Software Tools Only</strong></li>
                             <li>Club Arena Operates Exclusively With <strong>Play Money Chips</strong></li>
                             <li>We Do Not Facilitate, Endorse, Or Participate In Any Form Of Gambling</li>
                             <li>External Arrangements Between Users Are <strong>Strictly Prohibited</strong></li>
@@ -82,7 +82,7 @@ const DisclaimerPopup: React.FC<DisclaimerPopupProps> = ({ onAccept, isVisible }
                             <li>You Will Not Use The Platform To Facilitate Real-money Transactions</li>
                             <li>You Understand Play Money Has <strong>No Cash Value</strong></li>
                             <li>You Accept Full Responsibility For Your Use Of The Platform</li>
-                            <li>You Indemnify Club Arena From Any Liability Arising From Your Actions</li>
+                            <li>You Indemnify Smarter.Poker From Any Liability Arising From Your Actions</li>
                         </ul>
                     </div>
 

@@ -1,6 +1,6 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════
- * SOUND ENGINE - Premium Audio System for Club Arena
+ * SOUND ENGINE - Premium Audio System for Smarter.Poker
  * 
  * A comprehensive sound system for managing all app audio:
  * - Cinematic intro/outro

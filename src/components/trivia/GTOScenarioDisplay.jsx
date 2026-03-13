@@ -2,7 +2,7 @@
  * GTOScenarioDisplay - Premium Futuristic GTO Analysis Panel
  * 
  * Features:
- * - Jarvis avatar with glowing effect
+ * - Jarvis AI avatar with glowing effect
  * - Primary action with confidence percentage
  * - Collapsible sections (Explanation, GTO Approach, EV Analysis, Alternate Lines)
  * - Highlighted GTO terminology
@@ -102,7 +102,7 @@ export default function GTOScenarioDisplay({
     showDetails = true,
     // Optional: AI-generated image URL (from Grok)
     imageUrl,
-    // Optional: Question data for image generation
+    // Optional: Question data for AI image generation
     question,
     category,
     difficulty,
@@ -140,7 +140,7 @@ export default function GTOScenarioDisplay({
                 }
             }
         } catch (error) {
-            console.error('Failed to fetch panel:', error);
+            console.error('Failed to fetch AI panel:', error);
         } finally {
             setIsLoadingImage(false);
         }

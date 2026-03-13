@@ -1,12 +1,12 @@
 /**
- * Club Arena - Core Poker Engine
+ * Smarter.Poker - Core Poker Engine
  * Module: HandHistory
  * 
  * Records complete hand histories for:
  *   - Hand replay viewer
  *   - Player stats / analytics
  *   - Dispute resolution / audit trail
- *   - coaching leak finder (Jarvis integration)
+ *   - AI coaching leak finder (Jarvis integration)
  * 
  * Stores to Supabase `hand_histories` table.
  * Each hand produces a self-contained JSON record.

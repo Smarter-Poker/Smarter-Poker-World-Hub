@@ -48,7 +48,7 @@ export function ExportCard({ results, scenario, onExport }) {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
                     <div>
                         <div style={{ fontSize: '18px', fontWeight: '800', color: '#E4E6EB', fontFamily: "'Orbitron', sans-serif" }}>
-                            Club Arena
+                            Smarter.Poker
                         </div>
                         <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>GTO Analysis</div>
                     </div>

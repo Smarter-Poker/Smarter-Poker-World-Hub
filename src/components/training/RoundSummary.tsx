@@ -12,7 +12,7 @@
  * - Next Level / Retry / Exit buttons
  * - Confetti celebration on pass
  *
- * @author Club Arena Engineering
+ * @author Smarter.Poker Engineering
  */
 
 import React, { useState, useEffect } from 'react';
@@ -45,7 +45,7 @@ interface SessionStats {
     perfectHands?: number;
 }
 
-// Coaching response from Grok
+// AI Coaching response from Grok
 interface AICoaching {
     overallGrade: string;
     headline: string;
@@ -67,7 +67,7 @@ interface RoundSummaryProps {
     passingGrade: number;
     stats: SessionStats;
     gameName: string;
-    gameId?: string;  // For coaching API
+    gameId?: string;  // For AI coaching API
     mistakes?: Array<{ question: any; userAnswer: string; correctAnswer: string }>;
     onNextLevel: () => void;
     onRetry: () => void;
@@ -170,7 +170,7 @@ const RoundSummary: React.FC<RoundSummaryProps> = ({
     const [aiCoaching, setAiCoaching] = useState<AICoaching | null>(null);
     const [isLoadingCoaching, setIsLoadingCoaching] = useState(false);
 
-    // Fetch coaching when component opens
+    // Fetch AI coaching when component opens
     useEffect(() => {
         async function fetchCoaching() {
             if (!isOpen || !gameId) return;
@@ -198,7 +198,7 @@ const RoundSummary: React.FC<RoundSummaryProps> = ({
                     setAiCoaching(data.coaching);
                 }
             } catch (error) {
-                console.error('[RoundSummary] Failed to fetch coaching:', error);
+                console.error('[RoundSummary] Failed to fetch AI coaching:', error);
             } finally {
                 setIsLoadingCoaching(false);
             }
@@ -222,7 +222,7 @@ const RoundSummary: React.FC<RoundSummaryProps> = ({
         // Phase 2: Show XP after 1.5s
         timers.push(setTimeout(() => setPhase('XP'), 1500));
 
-        // Phase 3: Show coaching after 2.5s (if coaching available)
+        // Phase 3: Show coaching after 2.5s (if AI coaching available)
         timers.push(setTimeout(() => setPhase('COACHING'), 2500));
 
         // Phase 4: Show blunders after 4s
@@ -348,7 +348,7 @@ const RoundSummary: React.FC<RoundSummaryProps> = ({
                         </motion.div>
                     )}
 
-                    {/* 🧠 JARVIS COACHING */}
+                    {/* 🧠 JARVIS AI COACHING */}
                     {(phase === 'COACHING' || phase === 'BLUNDERS' || phase === 'ACTIONS') && (
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}

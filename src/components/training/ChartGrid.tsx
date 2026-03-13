@@ -12,7 +12,7 @@
  * - Visual feedback: Green=correct, Red=wrong
  * - Position & stack depth display
  *
- * @author Club Arena Engineering
+ * @author Smarter.Poker Engineering
  */
 
 import React, { useState, useEffect, useCallback } from 'react';

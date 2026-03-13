@@ -24,8 +24,8 @@ function getSupabase() {
 }
 
 // Share channel configurations
-const SHARE_MESSAGE = "Join me on Club Arena — the ultimate poker training platform! Use my referral link to get 500 free diamonds on signup!";
-const SHARE_TITLE = "Join Club Arena — Get 500 Free Diamonds!";
+const SHARE_MESSAGE = "Join me on Smarter.Poker — the ultimate poker training platform! Use my referral link to get 500 free diamonds on signup!";
+const SHARE_TITLE = "Join Smarter.Poker — Get 500 Free Diamonds!";
 
 export default function InviteFriendsModal({
     isOpen,

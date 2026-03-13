@@ -1,7 +1,7 @@
 /**
  * RECEIPT SCANNER COMPONENT
  * Captures receipt image → uploads to Supabase Storage → saves URL to bankroll entry
- * NO / NO APIs — just image upload to Supabase
+ * NO AI / NO APIs — just image upload to Supabase
  */
 
 import { useState, useRef, useCallback } from 'react';
@@ -91,7 +91,7 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
         await processReceipt(capturedBase64, 'receipt-cropped.jpg');
     }, [userId]);
 
-    // Upload receipt image and perform OCR simultaneously
+    // Upload receipt image and perform AI OCR simultaneously
     const processReceipt = async (base64Data, fileName) => {
         setIsUploading(true);
         setError(null);
@@ -327,7 +327,7 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
                         <img src={uploadedUrl} alt="Receipt" style={styles.previewImage} />
                     </div>
 
-                    {/* Data Extraction Preview — with field-level confidence flags */}
+                    {/* AI Data Extraction Preview — with field-level confidence flags */}
                     {extractedData && (
                         <div style={styles.dataGrid}>
                             {extractedData.vendor != null && (

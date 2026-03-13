@@ -1719,7 +1719,7 @@ ${messages.map(m =>
         return ['👍', 'Sounds good!', '💯'];
     }, []);
 
-    // ── P18-2: Conversation Summary / Recap ──
+    // ── P18-2: Conversation Summary / AI Recap ──
     const getConversationSummary = useCallback(() => {
         const unreadMessages = messages.filter(m => m.sender_id !== currentUser?.id && !m.read_at);
         if (unreadMessages.length === 0) return null;

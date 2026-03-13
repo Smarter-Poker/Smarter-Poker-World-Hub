@@ -10,7 +10,7 @@
  * - High score display for each level
  * - Play button triggers session start
  *
- * @author Club Arena Engineering
+ * @author Smarter.Poker Engineering
  */
 
 import React, { useState, useEffect, useCallback } from 'react';

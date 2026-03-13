@@ -1,5 +1,5 @@
 /**
- * 🐴 player profileLITY SERVICE
+ * 🐴 HORSE PERSONALITY SERVICE
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * Gives each horse a unique, persistent personality that influences:
@@ -87,7 +87,7 @@ const SOURCE_PREFERENCES = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// player profileLITY SERVICE
+// HORSE PERSONALITY SERVICE
 // ═══════════════════════════════════════════════════════════════════════════
 class HorsePersonalityService {
     constructor(supabaseUrl, supabaseKey) {
@@ -230,7 +230,7 @@ class HorsePersonalityService {
     }
 
     /**
-     * Get all player profilelities for analytics
+     * Get all horse personalities for analytics
      */
     async getAllPersonalities() {
         const { data: horses } = await this.supabase

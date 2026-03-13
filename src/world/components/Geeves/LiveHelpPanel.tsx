@@ -2,7 +2,7 @@
    ASK GEEVES PANEL — The sliding conversation interface
    
    Features:
-   - Geeves: Comprehensive Club Arena expert
+   - Geeves: Comprehensive Smarter.Poker expert
    - Message history with human-like typing
    - Input field with send button
    - Subtle, non-intrusive design
@@ -208,7 +208,7 @@ export function LiveHelpPanel({
                                     margin: '4px 0 0 0',
                                 }}
                             >
-                                Club Arena Expert
+                                Smarter.Poker Expert
                             </p>
                         </div>
                     </div>

@@ -1,5 +1,5 @@
 /**
- * Club Arena - Core Poker Engine
+ * Smarter.Poker - Core Poker Engine
  * Module: CardAssets
  * 
  * Maps engine card integers (0-51) to the custom-built card PNG assets

@@ -1,5 +1,5 @@
 /**
- * Club Arena — Tournament Engine
+ * Smarter.Poker — Tournament Engine
  * Module: BountyManager
  * ═══════════════════════════════════════════════════════════════
  *

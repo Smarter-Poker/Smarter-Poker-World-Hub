@@ -118,18 +118,18 @@ export function useMultiTable({ supabase, userId }) {
     if (actionNeeded.size > 0) {
       let isAltTitle = false;
       interval = setInterval(() => {
-        document.title = isAltTitle ? 'Club Arena Hub' : '(!) Your Turn';
+        document.title = isAltTitle ? 'Smarter.Poker Hub' : '(!) Your Turn';
         isAltTitle = !isAltTitle;
       }, 1000);
       // Immediately set the alert title when action first hits
       document.title = '(!) Your Turn';
     } else {
-      document.title = 'Club Arena Hub';
+      document.title = 'Smarter.Poker Hub';
     }
 
     return () => {
       if (interval) clearInterval(interval);
-      document.title = 'Club Arena Hub';
+      document.title = 'Smarter.Poker Hub';
     };
   }, [actionNeeded.size]);
 

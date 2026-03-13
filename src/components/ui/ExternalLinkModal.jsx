@@ -305,7 +305,7 @@ function ExternalLinkModal({ url, title, onClose }) {
                 {/* Footer */}
                 <div style={styles.footer}>
                     <span style={styles.footerText}>
-                        🛡️ You're still on Club Arena — You never left!
+                        🛡️ You're still on Smarter.Poker — You never left!
                     </span>
                 </div>
             </div>

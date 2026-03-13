@@ -1,7 +1,7 @@
 /**
  * DOCUMENT CROPPER COMPONENT
  * iOS Notes-style document scanner with edge detection and perspective warp
- * Pure client-side Canvas processing — zero APIs, zero external dependencies
+ * Pure client-side Canvas processing — zero AI APIs, zero external dependencies
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react';

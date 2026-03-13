@@ -1,7 +1,7 @@
 /**
  * 📤 AUTO POSTER
  * ═══════════════════════════════════════════════════════════════════════════
- * Publishes generated content to the Club Arena platform.
+ * Publishes generated content to the Smarter.Poker platform.
  * Handles scheduling, media uploads, and status tracking.
  * ═══════════════════════════════════════════════════════════════════════════
  */

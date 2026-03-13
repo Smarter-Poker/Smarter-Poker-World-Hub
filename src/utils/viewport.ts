@@ -1,6 +1,6 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * VIEWPORT SCALING UTILITIES — Club Arena Global Standard
+ * VIEWPORT SCALING UTILITIES — Smarter.Poker Global Standard
  * 
  * Provides standardized helpers for viewport-responsive CSS across all pages.
  * Ensures visual consistency from 375px mobile to 4K displays.

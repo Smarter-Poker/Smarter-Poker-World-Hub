@@ -54,10 +54,10 @@ async function verifyLaws() {
     test(
         'horses-post.js is DELETED',
         !fs.existsSync(horsesPostPath),
-        'This file generates images and must be removed!'
+        'This file generates AI images and must be removed!'
     );
 
-    // Check no recent image posts in database
+    // Check no recent AI image posts in database
     const { data: imagePosts } = await supabase
         .from('social_posts')
         .select('id, author_id, content_type')
@@ -73,7 +73,7 @@ async function verifyLaws() {
 
     const horseImagePosts = (imagePosts || []).filter(p => horseIds.has(p.author_id));
     test(
-        'No image posts in last 24 hours',
+        'No AI image posts in last 24 hours',
         horseImagePosts.length === 0,
         `Found ${horseImagePosts.length} image posts from horses`
     );

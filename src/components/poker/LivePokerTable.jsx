@@ -5408,7 +5408,7 @@ function ResultOverlay({ result, send, userId }) {
 
   // Format hand for sharing
   const formatHandForShare = () => {
-    const lines = ['♠️ Club Arena Hand Result'];
+    const lines = ['♠️ Smarter.Poker Hand Result'];
     const winners = result.winners || result.result?.winners || [];
     const board = result.board || result.result?.board || result.communityCards || boardAtEnd || [];
     const type = result.type || result.result?.type || 'showdown';
@@ -7270,7 +7270,7 @@ function LivePokerTable({
   }, [sessionStats, onLeave]);
 
   const handleShareSession = useCallback(() => {
-    const text = `🎰 Club Arena Session\n📊 Hands: ${sessionStats?.handsPlayed || 0}\n💰 P&L: ${(sessionStats?.totalAdded || 0) >= 0 ? '+' : ''}${sessionStats?.totalAdded || 0}\n⏱️ Duration: ${sessionStats?.sessionStart ? Math.round((Date.now() - sessionStats.sessionStart) / 60000) : 0}m`;
+    const text = `🎰 Smarter.Poker Session\n📊 Hands: ${sessionStats?.handsPlayed || 0}\n💰 P&L: ${(sessionStats?.totalAdded || 0) >= 0 ? '+' : ''}${sessionStats?.totalAdded || 0}\n⏱️ Duration: ${sessionStats?.sessionStart ? Math.round((Date.now() - sessionStats.sessionStart) / 60000) : 0}m`;
     navigator.clipboard?.writeText(text);
   }, [sessionStats]);
 

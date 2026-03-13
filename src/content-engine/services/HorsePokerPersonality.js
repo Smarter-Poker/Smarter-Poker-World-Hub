@@ -1,8 +1,8 @@
 /**
- * 🐴 HORSE POKER PERSONALITY - Individual for Each Horse
+ * 🐴 HORSE POKER PERSONALITY - Individual AI for Each Horse
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * Gives each of the 100 horses a unique poker-playing personality.
+ * Gives each of the 100 horses a unique poker-playing AI personality.
  * Covers play style, skill level, tendencies, table chat, and adaptation.
  * 
  * ═══════════════════════════════════════════════════════════════════════════

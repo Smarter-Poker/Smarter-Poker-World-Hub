@@ -24,7 +24,7 @@ function assert(condition, label) {
 (async () => {
 
     console.log('\n═══════════════════════════════════════════════════');
-    console.log('  🔬 DEEP END-TO-END HORSE VERIFICATION');
+    console.log('  🔬 DEEP END-TO-END HORSE AI VERIFICATION');
     console.log('═══════════════════════════════════════════════════\n');
 
     const Brain = require('../HorsePokerBrain');

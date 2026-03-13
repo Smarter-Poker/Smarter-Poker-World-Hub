@@ -230,7 +230,7 @@ export default function GeevesMenuWidget() {
                         color: 'rgba(0, 212, 255, 0.7)',
                         fontFamily: 'Inter, sans-serif',
                     }}>
-                        Your Help Assistant
+                        Your AI Help Assistant
                     </div>
                 </div>
                 <div style={{

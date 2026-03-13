@@ -179,7 +179,7 @@ export class DeterministicGTOEngine {
 
     /**
      * Generate a single training question from REAL solver data.
-     * No Grok involved. Pure math.
+     * No Grok AI involved. Pure math.
      *
      * @param {Object} params
      * @param {string} params.gameId - Game identifier (e.g., 'cash-001')

@@ -1,7 +1,7 @@
 /**
  * Card.tsx
  * =========
- * Playing card component using Club Arena's CUSTOM-BUILT card deck.
+ * Playing card component using Smarter.Poker's CUSTOM-BUILT card deck.
  * 
  * Uses the 52 hand-designed PNG images at /public/cards/
  * Uploaded Jan 22, 2026 — commit 67ad8744
@@ -15,7 +15,7 @@
  * 
  * Native card dimensions: 150 x 210 px
  *
- * @author Club Arena Engineering
+ * @author Smarter.Poker Engineering
  */
 
 import React from 'react';

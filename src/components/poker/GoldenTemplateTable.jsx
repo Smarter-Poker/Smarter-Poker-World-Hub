@@ -411,7 +411,7 @@ export default function GoldenTemplateTable({
                                                     marginTop: 6,
                                                     textShadow: '0 0 10px rgba(196,150,10,0.3)',
                                                 }}>
-                                                    Club Arena
+                                                    Smarter.Poker
                                                 </div>
                                             </div>
 

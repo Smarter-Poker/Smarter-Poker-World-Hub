@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   STUDY PLAN — Personalized study recommendations based on leaks
+   STUDY PLAN AI — Personalized study recommendations based on leaks
    Analyzes training data and suggests focused improvement paths
    ═══════════════════════════════════════════════════════════════════════════ */
 

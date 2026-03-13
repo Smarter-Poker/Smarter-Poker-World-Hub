@@ -918,7 +918,7 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
 
         {/* Main Form */}
         <h2 className="builder-title">
-          Avatar Generator
+          AI Avatar Generator
           {effectiveVip && <span className="vip-badge">VIP</span>}
         </h2>
         <p className="builder-subtitle">
@@ -994,7 +994,7 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
         </button>
 
         <div className="powered-by">
-          Powered by Image Generation
+          Powered by AI Image Generation
         </div>
 
         {/* VIP Gallery Management Modal */}

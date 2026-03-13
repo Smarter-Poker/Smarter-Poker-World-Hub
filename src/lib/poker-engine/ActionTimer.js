@@ -1,5 +1,5 @@
 /**
- * Club Arena - Core Poker Engine
+ * Smarter.Poker - Core Poker Engine
  * Module: ActionTimer
  * 
  * Server-authoritative turn timers with timebank support.

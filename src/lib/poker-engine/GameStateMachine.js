@@ -1,5 +1,5 @@
 /**
- * Club Arena - Core Poker Engine
+ * Smarter.Poker - Core Poker Engine
  * Module: GameStateMachine
  * 
  * Orchestrates the full lifecycle of a poker hand:

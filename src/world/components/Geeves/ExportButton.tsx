@@ -40,7 +40,7 @@ export function ExportButton({ messages }: ExportButtonProps) {
             lines.push('');
         }
 
-        lines.push('*Exported from Club Arena*');
+        lines.push('*Exported from Smarter.Poker*');
 
         const markdown = lines.join('\n');
 

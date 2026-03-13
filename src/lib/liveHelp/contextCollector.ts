@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   LIVE HELP CONTEXT COLLECTOR — Gather user context for agents
+   LIVE HELP CONTEXT COLLECTOR — Gather user context for AI agents
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { supabase } from '../supabase';
@@ -19,7 +19,7 @@ export interface UserContext {
 }
 
 /**
- * Collect comprehensive user context for agent
+ * Collect comprehensive user context for AI agent
  */
 export async function collectUserContext(userId: string): Promise<UserContext> {
     try {

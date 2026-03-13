@@ -80,7 +80,7 @@ function createGrokProxyClient() {
 let grokClient = null;
 
 /**
- * Get the Grok client
+ * Get the Grok AI client
  * Returns a proxied client that automatically maps legacy model names to Grok equivalents
  */
 export function getAIClient() {

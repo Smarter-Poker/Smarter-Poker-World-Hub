@@ -11,7 +11,7 @@
  * - Feedback with explanation
  * - No poker table - focused view
  *
- * @author Club Arena Engineering
+ * @author Smarter.Poker Engineering
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';

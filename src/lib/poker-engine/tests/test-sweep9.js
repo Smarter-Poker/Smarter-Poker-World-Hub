@@ -1,7 +1,7 @@
 /**
  * 🔬 SWEEP 9: INTENSE DEEP AUDIT
  * Focus areas:
- * 1. Postflop betting patterns — is the actually betting?
+ * 1. Postflop betting patterns — is the AI actually betting?
  * 2. saveOpponentRead + saveKeyHand Supabase persistence
  * 3. Event bus / RealtimeSync wiring check
  * 4. processHandResult full pipeline test
@@ -36,7 +36,7 @@ function assert(condition, label) {
     await Brain.loadHorseIds();
 
     // ═══════════════════════════════════════════
-    // TEST 1: POSTFLOP BETTING — Is the actually betting strong hands?
+    // TEST 1: POSTFLOP BETTING — Is the AI actually betting strong hands?
     // ═══════════════════════════════════════════
     console.log('--- TEST 1: Postflop Bet Frequency (Strong Hands) ---');
 

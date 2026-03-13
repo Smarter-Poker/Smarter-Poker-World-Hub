@@ -1,5 +1,5 @@
 /**
- * 🧪 COMPREHENSIVE HORSE FEATURE TEST
+ * 🧪 COMPREHENSIVE HORSE AI FEATURE TEST
  * Tests all 39 improvements across Phases 3-5
  * Run: node src/lib/poker-engine/tests/test-all-features.js
  */
@@ -31,7 +31,7 @@ function assert(condition, label) {
 }
 
 console.log('\n═══════════════════════════════════════════');
-console.log('  🐴 HORSE — ALL 39 FEATURES TEST');
+console.log('  🐴 HORSE AI — ALL 39 FEATURES TEST');
 console.log('═══════════════════════════════════════════\n');
 
 const HORSE_ID = '00000000-0000-0000-0000-000000000028';
@@ -279,7 +279,7 @@ assert(typeof Brain.saveOpponentRead === 'function', '#40 saveOpponentRead expor
 // #41 Hand history persistence
 assert(typeof Brain.saveKeyHand === 'function', '#41 saveKeyHand exported');
 
-// #42 player profilelity evolution
+// #42 Horse personality evolution
 const evo1 = Brain.evolveHorseSkill(HORSE_ID_2, 10);
 assert(evo1.skillDrift > 0, '#42a Winning horse improves (drift=' + evo1.skillDrift + ')');
 const evo2 = Brain.evolveHorseSkill(HORSE_ID_2, -10);

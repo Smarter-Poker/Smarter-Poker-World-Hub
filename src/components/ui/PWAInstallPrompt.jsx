@@ -167,7 +167,7 @@ export default function PWAInstallPrompt() {
       <div style={{ fontSize: 36, flexShrink: 0 }}>♠</div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 700, color: '#fff', fontSize: 14, marginBottom: 2 }}>
-          Install Club Arena
+          Install Smarter.Poker
         </div>
         <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
           Add to home screen for faster access

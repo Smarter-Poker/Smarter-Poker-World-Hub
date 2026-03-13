@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   DEBATE MODE — Two perspectives argue about a poker decision
+   AI DEBATE MODE — Two AI perspectives argue about a poker decision
    Get both aggressive and conservative viewpoints on your hand
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -35,7 +35,7 @@ export function AIDebateMode({ onAskJarvis, onClose }: AIDebateModeProps) {
         setMessages([]);
 
         // Build debate prompt
-        const debatePrompt = `Create a poker strategy debate with two perspectives:
+        const debatePrompt = `Create a poker strategy debate with two AI perspectives:
 
 **SCENARIO:** ${scenario}
 
@@ -76,14 +76,14 @@ Format your response exactly like this with clear separators:
                         fontSize: '14px',
                         fontWeight: 600
                     }}>
-                        ⚔️ Debate Mode
+                        ⚔️ AI Debate Mode
                     </h4>
                     <p style={{
                         margin: '4px 0 0 0',
                         fontSize: '10px',
                         color: 'rgba(255, 255, 255, 0.5)'
                     }}>
-                        Two perspectives argue your decision
+                        Two AI perspectives argue your decision
                     </p>
                 </div>
                 {onClose && (

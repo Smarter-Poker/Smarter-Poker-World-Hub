@@ -1,5 +1,5 @@
 /**
- * ✍️ CONTENT REWRITER
+ * ✍️ AI CONTENT REWRITER
  * ═══════════════════════════════════════════════════════════════════════════
  * Takes news headlines/articles and rewrites them in persona voices.
  * Creates original commentary, not just reposts.

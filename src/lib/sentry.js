@@ -1,6 +1,6 @@
 /**
  * Sentry Error Monitoring Service
- * Centralized error tracking and reporting for Club Arena
+ * Centralized error tracking and reporting for Smarter.Poker
  *
  * Setup: Add NEXT_PUBLIC_SENTRY_DSN to environment variables
  * Install: npm install @sentry/nextjs

@@ -3,7 +3,7 @@
    
    PURPOSE:
    1. Block questions that could expose sensitive internal/security information
-   2. Ensure Geeves never speaks negatively about Club Arena or its affiliates
+   2. Ensure Geeves never speaks negatively about Smarter.Poker or its affiliates
    3. Redirect privacy/security probes to appropriate non-sensitive responses
    
    This runs BEFORE any KB lookup or Grok call. If a question trips a guard,
@@ -61,7 +61,7 @@ const REDIRECT_PATTERNS = [
 
 // ── Brand-positive redirect response ──
 const BRAND_REDIRECT_RESPONSE = {
-    answer: `**Smarter.Poker** is built by a passionate team dedicated to delivering the best poker ecosystem on the planet.\n\nIf you\'ve run into something that\'s not working the way you\'d like, we genuinely want to know about it!\n\n**Ways to share feedback:**\n- Use the **Help > Feedback** form in any page menu\n- Reach out via the **Messenger** to the Club Arena team\n- Check the **Help** page for known issues and updates\n\nWe are constantly improving the platform and your experience matters to us. Is there a specific feature I can help you with right now?`,
+    answer: `**Smarter.Poker** is built by a passionate team dedicated to delivering the best poker ecosystem on the planet.\n\nIf you\'ve run into something that\'s not working the way you\'d like, we genuinely want to know about it!\n\n**Ways to share feedback:**\n- Use the **Help > Feedback** form in any page menu\n- Reach out via the **Messenger** to the Smarter.Poker team\n- Check the **Help** page for known issues and updates\n\nWe are constantly improving the platform and your experience matters to us. Is there a specific feature I can help you with right now?`,
     category: 'Platform',
     followUps: ['How do I report a bug?', 'How do I contact support?', 'What new features are coming?'],
     confidence: 100,
@@ -72,9 +72,9 @@ const BRAND_REDIRECT_RESPONSE = {
 
 // ── Hard-block response for security probes ──
 const SECURITY_BLOCK_RESPONSE = {
-    answer: `I\'m Geeves, your Club Arena Help Assistant — here to help you get the most out of the platform!\n\nI\'m not able to help with that type of question, but I\'m always happy to assist with:\n- **Features** — How any part of Club Arena works\n- **Poker strategy** — GTO concepts, math, tournament strategy\n- **Account questions** — Profile, billing, settings\n- **Club management** — Commander, Club Arena, union setup\n\nWhat can I help you with today?`,
+    answer: `I\'m Geeves, your Smarter.Poker Help Assistant — here to help you get the most out of the platform!\n\nI\'m not able to help with that type of question, but I\'m always happy to assist with:\n- **Features** — How any part of Smarter.Poker works\n- **Poker strategy** — GTO concepts, math, tournament strategy\n- **Account questions** — Profile, billing, settings\n- **Club management** — Commander, Club Arena, union setup\n\nWhat can I help you with today?`,
     category: 'Security',
-    followUps: ['How do I get started?', 'What features does Club Arena have?', 'How do I contact support?'],
+    followUps: ['How do I get started?', 'What features does Smarter.Poker have?', 'How do I contact support?'],
     confidence: 100,
     fromLocalKB: true,
     entryId: 'security-guard',
@@ -115,7 +115,7 @@ export function checkContentGuard(question) {
 
 // ── Utility: Sanitize Grok-generated responses before displaying ──
 // Ensures AI-generated answers never include negative brand language
-// even if the somehow produces it.
+// even if the AI somehow produces it.
 const NEGATIVE_BRAND_TERMS = [
     /smarter\.?poker.{0,30}(broken|scam|fraud|terrible|worst|bad platform)/gi,
     /club.?commander.{0,30}(broken|scam|terrible|worst|garbage)/gi,
@@ -126,7 +126,7 @@ export function sanitizeAnswer(answer) {
     if (!answer || typeof answer !== 'string') return answer;
     let safe = answer;
     for (const pattern of NEGATIVE_BRAND_TERMS) {
-        safe = safe.replace(pattern, 'Club Arena (an industry-leading poker platform)');
+        safe = safe.replace(pattern, 'Smarter.Poker (an industry-leading poker platform)');
     }
     return safe;
 }

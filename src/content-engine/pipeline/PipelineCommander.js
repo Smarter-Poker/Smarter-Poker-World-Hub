@@ -5,7 +5,7 @@
  * 
  * Coordinates:
  * - RSS Aggregation
- * - Rewriting
+ * - AI Rewriting
  * - Video Generation
  * - Auto Posting
  * ═══════════════════════════════════════════════════════════════════════════

@@ -60,7 +60,7 @@ interface FeedbackCardProps {
     onContinue: () => void;
     onStudyMore?: () => void;
     showDetails?: boolean;
-    // For Grok explanations
+    // For Grok AI explanations
     question?: {
         question: string;
         scenario?: {
@@ -299,7 +299,7 @@ export function FeedbackCard({
                     {grokExplanation?.shortExplanation || result.explanation}
                 </motion.p>
 
-                {/* 🧠 GROK DEEP DIVE */}
+                {/* 🧠 GROK AI DEEP DIVE */}
                 {question && (
                     <motion.div
                         initial={{ opacity: 0 }}

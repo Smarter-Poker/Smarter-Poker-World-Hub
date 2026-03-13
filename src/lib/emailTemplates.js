@@ -1,5 +1,5 @@
 /**
- * Resend Transactional Email Templates for Club Arena
+ * Resend Transactional Email Templates for Smarter.Poker
  *
  * Full email service with templates for all platform notifications.
  * Uses Resend for delivery.
@@ -68,14 +68,14 @@ function emailWrapper(title, bodyContent) {
     <div class="container">
         <div class="card">
             <div class="header">
-                <h1>Club Arena</h1>
+                <h1>Smarter.Poker</h1>
                 <p>Your Poker Companion</p>
             </div>
             <div class="body">
                 ${bodyContent}
             </div>
             <div class="footer">
-                <p>Club Arena - Play Smarter, Win Bigger</p>
+                <p>Smarter.Poker - Play Smarter, Win Bigger</p>
                 <p><a href="https://smarter.poker/hub/settings">Manage Email Preferences</a></p>
             </div>
         </div>
@@ -96,7 +96,7 @@ async function sendEmail({ to, subject, html, from }) {
 
     try {
         const { data, error } = await resend.emails.send({
-            from: from || 'Club Arena <noreply@smarter.poker>',
+            from: from || 'Smarter.Poker <noreply@smarter.poker>',
             to: Array.isArray(to) ? to : [to],
             subject,
             html,
@@ -121,9 +121,9 @@ async function sendEmail({ to, subject, html, from }) {
 export async function sendWelcomeEmail(email, name) {
     return sendEmail({
         to: email,
-        subject: 'Welcome to Club Arena!',
+        subject: 'Welcome to Smarter.Poker!',
         html: emailWrapper('Welcome', `
-            <h2>Welcome to Club Arena, ${name || 'Player'}!</h2>
+            <h2>Welcome to Smarter.Poker, ${name || 'Player'}!</h2>
             <p>Your Account Has Been Created And You're Ready To Start Playing Smarter.</p>
             <p>Here's What You Can Do:</p>
             <ul style="padding-left: 20px; color: #050505; font-size: 14px; line-height: 2;">
@@ -143,7 +143,7 @@ export async function sendWelcomeEmail(email, name) {
 export async function sendPasswordResetEmail(email, resetLink) {
     return sendEmail({
         to: email,
-        subject: 'Reset your Club Arena password',
+        subject: 'Reset your Smarter.Poker password',
         html: emailWrapper('Password Reset', `
             <h2>Password Reset Request</h2>
             <p>We Received A Request To Reset Your Password. Click The Button Below To Create A New Password.</p>
@@ -279,7 +279,7 @@ export async function sendNewFollowerEmail(email, name, followerName) {
         html: emailWrapper('New Follower', `
             <h2>New Follower</h2>
             <p>Hi ${name || 'Player'},</p>
-            <p><strong>${followerName}</strong> Started Following You On Club Arena.</p>
+            <p><strong>${followerName}</strong> Started Following You On Smarter.Poker.</p>
             <div style="text-align: center; margin: 24px 0;">
                 <a href="https://smarter.poker/hub/friends" class="btn">View Profile</a>
             </div>

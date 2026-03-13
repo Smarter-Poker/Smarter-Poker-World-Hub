@@ -159,7 +159,7 @@ export default function SessionReport({ sessionLog, resultsRaw, onClose }) {
                         <div ref={reportRef} style={{ padding: 16, background: '#1a1d21' }}>
                             {/* Brand */}
                             <div style={{ textAlign: 'center', marginBottom: 12 }}>
-                                <div style={{ fontSize: 10, fontWeight: 800, color: M.cyan, letterSpacing: 1.5, textTransform: 'uppercase' }}>Club Arena</div>
+                                <div style={{ fontSize: 10, fontWeight: 800, color: M.cyan, letterSpacing: 1.5, textTransform: 'uppercase' }}>Smarter.Poker</div>
                                 <div style={{ fontSize: 8, color: M.dim, marginTop: 2 }}>Virtual Sandbox — Session Report</div>
                             </div>
 

@@ -1,6 +1,6 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * GLOBAL AUTH UTILITY — Bulletproof Authentication for Club Arena
+ * GLOBAL AUTH UTILITY — Bulletproof Authentication for Smarter.Poker
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * This utility provides consistent, AbortError-resistant auth methods for

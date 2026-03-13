@@ -91,7 +91,7 @@ export async function setPresetAvatar(userId, avatarId) {
 }
 
 /**
- * Generate and set a custom avatar using OpenAI DALL-E
+ * Generate and set a custom AI avatar using OpenAI DALL-E
  * The API handles image download and Supabase upload server-side
  */
 export async function generateCustomAvatar(userId, prompt, isVip = false, photoFile = null) {
@@ -132,7 +132,7 @@ export async function generateCustomAvatar(userId, prompt, isVip = false, photoF
             }
         }
 
-        // Generate avatar using API (API handles storage upload)
+        // Generate avatar using AI API (API handles storage upload)
         let generatedImageUrl;
 
         if (photoFile) {

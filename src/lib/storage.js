@@ -1,6 +1,6 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
- * STORAGE — Centralized localStorage Utility for Club Arena World Hub
+ * STORAGE — Centralized localStorage Utility for Smarter.Poker World Hub
  * ═══════════════════════════════════════════════════════════════════════════════
  *
  * SSR-safe, try-catch wrapped, with TTL support and quota monitoring.

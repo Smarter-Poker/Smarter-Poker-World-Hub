@@ -1,8 +1,8 @@
 /**
- * 🧠 HORSE POKER BRAIN — Central Decision Service
+ * 🧠 HORSE POKER BRAIN — Central AI Decision Service
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * Bridges the horse intelligence layer (GTO + Personality + Advanced)
+ * Bridges the horse AI intelligence layer (GTO + Personality + Advanced)
  * with the poker engine game loop. This is the single integration point
  * that the GameController calls when it's a horse's turn to act.
  * 
@@ -82,7 +82,7 @@ function mapPosition(enginePosition) {
     return POSITION_MAP[enginePosition] || 'MP';
 }
 
-// Chat message buffer for table chat (#10)
+// Chat message buffer for AI table chat (#10)
 const chatMessages = [];
 
 // Multi-table tracking (#5) — Map<playerId, Set<tableId>>
@@ -3421,7 +3421,7 @@ function createPLODecisionCache() {
 
 // Wrap detection, adaptive sizing, Bayesian opponent model, board projection,
 // history auto-corrector, double-suit classifier upgrade, confidence meter,
-// final decision auditor. Makes these the best PLO horses in the world.
+// final decision auditor. Makes these the best PLO AI horses in the world.
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ── 8a. EXPLICIT PLO WRAP DRAW DETECTOR ──
@@ -5374,7 +5374,7 @@ function getOptimalBetSize(handCategory, street, potSize, isBluff) {
 
 // --- #33: Auto-Seating Intelligence ---
 /**
- * Determine if a table needs players and which horse should sit.
+ * Determine if a table needs AI players and which horse should sit.
  * @param {Object} tableInfo - { seats, minPlayers, maxPlayers, blinds }
  * @param {string[]} availableHorses - Horse IDs not at max tables
  * @returns {{ shouldSeat: boolean, horseId: string|null }}
@@ -7862,7 +7862,7 @@ async function saveKeyHand(handData, bb = 2) {
     }
 }
 
-// --- #42: player profilelity Evolution ---
+// --- #42: Horse Personality Evolution ---
 // Track skill progression per horse
 const evolutionTracker = new Map();
 
@@ -7981,7 +7981,7 @@ async function canSitAtTable(playerId) {
 }
 
 /**
- * Get pending chat messages for the table (drained after read)
+ * Get pending AI chat messages for the table (drained after read)
  * @returns {Array}
  */
 function getChatMessages() {

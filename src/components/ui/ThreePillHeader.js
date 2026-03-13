@@ -8,7 +8,7 @@
  * 
  * The header image has 3 metallic pill zones:
  * - Left Pill (~5%-20%): Hamburger + Hub/Back
- * - Center Pill (~25%-75%): Club Arena + Diamond Wallet
+ * - Center Pill (~25%-75%): Smarter.Poker + Diamond Wallet
  * - Right Pill (~78%-95%): Profile + Icons
  */
 
@@ -543,7 +543,7 @@ export default function ThreePillHeader({
                     </div>
 
                     {/* ═══════════════════════════════════════════════════════════════
-                        PILL 2: CENTER - Club Arena + Diamond Wallet
+                        PILL 2: CENTER - Smarter.Poker + Diamond Wallet
                         Positioned to center within the middle metallic pill
                         ═══════════════════════════════════════════════════════════════ */}
                     <div style={{

@@ -730,7 +730,7 @@ export default function PremiumPokerTable({
                         opacity: 0.3,
                     }}>
                         <div style={{ fontSize: 24, color: TOKENS.gold, fontStyle: 'italic' }}>
-                            Club Arena
+                            Smarter.Poker
                         </div>
                     </div>
                 </div>

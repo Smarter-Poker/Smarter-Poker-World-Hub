@@ -1,5 +1,5 @@
 /**
- * Club Arena - Core Poker Engine
+ * Smarter.Poker - Core Poker Engine
  * Module: RealtimeSync
  * 
  * Manages real-time server→client broadcasting at a poker table

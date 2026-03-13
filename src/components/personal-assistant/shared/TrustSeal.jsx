@@ -14,7 +14,7 @@ export default function TrustSeal({ truthSeal, source, confidence }) {
   const getSourceColor = () => {
     if (source?.includes('Solver-Verified')) return '#22c55e';
     if (source?.includes('Solver-Approx')) return '#f59e0b';
-    return '#64b5f6'; // Approximation
+    return '#64b5f6'; // AI Approximation
   };
 
   const getConfidenceColor = () => {

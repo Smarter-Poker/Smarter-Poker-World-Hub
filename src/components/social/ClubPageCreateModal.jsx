@@ -1,6 +1,6 @@
 /**
  * ClubPageCreateModal — extracted from pages/hub/social-media.js
- * Modal for creating a new Club Page on Club Arena Social.
+ * Modal for creating a new Club Page on Smarter.Poker Social.
  */
 import { useState } from 'react';
 
@@ -61,7 +61,7 @@ export default function ClubPageCreateModal({ C, commanderData, userId, onCreate
             <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)' }} />
             <div style={{ position: 'relative', background: '#fff', borderRadius: 12, width: '90%', maxWidth: 480, padding: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }}>
                 <h2 style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 800, color: C.text }}>Create Your Club Page</h2>
-                <p style={{ margin: '0 0 20px', fontSize: 14, color: C.textSec }}>Set Up A Public Page For Your Venue On Club Arena Social</p>
+                <p style={{ margin: '0 0 20px', fontSize: 14, color: C.textSec }}>Set Up A Public Page For Your Venue On Smarter.Poker Social</p>
 
                 <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 4 }}>Page Name</label>
                 <input value={pageName} onChange={e => setPageName(e.target.value)} placeholder="Your Venue Name"
