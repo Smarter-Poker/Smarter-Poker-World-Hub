@@ -48,6 +48,7 @@ const GamificationService = {
                     gtowScore
                 })
             });
+            if (!leaderboardRes.ok) throw new Error(`Request failed (${leaderboardRes.status})`);
             results.leaderboard = await leaderboardRes.json();
         } catch (e) {
             console.error('[GamificationService] Leaderboard error:', e);
@@ -70,6 +71,7 @@ const GamificationService = {
                     }
                 })
             });
+            if (!achievementsRes.ok) throw new Error(`Request failed (${achievementsRes.status})`);
             results.achievements = await achievementsRes.json();
 
             if (results.achievements?.newlyUnlocked?.length > 0) {
@@ -87,6 +89,7 @@ const GamificationService = {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId })
             });
+            if (!streakRes.ok) throw new Error(`Request failed (${streakRes.status})`);
             results.streak = await streakRes.json();
         } catch (e) {
             console.error('[GamificationService] Streak error:', e);
@@ -107,6 +110,7 @@ const GamificationService = {
                     }
                 })
             });
+            if (!challengesRes.ok) throw new Error(`Request failed (${challengesRes.status})`);
             results.challenges = await challengesRes.json();
 
             // Check if any challenges were just completed
