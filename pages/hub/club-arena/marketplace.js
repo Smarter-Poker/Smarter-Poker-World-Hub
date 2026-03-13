@@ -132,7 +132,7 @@ export default function ClubArenaMarketplacePage() {
   // ── EventBus (debounced) ─────────────────────────────────
   useEffect(() => {
     const debouncedRefresh = createDebouncedHandler(() => { if (clubId) loadMarketplace(clubId, true); }, 300);
-    const events = ['CHIPS_DISTRIBUTED', 'BALANCE_UPDATED', 'CASHIER_BALANCE_CHANGED'];
+    const events = ['CHIPS_DISTRIBUTED', 'BALANCE_UPDATED', 'CASHIER_BALANCE_CHANGED', 'CASHOUT_APPROVED'];
     events.forEach(ev => eventBus.on(ev, debouncedRefresh));
     return () => { debouncedRefresh.cancel(); events.forEach(ev => eventBus.off(ev, debouncedRefresh)); };
   }, [clubId, loadMarketplace]);
