@@ -169,7 +169,8 @@ export default function DailyChallengePage() {
         }
 
         // Load streak data from local storage
-        const streakData = JSON.parse(localStorage.getItem('daily-challenge-streak') || '[]');
+        let streakData = [];
+        try { streakData = JSON.parse(localStorage.getItem('daily-challenge-streak') || '[]'); } catch { /* corrupted */ }
         setCompletedDays(streakData);
 
         // Calculate current streak
@@ -228,7 +229,8 @@ export default function DailyChallengePage() {
       );
 
       // Update streak
-      const streakData = JSON.parse(localStorage.getItem('daily-challenge-streak') || '[]');
+      let streakData = [];
+      try { streakData = JSON.parse(localStorage.getItem('daily-challenge-streak') || '[]'); } catch { /* corrupted */ }
       if (!streakData.includes(today)) {
         streakData.push(today);
         localStorage.setItem('daily-challenge-streak', JSON.stringify(streakData));

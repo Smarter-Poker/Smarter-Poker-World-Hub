@@ -55,7 +55,8 @@ export default function PlayerHomeGamesHub() {
 
   // Load auth user
   useEffect(() => {
-    const authUser = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+    let authUser = {};
+    try { authUser = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}'); } catch { /* corrupted */ }
     if (authUser?.user) {
       setUser(authUser.user);
     }

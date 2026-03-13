@@ -149,7 +149,8 @@ export default function SettingsPage() {
                         k => k.startsWith('sb-') && k.endsWith('-auth-token')
                     );
                     if (sbKeys.length > 0) {
-                        const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
+                        let tokenData = {};
+                        try { tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}'); } catch { /* corrupted */ }
                         if (tokenData?.user) {
                             setLocalUser(tokenData.user);
                             console.log('[Settings] User loaded from legacy auth key:', tokenData.user.email);

@@ -4902,7 +4902,8 @@ function SocialMediaPage() {
                 if (!authUser) {
                     const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
                     if (sbKeys.length > 0) {
-                        const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{ }');
+                        let tokenData = {};
+                        try { tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}'); } catch { /* corrupted */ }
                         authUser = tokenData?.user || null;
                     }
                 }
