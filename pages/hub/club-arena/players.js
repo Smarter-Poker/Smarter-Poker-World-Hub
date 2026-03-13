@@ -65,6 +65,13 @@ export default function ClubArenaPlayersPage() {
   const [wbTarget, setWbTarget] = useState(null);
   const [wbAmount, setWbAmount] = useState('');
 
+  // Player Notes
+  const [notes, setNotes] = useState({});
+  const [notesLoaded, setNotesLoaded] = useState(false);
+  const [noteTarget, setNoteTarget] = useState(null);
+  const [noteData, setNoteData] = useState({ player_type: 'unknown', color_label: 'none', notes: '' });
+  const [savingNote, setSavingNote] = useState(false);
+
   const mountedRef = useRef(true);
   useEffect(() => () => { mountedRef.current = false; }, []);
 
@@ -259,6 +266,46 @@ export default function ClubArenaPlayersPage() {
             </div>
           )}
 
+          {/* ── Player Note Modal ────────────────────────────── */}
+          {noteTarget && (
+            <div className={s.modalOverlay} onClick={() => !savingNote && setNoteTarget(null)}>
+              <div className={s.modal} onClick={e => e.stopPropagation()}>
+                <div className={s.modalTitle}>📝 Note: {noteTarget.displayName || noteTarget.userId?.substring(0, 8)}</div>
+                <div className={s.formGroup} style={{ marginBottom: '12px' }}>
+                  <label className={s.formLabel}>Player Type</label>
+                  <select className={s.formSelect} value={noteData.player_type} onChange={e => setNoteData(d => ({ ...d, player_type: e.target.value }))}>
+                    {['unknown', 'fish', 'reg', 'shark', 'whale', 'nit', 'lag', 'tag'].map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
+                  </select>
+                </div>
+                <div className={s.formGroup} style={{ marginBottom: '12px' }}>
+                  <label className={s.formLabel}>Color Label</label>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {[['none','#6B7280'],['red','#FA383E'],['orange','#F5A623'],['yellow','#F7C52A'],['green','#31A24C'],['blue','#4599FF'],['purple','#C084FC']].map(([c, hex]) => (
+                      <button key={c} onClick={() => setNoteData(d => ({ ...d, color_label: c }))} style={{ width: '28px', height: '28px', borderRadius: '50%', background: hex, border: noteData.color_label === c ? '3px solid #E4E6EB' : '2px solid #3A3B3C', cursor: 'pointer' }} />
+                    ))}
+                  </div>
+                </div>
+                <div className={s.formGroup} style={{ marginBottom: '16px' }}>
+                  <label className={s.formLabel}>Notes</label>
+                  <textarea className={s.formInput} rows={4} placeholder="Add notes about this player..." value={noteData.notes} onChange={e => setNoteData(d => ({ ...d, notes: e.target.value }))} style={{ resize: 'vertical', minHeight: '80px' }} />
+                </div>
+                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                  <button onClick={() => setNoteTarget(null)} className={s.btnGhost} disabled={savingNote}>Cancel</button>
+                  <button className={s.btnPrimary} disabled={savingNote} onClick={async () => {
+                    setSavingNote(true);
+                    try {
+                      await apiCall('/api/club-arena/player-notes', { action: 'upsert', targetUserId: noteTarget.userId, note: noteData });
+                      setNotes(prev => ({ ...prev, [noteTarget.userId]: noteData }));
+                      setSuccess('Note saved!');
+                      setNoteTarget(null);
+                    } catch (err) { setError(err.message); }
+                    finally { setSavingNote(false); }
+                  }}>{savingNote ? 'Saving...' : '💾 Save Note'}</button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* ── Page Header ──────────────────────────────────── */}
           <div className={s.pageHeader}>
             <div className={s.pageTitle}>
@@ -369,6 +416,14 @@ export default function ClubArenaPlayersPage() {
                           <span className={s.cardMetaItem}>⏱ {timeAgo(p.lastActive)}</span>
                           {p.txCount24h > 0 && <span className={s.cardMetaItem}>📊 {p.txCount24h} txns</span>}
                           {p.volume24h > 0 && <span className={s.cardMetaItem}>💸 {fmtChips(p.volume24h)} vol</span>}
+                          <button onClick={(e) => {
+                            e.stopPropagation();
+                            const existing = notes[p.userId];
+                            setNoteData(existing ? { player_type: existing.player_type || 'unknown', color_label: existing.color_label || 'none', notes: existing.notes || '' } : { player_type: 'unknown', color_label: 'none', notes: '' });
+                            setNoteTarget(p);
+                          }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', fontSize: '14px', borderRadius: '4px', color: notes[p.userId] ? '#F7C52A' : '#6B7280' }} title={notes[p.userId] ? 'Edit note' : 'Add note'}>
+                            {notes[p.userId] ? '📝' : '✏️'}
+                          </button>
                         </div>
                       </div>
                     );
