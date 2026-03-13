@@ -281,7 +281,6 @@ function AuditLogTab({ clubId }) {
       setLoadError(null);
       const res = await apiCall('/api/club-arena/audit-trail', { action: 'list', clubId, page: p, pageSize: 50 });
       setData(res);
-      setPage(res.page);
     } catch (err) {
       setLoadError(err.message);
     } finally {
@@ -312,9 +311,9 @@ function AuditLogTab({ clubId }) {
         <h3 style={{ margin: 0, fontSize: '18px' }}>Security Audit Trail</h3>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <span style={{ fontSize: '13px', color: '#B0B3B8', marginRight: '8px' }}>Total Logs: {fmt(data.total)}</span>
-          <button onClick={() => load(Math.max(1, page - 1))} disabled={page === 1 || loading} className={s.btnGhost}>◀ Prev</button>
+          <button onClick={() => setPage(Math.max(1, page - 1))} disabled={page === 1 || loading} className={s.btnGhost}>◀ Prev</button>
           <span style={{ fontSize: '14px', fontWeight: 600 }}>{page} / {data.totalPages || 1}</span>
-          <button onClick={() => load(Math.min(data.totalPages, page + 1))} disabled={page >= data.totalPages || loading} className={s.btnGhost}>Next ▶</button>
+          <button onClick={() => setPage(Math.min(data.totalPages, page + 1))} disabled={page >= data.totalPages || loading} className={s.btnGhost}>Next ▶</button>
         </div>
       </div>
 
