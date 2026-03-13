@@ -288,7 +288,27 @@ function AuditLogTab({ clubId }) {
     }
   }, [clubId]);
 
-  useEffect(() => { load(page); }, [load, page]);
+  const exportCSV = async () => {
+    try {
+      const res = await apiCall('/api/club-arena/audit-trail', { action: 'export', clubId });
+      if (res.csv) {
+        const blob = new Blob([res.csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = `audit-log-${clubId.substring(0,8)}.csv`; a.click();
+        URL.revokeObjectURL(url);
+      }
+    } catch (err) { alert('Export failed: ' + err.message); }
+  };
+
+  if (loading) return (
+    <div style={{ animation: 'fadeIn 0.2s ease-out' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <div className={`${s.skeleton} ${s.skeletonText}`} style={{ width: '180px' }} />
+        <div className={`${s.skeleton} ${s.skeletonText}`} style={{ width: '100px' }} />
+      </div>
+      {[1,2,3,4,5].map(i => <div key={i} className={`${s.skeleton} ${s.skeletonCard}`} />)}
+    </div>
+  );
 
   if (loadError) return (
     <div className={s.error} style={{ textAlign: 'center', padding: '40px' }}>
@@ -310,6 +330,7 @@ function AuditLogTab({ clubId }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
         <h3 style={{ margin: 0, fontSize: '18px' }}>Security Audit Trail</h3>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <button onClick={exportCSV} className={s.btnGhost} title="Export audit log as CSV">📥 Export</button>
           <span style={{ fontSize: '13px', color: '#B0B3B8', marginRight: '8px' }}>Total Logs: {fmt(data.total)}</span>
           <button onClick={() => setPage(Math.max(1, page - 1))} disabled={page === 1 || loading} className={s.btnGhost}>◀ Prev</button>
           <span style={{ fontSize: '14px', fontWeight: 600 }}>{page} / {data.totalPages || 1}</span>
@@ -451,6 +472,26 @@ function BrandingTab({ clubId }) {
         <button onClick={handleSave} disabled={saving} className={s.btnPrimary} style={{ width: '100%', padding: '14px', fontSize: '16px' }}>
           {saving ? 'Saving...' : saveSuccess ? '✅ Saved!' : 'Save Branding Identity'}
         </button>
+
+        {/* Ownership Transfer */}
+        <div style={{ marginTop: '32px', paddingTop: '24px', borderTop: '1px solid #3E4042' }}>
+          <h4 style={{ margin: '0 0 12px', fontSize: '15px', color: '#FA383E' }}>⚠️ Danger Zone — Transfer Ownership</h4>
+          <p style={{ fontSize: '12px', color: '#B0B3B8', marginBottom: '12px' }}>Transfer complete ownership of this club to another member. This action is irreversible — you will be demoted to admin.</p>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <input id="ownershipTarget" placeholder="New owner's User ID (UUID)" style={{ flex: 1, padding: '10px 12px', background: '#18191A', border: '1px solid #3A3B3C', borderRadius: '8px', color: '#E4E6EB', fontSize: '13px' }} />
+            <button className={s.btnGhost} style={{ color: '#FA383E', borderColor: '#FA383E' }} onClick={async () => {
+              const target = document.getElementById('ownershipTarget')?.value;
+              if (!target) return alert('Enter the new owner\'s User ID');
+              if (!confirm(`⚠️ IRREVERSIBLE: Transfer ownership to ${target.substring(0,8)}...? You will be demoted to admin.`)) return;
+              if (!confirm('Are you absolutely sure? This cannot be undone.')) return;
+              try {
+                await apiCall('/api/club-arena/manage-agent', { clubId, action: 'transfer_ownership', targetUserId: target });
+                alert('Ownership transferred successfully. Page will reload.');
+                window.location.reload();
+              } catch (err) { alert('Transfer failed: ' + err.message); }
+            }}>🔑 Transfer</button>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -514,6 +555,116 @@ function SettlementHistoryTab({ clubId }) {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Hierarchy Tree Tab ──────────────────────────────────────
+function HierarchyTreeTab({ clubId }) {
+  const [tree, setTree] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [expandedNodes, setExpandedNodes] = useState(new Set());
+  const [stats, setStats] = useState({ total: 0, active: 0 });
+
+  useEffect(() => {
+    if (!clubId) return;
+    (async () => {
+      try {
+        const data = await apiCall('/api/club-arena/agent-analytics', { clubId, action: 'hierarchy_tree' });
+        setTree(data.tree || []);
+        setStats({ total: data.totalAgents || 0, active: data.activeAgents || 0 });
+      } catch (e) { console.error('Hierarchy load error:', e); }
+      setLoading(false);
+    })();
+  }, [clubId]);
+
+  const toggleExpand = (id) => {
+    setExpandedNodes(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const expandAll = () => {
+    const ids = new Set();
+    const walk = (nodes) => { for (const n of nodes) { if (n.children?.length) { ids.add(n.id); walk(n.children); } } };
+    walk(tree || []);
+    setExpandedNodes(ids);
+  };
+
+  const roleColors = { super_agent: '#F7C52A', agent: '#4599FF', sub_agent: '#C084FC' };
+  const roleLabels = { super_agent: '⭐ SUPER', agent: '👤 AGENT', sub_agent: '📎 SUB' };
+
+  function TreeNode({ node, depth = 0 }) {
+    const hasChildren = node.children?.length > 0;
+    const isExpanded = expandedNodes.has(node.id);
+    return (
+      <div className={s.treeNode} style={{ paddingLeft: depth > 0 ? '24px' : '0' }}>
+        <div className={s.treeNodeCard} onClick={() => hasChildren && toggleExpand(node.id)}>
+          <div className={s.treeNodeAvatar}>
+            {node.avatar ? <img src={node.avatar} alt="" /> : '👤'}
+          </div>
+          <div className={s.treeNodeInfo}>
+            <div className={s.treeNodeName}>{node.name}</div>
+            <div className={s.treeNodeMeta}>
+              <span className={s.treeRoleBadge} style={{ background: `${roleColors[node.role] || '#4599FF'}22`, color: roleColors[node.role] || '#4599FF' }}>
+                {roleLabels[node.role] || node.role}
+              </span>
+              <span>💰 {((node.commissionRate || 0) * 100).toFixed(0)}%</span>
+              <span>👥 {node.playerCount}</span>
+              {node.weeklyRake > 0 && <span>📊 {fmtChips(node.weeklyRake)} rake</span>}
+              {node.status === 'suspended' && <span style={{ color: '#E41E3F' }}>⛔ suspended</span>}
+            </div>
+          </div>
+          {hasChildren && (
+            <button className={s.treeExpand} onClick={(e) => { e.stopPropagation(); toggleExpand(node.id); }}>
+              {isExpanded ? '▾' : '▸'} {node.children.length}
+            </button>
+          )}
+        </div>
+        {hasChildren && isExpanded && (
+          <div className={s.treeChildren}>
+            {node.children.map(child => <TreeNode key={child.id} node={child} depth={depth + 1} />)}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (loading) return (
+    <div className={s.section}>
+      <div className={`${s.skeleton} ${s.skeletonCard}`} />
+      <div className={`${s.skeleton} ${s.skeletonCard}`} />
+      <div className={`${s.skeleton} ${s.skeletonCard}`} />
+    </div>
+  );
+
+  return (
+    <div>
+      <div className={s.section}>
+        <div className={s.sectionTitle} style={{ justifyContent: 'space-between' }}>
+          <span>🌳 Agent Hierarchy ({stats.active} active / {stats.total} total)</span>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <button className={`${s.btnGhost} ${s.btnSmall}`} onClick={expandAll}>Expand All</button>
+            <button className={`${s.btnGhost} ${s.btnSmall}`} onClick={() => setExpandedNodes(new Set())}>Collapse All</button>
+          </div>
+        </div>
+
+        {(!tree || tree.length === 0) ? (
+          <div className={s.emptyState}>
+            <span className={s.emptyIcon}>🌱</span>
+            <div className={s.emptyText}>No agents in this club yet</div>
+            <button className={s.emptyCTA} onClick={() => window.location.href = `/hub/club-arena/players?club=${clubId}`}>
+              ➕ Promote Your First Agent
+            </button>
+          </div>
+        ) : (
+          <div className={s.treeContainer}>
+            {tree.map(node => <TreeNode key={node.id} node={node} />)}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -636,14 +787,22 @@ export default function ClubArenaAdminPage() {
               {/* TABS */}
               <div className={s.tabs} style={{ paddingBottom: '16px', marginBottom: '24px', borderBottom: '1px solid #3A3B3C' }}>
                 <button className={`${s.tab} ${activeTab === 'dashboard' ? s.tabActive : ''}`} onClick={() => setActiveTab('dashboard')}>🩺 Health</button>
-                <button className={`${s.tab} ${activeTab === 'settlements' ? s.tabActive : ''}`} onClick={() => setActiveTab('settlements')}>💰 Settlements</button>
+                <button className={`${s.tab} ${activeTab === 'hierarchy' ? s.tabActive : ''}`} onClick={() => setActiveTab('hierarchy')}>🌳 Hierarchy</button>
+                {['owner', 'admin'].includes(role) && (
+                  <button className={`${s.tab} ${activeTab === 'settlements' ? s.tabActive : ''}`} onClick={() => setActiveTab('settlements')}>💰 Settlements</button>
+                )}
                 <button className={`${s.tab} ${activeTab === 'history' ? s.tabActive : ''}`} onClick={() => setActiveTab('history')}>📖 History</button>
-                <button className={`${s.tab} ${activeTab === 'audit' ? s.tabActive : ''}`} onClick={() => setActiveTab('audit')}>🛡️ Audit Trail</button>
-                <button className={`${s.tab} ${activeTab === 'branding' ? s.tabActive : ''}`} onClick={() => setActiveTab('branding')}>🎨 Branding</button>
+                {['owner', 'admin'].includes(role) && (
+                  <button className={`${s.tab} ${activeTab === 'audit' ? s.tabActive : ''}`} onClick={() => setActiveTab('audit')}>🛡️ Audit Trail</button>
+                )}
+                {role === 'owner' && (
+                  <button className={`${s.tab} ${activeTab === 'branding' ? s.tabActive : ''}`} onClick={() => setActiveTab('branding')}>🎨 Branding</button>
+                )}
               </div>
 
               {/* Tab Content */}
               {activeTab === 'dashboard' && <DashboardTab clubId={clubId} />}
+              {activeTab === 'hierarchy' && <HierarchyTreeTab clubId={clubId} />}
               {activeTab === 'settlements' && <SettlementsTab clubId={clubId} />}
               {activeTab === 'history' && <SettlementHistoryTab clubId={clubId} />}
               {activeTab === 'audit' && <AuditLogTab clubId={clubId} />}

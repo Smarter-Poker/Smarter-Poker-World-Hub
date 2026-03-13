@@ -772,6 +772,133 @@ export default async function handler(req, res) {
       return res.status(500).json({ success: false, error: 'Settlement action failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    // DISPUTE: Agent files a dispute against their commission
+    // ═══════════════════════════════════════════════════════════════
+    if (action === 'dispute') {
+      try {
+        const { periodId, reason } = req.body;
+        if (!periodId) return res.status(400).json({ success: false, error: 'periodId required' });
+
+        // Find this agent's commission for the period
+        const { data: agentRecord } = await supabaseAdmin
+          .from('agents')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('club_id', clubId)
+          .maybeSingle();
+        if (!agentRecord) return res.status(403).json({ success: false, error: 'You are not an agent in this club' });
+
+        const { data: commission } = await supabaseAdmin
+          .from('commission_records')
+          .select('id, commission_amount, status')
+          .eq('period_id', periodId)
+          .eq('agent_id', agentRecord.id)
+          .maybeSingle();
+        if (!commission) return res.status(404).json({ success: false, error: 'No commission record found for this period' });
+        if (commission.status === 'paid') return res.status(400).json({ success: false, error: 'Cannot dispute a paid commission — contact club owner directly' });
+
+        // Mark as disputed via settlement_invoices metadata
+        const { error: updateErr } = await supabaseAdmin
+          .from('settlement_invoices')
+          .update({
+            status: 'disputed',
+            metadata: {
+              dispute: {
+                filed_by: user.id,
+                filed_at: new Date().toISOString(),
+                reason: (reason || 'No reason provided').substring(0, 500),
+                commission_amount: commission.commission_amount,
+              },
+            },
+          })
+          .eq('club_id', clubId)
+          .eq('period_id', periodId)
+          .eq('invoice_type', 'club_to_agent')
+          .eq('to_entity_id', String(user.id));
+
+        if (updateErr) throw updateErr;
+
+        logAudit(supabaseAdmin, { actionType: 'settlement_disputed', userId: user.id, clubId, amount: commission.commission_amount, ip: extractIP(req), details: { periodId, reason } });
+
+        return res.status(200).json({
+          success: true,
+          message: 'Dispute filed successfully. The club owner will review your dispute.',
+          disputedAmount: commission.commission_amount,
+        });
+      } catch (err) {
+        return res.status(500).json({ success: false, error: 'Dispute failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // LIST_DISPUTES: Owner views all disputed invoices
+    // ═══════════════════════════════════════════════════════════════
+    if (action === 'list_disputes') {
+      try {
+        const { data: disputed } = await supabaseAdmin
+          .from('settlement_invoices')
+          .select('id, period_id, to_entity_id, net_amount, metadata, created_at, breakdown')
+          .eq('club_id', clubId)
+          .eq('status', 'disputed')
+          .order('created_at', { ascending: false })
+          .limit(100);
+
+        // Enrich with agent names
+        const agentIds = (disputed || []).map(d => d.to_entity_id).filter(Boolean);
+        const { data: profiles } = await supabaseAdmin
+          .from('profiles')
+          .select('id, display_name, username')
+          .in('id', agentIds);
+
+        const nameMap = {};
+        for (const p of (profiles || [])) nameMap[p.id] = p.display_name || p.username || p.id.substring(0, 8);
+
+        const enriched = (disputed || []).map(d => ({
+          ...d,
+          agentName: nameMap[d.to_entity_id] || d.to_entity_id?.substring(0, 8),
+          disputeDetails: d.metadata?.dispute || null,
+        }));
+
+        return res.status(200).json({ success: true, disputes: enriched, total: (disputed || []).length });
+      } catch (err) {
+        return res.status(500).json({ success: false, error: 'List disputes failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // RESOLVE_DISPUTE: Owner resolves a disputed invoice
+    // ═══════════════════════════════════════════════════════════════
+    if (action === 'resolve_dispute') {
+      try {
+        const { invoiceId, resolution } = req.body;
+        if (!invoiceId) return res.status(400).json({ success: false, error: 'invoiceId required' });
+        if (!resolution || !['approve', 'reject'].includes(resolution)) {
+          return res.status(400).json({ success: false, error: 'resolution must be approve or reject' });
+        }
+
+        const newStatus = resolution === 'approve' ? 'generated' : 'rejected';
+        const { error } = await supabaseAdmin
+          .from('settlement_invoices')
+          .update({
+            status: newStatus,
+            metadata: supabaseAdmin.rpc ? undefined : {}, // Clear dispute metadata on resolve
+          })
+          .eq('id', invoiceId)
+          .eq('club_id', clubId)
+          .eq('status', 'disputed');
+
+        if (error) throw error;
+
+        logAudit(supabaseAdmin, { actionType: 'dispute_resolved', userId: user.id, clubId, ip: extractIP(req), details: { invoiceId, resolution } });
+        return res.status(200).json({ success: true, message: `Dispute ${resolution}d`, invoiceId });
+      } catch (err) {
+        return res.status(500).json({ success: false, error: 'Resolve dispute failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
+      }
+    }
+
+    return res.status(400).json({ success: false, error: `Unknown action: ${action}` });
+
   } catch (err) {
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });

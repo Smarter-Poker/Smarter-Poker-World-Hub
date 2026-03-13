@@ -246,6 +246,167 @@ export default async function handler(req, res) {
           }
       }
 
+      // ─── AGENT_SCORE: Composite Performance Scoring ────────────
+      if (action === 'agent_score') {
+          try {
+              const { data: agent } = await supabaseAdmin
+                  .from('agents')
+                  .select('id, user_id, commission_rate, weekly_rake_generated, status, role, parent_agent_id, player_count, created_at')
+                  .eq('user_id', targetAgent)
+                  .eq('club_id', clubId)
+                  .maybeSingle();
+
+              if (!agent) return res.status(404).json({ error: 'Agent not found' });
+
+              // Get players for retention/churn scoring
+              const { data: players } = await supabaseAdmin
+                  .from('club_members')
+                  .select('user_id, last_active, chip_balance, created_at')
+                  .eq('club_id', clubId)
+                  .eq('agent_id', targetAgent)
+                  .limit(10000);
+
+              const now = new Date();
+              let activeCount = 0, atRiskCount = 0, churnedCount = 0, newLast30 = 0;
+              const totalPlayers = (players || []).length;
+
+              for (const p of (players || [])) {
+                  const lastActive = p.last_active ? new Date(p.last_active) : new Date(0);
+                  const daysSince = Math.floor((now - lastActive) / (24 * 60 * 60 * 1000));
+                  const playerAge = Math.floor((now - new Date(p.created_at)) / (24 * 60 * 60 * 1000));
+                  if (daysSince <= 5) activeCount++;
+                  else if (daysSince <= 14) atRiskCount++;
+                  else churnedCount++;
+                  if (playerAge <= 30) newLast30++;
+              }
+
+              // Commissions earned last 30 days
+              const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+              const { data: commissions } = await supabaseAdmin
+                  .from('commission_history')
+                  .select('amount')
+                  .eq('agent_id', targetAgent)
+                  .eq('club_id', clubId)
+                  .gte('created_at', thirtyDaysAgo)
+                  .limit(10000);
+              const totalCommissions = (commissions || []).reduce((s, c) => s + (c.amount || 0), 0);
+
+              // Cashouts processed last 30 days
+              const { data: cashouts } = await supabaseAdmin
+                  .from('action_audit_logs')
+                  .select('amount, created_at')
+                  .eq('club_id', clubId)
+                  .eq('user_id', targetAgent)
+                  .in('action_type', ['cashout_approved', 'cashout_processed'])
+                  .gte('created_at', thirtyDaysAgo)
+                  .limit(5000);
+              const cashoutVolume = (cashouts || []).reduce((s, c) => s + Math.abs(c.amount || 0), 0);
+
+              // ─── COMPOSITE SCORE CALCULATION ───
+              // Player Retention (30%): % of active players / total
+              const retentionScore = totalPlayers > 0 ? Math.min(100, (activeCount / totalPlayers) * 100) : 0;
+
+              // Rake Generation (25%): Relative to commission target ($5000/month = 100%)
+              const rakeScore = Math.min(100, (totalCommissions / 5000) * 100);
+
+              // Cashout Velocity (20%): How quickly agent processes cashouts
+              const cashoutScore = (cashouts || []).length > 0 ? Math.min(100, ((cashouts || []).length / Math.max(1, totalPlayers)) * 200) : 50; // Default 50 if no cashouts
+
+              // Churn Rate (15%): Inverse of churn
+              const churnScore = totalPlayers > 0 ? Math.max(0, 100 - (churnedCount / totalPlayers) * 100) : 50;
+
+              // Growth (10%): New players in last 30 days
+              const growthScore = Math.min(100, newLast30 * 20); // 5 new players = 100%
+
+              const compositeScore = Math.round(
+                  retentionScore * 0.30 +
+                  rakeScore * 0.25 +
+                  cashoutScore * 0.20 +
+                  churnScore * 0.15 +
+                  growthScore * 0.10
+              );
+
+              return res.status(200).json({
+                  success: true,
+                  score: {
+                      composite: compositeScore,
+                      grade: compositeScore >= 80 ? 'A' : compositeScore >= 60 ? 'B' : compositeScore >= 40 ? 'C' : compositeScore >= 20 ? 'D' : 'F',
+                      breakdown: {
+                          retention: { score: Math.round(retentionScore), weight: 30, detail: `${activeCount}/${totalPlayers} active` },
+                          rakeGeneration: { score: Math.round(rakeScore), weight: 25, detail: `$${totalCommissions.toLocaleString()} / $5,000 target` },
+                          cashoutVelocity: { score: Math.round(cashoutScore), weight: 20, detail: `${(cashouts || []).length} processed` },
+                          churnRate: { score: Math.round(churnScore), weight: 15, detail: `${churnedCount} churned of ${totalPlayers}` },
+                          growth: { score: Math.round(growthScore), weight: 10, detail: `${newLast30} new in 30d` },
+                      },
+                      totalPlayers,
+                      activeCount,
+                      atRiskCount,
+                      churnedCount,
+                  },
+              });
+          } catch (err) {
+              return res.status(500).json({ error: 'Score failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
+          }
+      }
+
+      // ─── HIERARCHY_TREE: Recursive Agent Hierarchy ─────────────
+      if (action === 'hierarchy_tree') {
+          try {
+              const { data: agents } = await supabaseAdmin
+                  .from('agents')
+                  .select('id, user_id, commission_rate, status, role, parent_agent_id, player_count, weekly_rake_generated')
+                  .eq('club_id', clubId)
+                  .limit(5000);
+
+              const agentUserIds = (agents || []).map(a => a.user_id);
+              const { data: profiles } = await supabaseAdmin
+                  .from('profiles')
+                  .select('id, display_name, username, avatar_url')
+                  .in('id', agentUserIds);
+
+              const nameMap = {};
+              for (const p of (profiles || [])) nameMap[p.id] = { name: p.display_name || p.username || p.id.substring(0, 8), avatar: p.avatar_url };
+
+              // Build tree structure
+              const agentMap = new Map();
+              const rootAgents = [];
+
+              for (const a of (agents || [])) {
+                  agentMap.set(a.id, {
+                      id: a.id,
+                      userId: a.user_id,
+                      name: nameMap[a.user_id]?.name || a.user_id.substring(0, 8),
+                      avatar: nameMap[a.user_id]?.avatar || null,
+                      commissionRate: a.commission_rate,
+                      status: a.status,
+                      role: a.role,
+                      playerCount: a.player_count || 0,
+                      weeklyRake: a.weekly_rake_generated || 0,
+                      parentAgentId: a.parent_agent_id,
+                      children: [],
+                  });
+              }
+
+              // Link children to parents
+              for (const [id, node] of agentMap) {
+                  if (node.parentAgentId && agentMap.has(node.parentAgentId)) {
+                      agentMap.get(node.parentAgentId).children.push(node);
+                  } else {
+                      rootAgents.push(node);
+                  }
+              }
+
+              return res.status(200).json({
+                  success: true,
+                  tree: rootAgents,
+                  totalAgents: (agents || []).length,
+                  activeAgents: (agents || []).filter(a => a.status === 'active').length,
+              });
+          } catch (err) {
+              return res.status(500).json({ error: 'Hierarchy tree failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
+          }
+      }
+
       return res.status(400).json({ error: `Unknown action: ${action}` });
 
   } catch (err) {

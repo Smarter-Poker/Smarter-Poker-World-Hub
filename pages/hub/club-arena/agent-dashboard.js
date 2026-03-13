@@ -55,6 +55,16 @@ export default function AgentDashboardPage() {
   const [leaderboard, setLeaderboard] = useState(null);
   const [analyticsLoaded, setAnalyticsLoaded] = useState(false);
 
+  // Agent Score state
+  const [agentScore, setAgentScore] = useState(null);
+  const [scoreLoading, setScoreLoading] = useState(false);
+
+  // Transfer modal state
+  const [showTransfer, setShowTransfer] = useState(false);
+  const [transferTarget, setTransferTarget] = useState('');
+  const [transferAmount, setTransferAmount] = useState('');
+  const [transferNotes, setTransferNotes] = useState('');
+
   // Search / Filter
   const [playerSearch, setPlayerSearch] = useState('');
 
@@ -203,7 +213,14 @@ export default function AgentDashboardPage() {
   useEffect(() => {
     if (tab === 'overview' || tab === 'commissions') loadAnalytics();
     if (tab === 'analytics') { loadAnalytics(); loadHeatMap(); loadLeaderboard(); }
-  }, [tab, loadAnalytics, loadHeatMap, loadLeaderboard]);
+    if (tab === 'score' && !agentScore && !scoreLoading && clubId) {
+      setScoreLoading(true);
+      apiCall('/api/club-arena/agent-analytics', { clubId, action: 'agent_score' })
+        .then(r => { if (mountedRef.current) setAgentScore(r.score || null); })
+        .catch(e => console.warn('Score load failed:', e))
+        .finally(() => { if (mountedRef.current) setScoreLoading(false); });
+    }
+  }, [tab, loadAnalytics, loadHeatMap, loadLeaderboard, agentScore, scoreLoading, clubId]);
 
   // ── EventBus Listeners ─────────────────────────────────────
   useEffect(() => {
@@ -236,6 +253,27 @@ export default function AgentDashboardPage() {
       await apiCall('/api/club-arena/cancel-my-cashout', { cashoutId, clubId });
       setSuccess('Cashout denied and refunded.');
       busEmit('CASHOUT_CANCELLED', { cashoutId, clubId });
+      loadDashboard(clubId);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const executeTransfer = async () => {
+    if (!transferTarget || !transferAmount) return;
+    setProcessing(true);
+    try {
+      await apiCall('/api/club-arena/manage-agent', {
+        clubId, action: 'transfer_to_agent',
+        targetUserId: transferTarget,
+        amount: parseFloat(transferAmount),
+        notes: transferNotes || undefined,
+      });
+      setSuccess(`Successfully transferred ${fmtChips(transferAmount)} chips.`);
+      busEmit('CHIPS_DISTRIBUTED', { clubId });
+      setShowTransfer(false); setTransferTarget(''); setTransferAmount(''); setTransferNotes('');
       loadDashboard(clubId);
     } catch (err) {
       setError(err.message);
@@ -307,6 +345,7 @@ export default function AgentDashboardPage() {
             </div>
             <div className={s.headerActions}>
               <Link href="/hub/club-arena/lobby" style={{ textDecoration: 'none' }}><button className={s.btnGhost}>🏠 Lobby</button></Link>
+              <button onClick={() => setShowTransfer(true)} className={s.btnGhost}>💸 Transfer</button>
               <button onClick={() => loadDashboard(clubId)} className={s.btnGhost} disabled={processing}>↻ Refresh</button>
             </div>
           </div>
@@ -326,6 +365,7 @@ export default function AgentDashboardPage() {
               { id: 'players', label: 'Players', badge: stats.totalPlayers },
               { id: 'cashouts', label: 'Cashouts', badge: pendingCashouts.length || null },
               { id: 'commissions', label: 'Commissions' },
+              { id: 'score', label: '🎯 Score' },
               { id: 'analytics', label: 'Analytics' },
             ].map(t => (
               <button
@@ -764,6 +804,77 @@ export default function AgentDashboardPage() {
                 )}
               </div>
             </>
+          )}
+
+          {/* ══════════════════════════════════════════════════ */}
+          {/*  TAB: SCORE                                       */}
+          {/* ══════════════════════════════════════════════════ */}
+          {tab === 'score' && (
+            <div className={s.section}>
+              <div className={s.sectionTitle}>🎯 Agent Performance Score</div>
+              {scoreLoading ? (
+                <div className={s.loading}>Calculating score...</div>
+              ) : !agentScore ? (
+                <div className={s.emptyState}><span className={s.emptyIcon}>📊</span><span className={s.emptyText}>Score unavailable — no data yet</span></div>
+              ) : (
+                <div className={s.scoreContainer}>
+                  <div className={`${s.scoreCircle} ${s[`scoreGrade${agentScore.grade}`]}`}>
+                    <div className={s.scoreNumber}>{agentScore.composite}</div>
+                    <div className={s.scoreGradeLabel}>Grade {agentScore.grade}</div>
+                  </div>
+                  <div className={s.scoreBreakdown}>
+                    {Object.entries(agentScore.breakdown || {}).map(([key, metric]) => {
+                      const colors = { retention: '#31A24C', rakeGeneration: '#F7C52A', cashoutVelocity: '#4599FF', churnRate: '#C084FC', growth: '#FB923C' };
+                      return (
+                        <div key={key} className={s.scoreMeterRow}>
+                          <div className={s.scoreMeterLabel}>{key.replace(/([A-Z])/g, ' $1').trim()} ({metric.weight}%)</div>
+                          <div className={s.scoreMeterTrack}>
+                            <div className={s.scoreMeterFill} style={{ width: `${metric.score}%`, background: colors[key] || '#4599FF' }} />
+                          </div>
+                          <div className={s.scoreMeterDetail}>{metric.detail}</div>
+                        </div>
+                      );
+                    })}
+                    <div style={{ marginTop: '16px', padding: '12px', background: '#242526', borderRadius: '8px', display: 'flex', gap: '20px', fontSize: '12px', color: '#B0B3B8' }}>
+                      <span>👥 {agentScore.totalPlayers} total</span>
+                      <span style={{ color: '#31A24C' }}>✅ {agentScore.activeCount} active</span>
+                      <span style={{ color: '#F7C52A' }}>⚠️ {agentScore.atRiskCount} at-risk</span>
+                      <span style={{ color: '#E41E3F' }}>❌ {agentScore.churnedCount} churned</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── Transfer Modal ─────────────────────────────── */}
+          {showTransfer && (
+            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
+                 onClick={() => setShowTransfer(false)}>
+              <div onClick={(e) => e.stopPropagation()} style={{ background: '#242526', borderRadius: '16px', padding: '24px', width: '100%', maxWidth: '400px', border: '1px solid #3A3B3C' }}>
+                <div style={{ fontSize: '18px', fontWeight: 700, color: '#E4E6EB', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>💸 Agent-to-Agent Transfer</span>
+                  <button onClick={() => setShowTransfer(false)} style={{ background: 'none', border: 'none', color: '#B0B3B8', cursor: 'pointer', fontSize: '18px' }}>✕</button>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', color: '#B0B3B8', marginBottom: '6px', fontWeight: 600 }}>Recipient Agent User ID</label>
+                    <input value={transferTarget} onChange={e => setTransferTarget(e.target.value)} placeholder="UUID of receiving agent" style={{ width: '100%', padding: '10px 12px', background: '#18191A', border: '1px solid #3A3B3C', borderRadius: '8px', color: '#E4E6EB', fontSize: '13px' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', color: '#B0B3B8', marginBottom: '6px', fontWeight: 600 }}>Amount (chips)</label>
+                    <input type="number" value={transferAmount} onChange={e => setTransferAmount(e.target.value)} placeholder="0" className={s.transferAmountInput} min="1" />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', color: '#B0B3B8', marginBottom: '6px', fontWeight: 600 }}>Notes (optional)</label>
+                    <input value={transferNotes} onChange={e => setTransferNotes(e.target.value)} placeholder="Transfer reason..." style={{ width: '100%', padding: '10px 12px', background: '#18191A', border: '1px solid #3A3B3C', borderRadius: '8px', color: '#E4E6EB', fontSize: '13px' }} />
+                  </div>
+                  <button onClick={executeTransfer} disabled={processing || !transferTarget || !transferAmount} className={s.btnPrimary} style={{ marginTop: '8px', width: '100%', padding: '12px' }}>
+                    {processing ? 'Processing...' : `Transfer ${transferAmount ? fmtChips(transferAmount) : '0'} chips`}
+                  </button>
+                </div>
+              </div>
+            </div>
           )}
 
         </div>

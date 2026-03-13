@@ -72,8 +72,10 @@ export default async function handler(req, res) {
     const startTime = Date.now();
     const results = {
       phase: 'started',
+      settlement_run_id: null,
       clubs_processed: 0,
       clubs_locked: 0,
+      clubs_failed: 0,
       periods_closed: 0,
       invoices_generated: 0,
       commissions_distributed: 0,
@@ -81,6 +83,37 @@ export default async function handler(req, res) {
       periods_opened: 0,
       errors: [],
     };
+
+    // ─── IDEMPOTENCY GUARD: Prevent duplicate settlement runs ───
+    const today = new Date();
+    const runId = `settlement-${today.toISOString().split('T')[0]}-week${Math.ceil((today.getDate()) / 7)}`;
+    results.settlement_run_id = runId;
+
+    const { data: existingRun } = await supabaseAdmin
+      .from('settlement_locks')
+      .select('id')
+      .eq('lock_type', 'settlement_run')
+      .eq('lock_reason', runId)
+      .maybeSingle();
+
+    if (existingRun) {
+      return res.status(200).json({
+        success: true,
+        message: `Settlement run ${runId} already processed. Skipping duplicate.`,
+        duplicate: true,
+        results,
+      });
+    }
+
+    // Record this run to prevent future duplicates
+    await supabaseAdmin.from('settlement_locks').insert({
+      club_id: '00000000-0000-0000-0000-000000000000', // System-level lock
+      lock_type: 'settlement_run',
+      locked_at: today.toISOString(),
+      unlock_at: new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString(),
+      is_active: false, // Not an actual lock, just a dedup marker
+      lock_reason: runId,
+    }).catch(() => {}); // Non-blocking
 
     try {
       // ═══════════════════════════════════════════════════════════════
@@ -262,6 +295,30 @@ export default async function handler(req, res) {
                 settlement_type: 'auto',
               },
             });
+          }
+
+          // ─── TREASURY PRE-CHECK: Verify sufficient balance before distribution ───
+          const { data: freshClub } = await supabaseAdmin
+            .from('clubs')
+            .select('chip_treasury')
+            .eq('id', club.id)
+            .maybeSingle();
+
+          const availableTreasury = freshClub?.chip_treasury || 0;
+          const estimatedTotal = (agents || []).reduce((sum, a) => {
+            const rake = a.weekly_rake_generated || 0;
+            return sum + Math.round(rake * a.commission_rate * 100) / 100;
+          }, 0);
+
+          if (estimatedTotal > availableTreasury) {
+            console.warn(`[auto-settlement] ⚠️ Treasury shortfall for ${club.name}: Need ${estimatedTotal.toLocaleString()} but only ${availableTreasury.toLocaleString()} available.`);
+            results.errors.push({
+              club: club.name,
+              phase: 'treasury_pre_check',
+              error: `Estimated commissions (${estimatedTotal.toLocaleString()}) exceed treasury (${availableTreasury.toLocaleString()}).`,
+              shortfall: estimatedTotal - availableTreasury,
+            });
+            // Continue — individual debit-before-credit will catch actual failures
           }
 
           // ─── Process each agent ───

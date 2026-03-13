@@ -8,7 +8,7 @@
  * to preserve referential integrity and allow recovery within 30 days.
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
-import { rateLimit } from '../src/lib/apiRateLimit';
+import { rateLimit } from '../../../src/lib/apiRateLimit';
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,

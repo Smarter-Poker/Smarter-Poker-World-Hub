@@ -81,9 +81,12 @@ export const WalletType = z.enum([
 // ─── UnionSettlement Contract ─────────────────────────────────
 export const UnionSettlementSchema = z.object({
     clubId: UUID,
-    action: z.enum(['open', 'close', 'pay', 'pay_all', 'status', 'history']),
+    action: z.enum(['open', 'close', 'pay', 'pay_all', 'status', 'history', 'dispute', 'list_disputes', 'resolve_dispute']),
     periodId: UUID.optional(),
     commissionId: UUID.optional(),
+    reason: z.string().max(500).optional(),
+    invoiceId: UUID.optional(),
+    resolution: z.enum(['approve', 'reject']).optional(),
 }).strict();
 
 export type UnionSettlement = z.infer<typeof UnionSettlementSchema>;
@@ -313,6 +316,154 @@ export function validateUnionGames(body: unknown) {
             return validatePayload(UnionGamesTableActionSchema, body);
         case 'list_tournaments': case 'list_tables': case 'get_bbj_status':
             return validatePayload(UnionGamesListSchema, body);
+        default:
+            return { success: false as const, error: `Unknown action: ${action}`, data: null };
+    }
+}
+
+// ─── Manage Agent Contracts ───────────────────────────────────
+
+export const ManageAgentAction = z.enum([
+    'promote', 'demote', 'update', 'reassign', 'suspend', 'reactivate',
+    'change_role', 'remove', 'set_parent_agent', 'list_sub_agents',
+    'set_player_rakeback', 'update_commission', 'promote_to_sub_agent',
+    'transfer_to_agent', 'transfer_ownership', 'batch_suspend', 'batch_reactivate',
+]);
+
+/** Agent tier / role within the club hierarchy */
+const AgentTier = z.enum(['super_agent', 'agent', 'sub_agent']);
+
+/** Rakeback percentage — 0 to 1.0 (0 = disabled) */
+const RakebackRate = z.number().min(0).max(1.0).refine(v => Number.isFinite(v), 'Must be finite');
+
+const ManageAgentBase = z.object({
+    clubId: UUID,
+    action: ManageAgentAction,
+    targetUserId: UUID.optional(),
+});
+
+export const ManageAgentPromoteSchema = ManageAgentBase.extend({
+    action: z.literal('promote'),
+    targetUserId: UUID,
+    commissionRate: CommissionRate,
+    agentTier: AgentTier.optional().default('agent'),
+    isPrepaid: z.boolean().optional().default(false),
+    creditLimit: z.number().int().min(0).max(100_000_000).optional().default(0),
+    parentAgentId: UUID.nullable().optional(),
+    rakebackPercentage: RakebackRate.optional().default(0),
+});
+
+export const ManageAgentDemoteSchema = ManageAgentBase.extend({
+    action: z.literal('demote'),
+    targetUserId: UUID,
+    reassignTo: UUID.optional(),
+});
+
+export const ManageAgentUpdateSchema = ManageAgentBase.extend({
+    action: z.literal('update'),
+    targetUserId: UUID,
+    commissionRate: CommissionRate.optional(),
+    agentTier: AgentTier.optional(),
+    isPrepaid: z.boolean().optional(),
+    creditLimit: z.number().int().min(0).max(100_000_000).optional(),
+    rakebackPercentage: RakebackRate.optional(),
+    tier: z.string().max(30).optional(),
+    nickname: z.string().max(100).optional(),
+});
+
+export const ManageAgentReassignSchema = ManageAgentBase.extend({
+    action: z.literal('reassign'),
+    playerId: UUID,
+    fromAgentId: UUID.optional(),
+    toAgentId: UUID,
+});
+
+export const ManageAgentStatusSchema = ManageAgentBase.extend({
+    action: z.enum(['suspend', 'reactivate']),
+    targetUserId: UUID,
+});
+
+export const ManageAgentChangeRoleSchema = ManageAgentBase.extend({
+    action: z.literal('change_role'),
+    targetUserId: UUID,
+    newRole: z.string().min(1).max(30),
+});
+
+export const ManageAgentRemoveSchema = ManageAgentBase.extend({
+    action: z.literal('remove'),
+    targetUserId: UUID,
+    forceReturn: z.boolean().optional(),
+});
+
+export const ManageAgentSetParentSchema = ManageAgentBase.extend({
+    action: z.literal('set_parent_agent'),
+    targetUserId: UUID,
+    parentAgentId: UUID.nullable(),
+});
+
+export const ManageAgentListSubSchema = ManageAgentBase.extend({
+    action: z.literal('list_sub_agents'),
+    parentAgentUserId: UUID,
+});
+
+export const ManageAgentRakebackSchema = ManageAgentBase.extend({
+    action: z.literal('set_player_rakeback'),
+    targetUserId: UUID,
+    rakebackPercentage: RakebackRate,
+});
+
+export const ManageAgentUpdateCommSchema = ManageAgentBase.extend({
+    action: z.literal('update_commission'),
+    targetUserId: UUID,
+    commissionRate: CommissionRate,
+});
+
+export const ManageAgentPromoteSubSchema = ManageAgentBase.extend({
+    action: z.literal('promote_to_sub_agent'),
+    targetUserId: UUID,
+    commissionRate: CommissionRate,
+});
+
+export const ManageAgentTransferSchema = ManageAgentBase.extend({
+    action: z.literal('transfer_to_agent'),
+    targetUserId: UUID,
+    amount: PositiveChipAmount,
+    notes: SafeNotes,
+});
+
+export const ManageAgentTransferOwnershipSchema = ManageAgentBase.extend({
+    action: z.literal('transfer_ownership'),
+    targetUserId: UUID,
+});
+
+export const ManageAgentBatchSchema = ManageAgentBase.extend({
+    action: z.enum(['batch_suspend', 'batch_reactivate']),
+    targetUserIds: z.array(UUID).min(1).max(50),
+});
+
+export function validateManageAgent(body: unknown) {
+    if (!body || typeof body !== 'object' || !('action' in body)) {
+        return { success: false as const, error: 'action is required', data: null };
+    }
+    const action = (body as any).action;
+    switch (action) {
+        case 'promote': return validatePayload(ManageAgentPromoteSchema, body);
+        case 'demote': return validatePayload(ManageAgentDemoteSchema, body);
+        case 'update': return validatePayload(ManageAgentUpdateSchema, body);
+        case 'reassign': return validatePayload(ManageAgentReassignSchema, body);
+        case 'suspend': case 'reactivate':
+            return validatePayload(ManageAgentStatusSchema, body);
+        case 'change_role': return validatePayload(ManageAgentChangeRoleSchema, body);
+        case 'remove': return validatePayload(ManageAgentRemoveSchema, body);
+        case 'set_parent_agent': return validatePayload(ManageAgentSetParentSchema, body);
+        case 'list_sub_agents': return validatePayload(ManageAgentListSubSchema, body);
+        case 'set_player_rakeback': return validatePayload(ManageAgentRakebackSchema, body);
+        case 'update_commission': return validatePayload(ManageAgentUpdateCommSchema, body);
+        case 'promote_to_sub_agent': return validatePayload(ManageAgentPromoteSubSchema, body);
+        case 'transfer_to_agent': return validatePayload(ManageAgentTransferSchema, body);
+        case 'transfer_ownership': return validatePayload(ManageAgentTransferOwnershipSchema, body);
+        case 'batch_suspend': case 'batch_reactivate':
+            return validatePayload(ManageAgentBatchSchema, body);
         default:
             return { success: false as const, error: `Unknown action: ${action}`, data: null };
     }

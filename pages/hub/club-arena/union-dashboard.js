@@ -54,6 +54,10 @@ export default function UnionDashboardPage() {
   const [appsLoaded, setAppsLoaded] = useState(false);
   const [leaveRequests, setLeaveRequests] = useState([]);
 
+  // Analytics state
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+
   // Settings state
   const [settingsForm, setSettingsForm] = useState({});
   const [adminSearch, setAdminSearch] = useState('');
@@ -222,6 +226,13 @@ export default function UnionDashboardPage() {
     if (!unionId) return;
     if (tab === 'wallet' && !walletData) loadWallet();
     if (tab === 'applications' && !appsLoaded) { loadApps(); loadLeave(); }
+    if (tab === 'analytics' && !analyticsData && !analyticsLoading) {
+      setAnalyticsLoading(true);
+      apiGet(`/api/club-arena/union-dashboard?unionId=${unionId}&include=analytics`)
+        .then(res => { setAnalyticsData(res.crossClubAnalytics || null); })
+        .catch(() => {})
+        .finally(() => setAnalyticsLoading(false));
+    }
   }, [tab, unionId]);
 
   // ── Auto-Refresh Polling (45s on Overview tab) ────────────
@@ -408,6 +419,8 @@ export default function UnionDashboardPage() {
               { id: 'clubs', label: `Clubs (${stats?.totalClubs || 0})` },
               { id: 'agents', label: `Agents (${stats?.totalAgents || 0})` },
               { id: 'wallet', label: 'Wallet' },
+              { id: 'treasury', label: '🏦 Treasury' },
+              { id: 'analytics', label: '📊 Analytics' },
               { id: 'applications', label: 'Applications', badge: pendingApplications || null },
               { id: 'settings', label: 'Settings' },
             ].map(t => (
@@ -1013,6 +1026,155 @@ export default function UnionDashboardPage() {
                     </table>
                   </div>
                 </div>
+              )}
+            </>
+          )}
+
+          {/* ══════════════════ TREASURY TAB ══════════════════ */}
+          {tab === 'treasury' && (
+            <>
+              <div className={s.section}>
+                <div className={s.sectionTitle}>🏦 Club Treasury Breakdown</div>
+                {clubs.length === 0 ? (
+                  <div className={s.emptyState}><span className={s.emptyIcon}>🏦</span><span className={s.emptyText}>No clubs in this union yet</span></div>
+                ) : (
+                  <div className={s.tableScroll}>
+                    <table className={s.dataTable}>
+                      <thead>
+                        <tr><th>Club</th><th>Treasury</th><th>Agents</th><th>Members</th><th>Rake Hold</th><th>Health</th></tr>
+                      </thead>
+                      <tbody>
+                        {clubs.map(c => {
+                          const treasury = c.chip_treasury || 0;
+                          const agentCount = (agents || []).filter(a => a.club_id === c.id).length;
+                          const memberCount = c.member_count || 0;
+                          const health = treasury > 100000 ? 'Excellent' : treasury > 10000 ? 'Good' : treasury > 0 ? 'Low' : 'Empty';
+                          const healthColor = treasury > 100000 ? '#31A24C' : treasury > 10000 ? '#4599FF' : treasury > 0 ? '#F7C52A' : '#E41E3F';
+                          return (
+                            <tr key={c.id}>
+                              <td style={{ fontWeight: 600 }}>{c.name}</td>
+                              <td style={{ fontWeight: 700, color: '#31A24C' }}>{fmt(treasury)}</td>
+                              <td>{agentCount}</td>
+                              <td>{memberCount}</td>
+                              <td>{pct(c.settings?.union_rake_hold || 0.10)}</td>
+                              <td><span style={{ color: healthColor, fontWeight: 600 }}>{health}</span></td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              {/* Union-wide Totals */}
+              <div className={s.statsGrid}>
+                <div className={s.statCard}>
+                  <div className={s.statValueGreen}>{fmt(clubs.reduce((s, c) => s + (c.chip_treasury || 0), 0))}</div>
+                  <div className={s.statLabel}>Total Treasury</div>
+                </div>
+                <div className={s.statCard}>
+                  <div className={s.statValueBlue}>{fmt((agents || []).length)}</div>
+                  <div className={s.statLabel}>Total Agents</div>
+                </div>
+                <div className={s.statCard}>
+                  <div className={s.statValue}>{fmt(clubs.reduce((s, c) => s + (c.member_count || 0), 0))}</div>
+                  <div className={s.statLabel}>Total Members</div>
+                </div>
+                <div className={s.statCard}>
+                  <div className={s.statValueGold}>{fmt(recentPeriods.filter(p => p.status === 'open').length)}</div>
+                  <div className={s.statLabel}>Open Periods</div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* ══════════════════ ANALYTICS TAB ═══════════════════ */}
+          {tab === 'analytics' && (
+            <>
+
+              {analyticsLoading ? (
+                <div>
+                  {[1,2,3].map(i => <div key={i} className={`${s.skeleton} ${s.skeletonCard}`} />)}
+                </div>
+              ) : !analyticsData ? (
+                <div className={s.emptyState}><span className={s.emptyIcon}>📊</span><span className={s.emptyText}>No analytics data available yet. Run settlements to generate trending data.</span></div>
+              ) : (
+                <>
+                  {/* Top Agents Across All Clubs */}
+                  <div className={s.section}>
+                    <div className={s.sectionTitle}>🏆 Top Agents Across All Clubs</div>
+                    {analyticsData.topAgents?.length > 0 ? (
+                      <div className={s.tableScroll}>
+                        <table className={s.dataTable}>
+                          <thead>
+                            <tr><th>#</th><th>Agent</th><th>Club</th><th>Rate</th><th>Lifetime Earnings</th><th>Weekly Rake</th><th>Players</th></tr>
+                          </thead>
+                          <tbody>
+                            {analyticsData.topAgents.map((a, i) => (
+                              <tr key={a.userId}>
+                                <td style={{ fontWeight: 700, color: i === 0 ? '#F7C52A' : i === 1 ? '#C0C0C0' : i === 2 ? '#CD7F32' : '#B0B3B8' }}>
+                                  {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
+                                </td>
+                                <td style={{ fontWeight: 600 }}>{a.name}</td>
+                                <td style={{ color: '#B0B3B8' }}>{a.clubName}</td>
+                                <td>{pct(a.commissionRate)}</td>
+                                <td style={{ fontWeight: 700, color: '#31A24C' }}>{fmt(a.lifetimeEarnings)}</td>
+                                <td>{fmt(a.weeklyRake)}</td>
+                                <td>{a.playerCount}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div className={s.emptyState}><span className={s.emptyIcon}>🏆</span><span className={s.emptyText}>No active agents with earnings</span></div>
+                    )}
+                  </div>
+
+                  {/* Rake Trending By Club */}
+                  <div className={s.section}>
+                    <div className={s.sectionTitle}>📈 Rake Trending By Club (Last 4 Weeks)</div>
+                    {analyticsData.rakeTrendByClub?.length > 0 ? (
+                      <div className={s.tableScroll}>
+                        <table className={s.dataTable}>
+                          <thead>
+                            <tr><th>Club</th><th>Periods</th><th>Total Rake</th><th>Total Hands</th><th>Avg Rake/Period</th></tr>
+                          </thead>
+                          <tbody>
+                            {analyticsData.rakeTrendByClub.map((c, i) => {
+                              const totalRake = c.periods.reduce((s, p) => s + p.rake, 0);
+                              const totalHands = c.periods.reduce((s, p) => s + p.hands, 0);
+                              return (
+                                <tr key={i}>
+                                  <td style={{ fontWeight: 600 }}>{c.clubName}</td>
+                                  <td>{c.periods.length}</td>
+                                  <td style={{ color: '#31A24C', fontWeight: 700 }}>{fmt(totalRake)}</td>
+                                  <td>{fmt(totalHands)}</td>
+                                  <td>{fmt(Math.round(totalRake / Math.max(c.periods.length, 1)))}</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div className={s.emptyState}><span className={s.emptyIcon}>📈</span><span className={s.emptyText}>No settlement data in the last 4 weeks</span></div>
+                    )}
+                  </div>
+
+                  {/* Player Activity */}
+                  <div className={s.statsGrid}>
+                    <div className={s.statCard}>
+                      <div className={s.statValueGreen}>{fmt(analyticsData.newMembersCount || 0)}</div>
+                      <div className={s.statLabel}>New Members (14d)</div>
+                    </div>
+                    <div className={s.statCard}>
+                      <div className={s.statValueGold}>{fmt(analyticsData.migrations?.length || 0)}</div>
+                      <div className={s.statLabel}>Cross-Club Migrations</div>
+                    </div>
+                  </div>
+                </>
               )}
             </>
           )}

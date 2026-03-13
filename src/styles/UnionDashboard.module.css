@@ -151,3 +151,75 @@
   .statCard { padding: 10px; }
   .statValue { font-size: 20px; }
 }
+
+/* ── Hierarchy Tree ────────────────────────────────────────── */
+.treeContainer { padding: 8px 0; }
+.treeNode { position: relative; padding-left: 24px; margin-bottom: 4px; }
+.treeNode::before { content: ''; position: absolute; left: 8px; top: 0; bottom: 0; width: 1px; background: #3A3B3C; }
+.treeNode::after { content: ''; position: absolute; left: 8px; top: 18px; width: 12px; height: 1px; background: #3A3B3C; }
+.treeNodeCard { background: #242526; border: 1px solid #3A3B3C; border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: all 0.2s; }
+.treeNodeCard:hover { border-color: #4599FF; background: #2D2E2F; }
+.treeNodeAvatar { width: 32px; height: 32px; border-radius: 50%; background: #3A3B3C; display: flex; align-items: center; justify-content: center; font-size: 14px; overflow: hidden; flex-shrink: 0; }
+.treeNodeAvatar img { width: 100%; height: 100%; object-fit: cover; }
+.treeNodeInfo { flex: 1; min-width: 0; }
+.treeNodeName { font-size: 13px; font-weight: 600; color: #E4E6EB; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.treeNodeMeta { display: flex; gap: 12px; font-size: 11px; color: #B0B3B8; margin-top: 2px; }
+.treeExpand { cursor: pointer; font-size: 12px; color: #4599FF; background: rgba(35,116,225,0.1); border: none; border-radius: 4px; padding: 2px 8px; margin-left: auto; }
+.treeChildren { margin-left: 12px; border-left: 1px solid rgba(58,59,60,0.4); padding-left: 0; }
+.treeRoleBadge { font-size: 10px; padding: 1px 6px; border-radius: 3px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
+.treeRoleSuperAgent { background: rgba(247,197,42,0.15); color: #F7C52A; }
+.treeRoleAgent { background: rgba(35,116,225,0.15); color: #4599FF; }
+.treeRoleSubAgent { background: rgba(168,85,247,0.15); color: #C084FC; }
+
+/* ── Agent Score ───────────────────────────────────────────── */
+.scoreContainer { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
+.scoreCircle { width: 120px; height: 120px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 4px solid; flex-shrink: 0; }
+.scoreGradeA { border-color: #31A24C; }
+.scoreGradeB { border-color: #4599FF; }
+.scoreGradeC { border-color: #F7C52A; }
+.scoreGradeD { border-color: #FB923C; }
+.scoreGradeF { border-color: #E41E3F; }
+.scoreNumber { font-size: 32px; font-weight: 700; color: #E4E6EB; line-height: 1; }
+.scoreGradeLabel { font-size: 14px; font-weight: 600; color: #B0B3B8; margin-top: 2px; }
+.scoreBreakdown { flex: 1; min-width: 200px; }
+.scoreMeterRow { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.scoreMeterLabel { font-size: 12px; color: #B0B3B8; width: 100px; flex-shrink: 0; }
+.scoreMeterTrack { flex: 1; height: 6px; background: #3A3B3C; border-radius: 3px; overflow: hidden; }
+.scoreMeterFill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+.scoreMeterDetail { font-size: 11px; color: #B0B3B8; width: 80px; text-align: right; flex-shrink: 0; }
+
+/* ── Skeleton Shimmer ──────────────────────────────────────── */
+.skeleton { background: linear-gradient(90deg, #242526 25%, #3A3B3C 50%, #242526 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 6px; }
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.skeletonStat { height: 80px; }
+.skeletonCard { height: 60px; margin-bottom: 8px; }
+.skeletonText { height: 14px; margin-bottom: 8px; width: 60%; }
+
+/* ── Notification Panel ────────────────────────────────────── */
+.notifPanel { background: #242526; border: 1px solid #3A3B3C; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+.notifHeader { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.notifTitle { font-size: 14px; font-weight: 600; color: #E4E6EB; display: flex; align-items: center; gap: 6px; }
+.notifBadge { background: #E41E3F; color: #fff; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 8px; min-width: 16px; text-align: center; }
+.notifList { display: flex; flex-direction: column; gap: 6px; max-height: 200px; overflow-y: auto; }
+.notifItem { display: flex; gap: 8px; padding: 8px 10px; background: #18191A; border-radius: 6px; font-size: 12px; align-items: flex-start; }
+.notifIcon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+.notifContent { flex: 1; }
+.notifMessage { color: #E4E6EB; line-height: 1.4; }
+.notifTime { font-size: 10px; color: #B0B3B8; margin-top: 2px; }
+
+/* ── Dispute Badge ─────────────────────────────────────────── */
+.disputeBadge { background: rgba(249,115,22,0.15); color: #FB923C; font-size: 11px; padding: 3px 8px; border-radius: 4px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
+.disputeCard { background: #242526; border: 1px solid rgba(249,115,22,0.3); border-radius: 8px; padding: 14px; margin-bottom: 8px; }
+
+/* ── Transfer Modal ────────────────────────────────────────── */
+.transferAmountInput { font-size: 24px; font-weight: 700; text-align: center; background: #18191A; border: 2px solid #3A3B3C; border-radius: 12px; padding: 16px; color: #E4E6EB; width: 100%; }
+.transferAmountInput:focus { border-color: #4599FF; outline: none; }
+
+/* ── Empty State CTA ───────────────────────────────────────── */
+.emptyCTA { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; padding: 8px 16px; background: rgba(35,116,225,0.15); color: #4599FF; border: 1px solid rgba(35,116,225,0.3); border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+.emptyCTA:hover { background: rgba(35,116,225,0.25); }
+
+/* ── Progress Indicator ────────────────────────────────────── */
+.progressTrack { height: 4px; background: #3A3B3C; border-radius: 2px; overflow: hidden; margin: 8px 0; }
+.progressFill { height: 100%; background: linear-gradient(90deg, #2374E1, #4599FF); border-radius: 2px; transition: width 0.3s ease; }
+.progressLabel { font-size: 11px; color: #B0B3B8; text-align: center; }

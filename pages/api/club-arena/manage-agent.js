@@ -14,6 +14,7 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
+import { validateManageAgent } from '../../../src/contracts/orb4_syndicate';
 const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
 const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
@@ -30,8 +31,10 @@ const ALLOWED_BODY_FIELDS = new Set([
   'commissionRate', 'agentTier', 'isPrepaid', 'creditLimit', 'parentAgentId',
   'rakebackPercentage', 'reassignTo', 'tier', 'nickname',
   'fromAgentId', 'toAgentId', 'newRole', 'forceReturn',
+  // Phase 1 additions:
+  'amount', 'notes', 'targetUserIds',
 ]);
-const MAX_BODY_SIZE = 2048;
+const MAX_BODY_SIZE = 4096;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default async function handler(req, res) {
@@ -46,9 +49,15 @@ export default async function handler(req, res) {
     if (unknownFields.length > 0) return res.status(400).json({ success: false, error: `Unknown fields: ${unknownFields.join(', ')}` });
 
     // CONCURRENCY: Idempotency guard for mutation actions
-    const mutationActions = ['promote', 'demote', 'suspend', 'reactivate', 'remove', 'change_role', 'set_parent_agent', 'promote_to_sub_agent', 'update_commission'];
+    const mutationActions = ['promote', 'demote', 'suspend', 'reactivate', 'remove', 'change_role', 'set_parent_agent', 'promote_to_sub_agent', 'update_commission', 'transfer_to_agent', 'transfer_ownership', 'batch_suspend', 'batch_reactivate'];
     if (mutationActions.includes(req.body?.action)) {
       if (checkIdempotency(req, res)) return;
+    }
+
+    // RED TEAM: Zod Contract Validation (parity with settle-period + manage-union)
+    const zodResult = validateManageAgent(req.body);
+    if (!zodResult.success) {
+      return res.status(400).json({ success: false, error: zodResult.error });
     }
 
     const token = req.headers.authorization?.replace('Bearer ', '');
@@ -1136,6 +1145,269 @@ export default async function handler(req, res) {
         });
       }
 
+      // ═══════════════════════════════════════════════════════════════
+      // AUTO PROMOTE CHECK — Evaluate if agent meets promotion thresholds
+      // Read-only check. Returns recommendation, no auto-action.
+      // ═══════════════════════════════════════════════════════════════
+      if (action === 'auto_promote_check') {
+        if (!targetUserId) return res.status(400).json({ success: false, error: 'targetUserId required' });
+
+        const { data: checkAgent } = await supabaseAdmin
+          .from('agents')
+          .select('id, user_id, role, commission_rate, active_player_count, total_players, weekly_rake_generated, lifetime_earnings, status')
+          .eq('user_id', targetUserId)
+          .eq('club_id', clubId)
+          .maybeSingle();
+        if (!checkAgent) return res.status(404).json({ success: false, error: 'Agent not found' });
+
+        const thresholds = {
+          super_agent: { minPlayers: 20, minRake: 10000, minRate: 0.50 },
+          agent: { minPlayers: 10, minRake: 5000, minRate: 0.30 },
+          sub_agent: { minPlayers: 3, minRake: 1000, minRate: 0.10 },
+        };
+
+        const playerCount = checkAgent.active_player_count || 0;
+        const rakeGenerated = checkAgent.weekly_rake_generated || 0;
+        const currentRole = checkAgent.role || 'agent';
+
+        // Determine next tier
+        let recommendation = null;
+        let reason = null;
+        const checks = [];
+
+        if (currentRole === 'agent' || currentRole === 'sub_agent') {
+          const t = thresholds.super_agent;
+          const meetsPlayers = playerCount >= t.minPlayers;
+          const meetsRake = rakeGenerated >= t.minRake;
+          checks.push(
+            { criterion: 'Players', required: t.minPlayers, actual: playerCount, met: meetsPlayers },
+            { criterion: 'Weekly Rake', required: t.minRake, actual: rakeGenerated, met: meetsRake },
+          );
+          if (meetsPlayers && meetsRake) {
+            recommendation = 'super_agent';
+            reason = `Agent has ${playerCount} players and generates $${rakeGenerated.toLocaleString()}/week.`;
+          }
+        }
+
+        if (!recommendation && currentRole === 'sub_agent') {
+          const t = thresholds.agent;
+          const meetsPlayers = playerCount >= t.minPlayers;
+          const meetsRake = rakeGenerated >= t.minRake;
+          checks.push(
+            { criterion: 'Players (Agent)', required: t.minPlayers, actual: playerCount, met: meetsPlayers },
+            { criterion: 'Weekly Rake (Agent)', required: t.minRake, actual: rakeGenerated, met: meetsRake },
+          );
+          if (meetsPlayers && meetsRake) {
+            recommendation = 'agent';
+            reason = `Sub-agent qualifies for promotion to Agent.`;
+          }
+        }
+
+        return res.status(200).json({
+          success: true,
+          action: 'auto_promote_check',
+          currentRole,
+          recommendation,
+          reason: reason || 'Agent does not currently meet promotion thresholds.',
+          checks,
+          agent: {
+            userId: checkAgent.user_id,
+            playerCount,
+            weeklyRake: rakeGenerated,
+            lifetimeEarnings: checkAgent.lifetime_earnings || 0,
+          },
+        });
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // TRANSFER TO AGENT — Horizontal agent-to-agent chip transfer
+      // Validates both agents are in same club, debits sender → credits receiver
+      // ═══════════════════════════════════════════════════════════════
+      if (action === 'transfer_to_agent') {
+        if (!targetUserId) return res.status(400).json({ success: false, error: 'targetUserId (receiving agent) required' });
+        const { amount, notes } = params;
+        if (!amount || amount <= 0) return res.status(400).json({ success: false, error: 'amount must be positive' });
+
+        // Verify caller is an active agent
+        const { data: senderAgent } = await supabaseAdmin
+          .from('agents')
+          .select('id, user_id, status')
+          .eq('user_id', user.id)
+          .eq('club_id', clubId)
+          .eq('status', 'active')
+          .maybeSingle();
+        if (!senderAgent) return res.status(403).json({ success: false, error: 'You are not an active agent in this club' });
+
+        // Verify target is also an active agent in same club
+        const { data: receiverAgent } = await supabaseAdmin
+          .from('agents')
+          .select('id, user_id, status')
+          .eq('user_id', targetUserId)
+          .eq('club_id', clubId)
+          .eq('status', 'active')
+          .maybeSingle();
+        if (!receiverAgent) return res.status(404).json({ success: false, error: 'Target agent not found or not active in this club' });
+        if (receiverAgent.user_id === user.id) return res.status(400).json({ success: false, error: 'Cannot transfer to yourself' });
+
+        // Check sender has enough chip balance
+        const { data: senderMember } = await supabaseAdmin
+          .from('club_members')
+          .select('chip_balance')
+          .eq('club_id', clubId)
+          .eq('user_id', user.id)
+          .maybeSingle();
+        if (!senderMember || (senderMember.chip_balance || 0) < amount) {
+          return res.status(400).json({ success: false, error: 'Insufficient chip balance', balance: senderMember?.chip_balance || 0, requested: amount });
+        }
+
+        // Debit sender
+        const { error: debitErr } = await supabaseAdmin.rpc('fn_debit_chips', {
+          p_club_id: clubId, p_user_id: user.id, p_amount: amount,
+        });
+        if (debitErr) {
+          return res.status(500).json({ success: false, error: 'Debit failed: ' + debitErr.message });
+        }
+
+        // Credit receiver
+        const { error: creditErr } = await supabaseAdmin.rpc('fn_credit_chips', {
+          p_club_id: clubId, p_user_id: targetUserId, p_amount: amount,
+        });
+        if (creditErr) {
+          // Rollback: re-credit sender
+          await supabaseAdmin.rpc('fn_credit_chips', { p_club_id: clubId, p_user_id: user.id, p_amount: amount }).catch(() => {});
+          return res.status(500).json({ success: false, error: 'Credit failed, transfer rolled back' });
+        }
+
+        // Record transaction
+        await supabaseAdmin.from('chip_transactions').insert({
+          club_id: clubId,
+          from_user_id: user.id,
+          to_user_id: targetUserId,
+          amount,
+          transaction_type: 'agent_transfer',
+          notes: notes || `Agent-to-Agent transfer`,
+          metadata: { sender_agent_id: senderAgent.id, receiver_agent_id: receiverAgent.id },
+        });
+
+        logAudit(supabaseAdmin, { actionType: 'agent_transfer', userId: user.id, targetUserId, clubId, amount, ip: extractIP(req), details: { notes } });
+        return res.status(200).json({ success: true, action: 'transfer_complete', amount, from: user.id, to: targetUserId });
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // TRANSFER OWNERSHIP — Delegate club ownership to another member
+      // Only current owner can execute. Target must be a club member.
+      // ═══════════════════════════════════════════════════════════════
+      if (action === 'transfer_ownership') {
+        if (!targetUserId) return res.status(400).json({ success: false, error: 'targetUserId required' });
+        if (club.owner_id !== user.id) {
+          return res.status(403).json({ success: false, error: 'Only the current club owner can transfer ownership' });
+        }
+        if (targetUserId === user.id) {
+          return res.status(400).json({ success: false, error: 'You are already the owner' });
+        }
+
+        // Verify target is a club member
+        const { data: targetMember } = await supabaseAdmin
+          .from('club_members')
+          .select('user_id, role')
+          .eq('club_id', clubId)
+          .eq('user_id', targetUserId)
+          .maybeSingle();
+        if (!targetMember) return res.status(404).json({ success: false, error: 'Target user is not a member of this club' });
+
+        // Update club owner
+        const { error: ownerErr } = await supabaseAdmin
+          .from('clubs')
+          .update({ owner_id: targetUserId })
+          .eq('id', clubId);
+        if (ownerErr) throw ownerErr;
+
+        // Promote new owner to 'owner' role
+        await supabaseAdmin
+          .from('club_members')
+          .update({ role: 'owner' })
+          .eq('club_id', clubId)
+          .eq('user_id', targetUserId);
+
+        // Demote old owner to 'admin'
+        await supabaseAdmin
+          .from('club_members')
+          .update({ role: 'admin' })
+          .eq('club_id', clubId)
+          .eq('user_id', user.id);
+
+        logAudit(supabaseAdmin, { actionType: 'ownership_transferred', userId: user.id, targetUserId, clubId, ip: extractIP(req), details: { oldOwner: user.id, newOwner: targetUserId } });
+        notifyUser(supabaseAdmin, {
+          userId: targetUserId, type: 'ownership_transfer',
+          title: '👑 Club Ownership Transferred',
+          message: `You are now the owner of this club. The previous owner has been moved to admin role.`,
+          data: { clubId },
+        }).catch(() => {});
+
+        return res.status(200).json({ success: true, action: 'ownership_transferred', newOwner: targetUserId, oldOwner: user.id });
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // BATCH SUSPEND / REACTIVATE — Bulk agent operations
+      // Accepts targetUserIds[] array (max 50), processes each.
+      // ═══════════════════════════════════════════════════════════════
+      if (action === 'batch_suspend' || action === 'batch_reactivate') {
+        const { targetUserIds } = params;
+        if (!targetUserIds || !Array.isArray(targetUserIds) || targetUserIds.length === 0) {
+          return res.status(400).json({ success: false, error: 'targetUserIds array required' });
+        }
+        if (targetUserIds.length > 50) {
+          return res.status(400).json({ success: false, error: 'Maximum 50 agents per batch operation' });
+        }
+        if (club.owner_id !== user.id) {
+          return res.status(403).json({ success: false, error: 'Only the club owner can perform batch operations' });
+        }
+
+        const newStatus = action === 'batch_suspend' ? 'suspended' : 'active';
+        const fromStatus = action === 'batch_suspend' ? 'active' : 'suspended';
+        const results = { success: [], failed: [] };
+
+        for (const uid of targetUserIds) {
+          try {
+            const { error: agentErr } = await supabaseAdmin
+              .from('agents')
+              .update({ status: newStatus })
+              .eq('club_id', clubId)
+              .eq('user_id', uid)
+              .eq('status', fromStatus);
+
+            if (agentErr) { results.failed.push({ userId: uid, error: agentErr.message }); continue; }
+
+            // Sync club_members status
+            if (action === 'batch_suspend') {
+              await supabaseAdmin
+                .from('club_members')
+                .update({ role: 'suspended' })
+                .eq('club_id', clubId)
+                .eq('user_id', uid);
+            } else {
+              await supabaseAdmin
+                .from('club_members')
+                .update({ role: 'agent' })
+                .eq('club_id', clubId)
+                .eq('user_id', uid);
+            }
+
+            results.success.push(uid);
+          } catch (e) {
+            results.failed.push({ userId: uid, error: e.message });
+          }
+        }
+
+        logAudit(supabaseAdmin, { actionType: action, userId: user.id, clubId, ip: extractIP(req), details: { count: results.success.length, failed: results.failed.length } });
+        return res.status(200).json({
+          success: true,
+          action,
+          processed: results.success.length,
+          failed: results.failed.length,
+          results,
+        });
+      }
 
 
       return res.status(400).json({ success: false, error: `Unknown action: ${action}` });

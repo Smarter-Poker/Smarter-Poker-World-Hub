@@ -268,6 +268,84 @@ export default async function handler(req, res) {
         }
       }
 
+      // 7c. Cross-Club Analytics — only loaded when ?include=analytics is passed (lazy)
+      let crossClubAnalytics = undefined;
+      if (req.query.include === 'analytics' && clubIds.length > 0) {
+        try {
+          // Per-club weekly rake trending (last 4 weeks)
+          const fourWeeksAgo = new Date(Date.now() - 28 * 24 * 60 * 60 * 1000).toISOString();
+          const { data: periodTrends } = await supabaseAdmin
+            .from('settlement_periods')
+            .select('club_id, period_number, total_rake_collected, total_hands_dealt, status, created_at')
+            .in('club_id', clubIds)
+            .gte('created_at', fourWeeksAgo)
+            .order('created_at', { ascending: true })
+            .limit(500);
+
+          const rakeTrendByClub = {};
+          for (const p of (periodTrends || [])) {
+            const clubName = clubs.find(c => c.id === p.club_id)?.name || 'Unknown';
+            if (!rakeTrendByClub[p.club_id]) rakeTrendByClub[p.club_id] = { clubName, periods: [] };
+            rakeTrendByClub[p.club_id].periods.push({
+              period: p.period_number,
+              rake: p.total_rake_collected || 0,
+              hands: p.total_hands_dealt || 0,
+              status: p.status,
+              date: p.created_at,
+            });
+          }
+
+          // Top agents by earnings across all clubs (top 10)
+          const sortedAgents = [...agents]
+            .filter(a => a.status === 'active')
+            .sort((a, b) => (b.lifetime_earnings || 0) - (a.lifetime_earnings || 0))
+            .slice(0, 10)
+            .map(a => ({
+              userId: a.user_id,
+              name: a.profile?.display_name || a.profile?.username || a.user_id.substring(0, 8),
+              clubId: a.club_id,
+              clubName: clubs.find(c => c.id === a.club_id)?.name || 'Unknown',
+              commissionRate: a.commission_rate,
+              lifetimeEarnings: a.lifetime_earnings || 0,
+              weeklyRake: a.weekly_rake_generated || 0,
+              playerCount: a.active_player_count || 0,
+            }));
+
+          // Player migration — new members (joined in last 14 days)
+          const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+          const { data: newMembers } = await supabaseAdmin
+            .from('club_members')
+            .select('user_id, club_id, role, created_at')
+            .in('club_id', clubIds)
+            .gte('created_at', twoWeeksAgo)
+            .order('created_at', { ascending: false })
+            .limit(100);
+
+          // Detect users in multiple clubs (potential migration)
+          const userClubMap = {};
+          for (const m of (newMembers || [])) {
+            if (!userClubMap[m.user_id]) userClubMap[m.user_id] = [];
+            userClubMap[m.user_id].push({
+              clubId: m.club_id,
+              clubName: clubs.find(c => c.id === m.club_id)?.name || 'Unknown',
+              joinedAt: m.created_at,
+            });
+          }
+          const migrations = Object.entries(userClubMap)
+            .filter(([_, clubs]) => clubs.length > 1)
+            .map(([userId, joinedClubs]) => ({ userId, clubs: joinedClubs }));
+
+          crossClubAnalytics = {
+            rakeTrendByClub: Object.values(rakeTrendByClub),
+            topAgents: sortedAgents,
+            newMembersCount: (newMembers || []).length,
+            migrations,
+          };
+        } catch (e) {
+          console.warn('[UnionDashboard] Cross-club analytics failed:', e.message);
+        }
+      }
+
       // Use current/open period rake for hold estimate (not lifetime)
       const currentPeriodRake = periods
         .filter(p => p.status === 'open')
@@ -282,6 +360,7 @@ export default async function handler(req, res) {
         pendingLeaveRequests: pendingLeave || 0,
         activityFeed,
         ...(commissionHistory !== undefined ? { commissionHistory } : {}),
+        ...(crossClubAnalytics !== undefined ? { crossClubAnalytics } : {}),
         wallets: {
           chip_balance: Number(union.chip_balance || 0),
           rake_wallet: Number(union.rake_wallet || 0),
