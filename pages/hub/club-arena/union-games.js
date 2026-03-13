@@ -124,9 +124,9 @@ export default function UnionGamesPage() {
   }, []);
 
   // ── Load Tournaments ──────────────────────────────────────
-  const loadTournaments = useCallback(async (filter) => {
+  const loadTournaments = useCallback(async (filter, silent = false) => {
     if (!unionId) return;
-    setLoading(true);
+    if (!silent) setLoading(true);
     try {
       const statusMap = {
         active: ['scheduled', 'registering', 'late_reg', 'running', 'paused', 'break', 'final_table'],
@@ -139,25 +139,25 @@ export default function UnionGamesPage() {
       });
       if (mountedRef.current) { setTournaments(res.tournaments || []); setClubs(res.clubs || []); }
     } catch (err) {
-      if (mountedRef.current) setError(err.message);
+      if (mountedRef.current && !silent) setError(err.message);
     } finally {
-      if (mountedRef.current) setLoading(false);
+      if (mountedRef.current && !silent) setLoading(false);
     }
   }, [unionId, tournFilter]);
 
   // ── Load Tables ───────────────────────────────────────────
-  const loadTables = useCallback(async (filter) => {
+  const loadTables = useCallback(async (filter, silent = false) => {
     if (!unionId) return;
-    setLoading(true);
+    if (!silent) setLoading(true);
     try {
       const res = await apiCall('/api/club-arena/union-games', {
         action: 'list_tables', unionId, statusFilter: filter || tableFilter,
       });
       if (mountedRef.current) { setTables(res.tables || []); if (res.clubs) setClubs(res.clubs); }
     } catch (err) {
-      if (mountedRef.current) setError(err.message);
+      if (mountedRef.current && !silent) setError(err.message);
     } finally {
-      if (mountedRef.current) setLoading(false);
+      if (mountedRef.current && !silent) setLoading(false);
     }
   }, [unionId, tableFilter]);
 
@@ -203,8 +203,8 @@ export default function UnionGamesPage() {
     if (!unionId) return;
     const interval = setInterval(() => {
       if (document.hidden) return;
-      if (tab === 'tournaments') loadTournaments();
-      else if (tab === 'tables') loadTables();
+      if (tab === 'tournaments') loadTournaments(undefined, true);
+      else if (tab === 'tables') loadTables(undefined, true);
     }, 45000);
     return () => clearInterval(interval);
   }, [unionId, tab, loadTournaments, loadTables]);
@@ -212,8 +212,8 @@ export default function UnionGamesPage() {
   // ── EventBus LISTENERS (debounced) — auto-refresh on incoming events ──
   useEffect(() => {
     if (!unionId || typeof eventBus?.on !== 'function') return;
-    const debouncedTourns = createDebouncedHandler(() => { if (mountedRef.current) loadTournaments(); }, 300);
-    const debouncedTables = createDebouncedHandler(() => { if (mountedRef.current) loadTables(); }, 300);
+    const debouncedTourns = createDebouncedHandler(() => { if (mountedRef.current) loadTournaments(undefined, true); }, 300);
+    const debouncedTables = createDebouncedHandler(() => { if (mountedRef.current) loadTables(undefined, true); }, 300);
     const tournEvents = ['union:tournament-created', 'union:tournament-updated'];
     const tableEvents = ['union:table-created', 'union:table-closed'];
     tournEvents.forEach(ev => eventBus.on(ev, debouncedTourns));

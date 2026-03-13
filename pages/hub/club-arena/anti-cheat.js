@@ -123,16 +123,15 @@ export default function ClubArenaAntiCheatPage() {
   }, [clubId]);
 
   // ── Load Stats (Overview) ──────────────────────────────────
-  const loadStats = useCallback(async (cId) => {
+  const loadStats = useCallback(async (cId, silent = false) => {
     try {
-      setLoading(true);
-      setError(null);
+      if (!silent) { setLoading(true); setError(null); }
       const res = await apiCall('/api/club-arena/anti-cheat', { action: 'get_stats', clubId: cId || clubId });
       if (mountedRef.current) setStats(res.stats || null);
     } catch (err) {
-      if (mountedRef.current) setError(err.message);
+      if (mountedRef.current && !silent) setError(err.message);
     } finally {
-      if (mountedRef.current) setLoading(false);
+      if (mountedRef.current && !silent) setLoading(false);
     }
   }, [clubId]);
 
@@ -185,6 +184,7 @@ export default function ClubArenaAntiCheatPage() {
   // ── Initial Load ───────────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
+    let authUnsub = null;
     const init = async (session) => {
       if (cancelled) return;
       const qClub = router.query.club || router.query.clubId;
@@ -211,10 +211,10 @@ export default function ClubArenaAntiCheatPage() {
         else if (!cancelled) { setError('login_required'); setLoading(false); }
         subscription?.unsubscribe();
       });
-      return () => { cancelled = true; subscription?.unsubscribe(); };
+      authUnsub = subscription;
     })();
 
-    return () => { cancelled = true; };
+    return () => { cancelled = true; authUnsub?.unsubscribe?.(); };
   }, [router.query.club, router.query.clubId, loadStats]);
 
   // ── Lazy Tab Loading ───────────────────────────────────────
@@ -234,7 +234,7 @@ export default function ClubArenaAntiCheatPage() {
   // ── EventBus Listeners (debounced) ─────────────────────
   useEffect(() => {
     if (!clubId) return;
-    const debouncedRefresh = createDebouncedHandler(() => { loadStats(clubId); setFlagsLoaded(false); }, 300);
+    const debouncedRefresh = createDebouncedHandler(() => { loadStats(clubId, true); setFlagsLoaded(false); }, 300);
     const events = ['ANTI_CHEAT_FLAG_CREATED', 'PLAYER_KICKED', 'TABLE_CREATED', 'CHIPS_DISTRIBUTED'];
     events.forEach(ev => eventBus.on(ev, debouncedRefresh));
     return () => { debouncedRefresh.cancel(); events.forEach(ev => eventBus.off(ev, debouncedRefresh)); };
