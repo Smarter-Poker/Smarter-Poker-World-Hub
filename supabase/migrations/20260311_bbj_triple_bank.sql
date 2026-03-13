@@ -169,5 +169,5 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- 6. Enable realtime on bbj_contributions for live tracking
-ALTER PUBLICATION supabase_realtime ADD TABLE bbj_contributions;
+-- ALTER PUBLICATION supabase_realtime ADD TABLE bbj_contributions;
 -- bbj_pools realtime already enabled in original migration
