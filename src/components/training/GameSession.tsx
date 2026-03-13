@@ -10,7 +10,7 @@
  * - Bet Slider with solver node snapping
  * - Active Villain with thinking delay
  *
- * @author Smarter.Poker Engineering
+ * @author Club Arena Engineering
  */
 
 import React, { useState, useEffect, useCallback } from 'react';

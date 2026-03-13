@@ -95,7 +95,7 @@ class HorseMemoryService {
     }
 
     /**
-     * Get horse personality traits
+     * Get player profilelity traits
      */
     async getPersonality(authorId: number): Promise<HorsePersonality | null> {
         const { data, error } = await supabase.rpc('get_horse_personality', {
@@ -277,7 +277,7 @@ class HorseMemoryService {
     }
 
     /**
-     * Build memory-aware prompt section for AI generation
+     * Build memory-aware prompt section for generation
      */
     buildMemoryPromptSection(context: MemoryContext): string {
         const sections: string[] = [];

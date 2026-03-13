@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   GEEVES PANEL v3.0 — Ultimate poker strategy expert AI assistant
+   GEEVES PANEL v3.0 — Ultimate poker strategy expert assistant
    Features:
    - Smart caching indicator
    - User ratings (1-5 stars)

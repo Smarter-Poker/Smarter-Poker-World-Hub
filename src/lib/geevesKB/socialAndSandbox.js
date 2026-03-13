@@ -5,7 +5,7 @@ export const SOCIAL_HUB_ENTRIES = [
         id: 'sh-1', category: 'Social',
         keywords: ['social hub', 'social media page', 'feed', 'community', 'posts', 'social feed'],
         patterns: ['what is the social hub', 'how does the social feed work', 'where is social media'],
-        answer: '**Social Hub** is the community center of Smarter.Poker — a full poker social network.\n\n**Feed Features:**\n- **Posts** — Share text, images, videos, and hand analysis\n- **Stories** — 24-hour disappearing content at the top of the feed\n- **Reels** — Short-form poker video clips\n- **Social Pages** — Business/club pages for organizations\n- **Likes, comments, shares** — Full engagement tools\n- **Filter** — By trending, latest, or friends-only\n\nAccess from Hub > Social Media Orb.',
+        answer: '**Social Hub** is the community center of Club Arena — a full poker social network.\n\n**Feed Features:**\n- **Posts** — Share text, images, videos, and hand analysis\n- **Stories** — 24-hour disappearing content at the top of the feed\n- **Reels** — Short-form poker video clips\n- **Social Pages** — Business/club pages for organizations\n- **Likes, comments, shares** — Full engagement tools\n- **Filter** — By trending, latest, or friends-only\n\nAccess from Hub > Social Media Orb.',
         followUps: ['How do I create a post?', 'What are stories?', 'How do I upload a reel?']
     },
     {
@@ -68,7 +68,7 @@ export const SOCIAL_HUB_ENTRIES = [
         id: 'sh-10', category: 'Social',
         keywords: ['profile page', 'public profile', 'user profile', 'profile visit', 'my profile'],
         patterns: ['how do i view someone\'s profile', 'what is on a profile page', 'how to customize my profile'],
-        answer: '**Profile Page** is your public poker identity on Smarter.Poker.\n\n**Your Profile Shows:**\n- Avatar, banner, and display name\n- Bio and location\n- Stats: posts, followers, following\n- Story highlights\n- Recent posts and reels\n- Bankroll stats (if public)\n- Diamond/VIP badge\n- Training achievements\n\n**Editing Your Profile:**\n- Tap **Edit Profile** from your profile page\n- Update avatar, bio, banner, and privacy settings',
+        answer: '**Profile Page** is your public poker identity on Club Arena.\n\n**Your Profile Shows:**\n- Avatar, banner, and display name\n- Bio and location\n- Stats: posts, followers, following\n- Story highlights\n- Recent posts and reels\n- Bankroll stats (if public)\n- Diamond/VIP badge\n- Training achievements\n\n**Editing Your Profile:**\n- Tap **Edit Profile** from your profile page\n- Update avatar, bio, banner, and privacy settings',
         followUps: ['How do I make my profile private?', 'Can I see who visited my profile?']
     },
     {
@@ -76,7 +76,7 @@ export const SOCIAL_HUB_ENTRIES = [
         keywords: ['hashtag', 'hashtags', 'trending', 'trending topics', 'search social'],
         patterns: ['how do hashtags work', 'how do i find trending posts', 'how to search social media'],
         answer: '**Hashtags & Discovery:**\n\n- Add **#hashtags** to any post to categorize it (e.g., #poker, #gto, #tournament)\n- Tap any hashtag to see all posts using it\n- **Trending** — See the most active topics right now\n- **Search** — Search by username, hashtag, or topic\n\nHashtags help your posts reach beyond your followers to the whole community.',
-        followUps: ['What hashtags should I use?', 'How do I go viral on Smarter.Poker?']
+        followUps: ['What hashtags should I use?', 'How do I go viral on Club Arena?']
     },
 ];
 
@@ -85,7 +85,7 @@ export const SANDBOX_ENTRIES = [
         id: 'sb-1', category: 'Sandbox',
         keywords: ['virtual sandbox', 'sandbox', 'hand analyzer', 'analysis tool', 'equity calculator'],
         patterns: ['what is the virtual sandbox', 'how does the sandbox work', 'how to analyze a hand', 'what is the hand analyzer'],
-        answer: '**Virtual Sandbox** (inside Personal Assistant) is an AI-powered poker hand analysis lab.\n\n**What it does:**\n- Set up any poker situation (hole cards, board, positions, bets)\n- Calculate equity between any two ranges\n- Analyze GTO correctness of decisions\n- Get AI recommendations from Jarvis\n- Study replay mode for past hands\n- Share hand analyses with the community\n\n**How to use:**\n1. Open Personal Assistant Orb\n2. Select **Virtual Sandbox**\n3. Set the hand: positions, hole cards, board\n4. Configure bet sizing and stack depth\n5. Tap **Analyze** for instant AI feedback',
+        answer: '**Virtual Sandbox** (inside Personal Assistant) is an AI-powered poker hand analysis lab.\n\n**What it does:**\n- Set up any poker situation (hole cards, board, positions, bets)\n- Calculate equity between any two ranges\n- Analyze GTO correctness of decisions\n- Get recommendations from Jarvis\n- Study replay mode for past hands\n- Share hand analyses with the community\n\n**How to use:**\n1. Open Personal Assistant Orb\n2. Select **Virtual Sandbox**\n3. Set the hand: positions, hole cards, board\n4. Configure bet sizing and stack depth\n5. Tap **Analyze** for instant feedback',
         followUps: ['How do I input hole cards?', 'What is equity?', 'How do I set up a board?']
     },
     {
@@ -141,7 +141,7 @@ export const SANDBOX_ENTRIES = [
         id: 'sb-9', category: 'Sandbox',
         keywords: ['share analysis', 'export analysis', 'post hand', 'share hand', 'share sandbox'],
         patterns: ['how do i share my hand analysis', 'can i export sandbox results', 'how to share with friends'],
-        answer: '**Sharing Sandbox Analysis:**\n\n- After analyzing a hand, tap **Share**\n- Choose to:\n  - **Post to Social Feed** — Share with the community\n  - **Copy Link** — Send to a specific person\n  - **Export PDF/Image** — Save for coaching or study groups\n  - **Send to Jarvis** — Continue the conversation with AI coaching\n\nSharing hands is one of the best ways to get feedback and spark strategic discussions.',
+        answer: '**Sharing Sandbox Analysis:**\n\n- After analyzing a hand, tap **Share**\n- Choose to:\n  - **Post to Social Feed** — Share with the community\n  - **Copy Link** — Send to a specific person\n  - **Export PDF/Image** — Save for coaching or study groups\n  - **Send to Jarvis** — Continue the conversation with coaching\n\nSharing hands is one of the best ways to get feedback and spark strategic discussions.',
         followUps: ['How do I post to the social feed?', 'Can I share with a coach?']
     },
 ];

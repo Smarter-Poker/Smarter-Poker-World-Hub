@@ -1,5 +1,5 @@
 /**
- * Smarter.Poker - Core Poker Engine
+ * Club Arena - Core Poker Engine
  * Module: ActionValidator
  * 
  * Determines what actions are legal for the current player

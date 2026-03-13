@@ -56,7 +56,7 @@ export const EventType = {
     HAND_REPLAYED: 'HAND_REPLAYED',
     DATA_MUTATED: 'DATA_MUTATED',
 
-    // ── Geeves AI Help Bot ──
+    // ── Geeves Help Bot ──
     GEEVES_QUESTION_MISSED: 'GEEVES_QUESTION_MISSED',
     GEEVES_KB_UPDATED: 'GEEVES_KB_UPDATED',
     GEEVES_OPENED: 'GEEVES_OPENED',
@@ -272,7 +272,7 @@ const _busEmitMethods = {
     dataMutated: (entity) =>
         eventBus.emit(EventType.DATA_MUTATED, { entity, ..._getStaffCtx() }, 'DataSync'),
 
-    // ── Geeves AI Help Bot ──
+    // ── Geeves Help Bot ──
     geevesQuestionMissed: (question, page) =>
         eventBus.emit(EventType.GEEVES_QUESTION_MISSED, { question, page }, 'GeevesChat'),
 

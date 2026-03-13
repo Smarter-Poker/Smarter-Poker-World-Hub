@@ -753,7 +753,7 @@ export default function StrategyTrivia({ mode }) {
     return (
         <PageTransition>
             <Head>
-                <title>{config.title} - Smarter.Poker Trivia</title>
+                <title>{config.title} - Club Arena Trivia</title>
             </Head>
 
             <div className="strategy-trivia">

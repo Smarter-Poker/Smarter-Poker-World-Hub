@@ -1,5 +1,5 @@
 /**
- * Smarter.Poker - Core Poker Engine
+ * Club Arena - Core Poker Engine
  * Module: Deck
  * 
  * Card representation, deck management, cryptographic shuffle,

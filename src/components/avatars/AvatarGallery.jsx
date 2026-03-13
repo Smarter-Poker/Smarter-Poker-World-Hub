@@ -448,7 +448,7 @@ export default function AvatarGallery({ onSelect }) {
             }}
           >
             <img src="/images/jarvis-avatar.png" alt="Jarvis" style={{ width: 20, height: 20, borderRadius: '50%', marginRight: 8, verticalAlign: 'middle' }} />
-            {isVip ? 'Create Custom Avatar' : 'Create Free AI Avatar'}
+            {isVip ? 'Create Custom Avatar' : 'Create Free Avatar'}
           </button>
         </div>
       </div>

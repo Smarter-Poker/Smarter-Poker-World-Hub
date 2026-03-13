@@ -1,5 +1,5 @@
 /**
- * 🐴 HORSE POKER ADVANCED - Deep AI Behaviors
+ * 🐴 HORSE POKER ADVANCED - Deep Behaviors
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * Advanced poker behaviors: hand history memory, timing tells, tilt cascades,

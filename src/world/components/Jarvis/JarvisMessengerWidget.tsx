@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   JARVIS MESSENGER WIDGET — Floating AI assistant in Messenger
+   JARVIS MESSENGER WIDGET — Floating assistant in Messenger
    Provides quick poker advice and analysis within the chat context
    ═══════════════════════════════════════════════════════════════════════════ */
 

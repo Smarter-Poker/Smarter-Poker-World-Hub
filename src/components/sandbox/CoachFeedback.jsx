@@ -1,5 +1,5 @@
 /**
- * AI COACH FEEDBACK PANEL (W5-1)
+ * COACH FEEDBACK PANEL (W5-1)
  * Template-based coaching tips after each coach mode verdict.
  * Shows contextual advice based on hand, position, action, and correctness.
  * No API call — purely deterministic for instant rendering.

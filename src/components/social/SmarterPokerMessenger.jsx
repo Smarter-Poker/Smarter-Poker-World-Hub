@@ -2185,7 +2185,7 @@ export const ChatWindow = ({
                 </div>
             )}
 
-            {/* P4-6 + P18-1: Smart Reply Suggestions (now using AI backend) */}
+            {/* P4-6 + P18-1: Smart Reply Suggestions (now using backend) */}
             {(() => {
                 const lastOtherMsg = messages?.slice().reverse().find(m => m.sender_id !== currentUser?.id);
                 const smartReplies = lastOtherMsg ? svc.getSmartReplies(lastOtherMsg.text) : [];
@@ -2507,7 +2507,7 @@ export const ChatWindow = ({
             {inputText && (inputText.toLowerCase().includes('@smarter.poker') || inputText.toLowerCase().includes('@smarterpoker')) && (
                 <div style={{ padding: '3px 12px', margin: '0 8px 4px', borderRadius: 6, background: 'rgba(255,215,0,0.1)', border: '1px solid rgba(255,215,0,0.3)', fontSize: 10, color: '#ffd700', display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span style={{ fontSize: 12 }}>🔗</span>
-                    <span>This message will be linked to <strong>Smarter.Poker Admin Panel</strong></span>
+                    <span>This message will be linked to <strong>Club Arena Admin Panel</strong></span>
                 </div>
             )}
 

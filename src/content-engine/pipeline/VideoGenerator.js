@@ -1,5 +1,5 @@
 /**
- * 🎬 AI VIDEO GENERATOR
+ * 🎬 VIDEO GENERATOR
  * ═══════════════════════════════════════════════════════════════════════════
  * Creates original short-form video content (Reels/Shorts/TikTok style).
  * 

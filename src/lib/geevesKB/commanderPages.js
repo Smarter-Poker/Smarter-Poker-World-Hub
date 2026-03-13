@@ -40,7 +40,7 @@ export const COMMANDER_PAGES_ENTRIES = [
         id: 'cmd-pg-4', category: 'Club Commander',
         keywords: ['commander notifications', 'venue notifications', 'tournament alerts', 'notify players'],
         patterns: ['how do notifications work in commander', 'how do i notify players', 'what notifications does commander send'],
-        answer: '**Commander Notifications** sends automated alerts to players and staff.\n\n**Notification types:**\n- **Tournament starting** — Alert registered players 30 min and 5 min before start\n- **Waitlist status** — Notify players when their seat becomes available\n- **Floor calls** — Send table/seat alerts to staff\n- **Blind level changes** — Announce new blind levels during tournaments\n- **High hand results** — Notify winner and table\n\n**Access:** Commander > Notifications > Settings\n\nNotifications are sent via the Smarter.Poker app (push notifications) and optionally via SMS.',
+        answer: '**Commander Notifications** sends automated alerts to players and staff.\n\n**Notification types:**\n- **Tournament starting** — Alert registered players 30 min and 5 min before start\n- **Waitlist status** — Notify players when their seat becomes available\n- **Floor calls** — Send table/seat alerts to staff\n- **Blind level changes** — Announce new blind levels during tournaments\n- **High hand results** — Notify winner and table\n\n**Access:** Commander > Notifications > Settings\n\nNotifications are sent via the Club Arena app (push notifications) and optionally via SMS.',
         followUps: ['How do I set up push notifications?', 'How do waitlist notifications work?'],
     },
 
@@ -58,7 +58,7 @@ export const COMMANDER_PAGES_ENTRIES = [
         id: 'cmd-pg-6', category: 'Club Commander',
         keywords: ['responsible gaming', 'responsible gambling', 'gaming limits', 'self exclusion commander', 'spending limits'],
         patterns: ['what is responsible gaming', 'how do I set gaming limits', 'how do I self-exclude', 'responsible gambling commander'],
-        answer: '**Responsible Gaming** provides tools to help players maintain healthy gaming habits.\n\n**Access:** Commander > Responsible Gaming\n\n**Available tools:**\n- **Session time limits** — Set a maximum session length (app will remind you when time is up)\n- **Buy-in limits** — Cap how much you can spend in a session or week\n- **Self-exclusion** — Temporarily or permanently block yourself from a venue\'s player database\n- **Cooling-off periods** — Take a break for a set number of days\n- **Reality checks** — Enable timed pop-up reminders during long sessions\n\n**Important:** These tools are here to support you. Smarter.Poker is committed to promoting responsible, enjoyable gaming for everyone.',
+        answer: '**Responsible Gaming** provides tools to help players maintain healthy gaming habits.\n\n**Access:** Commander > Responsible Gaming\n\n**Available tools:**\n- **Session time limits** — Set a maximum session length (app will remind you when time is up)\n- **Buy-in limits** — Cap how much you can spend in a session or week\n- **Self-exclusion** — Temporarily or permanently block yourself from a venue\'s player database\n- **Cooling-off periods** — Take a break for a set number of days\n- **Reality checks** — Enable timed pop-up reminders during long sessions\n\n**Important:** These tools are here to support you. Club Arena is committed to promoting responsible, enjoyable gaming for everyone.',
         followUps: ['How do I set a session time limit?', 'How do I take a break from gaming?'],
     },
 
@@ -149,7 +149,7 @@ export const COMMANDER_PAGES_ENTRIES = [
         keywords: ['commander faq', 'commander help', 'commander questions', 'faq commander'],
         patterns: ['where is the commander faq', 'how do I get help with commander', 'commander help page'],
         answer: '**Commander FAQ (Commander > FAQ)** is the built-in help center for Club Commander users.\n\n**Topics covered:**\n- Getting started as a venue manager\n- Setting up tournaments and cash games\n- Waitlist and check-in workflows\n- Reporting and analytics\n- Common troubleshooting steps\n\nFor anything not covered in the FAQ, I (Geeves) am available in every Commander page via the hamburger menu!',
-        followUps: ['How do I contact Smarter.Poker support?', 'What are the main Commander features?'],
+        followUps: ['How do I contact Club Arena support?', 'What are the main Commander features?'],
     },
 
     // ── Tournament Registration ──
@@ -157,7 +157,7 @@ export const COMMANDER_PAGES_ENTRIES = [
         id: 'cmd-pg-17', category: 'Club Commander',
         keywords: ['tournament registration', 'register tournament commander', 'tournament sign up', 'player registration tournament'],
         patterns: ['how do I register players for a commander tournament', 'how does tournament registration work', 'how does player sign up work for a tournament'],
-        answer: '**Tournament Registration (Commander)** manages player sign-ups for your events.\n\n**Staff workflow:**\n1. Open Commander > Tournament > [ID] > Register\n2. Search for a player by name or ID\n3. Select buy-in amount (late reg, rebuy)\n4. Confirm registration — player is added to the field\n\n**Player self-registration:**\n- If enabled, players can register through the Commander app or Smarter.Poker platform\n- Waitlist-to-seat transitions happen automatically when registration opens\n\n**Tracking:**\n- Real-time entry count vs. max capacity\n- List of registered players\n- Re-entry tracking (how many times each player has re-entered)',
+        answer: '**Tournament Registration (Commander)** manages player sign-ups for your events.\n\n**Staff workflow:**\n1. Open Commander > Tournament > [ID] > Register\n2. Search for a player by name or ID\n3. Select buy-in amount (late reg, rebuy)\n4. Confirm registration — player is added to the field\n\n**Player self-registration:**\n- If enabled, players can register through the Commander app or Club Arena platform\n- Waitlist-to-seat transitions happen automatically when registration opens\n\n**Tracking:**\n- Real-time entry count vs. max capacity\n- List of registered players\n- Re-entry tracking (how many times each player has re-entered)',
         followUps: ['How do I set up re-entries?', 'How does late registration work?', 'How do I run the tournament once everyone is registered?'],
     },
 ];

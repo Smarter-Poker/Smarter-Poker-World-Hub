@@ -1,7 +1,7 @@
 /**
  * 🎯 CONTENT COMMANDER ENGINE
  * ═══════════════════════════════════════════════════════════════════════════
- * Autonomous content generation system for seeding the Smarter.Poker platform.
+ * Autonomous content generation system for seeding the Club Arena platform.
  * NOW WITH HORSE MEMORY 🧠 - Each horse remembers their past posts!
  * 
  * MODULES:

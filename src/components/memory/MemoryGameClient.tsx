@@ -703,7 +703,7 @@ export default function MemoryGameClient({
 
                                 <details className="mt-4">
                                     <summary className="cursor-pointer text-cyan-400 hover:text-cyan-300 text-sm">
-                                        📚 AI Explanation
+                                        📚 Explanation
                                     </summary>
                                     <div className="mt-2 text-sm text-slate-300 bg-slate-900 p-4 rounded">
                                         {gameState.currentHand.explanation}

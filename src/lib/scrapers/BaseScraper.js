@@ -81,7 +81,7 @@ export class BaseScraper {
                     ...options,
                     signal: controller.signal,
                     headers: {
-                        'User-Agent': 'Smarter.Poker Venue Scraper (+https://smarter.poker)',
+                        'User-Agent': 'Club Arena Venue Scraper (+https://smarter.poker)',
                         ...options.headers
                     }
                 });

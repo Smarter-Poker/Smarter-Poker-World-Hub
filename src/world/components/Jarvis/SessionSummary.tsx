@@ -274,7 +274,7 @@ Please analyze:
                     color: '#000', fontSize: '12px', fontWeight: 600, cursor: 'pointer'
                 }}
             >
-                📝 Generate AI Summary
+                📝 Generate Summary
             </button>
         </div>
     );

@@ -222,14 +222,14 @@ export function processChatBatch(messages: ChatMessage[]): ChatMessage[] {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 🤖 AI AGENT CONTENT FILTER
+// 🤖 AGENT CONTENT FILTER
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Filter AI agent responses to ensure no payment facilitation language.
+ * Filter agent responses to ensure no payment facilitation language.
  * Applied to all AI-generated content before display.
  * 
- * @param aiResponse - Raw AI agent response text
+ * @param aiResponse - Raw agent response text
  * @returns Cleaned response text
  */
 export function filterAgentResponse(aiResponse: string): string {

@@ -32,7 +32,7 @@ async function generateGrokReply(horseContext, conversationHistory) {
     }
 
     try {
-        const systemPrompt = `You are ${horseContext.name}, a poker player playing in the Smarter.Poker World Hub. 
+        const systemPrompt = `You are ${horseContext.name}, a poker player playing in the Club Arena World Hub. 
 Your specialty is ${horseContext.specialty || 'cash games'}.
 You are currently replying to a Direct Message on the platform.
 CRITICAL RULES:
@@ -40,7 +40,7 @@ CRITICAL RULES:
 2. DO NOT USE ANY EMOJIS EVER.
 3. Be causal, authentic, and use poker terminology naturally.
 4. If this conversation has 2-3 turns already, naturally conclude it (e.g. "Gotta head back to the tables, catch you later", "Back to the grind for me, gl").
-5. Do not sound like an AI assistant.`;
+5. Do not sound like an assistant.`;
 
         const messages = [
             { role: 'system', content: systemPrompt },
@@ -197,7 +197,7 @@ async function processDirectMessages() {
         const thinkDelay = 2000 + Math.random() * 6000;
         await new Promise(r => setTimeout(r, thinkDelay));
 
-        // 4. Generate AI Reply
+        // 4. Generate Reply
         const conversationContext = history.map(h => ({
             isMe: h.sender_id === targetHorseId,
             content: h.content

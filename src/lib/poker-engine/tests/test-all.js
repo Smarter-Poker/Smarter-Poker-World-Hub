@@ -1,5 +1,5 @@
 /**
- * Smarter.Poker - Core Poker Engine Test Suite
+ * Club Arena - Core Poker Engine Test Suite
  * 
  * Tests: Deck, HandEvaluator, PotCalculator, ActionValidator, GameStateMachine
  */

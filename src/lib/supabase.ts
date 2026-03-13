@@ -2,7 +2,7 @@
    SUPABASE CLIENT — Production Configuration
    ═══════════════════════════════════════════════════════════════════════════
    
-   This is the authoritative Supabase client for Smarter.Poker.
+   This is the authoritative Supabase client for Club Arena.
    Uses localStorage for session persistence with standard @supabase/supabase-js.
    
    Storage Key: 'smarter-poker-auth'

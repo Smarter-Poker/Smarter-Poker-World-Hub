@@ -1,5 +1,5 @@
 /**
- * Smarter.Poker — Tournament Engine
+ * Club Arena — Tournament Engine
  * Module: TournamentController
  * ═══════════════════════════════════════════════════════════════
  *

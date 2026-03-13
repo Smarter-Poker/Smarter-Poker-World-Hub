@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   LIVE HELP HOOK — Geeves AI Help Bot state management
+   LIVE HELP HOOK — Geeves Help Bot state management
    
    Production-ready with real API integration via /api/geeves/* endpoints.
    Manages conversation lifecycle, message exchange, and history.
@@ -25,8 +25,8 @@ export const AGENTS: Agent[] = [
     {
         id: 'geeves',
         name: 'Geeves',
-        title: 'Smarter.Poker Expert',
-        personality: 'Comprehensive and knowledgeable. Expert on all aspects of Smarter.Poker.',
+        title: 'Club Arena Expert',
+        personality: 'Comprehensive and knowledgeable. Expert on all aspects of Club Arena.',
         avatarColor: '#00d4ff',
         typingSpeed: 'medium',
         tone: 'analytical',
@@ -101,7 +101,7 @@ export function useLiveHelp() {
                 const guestMsg: Message = {
                     id: `greeting-${Date.now()}`,
                     agentId: 'geeves',
-                    content: "Hello! I'm Geeves, your Smarter.Poker expert. Please sign in to start a conversation with me.",
+                    content: "Hello! I'm Geeves, your Club Arena expert. Please sign in to start a conversation with me.",
                     timestamp: new Date(),
                     isUser: false
                 };

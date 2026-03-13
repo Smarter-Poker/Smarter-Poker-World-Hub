@@ -13,7 +13,7 @@
  * - Session Complete modal with stats
  * - XP earned display with animations
  *
- * @author Smarter.Poker Engineering
+ * @author Club Arena Engineering
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';

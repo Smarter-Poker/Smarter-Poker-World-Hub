@@ -1,5 +1,5 @@
 /**
- * Smarter.Poker - Core Poker Engine
+ * Club Arena - Core Poker Engine
  * Module: TableManager
  * 
  * Manages a single poker table's persistent state:
@@ -1141,7 +1141,7 @@ class TableManager {
         if (playerId && this._autoRebuyPrefs.get(String(playerId)) && this.onAutoRebuy) {
           const rebuyAmount = this.minBuyIn;
 
-          // (Phase 2) AI Bankroll Preservation / Stop-Loss check
+          // (Phase 2) Bankroll Preservation / Stop-Loss check
           // TableManager must invoke this asynchronously to prevent horses from infinite rebuying
           const HorsePokerBrain = require('./HorsePokerBrain');
 

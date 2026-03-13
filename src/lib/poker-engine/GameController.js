@@ -138,7 +138,7 @@ class GameController {
     };
     // Bomb Pot frequency counters — per-table hand count for random bomb pot triggering
     this._bombPotCounters = new Map();
-    // Guard against double-triggering horse AI for the same player turn
+    // Guard against double-triggering horse for the same player turn
     this._horseActionPending = new Set();
   }
 
@@ -189,12 +189,12 @@ class GameController {
     this.antiCheatMonitor = new AntiCheatMonitor(this, this.antiCheat, this.supabase);
     this.antiCheatMonitor.start();
 
-    // ─── Horse AI Brain — Pre-load horse identities ──────────────────
+    // ─── Horse Brain — Pre-load horse identities ──────────────────
     HorsePokerBrain.loadHorseIds().catch(err => {
       console.warn('[GameController] Horse ID pre-load failed:', err.message);
     });
 
-    // ─── Horse AI Heartbeat — Fully Autonomous Pipeline ──────────────
+    // ─── Horse Heartbeat — Fully Autonomous Pipeline ──────────────
     // Runs every 60 seconds to continuously ensure tables and tournaments are populated
     this._horsePipelineInterval = setInterval(() => this._runHorsePipeline(), 60000);
 
@@ -229,7 +229,7 @@ class GameController {
   }
 
   /**
-   * The core autonomic heartbeat for the Horse AI system.
+   * The core autonomic heartbeat for the Horse system.
    * Continuously scans active games and registering tournaments, 
    * populating them with horses as needed without human intervention.
    * @private
@@ -363,7 +363,7 @@ class GameController {
               batchSize = Math.min(shortfallEntries, Math.floor(Math.random() * 6) + 3); // Faster trickle of 3-8
             }
           } else if (isLateReg) {
-            // Guarantee fully met! Stop all late reg insertion to preserve server AI balance.
+            // Guarantee fully met! Stop all late reg insertion to preserve server balance.
             target = 0;
           }
 
@@ -643,7 +643,7 @@ class GameController {
             const recovered = fullState ? StateSerializer.restore(entry.table, fullState) : false;
             if (recovered) {
               console.log(`[GameController] connectToClubTable: mid-hand state restored for ${clubTableId}`);
-              // Resume Horse AI if it was their turn when server crashed
+              // Resume Horse if it was their turn when server crashed
               const game = entry.table.game;
               if (game?.bettingRound) {
                 const currPlayer = game.bettingRound.getCurrentPlayer();
@@ -723,7 +723,7 @@ class GameController {
       const result = await this.lobby.closeTable(tableId);
       if (!result.success) return result;
 
-      // Clear AI session tracking
+      // Clear session tracking
       HorsePokerBrain.clearTableSessions(tableId);
 
       // Update DB
@@ -787,7 +787,7 @@ class GameController {
     const result = entry.table.sitDown(playerId, seatIndex, buyIn, playerInfo);
 
     if (result.success) {
-      // Track AI sessions ONLY for horses (Phase 2 feature)
+      // Track sessions ONLY for horses (Phase 2 feature)
       HorsePokerBrain.isHorse(String(playerId)).then(isAI => {
         if (isAI) HorsePokerBrain.recordSitDown(tableId, String(playerId), buyIn);
       }).catch(() => { });
@@ -956,7 +956,7 @@ class GameController {
 
     const result = entry.table.addChips(playerId, amount);
     if (result.success) {
-      // Track AI rebuy/add-on stats ONLY for horses (Phase 2 feature)
+      // Track rebuy/add-on stats ONLY for horses (Phase 2 feature)
       HorsePokerBrain.isHorse(String(playerId)).then(isAI => {
         if (isAI) HorsePokerBrain.recordRebuy(tableId, String(playerId), amount);
       }).catch(() => { });
@@ -1003,11 +1003,11 @@ class GameController {
   }
 
   // ═══════════════════════════════════════════════════════════════════
-  // HORSE AI — Auto-action system for AI players
+  // HORSE — Auto-action system for players
   // ═══════════════════════════════════════════════════════════════════
 
   /**
-   * Execute an AI horse's poker decision.
+   * Execute an horse's poker decision.
    * 1. Guards against double-triggering with _horseActionPending
    * 2. Reads game state (with horse's hole cards visible)
    * 3. Calls HorsePokerBrain.getDecision() for GTO-informed action
@@ -1049,7 +1049,7 @@ class GameController {
         smallBlind: entry.config?.smallBlind || game.config?.smallBlind || 1,
       };
 
-      // Get the AI decision
+      // Get the decision
       const { action, delayMs } = await HorsePokerBrain.getDecision(
         playerId,
         engineState,
@@ -1077,7 +1077,7 @@ class GameController {
         this._stats.totalActions++;
         console.log(`[HorseAI] ${playerId.substring(0, 8)}... \u2192 ${action.type}${action.amount ? ' ' + action.amount : ''} (${delayMs}ms delay)`);
 
-        // Check for AI Emotes/Chat (#10) - Emote when all-in or throwing good luck
+        // Check for Emotes/Chat (#10) - Emote when all-in or throwing good luck
         const messages = HorsePokerBrain.getChatMessages();
         if (messages.length > 0 && entry.sync) {
           for (const msg of messages) {
@@ -1111,7 +1111,7 @@ class GameController {
   }
 
   /**
-   * Wire horse AI event listener to a table.
+   * Wire horse event listener to a table.
    * Listens for 'action_required' so the brain triggers on hand/street start
    * when the first-to-act player is a horse.
    * @param {string} tableId
@@ -1123,7 +1123,7 @@ class GameController {
 
     entry.table.on('action_required', (data) => {
       if (data?.playerId) {
-        // Non-blocking check: is this an AI horse?
+        // Non-blocking check: is this an horse?
         HorsePokerBrain.isHorse(String(data.playerId)).then(isAI => {
           if (isAI) {
             this._triggerHorseAction(tableId, String(data.playerId)).catch(err => {
@@ -1171,7 +1171,7 @@ class GameController {
   }
 
   /**
-   * Auto-fill a table with horse AI players to reach an ideal player count.
+   * Auto-fill a table with horse players to reach an ideal player count.
    * Queries horse profiles, filters by personality preferences, and seats them.
    * @param {string} tableId
    * @param {number} targetCount - How many horses to add (default: fill to 6 players)
@@ -1322,7 +1322,7 @@ class GameController {
   }
 
   /**
-   * Auto-register horse AI players for a tournament.
+   * Auto-register horse players for a tournament.
    * @param {string} tournamentId
    * @param {number} maxCount - Max horses to register (default: fill to capacity)
    * @returns {{ success: boolean, registered: number }}
@@ -1416,7 +1416,7 @@ class GameController {
         registered++;
 
         // Deep Bug Hunt Parity Fix: the React UI queries `tournament_registrations` for the roster,
-        // so we must manually persist the AI horse here just like the human API does.
+        // so we must manually persist the horse here just like the human API does.
         try {
           await sb.from('tournament_registrations').insert({
             tournament_id: tournamentId,
@@ -2010,7 +2010,7 @@ class GameController {
               if (recovered) {
                 console.log(`[GameController] Mid-hand recovered: ${row.id}`);
 
-                // ─── GAP 6: Resume Horse AI if it was their turn when server crashed ───
+                // ─── GAP 6: Resume Horse if it was their turn when server crashed ───
                 const game = entry.table.game;
                 if (game?.bettingRound) {
                   const currPlayer = game.bettingRound.getCurrentPlayer();

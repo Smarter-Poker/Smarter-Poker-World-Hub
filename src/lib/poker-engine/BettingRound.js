@@ -1,5 +1,5 @@
 /**
- * Smarter.Poker - Core Poker Engine
+ * Club Arena - Core Poker Engine
  * Module: BettingRound
  * 
  * Manages a single betting round (preflop, flop, turn, or river).

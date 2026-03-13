@@ -232,7 +232,7 @@ export function LiveStreamViewer({ stream, userId, onClose }) {
                             {stream?.profiles?.username || 'Anonymous'}
                         </div>
                         <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13 }}>
-                            Smarter.Poker
+                            Club Arena
                         </div>
                     </div>
                 </div>

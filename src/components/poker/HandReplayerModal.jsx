@@ -86,7 +86,7 @@ function generateHandHistoryText(handData) {
   const bb = handData.bigBlind || 0;
   const sb = handData.smallBlind || 0;
   
-  lines.push(`Smarter.Poker Hand #${handData.handNumber || 0}: Hold'em No Limit (${sb}/${bb})`);
+  lines.push(`Club Arena Hand #${handData.handNumber || 0}: Hold'em No Limit (${sb}/${bb})`);
   lines.push(`Table '${handData.tableId || 'Table'}' ${handData.players?.length || 0}-max Seat #${(handData.buttonSeat || 0) + 1} is the button`);
   
   for (const p of (handData.players || [])) {

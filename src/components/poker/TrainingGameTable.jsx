@@ -296,7 +296,7 @@ function TrainingGameTable({
                                                     ICM Fundamentals
                                                 </div>
                                                 <div style={{ fontSize: 9, color: '#8b6914', marginTop: 2 }}>
-                                                    Smarter.Poker
+                                                    Club Arena
                                                 </div>
                                             </div>
 

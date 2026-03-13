@@ -284,7 +284,7 @@ export default function TournamentStoryCard({
                 fontSize: 8, color: 'rgba(255,255,255,0.2)',
                 letterSpacing: '0.5px'
             }}>
-                Smarter.Poker
+                Club Arena
             </div>
         </div>
     );

@@ -343,7 +343,7 @@ const TOUR_STEPS = [
     { target: 'board-builder', title: 'Board Builder', text: 'Add flop, turn, and river cards. Use presets for common textures or click "Random" for exploration.' },
     { target: 'action-history', title: 'Action History', text: 'Build the betting line step by step. The pot calculates dynamically as you add actions.' },
     { target: 'run-analysis', title: 'Run Analysis', text: 'Generates GTO-optimal frequencies from PIO solver data. Results show per-action frequencies and EV.' },
-    { target: 'results-panel', title: 'Results Panel', text: 'View frequency bars, EV analysis, and the range heatmap. Green badge = real solver data, purple = AI approximation.' },
+    { target: 'results-panel', title: 'Results Panel', text: 'View frequency bars, EV analysis, and the range heatmap. Green badge = real solver data, purple = approximation.' },
 ];
 
 export function OnboardingTour({ isVisible, onClose, onNext, step = 0 }) {
@@ -405,12 +405,12 @@ export function ShareAnalysisModal({ isOpen, onClose, results, scenario }) {
         `Optimal: ${results.optimalAction?.label} (${results.optimalAction?.frequency}%)\n` +
         `${results.isMixed ? 'Mixed Strategy' : 'Pure Strategy'}\n` +
         `Source: ${results.source}\n` +
-        `Analyze your hands at Smarter.Poker`;
+        `Analyze your hands at Club Arena`;
 
     const handleNativeShare = async () => {
         try {
             if (navigator.share) {
-                await navigator.share({ title: 'GTO Analysis — Smarter.Poker', text: shareText, url: 'https://smarter.poker/hub/personal-assistant/sandbox' });
+                await navigator.share({ title: 'GTO Analysis — Club Arena', text: shareText, url: 'https://smarter.poker/hub/personal-assistant/sandbox' });
             } else { handleCopy(); }
         } catch (e) { console.log('Share cancelled'); }
     };
@@ -429,7 +429,7 @@ export function ShareAnalysisModal({ isOpen, onClose, results, scenario }) {
             const displayContent = `I just analyzed a hand in the GTO Sandbox!\n\n` +
                 `**Hero:** ${results.heroHand || 'Hand'} on ${scenario?.board || 'Preflop'}\n` +
                 `**Optimal line:** ${results.optimalAction?.label} (${results.optimalAction?.frequency}%)\n\n` +
-                `*${results.explanation?.substring(0, 150) || 'Check out my full analysis on Smarter.Poker.'}...*`;
+                `*${results.explanation?.substring(0, 150) || 'Check out my full analysis on Club Arena.'}...*`;
 
             const newPost = await socialService.createPost({
                 authorId: user.id,
@@ -1111,7 +1111,7 @@ export function ActionReplayBar({ actions, replayIndex, onReplayTo, onExitReplay
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SHARE HAND MODAL — Wave 2 Feature 7
-// Download PNG + Post to Smarter.Poker profile + Native share sheet
+// Download PNG + Post to Club Arena profile + Native share sheet
 // ═══════════════════════════════════════════════════════════════════════════
 export function ShareHandModal({ isOpen, onClose, results, scenario, heroHand, board, cardRef }) {
     const [isPosting, setIsPosting] = useState(false);
@@ -1193,14 +1193,14 @@ export function ShareHandModal({ isOpen, onClose, results, scenario, heroHand, b
         const shareUrl = `${window.location.origin}/hub/personal-assistant/sandbox`;
         const text = `I analyzed ${heroHand?.card1 || '??'}${heroHand?.card2 || '??'} on the GTO Sandbox — GTO line: ${results.optimalAction?.label}`;
         try {
-            if (navigator.share) { await navigator.share({ title: 'GTO Hand Analysis — Smarter.Poker', text, url: shareUrl }); }
+            if (navigator.share) { await navigator.share({ title: 'GTO Hand Analysis — Club Arena', text, url: shareUrl }); }
             else { navigator.clipboard?.writeText(`${text}\n${shareUrl}`); }
         } catch (e) { }
     };
 
     const actions = [
         { icon: '📸', label: 'Download Image', sub: 'Save PNG to device', onClick: handleDownload, color: '#4599FF' },
-        { icon: '🃏', label: isPosting ? 'Posting...' : 'Post to My Profile', sub: 'Share to your Smarter.Poker feed', onClick: handlePostToProfile, color: '#22c55e', primary: true },
+        { icon: '🃏', label: isPosting ? 'Posting...' : 'Post to My Profile', sub: 'Share to your Club Arena feed', onClick: handlePostToProfile, color: '#22c55e', primary: true },
         { icon: '↗️', label: 'Share Link', sub: 'Copy link or open share sheet', onClick: handleNativeShare, color: '#a78bfa' },
     ];
 

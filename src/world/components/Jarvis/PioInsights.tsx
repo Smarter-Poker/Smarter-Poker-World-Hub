@@ -314,7 +314,7 @@ Explain:
                 color: 'rgba(255, 255, 255, 0.4)',
                 textAlign: 'center'
             }}>
-                Powered by Grok AI trained on PIO solver outputs
+                Powered by Grok trained on PIO solver outputs
             </p>
         </div>
     );

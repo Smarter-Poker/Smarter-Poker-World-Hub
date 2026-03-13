@@ -1,6 +1,6 @@
 /**
  * ═══════════════════════════════════════════════════════════
- * STICKER ORCHESTRATOR — Smarter.Poker / Club Arena
+ * STICKER ORCHESTRATOR — Club Arena / Club Arena
  * ═══════════════════════════════════════════════════════════
  *
  * Derives which sticker assets to display on a game card based on:

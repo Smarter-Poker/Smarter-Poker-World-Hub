@@ -201,7 +201,7 @@ export default function MTTDeepStackUI({
                 <div style={styles.tournamentLabel}>
                     <div style={styles.tournamentTitle}>9-Max Tournament</div>
                     <div style={styles.tournamentSubtitle}>(MTT)</div>
-                    <div style={styles.tournamentSmall}>Smarter.Poker</div>
+                    <div style={styles.tournamentSmall}>Club Arena</div>
                 </div>
             </div>
 

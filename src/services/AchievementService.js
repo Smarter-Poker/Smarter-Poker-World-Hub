@@ -109,7 +109,7 @@ class AchievementService {
                 if (result?.success) unlocked.push(ACHIEVEMENT_IDS.DIAMOND_1000);
             }
 
-            // AI scenario achievements
+            // scenario achievements
             if (aiScenariosCompleted >= 5) {
                 const result = await this.unlockAchievement(userId, ACHIEVEMENT_IDS.AI_5);
                 if (result?.success) unlocked.push(ACHIEVEMENT_IDS.AI_5);

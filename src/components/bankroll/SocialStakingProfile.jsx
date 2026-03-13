@@ -70,7 +70,7 @@ export default function SocialStakingProfile({ entries = [], stats, user }) {
         if (privacy.showVolume) lines.push(`Sessions: ${profileStats.totalSessions}`);
         if (privacy.showAvgSession) lines.push(`Avg Session: $${profileStats.avgSession}`);
         if (privacy.showStreak) lines.push(`Current Streak: ${profileStats.currentStreak}W`);
-        lines.push(``, `Verified by Smarter.Poker`);
+        lines.push(``, `Verified by Club Arena`);
 
         navigator.clipboard.writeText(lines.join('\n'));
         setCopied(true);
@@ -121,7 +121,7 @@ export default function SocialStakingProfile({ entries = [], stats, user }) {
                                 background: 'rgba(99,102,241,0.1)', color: '#a78bfa',
                                 fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 4,
                                 textTransform: 'uppercase',
-                            }}>Smarter.Poker</span>
+                            }}>Club Arena</span>
                         </div>
                     </div>
                 </div>
@@ -181,7 +181,7 @@ export default function SocialStakingProfile({ entries = [], stats, user }) {
                             {profileStats.totalNet >= 0 ? '+' : ''}${profileStats.totalNet.toLocaleString()}
                         </span>
                     </div>
-                    <div style={{ fontSize: 10, color: '#64748b' }}>Powered by Smarter.Poker</div>
+                    <div style={{ fontSize: 10, color: '#64748b' }}>Powered by Club Arena</div>
                 </div>
             </div>
 

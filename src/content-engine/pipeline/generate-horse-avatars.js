@@ -1,6 +1,6 @@
 /**
  * 🖼️ HORSE AVATAR GENERATOR
- * Generates unique AI profile pictures for all Horse accounts
+ * Generates unique profile pictures for all Horse accounts
  * and uploads them to Supabase storage
  */
 import { config } from 'dotenv';

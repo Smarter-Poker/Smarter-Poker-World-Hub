@@ -91,7 +91,7 @@ function getPageChips(path) {
         { label: 'Hand rankings', q: 'What are the poker hand rankings?' },
     ];
     if (p.includes('social') || p.includes('friends')) return [
-        { label: 'Add friends', q: 'How do I add friends on Smarter.Poker?' },
+        { label: 'Add friends', q: 'How do I add friends on Club Arena?' },
         { label: 'Post content', q: 'How do I create a post on the social feed?' },
         { label: 'Privacy settings', q: 'How do I manage my privacy settings?' },
     ];
@@ -101,14 +101,14 @@ function getPageChips(path) {
         { label: 'Equity', q: 'What is equity realization?' },
     ];
     if (p.includes('horses')) return [
-        { label: 'Add a Horse persona', q: 'How do I add a new Horse persona to the Horses admin?' },
+        { label: 'Add a player profile', q: 'How do I add a new player profile to the Horses admin?' },
         { label: 'Content pipeline', q: 'What does the Horses content pipeline do and how do I trigger it?' },
         { label: 'View missed questions', q: 'How do I see what questions Geeves could not answer?' },
     ];
     // Default
     return [
-        { label: 'What is Smarter.Poker?', q: 'What is Smarter.Poker and what can I do here?' },
-        { label: 'Help with features', q: 'What are the main features of Smarter.Poker?' },
+        { label: 'What is Club Arena?', q: 'What is Club Arena and what can I do here?' },
+        { label: 'Help with features', q: 'What are the main features of Club Arena?' },
         { label: 'Diamond economy', q: 'How does the diamond economy work?' },
     ];
 }
@@ -548,7 +548,7 @@ export default function GeevesFloatingOrb() {
                         />
                         <div style={{ flex: 1 }}>
                             <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', letterSpacing: '0.5px' }}>Ask Geeves</div>
-                            <div style={{ fontSize: 11, color: 'rgba(0,212,255,0.6)' }}>Your AI Help Expert · ⌘J</div>
+                            <div style={{ fontSize: 11, color: 'rgba(0,212,255,0.6)' }}>Your Help Expert · ⌘J</div>
                         </div>
                         <button onClick={() => { setMessages([]); try { sessionStorage.removeItem(SESSION_KEY); } catch { } }} title="Clear chat"
                             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', fontSize: 13, padding: '4px 8px' }}>
@@ -569,7 +569,7 @@ export default function GeevesFloatingOrb() {
                                     Hey! I'm Geeves 👋
                                 </div>
                                 <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginBottom: 16, lineHeight: 1.5 }}>
-                                    I know everything about Smarter.Poker, Club Commander, and Club Arena. Ask me anything!
+                                    I know everything about Club Arena, Club Commander, and Club Arena. Ask me anything!
                                 </div>
                                 {/* Quick Chips */}
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>

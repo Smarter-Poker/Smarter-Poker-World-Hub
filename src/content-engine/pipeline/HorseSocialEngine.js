@@ -162,7 +162,7 @@ const COMMENT_TEMPLATES = {
     ]
 };
 
-// Horse personality modifiers for comments
+// player profilelity modifiers for comments
 const PERSONALITY_MODIFIERS = {
     aggressive: ["fr fr", "no cap", "straight up", "period", "on god", "deadass"],
     chill: ["honestly", "ngl", "lowkey", "vibes", "kinda", "maybe"],

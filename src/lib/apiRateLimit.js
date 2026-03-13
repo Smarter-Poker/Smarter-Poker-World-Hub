@@ -100,7 +100,7 @@ export function applyRateLimit(req, res, opts = {}) {
 
 // Pre-defined limit tiers
 export const LIMITS = {
-  ai:        { max: 5,  windowMs: 60_000 },       // 5/min — AI generation
+  ai:        { max: 5,  windowMs: 60_000 },       // 5/min — generation
   upload:    { max: 10, windowMs: 60_000 },        // 10/min — file uploads
   financial: { max: 20, windowMs: 60_000 },        // 20/min — financial ops
   auth:      { max: 10, windowMs: 60_000 },        // 10/min — auth attempts

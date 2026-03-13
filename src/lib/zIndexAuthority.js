@@ -4,7 +4,7 @@
  * ═══════════════════════════════════════════════════════════════════
  *
  * THE single source of truth for z-index values across the entire
- * Smarter.Poker platform. No component may use a raw zIndex number
+ * Club Arena platform. No component may use a raw zIndex number
  * without importing from this file.
  *
  * TIER SYSTEM (lowest → highest):

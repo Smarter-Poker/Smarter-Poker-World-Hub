@@ -190,7 +190,7 @@ export default function SandboxPokerTable({
                 aspectRatio: '341 / 609',
                 overflow: 'visible',
             }}>
-            {/* Poker table — official Smarter.Poker brand table (same as Commander tablets) */}
+            {/* Poker table — official Club Arena brand table (same as Commander tablets) */}
             <img
                 src="/images/poker-table-black-gold-nobg.png"
                 alt="Poker Table"
@@ -254,7 +254,7 @@ export default function SandboxPokerTable({
 
                 {/* Branding */}
                 <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.15)', marginTop: 3 }}>
-                    Smarter.Poker
+                    Club Arena
                 </div>
             </div>
 

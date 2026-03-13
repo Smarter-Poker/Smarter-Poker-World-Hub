@@ -1,5 +1,5 @@
 /**
- * Smarter.Poker - Core Poker Engine
+ * Club Arena - Core Poker Engine
  * Module: LobbyManager
  * 
  * Manages the multi-table lobby:
@@ -235,7 +235,7 @@ class LobbyManager {
       if (config.clubSettings?.auto_create_table) {
         this._checkAutoCreateTable(config);
       }
-      // Lifetime VIP Timebank for AI Horses (#NEW)
+      // Lifetime VIP Timebank for Horses (#NEW)
       // Horses carry Lifetime VIP status — initialize them with a large VIP timebank
       // (600s = 10 minutes) so they use the same VIP timebank system as human VIP members.
       // No artificial extra time is granted — the ActionTimer manages when to auto-activate.

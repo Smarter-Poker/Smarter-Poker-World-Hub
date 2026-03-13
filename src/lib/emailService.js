@@ -160,7 +160,7 @@ export async function sendTicketStatusUpdate({
                         
                         <div class="footer">
                             <p><a href="https://smarter.poker/hub/help">View Your Tickets</a></p>
-                            <p>Thank You For Using Smarter.Poker Live Help!</p>
+                            <p>Thank You For Using Club Arena Live Help!</p>
                         </div>
                     </div>
                 </body>

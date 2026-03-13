@@ -9,7 +9,7 @@
  * - 3D depth and shadows
  * - Animated entrance and hover effects
  *
- * @author Smarter.Poker Engineering
+ * @author Club Arena Engineering
  */
 
 import React from 'react';

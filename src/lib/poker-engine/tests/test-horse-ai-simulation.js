@@ -4,7 +4,7 @@ const { getController } = require('../GameController');
 const HorsePokerBrain = require('../HorsePokerBrain');
 
 async function runSimulation() {
-    console.log('--- HORSE AI GTO SIMULATION START ---');
+    console.log('--- HORSE GTO SIMULATION START ---');
     console.log(`Connecting to Supabase at: ${process.env.NEXT_PUBLIC_SUPABASE_URL}`);
 
     // 1. Initialize Engine
@@ -26,7 +26,7 @@ async function runSimulation() {
 
     // 3. Create Table
     const { success, tableId } = await controller.createTable({
-        name: 'Horse AI Sim Table',
+        name: 'Horse Sim Table',
         clubId: '00000000-0000-0000-0000-000000000000', // Dummy UUID to pass not-null constraint
         variant: 'holdem',
         bettingStructure: 'no_limit',
@@ -84,7 +84,7 @@ async function runSimulation() {
                 }
             }, 500);
         } else {
-            console.log(`[Horse AI] AI taking over for ${d.playerId}... waiting for processing delay`);
+            console.log(`[Horse AI] taking over for ${d.playerId}... waiting for processing delay`);
             // The GameController handles horse actions automatically via `_triggerHorseAction`
             // which was wired when the table started.
             // Oh actually, GameController hooks into RealtimeSync. Wait, GameController listens to 'action_required'

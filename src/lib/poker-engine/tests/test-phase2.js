@@ -1,5 +1,5 @@
 /**
- * Smarter.Poker - Phase 2 Test Suite
+ * Club Arena - Phase 2 Test Suite
  * Tests: TableManager, ActionTimer, HandHistory, CardAssets, LobbyManager
  * 
  * Run: node tests/test-phase2.js

@@ -72,7 +72,7 @@ function TopBar() {
                         margin: 0,
                         letterSpacing: '-0.02em',
                     }}>
-                        Smarter.Poker
+                        Club Arena
                     </h1>
                     <p style={{
                         fontFamily: 'Inter, sans-serif',

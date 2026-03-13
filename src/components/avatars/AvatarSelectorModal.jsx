@@ -177,7 +177,7 @@ export default function AvatarSelectorModal({ isOpen, onClose, isVip = false }) 
               className={`tab-btn ${activeTab === 'custom' ? 'active' : ''}`}
               onClick={() => setActiveTab('custom')}
             >
-              <img src="/images/jarvis-avatar.png" alt="Jarvis" style={{ width: 18, height: 18, borderRadius: '50%', marginRight: 6, verticalAlign: 'middle' }} /> Custom AI Generator
+              <img src="/images/jarvis-avatar.png" alt="Jarvis" style={{ width: 18, height: 18, borderRadius: '50%', marginRight: 6, verticalAlign: 'middle' }} /> Custom Generator
             </button>
           </div>
         </div>

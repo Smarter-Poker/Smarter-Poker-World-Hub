@@ -25,7 +25,7 @@ const VIOLATOR_ALIASES = ['DesertDonk', 'TexasQueen92', 'LANitOwl', 'SeattleSolv
 async function purgeViolatingContent() {
     console.log('\n🛡️ CONTENT LAW ENFORCEMENT');
     console.log('═'.repeat(60));
-    console.log('Finding and removing all posts with fake AI content...\n');
+    console.log('Finding and removing all posts with fake content...\n');
 
     // Step 1: Find horses by alias in content_authors
     const { data: authors, error: authErr } = await supabase
