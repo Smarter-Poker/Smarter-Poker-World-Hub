@@ -120,6 +120,43 @@ export default async function handler(req, res) {
       }
 
       // ═══════════════════════════════════════════════════════════════
+      // HISTORY: Return past closed settlement periods with stats
+      // ═══════════════════════════════════════════════════════════════
+      if (action === 'history') {
+        const { data: periods } = await supabaseAdmin
+          .from('settlement_periods')
+          .select('id, period_number, year, start_at, end_at, status, total_rake_collected, settled_at, settled_by')
+          .eq('club_id', clubId)
+          .eq('status', 'closed')
+          .order('period_number', { ascending: false })
+          .limit(50);
+
+        // Enrich each period with commission totals
+        const enriched = await Promise.all((periods || []).map(async (p) => {
+          const { data: comms } = await supabaseAdmin
+            .from('commission_records')
+            .select('commission_amount, status')
+            .eq('period_id', p.id);
+
+          const totalCommissions = (comms || []).reduce((s, c) => s + (c.commission_amount || 0), 0);
+          const agentsPaid = (comms || []).filter(c => c.status === 'paid').length;
+
+          return {
+            ...p,
+            total_rake: p.total_rake_collected,
+            total_commissions: totalCommissions,
+            agents_paid: agentsPaid,
+          };
+        }));
+
+        return res.status(200).json({
+          success: true,
+          periods: enriched,
+        });
+      }
+
+
+      // ═══════════════════════════════════════════════════════════════
       // OPEN: Create a new settlement period
       // ═══════════════════════════════════════════════════════════════
       if (action === 'open') {

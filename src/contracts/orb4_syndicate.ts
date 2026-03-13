@@ -81,7 +81,7 @@ export const WalletType = z.enum([
 // ─── UnionSettlement Contract ─────────────────────────────────
 export const UnionSettlementSchema = z.object({
     clubId: UUID,
-    action: z.enum(['open', 'close', 'pay', 'pay_all', 'status']),
+    action: z.enum(['open', 'close', 'pay', 'pay_all', 'status', 'history']),
     periodId: UUID.optional(),
     commissionId: UUID.optional(),
 }).strict();

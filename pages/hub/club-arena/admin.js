@@ -165,7 +165,6 @@ function SettlementsTab({ clubId }) {
       await apiCall('/api/club-arena/settle-period', { action: actionName, clubId, ...extras });
       load();
     } catch(err) {
-      setLoading(false);
       alert(err.message);
     } finally {
       setProcessing(false);
