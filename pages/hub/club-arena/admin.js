@@ -303,7 +303,7 @@ function AuditLogTab({ clubId }) {
         const a = document.createElement('a'); a.href = url; a.download = `audit-log-${clubId.substring(0,8)}.csv`; a.click();
         URL.revokeObjectURL(url);
       }
-    } catch (err) { alert('Export failed: ' + err.message); }
+    } catch (err) { setLoadError('Export failed: ' + err.message); }
   };
 
   if (loading) return (
@@ -492,14 +492,14 @@ function BrandingTab({ clubId }) {
             <input ref={ownershipRef} placeholder="New owner's User ID (UUID)" style={{ flex: 1, padding: '10px 12px', background: '#18191A', border: '1px solid #3A3B3C', borderRadius: '8px', color: '#E4E6EB', fontSize: '13px' }} />
             <button className={s.btnGhost} style={{ color: '#FA383E', borderColor: '#FA383E' }} onClick={async () => {
               const target = ownershipRef.current?.value;
-              if (!target) return alert('Enter the new owner\'s User ID');
+              if (!target) return setLoadError('Enter the new owner\'s User ID');
               if (!confirm(`⚠️ IRREVERSIBLE: Transfer ownership to ${target.substring(0,8)}...? You will be demoted to admin.`)) return;
               if (!confirm('Are you absolutely sure? This cannot be undone.')) return;
               try {
                 await apiCall('/api/club-arena/manage-agent', { clubId, action: 'transfer_ownership', targetUserId: target });
-                alert('Ownership transferred successfully. Page will reload.');
-                window.location.reload();
-              } catch (err) { alert('Transfer failed: ' + err.message); }
+                setSaveSuccess(true);
+                setTimeout(() => window.location.reload(), 1500);
+              } catch (err) { setLoadError('Transfer failed: ' + err.message); }
             }}>🔑 Transfer</button>
           </div>
         </div>

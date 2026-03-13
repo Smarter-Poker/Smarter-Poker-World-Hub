@@ -61,11 +61,9 @@ export default function ClubArenaMarketplacePage() {
     return () => clearTimeout(t);
   }, [success]);
 
-  // ── Load Marketplace ───────────────────────────────────────
-  const loadMarketplace = useCallback(async (cId) => {
+  const loadMarketplace = useCallback(async (cId, silent = false) => {
     try {
-      setLoading(true);
-      setError(null);
+      if (!silent) { setLoading(true); setError(null); }
       const targetClubId = cId || clubId;
       if (!targetClubId) { setError('No club selected.'); setLoading(false); return; }
       const res = await apiGet(`/api/club-arena/marketplace-items?clubId=${targetClubId}`);
@@ -119,10 +117,20 @@ export default function ClubArenaMarketplacePage() {
 
   // ── EventBus ───────────────────────────────────────────────
   useEffect(() => {
-    const refresh = () => { if (clubId) loadMarketplace(clubId); };
+    const refresh = () => { if (clubId) loadMarketplace(clubId, true); };
     const events = ['CHIPS_DISTRIBUTED', 'BALANCE_UPDATED'];
     events.forEach(ev => eventBus.on(ev, refresh));
     return () => events.forEach(ev => eventBus.off(ev, refresh));
+  }, [clubId, loadMarketplace]);
+
+  // ── Visibility Refresh ─────────────────────────────────────
+  useEffect(() => {
+    if (!clubId) return;
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') loadMarketplace(clubId, true);
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, [clubId, loadMarketplace]);
 
   // ── Actions ────────────────────────────────────────────────

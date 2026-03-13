@@ -83,10 +83,9 @@ export default function ClubArenaPlayersPage() {
   }, [success]);
 
   // ── Load Sessions (Primary Data) ──────────────────────────
-  const loadSessions = useCallback(async (cId) => {
+  const loadSessions = useCallback(async (cId, silent = false) => {
     try {
-      setLoading(true);
-      setError(null);
+      if (!silent) { setLoading(true); setError(null); }
       const targetClubId = cId || clubId;
       if (!targetClubId) { setError('No club selected.'); setLoading(false); return; }
       const res = await apiGet(`/api/club-arena/player-sessions?clubId=${targetClubId}`);
@@ -191,10 +190,20 @@ export default function ClubArenaPlayersPage() {
 
   // ── EventBus Listeners ─────────────────────────────────────
   useEffect(() => {
-    const refresh = () => { if (clubId) loadSessions(clubId); };
+    const refresh = () => { if (clubId) loadSessions(clubId, true); };
     const events = ['CHIPS_DISTRIBUTED', 'MEMBER_UPDATED', 'PLAYER_JOINED', 'PLAYER_LEFT', 'CASHOUT_APPROVED', 'CASHOUT_REQUESTED'];
     events.forEach(ev => eventBus.on(ev, refresh));
     return () => events.forEach(ev => eventBus.off(ev, refresh));
+  }, [clubId, loadSessions]);
+
+  // ── Visibility Refresh ─────────────────────────────────────
+  useEffect(() => {
+    if (!clubId) return;
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') loadSessions(clubId, true);
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, [clubId, loadSessions]);
 
   // ── Actions ────────────────────────────────────────────────

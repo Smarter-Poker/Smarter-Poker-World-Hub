@@ -212,6 +212,13 @@ export default function ClubArenaPlayerStatsPage() {
     return () => events.forEach(ev => eventBus.off(ev, refreshStats));
   }, [clubId, refreshStats]);
 
+  // Background polling every 60s as safety net
+  useEffect(() => {
+    if (!clubId) return;
+    const iv = setInterval(refreshStats, 60000);
+    return () => clearInterval(iv);
+  }, [clubId, refreshStats]);
+
   if (loading) {
     return (
       <HubErrorBoundary name="Player Stats">
