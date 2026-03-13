@@ -114,6 +114,16 @@ export default function ClubArenaLeaderboardPage() {
     return () => events.forEach(ev => eventBus.off(ev, refresh));
   }, [clubId, mode, loadLeaderboard]);
 
+  // ── Visibility Refresh ─────────────────────────────────────
+  useEffect(() => {
+    if (!clubId) return;
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') loadLeaderboard(clubId, mode, true);
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [clubId, mode, loadLeaderboard]);
+
   // ── Value Renderer ─────────────────────────────────────────
   const renderValue = (entry) => {
     if (metric === 'chips') return fmtChips(entry.chips);
