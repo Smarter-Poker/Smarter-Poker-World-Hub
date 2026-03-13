@@ -356,20 +356,26 @@ export default function TournamentsPage() {
         }
 
         // Deduct entry fee via audit-safe RPC
-        await supabase.rpc('add_diamonds_to_balance', {
-            p_user_id: userId,
-            p_amount: -tournament.entry_fee,
-            p_type: 'tournament_entry',
-            p_description: `Tournament entry — ${tournament.name} (${tournament.entry_fee}💎)`,
-            p_reference_id: tournament.id
-        });
-        // Refresh balance from DB
-        const { data: freshProfile } = await supabase
-            .from('profiles')
-            .select('diamonds')
-            .eq('id', userId)
-            .maybeSingle();
-        if (freshProfile) setUserDiamonds(freshProfile.diamonds || 0);
+        try {
+            const { error: rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
+                p_user_id: userId,
+                p_amount: -tournament.entry_fee,
+                p_type: 'tournament_entry',
+                p_description: `Tournament entry — ${tournament.name} (${tournament.entry_fee}💎)`,
+                p_reference_id: tournament.id
+            });
+            if (rpcErr) throw rpcErr;
+            // Refresh balance from DB
+            const { data: freshProfile } = await supabase
+                .from('profiles')
+                .select('diamonds')
+                .eq('id', userId)
+                .maybeSingle();
+            if (freshProfile) setUserDiamonds(freshProfile.diamonds || 0);
+        } catch (e) {
+            console.error('[Tournaments] Entry fee deduction failed — aborting:', e);
+            return;
+        }
 
         busEmit.diamondsSpent(tournament.entry_fee, 'Tournament Entry');
 

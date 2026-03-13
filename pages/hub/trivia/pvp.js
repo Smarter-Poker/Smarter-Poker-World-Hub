@@ -235,21 +235,28 @@ export default function PvPPage() {
         setGameState('searching');
 
         // Deduct stake immediately via RPC for audit trail
-        await supabase.rpc('add_diamonds_to_balance', {
-            p_user_id: userId,
-            p_amount: -stake,
-            p_type: 'pvp_stake',
-            p_description: `PvP stake — ${stake}💎 entry`,
-            p_reference_id: null
-        });
-        // Refresh balance from DB after deduction
-        const { data: postDeductProfile } = await supabase
-            .from('profiles')
-            .select('diamonds')
-            .eq('id', userId)
-            .maybeSingle();
-        if (postDeductProfile) setUserDiamonds(postDeductProfile.diamonds || 0);
-        busEmit.diamondsSpent(stake, 'PvP Stake Entry');
+        try {
+            const { error: rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
+                p_user_id: userId,
+                p_amount: -stake,
+                p_type: 'pvp_stake',
+                p_description: `PvP stake — ${stake}💎 entry`,
+                p_reference_id: null
+            });
+            if (rpcErr) throw rpcErr;
+            // Refresh balance from DB after deduction
+            const { data: postDeductProfile } = await supabase
+                .from('profiles')
+                .select('diamonds')
+                .eq('id', userId)
+                .maybeSingle();
+            if (postDeductProfile) setUserDiamonds(postDeductProfile.diamonds || 0);
+            busEmit.diamondsSpent(stake, 'PvP Stake Entry');
+        } catch (e) {
+            console.error('[PVP] Stake deduction failed — aborting match:', e);
+            setGameState('lobby');
+            return;
+        }
 
         // Always set 5-second horse fallback as safety net
         // This fires regardless of whether the queue join or real match succeeds
@@ -423,20 +430,24 @@ export default function PvPPage() {
     async function handleNoMatchFound() {
         // This is now only called if horse match also fails
         // Refund stake via audit-safe RPC
-        await supabase.rpc('add_diamonds_to_balance', {
-            p_user_id: userId,
-            p_amount: stakeAmount,
-            p_type: 'pvp_refund',
-            p_description: `PvP match failed — ${stakeAmount}💎 refund`,
-            p_reference_id: null
-        });
-        // Refresh balance from DB
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('diamonds')
-            .eq('id', userId)
-            .maybeSingle();
-        if (profile) setUserDiamonds(profile.diamonds || 0);
+        try {
+            await supabase.rpc('add_diamonds_to_balance', {
+                p_user_id: userId,
+                p_amount: stakeAmount,
+                p_type: 'pvp_refund',
+                p_description: `PvP match failed — ${stakeAmount}💎 refund`,
+                p_reference_id: null
+            });
+            // Refresh balance from DB
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('diamonds')
+                .eq('id', userId)
+                .maybeSingle();
+            if (profile) setUserDiamonds(profile.diamonds || 0);
+        } catch (e) {
+            console.error('[PVP] Refund failed — user may need manual refund:', e);
+        }
 
         await leaveMatchmakingQueue(userId);
         setGameState('lobby');
@@ -452,20 +463,24 @@ export default function PvPPage() {
         leaveMatchmakingQueue(userId);
 
         // Refund stake via audit-safe RPC
-        await supabase.rpc('add_diamonds_to_balance', {
-            p_user_id: userId,
-            p_amount: stakeAmount,
-            p_type: 'pvp_refund',
-            p_description: `PvP cancelled — ${stakeAmount}💎 refund`,
-            p_reference_id: null
-        });
-        // Refresh balance from DB
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('diamonds')
-            .eq('id', userId)
-            .maybeSingle();
-        if (profile) setUserDiamonds(profile.diamonds || 0);
+        try {
+            await supabase.rpc('add_diamonds_to_balance', {
+                p_user_id: userId,
+                p_amount: stakeAmount,
+                p_type: 'pvp_refund',
+                p_description: `PvP cancelled — ${stakeAmount}💎 refund`,
+                p_reference_id: null
+            });
+            // Refresh balance from DB
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('diamonds')
+                .eq('id', userId)
+                .maybeSingle();
+            if (profile) setUserDiamonds(profile.diamonds || 0);
+        } catch (e) {
+            console.error('[PVP] Cancel refund failed:', e);
+        }
 
         setGameState('lobby');
         setOpponent(null);
@@ -561,38 +576,46 @@ export default function PvPPage() {
         if (won) {
             winnings = totalPot - rakeAmount;
             // Award winnings via audit-safe RPC
-            await supabase.rpc('add_diamonds_to_balance', {
-                p_user_id: userId,
-                p_amount: winnings,
-                p_type: 'pvp_win',
-                p_description: `PvP win — ${winnings}💎 payout`,
-                p_reference_id: matchId
-            });
-            // Refresh balance from DB
-            const { data: winProfile } = await supabase
-                .from('profiles')
-                .select('diamonds')
-                .eq('id', userId)
-                .maybeSingle();
-            if (winProfile) setUserDiamonds(winProfile.diamonds || 0);
+            try {
+                await supabase.rpc('add_diamonds_to_balance', {
+                    p_user_id: userId,
+                    p_amount: winnings,
+                    p_type: 'pvp_win',
+                    p_description: `PvP win — ${winnings}💎 payout`,
+                    p_reference_id: matchId
+                });
+                // Refresh balance from DB
+                const { data: winProfile } = await supabase
+                    .from('profiles')
+                    .select('diamonds')
+                    .eq('id', userId)
+                    .maybeSingle();
+                if (winProfile) setUserDiamonds(winProfile.diamonds || 0);
+            } catch (e) {
+                console.error('[PVP] Win payout failed:', e);
+            }
 
             busEmit.diamondsEarned(winnings, 'PvP Victory');
             busEmit.celebration('confetti');
         } else if (tied) {
             // Refund stake on tie via audit-safe RPC
-            await supabase.rpc('add_diamonds_to_balance', {
-                p_user_id: userId,
-                p_amount: stakeAmount,
-                p_type: 'pvp_refund',
-                p_description: `PvP tie — ${stakeAmount}💎 refund`,
-                p_reference_id: matchId
-            });
-            const { data: tieProfile } = await supabase
-                .from('profiles')
-                .select('diamonds')
-                .eq('id', userId)
-                .maybeSingle();
-            if (tieProfile) setUserDiamonds(tieProfile.diamonds || 0);
+            try {
+                await supabase.rpc('add_diamonds_to_balance', {
+                    p_user_id: userId,
+                    p_amount: stakeAmount,
+                    p_type: 'pvp_refund',
+                    p_description: `PvP tie — ${stakeAmount}💎 refund`,
+                    p_reference_id: matchId
+                });
+                const { data: tieProfile } = await supabase
+                    .from('profiles')
+                    .select('diamonds')
+                    .eq('id', userId)
+                    .maybeSingle();
+                if (tieProfile) setUserDiamonds(tieProfile.diamonds || 0);
+            } catch (e) {
+                console.error('[PVP] Tie refund failed:', e);
+            }
             winnings = stakeAmount;
         } else {
             busEmit.screenShake('medium');

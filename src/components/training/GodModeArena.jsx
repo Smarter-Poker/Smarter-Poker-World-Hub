@@ -889,7 +889,7 @@ function GodModeArenaInner({
             const unsub = window.eventBus.on('adaptiveDifficultyChange', handler);
             return () => unsub();
         }
-    }, [loadAnalysis]);
+    }, []);
 
     // Auto-transition to review when game completes + emit bus event
     useEffect(() => {
@@ -899,10 +899,10 @@ function GodModeArenaInner({
             if (typeof window !== 'undefined' && window.eventBus) {
                 window.eventBus.emit(window.EventType?.SESSION_END || 'training:session-complete', {
                     gameId: String(gameId),
-                    score: Number(newScore),
-                    totalHands: handsPlayed,
-                    durationSeconds: sessionTime,
-                    perfectActionCount: perfectHandsCount
+                    score: Number(gtowScore),
+                    totalHands: totalQuestions,
+                    durationSeconds: Math.round((Date.now() - sessionStartRef.current) / 1000),
+                    perfectActionCount: correctCount
                 }, 'GodModeArena');
             }
         }

@@ -115,7 +115,7 @@ export default function DealerRotation() {
     setActionLoading(dealerId);
     try {
       const venueId = getVenueId();
-      const res = await fetch('/api/commander/tables/push', {
+      const res = await fetch('/api/commander/dealers/rotations', {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({

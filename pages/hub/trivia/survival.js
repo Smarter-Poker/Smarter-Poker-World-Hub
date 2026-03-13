@@ -191,23 +191,27 @@ export default function SurvivalModePage() {
 
         // Save to database
         if (userId) {
-            await supabase.from('trivia_survival_runs').insert({
-                user_id: userId,
-                correct_count: gameResult.correctCount,
-                diamonds_earned: gameResult.diamondsEarned,
-                time_survived: 0
-            });
-
-            // Award diamonds via audit-safe RPC
-            if (gameResult.diamondsEarned > 0) {
-                await supabase.rpc('add_diamonds_to_balance', {
-                    p_user_id: userId,
-                    p_amount: gameResult.diamondsEarned,
-                    p_type: 'survival_reward',
-                    p_description: `Survival mode — ${gameResult.diamondsEarned}💎 (${gameResult.correctCount} survived)`,
-                    p_reference_id: null
+            try {
+                await supabase.from('trivia_survival_runs').insert({
+                    user_id: userId,
+                    correct_count: gameResult.correctCount,
+                    diamonds_earned: gameResult.diamondsEarned,
+                    time_survived: 0
                 });
-                busEmit.diamondsEarned(gameResult.diamondsEarned, 'Survival Mode');
+
+                // Award diamonds via audit-safe RPC
+                if (gameResult.diamondsEarned > 0) {
+                    await supabase.rpc('add_diamonds_to_balance', {
+                        p_user_id: userId,
+                        p_amount: gameResult.diamondsEarned,
+                        p_type: 'survival_reward',
+                        p_description: `Survival mode — ${gameResult.diamondsEarned}💎 (${gameResult.correctCount} survived)`,
+                        p_reference_id: null
+                    });
+                    busEmit.diamondsEarned(gameResult.diamondsEarned, 'Survival Mode');
+                }
+            } catch (e) {
+                console.error('[Survival] Save/reward failed:', e);
             }
 
             // Check if new personal best

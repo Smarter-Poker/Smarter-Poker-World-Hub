@@ -5470,12 +5470,11 @@ function SocialMediaPage() {
                 body: JSON.stringify({ postId: id })
             });
 
-            if (!response.ok) throw new Error(`Request failed (${response.status})`);
             const result = await response.json();
 
-            if (!response.ok) {
+            if (!response.ok || result.error) {
                 console.error('[Delete] Server error:', result);
-                toast.error(result.error || 'Failed to delete post');
+                toast.error(result.error || `Failed to delete post (${response.status})`);
                 return;
             }
 
