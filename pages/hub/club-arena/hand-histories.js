@@ -2,7 +2,7 @@
    Club Arena Hand Histories — Native Hub Page (replaces iframe shell)
    Chronological feed of hands mapped to HandReplayerModal
    ═══════════════════════════════════════════════════════════════ */
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
@@ -10,10 +10,14 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { apiGet } from '../../../src/lib/club-arena/apiClient';
+import dynamic from 'next/dynamic';
 import s from '../../../src/styles/UnionDashboard.module.css';
 
-let _HandReplayerModal = null;
-let _supabaseInstance = null;
+// SSG-safe: load HandReplayerModal only on client side
+const HandReplayerModal = dynamic(
+  () => import('../../../src/components/poker/HandReplayerModal'),
+  { ssr: false }
+);
 
 const fmtChips = (n) => {
   const v = Number(n || 0);
@@ -27,6 +31,16 @@ const formatDate = (ts) => {
   const d = new Date(ts);
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 };
+
+// Lazy supabase client (SSG-safe — only created on client)
+let _supabaseClient = null;
+function getSupabase() {
+  if (!_supabaseClient && typeof window !== 'undefined') {
+    const { createClient } = require('../../../src/lib/supabase');
+    _supabaseClient = createClient();
+  }
+  return _supabaseClient;
+}
 
 export default function ClubArenaHandHistoriesPage() {
   useTrainingBus('arena-hand-histories');
@@ -69,7 +83,7 @@ export default function ClubArenaHandHistoriesPage() {
       setUserId(session.user.id);
       
       const qClub = router.query.club || router.query.clubId;
-      const supabase = createClient();
+      const { supabase } = await import('../../../src/lib/supabase');
       let targetClub = qClub;
       
       if (!targetClub) {
@@ -86,7 +100,7 @@ export default function ClubArenaHandHistoriesPage() {
     };
 
     (async () => {
-      const supabase = createClient();
+      const { supabase } = await import('../../../src/lib/supabase');
       const { data: { session } } = await supabase.auth.getSession();
       if (session) { await init(session); return; }
       
@@ -102,9 +116,6 @@ export default function ClubArenaHandHistoriesPage() {
 
     return () => { cancelled = true; authUnsub?.unsubscribe?.(); };
   }, [router.query.club, router.query.clubId, loadHands]);
-
-  // Memoize supabase client to avoid creating a new instance on every render
-  const supabaseInstance = useMemo(() => createClient(), []);
 
   return (
     <HubErrorBoundary name="Hand Histories">
@@ -191,7 +202,7 @@ export default function ClubArenaHandHistoriesPage() {
               {activeHandId && (
                 <HandReplayerModal 
                   handId={activeHandId}
-                  supabase={supabaseInstance}
+                  supabase={getSupabase()}
                   currentUserId={userId}
                   clubId={clubId}
                   onClose={() => setActiveHandId(null)}
