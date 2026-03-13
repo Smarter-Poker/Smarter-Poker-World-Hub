@@ -3030,6 +3030,11 @@ function MessengerPage() {
                                     const otherName = conv.otherUser?.full_name?.toLowerCase() || '';
                                     const otherUsername = conv.otherUser?.username?.toLowerCase() || '';
                                     return otherName.includes(q) || otherUsername.includes(q);
+                                }).sort((a, b) => {
+                                    // Pinned conversations always sort to top
+                                    if (a.is_pinned && !b.is_pinned) return -1;
+                                    if (!a.is_pinned && b.is_pinned) return 1;
+                                    return 0; // Preserve existing chronological order
                                 }).map(conv => (
                                     <ConversationItem
                                         key={conv.id}
