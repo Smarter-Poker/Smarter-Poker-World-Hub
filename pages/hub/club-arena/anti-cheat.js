@@ -12,6 +12,7 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { apiCall } from '../../../src/lib/club-arena/apiClient';
 import { busEmit, eventBus } from '../../../src/engine/EventBus';
+import { createDebouncedHandler } from '../../../src/lib/club-arena/retryAsync';
 import s from '../../../src/styles/UnionDashboard.module.css';
 
 // ── Helpers ─────────────────────────────────────────────────
@@ -230,16 +231,13 @@ export default function ClubArenaAntiCheatPage() {
     if (flagsLoaded && clubId) loadFlags(flagFilter);
   }, [flagFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── EventBus Listeners ─────────────────────────────────
+  // ── EventBus Listeners (debounced) ─────────────────────
   useEffect(() => {
     if (!clubId) return;
-    const unsubs = [
-      eventBus.on('ANTI_CHEAT_FLAG_CREATED', () => { loadStats(clubId); setFlagsLoaded(false); }),
-      eventBus.on('PLAYER_KICKED', () => { loadStats(clubId); }),
-      eventBus.on('TABLE_CREATED', () => { loadStats(clubId); }),
-      eventBus.on('CHIPS_DISTRIBUTED', () => { loadStats(clubId); }),
-    ];
-    return () => unsubs.forEach(u => u?.());
+    const debouncedRefresh = createDebouncedHandler(() => { loadStats(clubId); setFlagsLoaded(false); }, 300);
+    const events = ['ANTI_CHEAT_FLAG_CREATED', 'PLAYER_KICKED', 'TABLE_CREATED', 'CHIPS_DISTRIBUTED'];
+    events.forEach(ev => eventBus.on(ev, debouncedRefresh));
+    return () => { debouncedRefresh.cancel(); events.forEach(ev => eventBus.off(ev, debouncedRefresh)); };
   }, [clubId, loadStats]);
 
   // ── Actions ────────────────────────────────────────────────

@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus } from '../../../src/engine/EventBus';
+import { createDebouncedHandler } from '../../../src/lib/club-arena/retryAsync';
 
 import s from '../../../src/styles/UnionDashboard.module.css';
 
@@ -204,12 +205,13 @@ export default function ClubArenaPlayerStatsPage() {
     return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, [clubId, refreshStats]);
 
-  // EventBus — instant refresh on financial events
+  // EventBus — debounced refresh on financial events
   useEffect(() => {
     if (!clubId) return;
-    const events = ['CHIPS_DISTRIBUTED', 'CASHOUT_APPROVED', 'BALANCE_UPDATED', 'HAND_COMPLETE'];
-    events.forEach(ev => eventBus.on(ev, refreshStats));
-    return () => events.forEach(ev => eventBus.off(ev, refreshStats));
+    const debouncedRefresh = createDebouncedHandler(refreshStats, 300);
+    const events = ['CHIPS_DISTRIBUTED', 'CASHOUT_APPROVED', 'BALANCE_UPDATED', 'HAND_COMPLETE', 'CREDIT_UPDATED'];
+    events.forEach(ev => eventBus.on(ev, debouncedRefresh));
+    return () => { debouncedRefresh.cancel(); events.forEach(ev => eventBus.off(ev, debouncedRefresh)); };
   }, [clubId, refreshStats]);
 
   // Background polling every 60s as safety net

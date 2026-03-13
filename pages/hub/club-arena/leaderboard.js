@@ -11,6 +11,7 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { apiCall } from '../../../src/lib/club-arena/apiClient';
 import { eventBus } from '../../../src/engine/EventBus';
+import { createDebouncedHandler } from '../../../src/lib/club-arena/retryAsync';
 import s from '../../../src/styles/UnionDashboard.module.css';
 
 // ── Helpers ─────────────────────────────────────────────────
@@ -106,12 +107,12 @@ export default function ClubArenaLeaderboardPage() {
     if (clubId) loadLeaderboard(clubId, mode);
   }, [mode]);
 
-  // ── EventBus ───────────────────────────────────────────────
+  // ── EventBus (debounced) ─────────────────────────────────
   useEffect(() => {
-    const refresh = () => { if (clubId) loadLeaderboard(clubId, mode, true); };
+    const debouncedRefresh = createDebouncedHandler(() => { if (clubId) loadLeaderboard(clubId, mode, true); }, 300);
     const events = ['CHIPS_DISTRIBUTED', 'CASHOUT_APPROVED', 'BALANCE_UPDATED', 'HAND_COMPLETE'];
-    events.forEach(ev => eventBus.on(ev, refresh));
-    return () => events.forEach(ev => eventBus.off(ev, refresh));
+    events.forEach(ev => eventBus.on(ev, debouncedRefresh));
+    return () => { debouncedRefresh.cancel(); events.forEach(ev => eventBus.off(ev, debouncedRefresh)); };
   }, [clubId, mode, loadLeaderboard]);
 
   // ── Visibility Refresh ─────────────────────────────────────

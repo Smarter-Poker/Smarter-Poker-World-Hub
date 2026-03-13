@@ -10,6 +10,7 @@ import Link from 'next/link';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { apiCall } from '../../../src/lib/club-arena/apiClient';
 import { busEmit, eventBus } from '../../../src/engine/EventBus';
+import { createDebouncedHandler } from '../../../src/lib/club-arena/retryAsync';
 import s from '../../../src/styles/UnionDashboard.module.css';
 
 const fmt = (n) => Number(n || 0).toLocaleString();
@@ -208,18 +209,20 @@ export default function UnionGamesPage() {
     return () => clearInterval(interval);
   }, [unionId, tab, loadTournaments, loadTables]);
 
-  // ── EventBus LISTENERS — auto-refresh on incoming events ──
+  // ── EventBus LISTENERS (debounced) — auto-refresh on incoming events ──
   useEffect(() => {
     if (!unionId || typeof eventBus?.on !== 'function') return;
-    const refreshTourns = () => { if (mountedRef.current) loadTournaments(); };
-    const refreshTables = () => { if (mountedRef.current) loadTables(); };
-    const unsubs = [
-      eventBus.on('union:tournament-created', refreshTourns),
-      eventBus.on('union:tournament-updated', refreshTourns),
-      eventBus.on('union:table-created', refreshTables),
-      eventBus.on('union:table-closed', refreshTables),
-    ];
-    return () => unsubs.forEach(fn => fn?.());
+    const debouncedTourns = createDebouncedHandler(() => { if (mountedRef.current) loadTournaments(); }, 300);
+    const debouncedTables = createDebouncedHandler(() => { if (mountedRef.current) loadTables(); }, 300);
+    const tournEvents = ['union:tournament-created', 'union:tournament-updated'];
+    const tableEvents = ['union:table-created', 'union:table-closed'];
+    tournEvents.forEach(ev => eventBus.on(ev, debouncedTourns));
+    tableEvents.forEach(ev => eventBus.on(ev, debouncedTables));
+    return () => {
+      debouncedTourns.cancel(); debouncedTables.cancel();
+      tournEvents.forEach(ev => eventBus.off(ev, debouncedTourns));
+      tableEvents.forEach(ev => eventBus.off(ev, debouncedTables));
+    };
   }, [unionId, loadTournaments, loadTables]);
 
   // ── Filtered Lists (search) ───────────────────────────────

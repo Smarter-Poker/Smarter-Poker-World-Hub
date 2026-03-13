@@ -11,6 +11,7 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { apiCall } from '../../../src/lib/club-arena/apiClient';
 import { busEmit, eventBus } from '../../../src/engine/EventBus';
+import { createDebouncedHandler } from '../../../src/lib/club-arena/retryAsync';
 import s from '../../../src/styles/UnionDashboard.module.css';
 
 const fmt = (n) => Number(n || 0).toLocaleString();
@@ -127,16 +128,16 @@ export default function ClubArenaXMTTPage() {
     return () => clearInterval(iv);
   }, [clubId, loadTournaments]);
 
-  // EventBus — instant refresh on tournament events
+  // EventBus — debounced refresh on tournament events
   useEffect(() => {
     if (!clubId) return;
-    const refresh = () => {
+    const debouncedRefresh = createDebouncedHandler(() => {
       loadTournaments(clubId);
       if (selectedTournament) loadDetail(selectedTournament, clubId);
-    };
-    const events = ['TOURNAMENT_REGISTERED', 'TOURNAMENT_STARTED', 'TOURNAMENT_COMPLETE', 'TOURNAMENT_CANCELLED'];
-    events.forEach(ev => eventBus.on(ev, refresh));
-    return () => events.forEach(ev => eventBus.off(ev, refresh));
+    }, 300);
+    const events = ['TOURNAMENT_REGISTERED', 'TOURNAMENT_STARTED', 'TOURNAMENT_COMPLETE', 'TOURNAMENT_CANCELLED', 'TOURNAMENT_LEVEL_CHANGE'];
+    events.forEach(ev => eventBus.on(ev, debouncedRefresh));
+    return () => { debouncedRefresh.cancel(); events.forEach(ev => eventBus.off(ev, debouncedRefresh)); };
   }, [clubId, selectedTournament, loadTournaments, loadDetail]);
 
   // Auto-refresh detail panel every 15s when viewing a running tournament
