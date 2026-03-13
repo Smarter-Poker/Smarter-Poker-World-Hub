@@ -4575,7 +4575,7 @@ function SocialMediaPage() {
                     let profileRes = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/profiles?id=eq.${authUser.id}&select=id,username,full_name,display_name_preference,skill_tier,avatar_url,hendon_url,hendon_total_cashes,hendon_total_earnings,hendon_best_finish,hendon_biggest_cash,role`, {
                         headers: {
                             'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-                            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo'
+                            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`
                         }
                     });
 
@@ -4589,7 +4589,7 @@ function SocialMediaPage() {
                         const ownedProfileRes = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/profiles?owner_id=eq.${authUser.id}&select=id,username,full_name,display_name_preference,skill_tier,avatar_url,hendon_url,hendon_total_cashes,hendon_total_earnings,hendon_best_finish,hendon_biggest_cash,role`, {
                             headers: {
                                 'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-                                'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo'
+                                'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`
                             }
                         });
                         if (!ownedProfileRes.ok) throw new Error(`Request failed (${ownedProfileRes.status})`);
