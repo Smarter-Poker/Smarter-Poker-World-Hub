@@ -10,7 +10,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { apiCall, apiGet } from '../../../src/lib/club-arena/apiClient';
-import { eventBus } from '../../../src/engine/EventBus';
+import { busEmit, eventBus } from '../../../src/engine/EventBus';
 import s from '../../../src/styles/UnionDashboard.module.css';
 
 // ── Helpers ─────────────────────────────────────────────────
@@ -802,6 +802,20 @@ function TemplatesTab({ clubId }) {
                 <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                   <span style={{ fontSize: '11px', color: '#B0B3B8', background: '#3A3B3C', padding: '2px 8px', borderRadius: '12px' }}>Used {t.use_count || 0}x</span>
                   <button onClick={() => toggleSchedule(t)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', padding: '4px' }} title={t.schedule_enabled ? 'Disable schedule' : 'Enable schedule'}>{t.schedule_enabled ? '⏰' : '🕔'}</button>
+                  <button onClick={async () => {
+                    if (!confirm(`Launch "${t.name}" as a new table?`)) return;
+                    try {
+                      await apiCall('/api/club-arena/create-table', {
+                        clubId, name: t.name, variant: t.game_variant || 'nlh', gameType: 'cash',
+                        smallBlind: t.small_blind, bigBlind: t.big_blind, maxPlayers: t.max_players || 9,
+                        minBuyIn: t.min_buy_in, maxBuyIn: t.max_buy_in, ante: t.ante || 0, actionTime: t.action_time_seconds || 30,
+                        settings: t.settings || {},
+                      });
+                      busEmit('TABLE_CREATED', { clubId });
+                      setActionError(null);
+                      load();
+                    } catch (err) { setActionError(err.message); }
+                  }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', padding: '4px', color: '#31A24C' }} title="Launch table from template">🚀</button>
                   <button onClick={() => handleDelete(t.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', padding: '4px', color: '#FA383E' }} title="Delete">🗑️</button>
                 </div>
               </div>
@@ -816,6 +830,120 @@ function TemplatesTab({ clubId }) {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Mint Chips Tab (Owner Only) ──────────────────────────
+function MintChipsTab({ clubId }) {
+  const [amount, setAmount] = useState('');
+  const [notes, setNotes] = useState('');
+  const [processing, setProcessing] = useState(false);
+  const [msg, setMsg] = useState(null);
+  const [err, setErr] = useState(null);
+
+  return (
+    <div style={{ animation: 'fadeIn 0.2s ease-out' }}>
+      <div style={{ background: '#242526', borderRadius: '12px', padding: '20px', border: '1px solid #3A3B3C' }}>
+        <div style={{ fontSize: '16px', fontWeight: 700, color: '#E4E6EB', marginBottom: '4px' }}>🏦 Mint Chips to Treasury</div>
+        <div style={{ fontSize: '12px', color: '#B0B3B8', marginBottom: '16px', lineHeight: 1.5 }}>
+          Create new chips and add them to the club treasury. Subject to daily limits.
+        </div>
+        {msg && <div className={s.successMsg} style={{ marginBottom: '12px' }}>{msg}</div>}
+        {err && <div className={s.error} style={{ marginBottom: '12px' }}>{err}</div>}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', color: '#B0B3B8', marginBottom: '6px', fontWeight: 600 }}>Amount</label>
+            <input type="number" value={amount} onChange={e => setAmount(e.target.value)}
+              placeholder="0" min="1" style={{ width: '100%', padding: '10px 12px', background: '#18191A', border: '1px solid #3A3B3C', borderRadius: '8px', color: '#E4E6EB', fontSize: '13px' }} />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', color: '#B0B3B8', marginBottom: '6px', fontWeight: 600 }}>Notes (optional)</label>
+            <input value={notes} onChange={e => setNotes(e.target.value)}
+              placeholder="Reason for minting..." style={{ width: '100%', padding: '10px 12px', background: '#18191A', border: '1px solid #3A3B3C', borderRadius: '8px', color: '#E4E6EB', fontSize: '13px' }} />
+          </div>
+          <button className={s.btnPrimary} disabled={processing || !amount}
+            style={{ padding: '12px', marginTop: '4px' }}
+            onClick={async () => {
+              setProcessing(true); setErr(null); setMsg(null);
+              try {
+                await apiCall('/api/club-arena/mint-chips', { clubId, amount: Number(amount), notes: notes || undefined });
+                setMsg(`Minted ${fmtChips(amount)} chips to treasury!`);
+                busEmit('CHIPS_DISTRIBUTED', { clubId });
+                setAmount(''); setNotes('');
+              } catch (e) { setErr(e.message); }
+              finally { setProcessing(false); }
+            }}>
+            {processing ? 'Minting...' : `Mint ${amount ? fmtChips(amount) : '0'} chips`}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Club Settings Tab (Owner Only) ───────────────────────
+function SettingsTab({ clubId }) {
+  const [settings, setSettings] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [processing, setProcessing] = useState(false);
+  const [msg, setMsg] = useState(null);
+  const [err, setErr] = useState(null);
+
+  useEffect(() => {
+    apiCall('/api/club-arena/save-settings', { clubId, action: 'get' })
+      .then(r => { setSettings(r.settings || {}); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [clubId]);
+
+  const save = async () => {
+    setProcessing(true); setErr(null); setMsg(null);
+    try {
+      await apiCall('/api/club-arena/save-settings', { clubId, action: 'save', settings });
+      setMsg('Settings saved!');
+    } catch (e) { setErr(e.message); }
+    finally { setProcessing(false); }
+  };
+
+  const toggleField = (key) => setSettings(prev => ({ ...prev, [key]: !prev[key] }));
+  const setField = (key, val) => setSettings(prev => ({ ...prev, [key]: val }));
+
+  if (loading) return <div className={s.loading}>Loading settings...</div>;
+
+  const TOGGLES = [
+    { key: 'allow_observer', label: 'Allow Observers' },
+    { key: 'show_hand_history', label: 'Show Hand History' },
+    { key: 'auto_cashout', label: 'Auto Cashout on Leave' },
+    { key: 'require_kyc', label: 'Require KYC for Cashouts' },
+    { key: 'gps_verification', label: 'GPS Verification' },
+    { key: 'ip_restriction', label: 'IP Restriction' },
+    { key: 'emulator_detection', label: 'Emulator Detection' },
+  ];
+
+  return (
+    <div style={{ animation: 'fadeIn 0.2s ease-out' }}>
+      <h3 style={{ margin: '0 0 16px', fontSize: '18px' }}>⚙️ Club Settings</h3>
+      {msg && <div className={s.successMsg} style={{ marginBottom: '12px' }}>{msg}</div>}
+      {err && <div className={s.error} style={{ marginBottom: '12px' }}>{err}</div>}
+      <div style={{ background: '#242526', borderRadius: '12px', padding: '20px', border: '1px solid #3A3B3C' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {TOGGLES.map(t => (
+            <label key={t.key} style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+              <input type="checkbox" checked={!!settings[t.key]} onChange={() => toggleField(t.key)}
+                style={{ accentColor: '#4599FF', width: '18px', height: '18px' }} />
+              <span style={{ color: '#E4E6EB', fontSize: '14px' }}>{t.label}</span>
+            </label>
+          ))}
+          <div style={{ marginTop: '8px' }}>
+            <label style={{ display: 'block', fontSize: '12px', color: '#B0B3B8', marginBottom: '6px', fontWeight: 600 }}>Default Action Time (seconds)</label>
+            <input type="number" value={settings.default_action_time || 30} onChange={e => setField('default_action_time', Number(e.target.value))}
+              min="10" max="120" style={{ width: '120px', padding: '8px 12px', background: '#18191A', border: '1px solid #3A3B3C', borderRadius: '8px', color: '#E4E6EB', fontSize: '13px' }} />
+          </div>
+          <button className={s.btnPrimary} disabled={processing} style={{ padding: '12px', marginTop: '8px' }} onClick={save}>
+            {processing ? 'Saving...' : 'Save Settings'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1198,6 +1326,12 @@ export default function ClubArenaAdminPage() {
                 {['owner', 'admin'].includes(role) && (
                   <button className={`${s.tab} ${activeTab === 'analytics' ? s.tabActive : ''}`} onClick={() => setActiveTab('analytics')}>📊 Analytics</button>
                 )}
+                {role === 'owner' && (
+                  <button className={`${s.tab} ${activeTab === 'mint' ? s.tabActive : ''}`} onClick={() => setActiveTab('mint')}>🏦 Mint</button>
+                )}
+                {role === 'owner' && (
+                  <button className={`${s.tab} ${activeTab === 'settings' ? s.tabActive : ''}`} onClick={() => setActiveTab('settings')}>⚙️ Settings</button>
+                )}
               </div>
 
               {/* Tab Content */}
@@ -1211,6 +1345,8 @@ export default function ClubArenaAdminPage() {
               {activeTab === 'announcements' && <AnnouncementsTab clubId={clubId} />}
               {activeTab === 'templates' && <TemplatesTab clubId={clubId} />}
               {activeTab === 'analytics' && <AnalyticsTab clubId={clubId} />}
+              {activeTab === 'mint' && <MintChipsTab clubId={clubId} />}
+              {activeTab === 'settings' && <SettingsTab clubId={clubId} />}
             </>
           )}
 
