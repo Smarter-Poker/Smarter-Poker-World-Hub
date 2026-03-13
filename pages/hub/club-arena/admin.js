@@ -2,7 +2,7 @@
    Club Arena Admin & Operations — Native Hub Page (replaces iframe)
    Dashboard (Health), Settlements, Audit Log, Branding
    ═══════════════════════════════════════════════════════════════ */
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
