@@ -817,8 +817,18 @@ function AnalyticsTab({ clubId }) {
 
   useEffect(() => { load(period); }, [period]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleExport = () => {
-    window.open(`/api/club-arena/club-analytics?clubId=${clubId}&action=csv&period=${period}`, '_blank');
+  const handleExport = async () => {
+    try {
+      const res = await fetch(`/api/club-arena/club-analytics?clubId=${clubId}&action=csv&period=${period}`, {
+        headers: { 'Authorization': `Bearer ${(await (await import('../../../src/lib/supabase')).supabase.auth.getSession()).data?.session?.access_token}` },
+      });
+      if (!res.ok) throw new Error('Export failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `rake_report_${period}.csv`; a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) { console.warn('[Analytics] CSV export failed:', err.message); }
   };
 
   if (loading) return <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>{[1,2,3].map(i => <div key={i} className={s.shimmerLine} style={{ height: '70px', borderRadius: '8px' }} />)}</div>;
