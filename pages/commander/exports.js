@@ -93,7 +93,6 @@ export default function ExportsHub() {
         setMessage({ type: 'error', text: json.error || 'Export failed' });
       }
     } catch (err) { setMessage({ type: 'error', text: 'Network Error' }); }
-    setLoading(false);
     finally { setCreating(null); }
   };
 
