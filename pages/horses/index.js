@@ -489,6 +489,19 @@ export default function HorsesAdmin() {
         console.log('[Horses Sync] Supabase pipeline_runs changed, refreshing...');
         loadDataRef.current();
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tables' }, () => {
+        console.log('[Horses Sync] tables changed, refreshing Club Arena data...');
+        if (caLoaded) loadClubArenaData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'table_seats' }, () => {
+        console.log('[Horses Sync] table_seats changed, refreshing...');
+        loadDataRef.current();
+        if (caLoaded) loadClubArenaData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
+        console.log('[Horses Sync] profiles changed, refreshing status...');
+        loadDataRef.current();
+      })
       .subscribe();
 
     // 4. EventBus Listeners for real-time diamond/mutation events
