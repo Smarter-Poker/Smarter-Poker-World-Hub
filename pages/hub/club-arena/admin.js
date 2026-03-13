@@ -2,7 +2,7 @@
    Club Arena Admin & Operations — Native Hub Page (replaces iframe)
    Dashboard (Health), Settlements, Audit Log, Branding
    ═══════════════════════════════════════════════════════════════ */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
@@ -378,6 +378,9 @@ function BrandingTab({ clubId }) {
   const [saving, setSaving] = useState(false);
   const [loadError, setLoadError] = useState(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const saveTimerRef = useRef(null);
+
+  useEffect(() => () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); }, []);
 
   const loadBranding = useCallback(async () => {
     try {
@@ -400,7 +403,8 @@ function BrandingTab({ clubId }) {
       setSaveSuccess(false);
       await apiCall('/api/club-arena/club-branding', { action: 'save', clubId, theme });
       setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
       alert('Failed to save: ' + err.message);
     } finally {
