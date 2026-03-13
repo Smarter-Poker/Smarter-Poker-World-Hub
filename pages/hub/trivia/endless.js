@@ -569,17 +569,28 @@ export default function EndlessModePage() {
             }
 
             // Record question history for 60-day non-repeat tracking
-            const answeredQuestions = questions.slice(0, currentIndex + 1);
-            if (answeredQuestions.length > 0) {
+            // currentIndex is the question that was answered wrong (ending the game)
+            // All questions BEFORE currentIndex were answered correctly
+            const correctQuestions = questions.slice(0, currentIndex);
+            const wrongQuestion = questions[currentIndex]; // The one that ended the run
+            const historyRecords = [
+                ...correctQuestions.map(q => ({
+                    user_id: userId,
+                    question_id: q.id,
+                    was_correct: true,
+                    seen_at: new Date().toISOString(),
+                    mode: 'endless'
+                })),
+                ...(wrongQuestion ? [{
+                    user_id: userId,
+                    question_id: wrongQuestion.id,
+                    was_correct: false,
+                    seen_at: new Date().toISOString(),
+                    mode: 'endless'
+                }] : [])
+            ];
+            if (historyRecords.length > 0) {
                 try {
-                    const historyRecords = answeredQuestions.map(q => ({
-                        user_id: userId,
-                        question_id: q.id,
-                        was_correct: true, // Endless only ends on wrong, all previous are correct
-                        seen_at: new Date().toISOString(),
-                        mode: 'endless'
-                    }));
-
                     await supabase.from('trivia_user_question_history')
                         .upsert(historyRecords, {
                             onConflict: 'user_id,question_id',

@@ -676,9 +676,12 @@ export default function SurvivalGamePage() {
 
             // Record question history for 60-day non-repeat
             if (questions && questions.length > 0) {
-                const historyRecords = questions.map(q => ({
+                const answeredCount = correctCount + incorrectCount;
+                const answeredQuestions = questions.slice(0, Math.min(answeredCount, questions.length));
+                const historyRecords = answeredQuestions.map((q, idx) => ({
                     user_id: userId,
                     question_id: q.id,
+                    was_correct: idx < correctCount, // First N are correct, rest are wrong
                     seen_at: new Date().toISOString(),
                     mode: 'survival'
                 }));

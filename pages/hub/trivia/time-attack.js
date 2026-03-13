@@ -248,10 +248,10 @@ export default function TimeAttackPage() {
             const answeredQuestions = questions.slice(0, answeredCount);
             if (answeredQuestions.length > 0) {
                 try {
-                    const historyRecords = answeredQuestions.map(q => ({
+                    const historyRecords = answeredQuestions.map((q, idx) => ({
                         user_id: userId,
                         question_id: q.id,
-                        was_correct: true,
+                        was_correct: idx < gameResult.correctCount,
                         seen_at: new Date().toISOString(),
                         mode: 'time-attack'
                     }));
