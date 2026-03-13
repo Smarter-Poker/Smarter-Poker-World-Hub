@@ -73,13 +73,24 @@ export default class MyDocument extends Document {
                                     var src = e.target.src || '';
                                     if (src.includes('_next/static/chunks')) {
                                         console.warn('⚠️ Stale chunk failed. Nuking PWA cache & reloading...');
+                                        if (sessionStorage.getItem('reloaded_stale_chunk')) {
+                                            console.error('Already attempted reload. Halting to prevent infinite loop.');
+                                            return;
+                                        }
+                                        sessionStorage.setItem('reloaded_stale_chunk', '1');
+                                        
                                         if ('serviceWorker' in navigator) {
                                             navigator.serviceWorker.getRegistrations().then(function(regs) {
-                                                for (let r of regs) { r.unregister(); }
-                                                window.location.href = window.location.href;
+                                                var promises = [];
+                                                for (var i = 0; i < regs.length; i++) {
+                                                    promises.push(regs[i].unregister());
+                                                }
+                                                Promise.all(promises).then(function() {
+                                                    window.location.reload(true);
+                                                });
                                             });
                                         } else {
-                                            window.location.href = window.location.href;
+                                            window.location.reload(true);
                                         }
                                     }
                                 }
