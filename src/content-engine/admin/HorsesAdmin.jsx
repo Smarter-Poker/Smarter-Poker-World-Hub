@@ -65,7 +65,7 @@ function HorsesLogin({ onLogin }) {
                             type="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            placeholder="admin@smarter.poker"
+                            placeholder="admin@email.com"
                             required
                         />
                     </div>
@@ -131,11 +131,11 @@ function HorsesDashboard({ user, onLogout }) {
 
     // Demo personas for when DB is empty
     const demoPersonas = [
-        { id: 1, name: 'Marcus Chen', alias: 'VegasGrinder85', gender: 'male', location: 'Las Vegas, NV', specialty: 'cash_games', stakes: '2/5 NLH', bio: 'Started playing in underground LA games in 2008. Now a full-time 2/5 grinder at the Bellagio.', voice: 'analytical', is_active: true },
-        { id: 2, name: 'Sarah Mitchell', alias: 'TexasQueen92', gender: 'female', location: 'Austin, TX', specialty: 'tournaments', stakes: '$200-$500 MTTs', bio: 'Former accountant who discovered poker during COVID. Cashed in 12 WSOP Circuit events.', voice: 'enthusiastic', is_active: true },
-        { id: 3, name: 'Derek Williams', alias: 'LANitOwl', gender: 'male', location: 'Los Angeles, CA', specialty: 'high_stakes', stakes: '5/10+ PLO', bio: '15-year veteran of the Commerce Casino. Specializes in mixed games and PLO.', voice: 'experienced', is_active: true },
-        { id: 4, name: 'Jennifer Park', alias: 'SeattleSolver', gender: 'female', location: 'Seattle, WA', specialty: 'gto', stakes: 'Online NL200', bio: 'Software engineer by day, GTO nerd by night. Runs solver analysis for study groups.', voice: 'technical', is_active: false },
-        { id: 5, name: 'Michael Torres', alias: 'MiamiMike305', gender: 'male', location: 'Miami, FL', specialty: 'live_reads', stakes: '1/3 to 5/10', bio: 'Cuban-American poker pro who learned the game in Hialeah home games.', voice: 'street_smart', is_active: true },
+        { id: 1, name: 'Marcus Chen', alias: 'Kingfish', gender: 'male', location: 'Las Vegas, NV', specialty: 'cash_games', stakes: '2/5 NLH', bio: 'Started playing in underground LA games in 2008. Now a full-time 2/5 grinder at the Bellagio.', voice: 'analytical', is_active: true },
+        { id: 2, name: 'Sarah Mitchell', alias: 'LadyLuck22', gender: 'female', location: 'Austin, TX', specialty: 'tournaments', stakes: '$200-$500 MTTs', bio: 'Former accountant who discovered poker during COVID. Cashed in 12 WSOP Circuit events.', voice: 'enthusiastic', is_active: true },
+        { id: 3, name: 'Derek Williams', alias: 'Nighthawk', gender: 'male', location: 'Los Angeles, CA', specialty: 'high_stakes', stakes: '5/10+ PLO', bio: '15-year veteran of the Commerce Casino. Specializes in mixed games and PLO.', voice: 'experienced', is_active: true },
+        { id: 4, name: 'Jennifer Park', alias: 'ByteSize', gender: 'female', location: 'Seattle, WA', specialty: 'gto', stakes: 'Online NL200', bio: 'Software engineer by day, GTO nerd by night. Runs solver analysis for study groups.', voice: 'technical', is_active: false },
+        { id: 5, name: 'Michael Torres', alias: 'Caliente305', gender: 'male', location: 'Miami, FL', specialty: 'live_reads', stakes: '1/3 to 5/10', bio: 'Cuban-American poker pro who learned the game in Hialeah home games.', voice: 'street_smart', is_active: true },
     ];
 
     useEffect(() => {
@@ -354,7 +354,7 @@ function HorsesDashboard({ user, onLogout }) {
                         <span className={`status-dot ${settings.engine_enabled ? 'active' : 'inactive'}`}></span>
                         <span>{settings.engine_enabled ? 'Engine Running' : 'Engine Stopped'}</span>
                     </div>
-                    <span className="user-info">{user?.email || 'admin@smarter.poker'}</span>
+                    <span className="user-info">{user?.email || 'admin'}</span>
                     <button onClick={onLogout} className="logout-btn">Logout</button>
                 </div>
             </header>

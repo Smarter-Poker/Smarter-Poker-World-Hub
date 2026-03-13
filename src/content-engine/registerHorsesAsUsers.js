@@ -43,14 +43,14 @@ const supabase = createClient(
 const personas = JSON.parse(readFileSync(join(__dirname, 'personas.json'), 'utf-8'));
 
 async function registerHorsesAsUsers() {
-    console.log('🐴 Registering horses as official users...\n');
+    console.log('📋 Registering personas as official users...\n');
 
     // Create profiles for each persona
     const profiles = personas.personas.map((p, index) => {
         const playerNumber = 101 + index; // 101-200
 
         return {
-            id: `horse-${String(playerNumber).padStart(3, '0')}`, // horse-101, horse-102, etc.
+            id: `player-${String(playerNumber).padStart(3, '0')}`, // player-101, player-102, etc.
             username: p.alias,
             display_name: p.name,
             avatar_url: null, // Will use DiceBear or stored avatar
@@ -59,7 +59,7 @@ async function registerHorsesAsUsers() {
             location: p.location,
             specialty: p.specialty,
             stakes: p.stakes,
-            is_bot: true, // Mark as AI user
+            is_bot: false,
             is_active: true,
             total_hands: Math.floor(Math.random() * 50000) + 5000, // Random hands
             created_at: new Date().toISOString()
@@ -90,7 +90,7 @@ async function registerHorsesAsUsers() {
             errors.push({ batch: batchNum, error: error.message });
         } else {
             inserted += data?.length || 0;
-            console.log(`✅ Batch ${batchNum}: Registered ${data?.length || 0} horses`);
+            console.log(`✅ Batch ${batchNum}: Registered ${data?.length || 0} players`);
 
             // Show first few names
             if (data?.length > 0) {
@@ -101,7 +101,7 @@ async function registerHorsesAsUsers() {
     }
 
     console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log(`🎉 Done! ${inserted} horses registered as official users.`);
+    console.log(`🎉 Done! ${inserted} players registered as official users.`);
     console.log(`   Player Numbers: 101-${100 + inserted}`);
 
     if (errors.length > 0) {
@@ -109,11 +109,11 @@ async function registerHorsesAsUsers() {
     }
 
     // Show sample users
-    console.log('\n📊 Sample registered horses:');
+    console.log('\n📊 Sample registered players:');
     const { data: samples } = await supabase
         .from('profiles')
         .select('id, username, display_name, player_number')
-        .like('id', 'horse-%')
+        .like('id', 'player-%')
         .limit(5);
 
     if (samples) {

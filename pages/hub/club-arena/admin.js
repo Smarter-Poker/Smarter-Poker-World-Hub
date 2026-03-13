@@ -187,6 +187,7 @@ function SettlementsTab({ clubId }) {
 
   return (
     <div style={{ animation: 'fadeIn 0.2s ease-out' }}>
+      {error && <div className={s.error} style={{ marginBottom: '16px' }}>{error}</div>}
       {/* Current Period Control */}
       <div style={{ background: '#242526', padding: '24px', borderRadius: '12px', border: '1px solid #3A3B3C', marginBottom: '24px' }}>
         <h3 style={{ margin: '0 0 16px', fontSize: '18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -709,6 +710,7 @@ function AnnouncementsTab({ clubId }) {
   return (
     <div style={{ animation: 'fadeIn 0.2s ease-out' }}>
       <h3 style={{ margin: '0 0 16px', fontSize: '18px' }}>📢 Announcements</h3>
+      {actionError && <div className={s.error} style={{ marginBottom: '16px' }}>{actionError}</div>}
 
       {/* Create / Edit Form */}
       <div style={{ background: '#242526', border: '1px solid #3A3B3C', borderRadius: '10px', padding: '16px', marginBottom: '16px' }}>
@@ -787,6 +789,7 @@ function TemplatesTab({ clubId }) {
   return (
     <div style={{ animation: 'fadeIn 0.2s ease-out' }}>
       <h3 style={{ margin: '0 0 16px', fontSize: '18px' }}>📋 Table Templates</h3>
+      {actionError && <div className={s.error} style={{ marginBottom: '16px' }}>{actionError}</div>}
 
       {templates.length === 0 ? (
         <div className={s.emptyState}><span className={s.emptyIcon}>📋</span><span className={s.emptyText}>No saved templates. Create a table and save its config as a template.</span></div>
@@ -1015,6 +1018,13 @@ function HierarchyTreeTab({ clubId }) {
       <div className={`${s.skeleton} ${s.skeletonCard}`} />
       <div className={`${s.skeleton} ${s.skeletonCard}`} />
       <div className={`${s.skeleton} ${s.skeletonCard}`} />
+    </div>
+  );
+
+  if (loadError) return (
+    <div className={s.error} style={{ textAlign: 'center', padding: '40px' }}>
+      <div style={{ marginBottom: '16px' }}>{loadError}</div>
+      <button onClick={loadTree} className={s.btnPrimary} style={{ padding: '8px 24px' }}>↻ Retry</button>
     </div>
   );
 
