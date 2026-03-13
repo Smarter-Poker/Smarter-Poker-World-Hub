@@ -1,8 +1,9 @@
 -- =========================================================================
 -- MIGRATION: 50-LEVEL CLUB CAPACITY SYSTEM HOTFIX 
 -- =========================================================================
--- Purpose: Fixes the PL/pgSQL FOR REVERSE loop bounds which caused the 
--- levels to default to 1 because the lower bound must always precede the upper bound.
+-- Purpose: Fixes the PL/pgSQL FOR REVERSE loop bounds and optimizes the UX 
+-- of the progress bars by setting current thresholds to 0 for clubs that 
+-- haven't met the mathematical Level 1 boundary yet (Pass 4 Audit rules).
 
 CREATE OR REPLACE FUNCTION public.recompute_club_levels(p_club_id UUID)
 RETURNS JSONB
@@ -75,10 +76,19 @@ BEGIN
     v_final_level := GREATEST(v_player_level, v_hierarchy_level, 1);
     
     -- 6. Compute boundary thresholds for the computed levels
-    v_pt_curr := ROUND(30 * POWER(1.125, v_player_level - 1));
+    IF v_player_level = 1 THEN
+        v_pt_curr := 0;
+    ELSE
+        v_pt_curr := ROUND(30 * POWER(1.125, v_player_level - 1));
+    END IF;
+    -- The +1 logic is safe because LEAST caps it at 50, and 50 - 1 = 49
     v_pt_next := ROUND(30 * POWER(1.125, LEAST(v_player_level + 1, 50) - 1));
     
-    v_ht_curr := ROUND(2 * POWER(1.086, v_hierarchy_level - 1));
+    IF v_hierarchy_level = 1 THEN
+        v_ht_curr := 0;
+    ELSE
+        v_ht_curr := ROUND(2 * POWER(1.086, v_hierarchy_level - 1));
+    END IF;
     v_ht_next := ROUND(2 * POWER(1.086, LEAST(v_hierarchy_level + 1, 50) - 1));
     
     -- 7. Persist to DB
