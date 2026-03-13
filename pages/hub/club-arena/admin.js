@@ -640,6 +640,264 @@ function RecommendationsTab({ clubId }) {
   );
 }
 
+// ── Announcements Tab ───────────────────────────────────
+function AnnouncementsTab({ clubId }) {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(null);
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await apiGet(`/api/club-arena/announcements?clubId=${clubId}`);
+      setItems(res.announcements || []);
+    } catch (err) { console.warn('[Announcements]', err.message); }
+    finally { setLoading(false); }
+  }, [clubId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleSave = async () => {
+    if (!title.trim()) return;
+    setSaving(true);
+    try {
+      if (editing) {
+        await apiCall('/api/club-arena/announcements', { action: 'update', clubId, announcementId: editing.id, title, content });
+      } else {
+        await apiCall('/api/club-arena/announcements', { action: 'create', clubId, title, content });
+      }
+      setTitle(''); setContent(''); setEditing(null);
+      load();
+    } catch (err) { alert(err.message); }
+    finally { setSaving(false); }
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm('Delete this announcement?')) return;
+    await apiCall('/api/club-arena/announcements', { action: 'delete', clubId, announcementId: id });
+    load();
+  };
+
+  const handlePin = async (item) => {
+    await apiCall('/api/club-arena/announcements', { action: 'update', clubId, announcementId: item.id, pinned: !item.pinned });
+    load();
+  };
+
+  if (loading) return <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>{[1,2,3].map(i => <div key={i} className={s.shimmerLine} style={{ height: '60px', borderRadius: '8px' }} />)}</div>;
+
+  return (
+    <div style={{ animation: 'fadeIn 0.2s ease-out' }}>
+      <h3 style={{ margin: '0 0 16px', fontSize: '18px' }}>📢 Announcements</h3>
+
+      {/* Create / Edit Form */}
+      <div style={{ background: '#242526', border: '1px solid #3A3B3C', borderRadius: '10px', padding: '16px', marginBottom: '16px' }}>
+        <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px', color: '#E4E6EB' }}>{editing ? '✏️ Edit Announcement' : '➕ New Announcement'}</div>
+        <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Title" style={{ width: '100%', padding: '8px 12px', background: '#18191A', border: '1px solid #3A3B3C', borderRadius: '8px', color: '#E4E6EB', fontSize: '14px', marginBottom: '8px' }} />
+        <textarea value={content} onChange={e => setContent(e.target.value)} placeholder="Content (optional)" rows={3} style={{ width: '100%', padding: '8px 12px', background: '#18191A', border: '1px solid #3A3B3C', borderRadius: '8px', color: '#E4E6EB', fontSize: '13px', resize: 'vertical' }} />
+        <div style={{ display: 'flex', gap: '8px', marginTop: '8px', justifyContent: 'flex-end' }}>
+          {editing && <button onClick={() => { setEditing(null); setTitle(''); setContent(''); }} className={s.btnGhost}>Cancel</button>}
+          <button onClick={handleSave} className={s.btnPrimary} disabled={saving || !title.trim()}>{saving ? 'Saving...' : editing ? 'Update' : 'Publish'}</button>
+        </div>
+      </div>
+
+      {/* List */}
+      {items.length === 0 ? (
+        <div className={s.emptyState}><span className={s.emptyIcon}>📢</span><span className={s.emptyText}>No announcements yet. Create one above.</span></div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {items.map(a => (
+            <div key={a.id} style={{ background: a.pinned ? 'rgba(69,153,255,0.06)' : '#242526', border: `1px solid ${a.pinned ? 'rgba(69,153,255,0.25)' : '#3A3B3C'}`, borderRadius: '10px', padding: '14px 16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700, fontSize: '14px', color: '#E4E6EB' }}>{a.pinned ? '📌 ' : ''}{a.title}</div>
+                  {a.content && <div style={{ fontSize: '13px', color: '#B0B3B8', marginTop: '4px', lineHeight: 1.4 }}>{a.content.substring(0, 300)}</div>}
+                  <div style={{ fontSize: '11px', color: '#6B7280', marginTop: '6px' }}>{new Date(a.created_at).toLocaleDateString()}</div>
+                </div>
+                <div style={{ display: 'flex', gap: '4px', flexShrink: 0, marginLeft: '12px' }}>
+                  <button onClick={() => handlePin(a)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', padding: '4px' }} title={a.pinned ? 'Unpin' : 'Pin'}>{a.pinned ? '📌' : '📌'}</button>
+                  <button onClick={() => { setEditing(a); setTitle(a.title); setContent(a.content || ''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', padding: '4px' }} title="Edit">✏️</button>
+                  <button onClick={() => handleDelete(a.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', padding: '4px' }} title="Delete">🗑️</button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Table Templates Tab ──────────────────────────────────
+function TemplatesTab({ clubId }) {
+  const [templates, setTemplates] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await apiCall('/api/club-arena/table-templates', { action: 'list', clubId });
+      setTemplates(res.templates || []);
+    } catch (err) { console.warn('[Templates]', err.message); }
+    finally { setLoading(false); }
+  }, [clubId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleDelete = async (id) => {
+    if (!confirm('Delete this template?')) return;
+    await apiCall('/api/club-arena/table-templates', { action: 'delete', clubId, templateId: id });
+    load();
+  };
+
+  const toggleSchedule = async (tmpl) => {
+    await apiCall('/api/club-arena/table-templates', { action: 'schedule', clubId, templateId: tmpl.id, scheduleEnabled: !tmpl.schedule_enabled });
+    load();
+  };
+
+  const GAME_LABELS = { nlh: 'NLH', plo4: 'PLO4', plo5: 'PLO5', flh: 'FLH', nlh_bomb: 'Bomb Pot', nlh_6plus: '6+', sdh: 'Short Deck' };
+
+  if (loading) return <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>{[1,2,3].map(i => <div key={i} className={s.shimmerLine} style={{ height: '70px', borderRadius: '8px' }} />)}</div>;
+
+  return (
+    <div style={{ animation: 'fadeIn 0.2s ease-out' }}>
+      <h3 style={{ margin: '0 0 16px', fontSize: '18px' }}>📋 Table Templates</h3>
+
+      {templates.length === 0 ? (
+        <div className={s.emptyState}><span className={s.emptyIcon}>📋</span><span className={s.emptyText}>No saved templates. Create a table and save its config as a template.</span></div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {templates.map(t => (
+            <div key={t.id} style={{ background: '#242526', border: '1px solid #3A3B3C', borderRadius: '10px', padding: '14px 18px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <div style={{ fontWeight: 700, fontSize: '15px', color: '#E4E6EB' }}>{t.name}</div>
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                  <span style={{ fontSize: '11px', color: '#B0B3B8', background: '#3A3B3C', padding: '2px 8px', borderRadius: '12px' }}>Used {t.use_count || 0}x</span>
+                  <button onClick={() => toggleSchedule(t)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', padding: '4px' }} title={t.schedule_enabled ? 'Disable schedule' : 'Enable schedule'}>{t.schedule_enabled ? '⏰' : '🕔'}</button>
+                  <button onClick={() => handleDelete(t.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', padding: '4px', color: '#FA383E' }} title="Delete">🗑️</button>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '12px', background: '#3A3B3C', padding: '2px 8px', borderRadius: '8px', color: '#B0B3B8' }}>{GAME_LABELS[t.game_variant] || t.game_variant || 'NLH'}</span>
+                <span style={{ fontSize: '12px', background: 'rgba(247,197,42,0.1)', padding: '2px 8px', borderRadius: '8px', color: '#F7C52A', fontWeight: 600 }}>{fmtChips(t.small_blind)}/{fmtChips(t.big_blind)}</span>
+                <span style={{ fontSize: '12px', background: '#3A3B3C', padding: '2px 8px', borderRadius: '8px', color: '#B0B3B8' }}>{t.max_players} seats</span>
+                <span style={{ fontSize: '12px', background: '#3A3B3C', padding: '2px 8px', borderRadius: '8px', color: '#B0B3B8' }}>Buy: {fmtChips(t.min_buy_in)}–{fmtChips(t.max_buy_in)}</span>
+                {t.schedule_enabled && <span style={{ fontSize: '12px', background: 'rgba(49,162,76,0.1)', padding: '2px 8px', borderRadius: '8px', color: '#31A24C' }}>⏰ Scheduled</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Club Analytics Tab ──────────────────────────────────
+function AnalyticsTab({ clubId }) {
+  const [analytics, setAnalytics] = useState(null);
+  const [rakeReport, setRakeReport] = useState(null);
+  const [period, setPeriod] = useState('7d');
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async (p) => {
+    try {
+      setLoading(true);
+      const [dashRes, rakeRes] = await Promise.all([
+        apiGet(`/api/club-arena/club-analytics?clubId=${clubId}`),
+        apiGet(`/api/club-arena/club-analytics?clubId=${clubId}&action=rake_report&period=${p || period}`),
+      ]);
+      setAnalytics(dashRes.analytics || null);
+      setRakeReport(rakeRes || null);
+    } catch (err) { console.warn('[Analytics]', err.message); }
+    finally { setLoading(false); }
+  }, [clubId, period]);
+
+  useEffect(() => { load(period); }, [period]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleExport = () => {
+    window.open(`/api/club-arena/club-analytics?clubId=${clubId}&action=csv&period=${period}`, '_blank');
+  };
+
+  if (loading) return <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>{[1,2,3].map(i => <div key={i} className={s.shimmerLine} style={{ height: '70px', borderRadius: '8px' }} />)}</div>;
+
+  const maxRake = rakeReport?.days ? Math.max(...rakeReport.days.map(d => d.rake), 1) : 1;
+
+  return (
+    <div style={{ animation: 'fadeIn 0.2s ease-out' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <h3 style={{ margin: 0, fontSize: '18px' }}>📊 Club Analytics</h3>
+        <div style={{ display: 'flex', gap: '6px' }}>
+          {['7d', '14d', '30d', '90d'].map(p => (
+            <button key={p} onClick={() => setPeriod(p)} className={period === p ? s.btnPrimary : s.btnGhost} style={{ padding: '4px 12px', fontSize: '12px' }}>{p}</button>
+          ))}
+          <button onClick={handleExport} className={s.btnGhost} style={{ padding: '4px 12px', fontSize: '12px' }}>📄 CSV</button>
+        </div>
+      </div>
+
+      {/* Dashboard Snapshot */}
+      {analytics && (
+        <div className={s.statsGrid} style={{ marginBottom: '20px' }}>
+          <div className={s.statCard}><div className={s.statValueGreen}>{fmt(analytics.activeTables)}</div><div className={s.statLabel}>Active Tables</div></div>
+          <div className={s.statCard}><div className={s.statValueBlue}>{fmt(analytics.seatedNow)}</div><div className={s.statLabel}>Seated Now</div></div>
+          <div className={s.statCard}><div className={s.statValue}>{fmt(analytics.uniquePlayers24h)}</div><div className={s.statLabel}>Unique 24h</div></div>
+          <div className={s.statCard}><div className={s.statValue}>{fmt(analytics.totalMembers)}</div><div className={s.statLabel}>Total Members</div></div>
+          <div className={s.statCard}>
+            <div className={s.statValueGold}>{fmtChips(analytics.todayRake)}</div>
+            <div className={s.statLabel}>Today Rake</div>
+            {analytics.rakeChange !== 0 && <div style={{ fontSize: '11px', color: analytics.rakeChange > 0 ? '#31A24C' : '#FA383E', marginTop: '2px' }}>{analytics.rakeChange > 0 ? '▲' : '▼'} {Math.abs(analytics.rakeChange)}% vs yesterday</div>}
+          </div>
+        </div>
+      )}
+
+      {/* 7-Day Sparkline Bar Chart */}
+      {analytics?.sparkline && (
+        <div className={s.section} style={{ marginBottom: '16px' }}>
+          <div className={s.sectionTitle}>7-Day Rake Trend</div>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: '80px', padding: '8px 0' }}>
+            {analytics.sparkline.map((val, i) => {
+              const h = Math.max(4, (val / Math.max(...analytics.sparkline, 1)) * 70);
+              const dayLabels = ['6d', '5d', '4d', '3d', '2d', '1d', 'Today'];
+              return (
+                <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                  <div style={{ width: '100%', maxWidth: '32px', height: `${h}px`, background: i === 6 ? '#F7C52A' : '#4599FF', borderRadius: '4px 4px 0 0', transition: 'height 0.3s' }} title={`${fmtChips(val)} rake`} />
+                  <span style={{ fontSize: '9px', color: '#6B7280' }}>{dayLabels[i]}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Rake Report Period Breakdown */}
+      {rakeReport?.summary && (
+        <div className={s.section}>
+          <div className={s.sectionTitle}>Rake Report ({rakeReport.period})</div>
+          <div className={s.statsGrid} style={{ marginBottom: '12px' }}>
+            <div className={s.statCard}><div className={s.statValueGold}>{fmtChips(rakeReport.summary.totalRake)}</div><div className={s.statLabel}>Total Rake</div></div>
+            <div className={s.statCard}><div className={s.statValueBlue}>{fmtChips(rakeReport.summary.avgDaily)}</div><div className={s.statLabel}>Avg Daily</div></div>
+            <div className={s.statCard}><div className={s.statValueGreen}>{fmtChips(rakeReport.summary.peakAmount)}</div><div className={s.statLabel}>Peak ({rakeReport.summary.peakDay?.split('-').slice(1).join('/')})</div></div>
+          </div>
+
+          {/* Daily Bars */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '300px', overflowY: 'auto' }}>
+            {(rakeReport.days || []).map(d => (
+              <div key={d.date} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '11px', color: '#6B7280', width: '50px', flexShrink: 0 }}>{d.date.split('-').slice(1).join('/')}</span>
+                <div style={{ flex: 1, height: '16px', background: '#3A3B3C', borderRadius: '3px', overflow: 'hidden' }}>
+                  <div style={{ width: `${(d.rake / maxRake) * 100}%`, height: '100%', background: 'linear-gradient(90deg, #4599FF, #31A24C)', borderRadius: '3px' }} />
+                </div>
+                <span style={{ fontSize: '11px', color: '#B0B3B8', width: '60px', textAlign: 'right', flexShrink: 0 }}>{fmtChips(d.rake)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Hierarchy Tree Tab ──────────────────────────────────────
 function HierarchyTreeTab({ clubId }) {
   const [tree, setTree] = useState(null);
@@ -882,6 +1140,15 @@ export default function ClubArenaAdminPage() {
                 {['owner', 'admin'].includes(role) && (
                   <button className={`${s.tab} ${activeTab === 'recommendations' ? s.tabActive : ''}`} onClick={() => setActiveTab('recommendations')}>🤖 Recs</button>
                 )}
+                {['owner', 'admin'].includes(role) && (
+                  <button className={`${s.tab} ${activeTab === 'announcements' ? s.tabActive : ''}`} onClick={() => setActiveTab('announcements')}>📢 Announce</button>
+                )}
+                {['owner', 'admin'].includes(role) && (
+                  <button className={`${s.tab} ${activeTab === 'templates' ? s.tabActive : ''}`} onClick={() => setActiveTab('templates')}>📋 Templates</button>
+                )}
+                {['owner', 'admin'].includes(role) && (
+                  <button className={`${s.tab} ${activeTab === 'analytics' ? s.tabActive : ''}`} onClick={() => setActiveTab('analytics')}>📊 Analytics</button>
+                )}
               </div>
 
               {/* Tab Content */}
@@ -892,6 +1159,9 @@ export default function ClubArenaAdminPage() {
               {activeTab === 'audit' && <AuditLogTab clubId={clubId} />}
               {activeTab === 'branding' && <BrandingTab clubId={clubId} />}
               {activeTab === 'recommendations' && <RecommendationsTab clubId={clubId} />}
+              {activeTab === 'announcements' && <AnnouncementsTab clubId={clubId} />}
+              {activeTab === 'templates' && <TemplatesTab clubId={clubId} />}
+              {activeTab === 'analytics' && <AnalyticsTab clubId={clubId} />}
             </>
           )}
 
