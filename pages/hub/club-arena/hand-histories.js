@@ -12,7 +12,6 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { apiGet } from '../../../src/lib/club-arena/apiClient';
 import dynamic from 'next/dynamic';
 import s from '../../../src/styles/UnionDashboard.module.css';
-import '../../../src/styles/worlds/club-arena.css';
 
 // SSG-safe: load HandReplayerModal only on client side
 const HandReplayerModal = dynamic(

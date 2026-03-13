@@ -11,7 +11,6 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 import s from '../../../src/styles/UnionDashboard.module.css';
-import '../../../src/styles/worlds/club-arena.css';
 
 const fmt = (n) => Number(n || 0).toLocaleString();
 const fmtChips = (n) => {
