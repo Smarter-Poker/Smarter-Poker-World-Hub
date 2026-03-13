@@ -60,6 +60,7 @@ export default function ClubArenaLobbyPage() {
   const [recommendations, setRecommendations] = useState([]);
   const [userId, setUserId] = useState(null);
   const [waitlistProcessing, setWaitlistProcessing] = useState(null);
+  const [tableActionProcessing, setTableActionProcessing] = useState(null);
 
   const mountedRef = useRef(true);
   useEffect(() => () => { mountedRef.current = false; }, []);
@@ -273,6 +274,22 @@ export default function ClubArenaLobbyPage() {
     }
   };
 
+  // ── Table Management Actions (admin) ────────────────────────
+  const handleTableAction = async (tableId, action) => {
+    if (!confirm(`${action.charAt(0).toUpperCase() + action.slice(1)} this table?`)) return;
+    setTableActionProcessing(tableId);
+    try {
+      await apiCall('/api/club-arena/manage-table', { tableId, clubId, action });
+      busEmit('TABLE_CREATED', { clubId });
+      loadLobby(clubId);
+    } catch (err) {
+      setError(err.message);
+      setTimeout(() => setError(null), 3000);
+    } finally {
+      setTableActionProcessing(null);
+    }
+  };
+
   // ── Sorted tables ──────────────────────────────────────────
   const activeTables = tables.filter(t => ['active', 'playing', 'waiting', 'between_hands'].includes(t.status));
   const inactiveTables = tables.filter(t => !['active', 'playing', 'waiting', 'between_hands'].includes(t.status));
@@ -444,6 +461,30 @@ export default function ClubArenaLobbyPage() {
                                             {waitlistProcessing === t.id ? 'Joining...' : '📋 Join Waitlist'}
                                           </button>
                                         )}
+                                      </div>
+                                    )}
+
+                                    {/* Admin Table Controls */}
+                                    {['owner', 'admin', 'super_agent'].includes(role) && (
+                                      <div style={{ marginTop: '8px', display: 'flex', gap: '6px', borderTop: '1px solid #3A3B3C', paddingTop: '8px' }}>
+                                        {t.status === 'active' || t.status === 'waiting' ? (
+                                          <button onClick={(e) => { e.preventDefault(); handleTableAction(t.id, 'pause'); }}
+                                            disabled={tableActionProcessing === t.id}
+                                            style={{ fontSize: '11px', background: 'rgba(245,166,35,0.12)', color: '#F5A623', border: '1px solid rgba(245,166,35,0.25)', borderRadius: '6px', padding: '3px 10px', cursor: 'pointer', fontWeight: 600 }}>
+                                            {tableActionProcessing === t.id ? '...' : '⏸ Pause'}
+                                          </button>
+                                        ) : t.status === 'between_hands' ? (
+                                          <button onClick={(e) => { e.preventDefault(); handleTableAction(t.id, 'resume'); }}
+                                            disabled={tableActionProcessing === t.id}
+                                            style={{ fontSize: '11px', background: 'rgba(49,162,76,0.12)', color: '#31A24C', border: '1px solid rgba(49,162,76,0.25)', borderRadius: '6px', padding: '3px 10px', cursor: 'pointer', fontWeight: 600 }}>
+                                            {tableActionProcessing === t.id ? '...' : '▶ Resume'}
+                                          </button>
+                                        ) : null}
+                                        <button onClick={(e) => { e.preventDefault(); handleTableAction(t.id, 'close'); }}
+                                          disabled={tableActionProcessing === t.id}
+                                          style={{ fontSize: '11px', background: 'rgba(250,56,62,0.12)', color: '#FA383E', border: '1px solid rgba(250,56,62,0.25)', borderRadius: '6px', padding: '3px 10px', cursor: 'pointer', fontWeight: 600 }}>
+                                          {tableActionProcessing === t.id ? '...' : '✕ Close'}
+                                        </button>
                                       </div>
                                     )}
                                   </div>
