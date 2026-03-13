@@ -11,7 +11,7 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { apiGet } from '../../../src/lib/club-arena/apiClient';
 import dynamic from 'next/dynamic';
-import { eventBus } from '../../../src/engine/EventBus';
+import { busEmit, eventBus } from '../../../src/engine/EventBus';
 import s from '../../../src/styles/UnionDashboard.module.css';
 
 // SSG-safe: load HandReplayerModal only on client side
@@ -143,7 +143,7 @@ export default function ClubArenaHandHistoriesPage() {
   useEffect(() => {
     if (!clubId) return;
     const refresh = () => loadHands(clubId, page, true);
-    const events = ['HAND_COMPLETED', 'HAND_REPLAYED'];
+    const events = ['HAND_COMPLETE', 'HAND_REPLAYED'];
     events.forEach(ev => eventBus.on(ev, refresh));
     return () => events.forEach(ev => eventBus.off(ev, refresh));
   }, [clubId, page, loadHands]);
@@ -233,7 +233,7 @@ export default function ClubArenaHandHistoriesPage() {
                             <td style={{ textAlign: 'right', fontWeight: 700, color: '#F7C52A' }}>{fmtChips(h.pot_total)}</td>
                             <td style={{ textAlign: 'center' }}>
                               <button 
-                                onClick={() => setActiveHandId(h.id)} 
+                                onClick={() => { setActiveHandId(h.id); busEmit('HAND_REPLAYED', { handId: h.id, clubId }); }}
                                 className={s.btnPrimary} 
                                 style={{ padding: '4px 12px', fontSize: '12px', background: '#31A24C' }}
                               >

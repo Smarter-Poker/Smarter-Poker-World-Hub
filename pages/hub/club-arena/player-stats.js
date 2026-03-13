@@ -204,7 +204,7 @@ export default function ClubArenaPlayerStatsPage() {
   // EventBus — instant refresh on financial events
   useEffect(() => {
     if (!clubId) return;
-    const events = ['CHIPS_DISTRIBUTED', 'CASHOUT_APPROVED', 'BALANCE_UPDATED', 'HAND_COMPLETED'];
+    const events = ['CHIPS_DISTRIBUTED', 'CASHOUT_APPROVED', 'BALANCE_UPDATED', 'HAND_COMPLETE'];
     events.forEach(ev => eventBus.on(ev, refreshStats));
     return () => events.forEach(ev => eventBus.off(ev, refreshStats));
   }, [clubId, refreshStats]);

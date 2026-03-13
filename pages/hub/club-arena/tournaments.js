@@ -368,7 +368,7 @@ export default function ClubArenaTournamentsPage() {
   // ── EventBus ───────────────────────────────────────────────
   useEffect(() => {
     const refresh = () => { if (clubId) loadTournaments(clubId); };
-    const events = ['TOURNAMENT_REGISTERED', 'TOURNAMENT_STARTED', 'TOURNAMENT_COMPLETED', 'TOURNAMENT_CANCELLED'];
+    const events = ['TOURNAMENT_REGISTERED', 'TOURNAMENT_STARTED', 'TOURNAMENT_COMPLETE', 'TOURNAMENT_CANCELLED'];
     events.forEach(ev => eventBus.on(ev, refresh));
     // Also keep polling every 60s for background freshness
     const timer = setInterval(refresh, 60000);

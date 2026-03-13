@@ -10,7 +10,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { apiCall } from '../../../src/lib/club-arena/apiClient';
-import { eventBus } from '../../../src/engine/EventBus';
+import { busEmit, eventBus } from '../../../src/engine/EventBus';
 import s from '../../../src/styles/UnionDashboard.module.css';
 
 const fmt = (n) => Number(n || 0).toLocaleString();
@@ -134,7 +134,7 @@ export default function ClubArenaXMTTPage() {
       loadTournaments(clubId);
       if (selectedTournament) loadDetail(selectedTournament, clubId);
     };
-    const events = ['TOURNAMENT_REGISTERED', 'TOURNAMENT_STARTED', 'TOURNAMENT_COMPLETED'];
+    const events = ['TOURNAMENT_REGISTERED', 'TOURNAMENT_STARTED', 'TOURNAMENT_COMPLETE'];
     events.forEach(ev => eventBus.on(ev, refresh));
     return () => events.forEach(ev => eventBus.off(ev, refresh));
   }, [clubId, selectedTournament, loadTournaments, loadDetail]);
@@ -165,6 +165,7 @@ export default function ClubArenaXMTTPage() {
   const handleRegister = async (tournamentId) => {
     try {
       await apiCall('/api/club-arena/tournaments', { action: 'register', clubId, tournamentId });
+      busEmit('TOURNAMENT_REGISTERED', { tournamentId, clubId });
       loadTournaments(clubId);
       if (selectedTournament === tournamentId) loadDetail(tournamentId, clubId);
     } catch (err) { setActionError(err.message); setTimeout(() => setActionError(null), 5000); }
@@ -173,6 +174,7 @@ export default function ClubArenaXMTTPage() {
   const handleUnregister = async (tournamentId) => {
     try {
       await apiCall('/api/club-arena/tournaments', { action: 'unregister', clubId, tournamentId });
+      busEmit('TOURNAMENT_REGISTERED', { tournamentId, clubId });
       loadTournaments(clubId);
       if (selectedTournament === tournamentId) loadDetail(tournamentId, clubId);
     } catch (err) { setActionError(err.message); setTimeout(() => setActionError(null), 5000); }
