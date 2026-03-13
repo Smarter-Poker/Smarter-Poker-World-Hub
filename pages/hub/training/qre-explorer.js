@@ -145,7 +145,7 @@ export default function QREExplorerPage() {
               questionsCorrect: 1,
               accuracy: 100,
             }),
-          }).catch(() => {});
+          }).catch(() => {}).catch(() => {});
         }
         eventBus?.emit?.(
           EventType?.SESSION_END || 'session:end',

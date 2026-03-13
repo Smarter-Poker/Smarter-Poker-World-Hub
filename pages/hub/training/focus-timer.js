@@ -94,7 +94,7 @@ export default function FocusTimerPage() {
               level: 1,
               handHistory: [],
             }),
-          }).catch(() => {}).catch(() => {});
+          }).catch(() => {}).catch(() => {}).catch(() => {});
           eventBus?.emit?.(
             EventType?.SESSION_END || 'session:end',
             { gameId: 'focus-timer', blocks: next, totalMinutes: next * phase.mins },

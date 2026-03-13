@@ -1003,7 +1003,7 @@ export default function VirtualSandbox() {
           isCorrect: quizRevealed ? (userGuess?.toLowerCase().includes(results?.optimalAction?.label?.toLowerCase()?.split(' ')[0] || '')) : null,
           handStrength: getHandStrength(heroHand)?.label || null,
         }),
-      }).catch(() => { }).catch(() => {});
+      }).catch(() => { }).catch(() => {}).catch(() => {});
     } catch (e) { /* silent */ }
   }, [heroPosition, currentStreet, gameType, results, heroHand, quizRevealed, userGuess]);
 

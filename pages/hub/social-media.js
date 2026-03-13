@@ -2504,7 +2504,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                 ...(token ? { 'Authorization': `Bearer ${token}` } : {})
                             },
                             body: JSON.stringify({ page_id: page.id, locations: unique }),
-                        }).catch(() => { }).catch(() => {});
+                        }).catch(() => { }).catch(() => {}).catch(() => {});
                     }
                 } catch (geoErr) {
                     console.warn('[ClubPage] Background geocoding failed:', geoErr);

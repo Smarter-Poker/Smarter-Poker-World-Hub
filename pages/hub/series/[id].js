@@ -210,7 +210,7 @@ export default function SeriesDetailPage() {
         action: newState ? 'follow' : 'unfollow',
         user_id: getAnonymousUserId(),
       }),
-    }).catch(() => { }).catch(() => {});
+    }).catch(() => { }).catch(() => {}).catch(() => {});
   };
 
   function getAnonymousUserId() {

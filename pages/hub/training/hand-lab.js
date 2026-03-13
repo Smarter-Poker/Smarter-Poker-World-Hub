@@ -106,7 +106,7 @@ export default function HandLabV2() {
             avgEquityAnalyzed: parseFloat((Number.isFinite(Number(generatedEquity)) ? Number(generatedEquity) : 0).toFixed(1)),
           },
         }),
-      }).catch((e) => console.error(e)).catch(() => {});
+      }).catch((e) => console.error(e)).catch(() => {}).catch(() => {});
     }, 1500);
   };
 
