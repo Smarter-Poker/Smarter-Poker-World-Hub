@@ -8,6 +8,7 @@
  * to preserve referential integrity and allow recovery within 30 days.
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { rateLimit } from '../src/lib/apiRateLimit';
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -15,6 +16,8 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
+  const rl = rateLimit(req, { max: 3, windowMs: 3600000 }); // 3 per hour
+  if (!rl.ok) return res.status(429).json({ error: 'Too many requests', retryAfter: rl.retryAfter });
   try {
       if (req.method !== 'DELETE') {
           return res.status(405).json({ error: 'Method not allowed' });
