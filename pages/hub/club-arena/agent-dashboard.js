@@ -268,7 +268,7 @@ export default function AgentDashboardPage() {
     if (!confirm('Deny and refund this cashout request?')) return;
     setProcessing(true);
     try {
-      await apiCall('/api/club-arena/cancel-my-cashout', { cashoutId, clubId });
+      await apiCall('/api/club-arena/approve-cashout', { cashoutId, clubId, action: 'cancel' });
       setSuccess('Cashout denied and refunded.');
       busEmit('CASHOUT_CANCELLED', { cashoutId, clubId });
       loadDashboard(clubId);

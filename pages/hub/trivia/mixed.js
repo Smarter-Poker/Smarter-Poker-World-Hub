@@ -261,7 +261,11 @@ export default function MixedModePage() {
         setCategoryStats({
             poker_history: { answered: 0, correct: 0 },
             rule_knowledge: { answered: 0, correct: 0 },
-            gto_theory: { answered: 0, correct: 0 }
+            gto_theory: { answered: 0, correct: 0 },
+            mtt_situations: { answered: 0, correct: 0 },
+            cash_game_situations: { answered: 0, correct: 0 },
+            icm_chip_ev: { answered: 0, correct: 0 },
+            gto_scenarios: { answered: 0, correct: 0 }
         });
         setTimeLeft(24);
         setIsTimerRunning(true);
