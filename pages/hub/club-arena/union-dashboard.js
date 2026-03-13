@@ -10,6 +10,7 @@ import Link from 'next/link';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { apiCall, apiGet } from '../../../src/lib/club-arena/apiClient';
 import { busEmit, eventBus } from '../../../src/engine/EventBus';
+import { createDebouncedHandler } from '../../../src/lib/club-arena/retryAsync';
 import s from '../../../src/styles/UnionDashboard.module.css';
 
 // ── Helpers ─────────────────────────────────────────────────
@@ -244,22 +245,27 @@ export default function UnionDashboardPage() {
     return () => clearInterval(interval);
   }, [unionId, tab, loadDashboard]);
 
-  // ── EventBus LISTENERS — auto-refresh on incoming events ──
+  // ── EventBus LISTENERS (debounced) — auto-refresh on incoming events ──
   useEffect(() => {
     if (!unionId || typeof eventBus?.on !== 'function') return;
-    const refresh = () => { if (mountedRef.current) loadDashboard(unionId); };
-    const refreshWallet = () => { if (mountedRef.current) { setWalletData(null); loadWallet(); } };
-    const refreshApps = () => { if (mountedRef.current) { setAppsLoaded(false); loadApps(); } };
-    const refreshLeave = () => { if (mountedRef.current) loadLeave(); };
-    const unsubs = [
-      ...['union:club-removed', 'union:commission-updated', 'union:admin-changed',
-          'union:tournament-created', 'union:table-created',
-          'union:tournament-updated', 'union:table-closed'].map(e => eventBus.on(e, refresh)),
-      eventBus.on('union:wallet-transfer', refreshWallet),
-      eventBus.on('union:application-reviewed', refreshApps),
-      eventBus.on('union:leave-reviewed', refreshLeave),
-    ];
-    return () => unsubs.forEach(fn => fn?.());
+    const debouncedDashboard = createDebouncedHandler(() => { if (mountedRef.current) loadDashboard(unionId); }, 300);
+    const debouncedWallet = createDebouncedHandler(() => { if (mountedRef.current) { setWalletData(null); loadWallet(); } }, 300);
+    const debouncedApps = createDebouncedHandler(() => { if (mountedRef.current) { setAppsLoaded(false); loadApps(); } }, 300);
+    const debouncedLeave = createDebouncedHandler(() => { if (mountedRef.current) loadLeave(); }, 300);
+    const dashEvents = ['union:club-removed', 'union:commission-updated', 'union:admin-changed',
+        'union:tournament-created', 'union:table-created',
+        'union:tournament-updated', 'union:table-closed'];
+    dashEvents.forEach(e => eventBus.on(e, debouncedDashboard));
+    eventBus.on('union:wallet-transfer', debouncedWallet);
+    eventBus.on('union:application-reviewed', debouncedApps);
+    eventBus.on('union:leave-reviewed', debouncedLeave);
+    return () => {
+      debouncedDashboard.cancel(); debouncedWallet.cancel(); debouncedApps.cancel(); debouncedLeave.cancel();
+      dashEvents.forEach(e => eventBus.off(e, debouncedDashboard));
+      eventBus.off('union:wallet-transfer', debouncedWallet);
+      eventBus.off('union:application-reviewed', debouncedApps);
+      eventBus.off('union:leave-reviewed', debouncedLeave);
+    };
   }, [unionId, loadDashboard, loadWallet, loadApps, loadLeave]);
 
   // ── Filtered Lists (search/filter) ────────────────────────
