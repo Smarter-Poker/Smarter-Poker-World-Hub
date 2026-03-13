@@ -70,11 +70,10 @@ export default function ClubArenaHandHistoriesPage() {
     });
   }, [data.hands, filterTable, filterMinPot]);
 
-  const loadHands = useCallback(async (cId, p) => {
+  const loadHands = useCallback(async (cId, p, silent = false) => {
     try {
-      // Only show loading skeleton on first load — bus refreshes stay silent
-      setLoading(prev => prev && true);
-      setError(null);
+      // silent=true for bus/poll refreshes — skip loading flash
+      if (!silent) { setLoading(true); setError(null); }
       const res = await apiGet(`/api/club-arena/my-hands?clubId=${cId}&page=${p}&limit=50`);
       if (mountedRef.current) {
         setData(res);
@@ -134,7 +133,7 @@ export default function ClubArenaHandHistoriesPage() {
   useEffect(() => {
     if (!clubId) return;
     const handleVisibility = () => {
-      if (document.visibilityState === 'visible') loadHands(clubId, page);
+      if (document.visibilityState === 'visible') loadHands(clubId, page, true);
     };
     document.addEventListener('visibilitychange', handleVisibility);
     return () => document.removeEventListener('visibilitychange', handleVisibility);
@@ -143,7 +142,7 @@ export default function ClubArenaHandHistoriesPage() {
   // EventBus — instant refresh on hand events
   useEffect(() => {
     if (!clubId) return;
-    const refresh = () => loadHands(clubId, page);
+    const refresh = () => loadHands(clubId, page, true);
     const events = ['HAND_COMPLETED', 'HAND_REPLAYED'];
     events.forEach(ev => eventBus.on(ev, refresh));
     return () => events.forEach(ev => eventBus.off(ev, refresh));

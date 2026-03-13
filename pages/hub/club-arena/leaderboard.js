@@ -46,9 +46,9 @@ export default function ClubArenaLeaderboardPage() {
   useEffect(() => () => { mountedRef.current = false; }, []);
 
   // ── Load Leaderboard ───────────────────────────────────────
-  const loadLeaderboard = useCallback(async (cId, action) => {
+  const loadLeaderboard = useCallback(async (cId, action, silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       setError(null);
       const targetClubId = cId || clubId;
       const targetAction = action || mode;
@@ -108,7 +108,7 @@ export default function ClubArenaLeaderboardPage() {
 
   // ── EventBus ───────────────────────────────────────────────
   useEffect(() => {
-    const refresh = () => { if (clubId) loadLeaderboard(clubId, mode); };
+    const refresh = () => { if (clubId) loadLeaderboard(clubId, mode, true); };
     const events = ['CHIPS_DISTRIBUTED', 'CASHOUT_APPROVED', 'BALANCE_UPDATED'];
     events.forEach(ev => eventBus.on(ev, refresh));
     return () => events.forEach(ev => eventBus.off(ev, refresh));
