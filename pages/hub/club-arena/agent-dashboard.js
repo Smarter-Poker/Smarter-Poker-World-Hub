@@ -240,12 +240,12 @@ export default function AgentDashboardPage() {
     }
   }, [tab, loadAnalytics, loadHeatMap, loadLeaderboard, agentScore, scoreLoading, clubId]);
 
-  // ── EventBus Listeners ─────────────────────────────────────
+  // ── EventBus Listeners (debounced) ────────────────────────
   useEffect(() => {
-    const refresh = () => { if (clubId) loadDashboard(clubId); };
-    const events = ['CASHOUT_APPROVED', 'CASHOUT_CANCELLED', 'CASHOUT_REQUESTED', 'CHIPS_DISTRIBUTED', 'AGENT_UPDATED'];
-    events.forEach(ev => eventBus.on(ev, refresh));
-    return () => events.forEach(ev => eventBus.off(ev, refresh));
+    const debouncedRefresh = createDebouncedHandler(() => { if (clubId) loadDashboard(clubId); }, 300);
+    const events = ['CASHOUT_APPROVED', 'CASHOUT_CANCELLED', 'CASHOUT_REQUESTED', 'CHIPS_DISTRIBUTED', 'AGENT_UPDATED', 'BALANCE_UPDATED', 'CREDIT_UPDATED'];
+    events.forEach(ev => eventBus.on(ev, debouncedRefresh));
+    return () => { debouncedRefresh.cancel(); events.forEach(ev => eventBus.off(ev, debouncedRefresh)); };
   }, [clubId, loadDashboard]);
 
   // ── Actions ────────────────────────────────────────────────
