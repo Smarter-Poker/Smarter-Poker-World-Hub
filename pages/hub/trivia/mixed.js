@@ -48,6 +48,7 @@ const CATEGORIES = [
 const QUESTIONS_PER_SESSION = 21; // 3 per category, 7 categories
 
 export default function MixedModePage() {
+    useEffect(() => { busEmit.sessionStart('trivia-mixed'); }, []);
     const router = useRouter();
     const { user: avatarUser, loading: authLoading } = useAvatar();
     const [userId, setUserId] = useState(null);

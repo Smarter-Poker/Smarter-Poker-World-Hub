@@ -45,6 +45,7 @@ function shuffleOptions(questions) {
 }
 
 export default function PvPPage() {
+    useEffect(() => { busEmit.sessionStart('trivia-pvp'); }, []);
     const router = useRouter();
     const { user: avatarUser, loading: authLoading } = useAvatar();
     const [gameState, setGameState] = useState('lobby'); // lobby, searching, battle, waiting, result

@@ -11,6 +11,7 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { apiCall, apiGet } from '../../../src/lib/club-arena/apiClient';
 import { busEmit, eventBus } from '../../../src/engine/EventBus';
+import { createDebouncedHandler } from '../../../src/lib/club-arena/retryAsync';
 import s from '../../../src/styles/UnionDashboard.module.css';
 
 // ── Helpers ─────────────────────────────────────────────────
@@ -128,12 +129,12 @@ export default function ClubArenaMarketplacePage() {
     return () => { cancelled = true; authUnsub?.unsubscribe?.(); };
   }, [router.query.club, router.query.clubId]);
 
-  // ── EventBus ───────────────────────────────────────────────
+  // ── EventBus (debounced) ─────────────────────────────────
   useEffect(() => {
-    const refresh = () => { if (clubId) loadMarketplace(clubId, true); };
-    const events = ['CHIPS_DISTRIBUTED', 'BALANCE_UPDATED', 'CASHIER_BALANCE_CHANGED', 'CASHOUT_APPROVED'];
-    events.forEach(ev => eventBus.on(ev, refresh));
-    return () => events.forEach(ev => eventBus.off(ev, refresh));
+    const debouncedRefresh = createDebouncedHandler(() => { if (clubId) loadMarketplace(clubId, true); }, 300);
+    const events = ['CHIPS_DISTRIBUTED', 'BALANCE_UPDATED', 'CASHIER_BALANCE_CHANGED'];
+    events.forEach(ev => eventBus.on(ev, debouncedRefresh));
+    return () => { debouncedRefresh.cancel(); events.forEach(ev => eventBus.off(ev, debouncedRefresh)); };
   }, [clubId, loadMarketplace]);
 
   // ── Visibility Refresh ─────────────────────────────────────

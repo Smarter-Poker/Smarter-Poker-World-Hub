@@ -11,6 +11,7 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { apiCall, apiGet } from '../../../src/lib/club-arena/apiClient';
 import { busEmit, eventBus } from '../../../src/engine/EventBus';
+import { createDebouncedHandler } from '../../../src/lib/club-arena/retryAsync';
 import CreateTournamentModal from '../../../src/components/club-arena/CreateTournamentModal';
 import s from '../../../src/styles/UnionDashboard.module.css';
 
@@ -413,16 +414,17 @@ export default function ClubArenaTournamentsPage() {
     return () => { cancelled = true; authUnsub?.unsubscribe?.(); };
   }, [router.query.club, router.query.clubId]);
 
-  // ── EventBus ───────────────────────────────────────────────
+  // ── EventBus (debounced) ───────────────────────────────────
   useEffect(() => {
-    const refresh = () => { if (clubId) loadTournaments(clubId, true); };
-    const events = ['TOURNAMENT_REGISTERED', 'TOURNAMENT_STARTED', 'TOURNAMENT_COMPLETE', 'TOURNAMENT_CANCELLED', 'WAITLIST_PLAYER_ADDED'];
-    events.forEach(ev => eventBus.on(ev, refresh));
+    const debouncedRefresh = createDebouncedHandler(() => { if (clubId) loadTournaments(clubId, true); }, 300);
+    const events = ['TOURNAMENT_REGISTERED', 'TOURNAMENT_STARTED', 'TOURNAMENT_COMPLETE', 'TOURNAMENT_CANCELLED', 'TOURNAMENT_LEVEL_CHANGE', 'WAITLIST_PLAYER_ADDED'];
+    events.forEach(ev => eventBus.on(ev, debouncedRefresh));
     // Also keep polling every 60s for background freshness
-    const timer = setInterval(refresh, 60000);
+    const timer = setInterval(() => { if (clubId) loadTournaments(clubId, true); }, 60000);
     return () => {
+      debouncedRefresh.cancel();
       clearInterval(timer);
-      events.forEach(ev => eventBus.off(ev, refresh));
+      events.forEach(ev => eventBus.off(ev, debouncedRefresh));
     };
   }, [clubId, loadTournaments]);
 

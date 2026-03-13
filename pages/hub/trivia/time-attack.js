@@ -36,6 +36,7 @@ function shuffleOptions(questions) {
 const DAILY_DIAMOND_CAP = 5;
 
 export default function TimeAttackPage() {
+    useEffect(() => { busEmit.sessionStart('trivia-time-attack'); }, []);
     const router = useRouter();
     const { user: avatarUser, loading: authLoading } = useAvatar();
     const [gameState, setGameState] = useState('lobby');
