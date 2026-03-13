@@ -50,6 +50,14 @@ export default function ClubArenaMarketplacePage() {
 
   // Purchase Modal
   const [buyTarget, setBuyTarget] = useState(null);
+  const [role, setRole] = useState('player');
+
+  // Admin manage shop
+  const [adminItems, setAdminItems] = useState([]);
+  const [adminLoaded, setAdminLoaded] = useState(false);
+  const [newItemName, setNewItemName] = useState('');
+  const [newItemPrice, setNewItemPrice] = useState('');
+  const [newItemDesc, setNewItemDesc] = useState('');
 
   const mountedRef = useRef(true);
   useEffect(() => () => { mountedRef.current = false; }, []);
@@ -91,9 +99,14 @@ export default function ClubArenaMarketplacePage() {
       if (session) {
         const { supabase } = await import('../../../src/lib/supabase');
         const { data: membership } = await supabase
-          .from('club_members').select('club_id').eq('user_id', session.user.id)
+          .from('club_members').select('club_id, role').eq('user_id', session.user.id)
           .limit(1).maybeSingle();
-        if (membership?.club_id && !cancelled) { setClubId(membership.club_id); loadMarketplace(membership.club_id); return; }
+        if (membership?.club_id && !cancelled) {
+          setClubId(membership.club_id);
+          if (membership.role) setRole(membership.role);
+          loadMarketplace(membership.club_id);
+          return;
+        }
       }
       if (!cancelled) { setError('No club found.'); setLoading(false); }
     };
@@ -265,6 +278,18 @@ export default function ClubArenaMarketplacePage() {
             <button className={`${s.tab} ${tab === 'my_items' ? s.tabActive : ''}`} onClick={() => setTab('my_items')}>
               My Items {purchases.length > 0 && <span className={s.tabBadge}>{purchases.length}</span>}
             </button>
+            {['owner', 'admin'].includes(role) && (
+              <button className={`${s.tab} ${tab === 'manage' ? s.tabActive : ''}`} onClick={() => {
+                setTab('manage');
+                if (!adminLoaded && clubId) {
+                  apiGet(`/api/club-arena/manage-shop?clubId=${clubId}`)
+                    .then(r => { setAdminItems(r.items || []); setAdminLoaded(true); })
+                    .catch(err => setError(err.message));
+                }
+              }}>
+                🛠️ Manage
+              </button>
+            )}
           </div>
 
           {/* ══════════════════════════════════════════════════ */}
@@ -378,6 +403,77 @@ export default function ClubArenaMarketplacePage() {
                       })}
                     </tbody>
                   </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── Manage Tab (Admin) ──────────────────────────── */}
+          {tab === 'manage' && (
+            <div className={s.section} style={{ animation: 'fadeIn 0.2s ease-out' }}>
+              <div style={{ background: '#242526', borderRadius: '12px', padding: '20px', border: '1px solid #3A3B3C', marginBottom: '16px' }}>
+                <div style={{ fontSize: '16px', fontWeight: 700, color: '#E4E6EB', marginBottom: '16px' }}>➕ Create Shop Item</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <input value={newItemName} onChange={e => setNewItemName(e.target.value)} placeholder="Item name"
+                    style={{ width: '100%', padding: '10px 12px', background: '#18191A', border: '1px solid #3A3B3C', borderRadius: '8px', color: '#E4E6EB', fontSize: '13px' }} />
+                  <input type="number" value={newItemPrice} onChange={e => setNewItemPrice(e.target.value)} placeholder="Price (chips)" min="1"
+                    style={{ width: '100%', padding: '10px 12px', background: '#18191A', border: '1px solid #3A3B3C', borderRadius: '8px', color: '#E4E6EB', fontSize: '13px' }} />
+                  <input value={newItemDesc} onChange={e => setNewItemDesc(e.target.value)} placeholder="Description (optional)"
+                    style={{ width: '100%', padding: '10px 12px', background: '#18191A', border: '1px solid #3A3B3C', borderRadius: '8px', color: '#E4E6EB', fontSize: '13px' }} />
+                  <button className={s.btnPrimary} disabled={processing || !newItemName || !newItemPrice}
+                    style={{ padding: '12px' }}
+                    onClick={async () => {
+                      setProcessing(true); setError(null);
+                      try {
+                        await apiCall('/api/club-arena/manage-shop', { action: 'create', clubId, name: newItemName, price: Number(newItemPrice), description: newItemDesc || undefined });
+                        setSuccess('Item created!');
+                        setNewItemName(''); setNewItemPrice(''); setNewItemDesc('');
+                        const r = await apiGet(`/api/club-arena/manage-shop?clubId=${clubId}`);
+                        setAdminItems(r.items || []);
+                        loadMarketplace(clubId, true);
+                      } catch (err) { setError(err.message); }
+                      finally { setProcessing(false); }
+                    }}>
+                    {processing ? 'Creating...' : 'Create Item'}
+                  </button>
+                </div>
+              </div>
+
+              {adminItems.length === 0 ? (
+                <div className={s.emptyState}><span className={s.emptyIcon}>🛠️</span><span className={s.emptyText}>No shop items. Create one above.</span></div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {adminItems.map(item => (
+                    <div key={item.id} style={{ background: '#242526', border: '1px solid #3A3B3C', borderRadius: '10px', padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: '14px', color: item.is_active ? '#E4E6EB' : '#6B7280' }}>{item.name}</div>
+                        <div style={{ fontSize: '12px', color: '#B0B3B8', marginTop: '2px' }}>{fmtChips(item.price)} chips • {item.purchase_count || 0} sold</div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <button onClick={async () => {
+                          try {
+                            await apiCall('/api/club-arena/manage-shop', { action: 'toggle', clubId, itemId: item.id });
+                            const r = await apiGet(`/api/club-arena/manage-shop?clubId=${clubId}`);
+                            setAdminItems(r.items || []);
+                            loadMarketplace(clubId, true);
+                          } catch (err) { setError(err.message); }
+                        }} style={{ fontSize: '11px', background: item.is_active ? 'rgba(49,162,76,0.12)' : 'rgba(107,114,128,0.12)', color: item.is_active ? '#31A24C' : '#6B7280', border: `1px solid ${item.is_active ? 'rgba(49,162,76,0.25)' : 'rgba(107,114,128,0.25)'}`, borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontWeight: 600 }}>
+                          {item.is_active ? 'Active' : 'Hidden'}
+                        </button>
+                        <button onClick={async () => {
+                          if (!confirm(`Delete "${item.name}"?`)) return;
+                          try {
+                            await apiCall('/api/club-arena/manage-shop', { action: 'delete', clubId, itemId: item.id });
+                            const r = await apiGet(`/api/club-arena/manage-shop?clubId=${clubId}`);
+                            setAdminItems(r.items || []);
+                            loadMarketplace(clubId, true);
+                          } catch (err) { setError(err.message); }
+                        }} style={{ fontSize: '11px', background: 'rgba(250,56,62,0.12)', color: '#FA383E', border: '1px solid rgba(250,56,62,0.25)', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontWeight: 600 }}>
+                          🗑️
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
