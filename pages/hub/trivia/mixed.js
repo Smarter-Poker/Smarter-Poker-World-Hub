@@ -78,6 +78,7 @@ export default function MixedModePage() {
 
     const [totalCorrect, setTotalCorrect] = useState(0);
     const [diamondsEarned, setDiamondsEarned] = useState(0);
+    const answersRef = useRef([]); // Track per-question correctness
 
     // 24-second shot clock
     const [timeLeft, setTimeLeft] = useState(24);
@@ -258,6 +259,7 @@ export default function MixedModePage() {
         setShowResult(false);
         setTotalCorrect(0);
         setDiamondsEarned(0);
+        answersRef.current = [];
         setCategoryStats({
             poker_history: { answered: 0, correct: 0 },
             rule_knowledge: { answered: 0, correct: 0 },
@@ -300,8 +302,10 @@ export default function MixedModePage() {
         if (isCorrect) {
             setTotalCorrect(prev => prev + 1);
             setDiamondsEarned(prev => prev + 1); // 1 diamond per correct
+            answersRef.current.push(true);
             busEmit.decisionCorrect(totalCorrect + 1);
         } else {
+            answersRef.current.push(false);
             busEmit.decisionIncorrect(totalCorrect);
             busEmit.screenShake('light');
         }
@@ -382,11 +386,14 @@ export default function MixedModePage() {
                 }
             }
 
-            // Record question history
-            if (questions.length > 0) {
-                const historyRecords = questions.map(q => ({
+            // Record question history (only answered questions)
+            const answeredCount = answersRef.current.length;
+            if (answeredCount > 0) {
+                const answeredQuestions = questions.slice(0, answeredCount);
+                const historyRecords = answeredQuestions.map((q, idx) => ({
                     user_id: userId,
                     question_id: q.id,
+                    was_correct: answersRef.current[idx] || false,
                     seen_at: new Date().toISOString(),
                     mode: 'mixed'
                 }));
