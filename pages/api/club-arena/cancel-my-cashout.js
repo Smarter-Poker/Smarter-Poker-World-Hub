@@ -22,7 +22,7 @@ export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 
     // RED TEAM: Payload size + field allowlist
-    if (rejectBadPayload(req, res, ['cashoutId'])) return;
+    if (rejectBadPayload(req, res, ['cashoutId', 'clubId'])) return;
 
     // CONCURRENCY: Idempotency guard — dedup rapid double-taps
     if (checkIdempotency(req, res)) return;
