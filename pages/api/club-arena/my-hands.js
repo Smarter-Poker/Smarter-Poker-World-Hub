@@ -6,7 +6,7 @@
  * Query: ?clubId=xxx&page=1&limit=50
  * Auth: Bearer token (Must be a club member)
  */
-import { createClient } from '../../../src/lib/supabaseServer';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,

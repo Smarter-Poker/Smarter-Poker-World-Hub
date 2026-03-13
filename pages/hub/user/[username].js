@@ -367,7 +367,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId,
                         ...(token ? { 'Authorization': `Bearer ${token}` } : {})
                     },
                     body: JSON.stringify({ post_id: post.id, user_id: currentUserId, interaction_type: 'share' })
-                }).catch(() => { });
+                }).catch(() => { }).catch(() => {});
             }
         } catch {
             setShareMsg('Share failed');

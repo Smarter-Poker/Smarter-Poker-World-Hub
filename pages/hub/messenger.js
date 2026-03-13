@@ -2468,7 +2468,7 @@ function MessengerPage() {
                     callerId: user.id,
                     calleeId: activeConversation.otherUser.id
                 }),
-            }).catch(() => { });
+            }).catch(() => { }).catch(() => {});
         }
 
         setShowCall(false);

@@ -251,7 +251,7 @@ export default function DailyChallengePage() {
               score: isCorrect ? 100 : 0,
               evLoss: isCorrect ? 0 : 1,
             }),
-          });
+          }).catch(() => {});
         }
       } catch (_) {
         /* ignore */

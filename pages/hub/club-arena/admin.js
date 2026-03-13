@@ -71,7 +71,7 @@ function DashboardTab({ clubId }) {
 
   const colorMap = { green: '#31A24C', yellow: '#F5A623', red: '#FA383E' };
   const hColor = colorMap[health.color] || '#31A24C';
-  const bd = health.breakdown;
+  const bd = health.breakdown || {};
 
   return (
     <div style={{ animation: 'fadeIn 0.2s ease-out' }}>
@@ -90,11 +90,11 @@ function DashboardTab({ clubId }) {
         {/* Breakdown Meters */}
         <div style={{ flex: '2 1 400px', background: '#242526', padding: '24px', borderRadius: '12px', border: '1px solid #3A3B3C' }}>
           <h3 style={{ margin: '0 0 24px', fontSize: '16px' }}>Health Metrics Breakdown</h3>
-          <Meter label="Active Players (40%)" score={bd.activePlayers.score} color="#31A24C" detail={`${bd.activePlayers.active} / ${bd.activePlayers.total}`} />
-          <Meter label="Rake Trend (20%)" score={bd.rakeTrend.score} color="#F5A623" detail={`This week: ${fmtChips(bd.rakeTrend.thisWeek)}`} />
-          <Meter label="Agent Engagement (15%)" score={bd.agentEngagement.score} color="#4599FF" detail={`${bd.agentEngagement.active} / ${bd.agentEngagement.total} active`} />
-          <Meter label="Player Acquisition (15%)" score={bd.playerAcquisition.score} color="#a855f7" detail={`${bd.playerAcquisition.newThisMonth} new this month`} />
-          <Meter label="Cashout Velocity (10%)" score={bd.cashoutVelocity.score} color="#E4E6EB" detail={`${bd.cashoutVelocity.cashouts} outs vs ${bd.cashoutVelocity.buyins} ins`} />
+          {bd.activePlayers && <Meter label="Active Players (40%)" score={bd.activePlayers.score} color="#31A24C" detail={`${bd.activePlayers.active} / ${bd.activePlayers.total}`} />}
+          {bd.rakeTrend && <Meter label="Rake Trend (20%)" score={bd.rakeTrend.score} color="#F5A623" detail={`This week: ${fmtChips(bd.rakeTrend.thisWeek)}`} />}
+          {bd.agentEngagement && <Meter label="Agent Engagement (15%)" score={bd.agentEngagement.score} color="#4599FF" detail={`${bd.agentEngagement.active} / ${bd.agentEngagement.total} active`} />}
+          {bd.playerAcquisition && <Meter label="Player Acquisition (15%)" score={bd.playerAcquisition.score} color="#a855f7" detail={`${bd.playerAcquisition.newThisMonth} new this month`} />}
+          {bd.cashoutVelocity && <Meter label="Cashout Velocity (10%)" score={bd.cashoutVelocity.score} color="#E4E6EB" detail={`${bd.cashoutVelocity.cashouts} outs vs ${bd.cashoutVelocity.buyins} ins`} />}
         </div>
       </div>
 
@@ -459,8 +459,15 @@ export default function ClubArenaAdminPage() {
     (async () => {
       const { supabase } = await import('../../../src/lib/supabase');
       const { data: { session } } = await supabase.auth.getSession();
-      if (session) { await init(session); }
-      else { setError('login_required'); setLoading(false); }
+      if (session) { await init(session); return; }
+
+      const timeout = setTimeout(() => { if (!cancelled) { setError('login_required'); setLoading(false); } }, 3000);
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, sess) => {
+        clearTimeout(timeout);
+        if (sess && !cancelled) await init(sess);
+        else if (!cancelled) { setError('login_required'); setLoading(false); }
+        subscription?.unsubscribe();
+      });
     })();
 
     return () => { cancelled = true; };

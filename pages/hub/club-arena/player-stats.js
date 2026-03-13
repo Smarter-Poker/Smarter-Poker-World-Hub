@@ -9,7 +9,7 @@ import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { apiCall } from '../../../src/lib/club-arena/apiClient';
+
 import s from '../../../src/styles/UnionDashboard.module.css';
 
 const fmt = (n) => Number(n || 0).toLocaleString();
@@ -201,7 +201,7 @@ export default function ClubArenaPlayerStatsPage() {
               <div style={{ background: '#242526', padding: '20px', borderRadius: '12px', border: '1px solid #3A3B3C', marginBottom: '24px' }}>
                 <h3 style={{ margin: '0 0 12px', fontSize: '16px' }}>🎖️ Membership</h3>
                 <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', fontSize: '14px' }}>
-                  <div><span style={{ color: '#B0B3B8' }}>Role:</span> <span style={{ fontWeight: 700, textTransform: 'capitalize' }}>{stats.role?.replace('_', ' ')}</span></div>
+                  <div><span style={{ color: '#B0B3B8' }}>Role:</span> <span style={{ fontWeight: 700, textTransform: 'capitalize' }}>{stats.role?.replace(/_/g, ' ')}</span></div>
                   <div><span style={{ color: '#B0B3B8' }}>Member for:</span> <span style={{ fontWeight: 700 }}>{stats.daysSince} days</span></div>
                   <div><span style={{ color: '#B0B3B8' }}>Joined:</span> <span>{new Date(stats.joinedAt).toLocaleDateString()}</span></div>
                 </div>

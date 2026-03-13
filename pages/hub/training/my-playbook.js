@@ -75,7 +75,7 @@ export default function MyPlaybookPage() {
           level: 1,
           handHistory: [],
         }),
-      }).catch(() => {});
+      }).catch(() => {}).catch(() => {});
       eventBus?.emit?.(
         EventType?.SESSION_END || 'session:end',
         { gameId: 'my-playbook', plays: next.length, newPlay: title },

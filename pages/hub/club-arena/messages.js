@@ -68,6 +68,7 @@ export default function ClubArenaMessagesPage() {
   // Auth + init
   useEffect(() => {
     let cancelled = false;
+    let authSub = null;
 
     const init = async (session) => {
       if (cancelled) return;
@@ -104,9 +105,10 @@ export default function ClubArenaMessagesPage() {
         else if (!cancelled) { setError('login_required'); setLoading(false); }
         subscription?.unsubscribe();
       });
+      authSub = subscription;
     })();
 
-    return () => { cancelled = true; };
+    return () => { cancelled = true; authSub?.unsubscribe?.(); };
   }, [router.query.club, router.query.clubId, loadMessages]);
 
   // Auto-polling every 10s

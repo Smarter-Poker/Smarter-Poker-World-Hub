@@ -110,7 +110,7 @@ export default function BlindDefensePage() {
               total_questions: score.total + 1,
             },
           }),
-        }).catch(() => {});
+        }).catch(() => {}).catch(() => {});
       }
     }, 1500);
   };

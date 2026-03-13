@@ -388,9 +388,9 @@ export default function ClubPage() {
 
           // Parallel: fetch posts + photos + reviews simultaneously
           const [postsRes, photosRes, reviewsRes] = await Promise.allSettled([
-            fetch(`/api/public/venue/${resolvedId}/posts?limit=10`, { signal }),
-            fetch(`/api/public/venue/${resolvedId}/photos?limit=20`, { signal }),
-            fetch(`/api/public/venue/${resolvedId}/reviews?limit=10`, { signal }),
+            fetch(`/api/public/venue/${resolvedId}/posts?limit=10`, { signal }).catch(() => {}),
+            fetch(`/api/public/venue/${resolvedId}/photos?limit=20`, { signal }).catch(() => {}),
+            fetch(`/api/public/venue/${resolvedId}/reviews?limit=10`, { signal }).catch(() => {}),
           ]);
 
           if (postsRes.status === 'fulfilled') {

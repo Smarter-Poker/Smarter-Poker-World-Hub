@@ -191,7 +191,7 @@ export default function StudyGroupFinderPage() {
             level: 1,
             handHistory: [],
           }),
-        }).catch(() => {});
+        }).catch(() => {}).catch(() => {});
         eventBus?.emit?.(
           EventType?.SESSION_END || 'session:end',
           { gameId: 'study-group', groupId: gId, totalApplied: next.length },
