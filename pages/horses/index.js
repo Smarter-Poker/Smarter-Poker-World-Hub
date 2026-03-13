@@ -1048,6 +1048,7 @@ export default function HorsesAdmin() {
   /** Launch or shutdown ENTIRE horse fleet via horse-launch API */
   const handleFleetLaunch = async (fleetAction) => {
     try {
+      setGrinderLoading(true);
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) { showNotification('Session expired.', 'error'); return; }
 
@@ -1076,11 +1077,14 @@ export default function HorsesAdmin() {
     } catch (err) {
       console.error('Fleet launch error:', err);
       showNotification('Network error during fleet launch', 'error');
+    } finally {
+      setGrinderLoading(false);
     }
   };
 
   const handleGrinderAction = async (action, club) => {
     try {
+      setGrinderLoading(true);
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -1117,6 +1121,8 @@ export default function HorsesAdmin() {
     } catch (err) {
       console.error('Grinder action error:', err);
       showNotification('Network error executing action', 'error');
+    } finally {
+      setGrinderLoading(false);
     }
   };
 
