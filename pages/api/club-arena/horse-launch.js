@@ -343,25 +343,21 @@ async function seatHorseAtTable(tableId, horseId, maxPlayers, bigBlind) {
   if (seat > maxPlayers) return false;
 
   const buyIn = (bigBlind || 1) * 100;
-  const { error } = await supabaseAdmin.from('table_seats').insert({
-    table_id: tableId,
-    user_id: horseId,
-    seat_number: seat,
-    stack: buyIn,
-    is_sitting_out: false,
+  
+  // Enforce atomic bankroll deduction
+  const { error } = await supabaseAdmin.rpc('atomic_table_buyin', {
+    p_user_id: horseId,
+    p_table_id: tableId,
+    p_seat_number: seat,
+    p_amount: buyIn,
+    p_auto_rebuy: false
   });
-  if (error) return false;
+  
+  if (error) {
+    console.error(`[Horse Launch] Failed to buy into table ${tableId}: ${error.message}`);
+    return false;
+  }
 
-  // Authoritative recount
-  const { count } = await supabaseAdmin
-    .from('table_seats')
-    .select('*', { count: 'exact', head: true })
-    .eq('table_id', tableId)
-    .is('left_at', null);
-  await supabaseAdmin
-    .from('tables')
-    .update({ current_players: count ?? 0 })
-    .eq('id', tableId);
   return true;
 }
 
@@ -528,6 +524,10 @@ export default async function handler(req, res) {
         }
       }
       log.push(`✅ Spins created: ${spinsCreated}, horses registered: ${spinRegistered}`);
+
+      // 4.5. Pre-fund all horses to 500,000 chips so they don't bounce off atomic wallet deductions
+      await supabaseAdmin.rpc('mass_fund_horses', { p_amount: 500000 });
+      log.push(`✅ Granted core bankroll to all horses for atomic cash game buy-ins`);
 
       // 5. Seat horses at cash tables (2 per horse, split by club)
       let cashSeats = 0;
