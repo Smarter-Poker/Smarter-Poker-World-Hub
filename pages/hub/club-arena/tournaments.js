@@ -368,10 +368,14 @@ export default function ClubArenaTournamentsPage() {
   // ── EventBus ───────────────────────────────────────────────
   useEffect(() => {
     const refresh = () => { if (clubId) loadTournaments(clubId); };
-    // Listen for TOURNAMENT_STARTED or TOURNAMENT_REGISTERED events if added to eventBus globally later
-    // For now, poll every 60s to keep lobby fresh
+    const events = ['TOURNAMENT_REGISTERED', 'TOURNAMENT_STARTED', 'TOURNAMENT_COMPLETED', 'TOURNAMENT_CANCELLED'];
+    events.forEach(ev => eventBus.on(ev, refresh));
+    // Also keep polling every 60s for background freshness
     const timer = setInterval(refresh, 60000);
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+      events.forEach(ev => eventBus.off(ev, refresh));
+    };
   }, [clubId, loadTournaments]);
 
   // ── Filtering ──────────────────────────────────────────────

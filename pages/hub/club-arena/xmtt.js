@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { apiCall } from '../../../src/lib/club-arena/apiClient';
+import { eventBus } from '../../../src/engine/EventBus';
 import s from '../../../src/styles/UnionDashboard.module.css';
 
 const fmt = (n) => Number(n || 0).toLocaleString();
@@ -125,6 +126,18 @@ export default function ClubArenaXMTTPage() {
     const iv = setInterval(() => loadTournaments(clubId), 30000);
     return () => clearInterval(iv);
   }, [clubId, loadTournaments]);
+
+  // EventBus — instant refresh on tournament events
+  useEffect(() => {
+    if (!clubId) return;
+    const refresh = () => {
+      loadTournaments(clubId);
+      if (selectedTournament) loadDetail(selectedTournament, clubId);
+    };
+    const events = ['TOURNAMENT_REGISTERED', 'TOURNAMENT_STARTED', 'TOURNAMENT_COMPLETED'];
+    events.forEach(ev => eventBus.on(ev, refresh));
+    return () => events.forEach(ev => eventBus.off(ev, refresh));
+  }, [clubId, selectedTournament, loadTournaments, loadDetail]);
 
   // Auto-refresh detail panel every 15s when viewing a running tournament
   useEffect(() => {

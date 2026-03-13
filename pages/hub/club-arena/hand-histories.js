@@ -11,6 +11,7 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { apiGet } from '../../../src/lib/club-arena/apiClient';
 import dynamic from 'next/dynamic';
+import { eventBus } from '../../../src/engine/EventBus';
 import s from '../../../src/styles/UnionDashboard.module.css';
 
 // SSG-safe: load HandReplayerModal only on client side
@@ -136,6 +137,15 @@ export default function ClubArenaHandHistoriesPage() {
     };
     document.addEventListener('visibilitychange', handleVisibility);
     return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [clubId, page, loadHands]);
+
+  // EventBus — instant refresh on hand events
+  useEffect(() => {
+    if (!clubId) return;
+    const refresh = () => loadHands(clubId, page);
+    const events = ['HAND_COMPLETED', 'HAND_REPLAYED'];
+    events.forEach(ev => eventBus.on(ev, refresh));
+    return () => events.forEach(ev => eventBus.off(ev, refresh));
   }, [clubId, page, loadHands]);
 
   return (

@@ -9,6 +9,7 @@ import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { eventBus } from '../../../src/engine/EventBus';
 
 import s from '../../../src/styles/UnionDashboard.module.css';
 
@@ -198,6 +199,14 @@ export default function ClubArenaPlayerStatsPage() {
     };
     document.addEventListener('visibilitychange', handleVisibility);
     return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [clubId, refreshStats]);
+
+  // EventBus — instant refresh on financial events
+  useEffect(() => {
+    if (!clubId) return;
+    const events = ['CHIPS_DISTRIBUTED', 'CASHOUT_APPROVED', 'BALANCE_UPDATED', 'HAND_COMPLETED'];
+    events.forEach(ev => eventBus.on(ev, refreshStats));
+    return () => events.forEach(ev => eventBus.off(ev, refreshStats));
   }, [clubId, refreshStats]);
 
   if (loading) {
