@@ -94,6 +94,7 @@ export const EventType = {
     BALANCE_UPDATED: 'BALANCE_UPDATED',
     AGENT_UPDATED: 'AGENT_UPDATED',
     ANTI_CHEAT_FLAG_CREATED: 'ANTI_CHEAT_FLAG_CREATED',
+    CASHIER_BALANCE_CHANGED: 'CASHIER_BALANCE_CHANGED',
 };
 
 // ─── SSR Safety Check ──────────────────────────────────────────
