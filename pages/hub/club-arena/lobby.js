@@ -235,7 +235,7 @@ export default function ClubArenaLobbyPage() {
   useEffect(() => {
     const refresh = () => { if (clubId) loadLobby(clubId); };
     const events = ['TABLE_CREATED', 'ANNOUNCEMENT_CREATED', 'PLAYER_KICKED',
-      'WAITLIST_PLAYER_ADDED', 'WAITLIST_PLAYER_CALLED', 'WAITLIST_PLAYER_SEATED'];
+      'WAITLIST_PLAYER_ADDED', 'WAITLIST_PLAYER_CALLED', 'WAITLIST_PLAYER_SEATED', 'CHIPS_DISTRIBUTED'];
     events.forEach(ev => eventBus.on(ev, refresh));
     return () => events.forEach(ev => eventBus.off(ev, refresh));
   }, [clubId, loadLobby]);

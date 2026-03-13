@@ -70,6 +70,13 @@ function DashboardTab({ clubId }) {
 
   useEffect(() => { load(); }, [load]);
 
+  // Bus listener for cross-page sync
+  useEffect(() => {
+    const events = ['TABLE_CREATED', 'CHIPS_DISTRIBUTED', 'AGENT_UPDATED', 'ANNOUNCEMENT_CREATED'];
+    events.forEach(ev => eventBus.on(ev, load));
+    return () => events.forEach(ev => eventBus.off(ev, load));
+  }, [load]);
+
   if (loading) return (
     <div style={{ animation: 'fadeIn 0.2s ease-out' }}>
       <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>

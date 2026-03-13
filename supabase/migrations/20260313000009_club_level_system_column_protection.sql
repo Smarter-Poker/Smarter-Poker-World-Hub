@@ -7,23 +7,25 @@
 -- calculation engine by running:
 --   supabase.from('clubs').update({ level: 50 }).eq('id', clubId)
 -- 
--- This trigger SILENTLY REVERTS any direct writes to the protected level columns,
--- ensuring they can ONLY be modified by the `recompute_club_levels` RPC 
--- (via the SECURITY DEFINER autonomous trigger).
+-- CRITICAL FIX (Sweep 11): The original version checked `request.jwt.claims`
+-- which is a SESSION-LEVEL GUC that persists across SECURITY DEFINER boundaries.
+-- This caused the protection trigger to SILENTLY REVERT every legitimate level  
+-- calculation performed by the autonomous trigger (Migration 007).
+-- 
+-- The correct approach uses `current_user` which reflects the SECURITY DEFINER
+-- function owner ('postgres') when called from the RPC trigger chain, vs.
+-- the PostgREST user role when called from a direct client UPDATE.
 
 CREATE OR REPLACE FUNCTION public.trg_protect_club_level_columns()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    -- If any protected level column is being changed AND the caller is NOT
-    -- the autonomous recompute trigger (which runs as postgres/service_role),
-    -- silently revert the level columns to their previous values.
-    -- The recompute trigger calls recompute_club_levels() which is SECURITY DEFINER
-    -- and runs as 'postgres' role. Normal user updates come through as 'authenticated'.
-    
-    IF current_setting('request.jwt.claims', true) IS NOT NULL 
-       AND (current_setting('request.jwt.claims', true)::jsonb->>'role') = 'authenticated' THEN
+    -- Allow writes from privileged system roles (postgres, service_role)
+    -- These are used by SECURITY DEFINER RPCs and the autonomous trigger chain.
+    -- Block writes from regular users (authenticated, anon) who attempt
+    -- direct UPDATE on the clubs table.
+    IF current_user NOT IN ('postgres', 'supabase_admin', 'service_role') THEN
         -- Revert ALL protected level columns to their previous (OLD) values
         NEW.level := OLD.level;
         NEW.player_level := OLD.player_level;
@@ -46,3 +48,4 @@ CREATE TRIGGER trg_clubs_protect_level_columns
 BEFORE UPDATE ON public.clubs
 FOR EACH ROW
 EXECUTE FUNCTION public.trg_protect_club_level_columns();
+
