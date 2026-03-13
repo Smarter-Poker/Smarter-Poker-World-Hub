@@ -289,6 +289,7 @@ function AuditLogTab({ clubId }) {
     }
   }, [clubId]);
 
+  useEffect(() => { load(page); }, [page, load]);
   const exportCSV = async () => {
     try {
       const res = await apiCall('/api/club-arena/audit-trail', { action: 'export', clubId });
