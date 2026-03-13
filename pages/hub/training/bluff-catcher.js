@@ -82,6 +82,7 @@ export default function BluffCatcherTrainer() {
     try {
       await authedFetch('/api/training/save-session', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           gameId: 'bluff-catcher',
           stats: {

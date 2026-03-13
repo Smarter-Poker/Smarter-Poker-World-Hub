@@ -156,6 +156,7 @@ export default function PokerPagesPage() {
         try {
             await authedFetch('/api/poker/follow', {
                 method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     page_type: pageType,
                     page_id: pageId,

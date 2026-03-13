@@ -103,6 +103,7 @@ export default function BlindDefensePage() {
       if ((score.total + 1) % 5 === 0) {
         fetch('/api/training/save-session', {
           method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             gameId: 'blind-defense',
             stats: {

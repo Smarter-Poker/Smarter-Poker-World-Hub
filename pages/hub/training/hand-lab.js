@@ -99,6 +99,7 @@ export default function HandLabV2() {
       // Save via session protocol
       fetch('/api/training/save-session', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           gameId: 'hand-lab',
           stats: {

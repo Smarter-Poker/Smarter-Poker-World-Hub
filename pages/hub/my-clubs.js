@@ -655,6 +655,7 @@ export default function MyClubsPage() {
         try {
             await authedFetch('/api/poker/follow', {
                 method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     page_type: 'venue',
                     page_id: vid,

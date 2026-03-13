@@ -44,6 +44,7 @@ export default function MixedStrategyLab() {
     try {
       await authedFetch('/api/training/save-session', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           gameId: 'mixed-strategy-lab',
           stats: {

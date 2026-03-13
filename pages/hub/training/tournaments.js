@@ -79,6 +79,7 @@ export default function TournamentsPage() {
     try {
       const res = await authedFetch('/api/training/tournaments', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: user.id,
           tournamentId,

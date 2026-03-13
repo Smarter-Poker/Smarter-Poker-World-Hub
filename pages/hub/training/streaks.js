@@ -120,6 +120,7 @@ export default function StreaksPage() {
     try {
       const res = await authedFetch('/api/training/streak', {
         method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: user.id,
           milestoneDays,
@@ -229,6 +230,7 @@ export default function StreaksPage() {
                   try {
                     const res = await authedFetch('/api/training/share', {
                       method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({
                         userId: user.id,
                         shareType: 'streak',

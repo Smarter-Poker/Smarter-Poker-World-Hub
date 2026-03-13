@@ -274,6 +274,7 @@ export default function ReelsPage() {
             try {
                 await authedFetch('/api/social/interactions', {
                     method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ post_id: currentReel.id, user_id: userId, interaction_type: 'like' })
                 });
             } catch (e) {
@@ -304,6 +305,7 @@ export default function ReelsPage() {
         try {
             const res = await authedFetch('/api/social/interactions', {
                 method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ post_id: currentReel.id, user_id: userId, interaction_type: 'comment', content: commentText.trim() })
             });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -328,6 +330,7 @@ export default function ReelsPage() {
             if (userId) {
                 authedFetch('/api/social/interactions', {
                     method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ post_id: currentReel.id, user_id: userId, interaction_type: 'share' })
                 }).catch(() => { }).finally(() => setShareBusy(false));
             } else {

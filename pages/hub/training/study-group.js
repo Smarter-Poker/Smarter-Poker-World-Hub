@@ -87,6 +87,7 @@ export default function StudyGroupRoom() {
     if (!isCreating) {
       fetch('/api/training/save-session', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           gameId: 'study-group',
           stats: {

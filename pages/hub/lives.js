@@ -144,6 +144,7 @@ export default function LivesPage() {
         if (userId) {
             authedFetch('/api/social/interactions', {
                 method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ post_id: currentStream.id, user_id: userId, interaction_type: 'like' })
             }).catch(() => {
                 setLikedStreams(prev => ({ ...prev, [currentStream.id]: wasLiked }));
@@ -176,6 +177,7 @@ export default function LivesPage() {
         try {
             const res = await authedFetch('/api/social/interactions', {
                 method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ post_id: currentStream.id, user_id: userId, interaction_type: 'comment', content: chatText.trim() })
             });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -202,6 +204,7 @@ export default function LivesPage() {
             if (userId) {
                 authedFetch('/api/social/interactions', {
                     method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ post_id: currentStream.id, user_id: userId, interaction_type: 'share' })
                 }).catch(() => { }).finally(() => setShareBusy(false));
             } else {

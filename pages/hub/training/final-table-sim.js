@@ -58,6 +58,7 @@ export default function FinalTableSimulator() {
     try {
       await authedFetch('/api/training/save-session', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           gameId: 'final-table-sim',
           stats: {
