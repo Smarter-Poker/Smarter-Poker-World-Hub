@@ -41,11 +41,11 @@ function StatCard({ title, value, change, icon: Icon, color = '#1877F2' }) {
 }
 
 function SimpleBarChart({ data, label }) {
-  const maxValue = Math.max(...data.map(d => d.value), 1);
+  const maxValue = Math.max(...(data || []).map(d => d.value), 1);
 
   return (
     <div className="space-y-2">
-      {data.map((item, index) => (
+      {(data || []).map((item, index) => (
         <div key={index} className="flex items-center gap-3">
           <span className="text-sm text-[#B0B3B8] w-12">{item.label}</span>
           <div className="flex-1 h-6 bg-[#3A3B3C] rounded overflow-hidden">

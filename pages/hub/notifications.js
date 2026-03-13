@@ -90,7 +90,7 @@ function NotificationsPage() {
                 })) : [];
 
                 const data = (socialRes.success && socialRes.notifications) ? socialRes.notifications : [];
-                const combined = [...data.map(n => ({ ...n, _source: 'social' })), ...pokerNotifs]
+                const combined = [...(data || []).map(n => ({ ...n, _source: 'social' })), ...pokerNotifs]
                     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
                     .slice(0, 60);
 

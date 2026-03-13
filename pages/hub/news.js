@@ -1023,7 +1023,7 @@ export default function NewsHub() {
 
             // Load bookmarks
             getNewsBookmarks(userId).then(data => {
-                setBookmarks(data.map(b => b.article_id));
+                setBookmarks((data || []).map(b => b.article_id));
             }).catch(err => console.error('Error loading bookmarks:', err));
         }
     }, [userId]);

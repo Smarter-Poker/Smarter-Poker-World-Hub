@@ -494,7 +494,7 @@ export default function VideoLibraryPage() {
                 filter: `user_id=eq.${userId}`
             }, () => {
                 getVideoFavorites(userId).then(data => {
-                    setFavorites(new Set(data.map(v => v.video_id)));
+                    setFavorites(new Set((data || []).map(v => v.video_id)));
                 });
             })
             .subscribe();

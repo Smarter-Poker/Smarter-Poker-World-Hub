@@ -341,7 +341,7 @@ function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, DiamondEngine, userI
                             {userAnswer !== currentHand.correctAction && (
                                 <img
                                     src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/gto-panels/panels/gto_${(currentHand.scenario?.position || 'utg').toLowerCase()}_${currentHand.correctAction}_${currentHand.scenario?.stackDepth || 100}bb.png`}
-                                    alt=`}GTO Analysis"
+                                    alt="GTO Analysis"
                                     style={{ maxWidth: '100%', borderRadius: 12, border: '2px solid rgba(0,212,255,0.3)', marginTop: 8 }}
                                     onError={(e) => { e.target.style.display = 'none'; }}
                                 />
@@ -644,7 +644,7 @@ function PressureCookerGame({ level = 1, onExit, onScoreUpdate, DiamondEngine, u
                             {userAnswer !== currentHand.correctAction && (
                                 <img
                                     src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/gto-panels/panels/gto_${(currentHand.scenario?.position || 'utg').toLowerCase()}_${currentHand.correctAction}_${currentHand.scenario?.stackDepth || 100}bb.png`}
-                                    alt=`}GTO Analysis"
+                                    alt="GTO Analysis"
                                     style={{ maxWidth: '100%', borderRadius: 12, border: '2px solid rgba(0,212,255,0.3)', marginTop: 8 }}
                                     onError={(e) => { e.target.style.display = 'none'; }}
                                 />
@@ -969,7 +969,7 @@ function PatternRecognitionGame({ level = 1, onExit, onScoreUpdate, DiamondEngin
                             {userAnswer !== currentPattern.correctAnswer && (
                                 <img
                                     src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/gto-panels/panels/gto_${(currentPattern.scenario?.position || 'utg').toLowerCase()}_${currentPattern.correctAnswer}_${currentPattern.scenario?.stackDepth || 100}bb.png`}
-                                    alt=`}GTO Analysis"
+                                    alt="GTO Analysis"
                                     style={{ maxWidth: '100%', borderRadius: 12, border: '2px solid rgba(0,212,255,0.3)', marginTop: 8 }}
                                     onError={(e) => { e.target.style.display = 'none'; }}
                                 />
@@ -1313,7 +1313,7 @@ function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, DiamondEngine, us
                             {diff > 15 && (
                                 <img
                                     src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/gto-panels/panels/gto_${(currentScenario?.position || 'utg').toLowerCase()}_${targetAction}_${currentScenario?.stackDepth || 100}bb.png`}
-                                    alt=`}GTO Analysis"
+                                    alt="GTO Analysis"
                                     style={{ maxWidth: '100%', borderRadius: 12, border: '2px solid rgba(0,212,255,0.3)', marginTop: 8 }}
                                     onError={(e) => { e.target.style.display = 'none'; }}
                                 />
