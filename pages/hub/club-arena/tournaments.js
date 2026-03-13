@@ -10,7 +10,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { apiCall, apiGet } from '../../../src/lib/club-arena/apiClient';
-import { eventBus } from '../../../src/engine/EventBus';
+import { busEmit, eventBus } from '../../../src/engine/EventBus';
 import CreateTournamentModal from '../../../src/components/club-arena/CreateTournamentModal';
 import s from '../../../src/styles/UnionDashboard.module.css';
 
@@ -45,6 +45,8 @@ function TournamentDetailPane({ tourn, clubId, clubRole, onBack, onRefreshList, 
   const [error, setError] = useState(null);
   const [processing, setProcessing] = useState(false);
   const [successMsg, setSuccessMsg] = useState(null);
+  const [waitlistPos, setWaitlistPos] = useState(null);
+  const [waitlistLoading, setWaitlistLoading] = useState(false);
 
   const loadDetails = useCallback(async () => {
     try {
@@ -60,6 +62,16 @@ function TournamentDetailPane({ tourn, clubId, clubRole, onBack, onRefreshList, 
   }, [clubId, tourn.id]);
 
   useEffect(() => { loadDetails(); }, [loadDetails]);
+
+  // Check waitlist position on full late-reg tournaments
+  useEffect(() => {
+    const isFull = tourn.registered_count >= (tourn.max_players || 999);
+    if ((tourn.status === 'late_reg' || tourn.status === 'registering') && isFull && currentUserId) {
+      apiCall('/api/club-arena/waitlist', { action: 'position', tableId: tourn.id })
+        .then(r => { if (r.onWaitlist) setWaitlistPos(r.position); })
+        .catch(() => {});
+    }
+  }, [tourn.id, tourn.status, tourn.registered_count, tourn.max_players, currentUserId]);
 
   // Handle auto-clear success
   useEffect(() => {
@@ -136,6 +148,43 @@ function TournamentDetailPane({ tourn, clubId, clubRole, onBack, onRefreshList, 
                 </button>
               )
             ) : null}
+
+            {/* Waitlist for full tournaments */}
+            {(tourn.status === 'late_reg' || tourn.status === 'registering') && tourn.registered_count >= (tourn.max_players || 999) && (
+              <div style={{ marginTop: '8px' }}>
+                {waitlistPos ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '13px', color: '#F5A623', fontWeight: 600 }}>📋 Waitlist Position #{waitlistPos}</span>
+                    <button disabled={waitlistLoading} className={s.btnGhost}
+                      style={{ fontSize: '12px', color: '#FA383E', borderColor: '#FA383E', padding: '4px 12px' }}
+                      onClick={async () => {
+                        setWaitlistLoading(true);
+                        try {
+                          await apiCall('/api/club-arena/waitlist', { action: 'leave', tableId: tourn.id });
+                          setWaitlistPos(null);
+                        } catch (err) { setSuccessMsg(null); }
+                        finally { setWaitlistLoading(false); }
+                      }}>
+                      {waitlistLoading ? '...' : '✕ Leave Waitlist'}
+                    </button>
+                  </div>
+                ) : (
+                  <button disabled={waitlistLoading} className={s.btnGhost}
+                    style={{ fontSize: '13px', color: '#4599FF', borderColor: '#4599FF', padding: '6px 16px', width: '100%' }}
+                    onClick={async () => {
+                      setWaitlistLoading(true);
+                      try {
+                        const res = await apiCall('/api/club-arena/waitlist', { action: 'join', tableId: tourn.id });
+                        setWaitlistPos(res.position);
+                        busEmit('WAITLIST_PLAYER_ADDED', { tableId: tourn.id, clubId });
+                      } catch (err) { setSuccessMsg(err.message); }
+                      finally { setWaitlistLoading(false); }
+                    }}>
+                    {waitlistLoading ? 'Joining...' : '📋 Join Waitlist'}
+                  </button>
+                )}
+              </div>
+            )}
 
             {isAdmin && (tourn.status === 'scheduled' || tourn.status === 'registering') && (
               <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
