@@ -79,6 +79,7 @@ export default function PlayerReputation() {
         setExpandedReviews(prev => ({ ...prev, [playerId]: json.data.recent_reviews || [] }));
       }
     } catch (err) { console.error(err); }
+  setLoading(false);
   };
 
   const toggleExpand = (playerId) => {

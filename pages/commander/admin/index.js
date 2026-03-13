@@ -80,6 +80,7 @@ function ApiKeysModal({ isOpen, onClose, venueId, onSuccess }) {
         setError(data.error?.message || 'Failed to create API key');
       }
     } catch (err) {
+      setLoading(false);
       console.error('Create API key error:', err);
       setError('Failed to create API key');
     } finally {
@@ -507,6 +508,7 @@ export default function AdminDashboard() {
         setAuditLogs(data.logs);
       }
     } catch (err) {
+      setIsLoading(false);
       console.error('Audit logs error:', err);
     }
   };

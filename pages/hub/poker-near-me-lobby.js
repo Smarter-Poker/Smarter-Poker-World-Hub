@@ -519,6 +519,7 @@ export default function PokerNearMeLobby() {
       if (data?.data) setTours(data.data.filter(v => v.has_tournaments));
       else if (data?.tours) setTours(data.tours);
     } catch (err) {
+      setLoading(false);
       console.error('Failed to fetch tours:', err);
     } finally {
       setToursLoaded(true);

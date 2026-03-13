@@ -124,6 +124,7 @@ export default function ArticlePage() {
                 .limit(3);
             if (data) setRelated(data);
         } catch (e) { console.error("[article.js]", e); }
+    setLoading(false);
     };
 
     const formatDate = (dateStr) => {

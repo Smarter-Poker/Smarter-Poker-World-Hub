@@ -107,6 +107,7 @@ export default function AgentDashboardPage() {
         setAnalyticsLoaded(true);
       }
     } catch (err) {
+      setLoading(false);
       console.warn('[AgentDashboard] Analytics load failed:', err.message);
     }
   }, [clubId, analyticsLoaded]);
@@ -117,6 +118,7 @@ export default function AgentDashboardPage() {
       const res = await apiCall('/api/club-arena/agent-analytics', { clubId, action: 'heat_map' });
       if (mountedRef.current) setHeatMap(res.heatMap || []);
     } catch (err) {
+      setLoading(false);
       console.warn('[AgentDashboard] Heat map failed:', err.message);
     }
   }, [clubId, heatMap]);

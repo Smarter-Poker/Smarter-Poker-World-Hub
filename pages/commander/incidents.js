@@ -418,6 +418,7 @@ export default function IncidentsPage() {
         }
       }
     } catch (err) { console.error('Create incident failed:', err); alert('Action failed: Create incident failed. Please try again.'); }
+  setLoading(false);
   }
 
   async function handleResolveIncident(incidentId, resolution) {

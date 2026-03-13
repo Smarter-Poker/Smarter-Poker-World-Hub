@@ -2452,6 +2452,7 @@ export default function MemoryGamesPage() {
                 setLobbySuggestions(result.suggestions);
             }
         } catch (error) {
+            setAdaptiveLoading(false);
             console.error('[MemoryGames] Lobby suggestions error:', error);
         }
     };

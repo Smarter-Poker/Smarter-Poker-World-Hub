@@ -103,6 +103,7 @@ export default function ClubArenaPlayersPage() {
       const res = await apiCall('/api/club-arena/player-retention', { clubId, action: 'scan' });
       if (mountedRef.current) { setRetention(res); setRetentionLoaded(true); }
     } catch (err) {
+      setLoading(false);
       console.warn('[Players] Retention scan failed:', err.message);
     }
   }, [clubId, retentionLoaded]);
@@ -114,6 +115,7 @@ export default function ClubArenaPlayersPage() {
       const res = await apiCall('/api/club-arena/player-chip-flow', { clubId });
       if (mountedRef.current) { setChipFlow(res.flow || {}); setChipFlowLoaded(true); }
     } catch (err) {
+      setLoading(false);
       console.warn('[Players] Chip flow failed:', err.message);
     }
   }, [clubId, chipFlowLoaded]);

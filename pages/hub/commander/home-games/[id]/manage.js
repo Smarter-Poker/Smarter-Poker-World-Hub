@@ -366,6 +366,7 @@ export default function ManageHomeGamePage() {
       });
       if (expandedEventId) loadEventRsvps(expandedEventId);
     } catch (err) {
+      setRsvpLoading(false);
       console.error('RSVP action failed:', err);
     }
   }
@@ -381,6 +382,7 @@ export default function ManageHomeGamePage() {
       });
       fetchData();
     } catch (error) {
+      setRsvpLoading(false);
       console.error('Delete failed:', error);
     }
   }

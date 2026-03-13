@@ -194,6 +194,7 @@ export default function HandHistoryPage() {
         setHands(data.data?.hands || []);
       }
     } catch (err) {
+      setLoading(false);
       console.error('Fetch hands failed:', err);
       setHands([]);
     } finally {

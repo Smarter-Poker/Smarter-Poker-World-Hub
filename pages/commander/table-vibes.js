@@ -61,6 +61,7 @@ useEffect(() => {    const _c = new AbortController();
       if (!s.venue_id) { router.push('/commander/login').catch(() => { }); return; }
       setStaff(s);
     } catch { router.push('/commander/login').catch(() => { }); }
+    setLoading(false);
     return () => _c.abort();
   }, []);
 

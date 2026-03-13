@@ -95,6 +95,7 @@ export default function HighHands() {
         setMessage({ type: 'error', text: json.error || 'Failed to record' });
       }
     } catch (err) { setMessage({ type: 'error', text: 'Network Error' }); }
+    setLoading(false);
     finally { setSubmitting(false); }
   };
 

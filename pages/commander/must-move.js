@@ -99,6 +99,7 @@ export default function MustMoveManager() {
         setMessage({ type: 'error', text: json.error?.message || 'Failed To Unlink' });
       }
     } catch (err) { setMessage({ type: 'error', text: 'Network Error' }); }
+    setLoading(false);
     finally { setActionLoading(null); }
   };
 

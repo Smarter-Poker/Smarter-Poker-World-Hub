@@ -171,6 +171,7 @@ export default function DailyChallengePage() {
         // Load streak data from local storage
         let streakData = [];
         try { streakData = JSON.parse(localStorage.getItem('daily-challenge-streak') || '[]'); } catch { /* corrupted */ }
+        setLoading(false);
         setCompletedDays(streakData);
 
         // Calculate current streak

@@ -425,6 +425,7 @@ export default function BankrollManagerPage() {
         seriesData = await getActiveSeries(userId);
         setActiveSeries(seriesData);
       } catch (e) {
+      setIsLoading(false);
       }
 
       // ── Filter out active trip/series entries ──

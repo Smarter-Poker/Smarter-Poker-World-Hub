@@ -128,6 +128,7 @@ export default function SquadDetailPage() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
+      setLoading(false);
       console.error('Copy failed:', err);
     }
   }
@@ -151,6 +152,7 @@ export default function SquadDetailPage() {
         setTimeout(() => setCopied(false), 2000);
       }
     } catch (err) {
+      setLoading(false);
       console.error('Share failed:', err);
     }
   }

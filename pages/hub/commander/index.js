@@ -105,6 +105,7 @@ export default function CommanderHub() {
           }
         }
       } catch (e) { setHasClubPage(false); }
+    setLocationLoading(false);
     })();
     return () => _ctrl.abort();
   }, [userLocation]);

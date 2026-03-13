@@ -124,6 +124,7 @@ export default function LeaguesAndFreerollsManagement() {
       const json = await res.json();
       if (json.success) setFreerolls(json.data?.freerolls || []);
     } catch (err) { if (err.name !== 'AbortError') console.error(err); }
+    setLeaguesLoading(false);
     finally { setFreerollsLoading(false); }
   }, []);
 
@@ -156,6 +157,7 @@ export default function LeaguesAndFreerollsManagement() {
         setStandings(prev => ({ ...prev, [leagueId]: json.data?.standings || [] }));
       }
     } catch (err) { console.error(err); }
+  setFreerollsLoading(false);
   };
 
   const handleLeagueExpand = (id) => {

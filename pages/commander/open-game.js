@@ -99,6 +99,7 @@ export default function OpenGame() {
           setWaitlistPlayers(matching.slice(0, 10));
         }
       } catch (err) { if (err.name !== 'AbortError') console.error(err); }
+    setLoading(false);
     };
     fetchWaitlist();
     return () => controller.abort();

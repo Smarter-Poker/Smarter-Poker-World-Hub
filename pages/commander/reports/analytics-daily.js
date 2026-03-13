@@ -82,6 +82,7 @@ export default function AnalyticsDailyReport() {
         setToast({ type: 'error', msg: json.error || 'Refresh failed' });
       }
     } catch (err) {
+      setLoading(false);
       setToast({ type: 'error', msg: 'Network error' });
     }
     finally { setRefreshing(false); setTimeout(() => setToast(null), 3000); }

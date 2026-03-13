@@ -146,6 +146,7 @@ function SettlementsTab({ clubId }) {
       await apiCall('/api/club-arena/settle-period', { action: actionName, clubId, ...extras });
       load();
     } catch(err) {
+      setLoading(false);
       alert(err.message);
     } finally {
       setProcessing(false);
@@ -224,7 +225,7 @@ function SettlementsTab({ clubId }) {
               </tr>
             </thead>
             <tbody>
-              {data.pendingCommissions.map(c => (
+              {(data.pendingCommissions || []).map(c => (
                 <tr key={c.id}>
                   <td style={{ fontFamily: 'monospace', color: '#4599FF' }}>{c.user_id.substring(0,8)}...</td>
                   <td style={{ textAlign: 'right', color: '#B0B3B8' }}>{fmtChips(c.total_rake_generated)}</td>

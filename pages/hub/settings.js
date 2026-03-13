@@ -563,6 +563,7 @@ export default function SettingsPage() {
                     .from('union_admins').select('role, union_id, unions(name, code)').eq('user_id', user.id).limit(10);
                 setCaRoles({ agents: agentRows || [], members: memberRows || [], unionAdmins: unionRows || [] });
             } catch (e) {
+                setPromoHistoryLoading(false);
                 console.error('[settings club_arena]', e);
                 setCaRoles({ agents: [], members: [], unionAdmins: [] });
             }
@@ -600,6 +601,7 @@ export default function SettingsPage() {
                 setBillingDiamonds(profileRes.value.data.diamonds || 0);
             }
         } catch (err) {
+            setCaRolesLoading(false);
             console.error('[Settings] Error loading billing data:', err);
         } finally {
             setBillingLoading(false);

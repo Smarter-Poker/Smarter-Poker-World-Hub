@@ -91,6 +91,7 @@ export default function LeadManagementPage() {
         broadcastChange('leads');
       }
     } catch (err) {
+      setLoading(false);
       console.error('Failed to update status:', err);
       alert('Failed to update lead status. Please try again.');
     }

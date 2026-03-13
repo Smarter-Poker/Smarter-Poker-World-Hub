@@ -338,6 +338,7 @@ export default function StreamingPage() {
         broadcastChange('streaming');
       }
     } catch (err) {
+      setLoading(false);
       console.error('Start stream failed:', err);
       alert('Failed to start stream. Please try again.');
     }

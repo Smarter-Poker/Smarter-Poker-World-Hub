@@ -822,6 +822,7 @@ export default function TableTabletsPage() {
                 setToast({ type: 'error', text: json.error || 'Could not seat player' });
             }
         } catch { setToast({ type: 'error', text: 'Network error' }); }
+    setPlayerActionLoading(false);
     };
 
     const seatScanIntervalRef = useRef(null);

@@ -272,6 +272,7 @@ export default function SocialPageDetail() {
             const json = await res.json();
             if (json.success) setPosts(json.data || []);
         } catch (e) { console.error("[[pageId].js]", e); }
+    setLoading(false);
     }, [page, user]);
 
     const fetchFollowers = useCallback(async () => {
@@ -283,6 +284,7 @@ export default function SocialPageDetail() {
             const json = await res.json();
             if (json.success) setFollowers(json.data || []);
         } catch (e) { console.error("[[pageId].js]", e); }
+    setLoading(false);
     }, [page, user]);
 
     useEffect(() => {

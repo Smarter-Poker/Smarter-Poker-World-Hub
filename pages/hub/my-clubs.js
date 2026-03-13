@@ -477,6 +477,7 @@ export default function MyClubsPage() {
                 try {
                     return localStorage.getItem('sp-anon-uid') || '';
                 } catch { return ''; }
+            setLoading(false);
             })();
 
             // Get all follows from API
@@ -494,6 +495,7 @@ export default function MyClubsPage() {
                         });
                     }
                 } catch (e) {
+                setLoading(false);
                 }
             }
 

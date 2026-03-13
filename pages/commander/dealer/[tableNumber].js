@@ -355,6 +355,7 @@ export default function DealerTablet() {
         broadcastChange('tables');
       }
     } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
+  setScanLoading(false);
   };
 
   const addTime = async () => {
@@ -372,6 +373,7 @@ export default function DealerTablet() {
         broadcastChange('tables');
       }
     } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
+    setScanLoading(false);
     finally { setAddingTime(false); }
   };
 

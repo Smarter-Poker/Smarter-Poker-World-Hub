@@ -96,6 +96,7 @@ export default function MemberProfile() {
         }
       }
     } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
+  setLoading(false);
   };
 
   const toggleStatus = async (newStatus) => {

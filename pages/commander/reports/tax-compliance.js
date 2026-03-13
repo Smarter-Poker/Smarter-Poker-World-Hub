@@ -81,6 +81,7 @@ export default function TaxCompliance() {
         setToast({ type: 'error', msg: json.error?.message || 'Failed to generate' });
       }
     } catch (err) {
+      setLoading(false);
       setToast({ type: 'error', msg: 'Network error' });
     }
     finally { setGenerating(null); setTimeout(() => setToast(null), 3000); }

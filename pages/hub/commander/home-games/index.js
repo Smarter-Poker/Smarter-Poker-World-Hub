@@ -168,6 +168,7 @@ export default function PlayerHomeGamesHub() {
         setMessage({ type: 'error', text: data.error || 'Failed to join' });
       }
     } catch (err) {
+      setIsLoading(false);
       console.error('Join error:', err);
       setMessage({ type: 'error', text: 'Failed To Join Game' });
     }
@@ -206,6 +207,7 @@ export default function PlayerHomeGamesHub() {
         setCalendarEvents(data.events || data.data?.events || []);
       }
     } catch (err) {
+      setDiscoverLoading(false);
       console.error('Calendar load error:', err);
     } finally {
       setCalendarLoading(false);

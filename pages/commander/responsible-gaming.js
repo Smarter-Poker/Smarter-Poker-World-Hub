@@ -82,6 +82,7 @@ export default function ResponsibleGaming() {
             is_excluded: checkJson.data?.is_excluded || checkJson.is_excluded || false
           });
         } catch {
+          setLoading(false);
           results.push({ ...player, exclusion: null, is_excluded: false });
         }
       }

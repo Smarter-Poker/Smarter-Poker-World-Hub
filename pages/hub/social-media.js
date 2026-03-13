@@ -847,6 +847,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
                                 type: 'link'
                             });
                         } catch (apiError) {
+                            setLinkLoading(false);
                             console.error('Link preview API error:', apiError);
                             // Fallback to domain-only preview
                             const domain = new URL(detectedUrl).hostname.replace(/^www\./i, '');
@@ -3545,6 +3546,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
             if (json.success) { showMsg(`Seat ${seatNumber} reserved!`); fetchGames(); }
             else { showMsg(json.error || 'Could not take seat'); }
         } catch (e) { showMsg('Error reserving seat'); }
+    setFollowLoading(false);
     };
 
     const handleJoinWaitlist = async (gameId) => {
@@ -3564,6 +3566,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
             if (json.success) { showMsg(`Added to waitlist (position #${json.position})`); fetchGames(); }
             else { showMsg(json.error || 'Could not join waitlist'); }
         } catch (e) { showMsg('Error joining waitlist'); }
+    setFollowLoading(false);
     };
 
     const handleLeave = async (gameId) => {
@@ -4759,6 +4762,7 @@ function SocialMediaPage() {
                 }
             }
         } catch (e) {
+            setMyPageLoading(false);
             console.error('[Social] Commander detection error:', e);
         }
 
@@ -5609,6 +5613,7 @@ function SocialMediaPage() {
                 const { data } = await supabase.rpc('fn_get_or_create_conversation', { user1_id: user.id, user2_id: c.id });
                 convId = data;
             } catch (e) { console.error(e); }
+        setGlobalSearchLoading(false);
         }
         const chat = { id: c.id, name: c.name || c.username, avatar: null, online: false, conversationId: convId };
         setOpenChats(prev => [...prev.slice(-2), chat]);

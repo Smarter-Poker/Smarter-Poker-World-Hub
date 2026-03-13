@@ -105,6 +105,7 @@ export default function ClubArenaCashierPage() {
       const res = await apiGet(`/api/club-arena/cashout-history?clubId=${clubId}`);
       if (mountedRef.current) { setHistory(res.cashouts || []); setHistoryLoaded(true); }
     } catch (err) {
+      setLoading(false);
       console.warn('[Cashier] History failed:', err.message);
     }
   }, [clubId, historyLoaded]);

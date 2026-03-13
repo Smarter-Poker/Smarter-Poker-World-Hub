@@ -384,6 +384,7 @@ export default function DealersPage() {
         setTables(Array.isArray(data.data) ? data.data : data.data?.tables || []);
       }
     } catch (err) {
+      setLoading(false);
       console.error('Fetch tables failed:', err);
       setTables([]);
     }

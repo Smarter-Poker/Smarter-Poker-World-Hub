@@ -167,6 +167,7 @@ export default function UnionGamesPage() {
       const res = await apiCall('/api/club-arena/union-games', { action: 'get_bbj_status', unionId });
       if (mountedRef.current) setBbjData(res.data);
     } catch (_) {}
+  setLoading(false);
   }, [unionId]);
 
   // Tab-driven loading
@@ -186,6 +187,7 @@ export default function UnionGamesPage() {
       if (busEvent) busEmit(busEvent, { unionId, action: body?.action, ...res });
       return res;
     } catch (err) { if (mountedRef.current) setError(err.message); return null; }
+    setLoading(false);
     finally { if (mountedRef.current) setProcessing(false); }
   };
 
@@ -195,6 +197,7 @@ export default function UnionGamesPage() {
       const res = await apiCall('/api/club-arena/union-games', { action: 'get_tournament_details', unionId, tournamentId });
       if (mountedRef.current) setTournDetails({ id: tournamentId, registrations: res.registrations || [] });
     } catch (err) { if (mountedRef.current) setError(err.message); }
+  setLoading(false);
   };
 
   // ── Auto-Refresh Polling (45s on active tab) ──────────────

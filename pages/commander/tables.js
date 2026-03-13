@@ -317,6 +317,7 @@ export default function CommanderTablesPage() {
         broadcastChange('tables');
       }
     } catch (err) { console.error('Add table error:', err); alert('Action failed: Add table. Please try again.'); }
+  setActionLoading(false);
   };
 
   // Set table purpose (cash_game or tournament)

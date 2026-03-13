@@ -185,6 +185,7 @@ export default function UnionDashboardPage() {
       const res = await apiCall('/api/club-arena/union-application', { action: 'list', unionId, statusFilter: filter || appsFilter });
       if (mountedRef.current) { setApps(res.applications || []); setAppsLoaded(true); }
     } catch (err) {
+      setWalletLoading(false);
       if (mountedRef.current) setError(err.message);
     } finally {
       if (mountedRef.current) setAppsLoading(false);
@@ -198,6 +199,8 @@ export default function UnionDashboardPage() {
       const res = await apiCall('/api/club-arena/manage-union', { action: 'list_leave', unionId });
       if (mountedRef.current) setLeaveRequests(res.leaveRequests || []);
     } catch (err) { /* non-critical */ }
+  setAppsLoading(false);
+  setWalletLoading(false);
   }, [unionId]);
 
   // ── Load Commission History (lazy) ────────────────────────
@@ -210,6 +213,8 @@ export default function UnionDashboardPage() {
         commHistoryLoaded.current = true;
       }
     } catch (_) {}
+  setAppsLoading(false);
+  setWalletLoading(false);
   }, [unionId]);
 
   // Tab change handler

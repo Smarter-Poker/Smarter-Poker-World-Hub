@@ -178,6 +178,7 @@ export default function HandDetailPage() {
         router.push(data.data.redirect_url);
       }
     } catch (err) {
+      setLoading(false);
       console.error('Analysis failed:', err);
       // Demo redirect
       router.push(`/hub/godmode?hand=${handId}`);

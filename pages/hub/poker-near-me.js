@@ -1236,6 +1236,7 @@ export default function PokerNearMePage() {
                 setNearestDistance(filteredData[0].distance_mi);
             }
         } catch (e) {
+            setLoading(false);
             console.error('Fetch venues error:', e);
             setFetchError('Failed to load venues. Tap to retry.');
             setVenues([]);

@@ -78,6 +78,7 @@ function TournamentDetailPane({ tourn, clubId, clubRole, onBack, onRefreshList, 
       loadDetails();
       onRefreshList();
     } catch (err) {
+      setLoading(false);
       setError(err.message);
     } finally {
       setProcessing(false);

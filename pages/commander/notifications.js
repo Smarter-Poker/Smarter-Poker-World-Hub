@@ -115,6 +115,7 @@ export default function NotificationCenter() {
         broadcastChange('notifications');
       }
     } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
+  setLoading(false);
   };
 
   const markAllRead = async () => {
@@ -130,6 +131,7 @@ export default function NotificationCenter() {
         broadcastChange('notifications');
       }
     } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
+    setLoading(false);
     finally { setMarkingAll(false); }
   };
 
