@@ -11,8 +11,8 @@ async function checkProfiles() {
     // Check for profiles that might be bots/horses
     const { data: profiles, error } = await supabase
         .from('profiles')
-        .select('id, username, display_name, bio, is_bot')
-        .or('id.like.horse-%,id.like.player-%,is_bot.eq.true');
+        .select('id, username, display_name, bio')
+        .or('id.like.horse-%,id.like.player-%');
 
     if (error) {
         console.error('Error fetching profiles:', error);
@@ -24,8 +24,8 @@ async function checkProfiles() {
     let needsUpdate = 0;
     
     for (const p of profiles) {
-        console.log(`- ${p.display_name} (${p.username}) - id: ${p.id}, bot: ${p.is_bot}, bio: ${p.bio}`);
-        if (p.is_bot || p.id.startsWith('horse-')) {
+        if (p.id.startsWith('horse-') || (p.bio && p.bio.toLowerCase().includes('AI'))) {
+            console.log(`- ${p.display_name} (${p.username}) - id: ${p.id}, bio: ${p.bio}`);
             needsUpdate++;
         }
     }
