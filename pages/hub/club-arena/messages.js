@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { apiCall, apiGet } from '../../../src/lib/club-arena/apiClient';
+import { eventBus } from '../../../src/engine/EventBus';
 import s from '../../../src/styles/UnionDashboard.module.css';
 
 const formatTime = (ts) => {
@@ -129,6 +130,15 @@ export default function ClubArenaMessagesPage() {
     if (!clubId) return;
     pollRef.current = setInterval(() => loadMessages(clubId), 10000);
     return () => clearInterval(pollRef.current);
+  }, [clubId, loadMessages]);
+
+  // EventBus — instant refresh on relevant events
+  useEffect(() => {
+    if (!clubId) return;
+    const refresh = () => loadMessages(clubId);
+    const events = ['ANNOUNCEMENT_CREATED', 'MESSAGE_RECEIVED'];
+    events.forEach(ev => eventBus.on(ev, refresh));
+    return () => events.forEach(ev => eventBus.off(ev, refresh));
   }, [clubId, loadMessages]);
 
   // Send message (optimistic)
