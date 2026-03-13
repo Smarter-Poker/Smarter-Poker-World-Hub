@@ -134,7 +134,7 @@ export default function ClubArenaXMTTPage() {
       loadTournaments(clubId);
       if (selectedTournament) loadDetail(selectedTournament, clubId);
     };
-    const events = ['TOURNAMENT_REGISTERED', 'TOURNAMENT_STARTED', 'TOURNAMENT_COMPLETE'];
+    const events = ['TOURNAMENT_REGISTERED', 'TOURNAMENT_STARTED', 'TOURNAMENT_COMPLETE', 'TOURNAMENT_CANCELLED'];
     events.forEach(ev => eventBus.on(ev, refresh));
     return () => events.forEach(ev => eventBus.off(ev, refresh));
   }, [clubId, selectedTournament, loadTournaments, loadDetail]);

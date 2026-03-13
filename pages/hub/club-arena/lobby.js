@@ -11,6 +11,7 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { apiGet, apiCall } from '../../../src/lib/club-arena/apiClient';
 import { busEmit, eventBus } from '../../../src/engine/EventBus';
+import retryAsync, { createDebouncedHandler } from '../../../src/lib/club-arena/retryAsync';
 import s from '../../../src/styles/UnionDashboard.module.css';
 
 // ── Helpers ─────────────────────────────────────────────────
@@ -75,18 +76,18 @@ export default function ClubArenaLobbyPage() {
 
       const { supabase } = await import('../../../src/lib/supabase');
 
-      // Parallel fetch: tables (direct Supabase — works for ALL members), BBJ, announcements, member count
+      // Parallel fetch with retryAsync: tables (direct Supabase — works for ALL members), BBJ, announcements, member count
       const results = await Promise.allSettled([
-        supabase.from('tables')
+        retryAsync(() => supabase.from('tables')
           .select('id, name, status, current_players, max_players, game_variant, small_blind, big_blind, min_buy_in, max_buy_in')
           .eq('club_id', targetClubId)
-          .order('status', { ascending: true }),
-        apiGet(`/api/club-arena/bbj?clubId=${targetClubId}`),
-        apiGet(`/api/club-arena/announcements?clubId=${targetClubId}`),
-        supabase.from('club_members')
+          .order('status', { ascending: true }), { label: 'lobby-tables' }),
+        retryAsync(() => apiGet(`/api/club-arena/bbj?clubId=${targetClubId}`), { label: 'lobby-bbj' }),
+        retryAsync(() => apiGet(`/api/club-arena/announcements?clubId=${targetClubId}`), { label: 'lobby-announcements' }),
+        retryAsync(() => supabase.from('club_members')
           .select('user_id', { count: 'exact', head: false })
           .eq('club_id', targetClubId)
-          .eq('status', 'active'),
+          .eq('status', 'active'), { label: 'lobby-members' }),
       ]);
 
       if (mountedRef.current) {
@@ -231,13 +232,14 @@ export default function ClubArenaLobbyPage() {
     return () => document.removeEventListener('visibilitychange', h);
   }, [clubId, loadLobby]);
 
-  // ── EventBus: cross-page sync ───────────────────────────────
+  // ── EventBus: cross-page sync (debounced — prevents rapid-fire refreshes) ──
   useEffect(() => {
-    const refresh = () => { if (clubId) loadLobby(clubId); };
+    const debouncedRefresh = createDebouncedHandler(() => { if (clubId) loadLobby(clubId); }, 300);
     const events = ['TABLE_CREATED', 'ANNOUNCEMENT_CREATED', 'PLAYER_KICKED',
-      'WAITLIST_PLAYER_ADDED', 'WAITLIST_PLAYER_CALLED', 'WAITLIST_PLAYER_SEATED', 'CHIPS_DISTRIBUTED'];
-    events.forEach(ev => eventBus.on(ev, refresh));
-    return () => events.forEach(ev => eventBus.off(ev, refresh));
+      'WAITLIST_PLAYER_ADDED', 'WAITLIST_PLAYER_CALLED', 'WAITLIST_PLAYER_SEATED', 'CHIPS_DISTRIBUTED',
+      'TABLE_PAUSED', 'TABLE_RESUMED', 'TABLE_CLOSED', 'CLUB_UPDATED'];
+    events.forEach(ev => eventBus.on(ev, debouncedRefresh));
+    return () => { debouncedRefresh.cancel(); events.forEach(ev => eventBus.off(ev, debouncedRefresh)); };
   }, [clubId, loadLobby]);
 
   // ── Load waitlist positions once tables are loaded ──────────

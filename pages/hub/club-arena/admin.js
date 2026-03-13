@@ -72,7 +72,7 @@ function DashboardTab({ clubId }) {
 
   // Bus listener for cross-page sync
   useEffect(() => {
-    const events = ['TABLE_CREATED', 'CHIPS_DISTRIBUTED', 'AGENT_UPDATED', 'ANNOUNCEMENT_CREATED'];
+    const events = ['TABLE_CREATED', 'CHIPS_DISTRIBUTED', 'AGENT_UPDATED', 'ANNOUNCEMENT_CREATED', 'CASHOUT_REQUESTED', 'CASHOUT_APPROVED'];
     events.forEach(ev => eventBus.on(ev, load));
     return () => events.forEach(ev => eventBus.off(ev, load));
   }, [load]);

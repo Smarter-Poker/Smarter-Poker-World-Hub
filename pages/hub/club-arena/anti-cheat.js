@@ -236,6 +236,8 @@ export default function ClubArenaAntiCheatPage() {
     const unsubs = [
       eventBus.on('ANTI_CHEAT_FLAG_CREATED', () => { loadStats(clubId); setFlagsLoaded(false); }),
       eventBus.on('PLAYER_KICKED', () => { loadStats(clubId); }),
+      eventBus.on('TABLE_CREATED', () => { loadStats(clubId); }),
+      eventBus.on('CHIPS_DISTRIBUTED', () => { loadStats(clubId); }),
     ];
     return () => unsubs.forEach(u => u?.());
   }, [clubId, loadStats]);

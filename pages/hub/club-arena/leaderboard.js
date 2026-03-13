@@ -109,7 +109,7 @@ export default function ClubArenaLeaderboardPage() {
   // ── EventBus ───────────────────────────────────────────────
   useEffect(() => {
     const refresh = () => { if (clubId) loadLeaderboard(clubId, mode, true); };
-    const events = ['CHIPS_DISTRIBUTED', 'CASHOUT_APPROVED', 'BALANCE_UPDATED'];
+    const events = ['CHIPS_DISTRIBUTED', 'CASHOUT_APPROVED', 'BALANCE_UPDATED', 'HAND_COMPLETE'];
     events.forEach(ev => eventBus.on(ev, refresh));
     return () => events.forEach(ev => eventBus.off(ev, refresh));
   }, [clubId, mode, loadLeaderboard]);
