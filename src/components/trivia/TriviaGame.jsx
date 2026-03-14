@@ -18,7 +18,7 @@ import HintButtons, { applyHint } from './HintButtons';
 import GhostOpponent from './GhostOpponent';
 import { toTitleCase } from '../../lib/trivia/titleCase';
 import * as audio from '../../lib/trivia/triviaAudio';
-import confetti from 'canvas-confetti';
+
 
 // ══ Escalating stake values per question ══
 const STAKE_VALUES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]; // 55 total possible
@@ -75,6 +75,16 @@ export default function TriviaGame({
     const gameContainerRef = useRef(null);
     const opponentDataRef = useRef({ score: null, name: null });
     const stakePotRef = useRef(0); // Ref to avoid stale closure in advanceQuestion
+    const confettiRef = useRef(null); // Lazy-loaded canvas-confetti
+
+    // Lazy-load confetti on first use (reduces initial bundle)
+    const fireConfetti = async (opts) => {
+        if (!confettiRef.current) {
+            const mod = await import('canvas-confetti');
+            confettiRef.current = mod.default || mod;
+        }
+        confettiRef.current(opts);
+    };
 
     const currentQuestion = questions[currentIndex];
     const isCorrect = selectedAnswer === currentQuestion?.correct_index;
@@ -195,7 +205,7 @@ export default function TriviaGame({
             }
 
             // Confetti burst
-            confetti({
+            fireConfetti({
                 particleCount: isFireMode ? 30 : 12,
                 spread: 50,
                 origin: { y: 0.7 },
@@ -276,7 +286,7 @@ export default function TriviaGame({
 
         // Do NOT call onDiamondsChange here — handleComplete in [mode].js handles the award
 
-        confetti({
+        fireConfetti({
             particleCount: 100, spread: 70, origin: { y: 0.5 },
             colors: ['#fbbf24', '#2374e1', '#31a24c']
         });

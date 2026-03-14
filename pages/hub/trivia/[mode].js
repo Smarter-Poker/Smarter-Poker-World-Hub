@@ -623,41 +623,37 @@ export default function TriviaModePage() {
                     }
                 });
 
-                for (const [category, stats] of Object.entries(categoryStats)) {
-                    // Get current mastery or create new
-                    const { data: existing } = await supabase
-                        .from('trivia_category_mastery')
-                        .select('*')
-                        .eq('user_id', userId)
-                        .eq('category', category)
-                        .maybeSingle();
+                // Batch-read existing mastery for all categories
+                const categoryKeys = Object.keys(categoryStats);
+                const { data: existingMastery } = await supabase
+                    .from('trivia_category_mastery')
+                    .select('category, total_answered, correct_count')
+                    .eq('user_id', userId)
+                    .in('category', categoryKeys);
 
-                    if (existing) {
-                        const newTotal = existing.total_answered + stats.answered;
-                        const newCorrect = existing.correct_count + stats.correct;
-                        const accuracy = newTotal > 0 ? newCorrect / newTotal : 0;
-                        // Level up every 20% accuracy milestone (20=L2, 40=L3, etc.)
-                        const newLevel = Math.min(10, Math.max(1, Math.floor(accuracy * 10) + 1));
+                const existingMap = {};
+                (existingMastery || []).forEach(m => { existingMap[m.category] = m; });
 
-                        await supabase.from('trivia_category_mastery')
-                            .update({
-                                total_answered: newTotal,
-                                correct_count: newCorrect,
-                                mastery_level: newLevel,
-                                updated_at: new Date().toISOString()
-                            })
-                            .eq('user_id', userId)
-                            .eq('category', category);
-                    } else {
-                        await supabase.from('trivia_category_mastery').insert({
-                            user_id: userId,
-                            category,
-                            total_answered: stats.answered,
-                            correct_count: stats.correct,
-                            mastery_level: 1
-                        });
-                    }
-                }
+                // Build batch upsert records
+                const masteryRecords = categoryKeys.map(category => {
+                    const stats = categoryStats[category];
+                    const existing = existingMap[category];
+                    const newTotal = (existing?.total_answered || 0) + stats.answered;
+                    const newCorrect = (existing?.correct_count || 0) + stats.correct;
+                    const accuracy = newTotal > 0 ? newCorrect / newTotal : 0;
+                    const newLevel = Math.min(10, Math.max(1, Math.floor(accuracy * 10) + 1));
+                    return {
+                        user_id: userId,
+                        category,
+                        total_answered: newTotal,
+                        correct_count: newCorrect,
+                        mastery_level: newLevel,
+                        updated_at: new Date().toISOString()
+                    };
+                });
+
+                await supabase.from('trivia_category_mastery')
+                    .upsert(masteryRecords, { onConflict: 'user_id,category', ignoreDuplicates: false });
 
                 // Record daily play
                 if (mode === 'daily') {
