@@ -30,9 +30,11 @@ export default function StructureDisplay() {
 
     if (!id) return;
     try {
+      const staffSession = typeof window !== 'undefined' ? (localStorage.getItem('commander_staff') || '') : '';
+      const headers = { 'x-staff-session': staffSession };
       const [tRes, cRes] = await Promise.all([
-        fetch(`/api/commander/tournaments/${id}`).then(r => r.json()).catch(() => ({ success: false })),
-        fetch(`/api/commander/tournaments/${id}/clock`).then(r => r.json()).catch(() => ({ success: false }))
+        fetch(`/api/commander/tournaments/${id}`, { headers }).then(r => r.json()).catch(() => ({ success: false })),
+        fetch(`/api/commander/tournaments/${id}/clock`, { headers }).then(r => r.json()).catch(() => ({ success: false }))
       ]);
       if (tRes.success) setTournament(tRes.data);
       if (cRes.success) setClockData(cRes.data);
