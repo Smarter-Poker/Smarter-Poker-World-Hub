@@ -383,7 +383,7 @@ export default function DealerTablet() {
       // Use the tournament eliminate API
       const res = await fetch(`/api/commander/tournaments/${tournamentMode.tournament_id}/eliminate`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': getStaffSession() },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': getStaffSession(), Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify({
           entry_id: player.entry_id || player.id,
           finish_position: tournamentMode.players_remaining || 0,
@@ -418,7 +418,7 @@ export default function DealerTablet() {
       const entryId = chipEntryPlayer.entry_id || chipEntryPlayer.id;
       const res = await fetch(`/api/commander/tournaments/${tournamentMode.tournament_id}/entries/${entryId}/chips`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': getStaffSession() },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': getStaffSession(), Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify({ chips: parseInt(chipEntryValue) || 0 })
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);

@@ -14,6 +14,9 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import Pagination from '../../src/components/commander/shared/Pagination';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
+const getBearerToken = () => typeof window !== 'undefined'
+  ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || '' : '';
+
 const STATUS_COLORS = {
   available: { bg: 'rgba(49,162,76,0.15)', border: '#31A24C', text: '#31A24C', label: 'Available' },
   in_use: { bg: 'rgba(24,119,242,0.15)', border: '#1877F2', text: '#1877F2', label: 'In Use' },
@@ -209,7 +212,7 @@ export default function CommanderTablesPage() {
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch('/api/commander/games', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getBearerToken()}` },
         body: JSON.stringify({
           venue_id: venueId, table_id: selectedTable.id,
           game_type: newGameType, stakes: newStakes,
@@ -221,7 +224,7 @@ export default function CommanderTablesPage() {
       if (data.success || data.data) {
         const res = await fetch(`/api/commander/tables/${selectedTable.id}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
+          headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getBearerToken()}` },
           body: JSON.stringify({ status: 'in_use', game_type: newGameType, stakes: newStakes, mode: 'cash', table_purpose: 'cash_game' })
         });
         if (!res.ok) throw new Error('Request failed');
@@ -241,14 +244,14 @@ export default function CommanderTablesPage() {
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res1 = await fetch(`/api/commander/games/${gameId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getBearerToken()}` },
         body: JSON.stringify({ status: 'closed' })
       });
       if (!res1.ok) throw new Error('Failed to close game');
       if (selectedTable) {
         const res2 = await fetch(`/api/commander/tables/${selectedTable.id}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
+          headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getBearerToken()}` },
           body: JSON.stringify({ status: 'available', game_type: null, stakes: null, mode: 'inactive' })
         });
         if (!res2.ok) throw new Error('Failed to update table status');
@@ -271,7 +274,7 @@ export default function CommanderTablesPage() {
       }
       const res = await fetch(`/api/commander/tables/${selectedTable.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getBearerToken()}` },
         body: JSON.stringify(updates)
       });
       if (res.ok) {
@@ -290,7 +293,7 @@ export default function CommanderTablesPage() {
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/tables/${selectedTable.id}`, {
         method: 'DELETE',
-        headers: { 'x-staff-session': staffSession }
+        headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${getBearerToken()}` }
       });
       if (res.ok) {
         setSelectedTableId(null);
@@ -306,7 +309,7 @@ export default function CommanderTablesPage() {
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch('/api/commander/tables', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getBearerToken()}` },
         body: JSON.stringify({ ...tableData, venue_id: venueId })
       });
       if (!res.ok) throw new Error('Request failed');
@@ -330,7 +333,7 @@ export default function CommanderTablesPage() {
       const mode = purpose === 'tournament' ? 'tournament' : 'cash';
       const res = await fetch(`/api/commander/tables/${selectedTable.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getBearerToken()}` },
         body: JSON.stringify({ table_purpose: purpose, mode })
       });
       if (res.ok) {

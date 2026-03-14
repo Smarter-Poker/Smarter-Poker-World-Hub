@@ -39,7 +39,8 @@ function RentEquipmentModal({ isOpen, onClose, equipment, venueId, onSuccess }) 
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-staff-session': staffSession
+          'x-staff-session': staffSession,
+          Authorization: `Bearer ${getToken()}`
         },
         body: JSON.stringify({
           venue_id: venueId,
