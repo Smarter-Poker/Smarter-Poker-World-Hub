@@ -154,8 +154,10 @@ export default function CompSystem() {
           fetch(`/api/commander/members?venue_id=${venueId}&has_comps=true&limit=100`, { headers }).catch(() => ({ ok: false })),
           fetch(`/api/commander/comps/balances?venue_id=${venueId}&history=true`, { headers }).catch(() => ({ ok: false }))
         ]);
+        if (!membersRes || typeof membersRes.json !== 'function') throw new Error('Members fetch failed (network error)');
         if (!membersRes.ok) throw new Error(`Request failed (${membersRes.status})`);
         const membersJson = await membersRes.json();
+        if (!logRes || typeof logRes.json !== 'function') throw new Error('Comp log fetch failed (network error)');
         if (!logRes.ok) throw new Error(`Request failed (${logRes.status})`);
         const logJson = await logRes.json();
 

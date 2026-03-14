@@ -6,13 +6,11 @@
  * Connected to SocialService
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { CreatePostBox, SPPostCard, SPAvatar, SP_COLORS } from '../SmarterPokerStyleCard';
 import { PokerTierBadge } from '../PokerReputationBadges';
-
-// TODO: Providers missing - need creation:
-// - SocialOrbProvider (useSocialOrb hook) - @/providers/SocialOrbProvider
-// - SupabaseProvider (useSupabase hook) - @/providers/SupabaseProvider
+import { useSupabase } from '../../../providers/SupabaseProvider';
+import { SocialService } from '../../../services/SocialService';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🏆 CLUB LEADERBOARD COMPONENTS
@@ -487,8 +485,8 @@ const ClubHeader = ({ club, isMember = false }) => (
 
 export const SmarterPokerClubView = ({ onNavigate }) => {
     // Hooks
-    const { socialService } = useSocialOrb();
-    const { user: authUser, profile: authProfile } = useSupabase(); // Get real user
+    const { user: authUser, profile: authProfile, supabase } = useSupabase();
+    const socialService = useMemo(() => supabase ? new SocialService(supabase) : null, [supabase]);
 
     // Construct currentUser object for UI
     const currentUser = authUser ? {

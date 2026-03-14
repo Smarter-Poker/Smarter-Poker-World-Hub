@@ -6,12 +6,11 @@
  * Connected to SocialService
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { SP_COLORS, SPAvatar } from '../SmarterPokerStyleCard';
 import { PokerReactionBar } from '../PokerReputationBadges';
-
-// TODO: Provider missing - needs creation:
-// - SocialOrbProvider (useSocialOrb hook) - @/providers/SocialOrbProvider
+import { useSupabase } from '../../../providers/SupabaseProvider';
+import { SocialService } from '../../../services/SocialService';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 📺 WATCH SIDEBAR
@@ -357,7 +356,8 @@ const WatchVideoCard = ({ video }) => (
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const SmarterPokerWatchView = ({ onNavigate }) => {
-    const { socialService } = useSocialOrb();
+    const { supabase } = useSupabase();
+    const socialService = useMemo(() => supabase ? new SocialService(supabase) : null, [supabase]);
     const [videos, setVideos] = useState([]);
     const [loading, setLoading] = useState(true);
 

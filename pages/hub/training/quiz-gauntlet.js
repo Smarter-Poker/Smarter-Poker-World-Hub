@@ -418,7 +418,7 @@ export default function QuizGauntlet() {
                     { label: 'Score', value: totalScore, color: '#f97316' },
                     {
                       label: 'Combo',
-                      value: `x${Math.min(Number.isFinite(Number(4, 1 + combo * 0.5)) ? Number(4, 1 + combo * 0.5) : 0).toFixed(1)}`,
+                      value: `x${Math.min(4, 1 + combo * 0.5).toFixed(1)}`,
                       color: '#a855f7',
                     },
                     {

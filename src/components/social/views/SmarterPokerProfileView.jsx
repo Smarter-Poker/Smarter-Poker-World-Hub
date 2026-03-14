@@ -6,13 +6,11 @@
  * Connected to SocialService
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { SPAvatar, SP_COLORS, SPPostCard } from '../SmarterPokerStyleCard';
 import { PokerTierBadge } from '../PokerReputationBadges';
-
-// TODO: Providers missing - need creation:
-// - SocialOrbProvider (useSocialOrb hook) - @/providers/SocialOrbProvider
-// - SupabaseProvider (useSupabase hook) - @/providers/SupabaseProvider
+import { useSupabase } from '../../../providers/SupabaseProvider';
+import { SocialService } from '../../../services/SocialService';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 📷 COVER PHOTO & PROFILE HEADER
@@ -539,8 +537,8 @@ const AboutCard = ({ user }) => (
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const SmarterPokerProfileView = ({ onNavigate, onOpenChat }) => {
-    const { socialService } = useSocialOrb();
-    const { user: authUser, profile: authProfile } = useSupabase();
+    const { user: authUser, profile: authProfile, supabase } = useSupabase();
+    const socialService = useMemo(() => supabase ? new SocialService(supabase) : null, [supabase]);
 
     // Determine profile subject (default to current user)
     // In future, pull userId from URL params

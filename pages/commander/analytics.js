@@ -260,9 +260,9 @@ export default function AnalyticsPage() {
         fetch(`/api/commander/analytics/players?venue_id=${venueId}&limit=10`, { headers }).catch(() => ({ ok: false }))
       ]);
 
-      if (!dailyRes.ok) throw new Error(`Request failed (${dailyRes.status})`);
+      if (!dailyRes || !dailyRes.ok) throw new Error(`Daily analytics failed (${dailyRes?.status || 'network error'})`);
       const dailyData = await dailyRes.json();
-      if (!playersRes.ok) throw new Error(`Request failed (${playersRes.status})`);
+      if (!playersRes || !playersRes.ok) throw new Error(`Players analytics failed (${playersRes?.status || 'network error'})`);
       const playersData = await playersRes.json();
 
       // API returns { analytics: [...], summary, period } and { players: [...], total, ... }
