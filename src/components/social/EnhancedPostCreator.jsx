@@ -11,6 +11,7 @@ import { SocialService } from '../../services/SocialService';
 import { validatePostContent } from '../../services/social-types';
 import toast from '../../stores/toastStore';
 import { claimReward } from '../../lib/claimReward';
+import { busEmit } from '../../engine/EventBus';
 
 // Simple file validation since MediaUploadService may not exist
 const validateFile = (file, mediaType) => {
@@ -298,6 +299,9 @@ export const EnhancedPostCreator = ({
       // Show success animation
       setShowSuccess(true);
       triggerSuccessParticles();
+
+      // Emit EventBus event for cross-page reactivity
+      busEmit.socialPostCreated(newPost?.id, user.id);
 
       // Show toast notification
       toast.success('Posted Successfully!', 2000);

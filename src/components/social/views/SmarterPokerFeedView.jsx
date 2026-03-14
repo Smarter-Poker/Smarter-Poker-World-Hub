@@ -13,6 +13,7 @@ import { ReelsCarousel } from '../SmarterPokerReels';
 import { FriendsList } from '../SmarterPokerFriends';
 import { useSupabase } from '../../providers/SupabaseProvider';
 import { SocialService } from '../../services/SocialService';
+import { eventBus, EventType, busEmit } from '../../engine/EventBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 📱 LEFT SIDEBAR (Shortcuts)
@@ -252,7 +253,7 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
     const currentUser = authUser ? {
         id: authUser.id,
         name: authProfile?.username || authUser.email,
-        avatar: authProfile?.avatar_url || 'https://picsum.photos/100/100',
+        avatar: authProfile?.avatar_url || null,
         online: true
     } : null;
 
@@ -326,6 +327,14 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
         loadFeed();
     }, [loadFeed]);
 
+    // Listen for new posts from other components via EventBus
+    useEffect(() => {
+        const unsub = eventBus.on(EventType.SOCIAL_POST_CREATED, () => {
+            loadFeed(); // Refresh feed when a new post is created anywhere
+        });
+        return () => { if (unsub) unsub(); };
+    }, [loadFeed]);
+
     // ─────────────────────────────────────────────────────────────────────────
     // ✋ INTERACTION HANDLERS
     // ─────────────────────────────────────────────────────────────────────────
@@ -351,6 +360,7 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
 
         try {
             await socialService.toggleReaction(postId, currentUser.id, 'like');
+            busEmit.socialPostLiked(postId, currentUser.id);
         } catch (error) {
             console.error("Reaction failed");
             loadFeed();

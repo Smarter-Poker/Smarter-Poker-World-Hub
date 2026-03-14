@@ -6,11 +6,12 @@
  * Connected to SocialService
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { SPAvatar, SP_COLORS, SPPostCard } from '../SmarterPokerStyleCard';
 import { PokerTierBadge } from '../PokerReputationBadges';
 import { useSupabase } from '../../../providers/SupabaseProvider';
 import { SocialService } from '../../../services/SocialService';
+import { busEmit } from '../../../engine/EventBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 📷 COVER PHOTO & PROFILE HEADER
@@ -544,44 +545,53 @@ export const SmarterPokerProfileView = ({ onNavigate, onOpenChat }) => {
     // In future, pull userId from URL params
     const isOwnProfile = true;
 
-    // Construct Profile User Object
+    // Construct Profile User Object — merge real auth data with defaults
     const user = {
         name: authProfile?.username || authUser?.email || 'Unknown User',
-        avatar: authProfile?.avatar_url || 'https://picsum.photos/200',
-        coverPhoto: 'https://picsum.photos/1200/400?poker',
-        bio: 'Poker enthusiast | GTO Grinder | Las Vegas',
-        location: 'Las Vegas, NV',
-        favoriteGame: 'NLHE $5/$10',
-        stakes: '$2/$5 - $5/$10',
-        club: 'Las Vegas Grinders',
-        friendsCount: 1240,
+        avatar: authProfile?.avatar_url || null,
+        coverPhoto: authProfile?.cover_url || null,
+        bio: authProfile?.bio || 'Poker enthusiast',
+        location: authProfile?.location || '',
+        favoriteGame: authProfile?.favorite_game || 'NLHE',
+        stakes: authProfile?.stakes || '',
+        club: authProfile?.club_name || '',
+        friendsCount: 0,
         mutualFriends: 0,
-        isVerified: true,
-        tier: 'active_reg',
-        topFriends: [
-            { name: 'Mike', avatar: 'https://picsum.photos/100?1' },
-            { name: 'Sarah', avatar: 'https://picsum.photos/100?2' },
-        ],
-        // Merge real stats if available
-        lifetimeProfit: 15400,
-        handsPlayed: 24000
+        isVerified: authProfile?.is_verified || false,
+        tier: authProfile?.tier_id || 'active_reg',
+        topFriends: [],
+        lifetimeProfit: 0,
+        handsPlayed: 0
     };
 
-    const photos = [
-        'https://picsum.photos/300?1',
-        'https://picsum.photos/300?2',
-        'https://picsum.photos/300?3',
-    ];
+    const [photos] = useState([]);
 
-    const [isFriend, setIsFriend] = useState(user.isFriend || false);
+    const [isFriend, setIsFriend] = useState(false);
+    const [userPosts, setUserPosts] = useState([]);
+
+    // Fetch user's posts from Supabase
+    useEffect(() => {
+        const fetchPosts = async () => {
+            if (!socialService || !authUser?.id) return;
+            try {
+                const { posts: fetched } = await socialService.getFeed({ userId: authUser.id, limit: 10 });
+                if (fetched?.length > 0) setUserPosts(fetched);
+            } catch (err) {
+                console.warn('Failed to fetch profile posts:', err.message);
+            }
+        };
+        fetchPosts();
+    }, [socialService, authUser?.id]);
 
     const handleToggleFriend = async (targetUser) => {
         // Optimistic UI update
         setIsFriend(!isFriend);
 
-        // TODO: Call actual socialService to persist the friendship state
         try {
-            // await socialService.toggleFriend(authUser.id, targetUser.id);
+            // Emit EventBus event for cross-page reactivity
+            if (!isFriend) {
+                busEmit.friendRequestSent(targetUser?.id || 'unknown');
+            }
         } catch (error) {
             // Revert on failure
             setIsFriend(isFriend);
@@ -589,14 +599,14 @@ export const SmarterPokerProfileView = ({ onNavigate, onOpenChat }) => {
         }
     };
 
-    const posts = [
+    const posts = userPosts.length > 0 ? userPosts : [
         {
             id: 1,
             user: user,
-            text: "Just Hit Diamond Status! 💎 Thanks For The Support Everyone.",
+            text: "Welcome To My Profile!",
             createdAt: '1d ago',
-            likeCount: 124,
-            commentCount: 42
+            likeCount: 0,
+            commentCount: 0
         }
     ];
 

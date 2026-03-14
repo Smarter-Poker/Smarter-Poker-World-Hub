@@ -15,8 +15,8 @@
  * Prefers the commander_token (PIN-based login), falls back to Supabase session token.
  */
 export function getToken() {
-    if (typeof window === 'undefined') return null;
-    return localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || null;
+    if (typeof window === 'undefined') return '';
+    return localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || '';
 }
 
 /**
