@@ -22,8 +22,9 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-
-
+// Card constants for building 52-card deck (used by runout simulation)
+const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
+const SUITS = ['s', 'h', 'd', 'c'];
 /**
  * Calculate aggregate "strategy aggression" as a proxy for EV
  * when hand_evs is not available. Higher raise/bet frequency = higher EV spot for IP player.
