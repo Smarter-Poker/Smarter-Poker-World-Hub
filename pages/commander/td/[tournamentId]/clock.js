@@ -22,7 +22,6 @@ const NAV_ITEMS = [
 ];
 const NAV_ICONS = { control: Trophy, tables: LayoutGrid, players: Users, payouts: DollarSign, reports: FileText, clock: Monitor };
 
-
 export default function TDClock() {
   useEffect(() => { busEmit.sessionStart('commander-td-tournamentId-clock'); }, []);
   const router = useRouter();
@@ -105,7 +104,6 @@ export default function TDClock() {
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [floor?.clock?.clock_state?.status]);
 
-
   // ── Seat Change Card — matches tournament buy-in receipt format ──
   const printAutoBreakReceipts = (autoBreak) => {
     if (!autoBreak?.receipts?.length) return;
@@ -184,8 +182,6 @@ ${receipts.map(r => `<div class="card">
     setTimeout(() => { pw.print(); pw.close(); }, 500);
   };
 
-
-
   const clockAction = async (action) => {
     setActionLoading(action);
     try {
@@ -212,7 +208,6 @@ ${receipts.map(r => `<div class="card">
     } catch (err) { console.error(err); alert('Clock action failed. Check console.'); }
     finally { setActionLoading(null); }
   };
-
 
   const toggleH4H = async () => {
     const isActive = floor?.alerts?.hand_for_hand;

@@ -10,7 +10,7 @@ import { Bell, BellOff, CheckCheck, Loader2, RefreshCw, Trash2, Trophy, Users, D
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../src/engine/EventBus';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
-import { getToken, getStaffSession, getVenueId } from '../../src/lib/commander/clientAuth';
+import { getToken, getStaffSession, getVenueId } from '../../src/lib/commander/clientAuth'
 
 const TYPE_CONFIG = {
   seat_available: { icon: Users, color: '#31A24C', label: 'Seat Available' },

@@ -583,7 +583,6 @@ export default function CommanderSettingsPage() {
               </div>
             </section>
 
-
             {/* Time Billing */}
             <section className="cmd-panel">
               <div className="p-4 border-b border-[#3A3B3C]">
@@ -715,7 +714,6 @@ export default function CommanderSettingsPage() {
                 )}
               </div>
             </section>
-
 
             <section className="cmd-panel divide-y divide-[#3A3B3C]">
               <button onClick={() => router.push('/commander/membership-plans')}

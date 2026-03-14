@@ -92,8 +92,6 @@ export default function TournamentDetailPage() {
     }
   }, [router]);
 
-
-
   // Fetch tournament data
   const fetchTournament = useCallback(async (signal) => {
     if (!id) return;

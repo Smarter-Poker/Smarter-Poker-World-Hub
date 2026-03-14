@@ -127,7 +127,6 @@ export default function TDPayouts() {
     const prizePool = calcData?.prize_pool || 0;
     const diff = totalOverridden - prizePool;
 
-
     if (!router.isReady) return null;
 
     if (loading) {

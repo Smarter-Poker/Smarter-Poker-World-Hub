@@ -14,7 +14,7 @@ import { DollarSign, Clock, Loader2, Package, Trash2, Save, RefreshCw } from 'lu
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
-import { getToken, getStaffSession, getVenueId } from '../../src/lib/commander/clientAuth';
+import { getToken, getStaffSession, getVenueId } from '../../src/lib/commander/clientAuth'
 
 function formatDuration(startTime) {
   if (!startTime) return '0:00';
@@ -396,7 +396,6 @@ export default function TimeBilling() {
     } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
   };
 
-
   const activeSessions = sessions.filter(s => s.status === 'active');
   const completedSessions = sessions.filter(s => s.status === 'completed');
   const displaySessions = filter === 'active' ? activeSessions : completedSessions;
@@ -578,7 +577,6 @@ export default function TimeBilling() {
           </div>
         </div>
 
-
         {/* Membership Pricing Section */}
         <div className="px-4 py-3">
           <div className="bg-[#242526] rounded-xl border border-[#3A3B3C] p-4">
@@ -629,7 +627,6 @@ export default function TimeBilling() {
             )}
           </div>
         </div>
-
 
       </div>
       <style jsx>{`

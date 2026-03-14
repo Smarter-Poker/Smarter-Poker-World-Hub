@@ -154,7 +154,6 @@ ${receipts.map(r => `<div class="card">
     setTimeout(() => { pw.print(); pw.close(); }, 500);
   };
 
-
   const handleEliminate = async (entryId, playerName) => {
     setConfirmAction({
       type: 'eliminate',
@@ -188,7 +187,6 @@ ${receipts.map(r => `<div class="card">
       }
     });
   };
-
 
   const navigateTo = (path) => {
     const base = `/commander/td/${tournamentId}`;

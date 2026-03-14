@@ -1897,7 +1897,7 @@ export default function MemoryGamesPage() {
             return false;
         }
         if (result.balance !== undefined) setDiamondBalance(result.balance);
-        busEmit.diamondsSpent(GAME_COST, 'Memory Games Entry');
+        // DiamondEngine.deduct auto-emits busEmit.diamondsSpent — no manual emit needed
         return true;
         } finally {
             isStartingRef.current = false;

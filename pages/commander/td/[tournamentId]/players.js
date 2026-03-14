@@ -219,7 +219,6 @@ ${receipts.map(r => `<div class="card">
     setTimeout(() => { pw.print(); pw.close(); }, 500);
   };
 
-
   const executeConfirmedAction = async () => {
     if (!confirmAction) return;
     const { type, player } = confirmAction;
@@ -266,7 +265,6 @@ ${receipts.map(r => `<div class="card">
     } catch (err) { console.error(err); alert('Action failed. Check console.'); }
     finally { setActionLoading(null); }
   };
-
 
   const handleEliminate = (player) => confirmEliminate(player);
   const handleRebuy = (player) => confirmRebuy(player);

@@ -280,7 +280,7 @@ export default function MixedModePage() {
                     return;
                 }
                 if (result.balance !== undefined) setUserDiamonds(result.balance);
-                busEmit.diamondsSpent(GAME_ENTRY_COST, 'Trivia Mixed Mode');
+                // DiamondEngine.deduct auto-emits busEmit.diamondsSpent
             } catch (e) {
                 console.error('[Mixed] Diamond deduction failed:', e);
                 setShowOutOfDiamonds(true);

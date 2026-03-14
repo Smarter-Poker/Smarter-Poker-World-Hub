@@ -192,7 +192,7 @@ export default function SurvivalModePage() {
                     setShowOutOfDiamonds(true);
                     return;
                 }
-                busEmit.diamondsSpent(GAME_ENTRY_COST, 'Trivia Survival Mode');
+                // DiamondEngine.deduct auto-emits busEmit.diamondsSpent
             } catch (e) {
                 console.error('[Survival] Diamond deduction failed:', e);
                 setShowOutOfDiamonds(true);

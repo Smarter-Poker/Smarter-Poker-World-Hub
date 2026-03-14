@@ -17,7 +17,7 @@ import { Calendar, Users, Plus, X, Clock, Send, ChevronLeft, ChevronRight, Loade
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
-import { getToken, getStaffSession, getVenueId } from '../../src/lib/commander/clientAuth';
+import { getToken, getStaffSession, getVenueId } from '../../src/lib/commander/clientAuth'
 
 // ═══════════════════════════════════════════════════════════════
 // HELPERS

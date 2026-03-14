@@ -117,7 +117,6 @@ export default function TDReports() {
         router.push(`/commander/td/${tournamentId}${path}`);
     };
 
-
     if (!router.isReady) return null;
 
     return (

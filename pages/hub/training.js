@@ -877,7 +877,7 @@ export default function TrainingPage() {
                 return;
             }
             setDiamondBalance(result.balance);
-            busEmit.diamondsSpent(GAME_COST, 'Training Game Entry');
+            // DiamondEngine.deduct auto-emits busEmit.diamondsSpent — no manual emit needed
         }
 
         // SPECIAL ROUTING FOR STANDALONE PAGES

@@ -280,7 +280,7 @@ export default function EndlessModePage() {
                     return;
                 }
                 if (result.balance !== undefined) setUserDiamonds(result.balance);
-                busEmit.diamondsSpent(GAME_ENTRY_COST, 'Trivia Endless Mode');
+                // DiamondEngine.deduct auto-emits busEmit.diamondsSpent
             } catch (e) {
                 console.error('[Endless] Diamond deduction failed:', e);
                 setShowOutOfDiamonds(true);

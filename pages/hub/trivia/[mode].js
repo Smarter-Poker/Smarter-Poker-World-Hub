@@ -493,7 +493,7 @@ export default function TriviaModePage() {
                     setShowOutOfDiamonds(true);
                     return;
                 }
-                busEmit.diamondsSpent(modeCost, `Trivia ${mode} Mode`);
+                // DiamondEngine.deduct auto-emits busEmit.diamondsSpent
                 // Refresh balance from DB after deduction
                 const { data: postProfile } = await supabase
                     .from('profiles')
