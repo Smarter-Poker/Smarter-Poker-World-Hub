@@ -76,6 +76,8 @@ export default function TriviaGame({
     const opponentDataRef = useRef({ score: null, name: null });
     const stakePotRef = useRef(0); // Ref to avoid stale closure in advanceQuestion
     const confettiRef = useRef(null); // Lazy-loaded canvas-confetti
+    const answersRef = useRef([]); // Ref mirror of answers — avoids stale closure in auto-complete
+    const streakRef = useRef(0); // Ref mirror of streak
 
     // Lazy-load confetti on first use (reduces initial bundle)
     const fireConfetti = async (opts) => {
@@ -132,20 +134,27 @@ export default function TriviaGame({
         return () => window.removeEventListener('beforeunload', handler);
     }, [isGameActive, currentIndex]);
 
+    // Keep refs in sync with state (for auto-complete closure)
+    useEffect(() => { answersRef.current = answers; }, [answers]);
+    useEffect(() => { streakRef.current = streak; }, [streak]);
+
     // Auto-complete game when timer expires (arcade mode)
     useEffect(() => {
         if (!timeLimit || timeRemaining > 0 || isGameActive) return;
         audio.bustDrop();
         const timeSpent = Math.floor((Date.now() - startTimeRef.current) / 1000);
-        const cc = answers.filter((a, i) => a === questions[i]?.correct_index).length;
+        const a = answersRef.current;
+        const cc = a.filter((ans, i) => ans === questions[i]?.correct_index).length;
         onComplete({
-            answers, correctCount: cc, totalQuestions: questions.length,
+            answers: a, correctCount: cc, totalQuestions: questions.length,
             timeSpent, timeRemaining: 0,
             stakePot: enableStakes ? stakePotRef.current : undefined,
-            streak,
+            streak: streakRef.current,
             opponentScore: opponentDataRef.current.score,
             opponentName: opponentDataRef.current.name,
         });
+    // questions, onComplete, enableStakes are stable props — safe to omit from deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [timeRemaining, isGameActive, timeLimit]);
 
     // ── Spawn floating diamond ──
