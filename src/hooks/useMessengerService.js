@@ -1626,9 +1626,9 @@ ${messages.map(m =>
         if (!supabase || !conversationId || !file) return null;
         try {
             const fileName = `wallpapers/${conversationId}/${Date.now()}_${file.name}`;
-            const { error } = await supabase.storage.from('messenger-media').upload(fileName, file);
+            const { error } = await supabase.storage.from('messenger_media').upload(fileName, file);
             if (error) return null;
-            const { data: urlData } = supabase.storage.from('messenger-media').getPublicUrl(fileName);
+            const { data: urlData } = supabase.storage.from('messenger_media').getPublicUrl(fileName);
             const publicUrl = urlData?.publicUrl;
             if (publicUrl) {
                 // BUG-FIX: Merge wallpaper into existing settings instead of overwriting
