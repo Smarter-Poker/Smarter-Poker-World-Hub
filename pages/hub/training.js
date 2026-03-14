@@ -85,7 +85,7 @@ import JarvisRecommendations from '../../src/components/training/JarvisRecommend
 // DailyBonusWidget removed per UI overhaul
 import useTrainingRealtime from '../../src/hooks/useTrainingRealtime';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
-import { busEmit } from '../../src/engine/EventBus';
+// busEmit not needed at page level — DiamondEngine auto-emits, useTrainingBus has own import
 
 
 // Register GSAP plugins

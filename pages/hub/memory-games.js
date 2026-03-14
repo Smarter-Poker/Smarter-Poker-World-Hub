@@ -40,7 +40,7 @@ import gameSessionService from '../../src/services/GameSessionService';
 import achievementService from '../../src/services/AchievementService';
 import { claimReward } from '../../src/lib/claimReward';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
-import { busEmit } from '../../src/engine/EventBus';
+// busEmit not needed at page level — DiamondEngine auto-emits, useTrainingBus has own import
 
 // New Game Mode Components (dynamic imports for code splitting)
 import dynamic from 'next/dynamic';
