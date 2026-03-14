@@ -97,16 +97,16 @@ export default function TriviaAchievements() {
         }
 
         loadAchievements();
-    }, []);
-    // Realtime subscription — live updates
-    useEffect(() => {
-        if (!userId) return;
+
+        // Realtime subscription — live updates (same scope as loadAchievements)
+        const user = getAuthUser();
+        if (!user) return;
         const _ch = supabase
-            .channel(`trivia-ach:${userId}`)
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trivia_scores', filter: `user_id=eq.${userId}` }, () => { loadAchievements(); })
+            .channel(`trivia-ach:${user.id}`)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trivia_scores', filter: `user_id=eq.${user.id}` }, () => { loadAchievements(); })
             .subscribe();
         return () => { supabase.removeChannel(_ch); };
-    }, [userId]);
+    }, []);
 
     return (
         <>

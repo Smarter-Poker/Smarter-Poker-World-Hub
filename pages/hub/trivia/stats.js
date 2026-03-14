@@ -84,16 +84,16 @@ export default function TriviaStats() {
         }
 
         loadStats();
-    }, []);
-    // Realtime subscription — live updates
-    useEffect(() => {
-        if (!userId) return;
+
+        // Realtime subscription — live updates (same scope as loadStats)
+        const user = getAuthUser();
+        if (!user) return;
         const _ch = supabase
-            .channel(`trivia-stats:${userId}`)
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trivia_scores', filter: `user_id=eq.${userId}` }, () => { loadStats(); })
+            .channel(`trivia-stats:${user.id}`)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trivia_scores', filter: `user_id=eq.${user.id}` }, () => { loadStats(); })
             .subscribe();
         return () => { supabase.removeChannel(_ch); };
-    }, [userId]);
+    }, []);
 
     const StatCard = ({ label, value, color }) => (
         <div style={{ background: '#242526', border: '1px solid #4e4f50', borderRadius: '12px', padding: '24px' }}>

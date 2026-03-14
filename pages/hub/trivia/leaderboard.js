@@ -96,16 +96,15 @@ export default function TriviaLeaderboard() {
         }
 
         loadLeaderboard();
-    }, [period]);
-    // Realtime subscription — live updates
-    useEffect(() => {
+
+        // Realtime subscription — live updates (same scope as loadLeaderboard)
         if (!currentUserId) return;
         const _ch = supabase
             .channel(`trivia-lb`)
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trivia_scores' }, () => { loadLeaderboard(); })
             .subscribe();
         return () => { supabase.removeChannel(_ch); };
-    }, [currentUserId]);
+    }, [period, currentUserId]);
 
     function getTodayCST() {
         const now = new Date();

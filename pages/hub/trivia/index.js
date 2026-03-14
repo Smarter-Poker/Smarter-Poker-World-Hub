@@ -60,55 +60,56 @@ export default function TriviaHubPage() {
 
     // Using existing supabase instance from lib
 
-    useEffect(() => {
-        async function loadUserData() {
-            if (!userId) {
-                // Wait for auth to populate or fail
-                if (!authLoading) setIsLoading(false);
-                return;
-            }
-            try {
-                // Get user profile for diamonds
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('diamonds, is_vip')
-                    .eq('id', userId)
-                    .maybeSingle();
-
-                if (profile) {
-                    setUserDiamonds(profile.diamonds || 0);
-                    setIsVip(profile.is_vip === true);
-                }
-
-                // Check if daily trivia completed today
-                const today = getTodayCST();
-                const { data: dailyPlay } = await supabase
-                    .from('daily_trivia_plays')
-                    .select('id')
-                    .eq('user_id', userId)
-                    .eq('played_date', today)
-                    .maybeSingle();
-
-                setDailyCompleted(!!dailyPlay);
-
-                // Get streak
-                const { data: streakData } = await supabase
-                    .from('trivia_streaks')
-                    .select('current_streak')
-                    .eq('user_id', userId)
-                    .maybeSingle();
-
-                if (streakData) {
-                    setCurrentStreak(streakData.current_streak || 0);
-                }
-            } catch (error) {
-                console.error('Error loading user data:', error);
-            }
-            setIsLoading(false);
+    const loadUserData = useCallback(async () => {
+        if (!userId) {
+            // Wait for auth to populate or fail
+            if (!authLoading) setIsLoading(false);
+            return;
         }
+        try {
+            // Get user profile for diamonds
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('diamonds, is_vip')
+                .eq('id', userId)
+                .maybeSingle();
 
-        loadUserData();
+            if (profile) {
+                setUserDiamonds(profile.diamonds || 0);
+                setIsVip(profile.is_vip === true);
+            }
+
+            // Check if daily trivia completed today
+            const today = getTodayCST();
+            const { data: dailyPlay } = await supabase
+                .from('daily_trivia_plays')
+                .select('id')
+                .eq('user_id', userId)
+                .eq('played_date', today)
+                .maybeSingle();
+
+            setDailyCompleted(!!dailyPlay);
+
+            // Get streak
+            const { data: streakData } = await supabase
+                .from('trivia_streaks')
+                .select('current_streak')
+                .eq('user_id', userId)
+                .maybeSingle();
+
+            if (streakData) {
+                setCurrentStreak(streakData.current_streak || 0);
+            }
+        } catch (error) {
+            console.error('Error loading user data:', error);
+        }
+        setIsLoading(false);
     }, [userId, authLoading]);
+
+    useEffect(() => {
+        loadUserData();
+    }, [loadUserData]);
+
     // Realtime subscription — live updates
     useEffect(() => {
         if (!user?.id) return;
@@ -118,7 +119,7 @@ export default function TriviaHubPage() {
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'trivia_streaks', filter: `user_id=eq.${user?.id}` }, () => { loadUserData(); })
             .subscribe();
         return () => { supabase.removeChannel(_ch); };
-    }, [user?.id]);
+    }, [user?.id, loadUserData]);
 
     function getTodayCST() {
         const now = new Date();
