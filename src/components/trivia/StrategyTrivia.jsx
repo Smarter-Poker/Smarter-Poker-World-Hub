@@ -240,6 +240,7 @@ export default function StrategyTrivia({ mode }) {
     const [isTimerRunning, setIsTimerRunning] = useState(false);
     const timerRef = useRef(null);
     const startTimeRef = useRef(null);
+    const isStartingRef = useRef(false); // Prevent double-click race
 
     const currentQuestion = questions[currentQuestionIndex];
 
@@ -499,6 +500,9 @@ export default function StrategyTrivia({ mode }) {
     }
 
     async function startGame() {
+        if (isStartingRef.current) return;
+        isStartingRef.current = true;
+        try {
         // ═══════════════════════════════════════════════════════════════
         // HOTFIX: Check if this game was already paid for via TriviaLobby
         // payment modal. If so, skip the deduction and clear the flag.
@@ -568,6 +572,9 @@ export default function StrategyTrivia({ mode }) {
         setTimeLeft(60);
         setIsTimerRunning(true);
         startTimeRef.current = Date.now();
+        } finally {
+            isStartingRef.current = false;
+        }
     }
 
     function handleTimeout() {
