@@ -16,6 +16,7 @@ const SkeletonDark = dynamic(() => import('../../src/components/ui/SkeletonDark'
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
+import { getToken } from '../../src/lib/commander/clientAuth';
 
 export default function PokerRoomFunctions() {
   useEffect(() => { busEmit.sessionStart('commander-poker-room'); }, []);
@@ -26,12 +27,7 @@ export default function PokerRoomFunctions() {
   const [loading, setLoading] = useState(true);
   const [venueId, setVenueId] = useState(null);
 
-  const getToken = () => {
-    try {
-      const stored = JSON.parse(localStorage.getItem('commander_staff') || '{}');
-      return stored.token || stored.access_token || '';
-    } catch { return ''; }
-  };
+
 
   // Init venueId from localStorage
   useEffect(() => {

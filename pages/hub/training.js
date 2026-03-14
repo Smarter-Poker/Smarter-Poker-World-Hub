@@ -24,7 +24,12 @@ if (typeof window !== 'undefined') {
     import('gsap').then(m => { gsap = m.default; });
     import('gsap/dist/ScrollTrigger').then(m => { ScrollTrigger = m.ScrollTrigger; });
 }
-import confetti from 'canvas-confetti';
+// confetti loaded lazily on first use
+let _confetti = null;
+async function fireConfetti(opts) {
+    if (!_confetti) { const m = await import('canvas-confetti'); _confetti = m.default || m; }
+    _confetti(opts);
+}
 import GameCard from '../../src/components/training/GameCard';
 import { TRAINING_LIBRARY, getGamesByCategory } from '../../src/data/TRAINING_LIBRARY';
 import useTrainingProgress from '../../src/hooks/useTrainingProgress';
@@ -822,9 +827,14 @@ export default function TrainingPage() {
 
     const dailyChallenges = getDailyChallenge().slice(0, 3); // Only show 3 daily challenges
     const leakGames = getLeakGames(TRAINING_LIBRARY);
+    // Double-click guard for diamond deduction
+    const isStartingRef = useRef(false);
 
     // Handle game click - Show intro video first, then navigate
     const handleGameClick = async (game) => {
+        if (isStartingRef.current) return;
+        isStartingRef.current = true;
+        try {
 
         if (game.vipOnly && !isVIP) {
             toast.error("This Advanced Tool Is Restricted To VIP Members. Please Upgrade.");
@@ -867,6 +877,7 @@ export default function TrainingPage() {
                 return;
             }
             setDiamondBalance(result.balance);
+            busEmit.diamondsSpent(GAME_COST, 'Training Game Entry');
         }
 
         // SPECIAL ROUTING FOR STANDALONE PAGES
@@ -882,7 +893,7 @@ export default function TrainingPage() {
 
         if (isMastered && !alreadyCelebrated) {
             // Trigger mastery celebration
-            confetti({
+            fireConfetti({
                 particleCount: 150,
                 spread: 100,
                 origin: { y: 0.6 },
@@ -894,6 +905,9 @@ export default function TrainingPage() {
 
         setPendingGame(game);
         setShowIntro(true);
+        } finally {
+            isStartingRef.current = false;
+        }
     };
 
     // Handle category click - Navigate to category page

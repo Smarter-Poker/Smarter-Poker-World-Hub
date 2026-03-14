@@ -13,6 +13,7 @@ import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/us
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
 import { busEmit } from '../../../src/engine/EventBus';
 import SEOHead from '../../../src/components/seo/SEOHead';
+import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -76,13 +77,7 @@ export default function AnnouncementsDisplay() {
     try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
   });
 
-  const getToken = () => {
-    try {
-      const staff = JSON.parse(localStorage.getItem('commander_staff') || '{}');
-      return staff.token || staff.access_token || localStorage.getItem('sb-access-token');
-    } catch { return null; }
-  };
-  const getStaffSession = () => localStorage.getItem('commander_staff') || '';
+
 
   // ─── Fetch active announcements (for display) ───
   const fetchData = useCallback(async () => {
