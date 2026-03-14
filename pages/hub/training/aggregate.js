@@ -59,8 +59,10 @@ export default function AggregateReports() {
       });
       if (heroPosition) params.set('heroPosition', heroPosition);
 
+      const token = getAccessToken();
       const res = await fetch(`/api/training/aggregate-report?${params}`, {
-        });
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {

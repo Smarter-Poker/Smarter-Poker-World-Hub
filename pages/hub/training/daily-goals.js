@@ -122,8 +122,10 @@ export default function DailyGoalsPage() {
       return;
     }
     try {
+      const token = getAccessToken();
       const res = await fetch(`/api/training/get-sessions?limit=50`, {
-        });
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const d = await res.json();
       if (d.success && d.sessions) {

@@ -200,8 +200,10 @@ export default function AutopilotPage() {
       return;
     }
     try {
+      const token = getAccessToken();
       const res = await fetch(`/api/training/get-sessions?limit=200`, {
-        });
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success && data.sessions) {
