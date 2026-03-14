@@ -216,10 +216,7 @@ export default async function handler(req, res) {
                   console.error('Error creating progress:', JSON.stringify(insertError, null, 2));
                   console.error('Insert payload:', { userId, gameId, level, questionsAnswered, questionsCorrect });
                   return res.status(500).json({
-                      success: false, error: 'Failed to create progress',
-                      details: insertError.message,
-                      code: insertError.code,
-                      hint: insertError.hint
+                      success: false, error: 'Failed to create progress'
                   });
               }
 
