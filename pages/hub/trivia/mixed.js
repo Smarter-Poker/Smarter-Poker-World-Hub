@@ -84,6 +84,7 @@ export default function MixedModePage() {
     const [timeLeft, setTimeLeft] = useState(24);
     const [isTimerRunning, setIsTimerRunning] = useState(false);
     const timerRef = useRef(null);
+    const isStartingRef = useRef(false); // Prevent double-click race
 
     useEffect(() => {
         if (authLoading) return;
@@ -241,6 +242,9 @@ export default function MixedModePage() {
     }
 
     async function startGame() {
+        if (isStartingRef.current) return;
+        isStartingRef.current = true;
+        try {
         // Per-game diamond gate (VIP bypass)
         if (!isVip && userId) {
             // Fresh balance check from DB to avoid stale-state false negatives

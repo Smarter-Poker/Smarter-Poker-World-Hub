@@ -83,6 +83,7 @@ export default function EndlessModePage() {
     const diamondsEarnedRef = useRef(0);
     const currentIndexRef = useRef(0);
     const answerTimeoutRef = useRef(null); // Cleanup on unmount
+    const isStartingRef = useRef(false); // Prevent double-click race
 
     // Game Settings (persist to localStorage)
     const [settings, setSettings] = useState({
@@ -241,6 +242,9 @@ export default function EndlessModePage() {
     }
 
     async function startGame() {
+        if (isStartingRef.current) return;
+        isStartingRef.current = true;
+        try {
         // Per-game diamond gate (VIP bypass)
         if (!isVip && userId) {
             // Fresh balance check from DB to avoid stale-state false negatives
