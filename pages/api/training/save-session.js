@@ -118,6 +118,9 @@ export default async function handler(req, res) {
                   const { error: rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
                       p_user_id: userId,
                       p_amount: safeSpeedBonus,
+                      p_type: 'speed_bonus',
+                      p_description: `Speed bonus: ${parsedGameId} — ${safeSpeedBonus}💎`,
+                      p_reference_id: `speed_${userId}_${parsedGameId}_${Date.now()}`
                   });
 
                   if (rpcErr) {

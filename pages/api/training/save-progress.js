@@ -187,7 +187,13 @@ export default async function handler(req, res) {
               // 4. Award diamonds to profile balance
               if (diamondsEarned > 0) {
                   try {
-                      await supabase.rpc('add_diamonds_to_balance', { p_user_id: userId, p_amount: diamondsEarned });
+                      await supabase.rpc('add_diamonds_to_balance', {
+                          p_user_id: userId,
+                          p_amount: diamondsEarned,
+                          p_type: 'training_reward',
+                          p_description: `Training: ${gameId} L${level} — ${diamondsEarned}💎`,
+                          p_reference_id: `progress_${userId}_${gameId}_${level}_${Date.now()}`
+                      });
                   } catch (e) {
                       console.warn('[SaveProgress] Diamond award failed:', e.message);
                   }
@@ -234,7 +240,13 @@ export default async function handler(req, res) {
               // 4. Award diamonds to profile balance
               if (diamondsEarned > 0) {
                   try {
-                      await supabase.rpc('add_diamonds_to_balance', { p_user_id: userId, p_amount: diamondsEarned });
+                      await supabase.rpc('add_diamonds_to_balance', {
+                          p_user_id: userId,
+                          p_amount: diamondsEarned,
+                          p_type: 'training_reward',
+                          p_description: `Training: ${gameId} L${level} — ${diamondsEarned}💎`,
+                          p_reference_id: `progress_${userId}_${gameId}_${level}_${Date.now()}`
+                      });
                   } catch (e) {
                       console.warn('[SaveProgress] Diamond award failed:', e.message);
                   }
