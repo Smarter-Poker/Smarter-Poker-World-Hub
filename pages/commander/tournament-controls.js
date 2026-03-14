@@ -33,11 +33,13 @@ export default function TournamentDirector() {
 
     const getVenueId = () => { try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id || ''; } catch { return ''; } };
 
+    const getBearerToken = () => localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || '';
+
     const fetchTournaments = useCallback(async (signal) => {
         try {
             const staffSession = localStorage.getItem('commander_staff') || '';
             const res = await fetch('/api/commander/tournaments', {
-                headers: { 'x-staff-session': staffSession },
+                headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${getBearerToken()}` },
             });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const data = await res.json();

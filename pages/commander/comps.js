@@ -116,7 +116,7 @@ export default function CompSystem() {
   useEffect(() => {
     const staffSession = getStaffSession();
     if (!staffSession) return;
-    fetch('/api/commander/settings', { headers: { 'x-staff-session': staffSession } })
+    fetch('/api/commander/settings', { headers: getHeaders() })
       .then(r => r.json())
       .then(data => {
         if (data?.data?.auto_comp_rate !== undefined) {
@@ -128,7 +128,7 @@ export default function CompSystem() {
     // Fetch membership plans for auto-populating comp costs
     const venueId = getVenueId();
     if (venueId) {
-      fetch(`/api/commander/membership-plans?venue_id=${venueId}`, { headers: { 'x-staff-session': staffSession } })
+      fetch(`/api/commander/membership-plans?venue_id=${venueId}`, { headers: getHeaders() })
         .then(r => r.json())
         .then(data => {
           if (data?.success && data.data?.plans) {

@@ -210,7 +210,8 @@ export default function MembershipKiosk() {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
-            'x-staff-session': staffHeader
+            'x-staff-session': staffHeader,
+            Authorization: `Bearer ${getBearerToken()}`
           },
           body: JSON.stringify({ checked_in_at: new Date().toISOString() })
         });
@@ -457,7 +458,8 @@ export default function MembershipKiosk() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-staff-session': staffHeader
+            'x-staff-session': staffHeader,
+            Authorization: `Bearer ${getBearerToken()}`
           },
           body: JSON.stringify({
             venue_id: venueId,
