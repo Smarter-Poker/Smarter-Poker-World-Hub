@@ -29,6 +29,12 @@ export default async function handler(req, res) {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
 
+      // Body size guard (100KB max)
+      const bodySize = JSON.stringify(req.body || {}).length;
+      if (bodySize > 102400) {
+          return res.status(413).json({ success: false, error: 'Request body too large' });
+      }
+
       try {
           // Accept both camelCase (new standard) and snake_case (legacy/existing pages)
           const parsedGameId = req.body.gameId || req.body.game_id;

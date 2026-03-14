@@ -30,6 +30,12 @@ export default async function handler(req, res) {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
 
+      // Body size guard (10KB max)
+      const bodySize = JSON.stringify(req.body || {}).length;
+      if (bodySize > 10240) {
+          return res.status(413).json({ success: false, error: 'Request body too large' });
+      }
+
       const { userId, gameId, questionId, answerId, isCorrect, level } = req.body;
 
       if (!userId || !gameId || !questionId) {
