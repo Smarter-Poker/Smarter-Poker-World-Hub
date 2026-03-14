@@ -141,6 +141,8 @@ export default function DiamondArcade() {
     const timerRef = useRef(null);
     const duelPollRef = useRef(null);
     const questionStartTime = useRef(0);
+    const isStartingRef = useRef(false); // Prevent double-click race on game start
+    const isDuelingRef = useRef(false); // Prevent double-click race on duel search
     const [menuOpen, setMenuOpen] = useState(false);
     const [showOutOfDiamondsModal, setShowOutOfDiamondsModal] = useState(false);
     const [attemptedGameCharge, setAttemptedGameCharge] = useState(10);
@@ -244,6 +246,9 @@ export default function DiamondArcade() {
     }
 
     async function startGame(gameId) {
+        if (isStartingRef.current) return;
+        isStartingRef.current = true;
+        try {
         if (!user) {
             alert('Please sign in to play!');
             return;
@@ -305,6 +310,9 @@ export default function DiamondArcade() {
         // Emit entry fee spent
         if (game.entryFee > 0) {
             busEmit.diamondsSpent(game.entryFee, `Arcade: ${game.name}`);
+        }
+        } finally {
+            isStartingRef.current = false;
         }
     }
 
@@ -425,6 +433,9 @@ export default function DiamondArcade() {
     }
 
     async function findDuelMatch(duelType) {
+        if (isDuelingRef.current) return;
+        isDuelingRef.current = true;
+        try {
         const userId = typeof window !== 'undefined' ? localStorage.getItem('sp-anon-uid') : null;
         if (!userId) {
             setDuelResult({ error: 'Please sign in to play duels' });
@@ -540,6 +551,9 @@ export default function DiamondArcade() {
             setDuelResult({ error: 'Matchmaking failed. Try again.' });
             setDuelSearching(null);
             setTimeout(() => setDuelResult(null), 3000);
+        }
+        } finally {
+            isDuelingRef.current = false;
         }
     }
 
