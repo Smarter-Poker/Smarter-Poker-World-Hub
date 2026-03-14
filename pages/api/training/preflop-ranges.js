@@ -393,6 +393,7 @@ export default async function handler(req, res) {
 
           const stats = computeRangeStats(freqMap);
 
+          res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=7200');
           return res.status(200).json({
               success: true,
               range: {
@@ -414,6 +415,6 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.error('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

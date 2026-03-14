@@ -541,6 +541,7 @@ export default function StrategyTrivia({ mode }) {
                     return;
                 }
                 if (result.balance !== undefined) setUserDiamonds(result.balance);
+                busEmit.diamondsSpent(GAME_DIAMOND_COST, `${config.title} Entry`);
             } catch (e) {
                 console.error('[StrategyTrivia] Diamond deduction failed:', e);
                 setShowOutOfDiamonds(true);
