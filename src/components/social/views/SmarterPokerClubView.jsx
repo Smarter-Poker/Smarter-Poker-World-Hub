@@ -558,12 +558,14 @@ export const SmarterPokerClubView = ({ onNavigate }) => {
     // EventBus: delayed fallback refresh — subscribeFeed handles real-time INSERTs,
     // so this is a safety net in case Realtime is delayed or disconnected
     useEffect(() => {
+        let debounceTimer = null;
         const unsub1 = eventBus.on(EventType.SOCIAL_POST_CREATED, () => {
-            // Delay to avoid double-fire with subscribeFeed
-            const timer = setTimeout(() => {
+            // Debounce: clear any pending timer before setting a new one
+            if (debounceTimer) clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
                 loadClubData();
+                debounceTimer = null;
             }, 3000);
-            return () => clearTimeout(timer);
         });
         const unsub2 = eventBus.on(EventType.SOCIAL_COMMENT_ADDED, (event) => {
             const { postId } = event?.payload || {};
@@ -576,7 +578,10 @@ export const SmarterPokerClubView = ({ onNavigate }) => {
                 }));
             }
         });
-        return () => { unsub1(); unsub2(); };
+        return () => {
+            unsub1(); unsub2();
+            if (debounceTimer) clearTimeout(debounceTimer);
+        };
     }, [loadClubData]);
 
     // Supabase real-time subscription for new club posts

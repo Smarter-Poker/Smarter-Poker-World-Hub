@@ -331,14 +331,19 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
     // Delayed fallback: subscribeFeed handles real-time INSERTs instantly,
     // so this is a safety net in case Realtime is delayed or disconnected
     useEffect(() => {
+        let debounceTimer = null;
         const unsub = eventBus.on(EventType.SOCIAL_POST_CREATED, () => {
-            // Delay to avoid double-fire with subscribeFeed
-            const timer = setTimeout(() => {
+            // Debounce: clear any pending timer before setting a new one
+            if (debounceTimer) clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
                 loadFeed();
+                debounceTimer = null;
             }, 3000);
-            return () => clearTimeout(timer);
         });
-        return () => { if (unsub) unsub(); };
+        return () => {
+            if (unsub) unsub();
+            if (debounceTimer) clearTimeout(debounceTimer);
+        };
     }, [loadFeed]);
 
     // Real-time Supabase subscription for new posts
