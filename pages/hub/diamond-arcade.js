@@ -493,7 +493,7 @@ export default function DiamondArcade() {
                 setTimeout(() => {
                     setDuelSearching(null);
                     setDuelResult(null);
-                    startGame('hand-snap');
+                    startGame('hand-snap', { isDuel: true });
                 }, 1500);
             } else {
                 // Queued - start polling AND subscribe realtime for instant match notification
@@ -513,11 +513,12 @@ export default function DiamondArcade() {
                             duelPollRef.current = null;
                             supabase.removeChannel(duelChannel);
                             setBalance(prev => prev - (costs[duelType] || 25));
+                            busEmit.diamondsSpent(costs[duelType] || 25, `Arcade Duel: ${duelType}`);
                             setDuelResult({ matched: true, message: 'Opponent Found! Starting Duel...' });
                             setTimeout(() => {
                                 setDuelSearching(null);
                                 setDuelResult(null);
-                                startGame('hand-snap');
+                                startGame('hand-snap', { isDuel: true });
                             }, 1500);
                         }
                     })
@@ -539,7 +540,7 @@ export default function DiamondArcade() {
                             setTimeout(() => {
                                 setDuelSearching(null);
                                 setDuelResult(null);
-                                startGame('hand-snap');
+                                startGame('hand-snap', { isDuel: true });
                             }, 1500);
                         } else if (Date.now() - pollStart >= 30000) {
                             clearInterval(duelPollRef.current);
