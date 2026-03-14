@@ -13,6 +13,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { getAuthUser, getSessionToken } from '../lib/authUtils';
 import TRAINING_CONFIG, { checkLevelPassed, getRequiredCorrect } from '../config/trainingConfig';
 import useGTOWScore, { simulateGTOFrequencies, classifyMove } from './useGTOWScore';
+import { eventBus } from '../engine/EventBus';
 import { trainingSounds } from '../utils/trainingSounds';
 
 const QUESTIONS_PER_LEVEL = TRAINING_CONFIG.questionsPerLevel; // 25 questions per level
@@ -469,13 +470,15 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
             // NOTE: save-session is handled by GodModeArena's auto-save useEffect
             // to avoid duplicate training_sessions rows.
 
-            // Use EventBus instead of window event
-            if (typeof window !== 'undefined' && window.eventBus) {
-                window.eventBus.emit(window.EventType?.TRAINING_SESSION_SAVED || 'trainingSessionSaved', {
+            // Emit progress-saved event so useTrainingProgress can re-hydrate
+            try {
+                eventBus.emit('training:session-saved', {
                     gameId: gameId,
                     gtowScore: gtowScoring.gtowScore,
                     handsPlayed: gtowScoring.handsPlayed
                 }, 'useGTOTrainer');
+            } catch (busErr) {
+                console.warn('[GTOTrainer] Bus emit failed (non-critical):', busErr.message);
             }
 
         } catch (err) {

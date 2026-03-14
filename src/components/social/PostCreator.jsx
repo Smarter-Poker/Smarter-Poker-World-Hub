@@ -7,13 +7,10 @@
  */
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { useSupabase } from '../../providers/SupabaseProvider';
+import { SocialService } from '../../services/SocialService';
+import { validatePostContent } from '../../services/social-types';
 import { claimReward } from '../../lib/claimReward';
-
-// TODO: Module dependencies missing:
-// - useSupabase: import { useSupabase } from '../../providers/SupabaseProvider'
-// - useSocialOrb: import { useSocialOrb } from '../../providers/SocialOrbProvider'
-// - SocialService: import { SocialService } from '../SocialService'
-// - validatePostContent: import { validatePostContent } from '../types'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ✍️ POST CREATOR COMPONENT
@@ -25,7 +22,6 @@ export const PostCreator = ({
   onPostCreated
 }) => {
   const { user, supabase } = useSupabase();
-  const { state: socialState } = useSocialOrb();
 
   const [content, setContent] = useState('');
   const [visibility, setVisibility] = useState('public');

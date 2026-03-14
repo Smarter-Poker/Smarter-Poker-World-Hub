@@ -9,12 +9,9 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { SocialCard } from './SocialCard';
 import { claimReward } from '../../lib/claimReward';
-
-// TODO: Module dependencies missing:
-// - useSupabase: import { useSupabase } from '../../providers/SupabaseProvider'
-// - useSocialOrb: import { useSocialOrb } from '../../providers/SocialOrbProvider'
-// - SocialService: import { SocialService } from '../SocialService'
-// - FEED_FILTERS, initialFeedState: import { FEED_FILTERS, initialFeedState } from '../types'
+import { useSupabase } from '../../providers/SupabaseProvider';
+import { SocialService } from '../../services/SocialService';
+import { FEED_FILTERS, initialFeedState } from '../../services/social-types';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 📜 SPATIAL FEED COMPONENT
@@ -26,7 +23,6 @@ export const SpatialFeed = ({
   onAuthorClick
 }) => {
   const { user, supabase } = useSupabase();
-  const { state: socialState } = useSocialOrb();
 
   const [feedState, setFeedState] = useState(initialFeedState);
   const [activeFilter, setActiveFilter] = useState('recent');

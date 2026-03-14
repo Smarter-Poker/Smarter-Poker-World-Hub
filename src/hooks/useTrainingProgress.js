@@ -10,6 +10,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { getPlayStatus, getRankFromMastery, USER_RANKS } from '../components/training/GameBadge';
+import { eventBus, EventType } from '../engine/EventBus';
 
 const STORAGE_KEY = 'pokeriq_training_progress';
 
@@ -30,41 +31,21 @@ export default function useTrainingProgress() {
 
     const loadProgress = useCallback(async () => {
         try {
-            // Get user ID from Supabase session (primary method - works reliably)
+            // Get user auth via getAuthUser — reliable cross-platform method
             let userId = null;
+            let token = null;
 
             try {
-                const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-                userId = session?.user?.id;
-                console.log('[useTrainingProgress] Session check:', {
-                    hasSession: !!session,
-                    userId,
-                    userEmail: session?.user?.email
-                });
-            } catch (sessionError) {
-                console.warn('[useTrainingProgress] Session fetch failed, trying localStorage fallback:', sessionError.message);
-            }
-
-            // Fallback to localStorage if session not available
-            if (!userId) {
-                try {
-                    const { getAuthUser } = await import('../lib/authUtils');
-                    const authUser = getAuthUser();
-                    userId = authUser?.id;
-                    console.log('[useTrainingProgress] localStorage fallback:', {
-                        hasUser: !!authUser,
-                        userId
-                    });
-                } catch (e) {
-                    console.warn('[useTrainingProgress] localStorage fallback failed:', e.message);
-                }
+                const { getAuthUser, getAccessToken } = await import('../lib/authUtils');
+                const authUser = getAuthUser();
+                userId = authUser?.id;
+                token = typeof getAccessToken === 'function' ? getAccessToken() : null;
+            } catch (e) {
+                console.warn('[useTrainingProgress] Auth failed:', e.message);
             }
 
             if (userId) {
                 // Fetch from API with auth header
-                console.log('[useTrainingProgress] Fetching progress for userId:', userId);
-                const authSession = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-                const token = authSession?.access_token;
                 const response = await fetch(`/api/training/get-progress?userId=${userId}`, {
                     headers: token ? { 'Authorization': `Bearer ${token}` } : {},
                 });
@@ -122,19 +103,19 @@ export default function useTrainingProgress() {
         loadProgress();
 
         const handleReload = () => {
-            console.log('[useTrainingProgress] Caught trainingSessionSaved bus event, re-hydrating...');
+            console.log('[useTrainingProgress] Caught session-saved bus event, re-hydrating...');
             loadProgress();
         };
-        const eventBus = typeof window !== 'undefined' ? window.eventBus : null;
-        const eventType = typeof window !== 'undefined' && window.EventType ? window.EventType.TRAINING_SESSION_SAVED : 'trainingSessionSaved';
 
-        let unsub = null;
-        if (eventBus) {
-            unsub = eventBus.on(eventType, handleReload);
-        }
+        // Listen for both event names to catch from all sources
+        const unsub1 = eventBus.on('training:session-saved', handleReload);
+        const unsub2 = eventBus.on(EventType?.SESSION_END || 'SESSION_END', handleReload);
+        const unsub3 = eventBus.on('training:session-complete', handleReload);
 
         return () => {
-            if (unsub) unsub();
+            if (typeof unsub1 === 'function') unsub1();
+            if (typeof unsub2 === 'function') unsub2();
+            if (typeof unsub3 === 'function') unsub3();
         };
     }, [loadProgress]);
 
