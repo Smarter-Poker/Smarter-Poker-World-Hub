@@ -447,9 +447,10 @@ export default function PromotionsPage() {
     if (!editingPromoCode) return;
     try {
       const token = getToken();
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch('/api/promo/admin-promo-codes', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({
           id: editingPromoCode.id,
           code: editCodeForm.code,

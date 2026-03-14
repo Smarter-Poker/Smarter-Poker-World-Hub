@@ -48,8 +48,9 @@ export default function ChurnPrediction() {
     setLoading(true);
     try {
       const token = getToken();
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/ai/churn-prediction?venue_id=${staff.venue_id}&limit=100`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
