@@ -20,7 +20,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { parseBoardFromHash, extractPositionFromHash, getAllHands } from '../../../src/utils/trainingApiUtils';
+import { parseBoardFromHash, extractPositionFromHash, getAllHands, sanitizeParam, VALID_STREETS } from '../../../src/utils/trainingApiUtils';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -55,6 +55,9 @@ export default async function handler(req, res) {
           const pageNum = Math.max(1, parseInt(page, 10) || 1);
           const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 20));
           const offset = (pageNum - 1) * limitNum;
+
+          // Input validation
+          const safeStreet = VALID_STREETS.includes(street) ? street : 'flop';
 
           // If requesting a specific spot's full data
           if (spotId) {
@@ -141,7 +144,8 @@ export default async function handler(req, res) {
           // Filter by street (based on board card count in scenario_hash)
           // Flop = 3 cards (6 chars), Turn = 4 cards (8 chars), River = 5 cards (10 chars)
           if (position) {
-              query = query.ilike('scenario_hash', `%_${position}_%`);
+              const safePosition = sanitizeParam(position, 10);
+              if (safePosition) query = query.ilike('scenario_hash', `%_${safePosition}_%`);
           }
 
           // Order and paginate

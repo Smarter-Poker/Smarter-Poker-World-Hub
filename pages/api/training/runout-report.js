@@ -16,7 +16,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { parseBoardFromHash } from '../../../src/utils/trainingApiUtils';
+import { parseBoardFromHash, sanitizeParam } from '../../../src/utils/trainingApiUtils';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -81,6 +81,9 @@ export default async function handler(req, res) {
           if (!scenarioHash) {
               return res.status(400).json({ success: false, error: 'scenarioHash is required' });
           }
+
+          // Sanitize scenarioHash before using in .ilike() pattern query
+          const safeHash = sanitizeParam(scenarioHash, 200);
 
           // Parse current board from hash
           const currentBoard = parseBoardFromHash(scenarioHash);
