@@ -380,8 +380,9 @@ export default function PromotionsPage() {
     setPromoCodesLoading(true);
     try {
       const token = getToken();
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch('/api/promo/admin-promo-codes', {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
@@ -394,9 +395,10 @@ export default function PromotionsPage() {
     setSeedingPromos(true);
     try {
       const token = getToken();
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch('/api/promo/seed-premade', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
       if (!res.ok) throw new Error('Request failed');
       const data = await res.json();
@@ -413,9 +415,10 @@ export default function PromotionsPage() {
   const togglePromoCode = async (code) => {
     try {
       const token = getToken();
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch('/api/promo/admin-promo-codes', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ id: code.id, is_active: !code.is_active })
       });
       if (res.ok) fetchPromoCodes();
@@ -426,9 +429,10 @@ export default function PromotionsPage() {
     if (!confirm(`Deactivate promo code "${code.code}"?`)) return;
     try {
       const token = getToken();
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/promo/admin-promo-codes?id=${code.id}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
       if (res.ok) fetchPromoCodes();
     } catch (err) { console.error('Delete promo code error:', err); alert('Action failed: Delete promo code. Please try again.'); }

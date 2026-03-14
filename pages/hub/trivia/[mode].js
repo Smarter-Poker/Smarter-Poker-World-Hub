@@ -443,15 +443,6 @@ export default function TriviaModePage() {
         return shuffleArray(fallbacks).slice(0, count);
     }
 
-    function shuffleArray(array) {
-        const arr = [...array];
-        for (let i = arr.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [arr[i], arr[j]] = [arr[j], arr[i]];
-        }
-        return arr;
-    }
-
     function getTodayCST() {
         const now = new Date();
         const cstDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));

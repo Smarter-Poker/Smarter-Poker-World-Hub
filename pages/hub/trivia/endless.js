@@ -78,6 +78,11 @@ export default function EndlessModePage() {
     const timerRef = useRef(null);
     const heartbeatIntervalRef = useRef(null);
 
+    // Refs to avoid stale closures in setTimeout-triggered saveGameResult
+    const streakRef = useRef(0);
+    const diamondsEarnedRef = useRef(0);
+    const currentIndexRef = useRef(0);
+
     // Game Settings (persist to localStorage)
     const [settings, setSettings] = useState({
         haptics: true,      // Vibration feedback
@@ -253,6 +258,9 @@ export default function EndlessModePage() {
         setDiamondsEarned(0);
         setMultiplier(1);
         setCurrentIndex(0);
+        streakRef.current = 0;
+        diamondsEarnedRef.current = 0;
+        currentIndexRef.current = 0;
         // Reset all lifeline states for new game
         setFiftyFiftyUsedFree(false);
         setEliminatedOptions([]);
@@ -513,12 +521,12 @@ export default function EndlessModePage() {
                 setTimeout(() => setShowSpeedBonus(false), 1500);
             }
 
-            setDiamondsEarned(prev => prev + earned);
-            setStreak(prev => prev + 1);
+            setDiamondsEarned(prev => { const next = prev + earned; diamondsEarnedRef.current = next; return next; });
+            setStreak(prev => { const next = prev + 1; streakRef.current = next; return next; });
             busEmit.decisionCorrect(streak + 1);
 
             setTimeout(() => {
-                setCurrentIndex(prev => prev + 1);
+                setCurrentIndex(prev => { const next = prev + 1; currentIndexRef.current = next; return next; });
                 setSelectedAnswer(null);
                 setShowResult(false);
                 setEliminatedOptions([]);
@@ -542,39 +550,44 @@ export default function EndlessModePage() {
     async function saveGameResult() {
         if (!userId) return;
 
+        // Use refs to avoid stale state from setTimeout closure
+        const finalDiamonds = diamondsEarnedRef.current;
+        const finalStreak = streakRef.current;
+        const finalIndex = currentIndexRef.current;
+
         try {
             // Update user diamonds via audit-safe RPC
-            if (diamondsEarned > 0) {
+            if (finalDiamonds > 0) {
                 await supabase.rpc('add_diamonds_to_balance', {
                     p_user_id: userId,
-                    p_amount: diamondsEarned,
+                    p_amount: finalDiamonds,
                     p_type: 'endless_reward',
-                    p_description: `Endless mode — ${diamondsEarned}💎 (${streak} streak)`,
+                    p_description: `Endless mode — ${finalDiamonds}💎 (${finalStreak} streak)`,
                     p_reference_id: null
                 });
                 const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
                 if (profile) setUserDiamonds(profile.diamonds || 0);
-                busEmit.diamondsEarned(diamondsEarned, 'Endless Mode');
+                busEmit.diamondsEarned(finalDiamonds, 'Endless Mode');
             }
 
             // Update high score if beaten
-            if (streak > highScore) {
+            if (finalStreak > highScore) {
                 await supabase
                     .from('endless_high_scores')
                     .upsert({
                         user_id: userId,
                         mode: 'random',
-                        high_score: streak,
+                        high_score: finalStreak,
                         achieved_at: new Date().toISOString()
                     }, { onConflict: 'user_id,mode' });
-                setHighScore(streak);
+                setHighScore(finalStreak);
             }
 
             // Record question history for 60-day non-repeat tracking
             // currentIndex is the question that was answered wrong (ending the game)
             // All questions BEFORE currentIndex were answered correctly
-            const correctQuestions = questions.slice(0, currentIndex);
-            const wrongQuestion = questions[currentIndex]; // The one that ended the run
+            const correctQuestions = questions.slice(0, finalIndex);
+            const wrongQuestion = questions[finalIndex]; // The one that ended the run
             const historyRecords = [
                 ...correctQuestions.map(q => ({
                     user_id: userId,
@@ -610,6 +623,7 @@ export default function EndlessModePage() {
     function playAgain() {
         setQuestions(prev => shuffleOptions(prev.slice(currentIndex).sort(() => Math.random() - 0.5)));
         setCurrentIndex(0);
+        currentIndexRef.current = 0;
         setSelectedAnswer(null);
         setShowResult(false);
         startGame();

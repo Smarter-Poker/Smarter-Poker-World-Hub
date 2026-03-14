@@ -55,8 +55,9 @@ export default function LeadManagementPage() {
     setLoading(true);
     try {
       const token = getToken();
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/admin/leads?status=${statusFilter}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
@@ -76,9 +77,10 @@ export default function LeadManagementPage() {
   async function updateLeadStatus(leadId, newStatus) {
     try {
       const token = getToken();
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch('/api/commander/admin/leads', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ id: leadId, status: newStatus }),
       });
       if (!res.ok) throw new Error('Request failed');

@@ -303,6 +303,9 @@ export default function PvPPage() {
 
     // Horse Match - Select random AI horse as opponent
     async function handleHorseMatch(stake) {
+        // Guard: if a real match was already found, don't start a horse match (race condition prevention)
+        if (gameState === 'battle' || gameState === 'result') return;
+
         if (queueSubscription.current) { queueSubscription.current(); queueSubscription.current = null; }
 
         // Get random AI horse from profiles

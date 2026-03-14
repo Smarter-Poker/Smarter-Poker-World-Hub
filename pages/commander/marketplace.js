@@ -178,11 +178,13 @@ function BookDealerModal({ isOpen, onClose, dealer, venueId, onSuccess }) {
     setSubmitting(true);
     try {
       const token = getToken();
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/marketplace/dealers/${dealer.id}/book`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'x-staff-session': staffSession
         },
         body: JSON.stringify({
           venue_id: venueId,
@@ -468,8 +470,9 @@ export default function MarketplacePage() {
   const fetchDealers = useCallback(async () => {
     try {
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch('/api/commander/marketplace/dealers?limit=50', {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
@@ -484,8 +487,9 @@ export default function MarketplacePage() {
   const fetchEquipment = useCallback(async () => {
     try {
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch('/api/commander/marketplace/equipment?limit=50', {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
