@@ -37,6 +37,8 @@ export default function BreakManager() {
 
   const getStaffSession = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_staff') || '' : '';
+  const getBearerToken = () => typeof window !== 'undefined'
+    ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || '' : '';
 
   const checkingRef = useRef(false);
 
@@ -48,7 +50,7 @@ export default function BreakManager() {
     checkingRef.current = true;
     try {
       const res = await fetch(`/api/commander/tournaments/${tournamentId}/auto-break`, {
-        headers: { 'x-staff-session': getStaffSession() }
+        headers: { 'x-staff-session': getStaffSession(), Authorization: `Bearer ${getBearerToken()}` }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
@@ -79,7 +81,7 @@ export default function BreakManager() {
     try {
       const res = await fetch(`/api/commander/tournaments/${tournamentId}/auto-break`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': getStaffSession() },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': getStaffSession(), Authorization: `Bearer ${getBearerToken()}` },
         body: JSON.stringify({
           break_table: breakData.break_table,
           assignments

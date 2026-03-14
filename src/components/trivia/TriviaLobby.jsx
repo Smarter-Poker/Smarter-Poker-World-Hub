@@ -259,6 +259,15 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
             return;
         }
 
+        // === Standalone modes handle their own billing ===
+        // These pages have their own diamond deduction, balance checks, and BUS emits.
+        // TriviaLobby must NOT deduct here or users get double-charged.
+        const SELF_BILLING_MODES = ['survival', 'endless', 'mixed', 'pvp', 'tournaments'];
+        if (SELF_BILLING_MODES.includes(modeId)) {
+            routeToMode(modeId);
+            return;
+        }
+
         // === Non-VIP: All other modes cost 10 diamonds ===
         // Check if user has previously acknowledged the charge popup
         let acknowledged = false;

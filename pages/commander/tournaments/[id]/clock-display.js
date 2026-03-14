@@ -171,7 +171,7 @@ export default function ClockDisplay() {
     try {
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch('/api/commander/clock-presets', {
-        headers: { 'x-staff-session': staffSession },
+        headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || ''}` },
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
@@ -188,7 +188,7 @@ export default function ClockDisplay() {
     try {
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/tournaments/${id}/floor-view`, {
-        headers: { 'x-staff-session': staffSession },
+        headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || ''}` },
         ...(signal ? { signal } : {}),
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -327,14 +327,14 @@ export default function ClockDisplay() {
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/tournaments/${id}/clock`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || ''}` },
         body: JSON.stringify({ action })
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
         const res2 = await fetch(`/api/commander/tournaments/${id}/floor-view`, {
-          headers: { 'x-staff-session': staffSession },
+          headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || ''}` },
         });
         if (!res2.ok) throw new Error(`Request failed (${res2.status})`);
         const json2 = await res2.json();

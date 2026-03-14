@@ -19,6 +19,8 @@ export default function TournamentResultsReport() {
 
   const getStaffSession = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_staff') || '' : '';
+  const getBearerToken = () => typeof window !== 'undefined'
+    ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || '' : '';
 
   useEffect(() => {
     const fetchTournaments = async () => {
@@ -27,7 +29,7 @@ export default function TournamentResultsReport() {
       try {
         const staffSession = getStaffSession();
         const res = await fetch('/api/commander/tournaments?status=completed&limit=50', {
-          headers: { 'x-staff-session': staffSession }
+          headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${getBearerToken()}` }
         });
         if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const json = await res.json();
@@ -47,7 +49,7 @@ export default function TournamentResultsReport() {
     try {
       const staffSession = getStaffSession();
       const res = await fetch(`/api/commander/tournaments/${tournamentId}/entries?status=all`, {
-        headers: { 'x-staff-session': staffSession }
+        headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${getBearerToken()}` }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();

@@ -272,7 +272,7 @@ export default function TournamentSettings() {
       try {
         const staffSession = getStaffSession();
         const res = await fetch(`/api/commander/tournaments/${id}`, {
-          headers: { 'x-staff-session': staffSession }
+          headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || ''}` }
         });
         if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const json = await res.json();
@@ -352,7 +352,7 @@ export default function TournamentSettings() {
       const staffSession = getStaffSession();
       const res = await fetch(`/api/commander/tournaments/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || ''}` },
         body: JSON.stringify({
           name, tournament_type: tournamentType,
           buyin_amount: buyinAmount, buyin_fee: buyinFee,
