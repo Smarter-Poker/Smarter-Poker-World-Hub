@@ -22,7 +22,7 @@ const SkeletonDark = dynamic(() => import('../../src/components/ui/SkeletonDark'
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
-import { getVenueId } from '../../src/lib/commander/clientAuth';
+import { getVenueId, getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 
 const PUSH_THRESHOLD = 30; // minutes before highlighting for rotation
 const PUSH_WARNING = 25;   // minutes before showing amber warning
@@ -51,17 +51,11 @@ export default function DealerRotation() {
   const [actionLoading, setActionLoading] = useState(null); // dealerId being acted on
   const [showHistory, setShowHistory] = useState(false);
 
-  const getStaff = () => {
-    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}'); } catch { return {}; }
-  };
-  const getHeaders = () => {
-    const staff = getStaff();
-    return {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${staff.token || ''}`,
-      'x-staff-session': localStorage.getItem('commander_staff') || ''
-    };
-  };
+  const getHeaders = () => ({
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${getToken()}`,
+    'x-staff-session': getStaffSession()
+  });
 
   const fetchData = useCallback(async (signal) => {
     try {
