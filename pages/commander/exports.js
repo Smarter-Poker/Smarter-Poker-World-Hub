@@ -52,7 +52,7 @@ export default function ExportsHub() {
     if (!venueId) return;
     setLoading(true);
     try {
-      const headers = { Authorization: `Bearer ${getToken()}` };
+      const headers = { Authorization: `Bearer ${getToken()}`, 'x-staff-session': localStorage.getItem('commander_staff') || '' };
       const [expRes, tRes] = await Promise.all([
         fetch(`/api/commander/exports?venue_id=${venueId}`, { headers }).catch(() => ({ ok: false })),
         fetch(`/api/commander/tournaments?venue_id=${venueId}&status=completed&limit=20`, { headers }).catch(() => ({ ok: false })),
@@ -108,7 +108,7 @@ export default function ExportsHub() {
     setCreating('hendon');
     try {
       const res = await fetch(`/api/commander/exports/hendon-mob?tournament_id=${tournamentId}`, {
-        headers: { Authorization: `Bearer ${getToken()}` }
+        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': localStorage.getItem('commander_staff') || '' }
       });
       if (res.ok) {
         const blob = await res.blob();

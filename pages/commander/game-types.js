@@ -61,7 +61,7 @@ export default function GameTypesPage() {
     try {
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       const res = await fetch('/api/commander/game-types?include_inactive=true', {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': localStorage.getItem('commander_staff') || '' }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();

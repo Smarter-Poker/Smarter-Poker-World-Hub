@@ -840,7 +840,7 @@ export default function DealerTablet() {
                 const token = getToken();
                 const res = await fetch('/api/commander/dealer/hand-count', {
                   method: 'POST',
-                  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': localStorage.getItem('commander_staff') || '' },
                   body: JSON.stringify({ table_number: parseInt(tableNumber), action: 'reset' })
                 });
                 if (res.ok) setHandCount(0);

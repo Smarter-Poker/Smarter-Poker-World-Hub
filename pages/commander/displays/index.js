@@ -33,7 +33,7 @@ export default function DisplayManagement() {
     try {
       const token = getToken();
       const res = await fetch('/api/commander/tournaments', {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': localStorage.getItem('commander_staff') || '' }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
