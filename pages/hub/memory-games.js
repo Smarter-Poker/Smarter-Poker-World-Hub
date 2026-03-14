@@ -1865,12 +1865,9 @@ export default function MemoryGamesPage() {
     }, [mode, gradeResult, userGrid, currentScenario]);
 
     // Reusable: Fresh DB balance check + DiamondEngine deduction
-    const isStartingRef = useRef(false); // Double-click guard
+    const isStartingRef = useRef(false); // Double-click guard (used in startGame)
     const checkAndDeductDiamonds = async () => {
         if (isVIP) return true;
-        if (isStartingRef.current) return false;
-        isStartingRef.current = true;
-        try {
         // Fresh balance check from DB to avoid stale-state false negatives
         try {
             if (supabase.current && userId) {
@@ -1899,13 +1896,14 @@ export default function MemoryGamesPage() {
         if (result.balance !== undefined) setDiamondBalance(result.balance);
         // DiamondEngine.deduct auto-emits busEmit.diamondsSpent — no manual emit needed
         return true;
-        } finally {
-            isStartingRef.current = false;
-        }
     };
 
     // Start game
     const startGame = async (level) => {
+        // Double-click guard — protects ALL users (VIP + non-VIP)
+        if (isStartingRef.current) return;
+        isStartingRef.current = true;
+        try {
         // Check diamond access
         if (!isVIP) {
             const canPlay = await checkAndDeductDiamonds();
@@ -1986,6 +1984,9 @@ export default function MemoryGamesPage() {
         setMode('game');
 
         SoundEngine.play('levelUp');
+        } finally {
+            isStartingRef.current = false;
+        }
     };
 
     // Handle time up

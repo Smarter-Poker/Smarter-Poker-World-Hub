@@ -11,7 +11,7 @@ import { SPAvatar, SP_COLORS, SPPostCard } from '../SmarterPokerStyleCard';
 import { PokerTierBadge } from '../PokerReputationBadges';
 import { useSupabase } from '../../../providers/SupabaseProvider';
 import { SocialService } from '../../../services/SocialService';
-import { busEmit } from '../../../engine/EventBus';
+import { busEmit, eventBus, EventType } from '../../../engine/EventBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 📷 COVER PHOTO & PROFILE HEADER
@@ -587,18 +587,27 @@ export const SmarterPokerProfileView = ({ onNavigate, onOpenChat }) => {
     }, [socialService, authUser?.id, user?.id]);
 
     // Fetch user's posts from Supabase
-    useEffect(() => {
-        const fetchPosts = async () => {
-            if (!socialService || !authUser?.id) return;
-            try {
-                const { posts: fetched } = await socialService.getFeed({ userId: authUser.id, limit: 10 });
-                if (fetched?.length > 0) setUserPosts(fetched);
-            } catch (err) {
-                console.warn('Failed to fetch profile posts:', err.message);
-            }
-        };
-        fetchPosts();
+    const fetchPosts = useCallback(async () => {
+        if (!socialService || !authUser?.id) return;
+        try {
+            const { posts: fetched } = await socialService.getFeed({ userId: authUser.id, limit: 10 });
+            if (fetched?.length > 0) setUserPosts(fetched);
+        } catch (err) {
+            console.warn('Failed to fetch profile posts:', err.message);
+        }
     }, [socialService, authUser?.id]);
+
+    useEffect(() => {
+        fetchPosts();
+    }, [fetchPosts]);
+
+    // EventBus: refresh own posts when a new post is created
+    useEffect(() => {
+        const unsub = eventBus.on(EventType.SOCIAL_POST_CREATED, () => {
+            fetchPosts();
+        });
+        return () => { if (unsub) unsub(); };
+    }, [fetchPosts]);
 
     const handleToggleFriend = async (targetUser) => {
         // Optimistic UI update

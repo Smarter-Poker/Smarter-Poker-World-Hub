@@ -5,9 +5,9 @@
  * Notification dropdown and notification items
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SPAvatar, SP_COLORS } from './SmarterPokerStyleCard';
-import { busEmit } from '../../engine/EventBus';
+import { busEmit, eventBus, EventType } from '../../engine/EventBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🔔 NOTIFICATION TYPES

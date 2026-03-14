@@ -6,11 +6,12 @@
  * Connected to SocialService
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { CreatePostBox, SPPostCard, SPAvatar, SP_COLORS } from '../SmarterPokerStyleCard';
 import { PokerTierBadge } from '../PokerReputationBadges';
 import { useSupabase } from '../../../providers/SupabaseProvider';
 import { SocialService } from '../../../services/SocialService';
+import { eventBus, EventType } from '../../../engine/EventBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🏆 CLUB LEADERBOARD COMPONENTS
@@ -529,10 +530,66 @@ export const SmarterPokerClubView = ({ onNavigate }) => {
         }
     ];
 
+    // Fetch real club data from Supabase
+    const loadClubData = useCallback(async () => {
+        if (!socialService) {
+            setLoading(false);
+            return;
+        }
+        try {
+            setLoading(true);
+            const clubs = await socialService.getClubs();
+            if (clubs?.length > 0) {
+                setClub(prev => ({ ...prev, ...clubs[0], membersCount: clubs[0].membersCount || clubs[0].member_count || 0 }));
+            }
+            const { posts: fetched } = await socialService.getFeed({ limit: 10 });
+            if (fetched?.length > 0) setPosts(fetched);
+        } catch (err) {
+            console.warn('ClubView data fetch failed:', err.message);
+        } finally {
+            setLoading(false);
+        }
+    }, [socialService]);
+
     useEffect(() => {
-        // Mock loading simulation
-        setTimeout(() => setLoading(false), 500);
-    }, []);
+        loadClubData();
+    }, [loadClubData]);
+
+    // EventBus: refresh club posts when a new post is created
+    useEffect(() => {
+        const unsub1 = eventBus.on(EventType.SOCIAL_POST_CREATED, () => {
+            loadClubData();
+        });
+        const unsub2 = eventBus.on(EventType.SOCIAL_COMMENT_ADDED, (event) => {
+            const { postId } = event?.payload || {};
+            if (postId) {
+                setPosts(prev => prev.map(p => {
+                    if (p.id === postId) {
+                        return { ...p, engagement: { ...p.engagement, commentCount: (p.engagement?.commentCount || 0) + 1 } };
+                    }
+                    return p;
+                }));
+            }
+        });
+        return () => { unsub1(); unsub2(); };
+    }, [loadClubData]);
+
+    // Supabase real-time subscription for new club posts
+    useEffect(() => {
+        if (!socialService) return;
+        const unsubscribe = socialService.subscribeFeed(
+            (newPost) => {
+                setPosts(prev => {
+                    if (prev.some(p => p.id === newPost.id)) return prev;
+                    return [newPost, ...prev];
+                });
+            },
+            (updatedPost) => {
+                setPosts(prev => prev.map(p => p.id === updatedPost.id ? { ...p, ...updatedPost } : p));
+            }
+        );
+        return () => { if (unsubscribe) unsubscribe(); };
+    }, [socialService]);
 
     return (
         <div className="club-page">

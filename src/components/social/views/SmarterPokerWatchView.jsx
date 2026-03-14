@@ -6,11 +6,12 @@
  * Connected to SocialService
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { SP_COLORS, SPAvatar } from '../SmarterPokerStyleCard';
 import { PokerReactionBar } from '../PokerReputationBadges';
 import { useSupabase } from '../../../providers/SupabaseProvider';
 import { SocialService } from '../../../services/SocialService';
+import { eventBus, EventType } from '../../../engine/EventBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 📺 WATCH SIDEBAR
@@ -361,41 +362,46 @@ export const SmarterPokerWatchView = ({ onNavigate }) => {
     const [videos, setVideos] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const fetchVideos = async () => {
-            if (socialService) {
-                try {
-                    const { posts } = await socialService.getVideos({ limit: 10 });
-                    // Filter only if backend didn't (though getVideos adds filter arg)
-                    // If posts are empty, fall back to mock
-                    if (posts && posts.length > 0) {
-                        setVideos(posts);
-                    } else {
-                        throw new Error("No videos found");
-                    }
-                } catch (e) {
-                    // Fallback Mock
-                    setVideos([
-                        {
-                            id: 1,
-                            title: "Is this the SICKEST call in Poker History? 😱",
-                            description: "Tom Dwan Faces a Massive Overbet on the River.",
-                            channelName: "PokerGO",
-                            channelAvatar: "",
-                            views: "1.2M",
-                            timeAgo: "2 hours ago",
-                            duration: "12:45"
-                        }
-                    ]);
-                } finally {
-                    setLoading(false);
+    const fetchVideos = useCallback(async () => {
+        if (socialService) {
+            try {
+                const { posts } = await socialService.getVideos({ limit: 10 });
+                if (posts && posts.length > 0) {
+                    setVideos(posts);
+                } else {
+                    throw new Error("No videos found");
                 }
-            } else {
+            } catch (e) {
+                // Fallback Mock
+                setVideos([{
+                    id: 1,
+                    title: "Is this the SICKEST call in Poker History?",
+                    description: "Tom Dwan Faces a Massive Overbet on the River.",
+                    channelName: "PokerGO",
+                    channelAvatar: "",
+                    views: "1.2M",
+                    timeAgo: "2 hours ago",
+                    duration: "12:45"
+                }]);
+            } finally {
                 setLoading(false);
             }
-        };
-        fetchVideos();
+        } else {
+            setLoading(false);
+        }
     }, [socialService]);
+
+    useEffect(() => {
+        fetchVideos();
+    }, [fetchVideos]);
+
+    // EventBus: refresh videos when a new post is created (could be a video post)
+    useEffect(() => {
+        const unsub = eventBus.on(EventType.SOCIAL_POST_CREATED, () => {
+            fetchVideos();
+        });
+        return () => { if (unsub) unsub(); };
+    }, [fetchVideos]);
 
     return (
         <div className="watch-page">
