@@ -221,11 +221,10 @@ export default function CommanderDashboard() {
   const fetchHardStop = useCallback(() => {
     if (!staff) return;
     try {
-      const stored = JSON.parse(localStorage.getItem('commander_staff') || '{}');
-      const token = stored.token || stored.access_token;
       const staffSession = localStorage.getItem('commander_staff') || '';
-      if (!token) return;
-      fetch('/api/commander/settings', { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } })
+      const venueId = staff?.venue_id;
+      if (!venueId) return;
+      fetch(`/api/commander/settings?venue_id=${venueId}`, { headers: { 'x-staff-session': staffSession } })
         .then(r => r.json())
         .then(data => {
           if (data?.data?.hard_stop_enabled && data.data.hard_stop_time) {

@@ -12,11 +12,37 @@
 
 /**
  * Get the current access token from localStorage.
- * Prefers the commander_token (PIN-based login), falls back to Supabase session token.
+ * Checks multiple storage locations:
+ *   1. commander_token (legacy PIN-based login key — may not be set)
+ *   2. smarter-poker-auth (unified auth key)
+ *   3. sb-<project>-auth-token (Supabase default storage — JSON blob with access_token)
+ * Returns the raw JWT access token string, or '' if none found.
  */
 export function getToken() {
     if (typeof window === 'undefined') return '';
-    return localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || '';
+    try {
+        // 1. Legacy key (may be set by some flows)
+        const legacy = localStorage.getItem('commander_token');
+        if (legacy) return legacy;
+
+        // 2. Unified auth key
+        const unified = localStorage.getItem('smarter-poker-auth');
+        if (unified) {
+            try { const p = JSON.parse(unified); if (p?.access_token) return p.access_token; } catch {}
+        }
+
+        // 3. Supabase default storage: sb-<projectRef>-auth-token (JSON with access_token)
+        const sbKeys = Object.keys(localStorage).filter(
+            k => k.startsWith('sb-') && k.endsWith('-auth-token')
+        );
+        if (sbKeys.length > 0) {
+            const raw = localStorage.getItem(sbKeys[0]);
+            if (raw) {
+                try { const p = JSON.parse(raw); if (p?.access_token) return p.access_token; } catch {}
+            }
+        }
+    } catch {}
+    return '';
 }
 
 /**
