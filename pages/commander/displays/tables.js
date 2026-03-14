@@ -368,12 +368,14 @@ export default function TablesDisplay() {
 
   /* ─── Player Actions (all wired to /api/commander/dealer/session-action) ── */
 
-  const callSessionAction = async (seat, action, extra = {}) => {
+   const callSessionAction = async (seat, action, extra = {}) => {
     setPlayerActionLoading(true);
     try {
+      const staffSession = localStorage.getItem('commander_staff') || '';
+      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       const res = await fetch('/api/commander/dealer/session-action', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${token}` },
         body: JSON.stringify({ table_number: lockedTableNum, seat_number: seat.number, venue_id: venueId, action, ...extra }),
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -390,9 +392,11 @@ export default function TablesDisplay() {
   const removePlayer = async (seat) => {
     setPlayerActionLoading(true);
     try {
+      const staffSession = localStorage.getItem('commander_staff') || '';
+      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       const res = await fetch('/api/commander/dealer/player-unseat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${token}` },
         body: JSON.stringify({ table_number: lockedTableNum, seat_number: seat.number }),
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);

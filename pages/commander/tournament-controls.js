@@ -33,7 +33,8 @@ export default function TournamentDirector() {
 
     const getVenueId = () => { try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id || ''; } catch { return ''; } };
 
-    const getBearerToken = () => localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || '';
+    const getBearerToken = () => typeof window !== 'undefined'
+      ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || '' : '';
 
     const fetchTournaments = useCallback(async (signal) => {
         try {
