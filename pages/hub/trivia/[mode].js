@@ -481,22 +481,24 @@ export default function TriviaModePage() {
                         return;
                     }
                 }
-            } catch (e) {
-                console.error('[mode] Balance check failed:', e);
-            }
 
-            const result = await DiamondEngine.deduct(modeCost, `trivia_${mode}`);
-            if (!result.success) {
+                const result = await DiamondEngine.deduct(modeCost, `trivia_${mode}`);
+                if (!result.success) {
+                    setShowOutOfDiamonds(true);
+                    return;
+                }
+                // Refresh balance from DB after deduction
+                const { data: postProfile } = await supabase
+                    .from('profiles')
+                    .select('diamonds')
+                    .eq('id', userId)
+                    .maybeSingle();
+                if (postProfile) setUserDiamonds(postProfile.diamonds || 0);
+            } catch (e) {
+                console.error('[mode] Diamond deduction failed:', e);
                 setShowOutOfDiamonds(true);
                 return;
             }
-            // Refresh balance from DB after deduction
-            const { data: postProfile } = await supabase
-                .from('profiles')
-                .select('diamonds')
-                .eq('id', userId)
-                .maybeSingle();
-            if (postProfile) setUserDiamonds(postProfile.diamonds || 0);
         }
 
         setGameState('playing');
