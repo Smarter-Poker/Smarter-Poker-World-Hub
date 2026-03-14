@@ -286,7 +286,7 @@ export default function DealerTablet() {
       try { vid = JSON.parse(staffSession).venue_id || ''; } catch (e) { console.error("[[tableNumber].js]", e); }
       const res = await fetch('/api/commander/dealer/scan-in', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify({ qr_code: qrCode, table_number: parseInt(tableNumber), venue_id: vid })
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
