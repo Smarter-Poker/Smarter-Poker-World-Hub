@@ -569,6 +569,23 @@ export const SmarterPokerProfileView = ({ onNavigate, onOpenChat }) => {
     const [isFriend, setIsFriend] = useState(false);
     const [userPosts, setUserPosts] = useState([]);
 
+    // Check if the logged-in user is following this profile
+    useEffect(() => {
+        const checkFollowing = async () => {
+            if (!socialService || !authUser?.id) return;
+            try {
+                // Use the profile user ID (or fallback to authUser)
+                const targetId = user?.id || authUser.id;
+                if (targetId === authUser.id) return; // Can't follow self
+                const following = await socialService.isFollowing(authUser.id, targetId);
+                setIsFriend(following);
+            } catch (err) {
+                console.warn('isFollowing check failed:', err.message);
+            }
+        };
+        checkFollowing();
+    }, [socialService, authUser?.id, user?.id]);
+
     // Fetch user's posts from Supabase
     useEffect(() => {
         const fetchPosts = async () => {

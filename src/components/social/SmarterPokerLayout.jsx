@@ -11,6 +11,7 @@ import { ChatDock } from './SmarterPokerMessenger';
 import { supabase } from '../../lib/supabase';
 import { useUnreadCount, UnreadBadge } from '../../hooks/useUnreadCount';
 import { eventBus, EventType } from '../../engine/EventBus';
+import { SocialErrorBoundary } from './SocialErrorBoundary';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MAIN NAVIGATION BAR
@@ -475,7 +476,9 @@ export const SmarterPokerLayout = ({ children, currentUser: propUser, onNavigate
             />
 
             <main className="sp-content-area">
-                {childrenWithProps}
+                <SocialErrorBoundary>
+                    {childrenWithProps}
+                </SocialErrorBoundary>
             </main>
 
             {/* Chat Dock */}

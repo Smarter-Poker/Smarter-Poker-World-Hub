@@ -614,31 +614,110 @@ export class SocialService {
     // ─────────────────────────────────────────────────────────────────────────
 
     async getConversations(userId) {
-        // Simulate API delay
-        await new Promise(r => setTimeout(r, 500));
-        return [
-            {
-                id: 'c1',
-                unreadCount: 1,
-                lastMessage: { text: 'You Call That A Raise?', time: '2m', isOwn: false },
-                participants: [
-                    { id: 'u2', name: 'Mike Shark', avatar: null, online: true }
-                ]
-            }
-        ];
+        try {
+            // Fetch distinct conversations where user is sender or receiver
+            const { data, error } = await this.supabase
+                .from('social_messages')
+                .select(`
+                    id, sender_id, receiver_id, content, created_at,
+                    sender:user_dna_profiles!sender_id(user_id, username, avatar_url),
+                    receiver:user_dna_profiles!receiver_id(user_id, username, avatar_url)
+                `)
+                .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
+                .order('created_at', { ascending: false })
+                .limit(50);
+
+            if (error) throw error;
+
+            // Group by conversation partner
+            const convMap = new Map();
+            (data || []).forEach(msg => {
+                const partnerId = msg.sender_id === userId ? msg.receiver_id : msg.sender_id;
+                const partner = msg.sender_id === userId ? msg.receiver : msg.sender;
+                if (!convMap.has(partnerId)) {
+                    convMap.set(partnerId, {
+                        id: `conv_${partnerId}`,
+                        unreadCount: 0,
+                        lastMessage: {
+                            text: msg.content,
+                            time: new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                            isOwn: msg.sender_id === userId
+                        },
+                        participants: [{
+                            id: partnerId,
+                            name: partner?.username || 'Player',
+                            avatar: partner?.avatar_url || null,
+                            online: false
+                        }]
+                    });
+                }
+            });
+
+            return Array.from(convMap.values());
+        } catch (err) {
+            console.warn('getConversations failed, using fallback:', err.message);
+            return [];
+        }
     }
 
     async getMessages(conversationId) {
-        await new Promise(r => setTimeout(r, 300));
-        return [
-            { id: 1, text: 'Hey, Nice Hand Earlier!', time: '10:30 AM', senderId: 'u2' },
-            { id: 2, text: 'Thanks! I Knew He Was Bluffing.', time: '10:31 AM', senderId: 'u1' }
-        ];
+        try {
+            // Extract partner ID from conversation ID
+            const partnerId = conversationId?.replace('conv_', '').replace('chat_', '');
+            if (!partnerId) return [];
+
+            const { data: { user } } = await this.supabase.auth.getUser();
+            if (!user) return [];
+
+            const { data, error } = await this.supabase
+                .from('social_messages')
+                .select('id, sender_id, receiver_id, content, created_at')
+                .or(`and(sender_id.eq.${user.id},receiver_id.eq.${partnerId}),and(sender_id.eq.${partnerId},receiver_id.eq.${user.id})`)
+                .order('created_at', { ascending: true })
+                .limit(100);
+
+            if (error) throw error;
+
+            return (data || []).map(msg => ({
+                id: msg.id,
+                text: msg.content,
+                time: new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                senderId: msg.sender_id
+            }));
+        } catch (err) {
+            console.warn('getMessages failed:', err.message);
+            return [];
+        }
     }
 
     async sendMessage(conversationId, text) {
-        console.log('Sending message:', text, 'to', conversationId);
-        return { id: Date.now(), text, time: 'Now', senderId: 'u1' };
+        try {
+            const partnerId = conversationId?.replace('conv_', '').replace('chat_', '');
+            const { data: { user } } = await this.supabase.auth.getUser();
+            if (!user || !partnerId) throw new Error('Missing user or partner');
+
+            const { data, error } = await this.supabase
+                .from('social_messages')
+                .insert({
+                    sender_id: user.id,
+                    receiver_id: partnerId,
+                    content: text
+                })
+                .select('id, content, created_at')
+                .maybeSingle();
+
+            if (error) throw error;
+
+            return {
+                id: data?.id || Date.now(),
+                text,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                senderId: user.id
+            };
+        } catch (err) {
+            console.warn('sendMessage failed:', err.message);
+            return { id: Date.now(), text, time: 'Now', senderId: 'u1' };
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────

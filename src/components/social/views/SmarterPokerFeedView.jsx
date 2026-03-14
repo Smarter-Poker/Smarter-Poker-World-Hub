@@ -335,6 +335,47 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
         return () => { if (unsub) unsub(); };
     }, [loadFeed]);
 
+    // Real-time Supabase subscription for new posts
+    useEffect(() => {
+        if (!socialService) return;
+        const unsubscribe = socialService.subscribeFeed(
+            (newPost) => {
+                // Prepend new post from real-time INSERT
+                setPosts(prev => {
+                    if (prev.some(p => p.id === newPost.id)) return prev;
+                    return [newPost, ...prev];
+                });
+            },
+            (updatedPost) => {
+                // Update existing post from real-time UPDATE
+                setPosts(prev => prev.map(p => p.id === updatedPost.id ? { ...p, ...updatedPost } : p));
+            }
+        );
+        return () => { if (unsubscribe) unsubscribe(); };
+    }, [socialService]);
+
+    // Listen for comment events to update comment counts
+    useEffect(() => {
+        const unsub = eventBus.on(EventType.SOCIAL_COMMENT_ADDED, (event) => {
+            const { postId } = event?.payload || {};
+            if (postId) {
+                setPosts(prev => prev.map(p => {
+                    if (p.id === postId) {
+                        return {
+                            ...p,
+                            engagement: {
+                                ...p.engagement,
+                                commentCount: (p.engagement?.commentCount || 0) + 1
+                            }
+                        };
+                    }
+                    return p;
+                }));
+            }
+        });
+        return () => { if (unsub) unsub(); };
+    }, []);
+
     // ─────────────────────────────────────────────────────────────────────────
     // ✋ INTERACTION HANDLERS
     // ─────────────────────────────────────────────────────────────────────────
