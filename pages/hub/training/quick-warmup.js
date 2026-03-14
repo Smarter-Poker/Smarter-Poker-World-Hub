@@ -104,8 +104,10 @@ export default function QuickWarmupPage() {
     const user = getAuthUser();
     if (!user?.id) return;
     try {
+      const token = getAccessToken();
       const res = await fetch(`/api/training/get-sessions?limit=50`, {
-        });
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success && data.sessions) {

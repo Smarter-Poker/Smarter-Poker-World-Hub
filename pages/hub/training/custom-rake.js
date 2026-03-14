@@ -321,7 +321,7 @@ export default function CustomRakePage() {
               min="20"
               max="200"
               value={stackDepth}
-              onChange={(e) => setStackDepth(parseInt(e.target.value))}
+              onChange={(e) => setStackDepth(parseInt(e.target.value, 10))}
               style={{ width: '100%', accentColor: '#818cf8' }}
             />
           </div>

@@ -128,7 +128,7 @@ function FreqSlider({ action, onChange, onToggleLock }) {
           min="0"
           max="100"
           value={action.freq}
-          onChange={(e) => onChange(parseInt(e.target.value))}
+          onChange={(e) => onChange(parseInt(e.target.value, 10))}
           style={{ width: '100%', accentColor: action.color }}
         />
       </div>

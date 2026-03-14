@@ -48,7 +48,7 @@ function parsePokerStarsHand(text) {
       hand.pot = potMatch ? parseFloat(potMatch[1]) : 0;
       const seatLines = block.match(/Seat \d+: .+/g) || [];
       const buttonMatch = block.match(/Seat #(\d+) is the button/);
-      hand.button = buttonMatch ? parseInt(buttonMatch[1]) : 1;
+      hand.button = buttonMatch ? parseInt(buttonMatch[1], 10) : 1;
       hand.actions = [];
       const actionLines = block.match(/.+?: (?:folds|calls|raises|bets|checks|all-in).*/gi) || [];
       for (const line of actionLines) {

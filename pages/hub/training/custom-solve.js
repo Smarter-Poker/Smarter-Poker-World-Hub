@@ -906,7 +906,7 @@ export default function CustomSolvePage() {
   }, [result]);
 
   const updateStack = (pos, value) => {
-    const num = parseInt(value) || 0;
+    const num = parseInt(value, 10) || 0;
     setCustomStacks((prev) => ({ ...prev, [pos]: Math.min(500, Math.max(1, num)) }));
   };
 

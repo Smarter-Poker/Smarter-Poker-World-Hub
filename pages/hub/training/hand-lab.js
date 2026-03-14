@@ -44,7 +44,7 @@ export default function HandLabV2() {
     }
 
     if (selectedSlot?.startsWith('hero')) {
-      const idx = parseInt(selectedSlot.slice(-1)) - 1;
+      const idx = parseInt(selectedSlot.slice(-1), 10) - 1;
       const newHero = [...heroCards];
       newHero[idx] = card;
       setHeroCards(newHero);
@@ -53,7 +53,7 @@ export default function HandLabV2() {
       else if (idx === 1 && !boardCards[0]) setSelectedSlot('board1');
       else setSelectedSlot(null);
     } else if (selectedSlot?.startsWith('board')) {
-      const idx = parseInt(selectedSlot.slice(-1)) - 1;
+      const idx = parseInt(selectedSlot.slice(-1), 10) - 1;
       const newBoard = [...boardCards];
       newBoard[idx] = card;
       setBoardCards(newBoard);
