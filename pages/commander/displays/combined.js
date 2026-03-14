@@ -59,25 +59,25 @@ export default function CombinedDisplay() {
 
       if (panels.includes('clock') && tournament) {
         fetches.push(
-          fetch(`/api/commander/tournaments/${tournament}/clock`, { headers }).then(r => r.json())
+          fetch(`/api/commander/tournaments/${tournament}/clock`, { headers }).then(r => r.json()).catch(() => ({}))
             .then(json => { if (json.success) { setClockData(json.data); setClockSeconds(json.data?.remaining_seconds); } })
         );
       }
       if (panels.includes('waitlist') && vid) {
         fetches.push(
-          fetch(`/api/commander/waitlist?venue_id=${vid}`, { headers }).then(r => r.json())
+          fetch(`/api/commander/waitlist?venue_id=${vid}`, { headers }).then(r => r.json()).catch(() => ({}))
             .then(json => { if (json.success) setWaitlists((json.data || []).filter(w => ['waiting', 'called'].includes(w.status))); })
         );
       }
       if (panels.includes('tables') && vid) {
         fetches.push(
-          fetch(`/api/commander/tables?venue_id=${vid}`, { headers }).then(r => r.json())
+          fetch(`/api/commander/tables?venue_id=${vid}`, { headers }).then(r => r.json()).catch(() => ({}))
             .then(json => { if (json.success) setTables(json.data?.tables || json.data || []); })
         );
       }
       if (panels.includes('promotions') && vid) {
         fetches.push(
-          fetch(`/api/commander/promotions?venue_id=${vid}`, { headers }).then(r => r.json())
+          fetch(`/api/commander/promotions?venue_id=${vid}`, { headers }).then(r => r.json()).catch(() => ({}))
             .then(json => { if (json.success) setPromotions((json.data || []).filter(p => p.is_active !== false)); })
         );
       }

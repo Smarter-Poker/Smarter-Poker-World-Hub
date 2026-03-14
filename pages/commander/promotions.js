@@ -333,7 +333,11 @@ export default function PromotionsPage() {
     const { signal } = controller;
     if (!venueId) return;
     try {
-      const res = await fetch(`/api/commander/promotions?venue_id=${venueId}`);
+      const token = getToken();
+      const staffSession = localStorage.getItem('commander_staff') || '';
+      const res = await fetch(`/api/commander/promotions?venue_id=${venueId}`, {
+        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
+      });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
@@ -351,7 +355,11 @@ export default function PromotionsPage() {
     const { signal } = controller;
     if (!venueId) return;
     try {
-      const res = await fetch(`/api/commander/high-hands?venue_id=${venueId}&limit=20`);
+      const token = getToken();
+      const staffSession = localStorage.getItem('commander_staff') || '';
+      const res = await fetch(`/api/commander/high-hands?venue_id=${venueId}&limit=20`, {
+        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
+      });
       if (!res.ok) throw new Error('err');
       const data = await res.json();
       if (data.high_hands) {
@@ -571,7 +579,11 @@ export default function PromotionsPage() {
     setShowAwardsModal(true);
     setAwardsLoading(true);
     try {
-      const res = await fetch(`/api/commander/promotions/${promo.id}/awards?limit=50`);
+      const token = getToken();
+      const staffSession = localStorage.getItem('commander_staff') || '';
+      const res = await fetch(`/api/commander/promotions/${promo.id}/awards?limit=50`, {
+        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
+      });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       setPromoAwards(data.awards || []);
