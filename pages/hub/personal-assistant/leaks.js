@@ -16,7 +16,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { useLeaks, useAssistantStats } from '../../../src/hooks/useAssistant';
 import FeatureGate from '../../../src/components/gates/FeatureGate';
 import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
-import { getAuthUser } from '../../../src/lib/authUtils';
+import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import SessionAnalytics from '../../../src/components/sandbox/SessionAnalytics';
 import LeakHeatmap from '../../../src/components/sandbox/LeakHeatmap';
 import CoachLeaderboard from '../../../src/components/sandbox/CoachLeaderboard';

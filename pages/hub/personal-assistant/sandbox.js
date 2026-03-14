@@ -1182,18 +1182,13 @@ export default function VirtualSandbox() {
     // ── Wave 3 W3-2: Persist equity snapshot to Supabase (non-blocking) ──────
     (async () => {
       try {
-        const { createClient } = await import('@supabase/supabase-js');
-        const sbc = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-        );
-        const { data: { session: sbSession } } = await sbc.auth.getSession();
-        if (sbSession?.access_token && snapEquity !== null) {
+        const accessToken = getAccessToken();
+        if (accessToken && snapEquity !== null) {
           await fetch('/api/sandbox/equity-snapshot', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${sbSession.access_token}`,
+              'Authorization': `Bearer ${accessToken}`,
             },
             body: JSON.stringify({
               heroHand: snapHand,
@@ -1267,18 +1262,13 @@ export default function VirtualSandbox() {
       // ── Wave 3: Persist coach result to Supabase ──────────────────────────
       (async () => {
         try {
-          const { createClient } = await import('@supabase/supabase-js');
-          const sbc = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-          );
-          const { data: { session } } = await sbc.auth.getSession();
-          if (session?.access_token) {
+          const accessToken = getAccessToken();
+          if (accessToken) {
             await fetch('/api/sandbox/coach-result', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${session.access_token}`,
+                'Authorization': `Bearer ${accessToken}`,
               },
               body: JSON.stringify({
                 hand: `${heroHand.card1}${heroHand.card2}`,
