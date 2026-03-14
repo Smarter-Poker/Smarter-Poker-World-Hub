@@ -196,8 +196,7 @@ export default async function handler(req, res) {
           console.error('[InfiniteScenario] Error:', error.message);
 
           return res.status(500).json({
-              success: false, error: 'Failed to generate scenario',
-              details: error.message
+              success: false, error: 'Failed to generate scenario'
           });
       }
 
