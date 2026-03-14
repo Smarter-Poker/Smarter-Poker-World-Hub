@@ -18,6 +18,7 @@ import DealerTicker from '../../../src/components/commander/shared/DealerTicker'
 import { busEmit } from '../../../src/engine/EventBus';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { getToken } from '../../../src/lib/commander/clientAuth';
+import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 function formatClockTime(seconds) {
   if (!seconds || seconds <= 0) return '0:00';

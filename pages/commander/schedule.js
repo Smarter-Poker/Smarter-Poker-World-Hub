@@ -18,6 +18,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
 import { getToken, getStaffSession, getVenueId } from '../../src/lib/commander/clientAuth'
+import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 // ═══════════════════════════════════════════════════════════════
 // HELPERS

@@ -10,6 +10,7 @@ import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 import { Clock, Monitor, Play, Loader2, Tv } from 'lucide-react';
 import { busEmit } from '../../src/engine/EventBus';
 import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
+import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 export default function TournamentClocks() {
   useEffect(() => { busEmit.sessionStart('commander-tournament-clocks'); }, []);

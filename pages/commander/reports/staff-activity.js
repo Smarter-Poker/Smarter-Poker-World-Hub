@@ -10,6 +10,7 @@ import CommanderLayout from '../../../src/components/commander/shared/CommanderL
 import AuditLogViewer from '../../../src/components/commander/admin/AuditLogViewer';
 import { busEmit } from '../../../src/engine/EventBus';
 import { getToken } from '../../../src/lib/commander/clientAuth';
+import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 export default function StaffActivity() {
   useEffect(() => { busEmit.sessionStart('commander-reports-staff-activity'); }, []);

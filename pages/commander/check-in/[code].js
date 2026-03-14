@@ -17,6 +17,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { Shield, Timer, Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';
+import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 function formatCountdown(seconds) {
   if (seconds === null || seconds === undefined || seconds < 0) return '--:--';

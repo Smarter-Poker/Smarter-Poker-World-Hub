@@ -19,6 +19,7 @@ import useCommanderSync, { broadcastChange } from '../../../src/lib/commander/us
 import { busEmit } from '../../../src/engine/EventBus';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { getToken } from '../../../src/lib/commander/clientAuth';
+import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 /* ─── Helpers ────────────────────────────────────────────── */
 

@@ -17,6 +17,7 @@ import { CheckCircle2, XCircle, AlertTriangle, Loader2, Lock, FileText, ChevronR
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { getToken, getStaffSession, getVenueId } from '../../src/lib/commander/clientAuth'
+import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 export default function CloseDay() {
   const router = useRouter();

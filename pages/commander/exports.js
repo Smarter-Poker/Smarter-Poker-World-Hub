@@ -12,6 +12,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { busEmit } from '../../src/engine/EventBus';
 import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
+import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const EXPORT_TYPES = [
   { value: 'players', label: 'Player Data', icon: Users, desc: 'Member profiles, stats, visit history', color: '#1877F2' },

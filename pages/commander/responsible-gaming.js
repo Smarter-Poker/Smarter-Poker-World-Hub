@@ -14,6 +14,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { busEmit } from '../../src/engine/EventBus';
 import useDebounce from '../../src/hooks/useDebounce';
 import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
+import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 export default function ResponsibleGaming() {
   useEffect(() => { busEmit.sessionStart('commander-responsible-gaming'); }, []);

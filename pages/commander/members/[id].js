@@ -18,6 +18,7 @@ import CommanderLayout from '../../../src/components/commander/shared/CommanderL
 import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../../src/engine/EventBus';
 import { getToken, getStaffSession, getVenueId } from '../../../src/lib/commander/clientAuth'
+import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 export default function MemberProfile() {
   useEffect(() => { busEmit.sessionStart('commander-members-id'); }, []);

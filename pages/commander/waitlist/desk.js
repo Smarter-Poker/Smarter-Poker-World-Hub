@@ -22,6 +22,7 @@ import dynamic from 'next/dynamic';
 const SkeletonDark = dynamic(() => import('../../../src/components/ui/SkeletonDark'), { ssr: false });
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
 import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
+import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 // Format phone to 555-555-5555 (internal display only)
 function formatPhone(raw) {

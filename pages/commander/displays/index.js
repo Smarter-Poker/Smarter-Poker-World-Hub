@@ -19,6 +19,7 @@ import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../../src/engine/EventBus';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
+import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 export default function DisplayManagement() {
   useEffect(() => { busEmit.sessionStart('commander-displays-index'); }, []);

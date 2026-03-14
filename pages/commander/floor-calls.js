@@ -21,6 +21,7 @@ import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCo
 import { Check, Clock, Loader2, RefreshCw, Bell, Plus, X, Volume2, VolumeX, Users, Shield, Wrench, DollarSign, Gavel, Coffee, HelpCircle, ArrowRight, CheckCircle2, Timer } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { getToken } from '../../src/lib/commander/clientAuth';
+import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 /* ─── Constants ──────────────────────────────────────────────── */
 

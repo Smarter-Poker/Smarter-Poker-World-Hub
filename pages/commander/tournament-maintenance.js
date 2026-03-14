@@ -10,6 +10,7 @@ import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 import { Calendar, ChevronLeft, ChevronRight, Edit2, Loader2, Clock, DollarSign, Users } from 'lucide-react';
 import { busEmit } from '../../src/engine/EventBus';
 import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
+import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 export default function TournamentMaintenance() {
   useEffect(() => { busEmit.sessionStart('commander-tournament-maintenance'); }, []);

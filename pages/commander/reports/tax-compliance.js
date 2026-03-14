@@ -9,6 +9,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import { FileText, DollarSign, AlertTriangle, CheckCircle2, Loader2, Printer, ChevronDown, ChevronUp, ArrowLeft } from 'lucide-react';
 import { busEmit } from '../../../src/engine/EventBus';
 import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
+import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 export default function TaxCompliance() {
   useEffect(() => { busEmit.sessionStart('commander-reports-tax-compliance'); }, []);

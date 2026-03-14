@@ -26,6 +26,7 @@ import {
   Zap,
   Tag
 } from 'lucide-react';
+import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const FEATURES = [
   {

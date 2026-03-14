@@ -14,6 +14,7 @@ import { supabase } from '../../src/lib/supabase';
 import { canAccessRoute, getUpgradeTier, getTierConfig } from '../../src/lib/commander/tierConfig';
 import { canRoleAccessRoute } from '../../src/lib/commander/auth';
 import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
+import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 /* ─────────────────────────────────────────────────
    CARD DEFINITIONS — each card has sub-features
