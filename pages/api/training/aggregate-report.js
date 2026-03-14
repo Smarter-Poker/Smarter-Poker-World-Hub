@@ -126,7 +126,7 @@ export default async function handler(req, res) {
               .from('solved_spots_gold')
               .select('scenario_hash, strategy_matrix')
               .eq('game_type', gameType)
-              .eq('stack_depth', parseInt(stackDepth))
+              .eq('stack_depth', parseInt(stackDepth, 10))
               .limit(2000);
 
           if (heroPosition) {
@@ -231,7 +231,7 @@ export default async function handler(req, res) {
               success: true,
               report: {
                   gameType,
-                  stackDepth: parseInt(stackDepth),
+                  stackDepth: parseInt(stackDepth, 10),
                   heroPosition: heroPosition || 'ALL',
                   totalSpots,
                   overall: {

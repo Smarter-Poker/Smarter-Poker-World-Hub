@@ -133,7 +133,7 @@ export default async function handler(req, res) {
           }
 
           // Parse stacks
-          const parsedStacks = stacks.map(s => Math.max(0, parseInt(s) || 0));
+          const parsedStacks = stacks.map(s => Math.max(0, parseInt(s, 10) || 0));
           const totalChips = parsedStacks.reduce((sum, s) => sum + s, 0);
 
           if (totalChips === 0) {

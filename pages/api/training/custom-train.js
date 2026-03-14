@@ -53,8 +53,8 @@ export default async function handler(req, res) {
           count = '25',
       } = req.query;
 
-      const parsedStack = parseInt(stackDepth) || 100;
-      const parsedCount = Math.min(parseInt(count) || 25, 100);
+      const parsedStack = parseInt(stackDepth, 10) || 100;
+      const parsedCount = Math.min(parseInt(count, 10) || 25, 100);
       const pioGameTypes = GAME_TYPE_TO_PIO[gameType] || GAME_TYPE_TO_PIO.cash;
 
       try {

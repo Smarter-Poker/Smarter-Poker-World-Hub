@@ -91,7 +91,7 @@ export default async function handler(req, res) {
               boardCards: newBoardCards,
               street,
               pot: parseFloat(pot) || 6,
-              stackDepth: parseInt(stackDepth) || 100,
+              stackDepth: parseInt(stackDepth, 10) || 100,
               heroPosition: heroPosition || 'BTN',
               villainPosition: villainPosition || 'BB',
           });

@@ -88,8 +88,8 @@ export default async function handler(req, res) {
               limit = '20',
           } = req.query;
 
-          const pageNum = Math.max(1, parseInt(page) || 1);
-          const limitNum = Math.min(50, Math.max(1, parseInt(limit) || 20));
+          const pageNum = Math.max(1, parseInt(page, 10) || 1);
+          const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 20));
           const offset = (pageNum - 1) * limitNum;
 
           // If requesting a specific spot's full data
@@ -172,7 +172,7 @@ export default async function handler(req, res) {
               .from('solved_spots_gold')
               .select('id, scenario_hash, game_type, stack_depth', { count: 'exact' })
               .eq('game_type', gameType)
-              .eq('stack_depth', parseInt(stackDepth));
+              .eq('stack_depth', parseInt(stackDepth, 10));
 
           // Filter by street (based on board card count in scenario_hash)
           // Flop = 3 cards (6 chars), Turn = 4 cards (8 chars), River = 5 cards (10 chars)

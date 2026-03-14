@@ -352,7 +352,7 @@ export default async function handler(req, res) {
           // ─── Push/Fold (Short Stack) ───────────────────────────────────
           else if (scenario === 'push_fold') {
               actions = ['Push', 'Fold'];
-              const sd = parseInt(stackDepth) || 15;
+              const sd = parseInt(stackDepth, 10) || 15;
 
               // Try loading from memory_charts_gold
               const { data: charts } = await supabase
@@ -410,7 +410,7 @@ export default async function handler(req, res) {
                   position: pos,
                   scenario,
                   gameType,
-                  stackDepth: parseInt(stackDepth),
+                  stackDepth: parseInt(stackDepth, 10),
                   source,
               },
           });

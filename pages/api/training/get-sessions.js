@@ -37,7 +37,7 @@ export default async function handler(req, res) {
               .select('*')
               .eq('user_id', user.id)
               .order('created_at', { ascending: false })
-              .limit(parseInt(limit) || 50);
+              .limit(parseInt(limit, 10) || 50);
 
           // Only filter by game_id if provided
           if (gameId) {
@@ -56,7 +56,7 @@ export default async function handler(req, res) {
               .select('*')
               .eq('user_id', user.id)
               .order('created_at', { ascending: false })
-              .limit(parseInt(limit) || 50);
+              .limit(parseInt(limit, 10) || 50);
 
           if (gameId) {
               histQuery = histQuery.eq('game_id', gameId);

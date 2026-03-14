@@ -119,7 +119,7 @@ export default async function handler(req, res) {
           if (format === 'cash') countQuery = countQuery.ilike('game_type', '%cash%');
           if (format === 'mtt') countQuery = countQuery.ilike('game_type', '%mtt%');
           if (position) countQuery = countQuery.ilike('scenario_hash', `%_${position}_%`);
-          if (stack) countQuery = countQuery.eq('stack_depth', parseInt(stack));
+          if (stack) countQuery = countQuery.eq('stack_depth', parseInt(stack, 10));
 
           const { count, error: countErr } = await countQuery;
           if (countErr) {
@@ -141,7 +141,7 @@ export default async function handler(req, res) {
           if (format === 'cash') spotQuery = spotQuery.ilike('game_type', '%cash%');
           if (format === 'mtt') spotQuery = spotQuery.ilike('game_type', '%mtt%');
           if (position) spotQuery = spotQuery.ilike('scenario_hash', `%_${position}_%`);
-          if (stack) spotQuery = spotQuery.eq('stack_depth', parseInt(stack));
+          if (stack) spotQuery = spotQuery.eq('stack_depth', parseInt(stack, 10));
 
           spotQuery = spotQuery.range(randomOffset, randomOffset).limit(1);
 

@@ -6,7 +6,8 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -26,6 +27,10 @@ function dateHash(dateStr) {
 
 export default async function handler(req, res) {
   try {
+      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+          if (!applyRateLimit(req, res, LIMITS.write)) return;
+      }
+
       if (req.method === 'GET') {
           // GET: Return today's daily challenge hand
           try {
@@ -79,11 +84,18 @@ export default async function handler(req, res) {
 
       } else if (req.method === 'POST') {
           // POST: Record daily challenge completion
-          try {
-              const { userId, dailyId, score, evLoss } = req.body;
+          // ── Auth: verify JWT identity ──
+          const token = req.headers.authorization?.replace('Bearer ', '');
+          if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
+          const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+          if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-              if (!userId || !dailyId) {
-                  return res.status(400).json({ success: false, error: 'userId and dailyId required' });
+          try {
+              const userId = user.id; // From JWT, NOT from req.body
+              const { dailyId, score, evLoss } = req.body;
+
+              if (!dailyId) {
+                  return res.status(400).json({ success: false, error: 'dailyId required' });
               }
 
               const { data, error } = await supabase
