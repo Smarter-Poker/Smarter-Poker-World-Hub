@@ -164,8 +164,16 @@ export default function SurvivalModePage() {
         if (isStartingRef.current) return;
         isStartingRef.current = true;
         try {
-        // Per-game diamond gate (VIP bypass)
-        if (!isVip && userId) {
+        // Check if already paid via TriviaLobby (defense-in-depth)
+        const alreadyPaid = sessionStorage.getItem('trivia_paid') === 'true'
+            && sessionStorage.getItem('trivia_mode') === 'survival';
+        if (alreadyPaid) {
+            sessionStorage.removeItem('trivia_paid');
+            sessionStorage.removeItem('trivia_mode');
+        }
+
+        // Per-game diamond gate (VIP bypass, skip if already paid)
+        if (!alreadyPaid && !isVip && userId) {
             // Fresh balance check from DB to avoid stale-state false negatives
             try {
                 const { data: profile } = await supabase

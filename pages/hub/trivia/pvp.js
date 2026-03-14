@@ -222,6 +222,12 @@ export default function PvPPage() {
         if (isStartingRef.current) return;
         isStartingRef.current = true;
         try {
+        // Clear any TriviaLobby payment flag (pvp handles its own variable-stake billing)
+        try {
+            sessionStorage.removeItem('trivia_paid');
+            sessionStorage.removeItem('trivia_mode');
+        } catch (e) { }
+
         // Fresh balance check from DB to avoid stale-state false negatives
         let freshBalance = userDiamonds;
         try {
