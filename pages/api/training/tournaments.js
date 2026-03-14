@@ -201,7 +201,7 @@ export default async function handler(req, res) {
                   if (regErr) {
                       // Registration failed — if we charged diamonds, they'll be rolled back
                       // by the reference_id uniqueness (same ref won't be inserted twice)
-                      return res.status(500).json({ success: false, error: regErr.message });
+                      return res.status(500).json({ success: false, error: 'Registration failed' });
                   }
 
                   // Increment entry count

@@ -21,6 +21,7 @@ import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
 import { busEmit } from '../../../src/engine/EventBus';
 
+const GAME_ENTRY_COST = 10; // 💎 per game for non-VIP
 /** Shuffle answer options so correct answer isn't always A */
 function shuffleOptions(questions) {
     return questions.map(q => {
@@ -181,17 +182,17 @@ export default function SurvivalModePage() {
                     .select('diamonds')
                     .eq('id', userId)
                     .maybeSingle();
-                if (profile && (profile.diamonds || 0) < 10) {
+                if (profile && (profile.diamonds || 0) < GAME_ENTRY_COST) {
                     setShowOutOfDiamonds(true);
                     return;
                 }
 
-                const result = await DiamondEngine.deduct(10, 'trivia_survival');
+                const result = await DiamondEngine.deduct(GAME_ENTRY_COST, 'trivia_survival');
                 if (!result.success) {
                     setShowOutOfDiamonds(true);
                     return;
                 }
-                busEmit.diamondsSpent(10, 'Trivia Survival Mode');
+                busEmit.diamondsSpent(GAME_ENTRY_COST, 'Trivia Survival Mode');
             } catch (e) {
                 console.error('[Survival] Diamond deduction failed:', e);
                 setShowOutOfDiamonds(true);

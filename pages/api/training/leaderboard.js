@@ -200,7 +200,7 @@ export default async function handler(req, res) {
 
       } catch (error) {
           console.error('[Leaderboard] Error:', error.message);
-          return res.status(500).json({ success: false, error: 'Failed to fetch leaderboard', details: error.message });
+          return res.status(500).json({ success: false, error: 'Failed to fetch leaderboard' });
       }
 
   } catch (err) {

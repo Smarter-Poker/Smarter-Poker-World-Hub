@@ -21,6 +21,7 @@ import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
 import { busEmit } from '../../../src/engine/EventBus';
 
+const GAME_ENTRY_COST = 10; // 💎 per game for non-VIP
 /** Shuffle answer options so correct answer isn't always A */
 function shuffleOptions(questions) {
     return questions.map(q => {

@@ -24,6 +24,7 @@ import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
 import { busEmit } from '../../../src/engine/EventBus';
 
+const GAME_ENTRY_COST = 10; // 💎 per game for non-VIP
 /** Shuffle answer options so correct answer isn't always A */
 function shuffleOptions(questions) {
     return questions.map(q => {
@@ -403,18 +404,18 @@ export default function SurvivalGamePage() {
                 console.error('[Survival] Balance check failed:', e);
             }
 
-            if (freshBalance < 10) {
+            if (freshBalance < GAME_ENTRY_COST) {
                 setShowOutOfDiamonds(true);
                 return;
             }
 
-            const result = await DiamondEngine.deduct(10, 'trivia_survival_game');
+            const result = await DiamondEngine.deduct(GAME_ENTRY_COST, 'trivia_survival_game');
             if (!result.success) {
                 setShowOutOfDiamonds(true);
                 return;
             }
             if (result.balance !== undefined) setUserDiamonds(result.balance);
-            busEmit.diamondsSpent(10, 'Trivia Survival Game');
+            busEmit.diamondsSpent(GAME_ENTRY_COST, 'Trivia Survival Game');
         }
         setCurrentLevel(level);
         setCurrentQuestionIndex(0);
