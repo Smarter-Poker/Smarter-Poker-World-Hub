@@ -7,6 +7,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { sanitizeParam } from '../../../src/utils/trainingApiUtils';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -30,7 +31,7 @@ export default async function handler(req, res) {
           return res.status(405).json({ success: false, error: 'GET only' });
       }
 
-      const { gameId } = req.query;
+      const gameId = sanitizeParam(req.query.gameId, 100);
 
       // Auth: require JWT, use authenticated user ID (not query param)
       const token = req.headers.authorization?.replace('Bearer ', '');

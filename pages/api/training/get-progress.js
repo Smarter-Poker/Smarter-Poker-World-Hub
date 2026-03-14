@@ -8,6 +8,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { sanitizeParam } from '../../../src/utils/trainingApiUtils';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -28,7 +29,7 @@ export default async function handler(req, res) {
       }
 
       try {
-          const { gameId } = req.query;
+          const gameId = sanitizeParam(req.query.gameId, 100);
           // BUG FIX: was reading userId from query and validating it — unnecessary IDOR surface;
           // always use JWT identity directly
           const userId = _authUser.id;

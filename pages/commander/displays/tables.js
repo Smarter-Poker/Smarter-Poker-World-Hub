@@ -18,7 +18,7 @@ import DealerTicker from '../../../src/components/commander/shared/DealerTicker'
 import useCommanderSync, { broadcastChange } from '../../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../../src/engine/EventBus';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import { getToken } from '../../../../src/lib/commander/clientAuth';
+import { getToken } from '../../../src/lib/commander/clientAuth';
 
 /* ─── Helpers ────────────────────────────────────────────── */
 

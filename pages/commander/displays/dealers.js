@@ -12,7 +12,7 @@ import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
 import { busEmit } from '../../../src/engine/EventBus';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import { getToken } from '../../../../src/lib/commander/clientAuth';
+import { getToken } from '../../../src/lib/commander/clientAuth';
 
 export default function DealerRotationDisplay() {
   useEffect(() => { busEmit.sessionStart('commander-displays-dealers'); }, []);

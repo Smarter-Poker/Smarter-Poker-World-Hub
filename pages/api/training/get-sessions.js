@@ -9,6 +9,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { sanitizeParam } from '../../../src/utils/trainingApiUtils';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -28,7 +29,9 @@ export default async function handler(req, res) {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
 
-      const { gameId, limit = '50' } = req.query;
+      const { gameId: rawGameId, limit = '50' } = req.query;
+      const gameId = rawGameId ? sanitizeParam(rawGameId, 100) : null;
+      const boundedLimit = Math.min(100, Math.max(1, parseInt(limit, 10) || 50));
 
       try {
           // Try training_sessions first (rich data)
@@ -37,7 +40,7 @@ export default async function handler(req, res) {
               .select('*')
               .eq('user_id', user.id)
               .order('created_at', { ascending: false })
-              .limit(parseInt(limit, 10) || 50);
+              .limit(boundedLimit);
 
           // Only filter by game_id if provided
           if (gameId) {
@@ -56,7 +59,7 @@ export default async function handler(req, res) {
               .select('*')
               .eq('user_id', user.id)
               .order('created_at', { ascending: false })
-              .limit(parseInt(limit, 10) || 50);
+              .limit(boundedLimit);
 
           if (gameId) {
               histQuery = histQuery.eq('game_id', gameId);

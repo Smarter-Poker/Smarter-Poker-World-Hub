@@ -11,7 +11,7 @@ import {
   BarChart3, Repeat, ChevronDown, Search, ArrowLeft
 } from 'lucide-react';
 import { busEmit } from '../../../src/engine/EventBus';
-import { getToken } from '../../../../src/lib/commander/clientAuth';
+import { getToken } from '../../../src/lib/commander/clientAuth';
 
 export default function PlayerActivityReport() {
   useEffect(() => { busEmit.sessionStart('commander-reports-player-activity'); }, []);

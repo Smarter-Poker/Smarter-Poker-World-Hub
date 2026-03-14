@@ -8,6 +8,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { sanitizeParam } from '../../../src/utils/trainingApiUtils';
 import { deterministicEngine } from '../../../src/engines/DeterministicGTOEngine';
 import { pioQueryService } from '../../../src/services/PIOQueryService';
 import { getGameConfig as getGameCfg } from '../../../src/config/gameConfigs';
@@ -44,15 +45,16 @@ export default async function handler(req, res) {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
 
-      const { gameId, level = '1', count = '25' } = req.query;
+      const { gameId: rawGameId, level = '1', count = '25' } = req.query;
+      const gameId = sanitizeParam(rawGameId, 100);
 
       if (!gameId) {
           return res.status(400).json({ success: false, error: 'gameId is required' });
       }
 
       try {
-          const questionCount = parseInt(count, 10);
-          const gameLevel = parseInt(level, 10);
+          const questionCount = Math.min(50, Math.max(1, parseInt(count, 10) || 25));
+          const gameLevel = Math.min(10, Math.max(1, parseInt(level, 10) || 1));
 
 
           // Fetch questions from cache
