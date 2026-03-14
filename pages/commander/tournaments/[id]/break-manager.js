@@ -35,9 +35,6 @@ export default function BreakManager() {
   const [executed, setExecuted] = useState(null);
   const [receipts, setReceipts] = useState(null);
   const printRef = useRef(null);
-
-  const getStaffSession = () => typeof window !== 'undefined'
-    ? localStorage.getItem('commander_staff') || '' : '';
   const getBearerToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || '' : '';
 

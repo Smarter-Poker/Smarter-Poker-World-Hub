@@ -50,9 +50,6 @@ export default function WaitlistDisplay() {
   const [custom, setCustom] = useState(DEFAULT_CUSTOM);
   useWakeLock();
 
-  const getStaffSession = () => typeof window !== 'undefined'
-    ? localStorage.getItem('commander_staff') || '' : '';
-
   // Load venue info
   useEffect(() => {
     try {

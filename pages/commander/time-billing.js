@@ -14,7 +14,7 @@ import { DollarSign, Clock, Loader2, Package, Trash2, Save, RefreshCw } from 'lu
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
-import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
+import { getToken, getStaffSession, getVenueId } from '../../src/lib/commander/clientAuth';
 
 function formatDuration(startTime) {
   if (!startTime) return '0:00';

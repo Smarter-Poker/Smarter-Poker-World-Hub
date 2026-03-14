@@ -85,9 +85,6 @@ export default function WaitlistDesk() {
   const [actionLock, setActionLock] = useState(null); // entry.id being processed
   const genIdempotencyKey = () => `wl_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
-  const getStaffSession = () => typeof window !== 'undefined'
-    ? localStorage.getItem('commander_staff') || '' : '';
-
   // Load venue info + saved desk customization
   useEffect(() => {
     try {

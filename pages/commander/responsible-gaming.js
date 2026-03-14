@@ -29,7 +29,6 @@ export default function ResponsibleGaming() {
   useEffect(() => {
     try { const s = JSON.parse(localStorage.getItem('commander_staff') || '{}'); if (s.venue_id) setVenueId(s.venue_id); } catch { }
   }, []);
-  const getStaffSession = () => localStorage.getItem('commander_staff') || '';
 
   // Load members to check exclusion status
   const fetchMembers = useCallback(async () => {

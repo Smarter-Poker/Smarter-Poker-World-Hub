@@ -13,7 +13,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { Trophy, Users, Loader2, Play, Monitor, Settings } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
-import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
+import { getToken, getStaffSession, getVenueId } from '../../src/lib/commander/clientAuth';
 
 const STATUS_COLORS = {
     running: { bg: 'bg-[#31A24C]/10', text: 'text-[#31A24C]', label: 'Running' },
@@ -31,8 +31,6 @@ export default function TournamentDirector() {
     const [tournaments, setTournaments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [tab, setTab] = useState('current'); // 'current' or 'upcoming'
-
-    const getVenueId = () => { try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id || ''; } catch { return ''; } };
 
     const getBearerToken = () => typeof window !== 'undefined'
       ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || '' : '';

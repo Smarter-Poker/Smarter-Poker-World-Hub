@@ -17,9 +17,6 @@ export default function TournamentResultsReport() {
   const [tournaments, setTournaments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(null);
-
-  const getStaffSession = () => typeof window !== 'undefined'
-    ? localStorage.getItem('commander_staff') || '' : '';
   const getBearerToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || '' : '';
 

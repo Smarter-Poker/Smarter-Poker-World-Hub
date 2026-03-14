@@ -77,9 +77,6 @@ export default function LeaguesAndFreerollsManagement() {
     scheduled_date: '', prize_pool: '', prize_description: '', max_qualifiers: ''
   });
 
-  const getStaffSession = () => typeof window !== 'undefined'
-    ? localStorage.getItem('commander_staff') || '' : '';
-
   const showToast = (type, msg) => {
     setToast({ type, msg });
     setTimeout(() => setToast(null), 3000);

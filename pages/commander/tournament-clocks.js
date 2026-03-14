@@ -17,8 +17,6 @@ export default function TournamentClocks() {
     const [staff, setStaff] = useState(null);
     const [tournaments, setTournaments] = useState([]);
     const [loading, setLoading] = useState(true);
-    const getStaffSession = () => typeof window !== 'undefined'
-        ? localStorage.getItem('commander_staff') || '' : '';
 
     useEffect(() => {
         const stored = localStorage.getItem('commander_staff');

@@ -50,7 +50,6 @@ export default function MustMoveManager() {
       if (s.venue_id) setVenueId(s.venue_id);
     } catch { }
   }, []);
-  const getStaffSession = () => localStorage.getItem('commander_staff') || '';
 
   const fetchData = useCallback(async (signal) => {
     if (!venueId) return;

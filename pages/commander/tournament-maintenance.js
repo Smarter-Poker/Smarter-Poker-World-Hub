@@ -19,8 +19,6 @@ export default function TournamentMaintenance() {
     const [loading, setLoading] = useState(true);
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState(null);
-    const getStaffSession = () => typeof window !== 'undefined'
-        ? localStorage.getItem('commander_staff') || '' : '';
 
     useEffect(() => {
         const stored = localStorage.getItem('commander_staff');

@@ -20,7 +20,7 @@ import { RefreshCw, Loader2, UserCheck, LogIn, LogOut, Clock, AlertTriangle, Use
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
-import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
+import { getToken, getStaffSession, getVenueId } from '../../src/lib/commander/clientAuth';
 
 const EVENT_TYPES = {
   check_in: { icon: UserCheck, color: '#31A24C', label: 'Check In' },
@@ -155,7 +155,6 @@ export default function ActivityFeed() {
   };
 
   // Commander Data Bus — sync activity feed across tabs
-  const getVenueId = () => { try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id || ''; } catch { return ''; } };
   useCommanderSync(getVenueId(), fetchEvents, { entities: ['members', 'tables', 'waitlist', 'incidents'] });
 
   const filteredEvents = events.filter(e => {

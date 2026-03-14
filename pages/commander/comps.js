@@ -18,7 +18,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
 import useDebounce from '../../src/hooks/useDebounce';
-import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
+import { getToken, getStaffSession, getVenueId } from '../../src/lib/commander/clientAuth';
 
 // ─── Comp Categories ─────────────────────────────────────────
 const COMP_CATEGORIES = [
@@ -102,7 +102,6 @@ export default function CompSystem() {
   const getVenueId = () => {
     try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
   };
-  const getStaffSession = () => typeof window !== 'undefined' ? localStorage.getItem('commander_staff') : null;
   const getHeaders = () => {
     const token = getToken();
     const staffSession = getStaffSession();

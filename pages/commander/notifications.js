@@ -10,7 +10,7 @@ import { Bell, BellOff, CheckCheck, Loader2, RefreshCw, Trash2, Trophy, Users, D
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../src/engine/EventBus';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
-import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
+import { getToken, getStaffSession, getVenueId } from '../../src/lib/commander/clientAuth';
 
 const TYPE_CONFIG = {
   seat_available: { icon: Users, color: '#31A24C', label: 'Seat Available' },
@@ -73,7 +73,6 @@ export default function NotificationCenter() {
     title: '', message: '', priority: 'normal', type: 'general', expires_at: '', starts_at: '',
   });
   const [showTemplates, setShowTemplates] = useState(false);
-  const getStaffSession = () => localStorage.getItem('commander_staff') || '';
   const getVenueId = () => {
     try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
   };

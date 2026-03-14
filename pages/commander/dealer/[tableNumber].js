@@ -83,8 +83,6 @@ export default function DealerTablet() {
   const dealerLongPressRef = useRef(null);
 
   // Staff session token for write operations (x-staff-session header)
-  const getStaffSession = () => typeof window !== 'undefined'
-    ? localStorage.getItem('commander_staff') || '' : '';
 
   const fetchTable = useCallback(async (signal) => {
 

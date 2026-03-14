@@ -14,6 +14,7 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import { Save, Plus, Trash2, Clock, DollarSign, Coffee, ChevronUp, ChevronDown, Loader2, Settings, Check, ArrowLeft } from 'lucide-react';
 import { broadcastChange } from '../../../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../../../src/engine/EventBus';
+import { getStaffSession } from '../../../../src/lib/commander/clientAuth';
 
 // ===== PRESET TEMPLATES =====
 // All templates use BB Ante (ante = Big-Blind) and 10-min breaks every ~2 hours
@@ -256,9 +257,6 @@ export default function TournamentSettings() {
   const [payoutStructure, setPayoutStructure] = useState('standard');
   const [estimatedEntries, setEstimatedEntries] = useState(30);
   const [customPayouts, setCustomPayouts] = useState([]);
-
-  const getStaffSession = () => typeof window !== 'undefined'
-    ? localStorage.getItem('commander_staff') || '' : '';
 
   // Fetch tournament
   useEffect(() => {

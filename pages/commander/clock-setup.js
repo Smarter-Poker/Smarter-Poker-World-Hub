@@ -78,8 +78,6 @@ export default function ClockSetup() {
     const [formTheme, setFormTheme] = useState({ ...DEFAULT_THEME });
     const [formDisplay, setFormDisplay] = useState({ ...DEFAULT_DISPLAY_OPTIONS });
     const [formDefault, setFormDefault] = useState(false);
-    const getStaffSession = () => typeof window !== 'undefined'
-        ? localStorage.getItem('commander_staff') || '' : '';
 
     useEffect(() => {
         const stored = localStorage.getItem('commander_staff');

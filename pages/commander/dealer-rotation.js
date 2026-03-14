@@ -22,6 +22,7 @@ const SkeletonDark = dynamic(() => import('../../src/components/ui/SkeletonDark'
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
+import { getVenueId } from '../../src/lib/commander/clientAuth';
 
 const PUSH_THRESHOLD = 30; // minutes before highlighting for rotation
 const PUSH_WARNING = 25;   // minutes before showing amber warning
@@ -53,7 +54,6 @@ export default function DealerRotation() {
   const getStaff = () => {
     try { return JSON.parse(localStorage.getItem('commander_staff') || '{}'); } catch { return {}; }
   };
-  const getVenueId = () => getStaff().venue_id || '';
   const getHeaders = () => {
     const staff = getStaff();
     return {
