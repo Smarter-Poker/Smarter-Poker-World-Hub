@@ -827,20 +827,24 @@ export default function TriviaModePage() {
                             enableGhostOpponent={true}
                             onDiamondsChange={async (delta) => {
                                 if (!userId) return;
-                                await supabase.rpc('add_diamonds_to_balance', {
-                                    p_user_id: userId,
-                                    p_amount: delta,
-                                    p_type: delta > 0 ? 'trivia_reward' : 'trivia_cost',
-                                    p_description: `Trivia ${mode} — ${Math.abs(delta)}💎 ${delta > 0 ? 'earned' : 'spent'}`,
-                                    p_reference_id: null
-                                });
-                                const { data: profile } = await supabase
-                                    .from('profiles')
-                                    .select('diamonds')
-                                    .eq('id', userId)
-                                    .maybeSingle();
-                                if (profile) setUserDiamonds(profile.diamonds || 0);
-                                if (delta > 0) busEmit.diamondsEarned(delta, `Trivia ${mode}`);
+                                try {
+                                    await supabase.rpc('add_diamonds_to_balance', {
+                                        p_user_id: userId,
+                                        p_amount: delta,
+                                        p_type: delta > 0 ? 'trivia_reward' : 'trivia_cost',
+                                        p_description: `Trivia ${mode} — ${Math.abs(delta)}💎 ${delta > 0 ? 'earned' : 'spent'}`,
+                                        p_reference_id: null
+                                    });
+                                    const { data: profile } = await supabase
+                                        .from('profiles')
+                                        .select('diamonds')
+                                        .eq('id', userId)
+                                        .maybeSingle();
+                                    if (profile) setUserDiamonds(profile.diamonds || 0);
+                                    if (delta > 0) busEmit.diamondsEarned(delta, `Trivia ${mode}`);
+                                } catch (e) {
+                                    console.error('[Trivia] onDiamondsChange RPC failed:', e);
+                                }
                             }}
                         />
                     )}
