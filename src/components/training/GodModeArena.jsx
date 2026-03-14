@@ -28,7 +28,7 @@ import Confetti from 'react-confetti';
 import TRAINING_CONFIG from '../../config/trainingConfig';
 import { getGameById } from '../../data/TRAINING_LIBRARY';
 import { enqueueMutation } from '../../engine/OfflineSyncQueue';
-import { busEmit } from '../../engine/EventBus';
+import { eventBus, EventType, busEmit } from '../../engine/EventBus';
 
 // ALL GAMES use full-screen immersive UI with GameUIRouter
 const FULL_SCREEN_UI_GAMES = [
@@ -896,14 +896,24 @@ function GodModeArenaInner({
         if (gameComplete && gamePhase === 'playing') {
             setGamePhase('review');
             // Phase 2: Emit session-complete bus event
-            if (typeof window !== 'undefined' && window.eventBus) {
-                window.eventBus.emit(window.EventType?.SESSION_END || 'training:session-complete', {
+            try {
+                eventBus.emit(EventType.SESSION_END, {
                     gameId: String(gameId),
                     score: Number(gtowScore),
                     totalHands: totalQuestions,
                     durationSeconds: Math.round((Date.now() - sessionStartRef.current) / 1000),
                     perfectActionCount: correctCount
                 }, 'GodModeArena');
+                // Also emit training:session-complete for dual-subscription dashboards
+                eventBus.emit('training:session-complete', {
+                    gameId: String(gameId),
+                    score: Number(gtowScore),
+                    totalHands: totalQuestions,
+                    durationSeconds: Math.round((Date.now() - sessionStartRef.current) / 1000),
+                    perfectActionCount: correctCount
+                }, 'GodModeArena');
+            } catch (e) {
+                console.warn('[GodModeArena] Bus emit failed:', e);
             }
         }
     }, [gameComplete, gamePhase, gameId, gameName, gtowScore, totalEVLoss, totalQuestions, sessionMistakes, correctCount, bestStreak, speedBonusDiamonds]);
