@@ -652,8 +652,9 @@ export default function TriviaModePage() {
                     };
                 });
 
-                await supabase.from('trivia_category_mastery')
+                const { error: masteryError } = await supabase.from('trivia_category_mastery')
                     .upsert(masteryRecords, { onConflict: 'user_id,category', ignoreDuplicates: false });
+                if (masteryError) console.error('[Trivia] Category mastery upsert failed:', masteryError);
 
                 // Record daily play
                 if (mode === 'daily') {

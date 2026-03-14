@@ -41,7 +41,7 @@ export default async function handler(req, res) {
 
       // GET: Check if daily bonus is available
       if (req.method === 'GET') {
-          res.setHeader('Cache-Control', 'public, s-maxage=10, stale-while-revalidate=30');
+          res.setHeader('Cache-Control', 'private, max-age=10');
 
           try {
               // Check if already claimed today

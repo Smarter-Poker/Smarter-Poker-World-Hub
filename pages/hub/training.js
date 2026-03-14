@@ -846,27 +846,14 @@ export default function TrainingPage() {
 
         // Check diamond access - VIP plays free, others pay 10 diamonds
         if (!isVIP) {
-            // Fresh balance check from DB to avoid stale-state false negatives
+            // Fresh balance check from DB via DiamondEngine singleton (no throwaway client)
             try {
-                const { createClient } = await import('@supabase/supabase-js');
-                const sb = createClient(
-                    process.env.NEXT_PUBLIC_SUPABASE_URL,
-                    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-                );
-                const authUser = getAuthUser();
-                if (authUser) {
-                    const { data: profile } = await sb
-                        .from('profiles')
-                        .select('diamonds')
-                        .eq('id', authUser.id)
-                        .maybeSingle();
-                    if (profile) {
-                        const freshBalance = profile.diamonds || 0;
-                        setDiamondBalance(freshBalance);
-                        if (freshBalance < GAME_COST) {
-                            setShowOutOfDiamondsModal(true);
-                            return;
-                        }
+                const freshBalance = await DiamondEngine.getBalance();
+                if (freshBalance !== null && freshBalance !== undefined) {
+                    setDiamondBalance(freshBalance);
+                    if (freshBalance < GAME_COST) {
+                        setShowOutOfDiamondsModal(true);
+                        return;
                     }
                 }
             } catch (e) {
@@ -878,7 +865,7 @@ export default function TrainingPage() {
                 setShowOutOfDiamondsModal(true);
                 return;
             }
-            setDiamondBalance(result.balance);
+            if (result.balance !== undefined) setDiamondBalance(result.balance);
             // DiamondEngine.deduct auto-emits busEmit.diamondsSpent — no manual emit needed
         }
 

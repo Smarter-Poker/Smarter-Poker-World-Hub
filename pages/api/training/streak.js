@@ -39,7 +39,7 @@ export default async function handler(req, res) {
 
       // GET: Fetch user streak
       if (req.method === 'GET') {
-          res.setHeader('Cache-Control', 'public, s-maxage=10, stale-while-revalidate=30');
+          res.setHeader('Cache-Control', 'private, max-age=10');
 
           try {
               const { data: streak } = await supabase

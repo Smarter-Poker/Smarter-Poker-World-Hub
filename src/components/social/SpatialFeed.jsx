@@ -121,11 +121,11 @@ export const SpatialFeed = ({
 
     const unsubscribe = socialService.subscribeFeed(
       (newPost) => {
-        // Add new post to top of feed
-        setFeedState(prev => ({
-          ...prev,
-          posts: [newPost, ...prev.posts]
-        }));
+        // Add new post to top of feed (with dedup guard)
+        setFeedState(prev => {
+          if (prev.posts.some(p => p.id === newPost.id)) return prev;
+          return { ...prev, posts: [newPost, ...prev.posts] };
+        });
       },
       (updatedPost) => {
         // Update existing post
