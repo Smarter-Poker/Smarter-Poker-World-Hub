@@ -358,8 +358,8 @@ const _busEmitMethods = {
     socialPostLiked: (postId, userId) =>
         eventBus.emit(EventType.SOCIAL_POST_LIKED, { postId, userId }, 'SocialFeed'),
 
-    socialCommentAdded: (postId, commentId) =>
-        eventBus.emit(EventType.SOCIAL_COMMENT_ADDED, { postId, commentId }, 'SocialFeed'),
+    socialCommentAdded: (postId, authorId) =>
+        eventBus.emit(EventType.SOCIAL_COMMENT_ADDED, { postId, authorId }, 'SocialFeed'),
 
     socialFeedRefreshed: () =>
         eventBus.emit(EventType.SOCIAL_FEED_REFRESHED, {}, 'SocialFeed'),

@@ -735,8 +735,10 @@ export class SocialService {
      * @returns {Function} Unsubscribe function
      */
     subscribeFeed(onNewPost, onPostUpdate) {
+        // Use unique channel name to prevent collision when multiple views subscribe
+        const channelId = `social_feed_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
         this.realtimeChannel = this.supabase
-            .channel('social_feed')
+            .channel(channelId)
             .on(
                 'postgres_changes',
                 {
