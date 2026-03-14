@@ -202,6 +202,9 @@ export const EnhancedPostCreator = ({
 
   // Submit post
   const handleSubmit = useCallback(async () => {
+    // Double-submit guard — prevents race condition before React re-renders disabled state
+    if (isSubmitting) return;
+
     // Validate content (allow empty if media exists)
     if (!content.trim() && mediaFiles.length === 0) {
       setError('Please add some content or media');
