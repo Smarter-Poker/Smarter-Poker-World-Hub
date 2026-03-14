@@ -451,7 +451,7 @@ export default function PotGeometry() {
                       type="number"
                       value={inp.value}
                       min={inp.min}
-                      onChange={(e) => inp.set(Math.max(inp.min, parseInt(e.target.value) || 1))}
+                      onChange={(e) => inp.set(Math.max(inp.min, parseInt(e.target.value, 10) || 1))}
                       style={{
                         width: '100%',
                         boxSizing: 'border-box',

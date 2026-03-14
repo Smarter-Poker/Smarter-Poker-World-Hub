@@ -388,7 +388,7 @@ export default function ICMCalculatorPage() {
   const updateStack = useCallback((idx, val) => {
     setStacks((prev) => {
       const next = [...prev];
-      next[idx] = Math.max(0, parseInt(val) || 0);
+      next[idx] = Math.max(0, parseInt(val, 10) || 0);
       return next;
     });
   }, []);
@@ -834,7 +834,7 @@ export default function ICMCalculatorPage() {
               <input
                 type="number"
                 value={prizePool}
-                onChange={(e) => setPrizePool(Math.max(0, parseInt(e.target.value) || 0))}
+                onChange={(e) => setPrizePool(Math.max(0, parseInt(e.target.value, 10) || 0))}
                 style={{
                   flex: 1,
                   background: 'rgba(255,255,255,0.05)',

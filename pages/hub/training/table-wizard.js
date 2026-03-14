@@ -141,7 +141,7 @@ export default function TableWizardPage() {
         result.sort((a, b) => a.waitlist - b.waitlist);
         break;
       case 'pot':
-        result.sort((a, b) => parseInt(b.avgPot.slice(1)) - parseInt(a.avgPot.slice(1)));
+        result.sort((a, b) => parseInt(b.avgPot.slice(1), 10) - parseInt(a.avgPot.slice(1), 10));
         break;
     }
     return result;
