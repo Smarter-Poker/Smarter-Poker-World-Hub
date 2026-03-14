@@ -135,6 +135,23 @@ export default function MixedModePage() {
         initialize();
     }, []);
 
+    // Realtime: Refresh diamond balance when scores change
+    useEffect(() => {
+        if (!userId) return;
+        const _ch = supabase
+            .channel(`trivia-mixed:${userId}`)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trivia_scores', filter: `user_id=eq.${userId}` }, async () => {
+                try {
+                    const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
+                    if (profile) setUserDiamonds(profile.diamonds || 0);
+                } catch (e) {
+                    console.error('[Mixed] Realtime refresh failed:', e);
+                }
+            })
+            .subscribe();
+        return () => { supabase.removeChannel(_ch); };
+    }, [userId]);
+
     // Shot clock effect
     useEffect(() => {
         if (!isTimerRunning || showResult) {
@@ -250,6 +267,7 @@ export default function MixedModePage() {
                     return;
                 }
                 if (result.balance !== undefined) setUserDiamonds(result.balance);
+                busEmit.diamondsSpent(10, 'Trivia Mixed Mode');
             } catch (e) {
                 console.error('[Mixed] Diamond deduction failed:', e);
                 setShowOutOfDiamonds(true);

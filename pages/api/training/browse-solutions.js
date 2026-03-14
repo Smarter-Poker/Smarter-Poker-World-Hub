@@ -20,51 +20,12 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { parseBoardFromHash, extractPositionFromHash, getAllHands } from '../../../src/utils/trainingApiUtils';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Standard 13×13 hand matrix
-const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
-
-function getAllHandNotations() {
-    const hands = [];
-    for (let r = 0; r < 13; r++) {
-        for (let c = 0; c < 13; c++) {
-            if (r === c) hands.push(`${RANKS[r]}${RANKS[c]}`);         // Pairs
-            else if (r < c) hands.push(`${RANKS[r]}${RANKS[c]}s`);    // Suited (above diagonal)
-            else hands.push(`${RANKS[c]}${RANKS[r]}o`);               // Offsuit (below diagonal)
-        }
-    }
-    return hands;
-}
-
-function parseBoardFromHash(hash) {
-    if (!hash) return [];
-    const parts = hash.split('_');
-    const lastPart = parts[parts.length - 1];
-    if (!lastPart || lastPart.length < 4) return [];
-    const cards = [];
-    for (let i = 0; i < lastPart.length - 1; i += 2) {
-        const rank = lastPart[i];
-        const suit = lastPart[i + 1];
-        if (/[2-9TJQKAtjqka]/.test(rank) && /[shdc]/.test(suit)) {
-            cards.push(`${rank}${suit}`);
-        }
-    }
-    return cards;
-}
-
-function extractPositionFromHash(hash) {
-    if (!hash) return 'UNK';
-    const parts = hash.split('_');
-    const positions = ['UTG', 'UTG+1', 'MP', 'MP+1', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
-    for (const part of parts) {
-        if (positions.includes(part.toUpperCase())) return part.toUpperCase();
-    }
-    return 'UNK';
-}
 
 export default async function handler(req, res) {
   try {
@@ -113,7 +74,7 @@ export default async function handler(req, res) {
               const frequencies = matrix.frequencies || {};
 
               // Build full 13×13 grid data for every hand
-              const allHands = getAllHandNotations();
+              const allHands = getAllHands();
               const gridData = {};
               allHands.forEach(hand => {
                   gridData[hand] = {};

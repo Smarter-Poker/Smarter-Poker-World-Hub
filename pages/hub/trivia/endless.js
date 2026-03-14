@@ -150,6 +150,25 @@ export default function EndlessModePage() {
         init();
     }, [avatarUser?.id, authLoading]);
 
+    // Realtime: Refresh data when scores/diamonds change
+    useEffect(() => {
+        if (!userId) return;
+        const _ch = supabase
+            .channel(`trivia-endless:${userId}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'endless_high_scores', filter: `user_id=eq.${userId}` }, async () => {
+                try {
+                    const { data } = await supabase.from('endless_high_scores').select('high_score').eq('user_id', userId).eq('mode', 'random').maybeSingle();
+                    if (data) setHighScore(data.high_score || 0);
+                    const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
+                    if (profile) setUserDiamonds(profile.diamonds || 0);
+                } catch (e) {
+                    console.error('[Endless] Realtime refresh failed:', e);
+                }
+            })
+            .subscribe();
+        return () => { supabase.removeChannel(_ch); };
+    }, [userId]);
+
     // Save settings to localStorage when changed
     useEffect(() => {
         try {

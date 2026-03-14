@@ -14,13 +14,13 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { parseBoardFromHash, extractPositionFromHash, RANK_VALUES } from '../../../src/utils/trainingApiUtils';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // ─── Flop Texture Classifier ────────────────────────────────────────────────
-const RANK_VALUES = { '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, 'T': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14 };
 
 function classifyFlopTexture(board) {
     if (!board || board.length < 3) return 'unknown';
@@ -57,33 +57,7 @@ function classifyFlopTexture(board) {
     return 'low_dry';
 }
 
-// Parse board cards from scenario hash
-function parseBoardFromHash(hash) {
-    if (!hash) return [];
-    const parts = hash.split('_');
-    const lastPart = parts[parts.length - 1];
-    if (!lastPart || lastPart.length < 4) return [];
-    const cards = [];
-    for (let i = 0; i < lastPart.length - 1; i += 2) {
-        const rank = lastPart[i];
-        const suit = lastPart[i + 1];
-        if (/[2-9TJQKAtjqka]/.test(rank) && /[shdc]/.test(suit)) {
-            cards.push(`${rank}${suit}`);
-        }
-    }
-    return cards;
-}
 
-// Extract hero position from hash
-function extractPositionFromHash(hash) {
-    if (!hash) return 'UNK';
-    const parts = hash.split('_');
-    const positions = ['UTG', 'UTG+1', 'MP', 'MP+1', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
-    for (const part of parts) {
-        if (positions.includes(part.toUpperCase())) return part.toUpperCase();
-    }
-    return 'UNK';
-}
 
 // Texture display names and colors
 const TEXTURE_META = {
