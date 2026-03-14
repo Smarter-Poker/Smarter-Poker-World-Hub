@@ -948,6 +948,7 @@ export default function TriviaModePage() {
                                                 .eq('id', userId)
                                                 .maybeSingle();
                                             if (profile) setUserDiamonds(profile.diamonds || 0);
+                                            busEmit.diamondsSpent(loss, 'Double or Nothing Loss');
                                             busEmit.screenShake('medium');
                                         }
                                     }
