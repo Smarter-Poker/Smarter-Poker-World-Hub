@@ -6,6 +6,7 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { verifyManagerSession } from '../../../../src/lib/commander/auth';
 import twilio from 'twilio';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
+import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -21,6 +22,13 @@ const TWILIO_FROM = process.env.TWILIO_PHONE_NUMBER;
 export default async function handler(req, res) {
   try {
     // CDN cache: fresh for 60s, serve stale up to 300s
+
+    // Auth guard
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      const _staff = await guardWriteStaff(req, res);
+      if (!_staff) return;
+    }
+
     if (req.method === 'GET') {
       res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
     }

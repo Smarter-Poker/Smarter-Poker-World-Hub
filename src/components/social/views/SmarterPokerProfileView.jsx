@@ -601,12 +601,20 @@ export const SmarterPokerProfileView = ({ onNavigate, onOpenChat }) => {
         fetchPosts();
     }, [fetchPosts]);
 
-    // EventBus: refresh own posts when a new post is created
+    // EventBus: refresh own posts when a new post is created (debounced)
     useEffect(() => {
+        let debounceTimer = null;
         const unsub = eventBus.on(EventType.SOCIAL_POST_CREATED, () => {
-            fetchPosts();
+            if (debounceTimer) clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                fetchPosts();
+                debounceTimer = null;
+            }, 3000);
         });
-        return () => { if (unsub) unsub(); };
+        return () => {
+            if (unsub) unsub();
+            if (debounceTimer) clearTimeout(debounceTimer);
+        };
     }, [fetchPosts]);
 
     const handleToggleFriend = async (targetUser) => {

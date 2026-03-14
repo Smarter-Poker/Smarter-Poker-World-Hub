@@ -5,6 +5,7 @@
 import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardUser } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
+import { guardWriteStaff } from '../../../../../src/lib/commander/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -16,6 +17,13 @@ export default async function handler(req, res) {
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
       if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
+
+    // Auth guard
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      const _staff = await guardWriteStaff(req, res);
+      if (!_staff) return;
+    }
+
 
     // Auth guard: require user auth for writes
     if (req.method !== "GET") { const _user = await guardUser(req, res); if (!_user) return; }

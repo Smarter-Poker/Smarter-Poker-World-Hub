@@ -6,6 +6,7 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardUser } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
+import { guardOwnerStaff } from '../../../../src/lib/commander/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -36,6 +37,13 @@ export default async function handler(req, res) {
         success: false,
         error: { code: 'INVALID_TOKEN', message: 'Invalid or expired token' }
       });
+    }
+
+
+    // Auth guard
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      const _staff = await guardOwnerStaff(req, res);
+      if (!_staff) return;
     }
 
     if (req.method === 'GET') {

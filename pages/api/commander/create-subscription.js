@@ -3,6 +3,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import Stripe from 'stripe';
 import { checkMemoryRateLimit } from '../../../src/lib/commander/rateLimit';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { guardOwnerStaff } from '../../../src/lib/commander/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -97,6 +98,13 @@ export default async function handler(req, res) {
   try {
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
       if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+
+    // Auth guard
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      const _staff = await guardOwnerStaff(req, res);
+      if (!_staff) return;
     }
 
     if (req.method !== 'POST') {

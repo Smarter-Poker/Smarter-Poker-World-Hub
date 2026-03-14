@@ -121,6 +121,7 @@ export class SocialService {
                 .maybeSingle();
 
             if (error) throw error;
+            if (!data) return null; // Post not found — guard against null crash
 
             return createPost(data, createAuthor(data.author));
         } catch (error) {
@@ -779,7 +780,11 @@ export class SocialService {
                     table: 'social_posts'
                 },
                 (payload) => {
-                    if (onPostUpdate) onPostUpdate(payload.new);
+                    if (onPostUpdate) {
+                        // Wrap raw DB row in createPost() for consistent field formatting
+                        const formattedUpdate = createPost(payload.new);
+                        onPostUpdate(formattedUpdate);
+                    }
                 }
             )
             .subscribe();

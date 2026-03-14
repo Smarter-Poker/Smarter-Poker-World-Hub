@@ -255,7 +255,7 @@ export default function DiamondArcade() {
         }
     }
 
-    async function startGame(gameId) {
+    async function startGame(gameId, { isDuel = false } = {}) {
         if (isStartingRef.current) return;
         isStartingRef.current = true;
         try {
@@ -268,46 +268,50 @@ export default function DiamondArcade() {
             alert('Game not found!');
             return;
         }
-        // ═══════════════════════════════════════════════════════════════════
-        // HARDENED: Verify real balance from database before starting game
-        // ═══════════════════════════════════════════════════════════════════
-        let currentBalance = balance;
-        if (game.entryFee > 0 && user?.id) {
-            try {
-                const { data } = await supabase.from('profiles').select('diamonds').eq('id', user.id).maybeSingle();
-                if (data) currentBalance = data.diamonds || 0;
-            } catch (e) {
-                console.warn('DB balance check failed, falling back to local');
-            }
-        }
 
-        if (currentBalance < game.entryFee) {
-            setAttemptedGameCharge(game.entryFee);
-            setShowOutOfDiamondsModal(true);
-            return;
-        }
-
-        // Deduct entry fee server-side via /api/arcade/start
-        try {
-            const token = getAccessToken();
-            if (token && game.entryFee > 0) {
-                const startRes = await fetch('/api/arcade/start', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                    body: JSON.stringify({ gameType: gameId, entryFee: game.entryFee }),
-                });
-                if (!startRes.ok) {
-                    const err = await startRes.json().catch(() => ({}));
-                    alert(err.error || 'Failed to start game — please try again');
-                    return;
+        // Skip balance check and deduction for duels — duel API already handled payment
+        if (!isDuel) {
+            // ═══════════════════════════════════════════════════════════════════
+            // HARDENED: Verify real balance from database before starting game
+            // ═══════════════════════════════════════════════════════════════════
+            let currentBalance = balance;
+            if (game.entryFee > 0 && user?.id) {
+                try {
+                    const { data } = await supabase.from('profiles').select('diamonds').eq('id', user.id).maybeSingle();
+                    if (data) currentBalance = data.diamonds || 0;
+                } catch (e) {
+                    console.warn('DB balance check failed, falling back to local');
                 }
-                // Deduct locally to reflect immediately
-                setBalance(prev => prev - game.entryFee);
             }
-        } catch (e) {
-            console.warn('[DiamondArcade] start API error:', e.message);
-            // Continue offline — deduct locally so game isn't blocked
-            if (game.entryFee > 0) setBalance(prev => prev - game.entryFee);
+
+            if (currentBalance < game.entryFee) {
+                setAttemptedGameCharge(game.entryFee);
+                setShowOutOfDiamondsModal(true);
+                return;
+            }
+
+            // Deduct entry fee server-side via /api/arcade/start
+            try {
+                const token = getAccessToken();
+                if (token && game.entryFee > 0) {
+                    const startRes = await fetch('/api/arcade/start', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                        body: JSON.stringify({ gameType: gameId, entryFee: game.entryFee }),
+                    });
+                    if (!startRes.ok) {
+                        const err = await startRes.json().catch(() => ({}));
+                        alert(err.error || 'Failed to start game — please try again');
+                        return;
+                    }
+                    // Deduct locally to reflect immediately
+                    setBalance(prev => prev - game.entryFee);
+                }
+            } catch (e) {
+                console.warn('[DiamondArcade] start API error:', e.message);
+                // Continue offline — deduct locally so game isn't blocked
+                if (game.entryFee > 0) setBalance(prev => prev - game.entryFee);
+            }
         }
 
         setActiveGame(game);
@@ -317,8 +321,8 @@ export default function DiamondArcade() {
         setTimeLeft(game.durationSeconds);
         generateQuestion(gameId);
         startTimer(game.durationSeconds);
-        // Emit entry fee spent
-        if (game.entryFee > 0) {
+        // Emit entry fee spent (skip for duels — already emitted by findDuelMatch)
+        if (!isDuel && game.entryFee > 0) {
             busEmit.diamondsSpent(game.entryFee, `Arcade: ${game.name}`);
         }
         } finally {
