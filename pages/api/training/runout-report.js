@@ -16,29 +16,13 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { parseBoardFromHash } from '../../../src/utils/trainingApiUtils';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
-const SUITS = ['s', 'h', 'd', 'c'];
 
-function parseBoardFromHash(hash) {
-    if (!hash) return [];
-    const parts = hash.split('_');
-    const lastPart = parts[parts.length - 1];
-    if (!lastPart || lastPart.length < 4) return [];
-    const cards = [];
-    for (let i = 0; i < lastPart.length - 1; i += 2) {
-        const rank = lastPart[i];
-        const suit = lastPart[i + 1];
-        if (/[2-9TJQKAtjqka]/.test(rank) && /[shdc]/.test(suit)) {
-            cards.push(`${rank}${suit}`);
-        }
-    }
-    return cards;
-}
 
 /**
  * Calculate aggregate "strategy aggression" as a proxy for EV

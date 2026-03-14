@@ -29,30 +29,13 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { getAllHands, getCombos } from '../../../src/utils/trainingApiUtils';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 
-function getAllHands() {
-    const hands = [];
-    for (let r = 0; r < 13; r++) {
-        for (let c = 0; c < 13; c++) {
-            if (r === c) hands.push(`${RANKS[r]}${RANKS[c]}`);
-            else if (r < c) hands.push(`${RANKS[r]}${RANKS[c]}s`);
-            else hands.push(`${RANKS[c]}${RANKS[r]}o`);
-        }
-    }
-    return hands;
-}
-
-function getCombos(hand) {
-    if (hand.length === 2) return 6;       // Pair
-    if (hand.endsWith('s')) return 4;       // Suited
-    return 12;                              // Offsuit
-}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // GTO RANGES (shared with preflop-ranges.js — in production these would
