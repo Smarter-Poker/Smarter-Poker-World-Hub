@@ -22,6 +22,7 @@ import { Users, DollarSign, Trophy, Loader2, ChevronDown, ChevronUp, Share2, Che
 import useTournamentRealtime from '../../../../src/hooks/useTournamentRealtime';
 import { busEmit, eventBus, EventType } from '../../../../src/engine/EventBus';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
+import { getAuthToken, getAuthData } from '../../../../src/lib/getAuthToken';
 
 // Prefer real name from profiles over manually typed player_name (alias)
 function getName(e) {
@@ -164,7 +165,8 @@ export default function TournamentPublic() {
 
   // Post to My Smarter.Poker Page
   const handlePostToMyPage = async () => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('sb-access-token') : null;
+    const authData = getAuthData();
+    const token = authData?.access_token;
     if (!token) {
       // Redirect to login if not authenticated
       router.push(`/auth/login?redirect=${encodeURIComponent(router.asPath)}`);
@@ -195,7 +197,7 @@ export default function TournamentPublic() {
             tournament_name: t.name,
             buyin: t.buyin_amount,
             entries: entries.length,
-            prize_pool: prizePool
+            prize_pool: localPrizePool
           }
         })
       });

@@ -458,13 +458,14 @@ export default function SurvivalGamePage() {
             // Deduct diamonds via audit-safe RPC
             if (userId) {
                 try {
-                    await supabase.rpc('add_diamonds_to_balance', {
+                    const { error: rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
                         p_user_id: userId,
                         p_amount: -5,
                         p_type: 'survival_lifeline',
                         p_description: 'Survival 50/50 lifeline — 5💎',
                         p_reference_id: null
                     });
+                    if (rpcErr) { console.error('[Survival] 50/50 deduct RPC error:', rpcErr.message); return; }
                     const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
                     if (profile) setUserDiamonds(profile.diamonds || 0);
                     busEmit.diamondsSpent(5, '50/50 Lifeline');
@@ -503,13 +504,14 @@ export default function SurvivalGamePage() {
 
         if (userId) {
             try {
-                await supabase.rpc('add_diamonds_to_balance', {
+                const { error: rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
                     p_user_id: userId,
                     p_amount: -LIFELINE_COST,
                     p_type: 'survival_lifeline',
                     p_description: `Survival skip question — ${LIFELINE_COST}💎`,
                     p_reference_id: null
                 });
+                if (rpcErr) { console.error('[Survival] Skip deduct RPC error:', rpcErr.message); return; }
                 const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
                 if (profile) setUserDiamonds(profile.diamonds || 0);
                 busEmit.diamondsSpent(LIFELINE_COST, 'Skip Question');
@@ -550,13 +552,14 @@ export default function SurvivalGamePage() {
 
         if (userId) {
             try {
-                await supabase.rpc('add_diamonds_to_balance', {
+                const { error: rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
                     p_user_id: userId,
                     p_amount: -LIFELINE_COST,
                     p_type: 'survival_lifeline',
                     p_description: `Survival double chance — ${LIFELINE_COST}💎`,
                     p_reference_id: null
                 });
+                if (rpcErr) { console.error('[Survival] Double chance deduct RPC error:', rpcErr.message); return; }
                 const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
                 if (profile) setUserDiamonds(profile.diamonds || 0);
                 busEmit.diamondsSpent(LIFELINE_COST, 'Double Chance');
@@ -673,13 +676,14 @@ export default function SurvivalGamePage() {
 
         try {
             // Update user diamonds via audit-safe RPC
-            await supabase.rpc('add_diamonds_to_balance', {
+            const { error: rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
                 p_user_id: userId,
                 p_amount: diamonds,
                 p_type: 'survival_reward',
                 p_description: `Survival Level ${level} — ${diamonds}💎`,
                 p_reference_id: null
             });
+            if (rpcErr) console.error('[Survival] Reward RPC error:', rpcErr.message);
             const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
             if (profile) setUserDiamonds(profile.diamonds || 0);
             busEmit.diamondsEarned(diamonds, `Survival Level ${level}`);
