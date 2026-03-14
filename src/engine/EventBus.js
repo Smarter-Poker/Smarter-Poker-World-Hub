@@ -79,6 +79,10 @@ export const EventType = {
     FRIEND_REQUEST_SENT: 'FRIEND_REQUEST_SENT',
     FRIEND_REQUEST_ACCEPTED: 'FRIEND_REQUEST_ACCEPTED',
     NOTIFICATIONS_READ: 'NOTIFICATIONS_READ',
+    SOCIAL_POST_CREATED: 'SOCIAL_POST_CREATED',
+    SOCIAL_POST_LIKED: 'SOCIAL_POST_LIKED',
+    SOCIAL_COMMENT_ADDED: 'SOCIAL_COMMENT_ADDED',
+    SOCIAL_FEED_REFRESHED: 'SOCIAL_FEED_REFRESHED',
 
     // ── Club Arena Operations ──
     ANNOUNCEMENT_CREATED: 'ANNOUNCEMENT_CREATED',
@@ -347,6 +351,18 @@ const _busEmitMethods = {
 
     notificationsRead: (count) =>
         eventBus.emit(EventType.NOTIFICATIONS_READ, { count }, 'NotificationsPage'),
+
+    socialPostCreated: (postId, authorId) =>
+        eventBus.emit(EventType.SOCIAL_POST_CREATED, { postId, authorId }, 'SocialFeed'),
+
+    socialPostLiked: (postId, userId) =>
+        eventBus.emit(EventType.SOCIAL_POST_LIKED, { postId, userId }, 'SocialFeed'),
+
+    socialCommentAdded: (postId, commentId) =>
+        eventBus.emit(EventType.SOCIAL_COMMENT_ADDED, { postId, commentId }, 'SocialFeed'),
+
+    socialFeedRefreshed: () =>
+        eventBus.emit(EventType.SOCIAL_FEED_REFRESHED, {}, 'SocialFeed'),
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
