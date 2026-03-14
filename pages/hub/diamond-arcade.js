@@ -226,15 +226,20 @@ export default function DiamondArcade() {
     }, [user?.id]);
 
     async function loadUserStats(userId) {
-        const { data } = await supabase.rpc('get_arcade_user_stats', { p_user_id: userId });
-        if (data) {
-            setBalance(data.balance || 0);
-            setStreak(data.current_streak || 0);
-            setStats({
-                todayProfit: data.today?.profit || 0,
-                gamesPlayed: data.total_games || 0,
-                winRate: data.win_rate || 0
-            });
+        try {
+            const { data, error } = await supabase.rpc('get_arcade_user_stats', { p_user_id: userId });
+            if (error) console.warn('[Arcade] loadUserStats RPC error:', error.message);
+            if (data) {
+                setBalance(data.balance || 0);
+                setStreak(data.current_streak || 0);
+                setStats({
+                    todayProfit: data.today?.profit || 0,
+                    gamesPlayed: data.total_games || 0,
+                    winRate: data.win_rate || 0
+                });
+            }
+        } catch (e) {
+            console.warn('[Arcade] loadUserStats failed:', e.message);
         }
     }
 

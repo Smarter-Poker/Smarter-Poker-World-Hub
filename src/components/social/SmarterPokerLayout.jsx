@@ -116,7 +116,18 @@ const SPNavBar = ({
                         <div className="notif-dropdown-container">
                             <NotificationsDropdown
                                 notifications={notifications}
-                                onMarkAllRead={() => { }}
+                                onMarkAllRead={async () => {
+                                    if (!authUser?.id) return;
+                                    try {
+                                        await supabase
+                                            .from('notifications')
+                                            .update({ read: true })
+                                            .eq('user_id', authUser.id)
+                                            .eq('read', false);
+                                    } catch (e) {
+                                        console.warn('Mark all read failed:', e.message);
+                                    }
+                                }}
                             />
                         </div>
                     )}
@@ -363,10 +374,13 @@ export const SmarterPokerLayout = ({ children, currentUser: propUser, onNavigate
             if (authUser?.id) {
                 setTimeout(async () => {
                     try {
+                        // Re-use same BLOCKED_TYPES filter as initial fetch
+                        const REFRESH_BLOCKED = ['like', 'comment', 'share', 'mention', 'tag', 'hand_reaction'];
                         const { data } = await supabase
                             .from('notifications')
                             .select('id, type, message, created_at, read')
                             .eq('user_id', authUser.id)
+                            .not('type', 'in', `(${REFRESH_BLOCKED.join(',')})`)
                             .order('created_at', { ascending: false })
                             .limit(20);
                         if (data) {
