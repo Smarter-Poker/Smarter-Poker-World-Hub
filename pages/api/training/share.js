@@ -87,7 +87,7 @@ export default async function handler(req, res) {
 
       const template = SHARE_TEMPLATES[shareType];
       if (!template) {
-          return res.status(400).json({ success: false, error: `Invalid shareType: ${shareType}` });
+          return res.status(400).json({ success: false, error: 'Invalid shareType' });
       }
 
       try {

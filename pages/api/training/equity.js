@@ -243,10 +243,10 @@ export default async function handler(req, res) {
                   if (!cardStr) continue;
                   const cardInt = parseCardStr(cardStr);
                   if (cardInt === -1) {
-                      return res.status(400).json({ success: false, error: `Invalid board card: "${cardStr}"` });
+                      return res.status(400).json({ success: false, error: 'Invalid board card' });
                   }
                   if (allCardInts.has(cardInt)) {
-                      return res.status(400).json({ success: false, error: `Duplicate card on board: ${cardStr}` });
+                      return res.status(400).json({ success: false, error: 'Duplicate card on board' });
                   }
                   allCardInts.add(cardInt);
                   boardCards.push(cardInt);
