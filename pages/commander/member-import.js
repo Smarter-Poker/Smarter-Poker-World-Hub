@@ -120,7 +120,7 @@ export default function MemberImport() {
         const token = getToken();
         const res = await fetch('/api/commander/members', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': localStorage.getItem('commander_staff') || '' },
           body: JSON.stringify(rows[i])
         });
         if (!res.ok) throw new Error(`Request failed (${res.status})`);

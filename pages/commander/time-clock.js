@@ -41,7 +41,9 @@ export default function TimeClock() {
     const fetchEntries = useCallback(async (signal) => {
         if (!venueId) return;
         try {
-            const res = await fetch(`/api/commander/time-clock?venue_id=${venueId}`, signal ? { signal } : {});
+            const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+            const staffSession = localStorage.getItem('commander_staff') || '';
+            const res = await fetch(`/api/commander/time-clock?venue_id=${venueId}`, { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }, ...(signal ? { signal } : {}) });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const data = await res.json();
             if (data.success) {
@@ -108,9 +110,9 @@ export default function TimeClock() {
         setError('');
         setScanResult(null);
         try {
-            const res = await fetch('/api/commander/time-clock', {
+             const res = await fetch('/api/commander/time-clock', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token')}`, 'x-staff-session': localStorage.getItem('commander_staff') || '' },
                 body: JSON.stringify({ venue_id: venueId, qr_code: qrCode }),
             });
             if (!res.ok) throw new Error('Request failed');

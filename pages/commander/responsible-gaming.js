@@ -30,6 +30,7 @@ export default function ResponsibleGaming() {
   }, []);
 
   const getToken = () => localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+  const getStaffSession = () => localStorage.getItem('commander_staff') || '';
 
   // Load members to check exclusion status
   const fetchMembers = useCallback(async () => {
@@ -37,7 +38,7 @@ export default function ResponsibleGaming() {
     setLoading(true);
     try {
       const res = await fetch(`/api/commander/members?venue_id=${venueId}&limit=200`, {
-        headers: { Authorization: `Bearer ${getToken()}` }
+        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
@@ -56,7 +57,7 @@ export default function ResponsibleGaming() {
     try {
       // Search members first
       const res = await fetch(`/api/commander/members/search?q=${encodeURIComponent(query)}&venue_id=${venueId}`, {
-        headers: { Authorization: `Bearer ${getToken()}` }
+        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
@@ -72,7 +73,7 @@ export default function ResponsibleGaming() {
       for (const player of players.slice(0, 5)) {
         try {
           const checkRes = await fetch(`/api/commander/responsible-gaming/check/${player.user_id || player.id}?venue_id=${venueId}`, {
-            headers: { Authorization: `Bearer ${getToken()}` }
+            headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
           });
           if (!checkRes.ok) throw new Error(`Request failed (${checkRes.status})`);
           const checkJson = await checkRes.json();
