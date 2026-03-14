@@ -220,10 +220,20 @@ export default function DiamondArcade() {
         const interval = setInterval(() => {
             setResetTime(getTimeUntilReset());
         }, 1000);
+        // Listen for balance changes from other pages (trivia wins, training rewards, etc.)
+        const handleBalanceRefresh = () => {
+            if (user?.id) loadUserStats(user.id);
+        };
+        if (typeof window !== 'undefined') {
+            window.addEventListener('diamond-balance-refresh', handleBalanceRefresh);
+        }
         return () => {
             _ctrl.abort();
             clearInterval(interval);
             if (duelPollRef.current) clearInterval(duelPollRef.current);
+            if (typeof window !== 'undefined') {
+                window.removeEventListener('diamond-balance-refresh', handleBalanceRefresh);
+            }
         };
     }, [user?.id]);
 
