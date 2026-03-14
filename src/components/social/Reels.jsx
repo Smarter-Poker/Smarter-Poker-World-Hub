@@ -42,9 +42,23 @@ export function ReelsViewer({ onClose }) {
 
     useEffect(() => {
         loadReels();
-        // Get authenticated user for like operations
+        // Get authenticated user for like operations + load existing likes
         supabase.auth.getUser().then(({ data: { user } }) => {
-            if (user) setCurrentUserId(user.id);
+            if (user) {
+                setCurrentUserId(user.id);
+                // Load existing like state for this user
+                supabase.from('social_interactions')
+                    .select('post_id')
+                    .eq('user_id', user.id)
+                    .eq('interaction_type', 'like')
+                    .then(({ data }) => {
+                        if (data) {
+                            const likeMap = {};
+                            data.forEach(row => { likeMap[row.post_id] = true; });
+                            setLiked(likeMap);
+                        }
+                    });
+            }
         });
     }, []);
 

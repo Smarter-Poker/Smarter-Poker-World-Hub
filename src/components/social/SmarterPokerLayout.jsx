@@ -289,6 +289,11 @@ const SPNavBar = ({
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
+// 📢 NOTIFICATION NOISE REDUCTION — suppress low-value types
+// ═══════════════════════════════════════════════════════════════════════════
+const BLOCKED_NOTIF_TYPES = ['like', 'comment', 'share', 'mention', 'tag', 'hand_reaction'];
+
+// ═══════════════════════════════════════════════════════════════════════════
 // MAIN LAYOUT SHELL
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -331,16 +336,13 @@ export const SmarterPokerLayout = ({ children, currentUser: propUser, onNavigate
     useEffect(() => {
         if (!authUser?.id) return;
 
-        // Low-value notification types to suppress (noise reduction)
-        const BLOCKED_TYPES = ['like', 'comment', 'share', 'mention', 'tag', 'hand_reaction'];
-
         async function fetchNotifications() {
             try {
                 const { data } = await supabase
                     .from('notifications')
                     .select('id, type, message, created_at, read')
                     .eq('user_id', authUser.id)
-                    .not('type', 'in', `(${BLOCKED_TYPES.join(',')})`)
+                    .not('type', 'in', `(${BLOCKED_NOTIF_TYPES.join(',')})`)
                     .order('created_at', { ascending: false })
                     .limit(20);
 
@@ -374,13 +376,11 @@ export const SmarterPokerLayout = ({ children, currentUser: propUser, onNavigate
             if (authUser?.id) {
                 setTimeout(async () => {
                     try {
-                        // Re-use same BLOCKED_TYPES filter as initial fetch
-                        const REFRESH_BLOCKED = ['like', 'comment', 'share', 'mention', 'tag', 'hand_reaction'];
                         const { data } = await supabase
                             .from('notifications')
                             .select('id, type, message, created_at, read')
                             .eq('user_id', authUser.id)
-                            .not('type', 'in', `(${REFRESH_BLOCKED.join(',')})`)
+                            .not('type', 'in', `(${BLOCKED_NOTIF_TYPES.join(',')})`)
                             .order('created_at', { ascending: false })
                             .limit(20);
                         if (data) {
@@ -401,6 +401,35 @@ export const SmarterPokerLayout = ({ children, currentUser: propUser, onNavigate
             if (unsub1) unsub1();
             if (unsub2) unsub2();
         };
+    }, [authUser?.id]);
+
+    // Supabase Realtime: new notifications appear instantly
+    useEffect(() => {
+        if (!authUser?.id) return;
+        const channel = supabase.channel(`notifs-${authUser.id}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'notifications',
+                    filter: `user_id=eq.${authUser.id}`
+                },
+                (payload) => {
+                    const n = payload.new;
+                    if (BLOCKED_NOTIF_TYPES.includes(n.type)) return; // Skip blocked types
+                    setNotifications(prev => [{
+                        id: n.id,
+                        type: n.type || 'info',
+                        text: n.message,
+                        time: getRelativeTime(n.created_at),
+                        read: n.read,
+                    }, ...prev]);
+                    if (!n.read) setUnreadCount(prev => prev + 1);
+                }
+            )
+            .subscribe();
+        return () => { supabase.removeChannel(channel); };
     }, [authUser?.id]);
 
     // 3. Chat State management

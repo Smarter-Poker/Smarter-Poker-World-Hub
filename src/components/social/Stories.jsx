@@ -210,12 +210,16 @@ export function StoriesBar({ userId, userAvatar, onCreateStory }) {
     }, [userId]);
 
     const loadLiveUsers = async () => {
-        const { data } = await supabase
-            .from('live_streams')
-            .select('broadcaster_id')
-            .eq('status', 'live');
-        if (data) {
-            setLiveUsers(new Set(data.map(s => s.broadcaster_id)));
+        try {
+            const { data } = await supabase
+                .from('live_streams')
+                .select('broadcaster_id')
+                .eq('status', 'live');
+            if (data) {
+                setLiveUsers(new Set(data.map(s => s.broadcaster_id)));
+            }
+        } catch {
+            // live_streams table may not exist — fail silently
         }
     };
 
