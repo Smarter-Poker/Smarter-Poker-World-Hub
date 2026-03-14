@@ -735,6 +735,12 @@ export class SocialService {
      * @returns {Function} Unsubscribe function
      */
     subscribeFeed(onNewPost, onPostUpdate) {
+        // Clean up any previous channel to prevent zombie subscriptions
+        // (e.g., React StrictMode double-mount or rapid remount)
+        if (this.realtimeChannel) {
+            this.supabase.removeChannel(this.realtimeChannel);
+            this.realtimeChannel = null;
+        }
         // Use unique channel name to prevent collision when multiple views subscribe
         const channelId = `social_feed_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
         this.realtimeChannel = this.supabase
