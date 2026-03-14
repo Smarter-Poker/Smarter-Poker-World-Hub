@@ -44,6 +44,8 @@ const GTO_BASELINES = {
 
 export default async function handler(req, res) {
   try {
+      if (!applyRateLimit(req, res, LIMITS.read)) return;
+
       if (req.method !== 'GET') {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
