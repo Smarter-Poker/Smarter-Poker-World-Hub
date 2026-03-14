@@ -39,6 +39,7 @@ export default async function handler(req, res) {
 
         // ─── GET: Retrieve user's bookmarks ──────────────────────────
         if (req.method === 'GET') {
+            res.setHeader('Cache-Control', 'public, s-maxage=10, stale-while-revalidate=30');
             const { data: bookmarks, error } = await supabase
                 .from('solution_bookmarks')
                 .select('id, spot_id, scenario_hash, notes, created_at')

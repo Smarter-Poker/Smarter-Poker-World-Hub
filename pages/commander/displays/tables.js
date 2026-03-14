@@ -247,7 +247,7 @@ export default function TablesDisplay() {
     try {
       const res = await fetch('/api/commander/staff/verify-pin', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': localStorage.getItem('commander_staff') || '', Authorization: `Bearer ${localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token')}` },
         body: JSON.stringify({ pin_code: pinValue, venue_id: venueId }),
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);

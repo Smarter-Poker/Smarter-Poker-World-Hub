@@ -39,11 +39,12 @@ export default async function handler(req, res) {
 
       // GET: Fetch user streak
       if (req.method === 'GET') {
+          res.setHeader('Cache-Control', 'public, s-maxage=10, stale-while-revalidate=30');
 
           try {
               const { data: streak } = await supabase
                   .from('training_streaks')
-                  .select('*')
+                  .select('current_streak, longest_streak, last_training_date, streak_start_date, milestones_claimed')
                   .eq('user_id', userId)
                   .maybeSingle();
 
@@ -106,7 +107,7 @@ export default async function handler(req, res) {
               // Get current streak
               const { data: existing } = await supabase
                   .from('training_streaks')
-                  .select('*')
+                  .select('current_streak, longest_streak, last_training_date, streak_start_date, milestones_claimed')
                   .eq('user_id', userId)
                   .maybeSingle();
 
@@ -207,7 +208,7 @@ export default async function handler(req, res) {
 
               const { data: streak } = await supabase
                   .from('training_streaks')
-                  .select('*')
+                  .select('current_streak, longest_streak, milestones_claimed')
                   .eq('user_id', userId)
                   .maybeSingle();
 

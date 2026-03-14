@@ -242,7 +242,7 @@ export default function CompSystem() {
       const venueId = getVenueId();
       const pinRes = await fetch('/api/commander/staff/verify-pin', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': getStaffSession(), Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify({ venue_id: venueId, pin_code: pinCode })
       });
       if (!pinRes.ok) throw new Error(`Request failed (${pinRes.status})`);
@@ -455,7 +455,7 @@ export default function CompSystem() {
     var venueId = getVenueId();
     fetch('/api/commander/staff/verify-pin', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-staff-session': getStaffSession(), Authorization: `Bearer ${getToken()}` },
       body: JSON.stringify({ venue_id: venueId, pin_code: voidPinCode })
     }).then(r => { if (!r.ok) throw new Error('fail'); return r; })
       .then(function (r) { return r.json(); })

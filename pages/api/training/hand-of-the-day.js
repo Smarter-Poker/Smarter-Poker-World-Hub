@@ -32,6 +32,7 @@ export default async function handler(req, res) {
       }
 
       if (req.method === 'GET') {
+          res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
           // GET: Return today's daily challenge hand
           try {
               const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD

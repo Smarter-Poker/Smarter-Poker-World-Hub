@@ -302,7 +302,7 @@ const ClubEventCard = ({ event }) => (
 const ClubHeader = ({ club, isMember = false }) => (
     <div className="club-header">
         <div className="club-cover">
-            <img src={club.coverPhoto || 'https://picsum.photos/1200/400'} alt="" />
+            <img src={club.coverPhoto || ''} alt="" style={{ background: '#2d2d2d' }} />
         </div>
 
         <div className="club-info-container">

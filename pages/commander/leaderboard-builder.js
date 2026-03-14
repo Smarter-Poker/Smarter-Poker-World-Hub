@@ -67,7 +67,7 @@ export default function LeaderboardBuilder() {
         try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
     });
 
-
+    const flash = (type, msg) => { setToast({ type, msg }); setTimeout(() => setToast(null), 4000); };
 
     // ── Fetch boards ──
     const fetchBoards = useCallback(async (signal) => {

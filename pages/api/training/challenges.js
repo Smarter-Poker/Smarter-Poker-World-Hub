@@ -144,6 +144,7 @@ export default async function handler(req, res) {
 
       // GET: Fetch active challenges with user progress
       if (req.method === 'GET') {
+          res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
 
           try {
               // Get active challenge definitions

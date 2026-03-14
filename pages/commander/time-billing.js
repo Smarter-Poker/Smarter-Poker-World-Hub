@@ -237,7 +237,7 @@ export default function TimeBilling() {
       const venueId = getVenueId();
       const pinRes = await fetch('/api/commander/staff/verify-pin', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': localStorage.getItem('commander_staff') || '' },
         body: JSON.stringify({ venue_id: venueId, pin_code: digits })
       });
       if (!pinRes.ok) throw new Error('Request failed');

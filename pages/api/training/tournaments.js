@@ -28,6 +28,7 @@ export default async function handler(req, res) {
 
       // GET: Fetch tournaments (upcoming, live, or completed)
       if (req.method === 'GET') {
+          res.setHeader('Cache-Control', 'public, s-maxage=15, stale-while-revalidate=60');
           const { status, tournamentId } = req.query;
 
           try {
