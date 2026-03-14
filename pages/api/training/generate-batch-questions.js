@@ -151,7 +151,7 @@ export default async function handler(req, res) {
 
       } catch (error) {
           console.error('❌ Batch generation error:', error);
-          return res.status(500).json({ success: false, error: error.message });
+          return res.status(500).json({ success: false, error: 'Internal server error' });
       }
 
   } catch (err) {

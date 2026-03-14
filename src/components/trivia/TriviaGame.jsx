@@ -108,8 +108,9 @@ export default function TriviaGame({
         return () => clearInterval(timerRef.current);
     }, [timeLimit]);
 
-    const handleTimeUp = useCallback(() => {
-        setIsGameActive(false);
+    // Auto-complete game when timer expires (arcade mode)
+    useEffect(() => {
+        if (!timeLimit || timeRemaining > 0 || isGameActive) return;
         audio.bustDrop();
         const timeSpent = Math.floor((Date.now() - startTimeRef.current) / 1000);
         const cc = answers.filter((a, i) => a === questions[i]?.correct_index).length;
@@ -121,7 +122,7 @@ export default function TriviaGame({
             opponentScore: opponentDataRef.current.score,
             opponentName: opponentDataRef.current.name,
         });
-    }, [answers, questions, onComplete, streak, enableStakes]);
+    }, [timeRemaining, isGameActive, timeLimit]);
 
     // ── Spawn floating diamond ──
     const spawnFloatingDiamond = (value) => {
