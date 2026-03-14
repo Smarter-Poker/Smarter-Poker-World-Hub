@@ -198,6 +198,7 @@ export default function TimeAttackPage() {
                     setShowOutOfDiamonds(true);
                     return;
                 }
+                busEmit.diamondsSpent(10, 'Trivia Time Attack Mode');
             } catch (e) {
                 console.error('[TimeAttack] Diamond deduction failed:', e);
                 setShowOutOfDiamonds(true);

@@ -179,6 +179,7 @@ export default function SurvivalModePage() {
                     setShowOutOfDiamonds(true);
                     return;
                 }
+                busEmit.diamondsSpent(10, 'Trivia Survival Mode');
             } catch (e) {
                 console.error('[Survival] Diamond deduction failed:', e);
                 setShowOutOfDiamonds(true);
