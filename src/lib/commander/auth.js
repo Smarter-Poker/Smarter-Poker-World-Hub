@@ -565,13 +565,9 @@ export async function guardOwnerStaff(req, res) {
     return null;
   }
 
-  // Step 3: Ensure the JWT user matches the staff session
-  if (staff.id !== user.id && staff.id !== user.id) {
-    // owner staff.id might be the user_id from the synthetic staff object
-    const result = await verifyStaffSession(req);
-    const sessionUserId = result?.staff?.id;
-    // For owners, the synthetic staff.id IS the user.id, so this should match
-  }
+  // Note: Step 3 (cross-check JWT user vs staff session) is omitted because
+  // owner staff objects are synthetic (staff.id === user.id for owners).
+  // guardStaff already validated the session, getUser validated the JWT.
 
   // Step 4: Require owner or manager role
   if (!['owner', 'manager'].includes(staff.role)) {

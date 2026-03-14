@@ -141,6 +141,8 @@ export default function DiamondArcade() {
     const timerRef = useRef(null);
     const duelPollRef = useRef(null);
     const questionStartTime = useRef(0);
+    const correctCountRef = useRef(0); // Tracks correctCount for timer closure access
+    const endGameRef = useRef(null); // Always points to latest endGame to avoid stale closure in setInterval
     const isStartingRef = useRef(false); // Prevent double-click race on game start
     const isDuelingRef = useRef(false); // Prevent double-click race on duel search
     const [menuOpen, setMenuOpen] = useState(false);
@@ -350,12 +352,14 @@ export default function DiamondArcade() {
 
     function startTimer(seconds) {
         if (timerRef.current) clearInterval(timerRef.current);
+        correctCountRef.current = 0; // Reset on game start
         setTimeLeft(seconds);
         timerRef.current = setInterval(() => {
             setTimeLeft(prev => {
                 if (prev <= 1) {
                     clearInterval(timerRef.current);
-                    endGame(false);
+                    // Use ref to avoid stale closure — endGame/activeGame/streak are from the render when timer was created
+                    if (endGameRef.current) endGameRef.current(false, correctCountRef.current);
                     return 0;
                 }
                 return prev - 1;
@@ -376,6 +380,7 @@ export default function DiamondArcade() {
         if (isCorrect) {
             updatedCorrectCount = correctCount + 1;
             setCorrectCount(updatedCorrectCount);
+            correctCountRef.current = updatedCorrectCount; // Keep ref in sync for timer
             busEmit.decisionCorrect(questionIndex + 1);
             busEmit.screenFlash('#22C55E', 150);
         } else {
@@ -441,6 +446,8 @@ export default function DiamondArcade() {
             console.warn('[DiamondArcade] complete API error:', e.message);
         }
     }
+    // Keep ref synced so timer setInterval always calls the latest endGame (avoids stale closure)
+    endGameRef.current = endGame;
 
     function backToLobby() {
         setGamePhase('lobby');
