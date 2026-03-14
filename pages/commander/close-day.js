@@ -31,9 +31,6 @@ export default function CloseDay() {
   const [verifying, setVerifying] = useState(false);
   const [notes, setNotes] = useState('');
   const [closing, setClosing] = useState(false);
-  const getVenueId = () => {
-    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id || ''; } catch { return ''; }
-  };
 
   useEffect(() => {
     const ctrl = new AbortController();

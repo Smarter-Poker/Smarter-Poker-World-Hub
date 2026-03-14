@@ -32,8 +32,6 @@ export default function TournamentDirector() {
     const [loading, setLoading] = useState(true);
     const [tab, setTab] = useState('current'); // 'current' or 'upcoming'
 
-    const getBearerToken = () => typeof window !== 'undefined'
-      ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || '' : '';
 
     const fetchTournaments = useCallback(async (signal) => {
         try {

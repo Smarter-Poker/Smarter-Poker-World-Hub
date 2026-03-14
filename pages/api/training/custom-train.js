@@ -14,6 +14,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { DeterministicGTOEngine } from '../../../src/engines/DeterministicGTOEngine';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { sanitizeParam } from '../../../src/utils/trainingApiUtils';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -74,12 +75,14 @@ export default async function handler(req, res) {
 
           // Filter by position if specified (position is in scenario_hash)
           if (position && position !== 'any') {
-              query = query.ilike('scenario_hash', `%_${position}_%`);
+              const safePos = sanitizeParam(position, 10);
+              if (safePos) query = query.ilike('scenario_hash', `%_${safePos}_%`);
           }
 
           // Filter by villain position if specified
           if (villainPosition && villainPosition !== 'any') {
-              query = query.ilike('scenario_hash', `%_${villainPosition}_%`);
+              const safeVPos = sanitizeParam(villainPosition, 10);
+              if (safeVPos) query = query.ilike('scenario_hash', `%_${safeVPos}_%`);
           }
 
           // Filter by action scenario if specified (SRP, 3BP, 4BP are in scenario_hash)
@@ -87,7 +90,8 @@ export default async function handler(req, res) {
               const scenarioMap = { 'SRP': 'srp', '3BP': '3bet', '4BP': '4bet' };
               const tag = scenarioMap[actionScenario];
               if (tag) {
-                  query = query.ilike('scenario_hash', `%${tag}%`);
+                  const safeTag = sanitizeParam(tag, 10);
+                  if (safeTag) query = query.ilike('scenario_hash', `%${safeTag}%`);
               }
           }
 

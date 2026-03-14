@@ -72,9 +72,6 @@ export default function TimeBilling() {
 
   // Clear PIN cache
   const lockPin = () => { setVerifiedStaff(null); setPinCacheExpiry(0); };
-  const getVenueId = () => {
-    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id || ''; } catch { return ''; }
-  };
 
   const fetchData = useCallback(async () => {
     const controller = new AbortController();

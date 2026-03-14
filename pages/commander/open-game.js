@@ -36,9 +36,6 @@ export default function OpenGame() {
   useEffect(() => { busEmit.sessionStart('commander-open-game'); }, []);
   const router = useRouter();
 
-  const getVenueId = () => {
-    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id || ''; } catch { return ''; }
-  };
   const [step, setStep] = useState(1); // 1: game, 2: table, 3: confirm
   const [selectedGame, setSelectedGame] = useState(null);
   const [selectedStakes, setSelectedStakes] = useState(null);

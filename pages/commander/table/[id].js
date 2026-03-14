@@ -36,9 +36,6 @@ export default function TableSeating() {
   const [waitlist, setWaitlist] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showSeatPicker, setShowSeatPicker] = useState(null); // seat number to fill
-  const getVenueId = () => {
-    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id || ''; } catch { return ''; }
-  };
 
   // fetchData declared first — must precede useEffect/useCommanderSync that reference it
   const fetchData = async (signal) => {

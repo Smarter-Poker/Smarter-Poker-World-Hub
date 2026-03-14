@@ -30,8 +30,6 @@ import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
 
-const getBearerToken = () => typeof window !== 'undefined'
-  ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || '' : '';
 
 const STATUS_CONFIG = {
   scheduled: { bg: 'bg-[#64748B]/10', text: 'text-[#64748B]', label: 'Scheduled' },

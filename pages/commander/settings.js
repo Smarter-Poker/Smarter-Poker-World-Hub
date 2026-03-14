@@ -11,8 +11,6 @@ import { broadcastChange, useCommanderSync } from '../../src/lib/commander/useCo
 import { busEmit } from '../../src/engine/EventBus';
 import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 
-const getBearerToken = () => typeof window !== 'undefined'
-  ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || '' : '';
 
 export default function CommanderSettingsPage() {
   const router = useRouter();

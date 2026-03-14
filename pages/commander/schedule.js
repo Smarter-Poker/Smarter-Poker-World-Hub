@@ -237,9 +237,6 @@ export default function StaffSchedule() {
   // back to this same tab. Without this guard, we get a double-fetch.
   const lastWriteRef = useRef(0);
   const WRITE_COOLDOWN_MS = 2000;
-  const getVenueId = () => {
-    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id || ''; } catch { return ''; }
-  };
   const getHeaders = () => {
     const token = getToken();
     const staffSession = localStorage.getItem('commander_staff') || '';

@@ -99,9 +99,6 @@ export default function CompSystem() {
   const [membershipPlans, setMembershipPlans] = useState([]);
 
   // ─── Auth helpers ───
-  const getVenueId = () => {
-    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
-  };
   const getHeaders = () => {
     const token = getToken();
     const staffSession = getStaffSession();

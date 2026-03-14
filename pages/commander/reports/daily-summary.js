@@ -19,9 +19,6 @@ export default function DailySummaryReport() {
   const [cashierData, setCashierData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const getVenueId = () => {
-    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
-  };
 
   useEffect(() => {
     const fetchAll = async () => {

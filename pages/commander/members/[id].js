@@ -30,9 +30,6 @@ export default function MemberProfile() {
   const [addTimeAmount, setAddTimeAmount] = useState('');
   const [showAddTime, setShowAddTime] = useState(false);
   const [tournamentResults, setTournamentResults] = useState([]);
-  const getVenueId = () => {
-    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id || ''; } catch { return ''; }
-  };
 
   useEffect(() => {
     const _c = new AbortController();

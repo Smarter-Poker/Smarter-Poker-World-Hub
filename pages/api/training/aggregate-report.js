@@ -14,7 +14,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { parseBoardFromHash, extractPositionFromHash, RANK_VALUES } from '../../../src/utils/trainingApiUtils';
+import { parseBoardFromHash, extractPositionFromHash, RANK_VALUES, sanitizeParam } from '../../../src/utils/trainingApiUtils';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -107,7 +107,8 @@ export default async function handler(req, res) {
               .limit(2000);
 
           if (heroPosition) {
-              query = query.ilike('scenario_hash', `%_${heroPosition}_%`);
+              const safeHeroPos = sanitizeParam(heroPosition, 10);
+              if (safeHeroPos) query = query.ilike('scenario_hash', `%_${safeHeroPos}_%`);
           }
 
           const { data: spots, error } = await query;

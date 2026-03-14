@@ -73,9 +73,6 @@ export default function NotificationCenter() {
     title: '', message: '', priority: 'normal', type: 'general', expires_at: '', starts_at: '',
   });
   const [showTemplates, setShowTemplates] = useState(false);
-  const getVenueId = () => {
-    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
-  };
 
   // ─── Notifications ───
   const fetchNotifications = useCallback(async (signal) => {
