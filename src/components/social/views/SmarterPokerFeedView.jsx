@@ -328,9 +328,15 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
     }, [loadFeed]);
 
     // Listen for new posts from other components via EventBus
+    // Delayed fallback: subscribeFeed handles real-time INSERTs instantly,
+    // so this is a safety net in case Realtime is delayed or disconnected
     useEffect(() => {
         const unsub = eventBus.on(EventType.SOCIAL_POST_CREATED, () => {
-            loadFeed(); // Refresh feed when a new post is created anywhere
+            // Delay to avoid double-fire with subscribeFeed
+            const timer = setTimeout(() => {
+                loadFeed();
+            }, 3000);
+            return () => clearTimeout(timer);
         });
         return () => { if (unsub) unsub(); };
     }, [loadFeed]);

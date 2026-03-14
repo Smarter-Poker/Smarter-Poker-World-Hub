@@ -111,9 +111,13 @@ export default async function handler(req, res) {
               accuracy,
               passed,
               streak,
-              diamondsEarned,
+              diamondsEarned: rawDiamonds,
               timeSpentSeconds
           } = req.body;
+
+          // SECURITY: Server-side diamond cap — prevents client-side economy abuse
+          // Max legitimate training reward: ~100 diamonds (perfect accuracy + streak + level bonuses)
+          const diamondsEarned = Math.max(0, Math.min(parseInt(rawDiamonds, 10) || 0, 100));
 
           // Validation
           if (!userId || !gameId || !level) {

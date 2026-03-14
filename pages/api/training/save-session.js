@@ -110,12 +110,14 @@ export default async function handler(req, res) {
           }
 
           // 4. BUG-05 FIX: Award speed bonus diamonds to user's balance
-          if (speedBonusDiamonds && speedBonusDiamonds > 0) {
+          // SECURITY: Server-side cap — max legitimate speed bonus is ~50 diamonds
+          const safeSpeedBonus = Math.max(0, Math.min(parseInt(speedBonusDiamonds, 10) || 0, 50));
+          if (safeSpeedBonus > 0) {
               try {
                   // Use RPC to atomically increment diamonds
                   const { error: rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
                       p_user_id: userId,
-                      p_amount: speedBonusDiamonds,
+                      p_amount: safeSpeedBonus,
                   });
 
                   if (rpcErr) {
@@ -129,12 +131,12 @@ export default async function handler(req, res) {
                       if (profile) {
                           await supabase
                               .from('profiles')
-                              .update({ diamond_balance: (profile.diamond_balance || 0) + speedBonusDiamonds })
+                              .update({ diamond_balance: (profile.diamond_balance || 0) + safeSpeedBonus })
                               .eq('id', userId);
                       }
                   }
 
-                  console.log(`[SaveSession] Awarded ${speedBonusDiamonds} speed bonus diamonds to ${userId}`);
+                  console.log(`[SaveSession] Awarded ${safeSpeedBonus} speed bonus diamonds to ${userId}`);
               } catch (diamondErr) {
                   console.warn('[SaveSession] Diamond award failed (non-blocking):', diamondErr.message);
               }

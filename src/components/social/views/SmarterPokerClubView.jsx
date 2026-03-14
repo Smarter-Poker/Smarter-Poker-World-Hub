@@ -555,10 +555,15 @@ export const SmarterPokerClubView = ({ onNavigate }) => {
         loadClubData();
     }, [loadClubData]);
 
-    // EventBus: refresh club posts when a new post is created
+    // EventBus: delayed fallback refresh — subscribeFeed handles real-time INSERTs,
+    // so this is a safety net in case Realtime is delayed or disconnected
     useEffect(() => {
         const unsub1 = eventBus.on(EventType.SOCIAL_POST_CREATED, () => {
-            loadClubData();
+            // Delay to avoid double-fire with subscribeFeed
+            const timer = setTimeout(() => {
+                loadClubData();
+            }, 3000);
+            return () => clearTimeout(timer);
         });
         const unsub2 = eventBus.on(EventType.SOCIAL_COMMENT_ADDED, (event) => {
             const { postId } = event?.payload || {};
