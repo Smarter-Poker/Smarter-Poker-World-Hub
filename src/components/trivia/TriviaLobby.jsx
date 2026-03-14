@@ -228,6 +228,11 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
         if (success) {
             // Mark as acknowledged — popup never shows again
             try { localStorage.setItem(ACKNOWLEDGED_KEY, 'true'); } catch (e) { }
+            // Signal downstream pages that payment was already made
+            try {
+                sessionStorage.setItem('trivia_paid', 'true');
+                sessionStorage.setItem('trivia_mode', pendingMode);
+            } catch (e) { }
             setShowChargePopup(false);
             routeToMode(pendingMode);
             setPendingMode(null);
@@ -280,6 +285,11 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
         const success = await deductDiamonds();
         setIsDeducting(false);
         if (success) {
+            // Signal downstream pages that payment was already made
+            try {
+                sessionStorage.setItem('trivia_paid', 'true');
+                sessionStorage.setItem('trivia_mode', modeId);
+            } catch (e) { }
             routeToMode(modeId);
         } else {
             setShowTopUpPopup(true);

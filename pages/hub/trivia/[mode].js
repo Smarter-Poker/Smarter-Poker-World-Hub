@@ -454,13 +454,24 @@ export default function TriviaModePage() {
         if (isStartingRef.current) return;
         isStartingRef.current = true;
         try {
+        // ═══════════════════════════════════════════════════════════════
+        // HOTFIX: Check if this game was already paid for via TriviaLobby
+        // payment modal. If so, skip the deduction and clear the flag.
+        // ═══════════════════════════════════════════════════════════════
+        const alreadyPaid = sessionStorage.getItem('trivia_paid') === 'true'
+            && sessionStorage.getItem('trivia_mode') === mode;
+        if (alreadyPaid) {
+            sessionStorage.removeItem('trivia_paid');
+            sessionStorage.removeItem('trivia_mode');
+        }
+
         // Check mode config for diamond cost — only modes with diamondCost > 0 charge
         const modeConfig = TRIVIA_MODES[mode];
         const modeCost = modeConfig?.diamondCost || 0;
         const isFreeMode = modeCost === 0;
 
-        // Per-game diamond deduction for paid modes (e.g., arcade=10💎)
-        if (!isFreeMode && userId && !isVIP) {
+        // Per-game diamond deduction for paid modes (skip if already paid via TriviaLobby)
+        if (!alreadyPaid && !isFreeMode && userId && !isVIP) {
             // Fresh balance check from DB to avoid stale-state false negatives
             try {
                 const { data: profile } = await supabase
