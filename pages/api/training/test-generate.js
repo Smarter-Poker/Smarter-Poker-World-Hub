@@ -29,6 +29,9 @@ export default async function handler(req, res) {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
 
+      const bodySize = JSON.stringify(req.body || {}).length;
+      if (bodySize > 10240) return res.status(413).json({ success: false, error: 'Request body too large' });
+
       // ── Auth: Admin-only test operation (calls Grok API) ──
       const adminSecret = req.headers['x-admin-secret'];
       const envSecret = process.env.ADMIN_ROUTE_SECRET;

@@ -95,6 +95,8 @@ export default async function handler(req, res) {
 
       // POST: Record training activity (call after session)
       if (req.method === 'POST') {
+          const bodySize = JSON.stringify(req.body || {}).length;
+          if (bodySize > 5120) return res.status(413).json({ success: false, error: 'Request body too large' });
           const { action } = req.body;
           // userId from JWT (set at top of handler)
 
