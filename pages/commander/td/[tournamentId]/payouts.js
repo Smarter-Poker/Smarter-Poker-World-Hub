@@ -44,19 +44,13 @@ export default function TDPayouts() {
     const [overrides, setOverrides] = useState({});
     const [showICM, setShowICM] = useState(false);
 
-    const getToken = useCallback(() => {
-        if (typeof window !== 'undefined') return localStorage.getItem('commander_staff') || '';
-        return null;
-    }, []);
-    const getBearerToken = () => typeof window !== 'undefined'
-        ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || '' : '';
+
 
     const fetchPayouts = useCallback(async () => {
         if (!tournamentId) return;
         try {
-            const token = getToken();
             const res = await fetch(`/api/commander/tournaments/${tournamentId}/payout?mode=calculate`, {
-                headers: { 'x-staff-session': token, Authorization: `Bearer ${getToken()}` }
+                headers: { 'x-staff-session': getStaffSession(), Authorization: `Bearer ${getToken()}` }
             });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
@@ -80,7 +74,7 @@ export default function TDPayouts() {
         } finally {
             setLoading(false);
         }
-    }, [tournamentId, getToken]);
+    }, [tournamentId]);
 
     useTournamentRealtime(tournamentId, fetchPayouts);
     useEffect(() => { const _c = new AbortController(); fetchPayouts(_c.signal); return () => _c.abort(); }, [fetchPayouts]);
@@ -99,10 +93,9 @@ export default function TDPayouts() {
                 amount: overrides[p.position] || p.amount
             })).filter(p => p.player_id);
 
-            const token = getToken();
             const res = await fetch(`/api/commander/tournaments/${tournamentId}/payout`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'x-staff-session': token, Authorization: `Bearer ${getToken()}` },
+                headers: { 'Content-Type': 'application/json', 'x-staff-session': getStaffSession(), Authorization: `Bearer ${getToken()}` },
                 body: JSON.stringify({ payouts })
             });
 
