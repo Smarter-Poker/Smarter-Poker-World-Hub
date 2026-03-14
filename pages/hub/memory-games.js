@@ -1907,11 +1907,12 @@ export default function MemoryGamesPage() {
         }
     };
 
-    // Start game
+    // Start game — separate guard for VIP path (isStartingRef guards deduction only)
+    const isGameStartingRef = useRef(false);
     const startGame = async (level) => {
         // Double-click guard — protects ALL users (VIP + non-VIP)
-        if (isStartingRef.current) return;
-        isStartingRef.current = true;
+        if (isGameStartingRef.current) return;
+        isGameStartingRef.current = true;
         try {
         // Check diamond access
         if (!isVIP) {
@@ -1994,7 +1995,7 @@ export default function MemoryGamesPage() {
 
         SoundEngine.play('levelUp');
         } finally {
-            isStartingRef.current = false;
+            isGameStartingRef.current = false;
         }
     };
 
