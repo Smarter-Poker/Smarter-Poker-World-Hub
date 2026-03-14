@@ -135,7 +135,7 @@ export default async function handler(req, res) {
           const supabase = getSupabase();
           const { data: existing } = await supabase
               .from('training_scenarios')
-              .select('*')
+              .select('gto_strategy, actions, frequencies, ev_data')
               .eq('scenario_hash', scenarioHash)
               .limit(1)
               .maybeSingle();

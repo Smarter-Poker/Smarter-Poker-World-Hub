@@ -145,7 +145,7 @@ export default async function handler(req, res) {
           // 2. Update or create training_progress
           const { data: existingProgress } = await supabase
               .from('training_progress')
-              .select('*')
+              .select('hands_played, correct_answers, total_answers, current_streak, best_streak')
               .eq('user_id', userId)
               .eq('game_id', gameId)
               .maybeSingle();

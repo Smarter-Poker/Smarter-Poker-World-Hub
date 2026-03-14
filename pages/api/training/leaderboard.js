@@ -60,7 +60,7 @@ export default async function handler(req, res) {
               for (const period of periods) {
                   const { data: existing } = await supabase
                       .from('training_leaderboard')
-                      .select('*')
+                      .select('id, sessions_completed, questions_answered, questions_correct, best_streak, perfect_rounds, total_xp')
                       .eq('user_id', userId)
                       .eq('period_type', period.type)
                       .eq('period_key', period.key)

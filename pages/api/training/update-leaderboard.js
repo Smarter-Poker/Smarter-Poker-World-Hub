@@ -67,7 +67,7 @@ export default async function handler(req, res) {
               // Check if entry exists
               const { data: existing } = await supabase
                   .from('training_leaderboard')
-                  .select('*')
+                  .select('id, sessions_completed, questions_answered, questions_correct, total_xp, best_streak')
                   .eq('user_id', userId)
                   .eq('period_type', period.type)
                   .eq('period_key', period.key)

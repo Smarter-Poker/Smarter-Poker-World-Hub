@@ -46,7 +46,7 @@ export default async function handler(req, res) {
               // Check if already claimed today
               const { data: claimed } = await supabase
                   .from('training_daily_bonus')
-                  .select('*')
+                  .select('claimed_at, diamonds_awarded')
                   .eq('user_id', userId)
                   .eq('bonus_date', today)
                   .maybeSingle();
@@ -104,7 +104,7 @@ export default async function handler(req, res) {
               // Check if already claimed today
               const { data: existing } = await supabase
                   .from('training_daily_bonus')
-                  .select('*')
+                  .select('id')
                   .eq('user_id', userId)
                   .eq('bonus_date', today)
                   .maybeSingle();
