@@ -116,6 +116,7 @@ export default function SurvivalGamePage() {
     const [showOutOfDiamonds, setShowOutOfDiamonds] = useState(false);
 
     const startTimeRef = useRef(null);
+    const answersRef = useRef([]); // Track per-question correctness
 
     // Initialize
     useEffect(() => {
@@ -235,6 +236,7 @@ export default function SurvivalGamePage() {
         if ('vibrate' in navigator) navigator.vibrate([200, 100, 200]);
 
         setIncorrectCount(prev => prev + 1);
+        answersRef.current.push(false); // Track timed-out answer as incorrect
         setShowResult(true);
 
         const config = LEVEL_CONFIG[currentLevel - 1];
@@ -404,6 +406,7 @@ export default function SurvivalGamePage() {
         setIncorrectCount(0);
         setSelectedAnswer(null);
         setShowResult(false);
+        answersRef.current = []; // Reset per-question tracking for new level
         setFiftyFiftyUsedFree(false);
         setEliminatedOptions([]);
         setLifelinesUsedThisLevel(0); // Reset lifeline counter
@@ -578,6 +581,7 @@ export default function SurvivalGamePage() {
 
         if (isCorrect) {
             setCorrectCount(prev => prev + 1);
+            answersRef.current.push(true);
             busEmit.decisionCorrect(correctCount + 1);
 
             // Speed bonus for fast answers (under 10 seconds)
@@ -591,6 +595,7 @@ export default function SurvivalGamePage() {
             setLastAnswerTime(answerTime);
         } else {
             setIncorrectCount(prev => prev + 1);
+            answersRef.current.push(false);
             busEmit.decisionIncorrect(correctCount);
             busEmit.screenShake('light');
         }
@@ -675,13 +680,12 @@ export default function SurvivalGamePage() {
             }));
 
             // Record question history for 60-day non-repeat
-            if (questions && questions.length > 0) {
-                const answeredCount = correctCount + incorrectCount;
-                const answeredQuestions = questions.slice(0, Math.min(answeredCount, questions.length));
+            if (questions && questions.length > 0 && answersRef.current.length > 0) {
+                const answeredQuestions = questions.slice(0, answersRef.current.length);
                 const historyRecords = answeredQuestions.map((q, idx) => ({
                     user_id: userId,
                     question_id: q.id,
-                    was_correct: idx < correctCount, // First N are correct, rest are wrong
+                    was_correct: answersRef.current[idx] || false,
                     seen_at: new Date().toISOString(),
                     mode: 'survival'
                 }));

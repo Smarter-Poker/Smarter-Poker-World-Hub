@@ -147,13 +147,14 @@ export default function DailyPresetsPage() {
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': localStorage.getItem('commander_staff') || '' };
       const stored = JSON.parse(localStorage.getItem('commander_staff') || '{}');
       const venueId = stored.venue_id;
+      const safeJson = (r) => (r && typeof r.json === 'function') ? r.json().catch(() => ({})) : Promise.resolve({});
       const [presetsRes, typesRes, promosRes] = await Promise.all([
-        fetch(`/api/commander/room-presets?venue_id=${venueId}`, { headers }).catch(() => ({ ok: false })),
-        fetch(`/api/commander/game-types?venue_id=${venueId}`, { headers }).catch(() => ({ ok: false })),
-        fetch(`/api/commander/promotions?venue_id=${venueId}&status=all`, { headers }).catch(() => ({ ok: false }))
+        fetch(`/api/commander/room-presets?venue_id=${venueId}`, { headers }).catch(() => null),
+        fetch(`/api/commander/game-types?venue_id=${venueId}`, { headers }).catch(() => null),
+        fetch(`/api/commander/promotions?venue_id=${venueId}&status=all`, { headers }).catch(() => null)
       ]);
       const [presetsJson, typesJson, promosJson] = await Promise.all([
-        presetsRes.json(), typesRes.json(), promosRes.json()
+        safeJson(presetsRes), safeJson(typesRes), safeJson(promosRes)
       ]);
       if (presetsJson.success) setPresets(presetsJson.data || []);
       if (typesJson.success) setGameTypes(typesJson.data || []);
