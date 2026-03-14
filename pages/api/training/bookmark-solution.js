@@ -9,7 +9,8 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -17,7 +18,12 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default async function handler(req, res) {
     try {
-        // Auth check — get user from header or cookie
+        // Rate limit write operations
+        if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+            if (!applyRateLimit(req, res, LIMITS.write)) return;
+        }
+
+        // Auth check — JWT only (no x-user-id fallback — prevents IDOR)
         const authHeader = req.headers.authorization;
         let userId = null;
 
@@ -25,11 +31,6 @@ export default async function handler(req, res) {
             const token = authHeader.substring(7);
             const { data: { user }, error } = await supabase.auth.getUser(token);
             if (!error && user) userId = user.id;
-        }
-
-        // Fallback: try x-user-id header (for server-side calls)
-        if (!userId) {
-            userId = req.headers['x-user-id'] || null;
         }
 
         if (!userId) {
