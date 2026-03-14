@@ -54,6 +54,8 @@ export default function TDPlayers() {
 
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_staff') || '' : '';
+  const getBearerToken = () => typeof window !== 'undefined'
+    ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || '' : '';
 
   const fetchFloor = useCallback(async (signal) => {
 
@@ -62,7 +64,7 @@ export default function TDPlayers() {
     if (!tournamentId) return;
     try {
       const res = await fetch(`/api/commander/tournaments/${tournamentId}/floor-view`, {
-        headers: { 'x-staff-session': getToken() },
+        headers: { 'x-staff-session': getToken(), Authorization: `Bearer ${getBearerToken()}` },
         ...(signal ? { signal } : {}),
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -112,7 +114,7 @@ export default function TDPlayers() {
   const apiCall = async (url, body) => {
     const res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken() },
+      headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken(), Authorization: `Bearer ${getBearerToken()}` },
       body: JSON.stringify(body)
     });
     if (!res.ok) return { success: false, error: 'API Error' };
@@ -283,7 +285,7 @@ ${receipts.map(r => `<div class="card">
     try {
       const res = await fetch(`/api/commander/tournaments/${tournamentId}/entries/${chipModal.entry_id}/chips`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken() },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken(), Authorization: `Bearer ${getBearerToken()}` },
         body: JSON.stringify({ chips: parseInt(chipValue) })
       });
       if (res.ok) {

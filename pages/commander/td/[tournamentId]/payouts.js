@@ -47,13 +47,15 @@ export default function TDPayouts() {
         if (typeof window !== 'undefined') return localStorage.getItem('commander_staff') || '';
         return null;
     }, []);
+    const getBearerToken = () => typeof window !== 'undefined'
+        ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || '' : '';
 
     const fetchPayouts = useCallback(async () => {
         if (!tournamentId) return;
         try {
             const token = getToken();
             const res = await fetch(`/api/commander/tournaments/${tournamentId}/payout?mode=calculate`, {
-                headers: { 'x-staff-session': token }
+                headers: { 'x-staff-session': token, Authorization: `Bearer ${getBearerToken()}` }
             });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
@@ -99,7 +101,7 @@ export default function TDPayouts() {
             const token = getToken();
             const res = await fetch(`/api/commander/tournaments/${tournamentId}/payout`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'x-staff-session': token },
+                headers: { 'Content-Type': 'application/json', 'x-staff-session': token, Authorization: `Bearer ${getBearerToken()}` },
                 body: JSON.stringify({ payouts })
             });
 

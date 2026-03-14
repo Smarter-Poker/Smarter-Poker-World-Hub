@@ -75,13 +75,15 @@ export default function TDControlCenter() {
     }
     return null;
   }, []);
+  const getBearerToken = () => typeof window !== 'undefined'
+    ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || '' : '';
 
   const fetchFloor = useCallback(async (signal) => {
     if (!tournamentId) return;
     try {
       const token = getToken();
       const res = await fetch(`/api/commander/tournaments/${tournamentId}/floor-view`, {
-        headers: { 'x-staff-session': token },
+        headers: { 'x-staff-session': token, Authorization: `Bearer ${getBearerToken()}` },
         ...(signal ? { signal } : {}),
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -130,7 +132,7 @@ export default function TDControlCenter() {
       const token = getToken();
       const res = await fetch(`/api/commander/tournaments/${tournamentId}/message`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': token },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': token, Authorization: `Bearer ${getBearerToken()}` },
         body: JSON.stringify({ message: messageText, type: 'announcement', duration_seconds: 60 })
       });
       if (!res.ok) throw new Error('Request failed');
@@ -150,7 +152,7 @@ export default function TDControlCenter() {
       const token = getToken();
       const res = await fetch(`/api/commander/tournaments/${tournamentId}/hand-for-hand`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': token },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': token, Authorization: `Bearer ${getBearerToken()}` },
         body: JSON.stringify({ active: !isActive })
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);

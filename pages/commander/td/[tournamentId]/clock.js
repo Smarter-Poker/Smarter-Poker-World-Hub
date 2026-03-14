@@ -38,6 +38,8 @@ export default function TDClock() {
 
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_staff') || '' : '';
+  const getBearerToken = () => typeof window !== 'undefined'
+    ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || '' : '';
 
   const fetchFloor = useCallback(async (signal) => {
 
@@ -46,7 +48,7 @@ export default function TDClock() {
     if (!tournamentId) return;
     try {
       const res = await fetch(`/api/commander/tournaments/${tournamentId}/floor-view`, {
-        headers: { 'x-staff-session': getToken() },
+        headers: { 'x-staff-session': getToken(), Authorization: `Bearer ${getBearerToken()}` },
         ...(signal ? { signal } : {}),
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -188,7 +190,7 @@ ${receipts.map(r => `<div class="card">
     try {
       const res = await fetch(`/api/commander/tournaments/${tournamentId}/clock`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken() },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken(), Authorization: `Bearer ${getBearerToken()}` },
         body: JSON.stringify({ action })
       });
       if (res.ok) {
@@ -216,7 +218,7 @@ ${receipts.map(r => `<div class="card">
     try {
       const res = await fetch(`/api/commander/tournaments/${tournamentId}/hand-for-hand`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken() },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken(), Authorization: `Bearer ${getBearerToken()}` },
         body: JSON.stringify({ active: !isActive })
       });
       if (res.ok) {
@@ -238,7 +240,7 @@ ${receipts.map(r => `<div class="card">
     try {
       const res = await fetch(`/api/commander/tournaments/${tournamentId}/final-table`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken() },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken(), Authorization: `Bearer ${getBearerToken()}` },
         body: JSON.stringify({ final_table_number: 1 })
       });
       if (res.ok) {
@@ -260,7 +262,7 @@ ${receipts.map(r => `<div class="card">
     if (!messageText.trim()) return;
     const res = await fetch(`/api/commander/tournaments/${tournamentId}/message`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken() },
+      headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken(), Authorization: `Bearer ${getBearerToken()}` },
       body: JSON.stringify({ message: messageText, type: 'announcement', duration_seconds: 60 })
     });
     if (res.ok) {
