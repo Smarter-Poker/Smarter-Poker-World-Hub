@@ -72,7 +72,11 @@ export default function MembersPage() {
 
     const { data: membersData, isLoading: loading, mutate: fetchMembers } = useSWR(
         membersKey,
-        (url) => fetch(url).then(r => r.json()).catch(() => null),
+        (url) => {
+            const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+            const staffSession = localStorage.getItem('commander_staff') || '';
+            return fetch(url, { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } }).then(r => r.json()).catch(() => null);
+        },
         { revalidateOnFocus: true, dedupingInterval: 5000 }
     );
 
