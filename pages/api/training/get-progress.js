@@ -68,14 +68,14 @@ export default async function handler(req, res) {
           }
 
           // Calculate overall stats
-          const totalGamesPlayed = data.length;
-          const totalGamesMastered = data.filter(p => p.mastery_percentage === 100).length
-          const totalQuestionsAnswered = data.reduce((sum, p) => sum + (p.total_questions_answered || 0), 0);
-          const totalCorrect = data.reduce((sum, p) => sum + (p.total_correct || 0), 0);
+          const totalGamesPlayed = (data || []).length;
+          const totalGamesMastered = (data || []).filter(p => p.mastery_percentage === 100).length
+          const totalQuestionsAnswered = (data || []).reduce((sum, p) => sum + (p.total_questions_answered || 0), 0);
+          const totalCorrect = (data || []).reduce((sum, p) => sum + (p.total_correct || 0), 0);
           const overallAccuracy = totalQuestionsAnswered > 0
               ? Math.round((totalCorrect / totalQuestionsAnswered) * 100)
               : 0;
-          const bestStreak = Math.max(...data.map(p => p.best_streak || 0), 0);
+          const bestStreak = Math.max(...(data || []).map(p => p.best_streak || 0), 0);
 
           return res.status(200).json({
               success: true,

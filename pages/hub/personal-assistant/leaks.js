@@ -580,15 +580,10 @@ export default function LeakFinderPage() {
   const [coachAccuracy, setCoachAccuracy] = useState(null);
   const fetchCoachAccuracy = async () => {
     try {
-      const { createClient } = await import('@supabase/supabase-js');
-      const sbc = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-      );
-      const { data: { session } } = await sbc.auth.getSession();
-      if (!session?.access_token) return;
+      const accessToken = getAccessToken();
+      if (!accessToken) return;
       const res = await fetch('/api/sandbox/coach-accuracy', {
-        headers: { 'Authorization': `Bearer ${session.access_token}` },
+        headers: { 'Authorization': `Bearer ${accessToken}` },
       });
       if (res.ok) {
         const json = await res.json();

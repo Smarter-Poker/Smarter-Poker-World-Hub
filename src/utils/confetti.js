@@ -1,15 +1,37 @@
 /**
  * 🎉 ENHANCED CONFETTI SYSTEM
  * Advanced celebration effects with multiple presets
+ * Lazy-loaded to reduce initial bundle size (~15KB saved)
  */
 
-import confetti from 'canvas-confetti';
+// Lazy-load canvas-confetti on first use
+let _confetti = null;
+async function getConfetti() {
+    if (!_confetti) {
+        try {
+            const m = await import('canvas-confetti');
+            _confetti = m.default || m;
+        } catch (e) {
+            // Swallow import errors — confetti is cosmetic
+            _confetti = () => {};
+        }
+    }
+    return _confetti;
+}
+
+// Safe fire wrapper — cosmetic failures are silent
+async function fire(opts) {
+    try {
+        const c = await getConfetti();
+        c(opts);
+    } catch (e) { /* swallow */ }
+}
 
 // Confetti presets
 export const confettiPresets = {
     // Basic celebration
     basic: () => {
-        confetti({
+        fire({
             particleCount: 100,
             spread: 70,
             origin: { y: 0.6 },
@@ -17,7 +39,8 @@ export const confettiPresets = {
     },
 
     // Achievement unlocked
-    achievement: () => {
+    achievement: async () => {
+        const c = await getConfetti();
         const duration = 3000;
         const animationEnd = Date.now() + duration;
         const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
@@ -35,58 +58,63 @@ export const confettiPresets = {
 
             const particleCount = 50 * (timeLeft / duration);
 
-            confetti({
-                ...defaults,
-                particleCount,
-                origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
-            });
-            confetti({
-                ...defaults,
-                particleCount,
-                origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
-            });
+            try {
+                c({
+                    ...defaults,
+                    particleCount,
+                    origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
+                });
+                c({
+                    ...defaults,
+                    particleCount,
+                    origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
+                });
+            } catch (e) { /* swallow */ }
         }, 250);
     },
 
     // Mastery celebration (85%+)
-    mastery: () => {
+    mastery: async () => {
+        const c = await getConfetti();
         const count = 200;
         const defaults = {
             origin: { y: 0.7 },
             zIndex: 9999,
         };
 
-        function fire(particleRatio, opts) {
-            confetti({
-                ...defaults,
-                ...opts,
-                particleCount: Math.floor(count * particleRatio),
-            });
+        function fireBurst(particleRatio, opts) {
+            try {
+                c({
+                    ...defaults,
+                    ...opts,
+                    particleCount: Math.floor(count * particleRatio),
+                });
+            } catch (e) { /* swallow */ }
         }
 
-        fire(0.25, {
+        fireBurst(0.25, {
             spread: 26,
             startVelocity: 55,
         });
 
-        fire(0.2, {
+        fireBurst(0.2, {
             spread: 60,
         });
 
-        fire(0.35, {
+        fireBurst(0.35, {
             spread: 100,
             decay: 0.91,
             scalar: 0.8,
         });
 
-        fire(0.1, {
+        fireBurst(0.1, {
             spread: 120,
             startVelocity: 25,
             decay: 0.92,
             scalar: 1.2,
         });
 
-        fire(0.1, {
+        fireBurst(0.1, {
             spread: 120,
             startVelocity: 45,
         });
@@ -100,7 +128,7 @@ export const confettiPresets = {
                 ? ['#ff6b35', '#ffd700']
                 : ['#00ff88', '#00d4ff'];
 
-        confetti({
+        fire({
             particleCount: 50 + (streakCount * 5),
             spread: 60 + (streakCount * 2),
             origin: { y: 0.6 },
@@ -110,7 +138,8 @@ export const confettiPresets = {
     },
 
     // Level up
-    levelUp: () => {
+    levelUp: async () => {
+        const c = await getConfetti();
         const duration = 2000;
         const animationEnd = Date.now() + duration;
 
@@ -121,25 +150,28 @@ export const confettiPresets = {
                 return clearInterval(interval);
             }
 
-            confetti({
-                particleCount: 3,
-                angle: 60,
-                spread: 55,
-                origin: { x: 0 },
-                colors: ['#00d4ff', '#0088cc'],
-            });
-            confetti({
-                particleCount: 3,
-                angle: 120,
-                spread: 55,
-                origin: { x: 1 },
-                colors: ['#00ff88', '#00cc66'],
-            });
+            try {
+                c({
+                    particleCount: 3,
+                    angle: 60,
+                    spread: 55,
+                    origin: { x: 0 },
+                    colors: ['#00d4ff', '#0088cc'],
+                });
+                c({
+                    particleCount: 3,
+                    angle: 120,
+                    spread: 55,
+                    origin: { x: 1 },
+                    colors: ['#00ff88', '#00cc66'],
+                });
+            } catch (e) { /* swallow */ }
         }, 50);
     },
 
     // Fireworks
-    fireworks: () => {
+    fireworks: async () => {
+        const c = await getConfetti();
         const duration = 5000;
         const animationEnd = Date.now() + duration;
         const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
@@ -157,18 +189,20 @@ export const confettiPresets = {
 
             const particleCount = 50 * (timeLeft / duration);
 
-            confetti({
-                ...defaults,
-                particleCount,
-                origin: { x: randomInRange(0.1, 0.9), y: randomInRange(0.1, 0.5) },
-                colors: ['#00d4ff', '#00ff88', '#ffd700', '#ff6b35', '#ff1744'],
-            });
+            try {
+                c({
+                    ...defaults,
+                    particleCount,
+                    origin: { x: randomInRange(0.1, 0.9), y: randomInRange(0.1, 0.5) },
+                    colors: ['#00d4ff', '#00ff88', '#ffd700', '#ff6b35', '#ff1744'],
+                });
+            } catch (e) { /* swallow */ }
         }, 250);
     },
 
     // Custom celebration
     custom: (options = {}) => {
-        confetti({
+        fire({
             particleCount: 100,
             spread: 70,
             origin: { y: 0.6 },

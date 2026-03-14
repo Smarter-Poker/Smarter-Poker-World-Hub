@@ -113,8 +113,6 @@ export default function PlayerProfilePage() {
 
     (async () => {
       try {
-        const { createClient } = await import('@supabase/supabase-js');
-        const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
         const user = getAuthUser();
         if (user) {
           const res = await fetch(`/api/social/pages?owner_id=${user.id}`);

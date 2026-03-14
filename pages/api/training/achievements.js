@@ -116,17 +116,17 @@ export default async function handler(req, res) {
               };
 
 
-              // Get all definitions
-              const { data: definitions } = await supabase
-                  .from('training_achievement_definitions')
-                  .select('*');
-
-              // Get already unlocked
-              const { data: existing } = await supabase
-                  .from('training_user_achievements')
-                  .select('achievement_id')
-                  .eq('user_id', userId)
-                  .limit(100);
+              // Parallel fetch: definitions and existing unlocks are independent
+              const [{ data: definitions }, { data: existing }] = await Promise.all([
+                  supabase
+                      .from('training_achievement_definitions')
+                      .select('id, category, threshold, diamond_reward, name'),
+                  supabase
+                      .from('training_user_achievements')
+                      .select('achievement_id')
+                      .eq('user_id', userId)
+                      .limit(100)
+              ]);
 
               const unlockedIds = new Set((existing || []).map(e => e.achievement_id));
 

@@ -41,14 +41,14 @@ export default function LevelUpOverlay({
             const end = Date.now() + duration;
 
             const frame = () => {
-                confetti({
+                fireConfetti({
                     particleCount: 3,
                     angle: 60,
                     spread: 55,
                     origin: { x: 0, y: 0.7 },
                     colors: ['#FFD700', '#00D4FF', '#00ff88'],
                 });
-                confetti({
+                fireConfetti({
                     particleCount: 3,
                     angle: 120,
                     spread: 55,
@@ -64,7 +64,7 @@ export default function LevelUpOverlay({
 
             // Center burst
             setTimeout(() => {
-                confetti({
+                fireConfetti({
                     particleCount: 100,
                     spread: 100,
                     origin: { y: 0.5 },

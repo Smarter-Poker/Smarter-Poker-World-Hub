@@ -60,7 +60,7 @@ export default async function handler(req, res) {
           // Fetch questions from cache
           const { data: questions, error } = await supabase
               .from('training_question_cache')
-              .select('*')
+              .select('question_data')
               .eq('game_id', gameId)
               .eq('level', gameLevel)
               .limit(questionCount);

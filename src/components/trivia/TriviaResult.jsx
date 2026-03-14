@@ -64,7 +64,7 @@ export default function TriviaResult({
     useEffect(() => {
         // Confetti
         if (accuracy >= 70) {
-            confetti({
+            fireConfetti({
                 particleCount: isPerfect ? 200 : 80,
                 spread: 70,
                 origin: { y: 0.6 },
@@ -75,7 +75,7 @@ export default function TriviaResult({
             audio.victoryFanfare();
             setTimeout(() => {
                 setShowFlawless(true);
-                confetti({ particleCount: 100, spread: 100, origin: { y: 0.4 } });
+                fireConfetti({ particleCount: 100, spread: 100, origin: { y: 0.4 } });
             }, 800);
         }
     }, []);
