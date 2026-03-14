@@ -12,7 +12,14 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import confetti from 'canvas-confetti';
+// confetti loaded lazily on first use
+let _confetti = null;
+async function fireConfetti(opts) {
+    try {
+        if (!_confetti) { const m = await import('canvas-confetti'); _confetti = m.default || m; }
+        _confetti(opts);
+    } catch (e) { /* confetti is cosmetic — swallow import/execution errors */ }
+}
 
 export default function LevelUpOverlay({
     isVisible = false,

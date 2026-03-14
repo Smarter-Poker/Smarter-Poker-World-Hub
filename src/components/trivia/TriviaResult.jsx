@@ -13,7 +13,14 @@ import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, Zap, Gem, Target, Clock, Flame, RotateCcw, Home, ChevronRight, Crown } from 'lucide-react';
-import confetti from 'canvas-confetti';
+// confetti loaded lazily on first use
+let _confetti = null;
+async function fireConfetti(opts) {
+    try {
+        if (!_confetti) { const m = await import('canvas-confetti'); _confetti = m.default || m; }
+        _confetti(opts);
+    } catch (e) { /* confetti is cosmetic — swallow import/execution errors */ }
+}
 import * as audio from '../../lib/trivia/triviaAudio';
 
 export default function TriviaResult({

@@ -5,7 +5,14 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import confetti from 'canvas-confetti';
+// confetti loaded lazily on first use
+let _confetti = null;
+async function fireConfetti(opts) {
+    try {
+        if (!_confetti) { const m = await import('canvas-confetti'); _confetti = m.default || m; }
+        _confetti(opts);
+    } catch (e) { /* confetti is cosmetic — swallow import/execution errors */ }
+}
 
 // Supabase services for persistence
 import gameSessionService from '../services/GameSessionService';
@@ -459,7 +466,7 @@ export default function SpotTrainerGame({ onExit, onScoreUpdate, DiamondEngine, 
             setStreakCount(prev => prev + 1);
 
             if (streakCount >= 4) {
-                confetti({
+                fireConfetti({
                     particleCount: 50,
                     spread: 60,
                     origin: { y: 0.7 }

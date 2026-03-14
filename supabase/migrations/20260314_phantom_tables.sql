@@ -479,7 +479,7 @@ CREATE TABLE IF NOT EXISTS public.training_hand_history (
 CREATE TABLE IF NOT EXISTS public.training_user_achievements (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  achievement_id uuid REFERENCES public.training_achievement_definitions(id) ON DELETE CASCADE,
+  achievement_id text REFERENCES public.training_achievement_definitions(id) ON DELETE CASCADE,
   achievement_key text,
   progress numeric DEFAULT 0,
   target numeric DEFAULT 1,

@@ -16,7 +16,14 @@
 import SEOHead from '../../src/components/seo/SEOHead';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import confetti from 'canvas-confetti';
+// confetti loaded lazily on first use
+let _confetti = null;
+async function fireConfetti(opts) {
+    try {
+        if (!_confetti) { const m = await import('canvas-confetti'); _confetti = m.default || m; }
+        _confetti(opts);
+    } catch (e) { /* confetti is cosmetic — swallow import/execution errors */ }
+}
 import { supabase } from '../../src/lib/supabase';
 import { useAuthUser, getAccessToken } from '../../src/lib/authUtils';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
@@ -370,7 +377,7 @@ export default function DiamondArcade() {
             setStreak(result.newStreak);
             busEmit.diamondsEarned(result.finalPrize, `Arcade Win: ${activeGame.name}`);
             if (result.finalPrize >= 100) {
-                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: ['#fbbf24', '#22c55e', '#3b82f6'] });
+                fireConfetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: ['#fbbf24', '#22c55e', '#3b82f6'] });
                 busEmit.celebration('confetti');
             }
         }

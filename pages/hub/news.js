@@ -23,7 +23,14 @@ import { usePersistedFilters } from '../../src/hooks/usePersistedFilters';
 import useSWR from 'swr';
 import { supabase } from '../../src/lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
-import confetti from 'canvas-confetti';
+// confetti loaded lazily on first use
+let _confetti = null;
+async function fireConfetti(opts) {
+    try {
+        if (!_confetti) { const m = await import('canvas-confetti'); _confetti = m.default || m; }
+        _confetti(opts);
+    } catch (e) { /* confetti is cosmetic — swallow import/execution errors */ }
+}
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import { Eye, TrendingUp, Trophy, Play, MapPin, ExternalLink, Loader, Bookmark, BookmarkCheck, Share2, Twitter, LinkIcon, CheckCircle, ChevronDown, Newspaper, Globe, ChevronRight, Film } from 'lucide-react';
 
@@ -1142,7 +1149,7 @@ export default function NewsHub() {
     const copyLink = async (article) => {
         const url = `https://smarter.poker/hub/article?id=${article.id}`;
         await navigator.clipboard.writeText(url);
-        confetti({ particleCount: 30, spread: 40, origin: { y: 0.7 } });
+        fireConfetti({ particleCount: 30, spread: 40, origin: { y: 0.7 } });
     };
 
     // Refresh button handler (triggers SWR revalidation)
