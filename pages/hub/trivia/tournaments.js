@@ -379,28 +379,32 @@ export default function TournamentsPage() {
 
         busEmit.diamondsSpent(tournament.entry_fee, 'Tournament Entry');
 
-        // Create entry
-        const { data: entry } = await supabase
-            .from('trivia_tournament_entries')
-            .insert({
-                tournament_id: tournament.id,
-                user_id: userId,
-                score: 0,
-                created_at: new Date().toISOString()
-            })
-            .select()
-            .maybeSingle();
+        // Create entry and update prize pool
+        try {
+            const { data: entry } = await supabase
+                .from('trivia_tournament_entries')
+                .insert({
+                    tournament_id: tournament.id,
+                    user_id: userId,
+                    score: 0,
+                    created_at: new Date().toISOString()
+                })
+                .select()
+                .maybeSingle();
 
-        setUserEntry(entry);
+            setUserEntry(entry);
 
-        // Update prize pool (net of 10% house rake)
-        const netEntryFee = tournament.entry_fee - Math.floor(tournament.entry_fee * 0.1);
-        await supabase
-            .from('trivia_tournaments')
-            .update({
-                prize_pool: (tournament.prize_pool || 0) + netEntryFee
-            })
-            .eq('id', tournament.id);
+            // Update prize pool (net of 10% house rake)
+            const netEntryFee = tournament.entry_fee - Math.floor(tournament.entry_fee * 0.1);
+            await supabase
+                .from('trivia_tournaments')
+                .update({
+                    prize_pool: (tournament.prize_pool || 0) + netEntryFee
+                })
+                .eq('id', tournament.id);
+        } catch (e) {
+            console.error('[Tournaments] Entry creation failed after fee deduction:', e);
+        }
 
         // Refresh tournament data
         await loadData();
@@ -499,21 +503,25 @@ export default function TournamentsPage() {
                 }
             }
 
-            await supabase
-                .from('trivia_tournament_rounds')
-                .update({ matchups: updatedMatchups })
-                .eq('id', currentRoundData.id);
+            try {
+                await supabase
+                    .from('trivia_tournament_rounds')
+                    .update({ matchups: updatedMatchups })
+                    .eq('id', currentRoundData.id);
 
-            // Also update the user's entry (use scoreRef for accurate value)
-            await supabase
-                .from('trivia_tournament_entries')
-                .update({
-                    score: (userEntry?.score || 0) + finalScore,
-                    time_spent: (userEntry?.time_spent || 0) + totalTime,
-                    completed_at: new Date().toISOString()
-                })
-                .eq('tournament_id', activeTournament.id)
-                .eq('user_id', userId);
+                // Also update the user's entry (use scoreRef for accurate value)
+                await supabase
+                    .from('trivia_tournament_entries')
+                    .update({
+                        score: (userEntry?.score || 0) + finalScore,
+                        time_spent: (userEntry?.time_spent || 0) + totalTime,
+                        completed_at: new Date().toISOString()
+                    })
+                    .eq('tournament_id', activeTournament.id)
+                    .eq('user_id', userId);
+            } catch (e) {
+                console.error('[Tournaments] Failed to save round results:', e);
+            }
         }
 
         // Record question history (with actual accuracy per question)
