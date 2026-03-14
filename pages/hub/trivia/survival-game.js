@@ -117,6 +117,7 @@ export default function SurvivalGamePage() {
 
     const startTimeRef = useRef(null);
     const answersRef = useRef([]); // Track per-question correctness
+    const answerTimeoutRef = useRef(null); // Cleanup on unmount
 
     // Initialize
     useEffect(() => {
@@ -226,6 +227,7 @@ export default function SurvivalGamePage() {
         return () => {
             if (timerRef.current) clearInterval(timerRef.current);
             if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
+            if (answerTimeoutRef.current) clearTimeout(answerTimeoutRef.current);
         };
     }, [isTimerRunning, showResult, timeLeft, settings]);
 
@@ -243,7 +245,7 @@ export default function SurvivalGamePage() {
         const remainingQuestions = QUESTIONS_PER_LEVEL - currentQuestionIndex - 1;
         const maxPossibleCorrect = correctCount + remainingQuestions;
 
-        setTimeout(() => {
+        answerTimeoutRef.current = setTimeout(() => {
             if (currentQuestionIndex + 1 >= QUESTIONS_PER_LEVEL) {
                 evaluateLevelResult(correctCount);
             } else if (maxPossibleCorrect < config.minCorrect) {
@@ -604,7 +606,7 @@ export default function SurvivalGamePage() {
         const remainingQuestions = QUESTIONS_PER_LEVEL - currentQuestionIndex - 1;
         const maxPossibleCorrect = correctCount + (isCorrect ? 1 : 0) + remainingQuestions;
 
-        setTimeout(() => {
+        answerTimeoutRef.current = setTimeout(() => {
             if (currentQuestionIndex + 1 >= QUESTIONS_PER_LEVEL) {
                 const finalCorrect = correctCount + (isCorrect ? 1 : 0);
                 evaluateLevelResult(finalCorrect);

@@ -82,6 +82,7 @@ export default function EndlessModePage() {
     const streakRef = useRef(0);
     const diamondsEarnedRef = useRef(0);
     const currentIndexRef = useRef(0);
+    const answerTimeoutRef = useRef(null); // Cleanup on unmount
 
     // Game Settings (persist to localStorage)
     const [settings, setSettings] = useState({
@@ -339,6 +340,7 @@ export default function EndlessModePage() {
         return () => {
             if (timerRef.current) clearInterval(timerRef.current);
             if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
+            if (answerTimeoutRef.current) clearTimeout(answerTimeoutRef.current);
         };
     }, [isTimerRunning, showResult, timeLeft, settings]);
 
@@ -348,7 +350,7 @@ export default function EndlessModePage() {
         setScreenShake(false);
         if ('vibrate' in navigator) navigator.vibrate([200, 100, 200]);
         setShowResult(true);
-        setTimeout(() => {
+        answerTimeoutRef.current = setTimeout(() => {
             setGameState('gameover');
             saveGameResult();
         }, 1500);
@@ -525,7 +527,7 @@ export default function EndlessModePage() {
             setStreak(prev => { const next = prev + 1; streakRef.current = next; return next; });
             busEmit.decisionCorrect(streak + 1);
 
-            setTimeout(() => {
+            answerTimeoutRef.current = setTimeout(() => {
                 setCurrentIndex(prev => { const next = prev + 1; currentIndexRef.current = next; return next; });
                 setSelectedAnswer(null);
                 setShowResult(false);
@@ -540,7 +542,7 @@ export default function EndlessModePage() {
         } else {
             busEmit.decisionIncorrect(streak);
             busEmit.screenShake('medium');
-            setTimeout(() => {
+            answerTimeoutRef.current = setTimeout(() => {
                 setGameState('gameover');
                 saveGameResult();
             }, 1500);
