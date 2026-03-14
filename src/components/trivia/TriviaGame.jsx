@@ -105,7 +105,7 @@ export default function TriviaGame({
             setTimeRemaining(prev => {
                 if (prev <= 1) {
                     clearInterval(timerRef.current);
-                    // handleTimeUp called inline to avoid stale closure
+                    // Timer expired — useEffect below will auto-complete the game
                     setIsGameActive(false);
                     return 0;
                 }
