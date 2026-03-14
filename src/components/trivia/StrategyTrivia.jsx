@@ -293,13 +293,17 @@ export default function StrategyTrivia({ mode }) {
     }
 
     async function loadUserDiamonds(uid) {
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('diamonds')
-            .eq('id', uid)
-            .maybeSingle();
-        if (profile) {
-            setUserDiamonds(profile.diamonds || 0);
+        try {
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('diamonds')
+                .eq('id', uid)
+                .maybeSingle();
+            if (profile) {
+                setUserDiamonds(profile.diamonds || 0);
+            }
+        } catch (e) {
+            console.error('[StrategyTrivia] Failed to load diamonds:', e);
         }
     }
 
@@ -329,73 +333,78 @@ export default function StrategyTrivia({ mode }) {
     async function loadQuestions() {
         setIsLoading(true);
 
-        // 60-day non-repeat: Get user's recently seen question IDs
-        let excludeIds = [];
-        if (userId) {
-            const sixtyDaysAgo = new Date();
-            sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+        try {
+            // 60-day non-repeat: Get user's recently seen question IDs
+            let excludeIds = [];
+            if (userId) {
+                const sixtyDaysAgo = new Date();
+                sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
 
-            const { data: recentHistory } = await supabase
-                .from('trivia_user_question_history')
-                .select('question_id')
-                .eq('user_id', userId)
-                .gte('seen_at', sixtyDaysAgo.toISOString());
+                const { data: recentHistory } = await supabase
+                    .from('trivia_user_question_history')
+                    .select('question_id')
+                    .eq('user_id', userId)
+                    .gte('seen_at', sixtyDaysAgo.toISOString());
 
-            if (recentHistory) {
-                excludeIds = recentHistory.map(h => h.question_id);
+                if (recentHistory) {
+                    excludeIds = recentHistory.map(h => h.question_id);
+                }
             }
-        }
 
-        // First try daily-tagged questions for today
-        const today = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' }))
-            .toISOString().split('T')[0];
+            // First try daily-tagged questions for today
+            const today = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' }))
+                .toISOString().split('T')[0];
 
-        let dailyQuery = supabase
-            .from('trivia_questions')
-            .select('*')
-            .in('category', config.categories)
-            .eq('daily_date', today);
-
-        const { data: dailyData } = await dailyQuery;
-
-        if (dailyData && dailyData.length >= 20) {
-            // Filter out recently seen, take 20
-            let available = excludeIds.length > 0
-                ? dailyData.filter(q => !excludeIds.includes(q.id))
-                : dailyData;
-
-            if (available.length >= 20) {
-                setQuestions(available.slice(0, 20));
-            } else {
-                // Supplement with daily questions even if seen
-                setQuestions(dailyData.slice(0, 20));
-            }
-        } else {
-            // Fallback: fetch from full pool
-            let query = supabase
+            let dailyQuery = supabase
                 .from('trivia_questions')
                 .select('*')
-                .in('category', config.categories);
+                .in('category', config.categories)
+                .eq('daily_date', today);
 
-            const { data } = await query;
+            const { data: dailyData } = await dailyQuery;
 
-            if (data && data.length > 0) {
-                // Filter out recently seen questions (60-day exclusion)
+            if (dailyData && dailyData.length >= 20) {
+                // Filter out recently seen, take 20
                 let available = excludeIds.length > 0
-                    ? data.filter(q => !excludeIds.includes(q.id))
-                    : data;
+                    ? dailyData.filter(q => !excludeIds.includes(q.id))
+                    : dailyData;
 
-                // If not enough unseen questions, fall back to all
-                if (available.length < 20) {
-                    available = data;
+                if (available.length >= 20) {
+                    setQuestions(available.slice(0, 20));
+                } else {
+                    // Supplement with daily questions even if seen
+                    setQuestions(dailyData.slice(0, 20));
                 }
-
-                // Shuffle and take 20
-                const shuffled = available.sort(() => Math.random() - 0.5).slice(0, 20);
-                setQuestions(shuffled);
             } else {
-                setQuestions(getFallbackQuestions(mode));
+                // Fallback: fetch from full pool
+                let query = supabase
+                    .from('trivia_questions')
+                    .select('*')
+                    .in('category', config.categories);
+
+                const { data } = await query;
+
+                if (data && data.length > 0) {
+                    // Filter out recently seen questions (60-day exclusion)
+                    let available = excludeIds.length > 0
+                        ? data.filter(q => !excludeIds.includes(q.id))
+                        : data;
+
+                    // If not enough unseen questions, fall back to all
+                    if (available.length < 20) {
+                        available = data;
+                    }
+
+                    // Shuffle and take 20
+                    const shuffled = available.sort(() => Math.random() - 0.5).slice(0, 20);
+                    setQuestions(shuffled);
+                } else {
+                    setQuestions(getFallbackQuestions(mode));
+                }
             }
+        } catch (e) {
+            console.error('[StrategyTrivia] Error loading questions:', e);
+            setQuestions(getFallbackQuestions(mode));
         }
 
         setIsLoading(false);
@@ -524,13 +533,19 @@ export default function StrategyTrivia({ mode }) {
                 return;
             }
 
-            await DiamondEngine.init(userId);
-            const result = await DiamondEngine.deduct(GAME_DIAMOND_COST, 'game_cost', { mode, game: 'trivia' });
-            if (!result.success) {
+            try {
+                await DiamondEngine.init(userId);
+                const result = await DiamondEngine.deduct(GAME_DIAMOND_COST, 'game_cost', { mode, game: 'trivia' });
+                if (!result.success) {
+                    setShowOutOfDiamonds(true);
+                    return;
+                }
+                if (result.balance !== undefined) setUserDiamonds(result.balance);
+            } catch (e) {
+                console.error('[StrategyTrivia] Diamond deduction failed:', e);
                 setShowOutOfDiamonds(true);
                 return;
             }
-            if (result.balance !== undefined) setUserDiamonds(result.balance);
         }
 
         // Use preloaded questions if available, otherwise load fresh

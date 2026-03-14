@@ -95,7 +95,7 @@ export default function DealerTablet() {
     if (!tableNumber) return;
     try {
       const token = getToken();
-      const headers = { Authorization: `Bearer ${token}` };
+      const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() };
       // Fetch table by number (includes mode, tournament_id from assignment system)
       const tableRes = await fetch(`/api/commander/tables/by-number?tableNumber=${tableNumber}`, { headers, signal });
       if (!tableRes.ok) throw new Error(`Table fetch failed (${tableRes.status})`);
@@ -309,7 +309,7 @@ export default function DealerTablet() {
       const token = getToken();
       const res = await fetch('/api/commander/dealer/scan', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() },
         body: JSON.stringify({ qr_code: qrCode, table_number: parseInt(tableNumber) })
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -327,7 +327,7 @@ export default function DealerTablet() {
       const token = getToken();
       const res = await fetch('/api/commander/dealer/seat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() },
         body: JSON.stringify({
           member_id: scannedMember.member.id,
           table_number: parseInt(tableNumber),
@@ -348,7 +348,7 @@ export default function DealerTablet() {
     try {
       const token = getToken();
       const res = await fetch(`/api/commander/dealer/sessions/${sessionId}/end`, {
-        method: 'POST', headers: { Authorization: `Bearer ${token}` }
+        method: 'POST', headers: { Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() }
       });
       if (res.ok) {
         await fetchTable();
@@ -365,7 +365,7 @@ export default function DealerTablet() {
       const token = getToken();
       const res = await fetch(`/api/commander/dealer/sessions/${addTimePlayer.session_id}/add-time`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() },
         body: JSON.stringify({ minutes: parseInt(addTimeMinutes) || 60 })
       });
       if (res.ok) {
@@ -399,7 +399,7 @@ export default function DealerTablet() {
       // Also remove from table session if applicable
       if (player.session_id) {
         const res = await fetch(`/api/commander/dealer/sessions/${player.session_id}/end`, {
-          method: 'POST', headers: { Authorization: `Bearer ${getToken()}` }
+          method: 'POST', headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
         }).catch(() => { });
         if (!res.ok) throw new Error('Request failed');
       }
@@ -441,7 +441,7 @@ export default function DealerTablet() {
     setRemovingAll(true);
     try {
       const token = getToken();
-      const headers = { Authorization: `Bearer ${token}` };
+      const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() };
       // End all active sessions for this table
       const results = await Promise.all(
         seatedPlayers.map(player =>
@@ -799,7 +799,7 @@ export default function DealerTablet() {
                 const token = getToken();
                 const res = await fetch('/api/commander/dealer/hand-count', {
                   method: 'POST',
-                  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() },
                   body: JSON.stringify({ table_number: parseInt(tableNumber), action: 'increment' })
                 });
                 if (!res.ok) throw new Error(`Request failed (${res.status})`);
