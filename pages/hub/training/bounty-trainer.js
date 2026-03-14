@@ -94,8 +94,8 @@ function calculateBountyEquity(
   return {
     chipEquity: (Number.isFinite(Number(chipEquity * 100)) ? Number(chipEquity * 100) : 0).toFixed(1),
     bountyValue: (Number.isFinite(Number(bountyEV)) ? Number(bountyEV) : 0).toFixed(0),
-    adjustedEquity: Math.min(Number.isFinite(Number(99, bountyAdjEq * 100)) ? Number(99, bountyAdjEq * 100) : 0).toFixed(1),
-    callingThreshold: Math.max(Number.isFinite(Number(25, 50 - bountyEV / 2)) ? Number(25, 50 - bountyEV / 2) : 0).toFixed(1),
+    adjustedEquity: Math.min(99, Number.isFinite(bountyAdjEq * 100) ? bountyAdjEq * 100 : 0).toFixed(1),
+    callingThreshold: Math.max(25, Number.isFinite(50 - bountyEV / 2) ? 50 - bountyEV / 2 : 0).toFixed(1),
   };
 }
 
