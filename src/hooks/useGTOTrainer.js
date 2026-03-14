@@ -337,18 +337,18 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                 const newLevel = Math.min(10, level + 1);
                 setLevel(newLevel);
                 setAdaptiveLevelChange({ from: level, to: newLevel, direction: 'up' });
-                if (typeof window !== 'undefined' && window.eventBus) {
-                    window.eventBus.emit('adaptiveDifficultyChange', { from: level, to: newLevel, direction: 'up' });
-                }
+                try {
+                    eventBus.emit('adaptiveDifficultyChange', { from: level, to: newLevel, direction: 'up' });
+                } catch (_) { /* SSR guard */ }
                 console.log(`[GTOTrainer] 📈 Adaptive: Level ${level} → ${newLevel} (accuracy ${recentAccuracy}%)`);
             } else if (recentAccuracy < 50 && level > 1) {
                 // Player struggling → decrease difficulty
                 const newLevel = Math.max(1, level - 1);
                 setLevel(newLevel);
                 setAdaptiveLevelChange({ from: level, to: newLevel, direction: 'down' });
-                if (typeof window !== 'undefined' && window.eventBus) {
-                    window.eventBus.emit('adaptiveDifficultyChange', { from: level, to: newLevel, direction: 'down' });
-                }
+                try {
+                    eventBus.emit('adaptiveDifficultyChange', { from: level, to: newLevel, direction: 'down' });
+                } catch (_) { /* SSR guard */ }
                 console.log(`[GTOTrainer] 📉 Adaptive: Level ${level} → ${newLevel} (accuracy ${recentAccuracy}%)`);
             }
             adaptiveCheckpointRef.current = answeredSoFar + 5; // Next checkpoint

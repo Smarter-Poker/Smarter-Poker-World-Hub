@@ -12,6 +12,9 @@ import { ChallengeCard } from './ChallengeCard';
 import { ShareScoreCard } from './ShareScoreCard';
 import { HeatMapBorder, GTOMasterGlow } from './HeatMapBorder';
 import { claimReward } from '../../lib/claimReward';
+import { useSupabase } from '../../providers/SupabaseProvider';
+import { SocialService } from '../../services/SocialService';
+import { FEED_FILTERS } from '../../services/social-types';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🎯 EXTENDED FEED FILTERS
@@ -38,6 +41,7 @@ export const EnhancedSpatialFeed = ({
     onAuthorClick,
     onStartTraining
 }) => {
+    const { user, supabase } = useSupabase();
     const [feedState, setFeedState] = useState({ posts: [], isLoading: false, hasMore: true, offset: 0, error: null });
     const [activeFilter, setActiveFilter] = useState('recent');
     const [dismissedChallenges, setDismissedChallenges] = useState(new Set());
@@ -45,7 +49,10 @@ export const EnhancedSpatialFeed = ({
     const observerRef = useRef(null);
     const loadMoreRef = useRef(null);
 
-    const socialService = null;
+    const socialService = useMemo(() => {
+        if (!supabase) return null;
+        return new SocialService(supabase);
+    }, [supabase]);
 
     // ─────────────────────────────────────────────────────────────────────────
     // 📰 LOAD FEED
