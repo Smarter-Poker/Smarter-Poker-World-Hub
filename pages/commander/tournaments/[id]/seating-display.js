@@ -30,7 +30,8 @@ export default function SeatingDisplay() {
     if (!id) return;
     try {
       const staffSession = typeof window !== 'undefined' ? (localStorage.getItem('commander_staff') || '') : '';
-      const headers = { 'x-staff-session': staffSession };
+      const bearerToken = typeof window !== 'undefined' ? (localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || '') : '';
+      const headers = { 'x-staff-session': staffSession, Authorization: `Bearer ${bearerToken}` };
       const [tRes, eRes] = await Promise.all([
         fetch(`/api/commander/tournaments/${id}`, { headers }).then(r => r.json()).catch(() => ({ success: false })),
         fetch(`/api/commander/tournaments/${id}/entries`, { headers }).then(r => r.json()).catch(() => ({ success: false }))

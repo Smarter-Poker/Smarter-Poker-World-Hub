@@ -99,7 +99,8 @@ export default function CommanderTournamentsPage() {
       const params = new URLSearchParams({ venue_id: venueId, limit: '200' });
       if (filter !== 'all') params.set('status', filter);
       const staffSession = localStorage.getItem('commander_staff') || '';
-      const res = await fetch(`/api/commander/tournaments?${params}`, { headers: { 'x-staff-session': staffSession } });
+      const bearerToken = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || '';
+      const res = await fetch(`/api/commander/tournaments?${params}`, { headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${bearerToken}` } });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) setTournaments(data.data.tournaments || []);

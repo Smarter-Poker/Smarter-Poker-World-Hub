@@ -127,7 +127,6 @@ export default async function handler(req, res) {
           // Without nextCard, find all possible child nodes (next street extensions).
           // This powers the Card Selector Modal by showing which cards have data.
           const currentBoard = parseBoardFromHash(scenarioHash);
-          const boardStr = currentBoard.join('').toLowerCase();
 
           // Query all spots that have the same hash prefix with exactly 2 more chars (1 card)
           const { data: childSpots, error } = await supabase
