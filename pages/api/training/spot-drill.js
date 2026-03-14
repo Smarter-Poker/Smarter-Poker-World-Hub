@@ -16,6 +16,7 @@
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { parseBoardFromHash, extractPositionFromHash } from '../../../src/utils/trainingApiUtils';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -23,32 +24,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
-const POSITIONS = ['UTG', 'UTG+1', 'MP', 'MP+1', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
 
-function parseBoardFromHash(hash) {
-    if (!hash) return [];
-    const parts = hash.split('_');
-    const lastPart = parts[parts.length - 1];
-    if (!lastPart || lastPart.length < 4) return [];
-    const cards = [];
-    for (let i = 0; i < lastPart.length - 1; i += 2) {
-        const rank = lastPart[i];
-        const suit = lastPart[i + 1];
-        if (/[2-9TJQKAtjqka]/.test(rank) && /[shdc]/.test(suit)) {
-            cards.push(`${rank.toUpperCase()}${suit}`);
-        }
-    }
-    return cards;
-}
-
-function extractPositionFromHash(hash) {
-    if (!hash) return 'UNK';
-    const parts = hash.split('_');
-    for (const part of parts) {
-        if (POSITIONS.includes(part.toUpperCase())) return part.toUpperCase();
-    }
-    return 'UNK';
-}
 
 function getStreetFromBoard(board) {
     if (board.length >= 5) return 'River';

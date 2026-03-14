@@ -40,7 +40,7 @@ export function parseBoardFromHash(hash) {
         const rank = lastPart[i];
         const suit = lastPart[i + 1];
         if (/[2-9TJQKAtjqka]/.test(rank) && /[shdc]/.test(suit)) {
-            cards.push(`${rank}${suit}`);
+            cards.push(`${rank.toUpperCase()}${suit}`);
         }
     }
     return cards;
