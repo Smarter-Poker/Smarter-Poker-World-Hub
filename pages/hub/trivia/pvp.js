@@ -161,52 +161,56 @@ export default function PvPPage() {
     async function updatePvpStats(outcome, diamondsDelta) {
         if (!userId) return;
 
-        // Fetch current stats
-        const { data: current } = await supabase
-            .from('trivia_pvp_stats')
-            .select('*')
-            .eq('user_id', userId)
-            .maybeSingle();
+        try {
+            // Fetch current stats
+            const { data: current } = await supabase
+                .from('trivia_pvp_stats')
+                .select('*')
+                .eq('user_id', userId)
+                .maybeSingle();
 
-        const prev = current || { wins: 0, losses: 0, ties: 0, win_streak: 0, best_streak: 0, total_diamonds_won: 0, total_diamonds_lost: 0 };
+            const prev = current || { wins: 0, losses: 0, ties: 0, win_streak: 0, best_streak: 0, total_diamonds_won: 0, total_diamonds_lost: 0 };
 
-        let newStats = { ...prev };
-        if (outcome === 'win') {
-            newStats.wins = (prev.wins || 0) + 1;
-            newStats.win_streak = (prev.win_streak || 0) + 1;
-            newStats.best_streak = Math.max(newStats.win_streak, prev.best_streak || 0);
-            newStats.total_diamonds_won = (prev.total_diamonds_won || 0) + (diamondsDelta || 0);
-        } else if (outcome === 'loss') {
-            newStats.losses = (prev.losses || 0) + 1;
-            newStats.win_streak = 0;
-            newStats.total_diamonds_lost = (prev.total_diamonds_lost || 0) + (diamondsDelta || 0);
-        } else if (outcome === 'tie') {
-            newStats.ties = (prev.ties || 0) + 1;
-            // Streak continues on ties
-        }
-        newStats.updated_at = new Date().toISOString();
+            let newStats = { ...prev };
+            if (outcome === 'win') {
+                newStats.wins = (prev.wins || 0) + 1;
+                newStats.win_streak = (prev.win_streak || 0) + 1;
+                newStats.best_streak = Math.max(newStats.win_streak, prev.best_streak || 0);
+                newStats.total_diamonds_won = (prev.total_diamonds_won || 0) + (diamondsDelta || 0);
+            } else if (outcome === 'loss') {
+                newStats.losses = (prev.losses || 0) + 1;
+                newStats.win_streak = 0;
+                newStats.total_diamonds_lost = (prev.total_diamonds_lost || 0) + (diamondsDelta || 0);
+            } else if (outcome === 'tie') {
+                newStats.ties = (prev.ties || 0) + 1;
+                // Streak continues on ties
+            }
+            newStats.updated_at = new Date().toISOString();
 
-        await supabase
-            .from('trivia_pvp_stats')
-            .upsert({
-                user_id: userId,
+            await supabase
+                .from('trivia_pvp_stats')
+                .upsert({
+                    user_id: userId,
+                    wins: newStats.wins,
+                    losses: newStats.losses,
+                    ties: newStats.ties,
+                    win_streak: newStats.win_streak,
+                    best_streak: newStats.best_streak,
+                    total_diamonds_won: newStats.total_diamonds_won,
+                    total_diamonds_lost: newStats.total_diamonds_lost,
+                    updated_at: newStats.updated_at
+                }, { onConflict: 'user_id' });
+
+            setStats({
                 wins: newStats.wins,
                 losses: newStats.losses,
                 ties: newStats.ties,
-                win_streak: newStats.win_streak,
-                best_streak: newStats.best_streak,
-                total_diamonds_won: newStats.total_diamonds_won,
-                total_diamonds_lost: newStats.total_diamonds_lost,
-                updated_at: newStats.updated_at
-            }, { onConflict: 'user_id' });
-
-        setStats({
-            wins: newStats.wins,
-            losses: newStats.losses,
-            ties: newStats.ties,
-            winStreak: newStats.win_streak,
-            bestStreak: newStats.best_streak
-        });
+                winStreak: newStats.win_streak,
+                bestStreak: newStats.best_streak
+            });
+        } catch (e) {
+            console.error('[PVP] Failed to update stats:', e);
+        }
     }
 
     async function handleFindMatch(stake) {
@@ -683,7 +687,7 @@ export default function PvPPage() {
                 .select('diamonds')
                 .eq('id', userId)
                 .maybeSingle();
-            if (profile) setUserDiamonds(profile.diamonds);
+            if (profile) setUserDiamonds(profile.diamonds || 0);
 
             busEmit.diamondsEarned(stakeAmount * 2 * 0.9, 'PvP Real Match Victory');
             busEmit.celebration('confetti');

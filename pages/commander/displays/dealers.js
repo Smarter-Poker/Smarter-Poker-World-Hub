@@ -20,18 +20,34 @@ export default function DealerRotationDisplay() {
   const [now, setNow] = useState(new Date());
   const wakeLockRef = useRef(null);
 
+  const venueIdRef = useRef(null);
+  try { venueIdRef.current = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id : null; } catch { venueIdRef.current = null; }
+
+  const getHeaders = () => {
+    try {
+      const staff = localStorage.getItem('commander_staff') || '';
+      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || '';
+      return { Authorization: `Bearer ${token}`, 'x-staff-session': staff };
+    } catch { return {}; }
+  };
+
   const fetchData = useCallback(async () => {
     try {
+      const vid = venueIdRef.current;
+      if (!vid) return;
+      const headers = getHeaders();
       const [dealerRes, rotRes] = await Promise.all([
-        fetch('/api/commander/dealers').catch(() => ({ ok: false })),
-        fetch('/api/commander/dealers/rotations').catch(() => ({ ok: false }))
+        fetch(`/api/commander/dealers?venue_id=${vid}`, { headers }).catch(() => ({ ok: false })),
+        fetch(`/api/commander/dealers/rotations?venue_id=${vid}`, { headers }).catch(() => ({ ok: false }))
       ]);
-      if (!dealerRes.ok) throw new Error(`Request failed (${dealerRes.status})`);
-      const dealerJson = await dealerRes.json();
-      if (!rotRes.ok) throw new Error(`Request failed (${rotRes.status})`);
-      const rotJson = await rotRes.json();
-      if (dealerJson.success) setDealers(dealerJson.data || []);
-      if (rotJson.success) setRotations(rotJson.data || []);
+      if (dealerRes.ok) {
+        const dealerJson = await dealerRes.json();
+        if (dealerJson.success) setDealers(dealerJson.data?.dealers || dealerJson.data || []);
+      }
+      if (rotRes.ok) {
+        const rotJson = await rotRes.json();
+        if (rotJson.success) setRotations(rotJson.data?.rotations || rotJson.data || []);
+      }
     } catch (err) { console.error(err); }
     setNow(new Date());
   }, []);
@@ -43,13 +59,8 @@ export default function DealerRotationDisplay() {
     return () => { clearInterval(poll); clearInterval(clock); };
   }, [fetchData]);
 
-  // Extract venueId for cross-device Supabase sync
-  const [venueId] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
-  });
-
   // Commander Data Bus — instant sync when dealers change
-  useCommanderSync(venueId, fetchData, { entities: ['dealers'] });
+  useCommanderSync(venueIdRef.current, fetchData, { entities: ['dealers'] });
 
   // Wake lock
   useEffect(() => {

@@ -776,6 +776,10 @@ export default function Cashier() {
 
       if (type === 'time' && memberId && details.minutes) {
         const newBal = Math.max(0, (memberBalance || 0) - details.minutes);
+        const tRes = await fetch(`/api/commander/members/${memberId}`, {
+          method: 'PUT', headers,
+          body: JSON.stringify({ time_balance_minutes: newBal })
+        });
         if (tRes.ok && selectedPlayer?.id === memberId) {
           setSelectedPlayer(prev => ({ ...prev, time_balance_minutes: newBal }));
         }
