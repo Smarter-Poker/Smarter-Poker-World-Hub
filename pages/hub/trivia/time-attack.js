@@ -215,33 +215,37 @@ export default function TimeAttackPage() {
         if (userId) {
             const today = new Date().toISOString().split('T')[0];
 
-            // Save score
-            await supabase.from('trivia_scores').insert({
-                user_id: userId,
-                mode: 'time-attack',
-                score: gameResult.correctCount * 100,
-                correct_count: gameResult.correctCount,
-                total_questions: gameResult.correctCount + gameResult.wrongCount,
-                diamonds_earned: gameResult.diamondsEarned,
-                play_date: today
-            });
-
-            // Award diamonds via audit-safe RPC
-            if (gameResult.diamondsEarned > 0) {
-                await supabase.rpc('add_diamonds_to_balance', {
-                    p_user_id: userId,
-                    p_amount: gameResult.diamondsEarned,
-                    p_type: 'time_attack_reward',
-                    p_description: `Time Attack — ${gameResult.diamondsEarned}💎 (${gameResult.correctCount} correct)`,
-                    p_reference_id: null
+            try {
+                // Save score
+                await supabase.from('trivia_scores').insert({
+                    user_id: userId,
+                    mode: 'time-attack',
+                    score: gameResult.correctCount * 100,
+                    correct_count: gameResult.correctCount,
+                    total_questions: gameResult.correctCount + gameResult.wrongCount,
+                    diamonds_earned: gameResult.diamondsEarned,
+                    play_date: today
                 });
-                busEmit.diamondsEarned(gameResult.diamondsEarned, 'Time Attack');
-            }
 
-            if (gameResult.correctCount > personalBest) {
-                setPersonalBest(gameResult.correctCount);
+                // Award diamonds via audit-safe RPC
+                if (gameResult.diamondsEarned > 0) {
+                    await supabase.rpc('add_diamonds_to_balance', {
+                        p_user_id: userId,
+                        p_amount: gameResult.diamondsEarned,
+                        p_type: 'time_attack_reward',
+                        p_description: `Time Attack — ${gameResult.diamondsEarned}💎 (${gameResult.correctCount} correct)`,
+                        p_reference_id: null
+                    });
+                    busEmit.diamondsEarned(gameResult.diamondsEarned, 'Time Attack');
+                }
+
+                if (gameResult.correctCount > personalBest) {
+                    setPersonalBest(gameResult.correctCount);
+                }
+                setDailyDiamondsEarned(prev => prev + gameResult.diamondsEarned);
+            } catch (e) {
+                console.error('[TimeAttack] Failed to save score/diamonds:', e);
             }
-            setDailyDiamondsEarned(prev => prev + gameResult.diamondsEarned);
 
             // Record question history for 60-day non-repeat
             const answeredCount = gameResult.correctCount + (gameResult.wrongCount || 0);
