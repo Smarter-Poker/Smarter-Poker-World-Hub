@@ -16,6 +16,9 @@ import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCo
 import useWakeLock from '../../src/hooks/useWakeLock';
 import { busEmit } from '../../src/engine/EventBus';
 
+const getBearerToken = () => typeof window !== 'undefined'
+  ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || '' : '';
+
 // Format phone to 555-555-5555 (internal display only)
 function formatPhone(raw) {
   if (!raw) return '';
@@ -129,7 +132,7 @@ export default function MembershipKiosk() {
     if (!venueId) return;
     try {
       const res = await fetch(`/api/commander/waitlist?venue_id=${venueId}`, {
-        headers: { 'x-staff-session': staffHeader }
+        headers: { 'x-staff-session': staffHeader, Authorization: `Bearer ${getBearerToken()}` }
       });
       // HIGH FIX #2e: Add response.ok check before .json()
       if (!res.ok) {
@@ -174,7 +177,7 @@ export default function MembershipKiosk() {
     try {
       // Fetch all active waitlist entries for this venue
       const res = await fetch(`/api/commander/waitlist?venue_id=${venueId}`, {
-        headers: { 'x-staff-session': staffHeader }
+        headers: { 'x-staff-session': staffHeader, Authorization: `Bearer ${getBearerToken()}` }
       });
       // HIGH FIX #2f: Add response.ok check before .json()
       if (!res.ok) {
@@ -235,7 +238,7 @@ export default function MembershipKiosk() {
     try {
       const res = await fetch('/api/commander/members/scan', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffHeader },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffHeader, Authorization: `Bearer ${getBearerToken()}` },
         body: JSON.stringify({ qr_code: scanQR.trim(), venue_id: venueId })
       });
       // HIGH FIX #2g: Add response.ok check before .json()
@@ -254,7 +257,7 @@ export default function MembershipKiosk() {
       // Also check in to waitlist if they have matching entries
       try {
         const wlRes = await fetch(`/api/commander/waitlist?venue_id=${venueId}`, {
-          headers: { 'x-staff-session': staffHeader }
+          headers: { 'x-staff-session': staffHeader, Authorization: `Bearer ${getBearerToken()}` }
         });
         // HIGH FIX #2h: Add response.ok check before .json()
         if (!wlRes.ok) {
@@ -279,7 +282,7 @@ export default function MembershipKiosk() {
           for (const entry of matchingEntries) {
             const patchRes = await fetch(`/api/commander/waitlist/${entry.id}`, {
               method: 'PATCH',
-              headers: { 'Content-Type': 'application/json', 'x-staff-session': staffHeader },
+              headers: { 'Content-Type': 'application/json', 'x-staff-session': staffHeader, Authorization: `Bearer ${getBearerToken()}` },
               body: JSON.stringify({ checked_in_at: new Date().toISOString() })
             });
             if (patchRes.ok) successCount++;
@@ -312,7 +315,7 @@ export default function MembershipKiosk() {
     setScanError('');
     try {
       const res = await fetch(`/api/commander/waitlist?venue_id=${venueId}`, {
-        headers: { 'x-staff-session': staffHeader }
+        headers: { 'x-staff-session': staffHeader, Authorization: `Bearer ${getBearerToken()}` }
       });
       // HIGH FIX #2i: Add response.ok check before .json()
       if (!res.ok) {
@@ -332,7 +335,7 @@ export default function MembershipKiosk() {
           for (const entry of matches) {
             const patchRes = await fetch(`/api/commander/waitlist/${entry.id}`, {
               method: 'PATCH',
-              headers: { 'Content-Type': 'application/json', 'x-staff-session': staffHeader },
+              headers: { 'Content-Type': 'application/json', 'x-staff-session': staffHeader, Authorization: `Bearer ${getBearerToken()}` },
               body: JSON.stringify({ checked_in_at: new Date().toISOString() })
             });
             if (patchRes.ok) successCount++;
@@ -369,7 +372,7 @@ export default function MembershipKiosk() {
     setScanError('');
     try {
       const res = await fetch(`/api/commander/waitlist?venue_id=${venueId}`, {
-        headers: { 'x-staff-session': staffHeader }
+        headers: { 'x-staff-session': staffHeader, Authorization: `Bearer ${getBearerToken()}` }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
@@ -384,7 +387,7 @@ export default function MembershipKiosk() {
           for (const entry of matches) {
             const patchRes = await fetch(`/api/commander/waitlist/${entry.id}`, {
               method: 'PATCH',
-              headers: { 'Content-Type': 'application/json', 'x-staff-session': staffHeader },
+              headers: { 'Content-Type': 'application/json', 'x-staff-session': staffHeader, Authorization: `Bearer ${getBearerToken()}` },
               body: JSON.stringify({ checked_in_at: new Date().toISOString() })
             });
             if (patchRes.ok) successCount++;
@@ -420,7 +423,7 @@ export default function MembershipKiosk() {
     try {
       const res = await fetch('/api/commander/members/scan', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffHeader },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffHeader, Authorization: `Bearer ${getBearerToken()}` },
         body: JSON.stringify({ qr_code: scanQR.trim(), venue_id: venueId })
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);

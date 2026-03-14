@@ -13,6 +13,9 @@ import BlindStructureEditor from '../../src/components/commander/tournaments/Bli
 import { TOURNAMENT_TEMPLATES, TOURNAMENT_TYPES, formatBuyin, formatChips } from '../../src/components/commander/tournaments/tournamentTemplates';
 import { busEmit } from '../../src/engine/EventBus';
 
+const getBearerToken = () => typeof window !== 'undefined'
+  ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || '' : '';
+
 const ICON_MAP = {
     Trophy, Zap, Crown, Target, RefreshCw, Rocket, Crosshair,
 };
@@ -49,7 +52,7 @@ export default function TournamentSettingsPage() {
     async function fetchClockPresets(staffSession) {
         try {
             const res = await fetch('/api/commander/clock-presets', {
-                headers: { 'x-staff-session': staffSession || '' },
+                headers: { 'x-staff-session': staffSession || '', Authorization: `Bearer ${getBearerToken()}` },
             });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
@@ -104,6 +107,7 @@ export default function TournamentSettingsPage() {
                 headers: {
                     'Content-Type': 'application/json',
                     'x-staff-session': staffSession || '',
+                    Authorization: `Bearer ${getBearerToken()}`,
                 },
                 body: JSON.stringify(payload),
             });
@@ -132,6 +136,7 @@ export default function TournamentSettingsPage() {
                         headers: {
                             'Content-Type': 'application/json',
                             'x-staff-session': staffSession || '',
+                            Authorization: `Bearer ${getBearerToken()}`,
                         },
                         body: JSON.stringify(syncPayload),
                     });

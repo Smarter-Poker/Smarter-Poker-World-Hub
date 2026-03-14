@@ -50,6 +50,8 @@ export default function TDReports() {
         if (typeof window !== 'undefined') return localStorage.getItem('commander_staff') || '';
         return null;
     }, []);
+    const getBearerToken = () => typeof window !== 'undefined'
+        ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || '' : '';
 
     const fetchReport = useCallback(async (type) => {
         if (!tournamentId) return;
@@ -57,7 +59,7 @@ export default function TDReports() {
         try {
             const token = getToken();
             const res = await fetch(`/api/commander/tournaments/${tournamentId}/reports?type=${type}`, {
-                headers: { 'x-staff-session': token }
+                headers: { 'x-staff-session': token, Authorization: `Bearer ${getBearerToken()}` }
             });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
