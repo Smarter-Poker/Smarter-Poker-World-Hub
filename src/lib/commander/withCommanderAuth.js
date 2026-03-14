@@ -75,7 +75,7 @@ export function withCommanderAuth(handler, options = {}) {
       if (!options.skipStaffCheck) {
         const { data: staff } = await supabase
           .from('commander_staff')
-          .select('*')
+          .select('id, venue_id, role, is_active, display_name')
           .eq('user_id', user.id)
           .eq('is_active', true)
           .maybeSingle();

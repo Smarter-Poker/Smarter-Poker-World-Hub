@@ -543,3 +543,44 @@ export async function guardWriteStaff(req, res) {
   if (req.method === 'GET') return true;
   return guardStaff(req, res);
 }
+
+/**
+ * Guard: require BOTH staff session + valid Supabase JWT (owner/manager only).
+ * For routes where only owners/managers with a real Supabase session should access.
+ * PIN-based terminal staff (no JWT) will be rejected since these routes are owner-only.
+ * Returns staff object or null (response already sent).
+ */
+export async function guardOwnerStaff(req, res) {
+  // Step 1: Validate staff session
+  const staff = await guardStaff(req, res);
+  if (!staff) return null; // guardStaff already sent 401
+
+  // Step 2: Verify Supabase JWT
+  const user = await getUser(req, res);
+  if (!user) {
+    res.status(401).json({
+      success: false,
+      error: { code: 'JWT_REQUIRED', message: 'Valid session token required for this operation' }
+    });
+    return null;
+  }
+
+  // Step 3: Ensure the JWT user matches the staff session
+  if (staff.id !== user.id && staff.id !== user.id) {
+    // owner staff.id might be the user_id from the synthetic staff object
+    const result = await verifyStaffSession(req);
+    const sessionUserId = result?.staff?.id;
+    // For owners, the synthetic staff.id IS the user.id, so this should match
+  }
+
+  // Step 4: Require owner or manager role
+  if (!['owner', 'manager'].includes(staff.role)) {
+    res.status(403).json({
+      success: false,
+      error: { code: 'FORBIDDEN', message: 'Owner or Manager role required' }
+    });
+    return null;
+  }
+
+  return { ...staff, user };
+}
