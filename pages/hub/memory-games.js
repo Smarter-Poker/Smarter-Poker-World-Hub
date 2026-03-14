@@ -1865,9 +1865,15 @@ export default function MemoryGamesPage() {
     }, [mode, gradeResult, userGrid, currentScenario]);
 
     // Reusable: Fresh DB balance check + DiamondEngine deduction
-    const isStartingRef = useRef(false); // Double-click guard (used in startGame)
+    // NOTE: isStartingRef guards here AND in startGame — both are needed because:
+    //   - 8 buttons call checkAndDeductDiamonds directly (need guard here)
+    //   - VIP users skip checkAndDeductDiamonds in startGame (need guard there)
+    const isStartingRef = useRef(false); // Double-click guard
     const checkAndDeductDiamonds = async () => {
         if (isVIP) return true;
+        if (isStartingRef.current) return false;
+        isStartingRef.current = true;
+        try {
         // Fresh balance check from DB to avoid stale-state false negatives
         try {
             if (supabase.current && userId) {
@@ -1896,6 +1902,9 @@ export default function MemoryGamesPage() {
         if (result.balance !== undefined) setDiamondBalance(result.balance);
         // DiamondEngine.deduct auto-emits busEmit.diamondsSpent — no manual emit needed
         return true;
+        } finally {
+            isStartingRef.current = false;
+        }
     };
 
     // Start game
