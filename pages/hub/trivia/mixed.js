@@ -238,21 +238,23 @@ export default function MixedModePage() {
                     freshBalance = profile.diamonds || 0;
                     setUserDiamonds(freshBalance);
                 }
+
+                if (freshBalance < 10) {
+                    setShowOutOfDiamonds(true);
+                    return;
+                }
+
+                const result = await DiamondEngine.deduct(10, 'trivia_mixed');
+                if (!result.success) {
+                    setShowOutOfDiamonds(true);
+                    return;
+                }
+                if (result.balance !== undefined) setUserDiamonds(result.balance);
             } catch (e) {
-                console.error('[Mixed] Balance check failed:', e);
-            }
-
-            if (freshBalance < 10) {
+                console.error('[Mixed] Diamond deduction failed:', e);
                 setShowOutOfDiamonds(true);
                 return;
             }
-
-            const result = await DiamondEngine.deduct(10, 'trivia_mixed');
-            if (!result.success) {
-                setShowOutOfDiamonds(true);
-                return;
-            }
-            if (result.balance !== undefined) setUserDiamonds(result.balance);
         }
         setCurrentQuestionIndex(0);
         setSelectedAnswer(null);

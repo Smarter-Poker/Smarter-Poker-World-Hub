@@ -192,12 +192,14 @@ export default function TimeAttackPage() {
                     setShowOutOfDiamonds(true);
                     return;
                 }
-            } catch (e) {
-                console.error('[TimeAttack] Balance check failed:', e);
-            }
 
-            const result = await DiamondEngine.deduct(10, 'trivia_timeattack');
-            if (!result.success) {
+                const result = await DiamondEngine.deduct(10, 'trivia_timeattack');
+                if (!result.success) {
+                    setShowOutOfDiamonds(true);
+                    return;
+                }
+            } catch (e) {
+                console.error('[TimeAttack] Diamond deduction failed:', e);
                 setShowOutOfDiamonds(true);
                 return;
             }

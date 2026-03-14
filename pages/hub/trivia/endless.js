@@ -230,21 +230,23 @@ export default function EndlessModePage() {
                     freshBalance = profile.diamonds || 0;
                     setUserDiamonds(freshBalance);
                 }
+
+                if (freshBalance < 10) {
+                    setShowOutOfDiamonds(true);
+                    return;
+                }
+
+                const result = await DiamondEngine.deduct(10, 'trivia_endless');
+                if (!result.success) {
+                    setShowOutOfDiamonds(true);
+                    return;
+                }
+                if (result.balance !== undefined) setUserDiamonds(result.balance);
             } catch (e) {
-                console.error('[Endless] Balance check failed:', e);
-            }
-
-            if (freshBalance < 10) {
+                console.error('[Endless] Diamond deduction failed:', e);
                 setShowOutOfDiamonds(true);
                 return;
             }
-
-            const result = await DiamondEngine.deduct(10, 'trivia_endless');
-            if (!result.success) {
-                setShowOutOfDiamonds(true);
-                return;
-            }
-            if (result.balance !== undefined) setUserDiamonds(result.balance);
         }
         setGameState('playing');
         setStreak(0);

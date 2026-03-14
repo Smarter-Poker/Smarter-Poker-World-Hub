@@ -169,12 +169,14 @@ export default function SurvivalModePage() {
                     setShowOutOfDiamonds(true);
                     return;
                 }
-            } catch (e) {
-                console.error('[Survival] Balance check failed:', e);
-            }
 
-            const result = await DiamondEngine.deduct(10, 'trivia_survival');
-            if (!result.success) {
+                const result = await DiamondEngine.deduct(10, 'trivia_survival');
+                if (!result.success) {
+                    setShowOutOfDiamonds(true);
+                    return;
+                }
+            } catch (e) {
+                console.error('[Survival] Diamond deduction failed:', e);
                 setShowOutOfDiamonds(true);
                 return;
             }
