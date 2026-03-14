@@ -25,6 +25,13 @@ export default async function handler(req, res) {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
 
+      // Body size guard — only accepts a sessionId
+      const bodySize = JSON.stringify(req.body || {}).length;
+      if (bodySize > 5120) {
+          return res.status(413).json({ success: false, error: 'Request body too large' });
+      }
+
+
       const { sessionId } = req.body;
       if (!sessionId) {
           return res.status(400).json({ success: false, error: 'sessionId required' });

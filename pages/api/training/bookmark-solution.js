@@ -57,6 +57,12 @@ export default async function handler(req, res) {
 
         // ─── POST: Save or delete a bookmark ─────────────────────────
         if (req.method === 'POST') {
+            // Body size guard — only accepts spotId, scenarioHash, action, notes
+            const bodySize = JSON.stringify(req.body || {}).length;
+            if (bodySize > 5120) {
+                return res.status(413).json({ success: false, error: 'Request body too large' });
+            }
+
             const { spotId, scenarioHash, action, notes } = req.body;
 
             if (!action || !scenarioHash) {

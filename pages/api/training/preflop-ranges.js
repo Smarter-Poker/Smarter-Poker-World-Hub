@@ -16,7 +16,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { getAllHands } from '../../../src/utils/trainingApiUtils';
+import { getAllHands, getCombos } from '../../../src/utils/trainingApiUtils';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -43,10 +43,7 @@ function computeRangeStats(freqMap) {
         const freq = freqMap[hand] || 0;
         if (freq <= 0) return;
 
-        const isPair = hand.length === 2;
-        const isSuited = hand.endsWith('s');
-
-        const combos = isPair ? 6 : isSuited ? 4 : 12;
+        const combos = getCombos(hand);
         const weightedCombos = combos * freq;
 
         totalCombos += weightedCombos;
