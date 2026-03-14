@@ -118,6 +118,7 @@ export default function SurvivalGamePage() {
     const startTimeRef = useRef(null);
     const answersRef = useRef([]); // Track per-question correctness
     const answerTimeoutRef = useRef(null); // Cleanup on unmount
+    const isStartingRef = useRef(false); // Prevent double-click race
 
     // Initialize
     useEffect(() => {
@@ -372,8 +373,20 @@ export default function SurvivalGamePage() {
     }
 
     async function startLevel(level) {
+        if (isStartingRef.current) return;
+        isStartingRef.current = true;
+        try {
+        // Check if already paid via TriviaLobby (defense-in-depth)
+        const alreadyPaid = level === 1
+            && sessionStorage.getItem('trivia_paid') === 'true'
+            && sessionStorage.getItem('trivia_mode') === 'survival';
+        if (alreadyPaid) {
+            sessionStorage.removeItem('trivia_paid');
+            sessionStorage.removeItem('trivia_mode');
+        }
+
         // Per-game diamond gate (VIP bypass) — only charge on level 1 (start of a new run)
-        if (level === 1 && !isVip && userId) {
+        if (!alreadyPaid && level === 1 && !isVip && userId) {
             // Fresh balance check from DB to avoid stale-state false negatives
             let freshBalance = userDiamonds;
             try {
@@ -419,6 +432,9 @@ export default function SurvivalGamePage() {
         loadQuestionsForLevel(level);
         setGameState('playing');
         startTimeRef.current = Date.now();
+        } finally {
+            isStartingRef.current = false;
+        }
     }
 
     // 50/50 Lifeline - removes 2 wrong answers
