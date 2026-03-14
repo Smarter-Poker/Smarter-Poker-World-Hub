@@ -371,31 +371,36 @@ export default function DiamondArcade() {
             isCorrect = answerIndex === currentQuestion.correctIndex;
         }
 
+        // Track the ACTUAL correct count locally to avoid stale React state
+        let updatedCorrectCount = correctCount;
         if (isCorrect) {
-            setCorrectCount(prev => prev + 1);
+            updatedCorrectCount = correctCount + 1;
+            setCorrectCount(updatedCorrectCount);
             busEmit.decisionCorrect(questionIndex + 1);
             busEmit.screenFlash('#22C55E', 150);
         } else {
             busEmit.decisionIncorrect(false);
             busEmit.screenFlash('#EF4444', 150);
             if (activeGame.id === 'the-gauntlet') {
-                endGame(false);
+                endGame(false, updatedCorrectCount);
                 return;
             }
         }
 
         const newIndex = questionIndex + 1;
         if (newIndex >= activeGame.questionsCount) {
-            endGame(true);
+            endGame(true, updatedCorrectCount);
         } else {
             setQuestionIndex(newIndex);
             generateQuestion(activeGame.id);
         }
     }
 
-    async function endGame(completed) {
+    async function endGame(completed, correctCountOverride) {
+        // Use override if provided (from handleAnswer), otherwise fall back to state
+        const finalCorrectCount = correctCountOverride !== undefined ? correctCountOverride : correctCount;
         if (timerRef.current) clearInterval(timerRef.current);
-        const result = calculatePrize(activeGame, correctCount, activeGame.questionsCount, streak, 1);
+        const result = calculatePrize(activeGame, finalCorrectCount, activeGame.questionsCount, streak, 1);
         setGameResult(result);
         setGamePhase('result');
 
@@ -418,8 +423,8 @@ export default function DiamondArcade() {
                     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                     body: JSON.stringify({
                         gameType: activeGame?.id,
-                        score: correctCount,
-                        correctCount,
+                        score: finalCorrectCount,
+                        correctCount: finalCorrectCount,
                         totalQuestions: activeGame?.questionsCount,
                         won: result.won,
                         prize: result.won ? result.finalPrize : 0,
