@@ -407,7 +407,16 @@ export const SmarterPokerWatchView = ({ onNavigate }) => {
                 </div>
 
                 {loading ? (
-                    <div>Loading Videos...</div>
+                    <div style={{ padding: '0 16px' }}>
+                        {[1,2,3].map(i => (
+                            <div key={i} style={{
+                                height: 200, background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
+                                backgroundSize: '200% 100%', animation: 'shimmer 1.5s infinite',
+                                borderRadius: 8, marginBottom: 16
+                            }} />
+                        ))}
+                        <style>{`@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }`}</style>
+                    </div>
                 ) : (
                     videos.map(v => (
                         <WatchVideoCard key={v.id} video={v} />

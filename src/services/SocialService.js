@@ -562,8 +562,8 @@ export class SocialService {
         } catch (error) {
             console.warn('Clubs fetch failed, returning mock', error);
             return [
-                { id: 1, name: 'Las Vegas Grinders', members: 1240, cover: 'https://picsum.photos/800/300?club=1' },
-                { id: 2, name: 'GTO Academy', members: 850, cover: 'https://picsum.photos/800/300?club=2' }
+                { id: 1, name: 'Las Vegas Grinders', members: 1240, cover: null },
+                { id: 2, name: 'GTO Academy', members: 850, cover: null }
             ];
         }
     }
@@ -602,7 +602,7 @@ export class SocialService {
             return {
                 user_id: userId,
                 username: 'Unknown Player',
-                avatar_url: 'https://picsum.photos/200',
+                avatar_url: null,
                 current_level: 1,
                 stats: {}
             };

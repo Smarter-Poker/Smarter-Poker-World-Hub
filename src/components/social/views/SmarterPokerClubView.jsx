@@ -497,19 +497,14 @@ export const SmarterPokerClubView = ({ onNavigate }) => {
     } : null;
 
     const [loading, setLoading] = useState(true);
-
-    // Mock Data (Would come from getClub(s))
-    const club = {
+    const [club, setClub] = useState({
         name: "Las Vegas $5/$10 Grinders",
-        membersCount: 12450,
+        membersCount: 0,
         level: "Diamond Club",
         coverPhoto: null,
-        topMembers: [
-            { avatar: null },
-            { avatar: null },
-            { avatar: null }
-        ]
-    };
+        topMembers: []
+    });
+    const [posts, setPosts] = useState([]);
 
     const leaderboard = [
         { user: { name: 'Mike Shark', avatar: '', tier: 'shark' }, stats: { profit: 12500, bb100: 12.5, hands: 15000 } },
@@ -522,14 +517,15 @@ export const SmarterPokerClubView = ({ onNavigate }) => {
         { month: 'JAN', day: '22', title: 'PLO Strategy Workshop', time: 'SAT AT 6 PM', location: 'Online Zoom', attendeesCount: 45, interestedCount: 120 }
     ];
 
-    const posts = [
+    // Default post used when no real posts are fetched
+    const displayPosts = posts.length > 0 ? posts : [
         {
             id: 1,
             user: { name: 'Club Admin', isVerified: true },
-            text: "Welcome To The New Weekly Leaderboard! Top 3 Grinders Get A Free Month Of GTO Training Access. 🚀",
+            text: "Welcome To The Club!",
             createdAt: '2h ago',
-            likeCount: 45,
-            commentCount: 12
+            likeCount: 0,
+            commentCount: 0
         }
     ];
 
@@ -549,9 +545,22 @@ export const SmarterPokerClubView = ({ onNavigate }) => {
 
                     <ClubLeaderboard data={leaderboard} />
 
-                    {posts.map(post => (
-                        <SPPostCard key={post.id} post={post} user={post.user} />
-                    ))}
+                    {loading ? (
+                        <div style={{ padding: 20 }}>
+                            {[1,2].map(i => (
+                                <div key={i} style={{
+                                    height: 120, background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
+                                    backgroundSize: '200% 100%', animation: 'shimmer 1.5s infinite',
+                                    borderRadius: 8, marginBottom: 16
+                                }} />
+                            ))}
+                            <style>{`@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }`}</style>
+                        </div>
+                    ) : (
+                        displayPosts.map(post => (
+                            <SPPostCard key={post.id} post={post} user={post.user || post.author} />
+                        ))
+                    )}
                 </div>
 
                 {/* Right Rail (Sidebar) */}

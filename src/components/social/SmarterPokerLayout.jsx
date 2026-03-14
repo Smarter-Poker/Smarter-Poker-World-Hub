@@ -10,6 +10,7 @@ import { NotificationBell, NotificationsDropdown } from './SmarterPokerNotificat
 import { ChatDock } from './SmarterPokerMessenger';
 import { supabase } from '../../lib/supabase';
 import { useUnreadCount, UnreadBadge } from '../../hooks/useUnreadCount';
+import { eventBus, EventType } from '../../engine/EventBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MAIN NAVIGATION BAR
@@ -347,6 +348,44 @@ export const SmarterPokerLayout = ({ children, currentUser: propUser, onNavigate
         }
 
         fetchNotifications();
+    }, [authUser?.id]);
+
+    // Listen for EventBus events to update notification state
+    useEffect(() => {
+        const unsub1 = eventBus.on(EventType.NOTIFICATIONS_READ, () => {
+            setUnreadCount(0);
+            setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+        });
+        const unsub2 = eventBus.on(EventType.SOCIAL_POST_CREATED, () => {
+            // A new post was created — could generate notifications for followers
+            // Re-fetch notifications after a short delay
+            if (authUser?.id) {
+                setTimeout(async () => {
+                    try {
+                        const { data } = await supabase
+                            .from('notifications')
+                            .select('id, type, message, created_at, read')
+                            .eq('user_id', authUser.id)
+                            .order('created_at', { ascending: false })
+                            .limit(20);
+                        if (data) {
+                            setNotifications(data.map(n => ({
+                                id: n.id,
+                                type: n.type || 'info',
+                                text: n.message,
+                                time: getRelativeTime(n.created_at),
+                                read: n.read,
+                            })));
+                            setUnreadCount(data.filter(n => !n.read).length);
+                        }
+                    } catch { /* silent */ }
+                }, 2000);
+            }
+        });
+        return () => {
+            if (unsub1) unsub1();
+            if (unsub2) unsub2();
+        };
     }, [authUser?.id]);
 
     // 3. Chat State management

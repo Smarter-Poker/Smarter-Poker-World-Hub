@@ -585,16 +585,21 @@ export const SmarterPokerProfileView = ({ onNavigate, onOpenChat }) => {
 
     const handleToggleFriend = async (targetUser) => {
         // Optimistic UI update
-        setIsFriend(!isFriend);
+        const wasFriend = isFriend;
+        setIsFriend(!wasFriend);
 
         try {
-            // Emit EventBus event for cross-page reactivity
-            if (!isFriend) {
-                busEmit.friendRequestSent(targetUser?.id || 'unknown');
+            if (socialService && authUser?.id) {
+                if (wasFriend) {
+                    await socialService.unfollowUser(authUser.id, targetUser?.id);
+                } else {
+                    await socialService.followUser(authUser.id, targetUser?.id);
+                    busEmit.friendRequestSent(targetUser?.id || 'unknown');
+                }
             }
         } catch (error) {
             // Revert on failure
-            setIsFriend(isFriend);
+            setIsFriend(wasFriend);
             console.error('Failed to toggle friend status:', error);
         }
     };
