@@ -80,3 +80,26 @@ export const RANK_VALUES = {
     '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8,
     '9': 9, 'T': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14,
 };
+
+// ── Input validation constants ──────────────────────────────────────────
+
+/** Valid poker positions for 6-max and heads-up */
+export const VALID_POSITIONS = ['UTG', 'UTG+1', 'MP', 'MP+1', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
+
+/** Valid scenario types for range queries */
+export const VALID_SCENARIOS = ['rfi', 'vs3bet', 'bb_defense', 'push_fold'];
+
+/** Valid game type prefixes */
+export const VALID_GAME_TYPES = ['hu_cash', 'cash_6max', 'cash_9max', 'mtt', 'sng'];
+
+/** Valid street names */
+export const VALID_STREETS = ['preflop', 'flop', 'turn', 'river'];
+
+/**
+ * Sanitize a string query parameter — strips non-alphanumeric chars (except _ + -)
+ * Prevents injection via query params used in Supabase .ilike() or .eq() calls.
+ */
+export function sanitizeParam(value, maxLength = 200) {
+    if (!value || typeof value !== 'string') return '';
+    return value.replace(/[^a-zA-Z0-9_+\-.]/g, '').slice(0, maxLength);
+}

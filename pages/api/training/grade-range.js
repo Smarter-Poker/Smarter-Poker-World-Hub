@@ -29,7 +29,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { getAllHands, getCombos } from '../../../src/utils/trainingApiUtils';
+import { getAllHands, getCombos, VALID_POSITIONS, VALID_SCENARIOS } from '../../../src/utils/trainingApiUtils';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -85,7 +85,12 @@ export default async function handler(req, res) {
               return res.status(400).json({ success: false, error: 'selectedHands must be an array' });
           }
 
-          const pos = position.toUpperCase();
+          // Input validation
+          if (!VALID_SCENARIOS.includes(scenario)) {
+              return res.status(400).json({ success: false, error: 'Invalid scenario type' });
+          }
+
+          const pos = VALID_POSITIONS.includes(position.toUpperCase()) ? position.toUpperCase() : 'BTN';
           const gtoRange = GTO_RFI[pos] || GTO_RFI['BTN'];
           const allHands = getAllHands();
           const userSet = new Set(selectedHands.map(h => h.toUpperCase ? h : h));
