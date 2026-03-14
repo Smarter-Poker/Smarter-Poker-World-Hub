@@ -723,9 +723,10 @@ export default function TrainingPage() {
         }
     }, []);
 
-    // Initialize DiamondEngine and check VIP status
+    // Initialize DiamondEngine, check VIP status, then fetch session history
     useEffect(() => {
-        const initializeDiamondEngine = async () => {
+        const init = async () => {
+            // Step 1: Initialize DiamondEngine (must complete before session fetch)
             try {
                 const authUser = getAuthUser();
                 if (authUser) {
@@ -744,34 +745,27 @@ export default function TrainingPage() {
             } catch (e) {
                 console.error('[Training] Failed to initialize DiamondEngine:', e);
             }
-        };
-        initializeDiamondEngine();
 
-        // Fetch past training sessions for SmartPractice weakness analysis
-        const fetchSessionHistory = async () => {
+            // Step 2: Fetch past training sessions (uses DiamondEngine.supabase — no throwaway client)
             try {
                 const authUser = getAuthUser();
-                if (!authUser?.session?.access_token) return;
-                const { createClient } = await import('@supabase/supabase-js');
-                const sb = createClient(
-                    process.env.NEXT_PUBLIC_SUPABASE_URL,
-                    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-                );
-                const { data } = await sb
-                    .from('training_sessions')
-                    .select('hand_history')
-                    .eq('user_id', authUser.id)
-                    .order('created_at', { ascending: false })
-                    .limit(10);
-                if (data) {
-                    const combined = data.flatMap(s => s.hand_history || []);
-                    setSessionHistory(combined);
+                if (authUser?.id && DiamondEngine.supabase) {
+                    const { data } = await DiamondEngine.supabase
+                        .from('training_sessions')
+                        .select('hand_history')
+                        .eq('user_id', authUser.id)
+                        .order('created_at', { ascending: false })
+                        .limit(10);
+                    if (data) {
+                        const combined = data.flatMap(s => s.hand_history || []);
+                        setSessionHistory(combined);
+                    }
                 }
             } catch (e) {
                 console.warn('[Training] Session history fetch failed:', e.message);
             }
         };
-        fetchSessionHistory();
+        init();
     }, []);
 
     const {
