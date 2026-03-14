@@ -161,7 +161,7 @@ export default async function handler(req, res) {
               .eq('period_key', periodKey)
               .order('accuracy', { ascending: false })
               .order('total_xp', { ascending: false })
-              .limit(parseInt(limit, 10));
+              .limit(boundedLimit);
 
           if (error) throw error;
 
