@@ -416,6 +416,7 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
         } catch (error) {
             console.error("Reaction failed");
             loadFeed();
+            throw error; // Re-throw so SocialCard can roll back its optimistic state
         }
     };
 
