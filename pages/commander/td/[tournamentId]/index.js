@@ -67,24 +67,13 @@ export default function TDControlCenter() {
   const [showActivityLog, setShowActivityLog] = useState(false);
   const pollRef = useRef(null);
 
-  const getToken = useCallback(() => {
 
-  if (!router.isReady) return null;
-
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('commander_staff') || '';
-    }
-    return null;
-  }, []);
-  const getBearerToken = () => typeof window !== 'undefined'
-    ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || '' : '';
 
   const fetchFloor = useCallback(async (signal) => {
     if (!tournamentId) return;
     try {
-      const token = getToken();
       const res = await fetch(`/api/commander/tournaments/${tournamentId}/floor-view`, {
-        headers: { 'x-staff-session': token, Authorization: `Bearer ${getToken()}` },
+        headers: { 'x-staff-session': getStaffSession(), Authorization: `Bearer ${getToken()}` },
         ...(signal ? { signal } : {}),
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -100,7 +89,7 @@ export default function TDControlCenter() {
     } finally {
       setLoading(false);
     }
-  }, [tournamentId, getToken]);
+  }, [tournamentId]);
 
   // Initial load + Realtime subscription + 5-min fallback poll
   useTournamentRealtime(tournamentId, fetchFloor);
@@ -130,10 +119,9 @@ export default function TDControlCenter() {
     if (!messageText.trim()) return;
     setSendingMessage(true);
     try {
-      const token = getToken();
       const res = await fetch(`/api/commander/tournaments/${tournamentId}/message`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': token, Authorization: `Bearer ${getToken()}` },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': getStaffSession(), Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify({ message: messageText, type: 'announcement', duration_seconds: 60 })
       });
       if (!res.ok) throw new Error('Request failed');
@@ -150,10 +138,9 @@ export default function TDControlCenter() {
   const handleHandForHand = async () => {
     const isActive = floor?.alerts?.hand_for_hand;
     try {
-      const token = getToken();
       const res = await fetch(`/api/commander/tournaments/${tournamentId}/hand-for-hand`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': token, Authorization: `Bearer ${getToken()}` },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': getStaffSession(), Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify({ active: !isActive })
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);

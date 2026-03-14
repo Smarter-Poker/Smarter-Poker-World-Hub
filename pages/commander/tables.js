@@ -15,8 +15,7 @@ import Pagination from '../../src/components/commander/shared/Pagination';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 
-const getBearerToken = () => typeof window !== 'undefined'
-  ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || '' : '';
+
 
 const STATUS_COLORS = {
   available: { bg: 'rgba(49,162,76,0.15)', border: '#31A24C', text: '#31A24C', label: 'Available' },

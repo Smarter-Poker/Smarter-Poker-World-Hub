@@ -14,8 +14,7 @@ import { TOURNAMENT_TEMPLATES, TOURNAMENT_TYPES, formatBuyin, formatChips } from
 import { busEmit } from '../../src/engine/EventBus';
 import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 
-const getBearerToken = () => typeof window !== 'undefined'
-  ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || '' : '';
+
 
 const ICON_MAP = {
     Trophy, Zap, Crown, Target, RefreshCw, Rocket, Crosshair,

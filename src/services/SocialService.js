@@ -7,6 +7,7 @@
 
 import { createPost, createComment, createAuthor } from './social-types';
 import { claimReward } from '../lib/claimReward';
+import { busEmit } from '../engine/EventBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🌐 SOCIAL SERVICE CLASS
@@ -444,6 +445,9 @@ export class SocialService {
             if (authorId) {
                 claimReward('/api/rewards/comment', { userId: authorId, commentId: data?.id }, 'Strategy Comment');
             }
+
+            // Emit EventBus for cross-page comment count updates
+            busEmit.socialCommentAdded(postId, authorId);
 
             return createComment({
                 ...data,

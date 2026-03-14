@@ -17,8 +17,7 @@ import useWakeLock from '../../src/hooks/useWakeLock';
 import { busEmit } from '../../src/engine/EventBus';
 import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 
-const getBearerToken = () => typeof window !== 'undefined'
-  ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || '' : '';
+
 
 // Format phone to 555-555-5555 (internal display only)
 function formatPhone(raw) {
