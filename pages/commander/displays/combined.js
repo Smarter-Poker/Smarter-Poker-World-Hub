@@ -40,31 +40,44 @@ export default function CombinedDisplay() {
 
   const panels = layout.split('+').filter(Boolean);
 
+  const venueIdRef = useRef(null);
+  try { venueIdRef.current = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id : null; } catch { venueIdRef.current = null; }
+
+  const getHeaders = () => {
+    try {
+      const staff = localStorage.getItem('commander_staff') || '';
+      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || '';
+      return { Authorization: `Bearer ${token}`, 'x-staff-session': staff };
+    } catch { return {}; }
+  };
+
   const fetchData = useCallback(async () => {
     try {
       const fetches = [];
+      const vid = venueIdRef.current;
+      const headers = getHeaders();
 
       if (panels.includes('clock') && tournament) {
         fetches.push(
-          fetch(`/api/commander/tournaments/${tournament}/clock`).then(r => r.json())
+          fetch(`/api/commander/tournaments/${tournament}/clock`, { headers }).then(r => r.json())
             .then(json => { if (json.success) { setClockData(json.data); setClockSeconds(json.data?.remaining_seconds); } })
         );
       }
-      if (panels.includes('waitlist')) {
+      if (panels.includes('waitlist') && vid) {
         fetches.push(
-          fetch('/api/commander/waitlist').then(r => r.json())
+          fetch(`/api/commander/waitlist?venue_id=${vid}`, { headers }).then(r => r.json())
             .then(json => { if (json.success) setWaitlists((json.data || []).filter(w => ['waiting', 'called'].includes(w.status))); })
         );
       }
-      if (panels.includes('tables')) {
+      if (panels.includes('tables') && vid) {
         fetches.push(
-          fetch('/api/commander/tables').then(r => r.json())
-            .then(json => { if (json.success) setTables(json.data || []); })
+          fetch(`/api/commander/tables?venue_id=${vid}`, { headers }).then(r => r.json())
+            .then(json => { if (json.success) setTables(json.data?.tables || json.data || []); })
         );
       }
-      if (panels.includes('promotions')) {
+      if (panels.includes('promotions') && vid) {
         fetches.push(
-          fetch('/api/commander/promotions').then(r => r.json())
+          fetch(`/api/commander/promotions?venue_id=${vid}`, { headers }).then(r => r.json())
             .then(json => { if (json.success) setPromotions((json.data || []).filter(p => p.is_active !== false)); })
         );
       }
@@ -83,13 +96,8 @@ export default function CombinedDisplay() {
     return () => { clearInterval(poll); clearInterval(clock); };
   }, [fetchData]);
 
-  // Extract venueId for cross-device Supabase sync
-  const [venueId] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
-  });
-
   // Commander Data Bus — instant sync for TV display
-  useCommanderSync(venueId, fetchData, { entities: ['tables', 'waitlist', 'tournaments', 'settings'] });
+  useCommanderSync(venueIdRef.current, fetchData, { entities: ['tables', 'waitlist', 'tournaments', 'settings'] });
 
   // Wake lock
   useEffect(() => {
