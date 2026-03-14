@@ -5,7 +5,7 @@
 
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
@@ -40,6 +40,7 @@ export default function TimeAttackPage() {
     const router = useRouter();
     const { user: avatarUser, loading: authLoading } = useAvatar();
     const [gameState, setGameState] = useState('lobby');
+    const isStartingRef = useRef(false); // Prevent double-click race
     const [questions, setQuestions] = useState([]);
     const [userId, setUserId] = useState(null);
     const [dailyDiamondsEarned, setDailyDiamondsEarned] = useState(0);
@@ -179,6 +180,9 @@ export default function TimeAttackPage() {
     }
 
     async function handleStart() {
+        if (isStartingRef.current) return;
+        isStartingRef.current = true;
+        try {
         // Per-game diamond gate (VIP bypass)
         if (!isVip && userId) {
             // Fresh balance check from DB to avoid stale-state false negatives
@@ -208,6 +212,9 @@ export default function TimeAttackPage() {
         const qs = await loadQuestions();
         if (qs.length > 0) {
             setGameState('playing');
+        }
+        } finally {
+            isStartingRef.current = false;
         }
     }
 

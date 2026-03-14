@@ -299,6 +299,9 @@ export default function EndlessModePage() {
         setIsTimerRunning(true);
         setScreenShake(false);
         startTimeRef.current = Date.now();
+        } finally {
+            isStartingRef.current = false;
+        }
     }
 
     // Shot Clock Timer Effect - 24 seconds with haptics/audio/shake (respects settings)

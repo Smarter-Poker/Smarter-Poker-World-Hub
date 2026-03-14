@@ -296,6 +296,9 @@ export default function MixedModePage() {
         setTimeLeft(24);
         setIsTimerRunning(true);
         setGameState('playing');
+        } finally {
+            isStartingRef.current = false;
+        }
     }
 
     function handleTimeout() {

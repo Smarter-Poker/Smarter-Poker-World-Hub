@@ -6,7 +6,7 @@
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
@@ -41,6 +41,7 @@ export default function SurvivalModePage() {
     const router = useRouter();
     const { user: avatarUser, loading: authLoading } = useAvatar();
     const [gameState, setGameState] = useState('lobby'); // lobby, playing, complete
+    const isStartingRef = useRef(false); // Prevent double-click race
     const [questions, setQuestions] = useState([]);
     const [userId, setUserId] = useState(null);
     const [dailyDiamondsEarned, setDailyDiamondsEarned] = useState(0);
@@ -160,6 +161,9 @@ export default function SurvivalModePage() {
     }
 
     async function handleStart() {
+        if (isStartingRef.current) return;
+        isStartingRef.current = true;
+        try {
         // Per-game diamond gate (VIP bypass)
         if (!isVip && userId) {
             // Fresh balance check from DB to avoid stale-state false negatives
@@ -189,6 +193,9 @@ export default function SurvivalModePage() {
         const qs = await loadQuestions();
         if (qs.length > 0) {
             setGameState('playing');
+        }
+        } finally {
+            isStartingRef.current = false;
         }
     }
 
