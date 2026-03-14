@@ -172,13 +172,17 @@ export default async function handler(req, res) {
 
                       // Award diamonds via logging RPC
                       if (def.diamond_reward > 0) {
-                          await supabase.rpc('add_diamonds_to_balance', {
-                              p_user_id: userId,
-                              p_amount: def.diamond_reward,
-                              p_type: 'achievement',
-                              p_description: `${def.name} achievement — ${def.diamond_reward}💎`,
-                              p_reference_id: def.id
-                          });
+                          try {
+                              await supabase.rpc('add_diamonds_to_balance', {
+                                  p_user_id: userId,
+                                  p_amount: def.diamond_reward,
+                                  p_type: 'achievement',
+                                  p_description: `${def.name} achievement — ${def.diamond_reward}💎`,
+                                  p_reference_id: def.id
+                              });
+                          } catch (rpcErr) {
+                              console.warn('[Achievements] Diamond RPC failed (non-blocking):', rpcErr.message);
+                          }
                       }
 
                       // Send push notification

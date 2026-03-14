@@ -417,13 +417,17 @@ export default async function handler(req, res) {
               // Award diamonds via logging RPC
               const reward = progress.training_challenge_definitions?.diamond_reward || 0;
               if (reward > 0) {
-                  await supabase.rpc('add_diamonds_to_balance', {
-                      p_user_id: userId,
-                      p_amount: reward,
-                      p_type: 'challenge',
-                      p_description: `${progress.training_challenge_definitions?.name || 'Challenge'} completed — ${reward}💎`,
-                      p_reference_id: challengeId
-                  });
+                  try {
+                      await supabase.rpc('add_diamonds_to_balance', {
+                          p_user_id: userId,
+                          p_amount: reward,
+                          p_type: 'challenge',
+                          p_description: `${progress.training_challenge_definitions?.name || 'Challenge'} completed — ${reward}💎`,
+                          p_reference_id: challengeId
+                      });
+                  } catch (rpcErr) {
+                      console.warn('[Challenges] Diamond RPC failed (non-blocking):', rpcErr.message);
+                  }
               }
 
               return res.status(200).json({

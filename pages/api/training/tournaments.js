@@ -165,20 +165,25 @@ export default async function handler(req, res) {
 
                   // Charge entry fee
                   if (tournament.entry_fee_diamonds > 0) {
-                      const { data: balance } = await supabase.rpc('get_diamond_balance', { p_user_id: userId });
+                      try {
+                          const { data: balance } = await supabase.rpc('get_diamond_balance', { p_user_id: userId });
 
-                      if ((balance || 0) < tournament.entry_fee_diamonds) {
-                          return res.status(400).json({ success: false, error: 'Insufficient diamonds' });
+                          if ((balance || 0) < tournament.entry_fee_diamonds) {
+                              return res.status(400).json({ success: false, error: 'Insufficient diamonds' });
+                          }
+
+                          // BUG #258 FIX: Include userId in reference_id for per-user uniqueness
+                          await supabase.rpc('add_diamonds_to_balance', {
+                              p_user_id: userId,
+                              p_amount: -tournament.entry_fee_diamonds,
+                              p_type: 'arcade_entry',
+                              p_description: `Tournament entry fee — ${tournament.entry_fee_diamonds}💎`,
+                              p_reference_id: `tourney_entry_${tournamentId}_${userId}`
+                          });
+                      } catch (rpcErr) {
+                          console.error('[Tournaments] Diamond RPC failed:', rpcErr.message);
+                          return res.status(500).json({ success: false, error: 'Payment processing failed' });
                       }
-
-                      // BUG #258 FIX: Include userId in reference_id for per-user uniqueness
-                      await supabase.rpc('add_diamonds_to_balance', {
-                          p_user_id: userId,
-                          p_amount: -tournament.entry_fee_diamonds,
-                          p_type: 'arcade_entry',
-                          p_description: `Tournament entry fee — ${tournament.entry_fee_diamonds}💎`,
-                          p_reference_id: `tourney_entry_${tournamentId}_${userId}`
-                      });
                   }
 
                   // BUG #258 FIX: Use upsert with onConflict to prevent double-registration race
