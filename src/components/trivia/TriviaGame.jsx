@@ -79,11 +79,13 @@ export default function TriviaGame({
 
     // Lazy-load confetti on first use (reduces initial bundle)
     const fireConfetti = async (opts) => {
-        if (!confettiRef.current) {
-            const mod = await import('canvas-confetti');
-            confettiRef.current = mod.default || mod;
-        }
-        confettiRef.current(opts);
+        try {
+            if (!confettiRef.current) {
+                const mod = await import('canvas-confetti');
+                confettiRef.current = mod.default || mod;
+            }
+            confettiRef.current(opts);
+        } catch (e) { /* confetti is cosmetic — swallow import/execution errors */ }
     };
 
     const currentQuestion = questions[currentIndex];

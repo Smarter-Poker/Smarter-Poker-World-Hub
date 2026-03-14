@@ -10,8 +10,10 @@ import { createClient } from '@supabase/supabase-js';
 // confetti loaded lazily on first use
 let _confetti = null;
 async function fireConfetti(opts) {
-    if (!_confetti) { const m = await import('canvas-confetti'); _confetti = m.default || m; }
-    _confetti(opts);
+    try {
+        if (!_confetti) { const m = await import('canvas-confetti'); _confetti = m.default || m; }
+        _confetti(opts);
+    } catch (e) { /* confetti is cosmetic — swallow import/execution errors */ }
 }
 import { SoundEngine, EffectsEngine, LEVELS, MASTERY_THRESHOLD, GAME_COST } from '../../src/games/GameEngine';
 import { getScenariosByLevel, getRandomScenario, getLevelConfig, RANKS, getHandName, MIXED_SCENARIOS, LEVEL_1_SCENARIOS, LEVEL_2_SCENARIOS, LEVEL_3_SCENARIOS, LEVEL_4_SCENARIOS, LEVEL_5_SCENARIOS, LEVEL_6_SCENARIOS, LEVEL_7_SCENARIOS, LEVEL_8_SCENARIOS, LEVEL_9_SCENARIOS, LEVEL_10_SCENARIOS } from '../../src/games/ScenarioDatabase';
