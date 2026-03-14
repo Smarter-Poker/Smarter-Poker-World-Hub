@@ -125,13 +125,13 @@ export default async function handler(req, res) {
                 return res.status(200).json({ success: true, action: 'deleted' });
             }
 
-            return res.status(400).json({ success: false, error: `Unknown action: ${action}` });
+            return res.status(400).json({ success: false, error: 'Invalid action' });
         }
 
         return res.status(405).json({ success: false, error: 'GET or POST only' });
 
     } catch (err) {
         console.error('[BookmarkSolution] Error:', err);
-        return res.status(500).json({ success: false, error: 'Internal server error' });
+        if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }

@@ -26,6 +26,10 @@ export default async function handler(req, res) {
   try {
       if (!applyRateLimit(req, res, LIMITS.read)) return;
 
+      if (req.method !== 'GET') {
+          return res.status(405).json({ success: false, error: 'GET only' });
+      }
+
       const { gameId } = req.query;
 
       // Auth: require JWT, use authenticated user ID (not query param)
