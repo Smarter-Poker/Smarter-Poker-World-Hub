@@ -74,6 +74,7 @@ export default function PvPPage() {
     const queueSubscription = useRef(null);
     const matchSubscription = useRef(null);
     const searchTimeout = useRef(null);
+    const isStartingRef = useRef(false); // Prevent double-click race
     const playerScoreRef = useRef(0);
     const playerAnswersRef = useRef([]); // Track correct/incorrect per question
 
@@ -218,6 +219,9 @@ export default function PvPPage() {
     }
 
     async function handleFindMatch(stake) {
+        if (isStartingRef.current) return;
+        isStartingRef.current = true;
+        try {
         // Fresh balance check from DB to avoid stale-state false negatives
         let freshBalance = userDiamonds;
         try {
@@ -298,6 +302,9 @@ export default function PvPPage() {
                 }
             }
         } catch (err) {
+        }
+        } finally {
+            isStartingRef.current = false;
         }
     }
 

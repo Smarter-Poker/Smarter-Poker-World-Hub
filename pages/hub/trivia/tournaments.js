@@ -66,6 +66,7 @@ export default function TournamentsPage() {
     const scoreRef = useRef(0); // Accurate score outside React closures
     const answersRef = useRef([]); // Track correct/incorrect per question
     const realtimeChannelRef = useRef(null);
+    const isStartingRef = useRef(false); // Prevent double-click race
     const deadlineTimerRef = useRef(null);
     const [deadlineDisplay, setDeadlineDisplay] = useState('');
 
@@ -334,6 +335,9 @@ export default function TournamentsPage() {
     }
 
     async function handleRegister(tournament) {
+        if (isStartingRef.current) return;
+        isStartingRef.current = true;
+        try {
         // Fresh balance check from DB to avoid stale-state false negatives
         let freshBalance = userDiamonds;
         try {
@@ -408,6 +412,9 @@ export default function TournamentsPage() {
 
         // Refresh tournament data
         await loadData();
+        } finally {
+            isStartingRef.current = false;
+        }
     }
 
     async function startRoundPlay() {

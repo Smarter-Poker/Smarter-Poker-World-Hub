@@ -5,7 +5,7 @@
 
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
@@ -449,7 +449,11 @@ export default function TriviaModePage() {
         return `${cstDate.getFullYear()}-${String(cstDate.getMonth() + 1).padStart(2, '0')}-${String(cstDate.getDate()).padStart(2, '0')}`;
     }
 
+    const isStartingRef = useRef(false); // Prevent double-click race
     const startGame = async () => {
+        if (isStartingRef.current) return;
+        isStartingRef.current = true;
+        try {
         // Check mode config for diamond cost — only modes with diamondCost > 0 charge
         const modeConfig = TRIVIA_MODES[mode];
         const modeCost = modeConfig?.diamondCost || 0;
@@ -494,6 +498,9 @@ export default function TriviaModePage() {
         }
 
         setGameState('playing');
+        } finally {
+            isStartingRef.current = false;
+        }
     };
 
     const handleComplete = async (gameResult) => {
