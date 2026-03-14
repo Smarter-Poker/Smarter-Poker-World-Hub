@@ -34,7 +34,7 @@ export default function TournamentRegistration() {
         try {
             const s = JSON.parse(localStorage.getItem('commander_staff') || '{}');
             if (s.venue_id) setVenueId(s.venue_id);
-        } catch { }
+        } catch (e) { /* silent */ }
     }, []);
 
     const fetchTournaments = useCallback(async () => {
@@ -302,7 +302,7 @@ ${total > 0 ? `<div class="fin-total-row"><span class="fin-total-label">Total Bu
             // 3. Auto-print registration receipts — use REAL data from API response + tournament record
             const registeredEntry = regJson.data?.entry || {};
             let staffName = '';
-            try { staffName = JSON.parse(localStorage.getItem('commander_staff') || '{}').name || ''; } catch { }
+            try { staffName = JSON.parse(localStorage.getItem('commander_staff') || '{}').name || ''; } catch (e) { /* silent */ }
             const venue = selectedTournament.poker_venues || {};
             printTournamentReceipts({
                 playerName: selectedPlayer.player_name,

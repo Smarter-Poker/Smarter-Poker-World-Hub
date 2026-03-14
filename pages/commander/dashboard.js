@@ -206,13 +206,12 @@ export default function CommanderDashboard() {
             }
           }
         }
-      } catch (err) {
-      }
+      } catch (e) { /* silent */ }
 
       try {
         const sub = JSON.parse(localStorage.getItem('commander_subscription') || '{}');
         if (sub.tier) setCurrentTier(sub.tier);
-      } catch { }
+      } catch (e) { /* silent */ }
     }
     validateSession();
     return () => controller.abort();
@@ -251,7 +250,7 @@ export default function CommanderDashboard() {
           }
         })
         .catch(() => { })
-    } catch { }
+    } catch (e) { /* silent */ }
   }, [staff]);
 
   useEffect(() => {

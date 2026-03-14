@@ -36,11 +36,16 @@ export function ReelsViewer({ onClose }) {
     const [muted, setMuted] = useState(true);
     const [paused, setPaused] = useState(false);
     const [liked, setLiked] = useState({});
+    const [currentUserId, setCurrentUserId] = useState(null);
     const videoRef = useRef(null);
     const containerRef = useRef(null);
 
     useEffect(() => {
         loadReels();
+        // Get authenticated user for like operations
+        supabase.auth.getUser().then(({ data: { user } }) => {
+            if (user) setCurrentUserId(user.id);
+        });
     }, []);
 
     // Reset paused state when changing reels
@@ -95,20 +100,21 @@ export function ReelsViewer({ onClose }) {
     };
 
     const handleLike = async () => {
-        if (!currentReel) return;
+        if (!currentReel || !currentUserId) return;
         const wasLiked = liked[currentReel.id];
         setLiked(prev => ({ ...prev, [currentReel.id]: !prev[currentReel.id] }));
 
-        // Persist to Supabase
+        // Persist to Supabase — scoped to current user
         try {
             if (wasLiked) {
                 await supabase.from('social_interactions')
                     .delete()
                     .eq('post_id', currentReel.id)
+                    .eq('user_id', currentUserId)
                     .eq('interaction_type', 'like');
             } else {
                 await supabase.from('social_interactions')
-                    .insert({ post_id: currentReel.id, interaction_type: 'like' });
+                    .insert({ post_id: currentReel.id, user_id: currentUserId, interaction_type: 'like' });
             }
         } catch (err) {
             console.warn('Reel like persistence failed:', err.message);

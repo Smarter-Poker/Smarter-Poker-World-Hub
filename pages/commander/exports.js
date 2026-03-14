@@ -45,7 +45,7 @@ export default function ExportsHub() {
   const [format, setFormat] = useState('csv');
 
   useEffect(() => {
-    try { const s = JSON.parse(localStorage.getItem('commander_staff') || '{}'); if (s.venue_id) setVenueId(s.venue_id); } catch { }
+    try { const s = JSON.parse(localStorage.getItem('commander_staff') || '{}'); if (s.venue_id) setVenueId(s.venue_id); } catch (e) { /* silent */ }
   }, []);
 
   const fetchData = useCallback(async () => {

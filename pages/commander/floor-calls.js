@@ -107,7 +107,7 @@ export default function FloorCalls() {
     const staffSession = typeof window !== 'undefined'
       ? localStorage.getItem('commander_staff') || '' : '';
     let venueId = '';
-    try { venueId = JSON.parse(staffSession).venue_id || ''; } catch { }
+    try { venueId = JSON.parse(staffSession).venue_id || ''; } catch (e) { /* silent */ }
     return { token, staffSession, venueId };
   };
 
@@ -169,14 +169,14 @@ export default function FloorCalls() {
       audioRef.current.currentTime = 0;
       audioRef.current.play().catch(() => { });
       if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-    } catch { }
+    } catch (e) { /* silent */ }
   };
 
   const updateCall = async (id, status, resolution) => {
     try {
       const { token, staffSession } = getAuth();
       let respondedBy = '';
-      try { const s = JSON.parse(staffSession); respondedBy = s.name || s.id || ''; } catch { }
+      try { const s = JSON.parse(staffSession); respondedBy = s.name || s.id || ''; } catch (e) { /* silent */ }
 
       const res = await fetch(`/api/commander/floor-calls/${id}`, {
         method: 'PATCH',

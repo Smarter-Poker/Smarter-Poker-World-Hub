@@ -26,7 +26,7 @@ export default function CommanderLogin() {
     try {
       const staffData = JSON.parse(localStorage.getItem('commander_staff') || '{}');
       if (staffData.email) setEmail(staffData.email);
-    } catch { }
+    } catch (e) { /* silent */ }
     // Show 'session expired' message if redirected from expired session
     if (router.query.expired === '1') {
       setError('Your session has expired. Please sign in again.');
@@ -67,8 +67,7 @@ export default function CommanderLogin() {
         // Refresh failed — keep commander_remember and staff email for pre-fill
         localStorage.removeItem('commander_venue');
         localStorage.removeItem('commander_subscription');
-      } catch (err) {
-      }
+      } catch (e) { /* silent */ }
       clearTimeout(safetyTimeout);
       setCheckingSession(false);
     }

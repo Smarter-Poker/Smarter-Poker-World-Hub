@@ -15,7 +15,7 @@ import DealerTicker from '../../../src/components/commander/shared/DealerTicker'
 import useWakeLock from '../../../src/hooks/useWakeLock';
 import { busEmit } from '../../../src/engine/EventBus';
 import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
-import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
 
 // Capitalize first letter of every word
 function titleCase(str) {
@@ -56,7 +56,7 @@ export default function WaitlistDisplay() {
     try {
       const staff = JSON.parse(localStorage.getItem('commander_staff') || '{}');
       if (staff.venue_name) setVenueName(staff.venue_name);
-    } catch { }
+    } catch (e) { /* silent */ }
   }, []);
 
   // Fetch customization settings — periodic re-fetch so desk changes sync

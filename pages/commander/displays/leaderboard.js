@@ -30,7 +30,7 @@ import useWakeLock from '../../../src/hooks/useWakeLock';
 import { busEmit } from '../../../src/engine/EventBus';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { getToken } from '../../../src/lib/commander/clientAuth';
-import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
 
 const MEDAL = ['#FFD700', '#C0C0C0', '#CD7F32'];
 const MEDAL_E = ['1st', '2nd', '3rd'];

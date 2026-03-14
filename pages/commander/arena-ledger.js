@@ -16,7 +16,7 @@ export default function ArenaLedgerPage() {
         const staff = JSON.parse(stored);
         if (staff.venue_id) setClubId(staff.venue_id);
       }
-    } catch {}
+    } catch (e) { /* silent */ }
   }, []);
 
   return (

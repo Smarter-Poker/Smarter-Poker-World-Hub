@@ -95,7 +95,7 @@ export default function LeaderboardBuilder() {
             if (!res.ok) throw new Error('err');
             const json = await res.json();
             setMembers(json?.data?.members || json?.members || []);
-        } catch { }
+        } catch (e) { /* silent */ }
     }, [venueId]);
 
     // ── Fetch entries for a board ──
@@ -107,7 +107,7 @@ export default function LeaderboardBuilder() {
             if (!res.ok) throw new Error('Failed');
             const json = await res.json();
             setEntries(prev => ({ ...prev, [boardId]: (json?.entries || json?.data || []).sort((a, b) => (b.score || 0) - (a.score || 0)) }));
-        } catch { }
+        } catch (e) { /* silent */ }
     };
 
     useEffect(() => { const c = new AbortController(); fetchBoards(c.signal); fetchMembers(c.signal); return () => c.abort(); }, [fetchBoards, fetchMembers]);

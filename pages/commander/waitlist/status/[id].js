@@ -17,7 +17,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { supabase } from '../../../../src/lib/supabase';
 import { Clock, CheckCircle2, AlertTriangle, Loader2, Bell, XCircle } from 'lucide-react';
-import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../../../src/lib/commander/commanderFetch';
 
 export default function WaitlistStatus() {
   const router = useRouter();

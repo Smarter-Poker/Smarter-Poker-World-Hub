@@ -88,7 +88,7 @@ export default function ActivityFeed() {
       const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
       let venueId = '';
-      try { venueId = JSON.parse(staffSession).venue_id || ''; } catch { }
+      try { venueId = JSON.parse(staffSession).venue_id || ''; } catch (e) { /* silent */ }
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
 
       // Aggregate from multiple sources for the activity feed

@@ -16,7 +16,7 @@ import {
     FileText, Download, Loader2, ClipboardList,
     UserCheck, CreditCard
 } from 'lucide-react';
-import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../../../src/lib/commander/commanderFetch';
 
 const NAV_ITEMS = [
     { key: 'control', label: 'Control', path: '' },

@@ -120,7 +120,7 @@ export default function Cashier() {
     try {
       const s = JSON.parse(localStorage.getItem('commander_staff') || '{}');
       if (s.venue_id) setVenueId(s.venue_id);
-    } catch { }
+    } catch (e) { /* silent */ }
   }, []);
 
   const fetchData = useCallback(async () => {
@@ -313,7 +313,7 @@ export default function Cashier() {
               handleScanResult(barcodes[0].rawValue);
               return;
             }
-          } catch { }
+          } catch (e) { /* silent */ }
           if (streamRef.current) requestAnimationFrame(scanLoop);
         };
         setTimeout(scanLoop, 500);
@@ -836,7 +836,7 @@ export default function Cashier() {
       g3.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.7);
       o3.start(ctx.currentTime + 0.25); o3.stop(ctx.currentTime + 0.7);
       // Close AudioContext after sounds finish to prevent memory leak
-      setTimeout(() => { try { ctx.close(); } catch { } }, 1000);
+      setTimeout(() => { try { ctx.close(); } catch (e) { /* silent */ } }, 1000);
     } catch { /* audio not available */ }
   };
 

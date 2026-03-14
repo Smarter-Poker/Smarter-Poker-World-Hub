@@ -10,7 +10,7 @@ import { BarChart3, Users, DollarSign, Clock, TrendingUp, Loader2, Printer, Cred
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../../src/engine/EventBus';
 import { getToken, getStaffSession, getVenueId } from '../../../src/lib/commander/clientAuth'
-import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
 
 export default function DailySummaryReport() {
   useEffect(() => { busEmit.sessionStart('commander-reports-daily-summary'); }, []);

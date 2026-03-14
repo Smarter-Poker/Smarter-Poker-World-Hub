@@ -9,7 +9,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import { BarChart3, Users, DollarSign, Clock, TrendingUp, Loader2, RefreshCw, Trophy, CreditCard, AlertTriangle, ArrowLeft } from 'lucide-react';
 import { busEmit } from '../../../src/engine/EventBus';
 import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
-import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
 
 export default function AnalyticsDailyReport() {
   useEffect(() => { busEmit.sessionStart('commander-reports-analytics-daily'); }, []);

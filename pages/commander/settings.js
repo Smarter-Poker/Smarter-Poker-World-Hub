@@ -107,7 +107,7 @@ export default function CommanderSettingsPage() {
           }
         })
         .catch(() => { });
-    } catch (e) { }
+    } catch (e) { /* silent */ }
     return () => controller.abort();
   }, [venueId]);
 

@@ -23,7 +23,7 @@ import CommanderLayout from '../../../../src/components/commander/shared/Command
 import { broadcastChange, useCommanderSync } from '../../../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../../../src/engine/EventBus';
 import { getToken, getStaffSession } from '../../../../src/lib/commander/clientAuth';
-import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../../../src/lib/commander/commanderFetch';
 
 export default function BreakManager() {
   useEffect(() => { busEmit.sessionStart('commander-tournaments-id-break-manager'); }, []);

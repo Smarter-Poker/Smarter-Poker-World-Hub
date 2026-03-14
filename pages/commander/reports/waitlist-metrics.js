@@ -9,7 +9,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import { Users, Phone, Loader2, RefreshCw, AlertTriangle, CheckCircle2, ArrowLeft } from 'lucide-react';
 import { busEmit } from '../../../src/engine/EventBus';
 import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
-import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
 
 const RANGES = [
   { value: 'today', label: 'Today' },
@@ -26,7 +26,7 @@ export default function WaitlistMetrics() {
   const [venueId, setVenueId] = useState(null);
 
   useEffect(() => {
-    try { const s = JSON.parse(localStorage.getItem('commander_staff') || '{}'); if (s.venue_id) setVenueId(s.venue_id); } catch { }
+    try { const s = JSON.parse(localStorage.getItem('commander_staff') || '{}'); if (s.venue_id) setVenueId(s.venue_id); } catch (e) { /* silent */ }
   }, []);
 
   const fetchData = useCallback(async () => {

@@ -26,7 +26,7 @@ import { useCommanderSync, broadcastChange } from '../../../../src/lib/commander
 import useWakeLock from '../../../../src/hooks/useWakeLock';
 import { busEmit } from '../../../../src/engine/EventBus';
 import { getToken } from '../../../../src/lib/commander/clientAuth';
-import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../../../src/lib/commander/commanderFetch';
 
 function formatClock(seconds) {
   if (!seconds && seconds !== 0) return '--:--';
@@ -266,7 +266,7 @@ export default function ClockDisplay() {
       else { osc.frequency.setValueAtTime(523, ctx.currentTime); }
       osc.start(ctx.currentTime);
       osc.stop(ctx.currentTime + 0.8);
-    } catch { }
+    } catch (e) { /* silent */ }
   };
 
   // Countdown tick

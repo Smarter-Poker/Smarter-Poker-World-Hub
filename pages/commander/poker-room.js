@@ -35,7 +35,7 @@ export default function PokerRoomFunctions() {
     try {
       const s = JSON.parse(localStorage.getItem('commander_staff') || '{}');
       if (s.venue_id) setVenueId(s.venue_id);
-    } catch { }
+    } catch (e) { /* silent */ }
   }, []);
 
   const fetchData = useCallback(async (signal) => {

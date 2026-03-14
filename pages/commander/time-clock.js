@@ -88,7 +88,7 @@ export default function TimeClock() {
                             stopCamera();
                             handleScan(code);
                         }
-                    } catch { }
+                    } catch (e) { /* silent */ }
                 }, 300);
             }
         } catch (err) {

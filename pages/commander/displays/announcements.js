@@ -14,7 +14,7 @@ import DealerTicker from '../../../src/components/commander/shared/DealerTicker'
 import { busEmit } from '../../../src/engine/EventBus';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
-import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -99,7 +99,7 @@ export default function AnnouncementsDisplay() {
       if (!settingsRes.ok) throw new Error(`Request failed (${settingsRes.status})`);
       const sj = await settingsRes.json();
       if (sj.success) setRoomOpen(sj.data?.room_open ?? true);
-    } catch (err) { }
+    } catch (e) { /* silent */ }
 
     setNow(new Date());
   }, [venueId]);
@@ -155,7 +155,7 @@ export default function AnnouncementsDisplay() {
   // ─── Wake lock ───
   useEffect(() => {
     const req = async () => {
-      try { if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen'); } catch { }
+      try { if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen'); } catch (e) { /* silent */ }
     };
     req();
     const handleVis = () => { if (document.visibilityState === 'visible') req(); };

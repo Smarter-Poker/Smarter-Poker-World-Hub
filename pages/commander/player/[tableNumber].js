@@ -368,7 +368,7 @@ export default function PlayerTableDisplay() {
     const requestWakeLock = async () => {
       try {
         if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen');
-      } catch (err) { }
+      } catch (e) { /* silent */ }
     };
     requestWakeLock();
     document.addEventListener('visibilitychange', () => {

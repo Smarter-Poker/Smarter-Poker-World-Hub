@@ -142,8 +142,7 @@ export default function TournamentSettingsPage() {
                         body: JSON.stringify(syncPayload),
                     });
                     if (!r.ok) console.warn('Club sync failed');
-                } catch (syncErr) {
-                }
+                } catch (e) { /* silent */ }
 
                 setTimeout(() => setCreateSuccess(null), 4000);
             }

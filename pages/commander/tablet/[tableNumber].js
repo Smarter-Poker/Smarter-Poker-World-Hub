@@ -18,7 +18,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { createClient } from '@supabase/supabase-js';
 import { busEmit } from '../../../src/engine/EventBus';
-import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
 
 /* ─── Supabase client for Realtime (no auth needed for display) ── */
 /* GUARD: createClient must NOT run during SSG — localStorage doesn't exist on server */
