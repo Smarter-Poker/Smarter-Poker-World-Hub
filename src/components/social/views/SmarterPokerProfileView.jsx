@@ -21,7 +21,7 @@ const ProfileHeader = ({ user, isOwnProfile, onEditProfile, onAddFriend, onMessa
     <div className="profile-header">
         {/* Cover Photo */}
         <div className="cover-photo">
-            <img src={user.coverPhoto || 'https://picsum.photos/1200/400'} alt="" />
+            <img src={user.coverPhoto || ''} alt="" style={{ background: '#2d2d2d' }} />
             {isOwnProfile && (
                 <button className="edit-cover-btn">
                     📷 Edit cover photo

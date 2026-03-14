@@ -96,8 +96,25 @@ export function ReelsViewer({ onClose }) {
 
     const handleLike = async () => {
         if (!currentReel) return;
+        const wasLiked = liked[currentReel.id];
         setLiked(prev => ({ ...prev, [currentReel.id]: !prev[currentReel.id] }));
-        // TODO: Persist to database
+
+        // Persist to Supabase
+        try {
+            if (wasLiked) {
+                await supabase.from('social_interactions')
+                    .delete()
+                    .eq('post_id', currentReel.id)
+                    .eq('interaction_type', 'like');
+            } else {
+                await supabase.from('social_interactions')
+                    .insert({ post_id: currentReel.id, interaction_type: 'like' });
+            }
+        } catch (err) {
+            console.warn('Reel like persistence failed:', err.message);
+            // Revert on failure
+            setLiked(prev => ({ ...prev, [currentReel.id]: wasLiked }));
+        }
     };
 
     // Keyboard navigation

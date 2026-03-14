@@ -10,6 +10,7 @@ import { BarChart3, Users, Trophy, Clock, DollarSign, FileText, Activity, Chevro
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../../src/engine/EventBus';
 import SEOHead from '../../../src/components/seo/SEOHead';
+import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
 
 const REPORTS = [
   {
@@ -83,9 +84,6 @@ export default function ReportsPage() {
   const [dateRange, setDateRange] = useState('today');
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  const getToken = () => typeof window !== 'undefined'
-    ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
 
   useEffect(() => {
     const fetchSummary = async () => {

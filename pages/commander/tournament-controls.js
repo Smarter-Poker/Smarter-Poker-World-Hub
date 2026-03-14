@@ -13,6 +13,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { Trophy, Users, Loader2, Play, Monitor, Settings } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
+import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 
 const STATUS_COLORS = {
     running: { bg: 'bg-[#31A24C]/10', text: 'text-[#31A24C]', label: 'Running' },
@@ -40,7 +41,7 @@ export default function TournamentDirector() {
         try {
             const staffSession = localStorage.getItem('commander_staff') || '';
             const res = await fetch('/api/commander/tournaments', {
-                headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${getBearerToken()}` },
+                headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
             });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const data = await res.json();

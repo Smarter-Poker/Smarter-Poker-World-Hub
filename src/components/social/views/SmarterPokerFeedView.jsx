@@ -140,7 +140,7 @@ const FBRightSidebar = ({ onlineContacts = [], onMessage }) => (
         <div className="sidebar-section">
             <h4 className="section-heading">Sponsored</h4>
             <div className="sponsored-item">
-                <img src="/ads/poker-book.jpg" alt="Ad" onError={(e) => e.target.src = 'https://picsum.photos/100/100'} />
+                <img src="/ads/poker-book.jpg" alt="Ad" onError={(e) => e.target.style.display = 'none'} />
                 <div className="sponsored-text">
                     <span className="sponsored-title">Master GTO Poker</span>
                     <span className="sponsored-link">Gtotraining.com</span>
@@ -262,16 +262,16 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
 
     // Mock Data for non-connected parts
     const [stories] = useState([
-        { thumbnail: 'https://picsum.photos/200/350?1', user: { firstName: 'Mike' }, viewed: false },
-        { thumbnail: 'https://picsum.photos/200/350?2', user: { firstName: 'Sarah' }, viewed: false },
-        { thumbnail: 'https://picsum.photos/200/350?3', user: { firstName: 'Jen' }, viewed: true },
-        { thumbnail: 'https://picsum.photos/200/350?4', user: { firstName: 'Tom' }, viewed: true },
+        { thumbnail: null, user: { firstName: 'Mike' }, viewed: false },
+        { thumbnail: null, user: { firstName: 'Sarah' }, viewed: false },
+        { thumbnail: null, user: { firstName: 'Jen' }, viewed: true },
+        { thumbnail: null, user: { firstName: 'Tom' }, viewed: true },
     ]);
 
     const [reels] = useState([
-        { thumbnail: 'https://picsum.photos/200/350?10', description: 'Insane All-In Moment!', viewCount: '12K' },
-        { thumbnail: 'https://picsum.photos/200/350?11', description: 'Poker Vlog #42', viewCount: '5K' },
-        { thumbnail: 'https://picsum.photos/200/350?12', description: 'How to Play A-Ks', viewCount: '25K' },
+        { thumbnail: null, description: 'Insane All-In Moment!', viewCount: '12K' },
+        { thumbnail: null, description: 'Poker Vlog #42', viewCount: '5K' },
+        { thumbnail: null, description: 'How to Play A-Ks', viewCount: '25K' },
     ]);
 
     const onlineContacts = [

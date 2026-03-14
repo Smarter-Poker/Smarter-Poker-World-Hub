@@ -10,6 +10,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { Palette, Save, Loader2, Check, Plus, Trash2, Copy, Volume2, VolumeX, MonitorPlay } from 'lucide-react';
 import { busEmit } from '../../src/engine/EventBus';
+import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 
 const DEFAULT_THEME = {
     background: '#0D192E',
@@ -77,9 +78,6 @@ export default function ClockSetup() {
     const [formTheme, setFormTheme] = useState({ ...DEFAULT_THEME });
     const [formDisplay, setFormDisplay] = useState({ ...DEFAULT_DISPLAY_OPTIONS });
     const [formDefault, setFormDefault] = useState(false);
-
-    const getToken = () => typeof window !== 'undefined'
-        ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
     const getStaffSession = () => typeof window !== 'undefined'
         ? localStorage.getItem('commander_staff') || '' : '';
 

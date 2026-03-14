@@ -14,6 +14,7 @@ import useTournamentRealtime from '../../../../src/hooks/useTournamentRealtime';
 import { broadcastChange } from '../../../../src/lib/commander/useCommanderSync';
 import { Trophy, LayoutGrid, Users, Monitor, Loader2, RefreshCw, X, ArrowRightLeft, AlertTriangle, Printer, UserX, DollarSign, FileText } from 'lucide-react';
 import { busEmit } from '../../../../src/engine/EventBus';
+import { getToken, getStaffSession } from '../../../../src/lib/commander/clientAuth';
 
 const NAV_ITEMS = [
   { key: 'control', icon: Trophy, label: 'Control', path: '' },
@@ -77,7 +78,7 @@ export default function TDTablesMap() {
 
     if (!tournamentId) return;
     try {
-      const headers = { 'x-staff-session': getToken(), Authorization: `Bearer ${getBearerToken()}` };
+      const headers = { 'x-staff-session': getToken(), Authorization: `Bearer ${getToken()}` };
       const fetchOpts = signal ? { headers, signal } : { headers };
       const [floorRes, breakRes] = await Promise.all([
         fetch(`/api/commander/tournaments/${tournamentId}/floor-view`, fetchOpts),
@@ -165,7 +166,7 @@ ${receipts.map(r => `<div class="card">
         try {
           const elimRes = await fetch(`/api/commander/tournaments/${tournamentId}/eliminate`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken(), Authorization: `Bearer ${getBearerToken()}` },
+            headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken(), Authorization: `Bearer ${getToken()}` },
             body: JSON.stringify({ entry_id: entryId, finish_position: floor?.stats?.players_remaining || 0 })
           });
           if (!elimRes.ok) throw new Error('Request failed');
@@ -245,7 +246,7 @@ ${receipts.map(r => `<div class="card">
                 try {
                   const res = await fetch(`/api/commander/tournaments/${tournamentId}/auto-break`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken(), Authorization: `Bearer ${getBearerToken()}` },
+                    headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken(), Authorization: `Bearer ${getToken()}` },
                     body: JSON.stringify({
                       break_table: autoBreak.break_table,
                       assignments: autoBreak.assignments
@@ -442,7 +443,7 @@ ${receipts.map(r => `<div class="card">
                           // not the system's automatically-detected smallest table.
                           const breakSuggestRes = await fetch(
                             `/api/commander/tournaments/${tournamentId}/auto-break?force_table=${selectedTable.table_number}`,
-                            { headers: { 'x-staff-session': getToken(), Authorization: `Bearer ${getBearerToken()}` } }
+                            { headers: { 'x-staff-session': getToken(), Authorization: `Bearer ${getToken()}` } }
                           );
                           if (!breakSuggestRes.ok) throw new Error(`Request failed (${breakSuggestRes.status})`);
                           const breakSuggestJson = await breakSuggestRes.json();
@@ -460,7 +461,7 @@ ${receipts.map(r => `<div class="card">
                           // Step 2: Execute the break via break-table API
                           const res = await fetch(`/api/commander/tournaments/${tournamentId}/break-table`, {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken(), Authorization: `Bearer ${getBearerToken()}` },
+                            headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken(), Authorization: `Bearer ${getToken()}` },
                             body: JSON.stringify({
                               table_number: selectedTable.table_number,
                               assignments

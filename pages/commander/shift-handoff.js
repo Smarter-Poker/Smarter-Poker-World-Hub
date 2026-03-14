@@ -14,6 +14,7 @@ import {
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
+import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 
 export default function ShiftHandoff() {
   const router = useRouter();
@@ -32,9 +33,6 @@ export default function ShiftHandoff() {
   const [vipAlerts, setVipAlerts] = useState('');
   const [pendingActions, setPendingActions] = useState('');
   const [incomingName, setIncomingName] = useState('');
-
-  const getToken = () => typeof window !== 'undefined'
-    ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
 
   useEffect(() => {
     const _c = new AbortController();

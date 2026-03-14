@@ -20,6 +20,7 @@ import { AlertTriangle, Coffee, Hash, Loader2, RefreshCw, UserX, Bell, RotateCcw
 import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/useCommanderSync';
 import useWakeLock from '../../../src/hooks/useWakeLock';
 import { busEmit } from '../../../src/engine/EventBus';
+import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
 
 const TIER_COLORS = { standard: '#B0B3B8', gold: '#F59E0B', platinum: '#94A3B8', vip: '#A855F7' };
 
@@ -80,9 +81,6 @@ export default function DealerTablet() {
   const [screenLocked, setScreenLocked] = useState(false);
   const [dealerScanMode, setDealerScanMode] = useState(false); // true when scanning for dealer (not player)
   const dealerLongPressRef = useRef(null);
-
-  const getToken = () => typeof window !== 'undefined'
-    ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
 
   // Staff session token for write operations (x-staff-session header)
   const getStaffSession = () => typeof window !== 'undefined'

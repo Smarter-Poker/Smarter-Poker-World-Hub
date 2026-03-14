@@ -7,6 +7,7 @@
 
 import React, { useState } from 'react';
 import { SPAvatar, SP_COLORS } from './SmarterPokerStyleCard';
+import { busEmit } from '../../engine/EventBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🔔 NOTIFICATION TYPES
@@ -213,7 +214,10 @@ export const NotificationsDropdown = ({
             <div className="notif-section-header">
                 <span>Earlier</span>
                 {unreadCount > 0 && (
-                    <button className="mark-read-btn" onClick={onMarkAllRead}>
+                    <button className="mark-read-btn" onClick={() => {
+                        onMarkAllRead?.();
+                        busEmit.notificationsRead(unreadCount);
+                    }}>
                         Mark all as read
                     </button>
                 )}

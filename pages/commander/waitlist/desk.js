@@ -21,6 +21,7 @@ import { Loader2, Users, UserPlus, ArrowLeft, ArrowRight, ArrowRightLeft, PhoneC
 import dynamic from 'next/dynamic';
 const SkeletonDark = dynamic(() => import('../../../src/components/ui/SkeletonDark'), { ssr: false });
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
+import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
 
 // Format phone to 555-555-5555 (internal display only)
 function formatPhone(raw) {
@@ -83,9 +84,6 @@ export default function WaitlistDesk() {
   // ── Hardening: optimistic UI lock ──
   const [actionLock, setActionLock] = useState(null); // entry.id being processed
   const genIdempotencyKey = () => `wl_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-
-  const getToken = () => typeof window !== 'undefined'
-    ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
 
   const getStaffSession = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_staff') || '' : '';

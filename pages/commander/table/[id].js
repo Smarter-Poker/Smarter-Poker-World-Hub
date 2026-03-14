@@ -18,6 +18,7 @@ import { Plus, RefreshCw, UserPlus, ArrowLeft } from 'lucide-react';
 import dynamic from 'next/dynamic';
 const SkeletonDark = dynamic(() => import('../../../src/components/ui/SkeletonDark'), { ssr: false });
 import { busEmit } from '../../../src/engine/EventBus';
+import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
 
 function formatCountdown(minutes) {
   if (!minutes && minutes !== 0) return '--:--';
@@ -35,9 +36,6 @@ export default function TableSeating() {
   const [waitlist, setWaitlist] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showSeatPicker, setShowSeatPicker] = useState(null); // seat number to fill
-
-  const getToken = () => typeof window !== 'undefined'
-    ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
   const getStaffSession = () => localStorage.getItem('commander_staff') || '';
   const getVenueId = () => {
     try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id || ''; } catch { return ''; }

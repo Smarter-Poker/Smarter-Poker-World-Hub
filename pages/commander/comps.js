@@ -18,6 +18,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
 import useDebounce from '../../src/hooks/useDebounce';
+import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 
 // ─── Comp Categories ─────────────────────────────────────────
 const COMP_CATEGORIES = [
@@ -98,8 +99,6 @@ export default function CompSystem() {
   const [membershipPlans, setMembershipPlans] = useState([]);
 
   // ─── Auth helpers ───
-  const getToken = () => typeof window !== 'undefined'
-    ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
   const getVenueId = () => {
     try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
   };

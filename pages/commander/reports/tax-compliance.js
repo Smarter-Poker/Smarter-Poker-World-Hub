@@ -8,6 +8,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { FileText, DollarSign, AlertTriangle, CheckCircle2, Loader2, Printer, ChevronDown, ChevronUp, ArrowLeft } from 'lucide-react';
 import { busEmit } from '../../../src/engine/EventBus';
+import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
 
 export default function TaxCompliance() {
   useEffect(() => { busEmit.sessionStart('commander-reports-tax-compliance'); }, []);
@@ -21,9 +22,6 @@ export default function TaxCompliance() {
   const [expandedId, setExpandedId] = useState(null);
   const [generating, setGenerating] = useState(null);
   const [toast, setToast] = useState(null);
-
-  const getToken = () => typeof window !== 'undefined'
-    ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
 
   useEffect(() => {    const _c = new AbortController();
 

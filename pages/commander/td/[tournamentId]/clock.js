@@ -13,6 +13,7 @@ import useTournamentRealtime from '../../../../src/hooks/useTournamentRealtime';
 import { broadcastChange } from '../../../../src/lib/commander/useCommanderSync';
 import { Trophy, LayoutGrid, Users, Monitor, Play, Pause, SkipForward, SkipBack, Loader2, RefreshCw, Maximize, Minimize, Coffee, Hand, Star, Volume2, Plus, Minus, DollarSign, FileText } from 'lucide-react';
 import { busEmit } from '../../../../src/engine/EventBus';
+import { getToken, getStaffSession } from '../../../../src/lib/commander/clientAuth';
 
 const NAV_ITEMS = [
   { key: 'control', path: '' }, { key: 'tables', path: '/tables' },
@@ -48,7 +49,7 @@ export default function TDClock() {
     if (!tournamentId) return;
     try {
       const res = await fetch(`/api/commander/tournaments/${tournamentId}/floor-view`, {
-        headers: { 'x-staff-session': getToken(), Authorization: `Bearer ${getBearerToken()}` },
+        headers: { 'x-staff-session': getToken(), Authorization: `Bearer ${getToken()}` },
         ...(signal ? { signal } : {}),
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -190,7 +191,7 @@ ${receipts.map(r => `<div class="card">
     try {
       const res = await fetch(`/api/commander/tournaments/${tournamentId}/clock`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken(), Authorization: `Bearer ${getBearerToken()}` },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken(), Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify({ action })
       });
       if (res.ok) {
@@ -218,7 +219,7 @@ ${receipts.map(r => `<div class="card">
     try {
       const res = await fetch(`/api/commander/tournaments/${tournamentId}/hand-for-hand`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken(), Authorization: `Bearer ${getBearerToken()}` },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken(), Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify({ active: !isActive })
       });
       if (res.ok) {
@@ -240,7 +241,7 @@ ${receipts.map(r => `<div class="card">
     try {
       const res = await fetch(`/api/commander/tournaments/${tournamentId}/final-table`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken(), Authorization: `Bearer ${getBearerToken()}` },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken(), Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify({ final_table_number: 1 })
       });
       if (res.ok) {
@@ -262,7 +263,7 @@ ${receipts.map(r => `<div class="card">
     if (!messageText.trim()) return;
     const res = await fetch(`/api/commander/tournaments/${tournamentId}/message`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken(), Authorization: `Bearer ${getBearerToken()}` },
+      headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken(), Authorization: `Bearer ${getToken()}` },
       body: JSON.stringify({ message: messageText, type: 'announcement', duration_seconds: 60 })
     });
     if (res.ok) {

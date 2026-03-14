@@ -17,6 +17,7 @@ import { Calendar, Users, Plus, X, Clock, Send, ChevronLeft, ChevronRight, Loade
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
+import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 
 // ═══════════════════════════════════════════════════════════════
 // HELPERS
@@ -236,9 +237,6 @@ export default function StaffSchedule() {
   // back to this same tab. Without this guard, we get a double-fetch.
   const lastWriteRef = useRef(0);
   const WRITE_COOLDOWN_MS = 2000;
-
-  const getToken = () => typeof window !== 'undefined'
-    ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
   const getVenueId = () => {
     try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id || ''; } catch { return ''; }
   };

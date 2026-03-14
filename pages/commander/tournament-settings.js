@@ -12,6 +12,7 @@ import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import BlindStructureEditor from '../../src/components/commander/tournaments/BlindStructureEditor';
 import { TOURNAMENT_TEMPLATES, TOURNAMENT_TYPES, formatBuyin, formatChips } from '../../src/components/commander/tournaments/tournamentTemplates';
 import { busEmit } from '../../src/engine/EventBus';
+import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 
 const getBearerToken = () => typeof window !== 'undefined'
   ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || '' : '';
@@ -52,7 +53,7 @@ export default function TournamentSettingsPage() {
     async function fetchClockPresets(staffSession) {
         try {
             const res = await fetch('/api/commander/clock-presets', {
-                headers: { 'x-staff-session': staffSession || '', Authorization: `Bearer ${getBearerToken()}` },
+                headers: { 'x-staff-session': staffSession || '', Authorization: `Bearer ${getToken()}` },
             });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
@@ -107,7 +108,7 @@ export default function TournamentSettingsPage() {
                 headers: {
                     'Content-Type': 'application/json',
                     'x-staff-session': staffSession || '',
-                    Authorization: `Bearer ${getBearerToken()}`,
+                    Authorization: `Bearer ${getToken()}`,
                 },
                 body: JSON.stringify(payload),
             });
@@ -136,7 +137,7 @@ export default function TournamentSettingsPage() {
                         headers: {
                             'Content-Type': 'application/json',
                             'x-staff-session': staffSession || '',
-                            Authorization: `Bearer ${getBearerToken()}`,
+                            Authorization: `Bearer ${getToken()}`,
                         },
                         body: JSON.stringify(syncPayload),
                     });

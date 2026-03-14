@@ -18,6 +18,7 @@ import { QrCode, CreditCard, Loader2, Search, CheckCircle2, AlertTriangle, Chevr
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import useDebounce from '../../src/hooks/useDebounce';
+import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 
 const QUICK_AMOUNTS = [50, 100, 200, 300, 500, 1000];
 // Fallback time options — overridden by owner settings from Time Billing page
@@ -120,8 +121,6 @@ export default function Cashier() {
       if (s.venue_id) setVenueId(s.venue_id);
     } catch { }
   }, []);
-
-  const getToken = () => localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
 
   const fetchData = useCallback(async () => {
     const controller = new AbortController();

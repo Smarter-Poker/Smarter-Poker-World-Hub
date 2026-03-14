@@ -14,6 +14,7 @@ import { Check, ChevronRight, Loader2, Play, AlertTriangle } from 'lucide-react'
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
+import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 
 const GAME_TYPES = [
   { type: 'NLH', name: "No Limit Hold'em", color: '#1877F2' },
@@ -47,9 +48,6 @@ export default function OpenGame() {
   const [waitlistPlayers, setWaitlistPlayers] = useState([]);
   const [opening, setOpening] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  const getToken = () => typeof window !== 'undefined'
-    ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
 
   // fetchTables declared first — must precede useEffect/useCommanderSync that reference it
   const fetchTables = useCallback(async () => {

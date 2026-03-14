@@ -13,6 +13,7 @@ import { Upload, Check, AlertTriangle, Loader2, ChevronRight } from 'lucide-reac
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
+import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 
 const REQUIRED_FIELDS = ['first_name', 'last_name'];
 const OPTIONAL_FIELDS = ['phone', 'email', 'member_number', 'membership_tier', 'notes', 'address', 'city', 'state', 'zip'];
@@ -68,9 +69,6 @@ export default function MemberImport() {
   const [progress, setProgress] = useState(0);
   const [results, setResults] = useState({ imported: 0, skipped: 0, errors: [] });
   const [fileName, setFileName] = useState('');
-
-  const getToken = () => typeof window !== 'undefined'
-    ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
 
   const handleFile = (e) => {
     const file = e.target.files?.[0];

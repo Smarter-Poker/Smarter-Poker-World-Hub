@@ -14,6 +14,7 @@ import { Loader2, Users, ArrowLeft, CheckCircle } from 'lucide-react';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
 import useWakeLock from '../../../src/hooks/useWakeLock';
 import { busEmit } from '../../../src/engine/EventBus';
+import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
 
 // Capitalize first letter of every word
 function titleCase(str) {
@@ -48,9 +49,6 @@ export default function WaitlistDisplay() {
   const [currentPage, setCurrentPage] = useState(0);
   const [custom, setCustom] = useState(DEFAULT_CUSTOM);
   useWakeLock();
-
-  const getToken = () => typeof window !== 'undefined'
-    ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
 
   const getStaffSession = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_staff') || '' : '';

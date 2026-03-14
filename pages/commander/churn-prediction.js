@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../src/engine/EventBus';
+import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 
 export default function ChurnPrediction() {
   useEffect(() => { busEmit.sessionStart('commander-churn-prediction'); }, []);
@@ -22,9 +23,6 @@ export default function ChurnPrediction() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // all | high | medium
   const [expandedId, setExpandedId] = useState(null);
-
-  const getToken = () => typeof window !== 'undefined'
-    ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
 
   useEffect(() => {    const _c = new AbortController();
 

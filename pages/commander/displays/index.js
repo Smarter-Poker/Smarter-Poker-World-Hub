@@ -18,6 +18,7 @@ import CommanderLayout from '../../../src/components/commander/shared/CommanderL
 import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../../src/engine/EventBus';
 import SEOHead from '../../../src/components/seo/SEOHead';
+import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
 
 export default function DisplayManagement() {
   useEffect(() => { busEmit.sessionStart('commander-displays-index'); }, []);
@@ -25,9 +26,6 @@ export default function DisplayManagement() {
   const [tournaments, setTournaments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(null);
-
-  const getToken = () => typeof window !== 'undefined'
-    ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
 
   const fetchData = useCallback(async(signal) => {
     try {

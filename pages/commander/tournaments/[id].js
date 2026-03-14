@@ -28,6 +28,7 @@ import CommanderLayout from '../../../src/components/commander/shared/CommanderL
 import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/useCommanderSync';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
 
 const getBearerToken = () => typeof window !== 'undefined'
   ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || '' : '';
@@ -99,7 +100,7 @@ export default function TournamentDetailPage() {
 
     try {
       const staffSession = localStorage.getItem('commander_staff') || '';
-      const headers = { 'x-staff-session': staffSession, Authorization: `Bearer ${getBearerToken()}` };
+      const headers = { 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` };
       const fo = signal ? { headers, signal } : { headers };
       const [tournamentRes, entriesRes] = await Promise.all([
         fetch(`/api/commander/tournaments/${id}`, fo).catch(() => ({ ok: false })),
@@ -170,7 +171,7 @@ export default function TournamentDetailPage() {
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/tournaments/${id}/clock`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getBearerToken()}` },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify({ action })
       });
       if (!res.ok) throw new Error('Request failed');
@@ -192,7 +193,7 @@ export default function TournamentDetailPage() {
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/tournaments/${id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getBearerToken()}` },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify({ status: newStatus })
       });
       if (!res.ok) throw new Error('Request failed');
@@ -300,7 +301,7 @@ export default function TournamentDetailPage() {
                       const staffSession = localStorage.getItem('commander_staff') || '';
                       const res = await fetch(`/api/commander/tournaments/${tournament.id}`, {
                         method: 'DELETE',
-                        headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${getBearerToken()}` }
+                        headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` }
                       });
                       if (!res.ok) throw new Error(`Request failed (${res.status})`);
                       const json = await res.json();

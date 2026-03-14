@@ -8,6 +8,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { BarChart3, Users, DollarSign, Clock, TrendingUp, Loader2, RefreshCw, Trophy, CreditCard, AlertTriangle, ArrowLeft } from 'lucide-react';
 import { busEmit } from '../../../src/engine/EventBus';
+import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
 
 export default function AnalyticsDailyReport() {
   useEffect(() => { busEmit.sessionStart('commander-reports-analytics-daily'); }, []);
@@ -18,9 +19,6 @@ export default function AnalyticsDailyReport() {
   const [refreshing, setRefreshing] = useState(false);
   const [range, setRange] = useState(14);
   const [toast, setToast] = useState(null);
-
-  const getToken = () => typeof window !== 'undefined'
-    ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
 
   useEffect(() => {    const _c = new AbortController();
 

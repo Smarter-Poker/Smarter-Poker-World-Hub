@@ -9,6 +9,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import { Trophy, ChevronDown, Loader2 } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../../src/engine/EventBus';
+import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
 
 export default function TournamentResultsReport() {
   useEffect(() => { busEmit.sessionStart('commander-reports-tournament-results'); }, []);
@@ -29,7 +30,7 @@ export default function TournamentResultsReport() {
       try {
         const staffSession = getStaffSession();
         const res = await fetch('/api/commander/tournaments?status=completed&limit=50', {
-          headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${getBearerToken()}` }
+          headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` }
         });
         if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const json = await res.json();
@@ -49,7 +50,7 @@ export default function TournamentResultsReport() {
     try {
       const staffSession = getStaffSession();
       const res = await fetch(`/api/commander/tournaments/${tournamentId}/entries?status=all`, {
-        headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${getBearerToken()}` }
+        headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();

@@ -8,6 +8,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { Users, Phone, Loader2, RefreshCw, AlertTriangle, CheckCircle2, ArrowLeft } from 'lucide-react';
 import { busEmit } from '../../../src/engine/EventBus';
+import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
 
 const RANGES = [
   { value: 'today', label: 'Today' },
@@ -26,7 +27,6 @@ export default function WaitlistMetrics() {
   useEffect(() => {
     try { const s = JSON.parse(localStorage.getItem('commander_staff') || '{}'); if (s.venue_id) setVenueId(s.venue_id); } catch { }
   }, []);
-  const getToken = () => localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
 
   const fetchData = useCallback(async () => {
     if (!venueId) return;

@@ -26,7 +26,7 @@ export const FriendCard = ({
     return (
         <div className="friend-card">
             <div className="friend-cover">
-                <img src={user.coverPhoto || 'https://picsum.photos/400/150'} alt="" />
+                <img src={user.coverPhoto || ''} alt="" style={{ background: '#e4e6eb' }} />
             </div>
 
             <div className="friend-avatar">

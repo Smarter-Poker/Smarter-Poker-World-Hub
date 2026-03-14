@@ -23,6 +23,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { busEmit } from '../../src/engine/EventBus';
 import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import SEOHead from '../../src/components/seo/SEOHead';
+import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 
 const BOARD_TYPES = [
     { value: 'custom', label: 'Custom Points', icon: '', desc: 'Manually assign points to players' },
@@ -66,12 +67,7 @@ export default function LeaderboardBuilder() {
         try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
     });
 
-    const getToken = () => {
-        try { return localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || ''; } catch { return ''; }
-    };
 
-    const flash = (type, msg) => { setToast({ type, msg }); setTimeout(() => setToast(null), 4000); };
-    const getStaffSession = () => { try { return localStorage.getItem('commander_staff') || ''; } catch { return ''; } };
 
     // ── Fetch boards ──
     const fetchBoards = useCallback(async (signal) => {

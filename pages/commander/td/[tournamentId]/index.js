@@ -13,6 +13,7 @@ import CommanderLayout from '../../../../src/components/commander/shared/Command
 import useTournamentRealtime from '../../../../src/hooks/useTournamentRealtime';
 import { broadcastChange } from '../../../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../../../src/engine/EventBus';
+import { getToken, getStaffSession } from '../../../../src/lib/commander/clientAuth';
 import {
   Trophy, Users, DollarSign,
   AlertTriangle, ChevronRight, RefreshCw, Loader2,
@@ -83,7 +84,7 @@ export default function TDControlCenter() {
     try {
       const token = getToken();
       const res = await fetch(`/api/commander/tournaments/${tournamentId}/floor-view`, {
-        headers: { 'x-staff-session': token, Authorization: `Bearer ${getBearerToken()}` },
+        headers: { 'x-staff-session': token, Authorization: `Bearer ${getToken()}` },
         ...(signal ? { signal } : {}),
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -132,7 +133,7 @@ export default function TDControlCenter() {
       const token = getToken();
       const res = await fetch(`/api/commander/tournaments/${tournamentId}/message`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': token, Authorization: `Bearer ${getBearerToken()}` },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': token, Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify({ message: messageText, type: 'announcement', duration_seconds: 60 })
       });
       if (!res.ok) throw new Error('Request failed');
@@ -152,7 +153,7 @@ export default function TDControlCenter() {
       const token = getToken();
       const res = await fetch(`/api/commander/tournaments/${tournamentId}/hand-for-hand`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': token, Authorization: `Bearer ${getBearerToken()}` },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': token, Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify({ active: !isActive })
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);

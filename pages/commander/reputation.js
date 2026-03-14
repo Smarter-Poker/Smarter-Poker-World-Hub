@@ -10,6 +10,7 @@ import { Star, Loader2, ChevronDown, ChevronUp, Plus, X, Send } from 'lucide-rea
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../src/engine/EventBus';
 import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
+import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 
 const RATING_LABELS = {
   reliability: { label: 'Reliability', desc: 'Shows up, stays committed' },
@@ -29,9 +30,6 @@ export default function PlayerReputation() {
   const [showReviewForm, setShowReviewForm] = useState(null);
   const [reviewForm, setReviewForm] = useState({ reliability: 3, sportsmanship: 3, etiquette: 3, communication: 3, comment: '', context: 'cash_game' });
   const [submitting, setSubmitting] = useState(false);
-
-  const getToken = () => typeof window !== 'undefined'
-    ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
 
   useEffect(() => {
     const _c = new AbortController();

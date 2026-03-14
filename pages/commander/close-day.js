@@ -16,6 +16,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { CheckCircle2, XCircle, AlertTriangle, Loader2, Lock, FileText, ChevronRight } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
+import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 
 export default function CloseDay() {
   const router = useRouter();
@@ -30,9 +31,6 @@ export default function CloseDay() {
   const [verifying, setVerifying] = useState(false);
   const [notes, setNotes] = useState('');
   const [closing, setClosing] = useState(false);
-
-  const getToken = () => typeof window !== 'undefined'
-    ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
   const getVenueId = () => {
     try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id || ''; } catch { return ''; }
   };

@@ -492,7 +492,7 @@ export const SmarterPokerClubView = ({ onNavigate }) => {
     const currentUser = authUser ? {
         id: authUser.id,
         name: authProfile?.username || authUser.email,
-        avatar: authProfile?.avatar_url || 'https://picsum.photos/100/100',
+        avatar: authProfile?.avatar_url || null,
         online: true
     } : null;
 
@@ -503,11 +503,11 @@ export const SmarterPokerClubView = ({ onNavigate }) => {
         name: "Las Vegas $5/$10 Grinders",
         membersCount: 12450,
         level: "Diamond Club",
-        coverPhoto: "https://picsum.photos/1200/400?poker",
+        coverPhoto: null,
         topMembers: [
-            { avatar: 'https://picsum.photos/100/100?1' },
-            { avatar: 'https://picsum.photos/100/100?2' },
-            { avatar: 'https://picsum.photos/100/100?3' }
+            { avatar: null },
+            { avatar: null },
+            { avatar: null }
         ]
     };
 

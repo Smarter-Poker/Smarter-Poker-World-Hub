@@ -9,6 +9,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 import { Calendar, ChevronLeft, ChevronRight, Edit2, Loader2, Clock, DollarSign, Users } from 'lucide-react';
 import { busEmit } from '../../src/engine/EventBus';
+import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 
 export default function TournamentMaintenance() {
   useEffect(() => { busEmit.sessionStart('commander-tournament-maintenance'); }, []);
@@ -18,9 +19,6 @@ export default function TournamentMaintenance() {
     const [loading, setLoading] = useState(true);
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState(null);
-
-    const getToken = () => typeof window !== 'undefined'
-        ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
     const getStaffSession = () => typeof window !== 'undefined'
         ? localStorage.getItem('commander_staff') || '' : '';
 

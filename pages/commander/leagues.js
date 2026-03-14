@@ -12,6 +12,7 @@ import { Trophy, Plus, Users, Calendar, DollarSign, Loader2, ChevronDown, Chevro
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
+import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 
 /* ───────── Status colors ───────── */
 const STATUS_COLORS = {
@@ -78,8 +79,6 @@ export default function LeaguesAndFreerollsManagement() {
 
   const getStaffSession = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_staff') || '' : '';
-  const getToken = () => typeof window !== 'undefined'
-    ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
 
   const showToast = (type, msg) => {
     setToast({ type, msg });

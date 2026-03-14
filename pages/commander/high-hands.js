@@ -10,6 +10,7 @@ import { Plus, Trophy, CheckCircle2, Loader2, RefreshCw, Trash2, Star, X, Crown 
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
+import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 
 const HAND_RANKS = [
   'Royal Flush', 'Straight Flush', 'Four of a Kind', 'Full House',
@@ -41,8 +42,6 @@ export default function HighHands() {
   useEffect(() => {
     try { const s = JSON.parse(localStorage.getItem('commander_staff') || '{}'); if (s.venue_id) setVenueId(s.venue_id); } catch { }
   }, []);
-
-  const getToken = () => localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
 
   const fetchData = useCallback(async () => {
     if (!venueId) return;

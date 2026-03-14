@@ -9,6 +9,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import { BarChart3, Users, DollarSign, Clock, TrendingUp, Loader2, Printer, CreditCard, Banknote, AlertTriangle } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../../src/engine/EventBus';
+import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
 
 export default function DailySummaryReport() {
   useEffect(() => { busEmit.sessionStart('commander-reports-daily-summary'); }, []);
@@ -17,9 +18,6 @@ export default function DailySummaryReport() {
   const [data, setData] = useState(null);
   const [cashierData, setCashierData] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  const getToken = () => typeof window !== 'undefined'
-    ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
 
   const getVenueId = () => {
     try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }

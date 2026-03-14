@@ -9,6 +9,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 import { Clock, Monitor, Play, Loader2, Tv } from 'lucide-react';
 import { busEmit } from '../../src/engine/EventBus';
+import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 
 export default function TournamentClocks() {
   useEffect(() => { busEmit.sessionStart('commander-tournament-clocks'); }, []);
@@ -16,9 +17,6 @@ export default function TournamentClocks() {
     const [staff, setStaff] = useState(null);
     const [tournaments, setTournaments] = useState([]);
     const [loading, setLoading] = useState(true);
-
-    const getToken = () => typeof window !== 'undefined'
-        ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
     const getStaffSession = () => typeof window !== 'undefined'
         ? localStorage.getItem('commander_staff') || '' : '';
 

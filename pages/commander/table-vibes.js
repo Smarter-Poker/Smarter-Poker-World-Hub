@@ -10,6 +10,7 @@ import { Loader2, MessageSquare } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
+import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 
 const VIBE_COLORS = {
   'Action Game': { bg: '#FEF2F2', text: '#991B1B', border: '#EF4444', emoji: '🔥' },
@@ -29,9 +30,6 @@ export default function TableVibes() {
   const [totalRatings, setTotalRatings] = useState(0);
   const [loading, setLoading] = useState(true);
   const [days, setDays] = useState(30);
-
-  const getToken = () => typeof window !== 'undefined'
-    ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
 
   
   // fetchVibes declared first — must precede useEffect/useCommanderSync that reference it

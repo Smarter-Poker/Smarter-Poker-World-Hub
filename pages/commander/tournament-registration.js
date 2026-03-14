@@ -12,6 +12,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
 import useDebounce from '../../src/hooks/useDebounce';
+import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 
 export default function TournamentRegistration() {
     const router = useRouter();
@@ -34,8 +35,6 @@ export default function TournamentRegistration() {
             if (s.venue_id) setVenueId(s.venue_id);
         } catch { }
     }, []);
-
-    const getToken = () => localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
 
     const fetchTournaments = useCallback(async () => {
         if (!venueId) return;

@@ -10,6 +10,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import CommanderLayout from '../../../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../../../src/engine/EventBus';
+import { getToken, getStaffSession } from '../../../../src/lib/commander/clientAuth';
 import {
     Trophy, Users, DollarSign, LayoutGrid, Monitor,
     FileText, Download, Loader2, ClipboardList,
@@ -59,7 +60,7 @@ export default function TDReports() {
         try {
             const token = getToken();
             const res = await fetch(`/api/commander/tournaments/${tournamentId}/reports?type=${type}`, {
-                headers: { 'x-staff-session': token, Authorization: `Bearer ${getBearerToken()}` }
+                headers: { 'x-staff-session': token, Authorization: `Bearer ${getToken()}` }
             });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();

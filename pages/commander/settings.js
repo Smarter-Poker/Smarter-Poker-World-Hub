@@ -9,6 +9,7 @@ import { Bell, Clock, Users, Save, Loader2, ChevronRight, DollarSign, Package, I
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { broadcastChange, useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
+import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 
 const getBearerToken = () => typeof window !== 'undefined'
   ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || '' : '';
@@ -78,7 +79,7 @@ export default function CommanderSettingsPage() {
     const { signal } = controller;
     try {
       fetch('/api/commander/settings', {
-        headers: { 'x-staff-session': storedStaffData, Authorization: `Bearer ${getBearerToken()}` }
+        headers: { 'x-staff-session': storedStaffData, Authorization: `Bearer ${getToken()}` }
       })
         .then(r => r.json())
         .then(data => {
@@ -116,7 +117,7 @@ export default function CommanderSettingsPage() {
     if (!venueId) return;
     const storedStaffData = localStorage.getItem('commander_staff');
     if (!storedStaffData) return;
-    fetch('/api/commander/settings', { headers: { 'x-staff-session': storedStaffData, Authorization: `Bearer ${getBearerToken()}` } })
+    fetch('/api/commander/settings', { headers: { 'x-staff-session': storedStaffData, Authorization: `Bearer ${getToken()}` } })
       .then(r => r.json())
       .then(data => {
         if (data?.data) {
@@ -160,7 +161,7 @@ export default function CommanderSettingsPage() {
       // Note: hard_stop settings managed from Room Presets page
       const res = await fetch('/api/commander/settings', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getBearerToken()}` },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify({
           auto_refresh_interval: settings.auto_refresh_interval,
           show_player_names_on_display: settings.show_player_names_on_display,
@@ -206,7 +207,7 @@ export default function CommanderSettingsPage() {
       const staffSession = localStorage.getItem('commander_staff');
       const res = await fetch('/api/commander/settings', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getBearerToken()}` },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify({ [key]: newValue })
       });
       if (!res.ok) throw new Error('Request failed');
@@ -425,7 +426,7 @@ export default function CommanderSettingsPage() {
                                 headers: {
                                   'Content-Type': 'application/json',
                                   'x-staff-session': staffSession,
-                                  Authorization: `Bearer ${getBearerToken()}`
+                                  Authorization: `Bearer ${getToken()}`
                                 },
                                 body: JSON.stringify({
                                   data: base64,
@@ -457,7 +458,7 @@ export default function CommanderSettingsPage() {
                             const staffSession = localStorage.getItem('commander_staff') || '';
                             const res = await fetch('/api/commander/settings/logo', {
                               method: 'DELETE',
-                              headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${getBearerToken()}` }
+                              headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` }
                             });
                             if (!res.ok) throw new Error(`Request failed (${res.status})`);
                             const json = await res.json();

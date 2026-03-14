@@ -13,6 +13,7 @@ import {
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../src/engine/EventBus';
 import useDebounce from '../../src/hooks/useDebounce';
+import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 
 export default function ResponsibleGaming() {
   useEffect(() => { busEmit.sessionStart('commander-responsible-gaming'); }, []);
@@ -28,8 +29,6 @@ export default function ResponsibleGaming() {
   useEffect(() => {
     try { const s = JSON.parse(localStorage.getItem('commander_staff') || '{}'); if (s.venue_id) setVenueId(s.venue_id); } catch { }
   }, []);
-
-  const getToken = () => localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
   const getStaffSession = () => localStorage.getItem('commander_staff') || '';
 
   // Load members to check exclusion status
