@@ -781,9 +781,25 @@ export class SocialService {
                 },
                 (payload) => {
                     if (onPostUpdate) {
-                        // Wrap raw DB row in createPost() for consistent field formatting
-                        const formattedUpdate = createPost(payload.new);
-                        onPostUpdate(formattedUpdate);
+                        // Selective format: only update MUTABLE fields from Realtime payload
+                        // DO NOT wrap in createPost() — payload.new has no author join data,
+                        // so createPost() would create a broken author {username:'Anonymous'}
+                        // and the consumer spread {...p, ...update} would overwrite the valid one.
+                        const row = payload.new;
+                        onPostUpdate({
+                            id: row.id,
+                            content: row.content,
+                            contentType: row.content_type || 'text',
+                            engagement: {
+                                likeCount: row.like_count || 0,
+                                commentCount: row.comment_count || 0,
+                                shareCount: row.share_count || 0,
+                                viewCount: row.view_count || 0
+                            },
+                            visibility: row.visibility || 'public',
+                            isPinned: row.is_pinned || false,
+                            updatedAt: row.updated_at || row.created_at,
+                        });
                     }
                 }
             )
