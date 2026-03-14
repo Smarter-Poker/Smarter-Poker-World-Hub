@@ -101,7 +101,7 @@ export default async function handler(req, res) {
           const { data: currentSpot } = await supabase
               .from('solved_spots_gold')
               .select('strategy_matrix')
-              .eq('scenario_hash', scenarioHash)
+              .eq('scenario_hash', safeHash)
               .maybeSingle();
 
           const baselineAggression = currentSpot
@@ -115,7 +115,7 @@ export default async function handler(req, res) {
           const { data: childSpots, error } = await supabase
               .from('solved_spots_gold')
               .select('scenario_hash, strategy_matrix, hand_evs')
-              .ilike('scenario_hash', `${scenarioHash}__`)
+              .ilike('scenario_hash', `${safeHash}__`)
               .limit(200);
 
           if (error) {

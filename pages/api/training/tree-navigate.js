@@ -17,7 +17,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { getAllHands, parseBoardFromHash, extractPositionFromHash } from '../../../src/utils/trainingApiUtils';
+import { getAllHands, parseBoardFromHash, extractPositionFromHash, sanitizeParam } from '../../../src/utils/trainingApiUtils';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -46,13 +46,16 @@ export default async function handler(req, res) {
               return res.status(400).json({ success: false, error: 'scenarioHash is required' });
           }
 
+          // Sanitize query params used in Supabase queries
+          const safeHash = sanitizeParam(scenarioHash, 200);
+
           // ─── STRATEGY 1: Exact hash extension ──────────────────────────
           // If nextCard is provided, append it to the current board in the hash
           // to find the child node for the next street.
           if (nextCard) {
-              const cardStr = nextCard.toLowerCase();
+              const cardStr = sanitizeParam(nextCard, 4).toLowerCase();
               // Build the child hash by appending the card to the parent hash
-              const childHash = `${scenarioHash}${cardStr}`;
+              const childHash = `${safeHash}${cardStr}`;
 
               // Try exact match first
               let { data: childSpot, error } = await supabase
@@ -65,7 +68,7 @@ export default async function handler(req, res) {
               if (!childSpot) {
                   // Some hashes might have different separators or formats
                   // Try the child hash with underscore separation in case board is a separate segment
-                  const hashParts = scenarioHash.split('_');
+                  const hashParts = safeHash.split('_');
                   const boardSegment = hashParts[hashParts.length - 1];
                   const prefix = hashParts.slice(0, -1).join('_');
                   const altChildHash = `${prefix}_${boardSegment}${cardStr}`;
@@ -126,13 +129,13 @@ export default async function handler(req, res) {
           // ─── STRATEGY 2: List available children ────────────────────────
           // Without nextCard, find all possible child nodes (next street extensions).
           // This powers the Card Selector Modal by showing which cards have data.
-          const currentBoard = parseBoardFromHash(scenarioHash);
+          const currentBoard = parseBoardFromHash(safeHash);
 
           // Query all spots that have the same hash prefix with exactly 2 more chars (1 card)
           const { data: childSpots, error } = await supabase
               .from('solved_spots_gold')
               .select('scenario_hash')
-              .ilike('scenario_hash', `${scenarioHash}__`)
+              .ilike('scenario_hash', `${safeHash}__`)
               .limit(100);
 
           if (error) {
