@@ -7,7 +7,6 @@
 import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardUser } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
-import { requireAuth } from '../../../../../src/lib/commander/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -24,13 +23,6 @@ export default async function handler(req, res) {
 
     if (req.method === 'GET') {
       return listEvents(req, res);
-    }
-
-
-    // Auth guard
-    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-      const _staff = await requireAuth(req, res);
-      if (!_staff) return;
     }
 
     if (req.method === 'POST') {
