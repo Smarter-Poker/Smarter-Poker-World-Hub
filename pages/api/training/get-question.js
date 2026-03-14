@@ -101,7 +101,7 @@ export default async function handler(req, res) {
               try {
                   question = await deterministicEngine.generateQuestion({
                       gameId,
-                      level: parseInt(level),
+                      level: parseInt(level, 10),
                       seenIds: seenQuestionIds,
                       gameConfig: pioConfig,
                   });
@@ -125,7 +125,7 @@ export default async function handler(req, res) {
               } else {
                   // PIO ENGINE: GTO Solver Data (Default)
                   try {
-                      const pioScenarios = await pioQueryService.queryScenarios(gameId, parseInt(level), userId);
+                      const pioScenarios = await pioQueryService.queryScenarios(gameId, parseInt(level, 10), userId);
 
                       if (pioScenarios && pioScenarios.length > 0) {
                           question = await generateQuestionFromPIO(pioScenarios, gameId, level, game);
@@ -152,7 +152,7 @@ export default async function handler(req, res) {
               if (cachedQuestions && cachedQuestions.length > 0) {
                   const randomIndex = Math.floor(Math.random() * cachedQuestions.length);
                   // Enrich cached questions that were generated before GTO fields were added
-                  question = enrichGrokQuestion(cachedQuestions[randomIndex].question_data, gameConfig, parseInt(level), gameType);
+                  question = enrichGrokQuestion(cachedQuestions[randomIndex].question_data, gameConfig, parseInt(level, 10), gameType);
 
                   // Increment times_used (supabase.raw() doesn't exist in JS SDK v2)
                   const questionId = cachedQuestions[randomIndex].question_id;
@@ -190,7 +190,7 @@ export default async function handler(req, res) {
                               game_id: gameId,
                               engine_type: 'SCENARIO',
                               game_type: gameType,
-                              level: parseInt(level),
+                              level: parseInt(level, 10),
                               question_data: question,
                               times_used: 1,
                           });
@@ -212,7 +212,7 @@ export default async function handler(req, res) {
           return res.status(200).json({
               success: true,
               question,
-              level: parseInt(level),
+              level: parseInt(level, 10),
               passThreshold: TRAINING_CONFIG.passThresholds[level] || 85,
               gameType, // Return game type for debugging
           });
