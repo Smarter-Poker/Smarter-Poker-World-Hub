@@ -268,18 +268,18 @@ export default function MixedModePage() {
                     setUserDiamonds(freshBalance);
                 }
 
-                if (freshBalance < 10) {
+                if (freshBalance < GAME_ENTRY_COST) {
                     setShowOutOfDiamonds(true);
                     return;
                 }
 
-                const result = await DiamondEngine.deduct(10, 'trivia_mixed');
+                const result = await DiamondEngine.deduct(GAME_ENTRY_COST, 'trivia_mixed');
                 if (!result.success) {
                     setShowOutOfDiamonds(true);
                     return;
                 }
                 if (result.balance !== undefined) setUserDiamonds(result.balance);
-                busEmit.diamondsSpent(10, 'Trivia Mixed Mode');
+                busEmit.diamondsSpent(GAME_ENTRY_COST, 'Trivia Mixed Mode');
             } catch (e) {
                 console.error('[Mixed] Diamond deduction failed:', e);
                 setShowOutOfDiamonds(true);

@@ -80,6 +80,8 @@ export default async function handler(req, res) {
 
       // POST: Check and unlock achievements
       if (req.method === 'POST') {
+          const bodySize = JSON.stringify(req.body || {}).length;
+          if (bodySize > 10240) return res.status(413).json({ success: false, error: 'Request body too large' });
           const { stats } = req.body;
           // userId is from JWT (set at top of handler)
 

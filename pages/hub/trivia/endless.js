@@ -268,18 +268,18 @@ export default function EndlessModePage() {
                     setUserDiamonds(freshBalance);
                 }
 
-                if (freshBalance < 10) {
+                if (freshBalance < GAME_ENTRY_COST) {
                     setShowOutOfDiamonds(true);
                     return;
                 }
 
-                const result = await DiamondEngine.deduct(10, 'trivia_endless');
+                const result = await DiamondEngine.deduct(GAME_ENTRY_COST, 'trivia_endless');
                 if (!result.success) {
                     setShowOutOfDiamonds(true);
                     return;
                 }
                 if (result.balance !== undefined) setUserDiamonds(result.balance);
-                busEmit.diamondsSpent(10, 'Trivia Endless Mode');
+                busEmit.diamondsSpent(GAME_ENTRY_COST, 'Trivia Endless Mode');
             } catch (e) {
                 console.error('[Endless] Diamond deduction failed:', e);
                 setShowOutOfDiamonds(true);

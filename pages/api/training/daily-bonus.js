@@ -98,6 +98,8 @@ export default async function handler(req, res) {
 
       // POST: Claim daily bonus (called after first session of the day)
       if (req.method === 'POST') {
+          const bodySize = JSON.stringify(req.body || {}).length;
+          if (bodySize > 5120) return res.status(413).json({ success: false, error: 'Request body too large' });
           const { claimNow } = req.body;
 
           try {

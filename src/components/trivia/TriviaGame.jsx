@@ -10,7 +10,7 @@
  * - Synthesized sound effects
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { busEmit } from '../../engine/EventBus';
 import { ChevronRight, ChevronDown, ChevronUp, CheckCircle, XCircle, Zap, Gem, Flame, Volume2, VolumeX } from 'lucide-react';
@@ -107,6 +107,18 @@ export default function TriviaGame({
         }, 1000);
         return () => clearInterval(timerRef.current);
     }, [timeLimit]);
+
+    // Warn user before leaving during active game
+    useEffect(() => {
+        const handler = (e) => {
+            if (isGameActive && currentIndex > 0) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        };
+        window.addEventListener('beforeunload', handler);
+        return () => window.removeEventListener('beforeunload', handler);
+    }, [isGameActive, currentIndex]);
 
     // Auto-complete game when timer expires (arcade mode)
     useEffect(() => {

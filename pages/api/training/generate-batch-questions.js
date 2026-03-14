@@ -45,6 +45,9 @@ export default async function handler(req, res) {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
 
+      const bodySize = JSON.stringify(req.body || {}).length;
+      if (bodySize > 51200) return res.status(413).json({ success: false, error: 'Request body too large' });
+
       // ── Auth: Admin-only batch operation (generates 500 questions, very expensive) ──
       const adminSecret = req.headers['x-admin-secret'];
       const envSecret = process.env.ADMIN_ROUTE_SECRET;
