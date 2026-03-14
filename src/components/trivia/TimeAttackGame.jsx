@@ -29,6 +29,7 @@ export default function TimeAttackGame({
     const [diamondsEarned, setDiamondsEarned] = useState(0);
     const [fastAnswers, setFastAnswers] = useState(0);
     const answerStartTime = useRef(Date.now());
+    const answersRef = useRef([]); // Track per-question correct/incorrect
 
     const currentQuestion = questions[currentIndex];
     const remainingCap = Math.max(0, DAILY_DIAMOND_CAP - dailyDiamondsEarned);
@@ -69,6 +70,7 @@ export default function TimeAttackGame({
             if (isCorrect) {
                 const newCorrect = correctCount + 1;
                 setCorrectCount(newCorrect);
+                answersRef.current.push(true);
                 busEmit.decisionCorrect(newCorrect);
 
                 // Track fast answers (under 3 seconds)
@@ -85,6 +87,7 @@ export default function TimeAttackGame({
                 }
             } else {
                 setWrongCount(prev => prev + 1);
+                answersRef.current.push(false);
                 busEmit.decisionIncorrect(correctCount);
                 busEmit.screenShake('light');
             }
@@ -106,6 +109,7 @@ export default function TimeAttackGame({
             wrongCount,
             diamondsEarned: Math.min(diamondsEarned, remainingCap),
             fastAnswers,
+            answerResults: [...answersRef.current], // Per-question true/false array
             mode: 'time-attack'
         });
     };

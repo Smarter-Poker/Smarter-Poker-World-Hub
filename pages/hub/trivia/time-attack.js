@@ -255,7 +255,7 @@ export default function TimeAttackPage() {
                     const historyRecords = answeredQuestions.map((q, idx) => ({
                         user_id: userId,
                         question_id: q.id,
-                        was_correct: idx < gameResult.correctCount,
+                        was_correct: gameResult.answerResults ? (gameResult.answerResults[idx] || false) : idx < gameResult.correctCount,
                         seen_at: new Date().toISOString(),
                         mode: 'time-attack'
                     }));
