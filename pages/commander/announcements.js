@@ -9,6 +9,7 @@ import { Send, Users, Clock, CheckCircle, Loader2 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
+import { getToken } from '../../src/lib/commander/clientAuth';
 
 const QUICK_MESSAGES = [
   { label: 'Game Starting', message: 'New Game Starting! Check In At The Desk.' },
@@ -65,7 +66,7 @@ export default function CommanderAnnouncementsPage() {
     setSuccess(null);
 
     try {
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch('/api/commander/notifications/send', {
         method: 'POST',

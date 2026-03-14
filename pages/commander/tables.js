@@ -110,7 +110,7 @@ export default function CommanderTablesPage() {
   const fetchTables = useCallback(async (signal) => {
     if (!venueId) return;
     const staffSession = localStorage.getItem('commander_staff') || '';
-    const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+    const token = getToken();
     const headers = { 'x-staff-session': staffSession, Authorization: `Bearer ${token}` };
 
     // Fetch tables

@@ -11,6 +11,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
 import useDebounce from '../../src/hooks/useDebounce';
+import { getToken } from '../../src/lib/commander/clientAuth';
 
 const GAME_CERTIFICATIONS = [
   { value: 'nlhe', label: 'No Limit Hold\'em' },
@@ -352,7 +353,7 @@ export default function DealersPage() {
     setLoading(true);
     try {
       const staffSession = localStorage.getItem('commander_staff') || '';
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       const res = await fetch(`/api/commander/dealers?venue_id=${venueId}`, {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         ...(signal ? { signal } : {}),
@@ -373,7 +374,7 @@ export default function DealersPage() {
   async function fetchTables(signal) {
     try {
       const staffSession = localStorage.getItem('commander_staff') || '';
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       const res = await fetch(`/api/commander/tables?venue_id=${venueId}`, {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         ...(signal ? { signal } : {}),
@@ -393,7 +394,7 @@ export default function DealersPage() {
   async function fetchRotations(signal) {
     try {
       const staffSession = localStorage.getItem('commander_staff') || '';
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       const res = await fetch(`/api/commander/dealers/rotations?venue_id=${venueId}&limit=50`, {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         ...(signal ? { signal } : {}),
@@ -412,7 +413,7 @@ export default function DealersPage() {
   async function handleAddDealer(data) {
     try {
       const staffSession = localStorage.getItem('commander_staff') || '';
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       const res = await fetch('/api/commander/dealers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
@@ -435,7 +436,7 @@ export default function DealersPage() {
   async function handleEditDealer(data) {
     try {
       const staffSession = localStorage.getItem('commander_staff') || '';
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       const res = await fetch(`/api/commander/dealers/${editingDealer.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
@@ -458,7 +459,7 @@ export default function DealersPage() {
   async function handleRotate(dealerId, tableId) {
     try {
       const staffSession = localStorage.getItem('commander_staff') || '';
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       const res = await fetch('/api/commander/dealers/rotations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },

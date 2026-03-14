@@ -18,6 +18,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import useWakeLock from '../../src/hooks/useWakeLock';
 import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
+import { getToken } from '../../src/lib/commander/clientAuth';
 
 export default function LobbyDisplay() {
   useEffect(() => { busEmit.sessionStart('commander-lobby'); }, []);
@@ -34,7 +35,7 @@ export default function LobbyDisplay() {
   const fetchData = useCallback(async (signal) => {
     if (!venueId) return;
     try {
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
       const opts = signal ? { headers, signal } : { headers };

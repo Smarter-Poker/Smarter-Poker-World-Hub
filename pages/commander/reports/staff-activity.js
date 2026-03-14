@@ -9,6 +9,7 @@ import { Activity, Loader2, Shield } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import AuditLogViewer from '../../../src/components/commander/admin/AuditLogViewer';
 import { busEmit } from '../../../src/engine/EventBus';
+import { getToken } from '../../../../src/lib/commander/clientAuth';
 
 export default function StaffActivity() {
   useEffect(() => { busEmit.sessionStart('commander-reports-staff-activity'); }, []);
@@ -24,7 +25,7 @@ export default function StaffActivity() {
       const controller = new AbortController();
       const { signal } = controller;
       try {
-        const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+        const token = getToken();
         const staffSession = localStorage.getItem('commander_staff') || '';
         const res = await fetch('/api/commander/incidents?status=all&limit=50', {
           headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
@@ -41,7 +42,7 @@ export default function StaffActivity() {
   const fetchAuditLogs = async (filters = {}) => {
     setAuditLoading(true);
     try {
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
       const params = new URLSearchParams();
       if (filters.category) params.set('action_category', filters.category);

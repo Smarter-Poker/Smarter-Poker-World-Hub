@@ -12,6 +12,7 @@ import { Server, Database, Wifi, Shield, Clock, RefreshCw,
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../src/engine/EventBus';
+import { getToken } from '../../src/lib/commander/clientAuth';
 
 export default function SystemInfoPage() {
   useEffect(() => { busEmit.sessionStart('commander-system-info'); }, []);
@@ -36,7 +37,7 @@ export default function SystemInfoPage() {
   async function fetchInfo(showRefresh = false) {
     if (showRefresh) setRefreshing(true);
     try {
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       const res = await fetch('/api/commander/system-info', {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': localStorage.getItem('commander_staff') || '' }
       });

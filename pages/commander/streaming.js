@@ -10,6 +10,7 @@ import { Video, Play, Square, Settings, Loader2, Clock, Wifi, Youtube, Twitch, F
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../src/engine/EventBus';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
+import { getToken } from '../../src/lib/commander/clientAuth';
 
 const PLATFORMS = [
   { id: 'youtube', label: 'YouTube', icon: Youtube, color: '#FF0000' },
@@ -294,7 +295,7 @@ export default function StreamingPage() {
   const fetchStreams = useCallback(async (signal) => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/streaming?venue_id=${venueId}`, {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
@@ -326,7 +327,7 @@ export default function StreamingPage() {
 
   async function handleStartStream(tableId) {
     try {
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/streaming/${tableId}/start`, {
         method: 'POST',
@@ -346,7 +347,7 @@ export default function StreamingPage() {
 
   async function handleStopStream(tableId) {
     try {
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/streaming/${tableId}/stop`, {
         method: 'POST',
@@ -365,7 +366,7 @@ export default function StreamingPage() {
 
   async function handleSaveConfig(tableId, config) {
     try {
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/streaming/${tableId}/config`, {
         method: 'PATCH',

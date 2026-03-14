@@ -18,6 +18,7 @@ const MemberDetailPanel = dynamic(() => import('../../src/components/commander/m
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
+import { getToken } from '../../src/lib/commander/clientAuth';
 
 const TIER_COLORS = { daily: '#3B82F6', weekly: '#F59E0B', monthly: '#10B981', yearly: '#A855F7' };
 const TIER_LABELS = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly' };
@@ -73,7 +74,7 @@ export default function MembersPage() {
     const { data: membersData, isLoading: loading, mutate: fetchMembers } = useSWR(
         membersKey,
         (url) => {
-            const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+            const token = getToken();
             const staffSession = localStorage.getItem('commander_staff') || '';
             return fetch(url, { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } }).then(r => r.json()).catch(() => null);
         },

@@ -16,6 +16,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { hasFeature } from '../../src/lib/commander/tierConfig';
 import { busEmit } from '../../src/engine/EventBus';
+import { getToken } from '../../src/lib/commander/clientAuth';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -77,7 +78,7 @@ export default function DailyPresetsPage() {
   useEffect(() => {
     if (!staff) return;
     try {
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       if (!token) return;
       const staffSession = localStorage.getItem('commander_staff') || '';
       fetch('/api/commander/settings', { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } })
@@ -96,7 +97,7 @@ export default function DailyPresetsPage() {
   async function handleHardStopSave() {
     setHardStopSaving(true);
     try {
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       if (!token) return;
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch('/api/commander/settings', {
@@ -120,7 +121,7 @@ export default function DailyPresetsPage() {
   async function handleAutoCompSave() {
     setAutoCompSaving(true);
     try {
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       if (!token) return;
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch('/api/commander/settings', {
@@ -143,7 +144,7 @@ export default function DailyPresetsPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': localStorage.getItem('commander_staff') || '' };
       const stored = JSON.parse(localStorage.getItem('commander_staff') || '{}');
       const venueId = stored.venue_id;
@@ -182,7 +183,7 @@ export default function DailyPresetsPage() {
     setApplying(preset.id);
     setError(null);
     try {
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/room-presets?id=${preset.id}&action=apply`, {
         method: 'POST',
@@ -300,7 +301,7 @@ export default function DailyPresetsPage() {
     }
     setError(null);
     try {
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
       const url = editingId ? `/api/commander/room-presets?id=${editingId}` : '/api/commander/room-presets';
       const res = await fetch(url, {
@@ -330,7 +331,7 @@ export default function DailyPresetsPage() {
   async function handleDelete(preset) {
     if (!confirm(`Delete "${preset.name}"? This cannot be undone.`)) return;
     try {
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/room-presets?id=${preset.id}`, {
         method: 'DELETE',

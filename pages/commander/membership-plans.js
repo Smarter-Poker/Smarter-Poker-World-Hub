@@ -14,6 +14,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
 import SEOHead from '../../src/components/seo/SEOHead';
+import { getToken } from '../../src/lib/commander/clientAuth';
 
 const PLAN_ORDER = ['daily', 'weekly', 'monthly', 'yearly'];
 const PLAN_LABELS = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly' };
@@ -77,7 +78,7 @@ export default function MembershipPlansPage() {
   async function fetchPlans(signal) {
     setLoading(true);
     try {
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       const res = await fetch(`/api/commander/membership-plans?venue_id=${venueId}&include_inactive=true`, {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': localStorage.getItem('commander_staff') || '' }
       });
@@ -133,7 +134,7 @@ export default function MembershipPlansPage() {
       const price = parseFloat(editPrice);
       if (isNaN(price) || price < 0) { setError('Enter A Valid Price'); setSaving(null); return; }
       const field = getPriceField(plan.tier);
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       const res = await fetch(`/api/commander/membership-plans?venue_id=${venueId}&id=${plan.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': localStorage.getItem('commander_staff') || '' },

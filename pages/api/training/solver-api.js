@@ -25,6 +25,7 @@ function getSupabase() {
 const rateLimitMap = new Map();
 const RATE_LIMIT = 10;        // requests
 const RATE_WINDOW = 60_000;   // 1 minute
+const EVICT_THRESHOLD = 500;  // Evict stale entries when map exceeds this size
 
 function checkRateLimit(userId) {
     const now = Date.now();
@@ -39,6 +40,14 @@ function checkRateLimit(userId) {
     }
 
     rateLimitMap.set(key, entry);
+
+    // Periodic eviction: purge expired entries to prevent unbounded memory growth
+    if (rateLimitMap.size > EVICT_THRESHOLD) {
+        for (const [k, v] of rateLimitMap) {
+            if (now - v.windowStart > RATE_WINDOW * 2) rateLimitMap.delete(k);
+        }
+    }
+
     return entry.count <= RATE_LIMIT;
 }
 

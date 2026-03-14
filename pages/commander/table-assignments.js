@@ -20,6 +20,7 @@ import {
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
+import { getToken } from '../../src/lib/commander/clientAuth';
 
 const MODE_COLORS = {
   inactive: { bg: '#3A3B3C', border: '#4A4B4C', text: '#B0B3B8', label: 'Inactive', icon: Power },
@@ -47,7 +48,7 @@ export default function TableAssignments() {
   const [filterMode, setFilterMode] = useState('all');
 
   const getHeaders = () => {
-    const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+    const token = getToken();
     const staffSession = localStorage.getItem('commander_staff') || '';
     return {
       'Content-Type': 'application/json',

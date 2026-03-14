@@ -11,6 +11,7 @@ import {
   BarChart3, Repeat, ChevronDown, Search, ArrowLeft
 } from 'lucide-react';
 import { busEmit } from '../../../src/engine/EventBus';
+import { getToken } from '../../../../src/lib/commander/clientAuth';
 
 export default function PlayerActivityReport() {
   useEffect(() => { busEmit.sessionStart('commander-reports-player-activity'); }, []);
@@ -26,7 +27,7 @@ export default function PlayerActivityReport() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
       const [membersRes, sessionsRes] = await Promise.all([

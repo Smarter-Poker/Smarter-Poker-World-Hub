@@ -12,6 +12,7 @@ import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
 import { busEmit } from '../../../src/engine/EventBus';
 import SEOHead from '../../../src/components/seo/SEOHead';
+import { getToken } from '../../../../src/lib/commander/clientAuth';
 
 export default function DealerRotationDisplay() {
   useEffect(() => { busEmit.sessionStart('commander-displays-dealers'); }, []);
@@ -26,7 +27,7 @@ export default function DealerRotationDisplay() {
   const getHeaders = () => {
     try {
       const staff = localStorage.getItem('commander_staff') || '';
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || '';
+      const token = getToken();
       return { Authorization: `Bearer ${token}`, 'x-staff-session': staff };
     } catch { return {}; }
   };

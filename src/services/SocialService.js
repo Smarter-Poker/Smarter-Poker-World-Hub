@@ -747,7 +747,22 @@ export class SocialService {
                     table: 'social_posts'
                 },
                 (payload) => {
-                    if (onNewPost) onNewPost(payload.new);
+                    if (onNewPost) {
+                        // Wrap raw DB row in createPost() to match the SocialPost format
+                        // that views expect (author, engagement, isLiked, etc.)
+                        const formattedPost = createPost({
+                            ...payload.new,
+                            post_id: payload.new.id,
+                            author_username: 'New Post', // Minimal — will be refreshed by debounced full load
+                            author_avatar: null,
+                            author_level: 1,
+                            like_count: 0,
+                            comment_count: 0,
+                            share_count: 0,
+                            is_liked: false
+                        });
+                        onNewPost(formattedPost);
+                    }
                 }
             )
             .on(

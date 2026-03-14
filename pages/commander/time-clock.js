@@ -10,6 +10,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { Clock, ScanLine, UserCheck, LogIn, LogOut, Camera, X, AlertCircle, CheckCircle, Timer, Users } from 'lucide-react';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
+import { getToken } from '../../src/lib/commander/clientAuth';
 
 export default function TimeClock() {
     const router = useRouter();
@@ -41,7 +42,7 @@ export default function TimeClock() {
     const fetchEntries = useCallback(async (signal) => {
         if (!venueId) return;
         try {
-            const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+            const token = getToken();
             const staffSession = localStorage.getItem('commander_staff') || '';
             const res = await fetch(`/api/commander/time-clock?venue_id=${venueId}`, { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }, ...(signal ? { signal } : {}) });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -112,7 +113,7 @@ export default function TimeClock() {
         try {
              const res = await fetch('/api/commander/time-clock', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token')}`, 'x-staff-session': localStorage.getItem('commander_staff') || '' },
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': localStorage.getItem('commander_staff') || '' },
                 body: JSON.stringify({ venue_id: venueId, qr_code: qrCode }),
             });
             if (!res.ok) throw new Error('Request failed');

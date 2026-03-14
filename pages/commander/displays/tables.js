@@ -18,6 +18,7 @@ import DealerTicker from '../../../src/components/commander/shared/DealerTicker'
 import useCommanderSync, { broadcastChange } from '../../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../../src/engine/EventBus';
 import SEOHead from '../../../src/components/seo/SEOHead';
+import { getToken } from '../../../../src/lib/commander/clientAuth';
 
 /* ─── Helpers ────────────────────────────────────────────── */
 
@@ -131,7 +132,7 @@ export default function TablesDisplay() {
     if (!venueId) return;
     try {
       const staffSession = localStorage.getItem('commander_staff') || '';
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       const headers = { 'x-staff-session': staffSession, Authorization: `Bearer ${token}` };
 
       const res = await fetch(`/api/commander/tables?venue_id=${venueId}`, { headers });
@@ -189,7 +190,7 @@ export default function TablesDisplay() {
     if (!venueId) return;
     try {
       const staffSession = localStorage.getItem('commander_staff') || '';
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       const res = await fetch(`/api/commander/dealers/rotations?venue_id=${venueId}`, {
         headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${token}` },
       });
@@ -247,7 +248,7 @@ export default function TablesDisplay() {
     try {
       const res = await fetch('/api/commander/staff/verify-pin', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': localStorage.getItem('commander_staff') || '', Authorization: `Bearer ${localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token')}` },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': localStorage.getItem('commander_staff') || '', Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify({ pin_code: pinValue, venue_id: venueId }),
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -325,7 +326,7 @@ export default function TablesDisplay() {
   const handleScan = async (qrData, type, seatNumber) => {
     closeScanner();
     const staffSession = localStorage.getItem('commander_staff') || '';
-    const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+    const token = getToken();
     const headers = { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${token}` };
 
     if (type === 'dealer') {
@@ -372,7 +373,7 @@ export default function TablesDisplay() {
     setPlayerActionLoading(true);
     try {
       const staffSession = localStorage.getItem('commander_staff') || '';
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       const res = await fetch('/api/commander/dealer/session-action', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${token}` },
@@ -393,7 +394,7 @@ export default function TablesDisplay() {
     setPlayerActionLoading(true);
     try {
       const staffSession = localStorage.getItem('commander_staff') || '';
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       const res = await fetch('/api/commander/dealer/player-unseat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${token}` },

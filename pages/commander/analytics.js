@@ -119,6 +119,7 @@ function ActivityTrendLine({ dailyData }) {
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
+import { getToken } from '../../src/lib/commander/clientAuth';
 
 function StatCard({ title, value, change, icon: Icon, color = '#1877F2' }) {
   const hasChange = change !== undefined && change !== null;
@@ -252,7 +253,7 @@ export default function AnalyticsPage() {
       // Convert period to days; fetch 2x to get previous period for comparison
       const periodDays = period === 'week' ? 7 : period === 'month' ? 30 : 365;
 
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
       const [dailyRes, playersRes] = await Promise.all([

@@ -10,6 +10,7 @@ import { Plus, Edit2, Trash2, X, Loader2, Save, DollarSign, Users, Percent, Cloc
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
+import { getToken } from '../../src/lib/commander/clientAuth';
 
 const PRESET_GAMES = [
   { name: 'No Limit Hold\'em', short_code: 'NLH', max_players: 9, color: '#1877F2' },
@@ -59,7 +60,7 @@ export default function GameTypesPage() {
   const fetchGameTypes = useCallback(async () => {
     if (!venueId) return;
     try {
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       const res = await fetch('/api/commander/game-types?include_inactive=true', {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': localStorage.getItem('commander_staff') || '' }
       });
@@ -111,7 +112,7 @@ export default function GameTypesPage() {
     setSaving(true);
     setError(null);
     try {
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
       const url = editingId
         ? `/api/commander/game-types?id=${editingId}`
@@ -139,7 +140,7 @@ export default function GameTypesPage() {
   async function handleToggleActive(gt) {
     try {
       const staffSession = localStorage.getItem('commander_staff') || '';
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       const res = await fetch(`/api/commander/game-types/${gt.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
@@ -156,7 +157,7 @@ export default function GameTypesPage() {
     if (!confirm(`Remove "${gt.name} ${gt.stakes}" permanently?`)) return;
     try {
       const staffSession = localStorage.getItem('commander_staff') || '';
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       const res = await fetch(`/api/commander/game-types/${gt.id}?venue_id=${venueId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }

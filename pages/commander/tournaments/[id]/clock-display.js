@@ -25,6 +25,7 @@ import { calculateICM, calculateChipChop } from '../../../../src/lib/commander/i
 import { useCommanderSync, broadcastChange } from '../../../../src/lib/commander/useCommanderSync';
 import useWakeLock from '../../../../src/hooks/useWakeLock';
 import { busEmit } from '../../../../src/engine/EventBus';
+import { getToken } from '../../../../src/lib/commander/clientAuth';
 
 function formatClock(seconds) {
   if (!seconds && seconds !== 0) return '--:--';
@@ -171,7 +172,7 @@ export default function ClockDisplay() {
     try {
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch('/api/commander/clock-presets', {
-        headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || ''}` },
+        headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
@@ -188,7 +189,7 @@ export default function ClockDisplay() {
     try {
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/tournaments/${id}/floor-view`, {
-        headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || ''}` },
+        headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
         ...(signal ? { signal } : {}),
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -327,14 +328,14 @@ export default function ClockDisplay() {
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/tournaments/${id}/clock`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || ''}` },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify({ action })
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
         const res2 = await fetch(`/api/commander/tournaments/${id}/floor-view`, {
-          headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || ''}` },
+          headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
         });
         if (!res2.ok) throw new Error(`Request failed (${res2.status})`);
         const json2 = await res2.json();

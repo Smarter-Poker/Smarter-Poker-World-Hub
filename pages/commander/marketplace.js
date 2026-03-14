@@ -470,7 +470,7 @@ export default function MarketplacePage() {
 
   const fetchDealers = useCallback(async () => {
     try {
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch('/api/commander/marketplace/dealers?limit=50', {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
@@ -487,7 +487,7 @@ export default function MarketplacePage() {
 
   const fetchEquipment = useCallback(async () => {
     try {
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch('/api/commander/marketplace/equipment?limit=50', {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }

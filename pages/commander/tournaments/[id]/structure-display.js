@@ -13,6 +13,7 @@ import DealerTicker from '../../../../src/components/commander/shared/DealerTick
 import useTournamentRealtime from '../../../../src/hooks/useTournamentRealtime';
 import useWakeLock from '../../../../src/hooks/useWakeLock';
 import { busEmit } from '../../../../src/engine/EventBus';
+import { getToken } from '../../../../src/lib/commander/clientAuth';
 
 export default function StructureDisplay() {
   useEffect(() => { busEmit.sessionStart('commander-tournaments-id-structure-display'); }, []);
@@ -31,7 +32,7 @@ export default function StructureDisplay() {
     if (!id) return;
     try {
       const staffSession = typeof window !== 'undefined' ? (localStorage.getItem('commander_staff') || '') : '';
-      const bearerToken = typeof window !== 'undefined' ? (localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || '') : '';
+      const bearerToken = typeof window !== 'undefined' ? (getToken()) : '';
       const headers = { 'x-staff-session': staffSession, Authorization: `Bearer ${bearerToken}` };
       const [tRes, cRes] = await Promise.all([
         fetch(`/api/commander/tournaments/${id}`, { headers }).then(r => r.json()).catch(() => ({ success: false })),

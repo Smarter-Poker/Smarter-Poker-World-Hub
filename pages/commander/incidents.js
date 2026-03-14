@@ -11,6 +11,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import useDebounce from '../../src/hooks/useDebounce';
 import { busEmit } from '../../src/engine/EventBus';
+import { getToken } from '../../src/lib/commander/clientAuth';
 
 const INCIDENT_TYPES = [
   { value: 'dispute', label: 'Player Dispute', emoji: '⚔️' },
@@ -385,7 +386,7 @@ export default function IncidentsPage() {
   async function fetchIncidents(signal) {
     setLoading(true);
     try {
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/incidents?venue_id=${venueId}`, {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
@@ -401,7 +402,7 @@ export default function IncidentsPage() {
 
   async function handleCreateIncident(data) {
     try {
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch('/api/commander/incidents', {
         method: 'POST',
@@ -423,7 +424,7 @@ export default function IncidentsPage() {
 
   async function handleResolveIncident(incidentId, resolution) {
     try {
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/incidents/${incidentId}/resolve`, {
         method: 'POST',

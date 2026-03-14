@@ -11,6 +11,7 @@ import useDebounce from '../../src/hooks/useDebounce';
 import Pagination from '../../src/components/commander/shared/Pagination';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
+import { getToken } from '../../src/lib/commander/clientAuth';
 
 const ID_TYPES = [
   { value: 'drivers_license', label: "Driver's License" },
@@ -90,7 +91,7 @@ export default function CommanderStaffPage() {
   const fetchStaff = useCallback(async (signal) => {
     if (!venueId) return;
     try {
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/staff/venue/${venueId}`, {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
@@ -117,7 +118,7 @@ export default function CommanderStaffPage() {
 
   async function handleAddStaff(staffData) {
     try {
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch('/api/commander/staff', {
         method: 'POST',
@@ -231,7 +232,7 @@ export default function CommanderStaffPage() {
 
   async function handleUpdateStaff(staffId, staffData) {
     try {
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/staff/${staffId}`, {
         method: 'PATCH',
@@ -262,7 +263,7 @@ export default function CommanderStaffPage() {
     }
     setConfirmDeleteId(null);
     try {
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/staff/${staffId}`, {
         method: 'DELETE',
@@ -303,7 +304,7 @@ export default function CommanderStaffPage() {
   async function handleGenerateLinkCode(staffId) {
     setLinkCodeLoading(staffId);
     try {
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch('/api/commander/staff/generate-claim', {
         method: 'POST',

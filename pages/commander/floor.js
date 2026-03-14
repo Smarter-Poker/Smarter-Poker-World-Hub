@@ -16,6 +16,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { RefreshCw, Users, Loader2, Lock, Unlock, Save, AlertTriangle, Activity, X, Clock, ZoomIn, ZoomOut, RotateCw } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
+import { getToken } from '../../src/lib/commander/clientAuth';
 
 const STATUS_CONFIG = {
   in_use: { color: '#31A24C', glow: '0 0 12px rgba(49,162,76,0.5)', label: 'Active' },
@@ -72,7 +73,7 @@ export default function FloorMap() {
   }, [router]);
 
   const getHeaders = () => {
-    const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+    const token = getToken();
     const staffSession = localStorage.getItem('commander_staff') || '';
     return { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
   };
