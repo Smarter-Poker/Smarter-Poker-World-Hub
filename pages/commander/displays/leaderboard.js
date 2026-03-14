@@ -80,7 +80,10 @@ export default function LeaderboardDisplay() {
   // ═══════════════════════════════════════════════════════════════
   const fetchData = useCallback(async (signal) => {
     if (!venueId) return;
-    const fetchOpts = signal ? { signal } : {};
+    const staffSession = typeof window !== 'undefined' ? localStorage.getItem('commander_staff') || '' : '';
+    const token = typeof window !== 'undefined' ? (localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || '') : '';
+    const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
+    const fetchOpts = signal ? { headers, signal } : { headers };
     try {
       // ── Fetch members ──
       const mRes = await fetch(`/api/commander/members?venue_id=${venueId}&limit=200`, fetchOpts);
@@ -96,14 +99,14 @@ export default function LeaderboardDisplay() {
       // SECTION A: CUSTOM LEADERBOARDS (staff-created, first priority)
       // ════════════════════════════════════════════════════════════
       try {
-        const lbRes = await fetch(`/api/commander/leaderboards?venue_id=${venueId}&status=active`);
+        const lbRes = await fetch(`/api/commander/leaderboards?venue_id=${venueId}&status=active`, fetchOpts);
         if (!lbRes.ok) throw new Error(`Request failed (${lbRes.status})`);
         const lbJson = await lbRes.json();
         const customs = lbJson?.leaderboards || lbJson?.data || [];
         if (Array.isArray(customs)) {
           const activeBoards = customs.slice(0, 4);
           const entryResults = await Promise.all(
-            activeBoards.map(lb => fetch(`/api/commander/leaderboards/${lb.id}/entries`).then(r => r.json()).catch(() => ({})))
+            activeBoards.map(lb => fetch(`/api/commander/leaderboards/${lb.id}/entries`, fetchOpts).then(r => r.json()).catch(() => ({})))
           );
           activeBoards.forEach((lb, idx) => {
             const entries = (entryResults[idx]?.entries || entryResults[idx]?.data || [])
@@ -135,14 +138,14 @@ export default function LeaderboardDisplay() {
       // SECTION B: LEAGUE STANDINGS
       // ════════════════════════════════════════════════════════════
       try {
-        const lgRes = await fetch('/api/commander/leagues?status=active');
+        const lgRes = await fetch(`/api/commander/leagues?venue_id=${venueId}&status=active`, fetchOpts);
         if (!lgRes.ok) throw new Error(`Request failed (${lgRes.status})`);
         const lgJson = await lgRes.json();
         const leagues = lgJson?.data?.leagues || lgJson?.leagues || [];
         if (Array.isArray(leagues)) {
           for (const lg of leagues.slice(0, 3)) {
             try {
-              const stRes = await fetch(`/api/commander/leagues/${lg.id}/standings`);
+              const stRes = await fetch(`/api/commander/leagues/${lg.id}/standings?venue_id=${venueId}`, fetchOpts);
               if (!stRes.ok) throw new Error(`Request failed (${stRes.status})`);
               const stJson = await stRes.json();
               const standings = stJson?.data?.standings || stJson?.standings || [];
@@ -171,7 +174,7 @@ export default function LeaderboardDisplay() {
 
       // ── C1: Hours Played ──
       try {
-        const hRes = await fetch(`/api/commander/members/hours?venue_id=${venueId}&period=all&limit=15`);
+        const hRes = await fetch(`/api/commander/members/hours?venue_id=${venueId}&period=all&limit=15`, fetchOpts);
         if (!hRes.ok) throw new Error(`Request failed (${hRes.status})`);
         const hJson = await hRes.json();
         const players = hJson?.data?.players || [];
