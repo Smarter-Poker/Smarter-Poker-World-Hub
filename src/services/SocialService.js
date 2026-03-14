@@ -622,7 +622,7 @@ export class SocialService {
                 unreadCount: 1,
                 lastMessage: { text: 'You Call That A Raise?', time: '2m', isOwn: false },
                 participants: [
-                    { id: 'u2', name: 'Mike Shark', avatar: 'https://picsum.photos/101/101', online: true }
+                    { id: 'u2', name: 'Mike Shark', avatar: null, online: true }
                 ]
             }
         ];
