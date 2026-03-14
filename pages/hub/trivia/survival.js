@@ -72,36 +72,40 @@ export default function SurvivalModePage() {
 
         setUserId(user.id);
 
-        // Check VIP status
-        await DiamondEngine.init(user.id);
-        const vipStatus = await DiamondEngine.isVIP();
-        setIsVip(vipStatus);
+        try {
+            // Check VIP status
+            await DiamondEngine.init(user.id);
+            const vipStatus = await DiamondEngine.isVIP();
+            setIsVip(vipStatus);
 
-        // Get today's survival diamonds
-        const today = new Date().toISOString().split('T')[0];
-        const { data: runs } = await supabase
-            .from('trivia_survival_runs')
-            .select('diamonds_earned')
-            .eq('user_id', user.id)
-            .gte('created_at', today)
-            .limit(50) // survival runs
+            // Get today's survival diamonds
+            const today = new Date().toISOString().split('T')[0];
+            const { data: runs } = await supabase
+                .from('trivia_survival_runs')
+                .select('diamonds_earned')
+                .eq('user_id', user.id)
+                .gte('created_at', today)
+                .limit(50) // survival runs
 
-        if (runs) {
-            const total = runs.reduce((sum, r) => sum + (r.diamonds_earned || 0), 0);
-            setDailyDiamondsEarned(total);
-        }
+            if (runs) {
+                const total = runs.reduce((sum, r) => sum + (r.diamonds_earned || 0), 0);
+                setDailyDiamondsEarned(total);
+            }
 
-        // Get personal best
-        const { data: best } = await supabase
-            .from('trivia_survival_runs')
-            .select('correct_count')
-            .eq('user_id', user.id)
-            .order('correct_count', { ascending: false })
-            .limit(1)
-            .maybeSingle();
+            // Get personal best
+            const { data: best } = await supabase
+                .from('trivia_survival_runs')
+                .select('correct_count')
+                .eq('user_id', user.id)
+                .order('correct_count', { ascending: false })
+                .limit(1)
+                .maybeSingle();
 
-        if (best) {
-            setPersonalBest(best.correct_count);
+            if (best) {
+                setPersonalBest(best.correct_count);
+            }
+        } catch (e) {
+            console.error('[Survival] Failed to load user data:', e);
         }
     }
 

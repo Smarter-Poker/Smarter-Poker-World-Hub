@@ -47,10 +47,11 @@ export default function TaxCompliance() {
     setLoading(true);
     try {
       const token = getToken();
+      const staffSession = localStorage.getItem('commander_staff') || '';
       let url = `/api/commander/tax/w2g?venue_id=${staff.venue_id}&year=${year}`;
       if (filter === 'pending') url += '&w2g_generated=false';
       if (filter === 'generated') url += '&w2g_generated=true';
-      const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
@@ -65,9 +66,10 @@ export default function TaxCompliance() {
     setGenerating(eventId);
     try {
       const token = getToken();
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch('/api/commander/tax/w2g', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ tax_event_id: eventId })
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);

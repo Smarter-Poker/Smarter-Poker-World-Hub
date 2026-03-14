@@ -48,8 +48,9 @@ export default function HighHands() {
     if (!venueId) return;
     setLoading(true);
     try {
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/high-hands?venue_id=${venueId}&limit=50`, {
-        headers: { Authorization: `Bearer ${getToken()}` }
+        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();

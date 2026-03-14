@@ -25,8 +25,9 @@ export default function StaffActivity() {
       const { signal } = controller;
       try {
         const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+        const staffSession = localStorage.getItem('commander_staff') || '';
         const res = await fetch('/api/commander/incidents?status=all&limit=50', {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
         });
         if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const json = await res.json();
@@ -41,13 +42,14 @@ export default function StaffActivity() {
     setAuditLoading(true);
     try {
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const params = new URLSearchParams();
       if (filters.category) params.set('action_category', filters.category);
       if (filters.dateFrom) params.set('date_from', filters.dateFrom);
       if (filters.dateTo) params.set('date_to', filters.dateTo);
 
       const res = await fetch(`/api/commander/admin/audit-logs?${params}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();

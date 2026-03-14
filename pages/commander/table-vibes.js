@@ -39,8 +39,9 @@ export default function TableVibes() {
     setLoading(true);
     try {
       const token = getToken();
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/table-ratings?venue_id=${staff.venue_id}&days=${days}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();

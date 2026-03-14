@@ -32,8 +32,9 @@ export default function WaitlistMetrics() {
     if (!venueId) return;
     setLoading(true);
     try {
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/reports/waitlist-metrics?venue_id=${venueId}&range=${range}`, {
-        headers: { Authorization: `Bearer ${getToken()}` }
+        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();

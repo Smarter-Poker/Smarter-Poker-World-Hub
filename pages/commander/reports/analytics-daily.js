@@ -44,10 +44,11 @@ export default function AnalyticsDailyReport() {
     setLoading(true);
     try {
       const token = getToken();
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const endDate = new Date().toISOString().split('T')[0];
       const startDate = new Date(Date.now() - range * 86400000).toISOString().split('T')[0];
       const res = await fetch(`/api/commander/analytics/daily?venue_id=${staff.venue_id}&start_date=${startDate}&end_date=${endDate}&days=${range}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
@@ -66,11 +67,12 @@ export default function AnalyticsDailyReport() {
     setRefreshing(true);
     try {
       const token = getToken();
+      const staffSession = localStorage.getItem('commander_staff') || '';
       // Trigger cron for yesterday
       const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
       const res = await fetch('/api/cron/commander-daily-aggregate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ manual: true, date: yesterday })
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);

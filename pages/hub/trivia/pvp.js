@@ -127,33 +127,37 @@ export default function PvPPage() {
 
         setUserId(user.id);
 
-        // Get diamond balance and username
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('diamonds, username')
-            .eq('id', user.id)
-            .maybeSingle();
+        try {
+            // Get diamond balance and username
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('diamonds, username')
+                .eq('id', user.id)
+                .maybeSingle();
 
-        if (profile) {
-            setUserDiamonds(profile.diamonds || 0);
-            setUsername(profile.username || 'Player');
-        }
+            if (profile) {
+                setUserDiamonds(profile.diamonds || 0);
+                setUsername(profile.username || 'Player');
+            }
 
-        // Get PvP stats from persistent stats table
-        const { data: pvpStats } = await supabase
-            .from('trivia_pvp_stats')
-            .select('*')
-            .eq('user_id', user.id)
-            .maybeSingle();
+            // Get PvP stats from persistent stats table
+            const { data: pvpStats } = await supabase
+                .from('trivia_pvp_stats')
+                .select('*')
+                .eq('user_id', user.id)
+                .maybeSingle();
 
-        if (pvpStats) {
-            setStats({
-                wins: pvpStats.wins || 0,
-                losses: pvpStats.losses || 0,
-                ties: pvpStats.ties || 0,
-                winStreak: pvpStats.win_streak || 0,
-                bestStreak: pvpStats.best_streak || 0
-            });
+            if (pvpStats) {
+                setStats({
+                    wins: pvpStats.wins || 0,
+                    losses: pvpStats.losses || 0,
+                    ties: pvpStats.ties || 0,
+                    winStreak: pvpStats.win_streak || 0,
+                    bestStreak: pvpStats.best_streak || 0
+                });
+            }
+        } catch (e) {
+            console.error('[PVP] Failed to load user data:', e);
         }
     }
 

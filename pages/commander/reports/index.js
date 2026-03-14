@@ -93,8 +93,9 @@ export default function ReportsPage() {
         const { signal } = controller;
       try {
         const token = getToken();
+        const staffSession = localStorage.getItem('commander_staff') || '';
         const res = await fetch(`/api/commander/reports/summary?range=${dateRange}`, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
         });
         if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const json = await res.json();
