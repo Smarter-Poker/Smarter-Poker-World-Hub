@@ -103,8 +103,11 @@ export default function TrainingCalendarPage() {
       return;
     }
     try {
+      const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
+      if (!token) { setLoading(false); return; }
       const res = await fetch('/api/training/get-sessions?limit=500', {
-        });
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success && data.sessions) setDayMap(buildHeatmap(data.sessions));
