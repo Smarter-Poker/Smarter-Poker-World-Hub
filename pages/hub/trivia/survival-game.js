@@ -414,6 +414,7 @@ export default function SurvivalGamePage() {
                 return;
             }
             if (result.balance !== undefined) setUserDiamonds(result.balance);
+            busEmit.diamondsSpent(10, 'Trivia Survival Game');
         }
         setCurrentLevel(level);
         setCurrentQuestionIndex(0);
