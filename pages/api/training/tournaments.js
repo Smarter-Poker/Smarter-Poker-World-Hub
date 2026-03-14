@@ -7,6 +7,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { sanitizeParam } from '../../../src/utils/trainingApiUtils';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -29,7 +30,9 @@ export default async function handler(req, res) {
       // GET: Fetch tournaments (upcoming, live, or completed)
       if (req.method === 'GET') {
           res.setHeader('Cache-Control', 'public, s-maxage=15, stale-while-revalidate=60');
-          const { status, tournamentId } = req.query;
+          const { status: rawStatus, tournamentId: rawTournamentId } = req.query;
+          const status = ['live', 'scheduled', 'completed'].includes(rawStatus) ? rawStatus : null;
+          const tournamentId = rawTournamentId ? sanitizeParam(rawTournamentId, 100) : null;
 
           try {
               // Single tournament with entries leaderboard

@@ -32,19 +32,19 @@ export default async function handler(req, res) {
           res.setHeader('Cache-Control', 'private, max-age=30');
 
           try {
-              // Get all achievement definitions
-              const { data: definitions } = await supabase
-                  .from('training_achievement_definitions')
-                  .select('*')
-                  .order('category', { ascending: true })
-                  .limit(100);
-
-              // Get user's unlocked achievements
-              const { data: userAchievements } = await supabase
-                  .from('training_user_achievements')
-                  .select('achievement_id, unlocked_at, progress')
-                  .eq('user_id', userId)
-                  .limit(100);
+              // Parallel fetch: definitions and user achievements are independent
+              const [{ data: definitions }, { data: userAchievements }] = await Promise.all([
+                  supabase
+                      .from('training_achievement_definitions')
+                      .select('*')
+                      .order('category', { ascending: true })
+                      .limit(100),
+                  supabase
+                      .from('training_user_achievements')
+                      .select('achievement_id, unlocked_at, progress')
+                      .eq('user_id', userId)
+                      .limit(100)
+              ]);
 
               const unlockedMap = new Map(
                   (userAchievements || []).map(a => [a.achievement_id, a])

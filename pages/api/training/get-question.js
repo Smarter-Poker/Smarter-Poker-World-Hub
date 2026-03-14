@@ -16,6 +16,7 @@ import { getGameConfig, getStackDepthNumber } from '../../../src/config/gameConf
 import { pioQueryService } from '../../../src/services/PIOQueryService';
 import { deterministicEngine } from '../../../src/engines/DeterministicGTOEngine';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { sanitizeParam } from '../../../src/utils/trainingApiUtils';
 
 // ── Deterministic hash for seeded fallback data ──
 function hashSeed(str) {
@@ -45,7 +46,9 @@ export default async function handler(req, res) {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
 
-      const { gameId, level = 1, engineType = 'PIO' } = req.query;
+      const { gameId: rawGameId, level = 1, engineType: rawEngine = 'PIO' } = req.query;
+      const gameId = sanitizeParam(rawGameId, 100);
+      const engineType = ['PIO', 'CHART', 'SCENARIO'].includes(rawEngine) ? rawEngine : 'PIO';
       // BUG FIX: was reading userId from query — IDOR; use JWT identity instead
       const userId = _authUser.id;
 

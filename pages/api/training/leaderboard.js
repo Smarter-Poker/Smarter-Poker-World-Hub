@@ -7,6 +7,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { sanitizeParam } from '../../../src/utils/trainingApiUtils';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -115,7 +116,10 @@ export default async function handler(req, res) {
       }
 
 
-      const { period = 'daily', limit = 20, gameId } = req.query;
+      const { period: rawPeriod = 'daily', limit = 20, gameId: rawGameId } = req.query;
+      const period = ['daily', 'weekly', 'monthly', 'all_time'].includes(rawPeriod) ? rawPeriod : 'daily';
+      const gameId = rawGameId ? sanitizeParam(rawGameId, 100) : null;
+      const boundedLimit = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
 
 
       try {

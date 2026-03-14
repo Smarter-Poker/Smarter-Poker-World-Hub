@@ -147,31 +147,33 @@ export default async function handler(req, res) {
           res.setHeader('Cache-Control', 'private, max-age=15');
 
           try {
-              // Get active challenge definitions
-              const { data: definitions } = await supabase
-                  .from('training_challenge_definitions')
-                  .select('*')
-                  .eq('is_active', true)
-                  .order('challenge_type', { ascending: true })
-                      .limit(100);
-
-              // Get user's progress for current periods
-              const { data: userProgress } = await supabase
-                  .from('training_user_challenges')
-                  .select('*')
-                  .eq('user_id', userId)
-                  .in('period_key', [periods.weekly, periods.monthly])
-                      .limit(100);
+              // Parallel fetch: definitions and user progress are independent
+              const [{ data: definitions }, { data: userProgress }] = await Promise.all([
+                  supabase
+                      .from('training_challenge_definitions')
+                      .select('*')
+                      .eq('is_active', true)
+                      .order('challenge_type', { ascending: true })
+                      .limit(100),
+                  supabase
+                      .from('training_user_challenges')
+                      .select('*')
+                      .eq('user_id', userId)
+                      .in('period_key', [periods.weekly, periods.monthly])
+                      .limit(100)
+              ]);
 
               const progressMap = new Map(
                   (userProgress || []).map(p => [`${p.challenge_id}-${p.period_key}`, p])
               );
 
-              // Calculate dynamic progress for some challenge types
-              const avgAccuracyWeekly = await getAverageAccuracy(supabase, userId, periods.weekly, true);
-              const avgAccuracyMonthly = await getAverageAccuracy(supabase, userId, periods.monthly, false);
-              const uniqueCategoriesMonthly = await getUniqueCategoriesPlayed(supabase, userId, periods.monthly, false);
-              const currentStreak = await getCurrentStreak(supabase, userId);
+              // Parallel fetch: all 4 dynamic stats are independent
+              const [avgAccuracyWeekly, avgAccuracyMonthly, uniqueCategoriesMonthly, currentStreak] = await Promise.all([
+                  getAverageAccuracy(supabase, userId, periods.weekly, true),
+                  getAverageAccuracy(supabase, userId, periods.monthly, false),
+                  getUniqueCategoriesPlayed(supabase, userId, periods.monthly, false),
+                  getCurrentStreak(supabase, userId)
+              ]);
 
               // Combine definitions with progress
               const challenges = (definitions || []).map(def => {

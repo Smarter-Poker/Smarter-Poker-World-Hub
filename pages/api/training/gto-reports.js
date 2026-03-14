@@ -12,6 +12,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { sanitizeParam } from '../../../src/utils/trainingApiUtils';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -57,7 +58,8 @@ export default async function handler(req, res) {
       if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       try {
-          const { period = 'all' } = req.query;
+          const { period: rawPeriod = 'all' } = req.query;
+          const period = ['week', 'month', 'all'].includes(rawPeriod) ? rawPeriod : 'all';
           // BUG FIX: was reading userId from query — IDOR; use JWT identity
           const userId = user.id;
 
