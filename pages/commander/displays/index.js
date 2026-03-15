@@ -32,7 +32,7 @@ export default function DisplayManagement() {
     try {
       const token = getToken();
       const res = await fetch('/api/commander/tournaments', {
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': localStorage.getItem('commander_staff') || '' }
+        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() || '' }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
@@ -52,7 +52,7 @@ export default function DisplayManagement() {
 
   // Extract venueId for cross-device Supabase sync
   const [venueId] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
+    try { return JSON.parse(getStaffSession() || '{}').venue_id; } catch { return null; }
   });
 
   // Commander Data Bus — sync tournament list

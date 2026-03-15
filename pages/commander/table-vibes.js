@@ -38,7 +38,7 @@ export default function TableVibes() {
     setLoading(true);
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch(`/api/commander/table-ratings?venue_id=${staff.venue_id}&days=${days}`, {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
@@ -54,7 +54,7 @@ export default function TableVibes() {
 
 useEffect(() => {    const _c = new AbortController();
 
-    const stored = localStorage.getItem('commander_staff');
+    const stored = getStaffSession();
     if (!stored) { router.push('/commander/login').catch(() => { }); return; }
     try {
       const s = JSON.parse(stored);

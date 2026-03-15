@@ -75,7 +75,7 @@ export default function AnnouncementsDisplay() {
   });
 
   const [venueId] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
+    try { return JSON.parse(getStaffSession() || '{}').venue_id; } catch { return null; }
   });
 
 

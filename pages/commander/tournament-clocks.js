@@ -20,7 +20,7 @@ export default function TournamentClocks() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const stored = localStorage.getItem('commander_staff');
+        const stored = getStaffSession();
         if (!stored) { router.push('/commander/login').catch(() => { }); return; }
         try {
             const s = JSON.parse(stored);

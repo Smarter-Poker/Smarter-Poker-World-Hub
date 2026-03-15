@@ -41,14 +41,14 @@ export default function HighHands() {
   });
 
   useEffect(() => {
-    try { const s = JSON.parse(localStorage.getItem('commander_staff') || '{}'); if (s.venue_id) setVenueId(s.venue_id); } catch (e) { /* silent */ }
+    try { const s = JSON.parse(getStaffSession() || '{}'); if (s.venue_id) setVenueId(s.venue_id); } catch (e) { /* silent */ }
   }, []);
 
   const fetchData = useCallback(async () => {
     if (!venueId) return;
     setLoading(true);
     try {
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch(`/api/commander/high-hands?venue_id=${venueId}&limit=50`, {
         headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession }
       });
@@ -69,7 +69,7 @@ export default function HighHands() {
     if (!form.player_name || !form.hand_rank) return;
     setSubmitting(true);
     try {
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch('/api/commander/high-hands', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession },
@@ -101,7 +101,7 @@ export default function HighHands() {
 
   const handleVerify = async (id) => {
     try {
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch(`/api/commander/high-hands/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession },
@@ -117,7 +117,7 @@ export default function HighHands() {
   const handleDelete = async (id) => {
     if (!confirm('Delete this high hand?')) return;
     try {
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch(`/api/commander/high-hands/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession }

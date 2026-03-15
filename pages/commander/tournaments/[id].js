@@ -69,14 +69,14 @@ export default function TournamentDetailPage() {
   // Extract venueId for sync
   const [venueId] = useState(() => {
     if (typeof window === 'undefined') return null;
-    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
+    try { return JSON.parse(getStaffSession() || '{}').venue_id; } catch { return null; }
   });
 
   // Check staff session
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (!router.isReady) return;
-    const storedStaff = localStorage.getItem('commander_staff');
+    const storedStaff = getStaffSession();
 
     if (!storedStaff) {
       router.push('/commander/login').catch(() => { });
@@ -96,7 +96,7 @@ export default function TournamentDetailPage() {
     if (!id) return;
 
     try {
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const headers = { 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` };
       const fo = signal ? { headers, signal } : { headers };
       const [tournamentRes, entriesRes] = await Promise.all([
@@ -165,7 +165,7 @@ export default function TournamentDetailPage() {
   // Clock actions
   async function handleClockAction(action) {
     try {
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch(`/api/commander/tournaments/${id}/clock`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
@@ -187,7 +187,7 @@ export default function TournamentDetailPage() {
   // Tournament status update
   async function handleStatusChange(newStatus) {
     try {
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch(`/api/commander/tournaments/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
@@ -295,7 +295,7 @@ export default function TournamentDetailPage() {
                     if (!confirm(`Close tournament "${tournament.name}"? This will cancel the tournament and cannot be undone.`)) return;
                     setClosing(true);
                     try {
-                      const staffSession = localStorage.getItem('commander_staff') || '';
+                      const staffSession = getStaffSession() || '';
                       const res = await fetch(`/api/commander/tournaments/${tournament.id}`, {
                         method: 'DELETE',
                         headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` }

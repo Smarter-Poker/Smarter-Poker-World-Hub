@@ -73,7 +73,7 @@ export default function TableSeating() {
 
   // Real-time sync — instant cross-tab + cross-device updates
   const venueId = typeof window !== 'undefined'
-    ? (() => { try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id || ''; } catch { return ''; } })()
+    ? (() => { try { return JSON.parse(getStaffSession() || '{}').venue_id || ''; } catch { return ''; } })()
     : '';
   useCommanderSync(venueId, fetchData, { entities: ['tables', 'games', 'waitlist'] });
   const removePlayer = async (sessionId) => {

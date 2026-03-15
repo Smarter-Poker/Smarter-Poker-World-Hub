@@ -23,7 +23,7 @@ export default function AnalyticsDailyReport() {
 
   useEffect(() => {    const _c = new AbortController();
 
-    const stored = localStorage.getItem('commander_staff');
+    const stored = getStaffSession();
     if (!stored) { router.push('/commander/login').catch(() => { }); return; }
     try {
       const s = JSON.parse(stored);
@@ -43,7 +43,7 @@ export default function AnalyticsDailyReport() {
     setLoading(true);
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const endDate = new Date().toISOString().split('T')[0];
       const startDate = new Date(Date.now() - range * 86400000).toISOString().split('T')[0];
       const res = await fetch(`/api/commander/analytics/daily?venue_id=${staff.venue_id}&start_date=${startDate}&end_date=${endDate}&days=${range}`, {
@@ -66,7 +66,7 @@ export default function AnalyticsDailyReport() {
     setRefreshing(true);
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       // Trigger cron for yesterday
       const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
       const res = await fetch('/api/cron/commander-daily-aggregate', {

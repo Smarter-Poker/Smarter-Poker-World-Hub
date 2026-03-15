@@ -92,7 +92,7 @@ export default function ReportsPage() {
         const { signal } = controller;
       try {
         const token = getToken();
-        const staffSession = localStorage.getItem('commander_staff') || '';
+        const staffSession = getStaffSession() || '';
         const res = await fetch(`/api/commander/reports/summary?range=${dateRange}`, {
           headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
         });

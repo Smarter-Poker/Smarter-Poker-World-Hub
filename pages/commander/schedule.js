@@ -240,7 +240,7 @@ export default function StaffSchedule() {
   const WRITE_COOLDOWN_MS = 2000;
   const getHeaders = () => {
     const token = getToken();
-    const staffSession = localStorage.getItem('commander_staff') || '';
+    const staffSession = getStaffSession() || '';
     return { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession, 'Content-Type': 'application/json' };
   };
 

@@ -37,7 +37,7 @@ export default function TournamentSettingsPage() {
 
     useEffect(() => {    const _c = new AbortController();
 
-        const storedStaff = localStorage.getItem('commander_staff');
+        const storedStaff = getStaffSession();
         if (!storedStaff) { router.push('/commander/login').catch(() => { }); return; }
         try {
             const staffData = JSON.parse(storedStaff);
@@ -75,7 +75,7 @@ export default function TournamentSettingsPage() {
         tomorrow.setHours(19, 0, 0, 0);
 
         try {
-            const staffSession = localStorage.getItem('commander_staff');
+            const staffSession = getStaffSession();
             const payload = {
                 venue_id: venue.id,
                 name: template.name,

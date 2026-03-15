@@ -45,14 +45,14 @@ export default function ExportsHub() {
   const [format, setFormat] = useState('csv');
 
   useEffect(() => {
-    try { const s = JSON.parse(localStorage.getItem('commander_staff') || '{}'); if (s.venue_id) setVenueId(s.venue_id); } catch (e) { /* silent */ }
+    try { const s = JSON.parse(getStaffSession() || '{}'); if (s.venue_id) setVenueId(s.venue_id); } catch (e) { /* silent */ }
   }, []);
 
   const fetchData = useCallback(async () => {
     if (!venueId) return;
     setLoading(true);
     try {
-      const headers = { Authorization: `Bearer ${getToken()}`, 'x-staff-session': localStorage.getItem('commander_staff') || '' };
+      const headers = { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() || '' };
       const [expRes, tRes] = await Promise.all([
         fetch(`/api/commander/exports?venue_id=${venueId}`, { headers }).catch(() => ({ ok: false })),
         fetch(`/api/commander/tournaments?venue_id=${venueId}&status=completed&limit=20`, { headers }).catch(() => ({ ok: false })),
@@ -70,7 +70,7 @@ export default function ExportsHub() {
   const createExport = async (exportType) => {
     setCreating(exportType);
     try {
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch('/api/commander/exports', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession },
@@ -108,7 +108,7 @@ export default function ExportsHub() {
     setCreating('hendon');
     try {
       const res = await fetch(`/api/commander/exports/hendon-mob?tournament_id=${tournamentId}`, {
-        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': localStorage.getItem('commander_staff') || '' }
+        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() || '' }
       });
       if (res.ok) {
         const blob = await res.blob();

@@ -32,7 +32,7 @@ export default function TournamentRegistration() {
 
     useEffect(() => {
         try {
-            const s = JSON.parse(localStorage.getItem('commander_staff') || '{}');
+            const s = JSON.parse(getStaffSession() || '{}');
             if (s.venue_id) setVenueId(s.venue_id);
         } catch (e) { /* silent */ }
     }, []);
@@ -42,7 +42,7 @@ export default function TournamentRegistration() {
         setLoading(true);
         try {
             const token = getToken();
-            const staffSession = localStorage.getItem('commander_staff') || '';
+            const staffSession = getStaffSession() || '';
             const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
             const res = await fetch(`/api/commander/tournaments?venue_id=${venueId}&status=upcoming,active`, { headers });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -64,7 +64,7 @@ export default function TournamentRegistration() {
         setSearchLoading(true);
         try {
             const token = getToken();
-            const staffSession = localStorage.getItem('commander_staff') || '';
+            const staffSession = getStaffSession() || '';
             const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
             const res = await fetch(`/api/commander/members/search?q=${encodeURIComponent(query)}&venue_id=${venueId}&limit=8`, { headers });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -278,7 +278,7 @@ ${total > 0 ? `<div class="fin-total-row"><span class="fin-total-label">Total Bu
         setRegistering(true);
         try {
             const token = getToken();
-            const staffSession = localStorage.getItem('commander_staff') || '';
+            const staffSession = getStaffSession() || '';
             const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
 
             // 1. Register player in tournament via API
@@ -302,7 +302,7 @@ ${total > 0 ? `<div class="fin-total-row"><span class="fin-total-label">Total Bu
             // 3. Auto-print registration receipts — use REAL data from API response + tournament record
             const registeredEntry = regJson.data?.entry || {};
             let staffName = '';
-            try { staffName = JSON.parse(localStorage.getItem('commander_staff') || '{}').name || ''; } catch (e) { /* silent */ }
+            try { staffName = JSON.parse(getStaffSession() || '{}').name || ''; } catch (e) { /* silent */ }
             const venue = selectedTournament.poker_venues || {};
             printTournamentReceipts({
                 playerName: selectedPlayer.player_name,

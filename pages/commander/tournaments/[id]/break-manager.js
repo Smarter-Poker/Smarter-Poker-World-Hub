@@ -63,7 +63,7 @@ export default function BreakManager() {
   }, [tournamentId]);
 
   const [venueId] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
+    try { return JSON.parse(getStaffSession() || '{}').venue_id; } catch { return null; }
   });
 
   // Real-time sync — instantly reacts to tournament changes from other TD pages

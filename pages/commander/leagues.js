@@ -85,7 +85,7 @@ export default function LeaguesAndFreerollsManagement() {
 
   /* ── Auth ── */
   useEffect(() => {
-    const stored = localStorage.getItem('commander_staff');
+    const stored = getStaffSession();
     if (!stored) { router.push('/commander/login').catch(() => { }); return; }
     try {
       const s = JSON.parse(stored);

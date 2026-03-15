@@ -86,7 +86,7 @@ export default function ActivityFeed() {
   const fetchEvents = async () => {
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       let venueId = '';
       try { venueId = JSON.parse(staffSession).venue_id || ''; } catch (e) { /* silent */ }
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };

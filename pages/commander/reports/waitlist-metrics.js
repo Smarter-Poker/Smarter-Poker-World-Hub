@@ -26,14 +26,14 @@ export default function WaitlistMetrics() {
   const [venueId, setVenueId] = useState(null);
 
   useEffect(() => {
-    try { const s = JSON.parse(localStorage.getItem('commander_staff') || '{}'); if (s.venue_id) setVenueId(s.venue_id); } catch (e) { /* silent */ }
+    try { const s = JSON.parse(getStaffSession() || '{}'); if (s.venue_id) setVenueId(s.venue_id); } catch (e) { /* silent */ }
   }, []);
 
   const fetchData = useCallback(async () => {
     if (!venueId) return;
     setLoading(true);
     try {
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch(`/api/commander/reports/waitlist-metrics?venue_id=${venueId}&range=${range}`, {
         headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession }
       });

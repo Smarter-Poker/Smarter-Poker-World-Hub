@@ -27,7 +27,7 @@ export default function DailySummaryReport() {
       try {
         const token = getToken();
         const venueId = getVenueId();
-        const staffSession = localStorage.getItem('commander_staff') || '';
+        const staffSession = getStaffSession() || '';
         const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
 
         // General summary

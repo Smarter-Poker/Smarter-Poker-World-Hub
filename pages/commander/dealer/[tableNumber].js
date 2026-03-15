@@ -172,7 +172,7 @@ export default function DealerTablet() {
 
   // Extract venueId for cross-device Supabase sync
   const [venueId] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
+    try { return JSON.parse(getStaffSession() || '{}').venue_id; } catch { return null; }
   });
 
   // Commander Data Bus — instant cross-tab sync + Supabase Realtime cross-device
@@ -836,7 +836,7 @@ export default function DealerTablet() {
                 const token = getToken();
                 const res = await fetch('/api/commander/dealer/hand-count', {
                   method: 'POST',
-                  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': localStorage.getItem('commander_staff') || '' },
+                  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() || '' },
                   body: JSON.stringify({ table_number: parseInt(tableNumber), action: 'reset' })
                 });
                 if (res.ok) setHandCount(0);

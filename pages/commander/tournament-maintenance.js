@@ -22,7 +22,7 @@ export default function TournamentMaintenance() {
     const [selectedDate, setSelectedDate] = useState(null);
 
     useEffect(() => {
-        const stored = localStorage.getItem('commander_staff');
+        const stored = getStaffSession();
         if (!stored) { router.push('/commander/login').catch(() => { }); return; }
         try {
             const s = JSON.parse(stored);

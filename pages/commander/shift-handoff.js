@@ -38,7 +38,7 @@ export default function ShiftHandoff() {
   useEffect(() => {
     const _c = new AbortController();
 
-    const stored = localStorage.getItem('commander_staff');
+    const stored = getStaffSession();
     if (!stored) { router.push('/commander/login').catch(() => { }); return; }
     try {
       const s = JSON.parse(stored);
@@ -53,7 +53,7 @@ export default function ShiftHandoff() {
     setLoading(true);
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch(`/api/commander/shift-handoff?venue_id=${staff.venue_id}&limit=30`, {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         ...(signal ? { signal } : {}),
@@ -84,7 +84,7 @@ export default function ShiftHandoff() {
     setSubmitting(true);
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch('/api/commander/shift-handoff', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
@@ -119,7 +119,7 @@ export default function ShiftHandoff() {
   const handleAcknowledge = async (handoffId) => {
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch('/api/commander/shift-handoff', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },

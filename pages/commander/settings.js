@@ -46,7 +46,7 @@ export default function CommanderSettingsPage() {
 
   // Check staff session
   useEffect(() => {
-    const storedStaff = localStorage.getItem('commander_staff');
+    const storedStaff = getStaffSession();
     if (!storedStaff) {
       router.push('/commander/login').catch(() => { });
       return;
@@ -72,7 +72,7 @@ export default function CommanderSettingsPage() {
   // Load venue settings
   useEffect(() => {
     if (!venueId) return;
-    const storedStaffData = localStorage.getItem('commander_staff');
+    const storedStaffData = getStaffSession();
     if (!storedStaffData) return;
     const controller = new AbortController();
     const { signal } = controller;
@@ -114,7 +114,7 @@ export default function CommanderSettingsPage() {
   // Cross-tab + cross-device real-time sync — reload settings when changed from other pages
   useCommanderSync(venueId, () => {
     if (!venueId) return;
-    const storedStaffData = localStorage.getItem('commander_staff');
+    const storedStaffData = getStaffSession();
     if (!storedStaffData) return;
     fetch('/api/commander/settings', { headers: { 'x-staff-session': storedStaffData, Authorization: `Bearer ${getToken()}` } })
       .then(r => r.json())
@@ -148,7 +148,7 @@ export default function CommanderSettingsPage() {
     setSuccess(null);
 
     try {
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
 
       if (!staffSession) {
         setError('Authentication required. Please log in again.');
@@ -203,7 +203,7 @@ export default function CommanderSettingsPage() {
 
     // Auto-save toggle instantly
     try {
-      const staffSession = localStorage.getItem('commander_staff');
+      const staffSession = getStaffSession();
       const res = await fetch('/api/commander/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
@@ -412,7 +412,7 @@ export default function CommanderSettingsPage() {
                             setLogoUploading(true);
                             setError(null);
                             try {
-                              const staffSession = localStorage.getItem('commander_staff') || '';
+                              const staffSession = getStaffSession() || '';
                               // Read file as base64
                               const base64 = await new Promise((resolve, reject) => {
                                 const reader = new FileReader();
@@ -454,7 +454,7 @@ export default function CommanderSettingsPage() {
                       {logoUrl && canManageSettings && (
                         <button onClick={async () => {
                           try {
-                            const staffSession = localStorage.getItem('commander_staff') || '';
+                            const staffSession = getStaffSession() || '';
                             const res = await fetch('/api/commander/settings/logo', {
                               method: 'DELETE',
                               headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` }

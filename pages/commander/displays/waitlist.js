@@ -54,7 +54,7 @@ export default function WaitlistDisplay() {
   // Load venue info
   useEffect(() => {
     try {
-      const staff = JSON.parse(localStorage.getItem('commander_staff') || '{}');
+      const staff = JSON.parse(getStaffSession() || '{}');
       if (staff.venue_name) setVenueName(staff.venue_name);
     } catch (e) { /* silent */ }
   }, []);
@@ -86,7 +86,7 @@ export default function WaitlistDisplay() {
     try {
       const token = getToken();
       const staffSession = getStaffSession();
-      const staffData = JSON.parse(localStorage.getItem('commander_staff') || '{}');
+      const staffData = JSON.parse(getStaffSession() || '{}');
       const vid = staffData.venue_id || '';
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
       const opts = signal ? { headers, signal } : { headers };
@@ -116,7 +116,7 @@ export default function WaitlistDisplay() {
 
   // Real-time Supabase subscription — same as desk.js
   const [venueId] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
+    try { return JSON.parse(getStaffSession() || '{}').venue_id; } catch { return null; }
   });
   useCommanderSync(venueId, fetchData, { entities: ['waitlist', 'tables', 'games'] });
 

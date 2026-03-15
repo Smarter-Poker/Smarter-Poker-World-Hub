@@ -47,7 +47,7 @@ export default function MustMoveManager() {
 
   useEffect(() => {
     try {
-      const s = JSON.parse(localStorage.getItem('commander_staff') || '{}');
+      const s = JSON.parse(getStaffSession() || '{}');
       if (s.venue_id) setVenueId(s.venue_id);
     } catch (e) { /* silent */ }
   }, []);

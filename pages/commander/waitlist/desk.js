@@ -89,7 +89,7 @@ export default function WaitlistDesk() {
   // Load venue info + saved desk customization
   useEffect(() => {
     try {
-      const staff = JSON.parse(localStorage.getItem('commander_staff') || '{}');
+      const staff = JSON.parse(getStaffSession() || '{}');
       if (staff.venue_name) setVenueName(staff.venue_name);
     } catch (e) { /* silent */ }
 
@@ -133,7 +133,7 @@ export default function WaitlistDesk() {
     try {
       const token = getToken();
       const staffSession = getStaffSession();
-      const staffData = JSON.parse(localStorage.getItem('commander_staff') || '{}');
+      const staffData = JSON.parse(getStaffSession() || '{}');
       const vid = staffData.venue_id || '';
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
       const fetchOpts = signal ? { headers, signal } : { headers };
@@ -181,7 +181,7 @@ export default function WaitlistDesk() {
   }, [fetchData]);
 
   const [venueId] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
+    try { return JSON.parse(getStaffSession() || '{}').venue_id; } catch { return null; }
   });
   useCommanderSync(venueId, fetchData, { entities: ['waitlist', 'tables', 'games'] });
 
@@ -355,7 +355,7 @@ export default function WaitlistDesk() {
     try {
       const token = getToken();
       const staffSession = getStaffSession();
-      const staffData = JSON.parse(localStorage.getItem('commander_staff') || '{}');
+      const staffData = JSON.parse(getStaffSession() || '{}');
       const parts = (playerData.game_type || 'NLH 1/3').split(' ');
       const gameType = parts[0] || 'NLH';
       const stakes = parts.slice(1).join(' ') || '1/3';
@@ -439,7 +439,7 @@ export default function WaitlistDesk() {
       try {
         const token = getToken();
         const staffSession = getStaffSession();
-        const staffData = JSON.parse(localStorage.getItem('commander_staff') || '{}');
+        const staffData = JSON.parse(getStaffSession() || '{}');
         const r = await fetch('/api/commander/tables', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },

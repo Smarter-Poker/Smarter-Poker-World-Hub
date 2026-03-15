@@ -80,7 +80,7 @@ export default function TimeBilling() {
     try {
       const token = getToken();
       const venueId = getVenueId();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
 
       // Fetch tables to know which are active
@@ -149,7 +149,7 @@ export default function TimeBilling() {
       const { signal } = controller;
       try {
         const token = getToken();
-        const staffSession = localStorage.getItem('commander_staff') || '';
+        const staffSession = getStaffSession() || '';
         const res = await fetch('/api/commander/settings', {
           headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
         });
@@ -169,7 +169,7 @@ export default function TimeBilling() {
     const loadMemberPlans = async () => {
       try {
         const token = getToken();
-        const staffSession = localStorage.getItem('commander_staff') || '';
+        const staffSession = getStaffSession() || '';
         const venueId = getVenueId();
         const res = await fetch(`/api/commander/membership-plans?venue_id=${venueId}&include_inactive=true`, {
           headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
@@ -187,7 +187,7 @@ export default function TimeBilling() {
     setPricingSaving(true);
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch('/api/commander/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
@@ -235,7 +235,7 @@ export default function TimeBilling() {
       const venueId = getVenueId();
       const pinRes = await fetch('/api/commander/staff/verify-pin', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': localStorage.getItem('commander_staff') || '' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() || '' },
         body: JSON.stringify({ venue_id: venueId, pin_code: digits })
       });
       if (!pinRes.ok) throw new Error('Request failed');
@@ -277,7 +277,7 @@ export default function TimeBilling() {
     setStopping(sessionId);
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch(`/api/commander/dealer/sessions/${sessionId}/end`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
@@ -366,7 +366,7 @@ export default function TimeBilling() {
     if (!payModal || !payAmount) return;
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch(`/api/commander/time-billing/sessions/${payModal.id}/payment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
@@ -409,7 +409,7 @@ export default function TimeBilling() {
     try {
       const token = getToken();
       const venueId = getVenueId();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch(`/api/commander/membership-plans?venue_id=${venueId}&id=${plan.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },

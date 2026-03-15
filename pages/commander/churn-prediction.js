@@ -27,7 +27,7 @@ export default function ChurnPrediction() {
 
   useEffect(() => {    const _c = new AbortController();
 
-    const stored = localStorage.getItem('commander_staff');
+    const stored = getStaffSession();
     if (!stored) { router.push('/commander/login').catch(() => { }); return; }
     try {
       const s = JSON.parse(stored);
@@ -47,7 +47,7 @@ export default function ChurnPrediction() {
     setLoading(true);
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch(`/api/commander/ai/churn-prediction?venue_id=${staff.venue_id}&limit=100`, {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });

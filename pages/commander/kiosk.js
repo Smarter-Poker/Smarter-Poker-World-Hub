@@ -86,7 +86,7 @@ export default function MembershipKiosk() {
   useEffect(() => {
     const _ctrl = new AbortController();
     try {
-      const staffStr = localStorage.getItem('commander_staff');
+      const staffStr = getStaffSession();
       if (staffStr) {
         const staffData = JSON.parse(staffStr);
         if (staffData.venue_name) setVenueName(staffData.venue_name);

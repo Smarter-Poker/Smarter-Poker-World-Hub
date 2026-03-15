@@ -36,7 +36,7 @@ export default function TournamentDirector() {
 
     const fetchTournaments = useCallback(async (signal) => {
         try {
-            const staffSession = localStorage.getItem('commander_staff') || '';
+            const staffSession = getStaffSession() || '';
             const res = await fetch('/api/commander/tournaments', {
                 headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
             });
@@ -54,7 +54,7 @@ export default function TournamentDirector() {
     useEffect(() => {
         const _c = new AbortController();
 
-        const staff = localStorage.getItem('commander_staff');
+        const staff = getStaffSession();
         if (!staff) { router.push('/commander/login').catch(() => { }); return; }
         fetchTournaments();
         return () => _c.abort();

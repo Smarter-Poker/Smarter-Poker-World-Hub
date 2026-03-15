@@ -65,7 +65,7 @@ export default function LeaderboardBuilder() {
     const [addEntry, setAddEntry] = useState({ player_id: '', score: '', hours_played: '', sessions_count: '' });
 
     const [venueId] = useState(() => {
-        try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
+        try { return JSON.parse(getStaffSession() || '{}').venue_id; } catch { return null; }
     });
 
     const flash = (type, msg) => { setToast({ type, msg }); setTimeout(() => setToast(null), 4000); };

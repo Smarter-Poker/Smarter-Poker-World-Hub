@@ -118,7 +118,7 @@ export default function Cashier() {
 
   useEffect(() => {
     try {
-      const s = JSON.parse(localStorage.getItem('commander_staff') || '{}');
+      const s = JSON.parse(getStaffSession() || '{}');
       if (s.venue_id) setVenueId(s.venue_id);
     } catch (e) { /* silent */ }
   }, []);
@@ -130,7 +130,7 @@ export default function Cashier() {
     setLoading(true);
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
 
       const today = new Date().toISOString().split('T')[0];
@@ -186,7 +186,7 @@ export default function Cashier() {
       const { signal } = controller;
       try {
         const token = getToken();
-        const staffSession = localStorage.getItem('commander_staff') || '';
+        const staffSession = getStaffSession() || '';
         const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
         const res = await fetch(`/api/commander/members/${member_id}?venue_id=${venueId}`, { headers });
         if (!res.ok) throw new Error(`Member fetch failed (${res.status})`);
@@ -231,7 +231,7 @@ export default function Cashier() {
       const { signal } = controller;
       try {
         const token = getToken();
-        const staffSession = localStorage.getItem('commander_staff') || '';
+        const staffSession = getStaffSession() || '';
         const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
 
         // Time billing settings
@@ -337,7 +337,7 @@ export default function Cashier() {
     stopScan();
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
       const res = await fetch(`/api/commander/members?search=${encodeURIComponent(qrData)}&venue_id=${venueId}`, { headers });
       if (!res.ok) throw new Error(`Search failed (${res.status})`);
@@ -388,7 +388,7 @@ export default function Cashier() {
     setSearchLoading(true);
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
       const params = query ? `q=${encodeURIComponent(query)}&` : '';
       const res = await fetch(`/api/commander/members/search?${params}venue_id=${venueId}&limit=15`, { headers });
@@ -441,7 +441,7 @@ export default function Cashier() {
     try {
       const pinRes = await fetch('/api/commander/staff/verify-pin', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': localStorage.getItem('commander_staff') || '' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() || '' },
         body: JSON.stringify({ venue_id: venueId, pin_code: digits })
       });
       if (!pinRes.ok) throw new Error('Request failed');
@@ -494,7 +494,7 @@ export default function Cashier() {
     }
     setActionLoading(true);
     try {
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch('/api/commander/cashier', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession },
@@ -557,7 +557,7 @@ export default function Cashier() {
     const timeLabel2 = timeOpt?.label || `${mins} min`;
     setActionLoading(true);
     try {
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession };
       const newBalance = (selectedPlayer.time_balance_minutes || 0) + mins;
 
@@ -628,7 +628,7 @@ export default function Cashier() {
     const price = tierInfo?.price || 0;
     setActionLoading(true);
     try {
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession };
       const expires = new Date();
       expires.setDate(expires.getDate() + (tierInfo?.duration || 1));
@@ -709,7 +709,7 @@ export default function Cashier() {
     if (!confirm(`${actionLabel} this ${type} transaction for $${details.amount}?`)) return;
     setActionLoading(true);
     try {
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession };
       const voidAmount = details.amount || 0;
 
@@ -855,7 +855,7 @@ export default function Cashier() {
     setShowPlayerHistory(true);
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
       // Use server-side player_name filter for efficiency
       const res = await fetch(`/api/commander/cashier?venue_id=${venueId}&player_name=${encodeURIComponent(selectedPlayer.player_name)}&limit=100`, { headers });

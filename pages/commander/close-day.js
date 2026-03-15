@@ -45,7 +45,7 @@ export default function CloseDay() {
     try {
       const token = getToken();
       const venueId = getVenueId();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
       const fetchOpts = signal ? { headers, signal } : { headers };
       const [tablesRes, waitlistRes, sessionsRes, reportRes] = await Promise.all([
@@ -80,7 +80,7 @@ export default function CloseDay() {
     setClosing(true);
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
 
       // Close all open tables
@@ -116,7 +116,7 @@ export default function CloseDay() {
     setVerifying(true);
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const venueId = getVenueId();
       const res = await fetch('/api/commander/staff/verify-pin', {
         method: 'POST',

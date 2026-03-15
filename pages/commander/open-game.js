@@ -53,7 +53,7 @@ export default function OpenGame() {
     try {
       const token = getToken();
       const venueId = getVenueId();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch(`/api/commander/tables?venue_id=${venueId}`, { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } });
       if (!res.ok) throw new Error(`Tables fetch failed (${res.status})`);
       const json = await res.json();
@@ -83,7 +83,7 @@ export default function OpenGame() {
       try {
         const token = getToken();
         const venueId = getVenueId();
-        const staffSession = localStorage.getItem('commander_staff') || '';
+        const staffSession = getStaffSession() || '';
         const res = await fetch(`/api/commander/waitlist?venue_id=${venueId}`, { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }, signal: controller.signal });
         if (!res.ok) throw new Error(`Waitlist fetch failed (${res.status})`);
         const json = await res.json();
@@ -108,7 +108,7 @@ export default function OpenGame() {
     try {
       const token = getToken();
       const venueId = getVenueId();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
       const gameTypeLower = selectedGame.type.toLowerCase();
 

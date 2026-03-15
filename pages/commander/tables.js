@@ -96,7 +96,7 @@ export default function CommanderTablesPage() {
 
   // Check staff session
   useEffect(() => {
-    const storedStaff = localStorage.getItem('commander_staff');
+    const storedStaff = getStaffSession();
     if (!storedStaff) { router.push('/commander/login').catch(() => { }); return; }
     try {
       const staffData = JSON.parse(storedStaff);
@@ -110,7 +110,7 @@ export default function CommanderTablesPage() {
   // Fetch tables + games + sessions
   const fetchTables = useCallback(async (signal) => {
     if (!venueId) return;
-    const staffSession = localStorage.getItem('commander_staff') || '';
+    const staffSession = getStaffSession() || '';
     const token = getToken();
     const headers = { 'x-staff-session': staffSession, Authorization: `Bearer ${token}` };
 
@@ -210,7 +210,7 @@ export default function CommanderTablesPage() {
     if (!selectedTable) return;
     setActionLoading(true);
     try {
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch('/api/commander/games', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
@@ -242,7 +242,7 @@ export default function CommanderTablesPage() {
     if (!confirm('Close this game? Players will be unseated.')) return;
     setActionLoading(true);
     try {
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res1 = await fetch(`/api/commander/games/${gameId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
@@ -267,7 +267,7 @@ export default function CommanderTablesPage() {
     if (!selectedTable) return;
     setActionLoading(true);
     try {
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const updates = { status };
       if (status === 'available') {
         updates.game_type = null;
@@ -291,7 +291,7 @@ export default function CommanderTablesPage() {
     if (!confirm(`Delete Table ${selectedTable.table_number}? This cannot be undone.`)) return;
     setActionLoading(true);
     try {
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch(`/api/commander/tables/${selectedTable.id}`, {
         method: 'DELETE',
         headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` }
@@ -307,7 +307,7 @@ export default function CommanderTablesPage() {
 
   const handleAddTable = async (tableData) => {
     try {
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch('/api/commander/tables', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
@@ -329,7 +329,7 @@ export default function CommanderTablesPage() {
     if (!selectedTable) return;
     setActionLoading(true);
     try {
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       // Sync both table_purpose and mode columns
       const mode = purpose === 'tournament' ? 'tournament' : 'cash';
       const res = await fetch(`/api/commander/tables/${selectedTable.id}`, {
