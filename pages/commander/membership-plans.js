@@ -15,7 +15,7 @@ import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCo
 import { busEmit } from '../../src/engine/EventBus';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { getStaffSession } from '../../src/lib/commander/clientAuth';
-import { commanderFetch } from '../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const PLAN_ORDER = ['daily', 'weekly', 'monthly', 'yearly'];
 const PLAN_LABELS = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly' };
@@ -78,9 +78,7 @@ export default function MembershipPlansPage() {
   async function fetchPlans(signal) {
     setLoading(true);
     try {
-const res = await commanderFetch(`/api/commander/membership-plans?venue_id=${venueId}&include_inactive=true`);
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const data = await res.json();
+const data = await commanderFetchJSON(`/api/commander/membership-plans?venue_id=${venueId}&include_inactive=true`);
       if (data.success) {
         const p = data.data.plans || [];
         p.sort((a, b) => PLAN_ORDER.indexOf(a.tier) - PLAN_ORDER.indexOf(b.tier));

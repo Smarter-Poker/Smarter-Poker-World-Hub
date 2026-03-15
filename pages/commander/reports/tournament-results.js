@@ -10,7 +10,7 @@ import { Trophy, ChevronDown, Loader2 } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../../src/engine/EventBus';
 import { getStaffSession } from '../../../src/lib/commander/clientAuth';
-import { commanderFetch } from '../../../src/lib/commander/commanderFetch';
+import { commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
 
 export default function TournamentResultsReport() {
   useEffect(() => { busEmit.sessionStart('commander-reports-tournament-results'); }, []);
@@ -24,9 +24,7 @@ export default function TournamentResultsReport() {
         const controller = new AbortController();
         const { signal } = controller;
       try {
-const res = await commanderFetch('/api/commander/tournaments?status=completed&limit=50', {});
-        if (!res.ok) throw new Error(`Request failed (${res.status})`);
-        const json = await res.json();
+const json = await commanderFetchJSON('/api/commander/tournaments?status=completed&limit=50', {});
         if (json.success) {
           const list = json.data?.tournaments || (Array.isArray(json.data) ? json.data : []);
           setTournaments(list);
@@ -41,9 +39,7 @@ const res = await commanderFetch('/api/commander/tournaments?status=completed&li
     if (expanded === tournamentId) { setExpanded(null); return; }
     setExpanded(tournamentId);
     try {
-const res = await commanderFetch(`/api/commander/tournaments/${tournamentId}/entries?status=all`, {});
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const json = await res.json();
+const json = await commanderFetchJSON(`/api/commander/tournaments/${tournamentId}/entries?status=all`, {});
       if (json.success) {
         setTournaments(prev => prev.map(t =>
           t.id === tournamentId ? { ...t, entries: json.data } : t

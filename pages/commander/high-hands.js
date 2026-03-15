@@ -11,7 +11,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
 import { getStaffData } from '../../src/lib/commander/clientAuth';
-import { commanderFetch } from '../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const HAND_RANKS = [
   'Royal Flush', 'Straight Flush', 'Four of a Kind', 'Full House',
@@ -48,9 +48,7 @@ export default function HighHands() {
     if (!venueId) return;
     setLoading(true);
     try {
-const res = await commanderFetch(`/api/commander/high-hands?venue_id=${venueId}&limit=50`, {});
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const json = await res.json();
+const json = await commanderFetchJSON(`/api/commander/high-hands?venue_id=${venueId}&limit=50`, {});
       setHighHands(json.high_hands || []);
       setCurrentHigh(json.current_high || null);
     } catch (err) { console.error(err); }

@@ -11,7 +11,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
 import { getStaffSession } from '../../src/lib/commander/clientAuth';
-import { commanderFetch } from '../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const PRESET_GAMES = [
   { name: 'No Limit Hold\'em', short_code: 'NLH', max_players: 9, color: '#1877F2' },
@@ -61,9 +61,7 @@ export default function GameTypesPage() {
   const fetchGameTypes = useCallback(async () => {
     if (!venueId) return;
     try {
-const res = await commanderFetch('/api/commander/game-types?include_inactive=true');
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const json = await res.json();
+const json = await commanderFetchJSON('/api/commander/game-types?include_inactive=true');
       if (json.success) setGameTypes(json.data || []);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }

@@ -10,7 +10,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { broadcastChange, useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
 import { getStaffSession } from '../../src/lib/commander/clientAuth';
-import { commanderFetch } from '../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 export default function CommanderSettingsPage() {
   const router = useRouter();
@@ -445,10 +445,8 @@ export default function CommanderSettingsPage() {
                         <button onClick={async () => {
                           try {
                             const staffSession = getStaffSession() || '';
-                            const res = await commanderFetch('/api/commander/settings/logo', {
+                            const json = await commanderFetchJSON('/api/commander/settings/logo', {
                               method: 'DELETE'});
-                            if (!res.ok) throw new Error(`Request failed (${res.status})`);
-                            const json = await res.json();
                             if (json.success) {
                               setLogoUrl(null);
                               localStorage.removeItem('commander_branding');

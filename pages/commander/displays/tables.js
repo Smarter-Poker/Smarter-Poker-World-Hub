@@ -19,7 +19,7 @@ import useCommanderSync, { broadcastChange } from '../../../src/lib/commander/us
 import { busEmit } from '../../../src/engine/EventBus';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { getStaffData } from '../../../src/lib/commander/clientAuth';
-import { commanderFetch } from '../../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
 
 /* ─── Helpers ────────────────────────────────────────────── */
 
@@ -134,9 +134,7 @@ export default function TablesDisplay() {
     try {
 const headers = { };
 
-      const res = await commanderFetch(`/api/commander/tables?venue_id=${venueId}`, { headers });
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const json = await res.json();
+      const json = await commanderFetchJSON(`/api/commander/tables?venue_id=${venueId}`, { headers });
       if (json.success) {
         let tablesArr = Array.isArray(json.data) ? json.data
           : Array.isArray(json.data?.tables) ? json.data.tables : [];
@@ -187,9 +185,7 @@ const headers = { };
   const fetchDealers = useCallback(async () => {
     if (!venueId) return;
     try {
-const res = await commanderFetch(`/api/commander/dealers/rotations?venue_id=${venueId}`, { });
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const json = await res.json();
+const json = await commanderFetchJSON(`/api/commander/dealers/rotations?venue_id=${venueId}`, { });
       if (json.success) {
         const rots = json.data?.rotations || json.data || [];
         const map = {};

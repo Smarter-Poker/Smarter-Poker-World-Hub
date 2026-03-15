@@ -13,7 +13,7 @@ import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCo
 import { busEmit } from '../../src/engine/EventBus';
 import useDebounce from '../../src/hooks/useDebounce';
 import { getStaffData } from '../../src/lib/commander/clientAuth';
-import { commanderFetch } from '../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 export default function TournamentRegistration() {
     const router = useRouter();
@@ -42,9 +42,7 @@ export default function TournamentRegistration() {
         setLoading(true);
         try {
 const headers = { };
-            const res = await commanderFetch(`/api/commander/tournaments?venue_id=${venueId}&status=upcoming,active`, { headers });
-            if (!res.ok) throw new Error(`Request failed (${res.status})`);
-            const json = await res.json();
+            const json = await commanderFetchJSON(`/api/commander/tournaments?venue_id=${venueId}&status=upcoming,active`, { headers });
             const list = json.data?.tournaments || json.tournaments || json.data || [];
             setTournaments(Array.isArray(list) ? list : []);
         } catch (err) { console.error(err); }

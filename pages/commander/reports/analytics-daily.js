@@ -9,7 +9,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import { BarChart3, Users, DollarSign, Clock, TrendingUp, Loader2, RefreshCw, Trophy, CreditCard, AlertTriangle, ArrowLeft } from 'lucide-react';
 import { busEmit } from '../../../src/engine/EventBus';
 import { getStaffSession } from '../../../src/lib/commander/clientAuth';
-import { commanderFetch } from '../../../src/lib/commander/commanderFetch';
+import { commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
 
 export default function AnalyticsDailyReport() {
   useEffect(() => { busEmit.sessionStart('commander-reports-analytics-daily'); }, []);
@@ -44,9 +44,7 @@ export default function AnalyticsDailyReport() {
     try {
 const endDate = new Date().toISOString().split('T')[0];
       const startDate = new Date(Date.now() - range * 86400000).toISOString().split('T')[0];
-      const res = await commanderFetch(`/api/commander/analytics/daily?venue_id=${staff.venue_id}&start_date=${startDate}&end_date=${endDate}&days=${range}`, {});
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const json = await res.json();
+      const json = await commanderFetchJSON(`/api/commander/analytics/daily?venue_id=${staff.venue_id}&start_date=${startDate}&end_date=${endDate}&days=${range}`, {});
       if (json.analytics) {
         setData(Array.isArray(json.analytics) ? json.analytics : [json.analytics]);
       } else if (json.data) {

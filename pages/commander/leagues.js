@@ -13,7 +13,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
 import { getStaffSession } from '../../src/lib/commander/clientAuth';
-import { commanderFetch } from '../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 /* ───────── Status colors ───────── */
 const STATUS_COLORS = {
@@ -137,9 +137,7 @@ export default function LeaguesAndFreerollsManagement() {
   /* ── League standings ── */
   const fetchStandings = async (leagueId) => {
     try {
-      const res = await commanderFetch(`/api/commander/leagues/${leagueId}/standings`, {});
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const json = await res.json();
+      const json = await commanderFetchJSON(`/api/commander/leagues/${leagueId}/standings`, {});
       if (json.success) {
         setStandings(prev => ({ ...prev, [leagueId]: json.data?.standings || [] }));
       }
@@ -190,9 +188,7 @@ export default function LeaguesAndFreerollsManagement() {
   /* ── Freeroll qualifications ── */
   const fetchQualifications = async (freerollId) => {
     try {
-      const res = await commanderFetch(`/api/commander/freerolls/${freerollId}/qualifications`, {});
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const json = await res.json();
+      const json = await commanderFetchJSON(`/api/commander/freerolls/${freerollId}/qualifications`, {});
       if (json.success) {
         setQualifications(prev => ({ ...prev, [freerollId]: json.data?.qualifications || [] }));
       }
@@ -307,10 +303,8 @@ export default function LeaguesAndFreerollsManagement() {
   const handleRemovePlayer = async (freerollId, playerId, playerName) => {
     if (!confirm(`Remove ${playerName || 'this player'} from qualifications?`)) return;
     try {
-      const res = await commanderFetch(`/api/commander/freerolls/${freerollId}/qualifications?player_id=${playerId}`, {
+      const json = await commanderFetchJSON(`/api/commander/freerolls/${freerollId}/qualifications?player_id=${playerId}`, {
         method: 'DELETE'});
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const json = await res.json();
       if (json.success) {
         showToast('success', `${playerName || 'Player'} removed`);
         fetchQualifications(freerollId);

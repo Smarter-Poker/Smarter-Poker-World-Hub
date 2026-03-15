@@ -11,7 +11,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { busEmit } from '../../src/engine/EventBus';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { getVenueId } from '../../src/lib/commander/clientAuth';
-import { commanderFetch } from '../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const TYPE_CONFIG = {
   seat_available: { icon: Users, color: '#31A24C', label: 'Seat Available' },
@@ -139,9 +139,7 @@ export default function NotificationCenter() {
     try {
       const venueId = getVenueId();
       if (!venueId) return;
-      const res = await commanderFetch(`/api/commander/announcements?venue_id=${venueId}&include_scheduled=1`, {});
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const json = await res.json();
+      const json = await commanderFetchJSON(`/api/commander/announcements?venue_id=${venueId}&include_scheduled=1`, {});
       if (json.success) setAnnouncements(json.data || []);
     } catch (err) { console.error(err); }
     finally { setAnnouncementsLoading(false); }
@@ -242,10 +240,8 @@ export default function NotificationCenter() {
   const deleteAnnouncement = async (id) => {
     if (!confirm('Delete this announcement? This cannot be undone.')) return;
     try {
-      const res = await commanderFetch(`/api/commander/announcements?id=${id}`, {
+      const json = await commanderFetchJSON(`/api/commander/announcements?id=${id}`, {
         method: 'DELETE'});
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const json = await res.json();
       if (json.success) {
         setAnnouncements(prev => prev.filter(a => a.id !== id));
         broadcastChange('announcements');

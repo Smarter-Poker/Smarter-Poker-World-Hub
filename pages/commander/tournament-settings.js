@@ -13,7 +13,7 @@ import BlindStructureEditor from '../../src/components/commander/tournaments/Bli
 import { TOURNAMENT_TEMPLATES, TOURNAMENT_TYPES, formatBuyin, formatChips } from '../../src/components/commander/tournaments/tournamentTemplates';
 import { busEmit } from '../../src/engine/EventBus';
 import { getStaffSession } from '../../src/lib/commander/clientAuth';
-import { commanderFetch } from '../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const ICON_MAP = {
     Trophy, Zap, Crown, Target, RefreshCw, Rocket, Crosshair };
@@ -49,9 +49,7 @@ export default function TournamentSettingsPage() {
 
     async function fetchClockPresets(staffSession) {
         try {
-            const res = await commanderFetch('/api/commander/clock-presets');
-            if (!res.ok) throw new Error(`Request failed (${res.status})`);
-            const json = await res.json();
+            const json = await commanderFetchJSON('/api/commander/clock-presets');
             if (json.success) {
                 setClockPresets(json.data || []);
                 const def = (json.data || []).find(p => p.is_default);

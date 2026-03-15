@@ -24,7 +24,7 @@ import { busEmit } from '../../src/engine/EventBus';
 import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { getVenueId } from '../../src/lib/commander/clientAuth';
-import { commanderFetch } from '../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const BOARD_TYPES = [
     { value: 'custom', label: 'Custom Points', icon: '', desc: 'Manually assign points to players' },
@@ -94,9 +94,7 @@ export default function LeaderboardBuilder() {
     // ── Fetch entries for a board ──
     const fetchEntries = async (boardId) => {
         try {
-            const res = await commanderFetch(`/api/commander/leaderboards/${boardId}/entries`, {});
-            if (!res.ok) throw new Error('Failed');
-            const json = await res.json();
+            const json = await commanderFetchJSON(`/api/commander/leaderboards/${boardId}/entries`, {});
             setEntries(prev => ({ ...prev, [boardId]: (json?.entries || json?.data || []).sort((a, b) => (b.score || 0) - (a.score || 0)) }));
         } catch (e) { /* silent */ }
     };

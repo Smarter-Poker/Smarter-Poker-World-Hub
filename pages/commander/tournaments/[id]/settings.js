@@ -15,7 +15,7 @@ import { Save, Plus, Trash2, Clock, DollarSign, Coffee, ChevronUp, ChevronDown, 
 import { broadcastChange } from '../../../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../../../src/engine/EventBus';
 import { getStaffSession } from '../../../../src/lib/commander/clientAuth';
-import { commanderFetch } from '../../../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../../../src/lib/commander/commanderFetch';
 
 // ===== PRESET TEMPLATES =====
 // All templates use BB Ante (ante = Big-Blind) and 10-min breaks every ~2 hours
@@ -269,9 +269,7 @@ export default function TournamentSettings() {
         const controller = new AbortController();
         const { signal } = controller;
       try {
-const res = await commanderFetch(`/api/commander/tournaments/${id}`, {});
-        if (!res.ok) throw new Error(`Request failed (${res.status})`);
-        const json = await res.json();
+const json = await commanderFetchJSON(`/api/commander/tournaments/${id}`, {});
         if (json.success) {
           const t = json.data;
           setTournament(t);

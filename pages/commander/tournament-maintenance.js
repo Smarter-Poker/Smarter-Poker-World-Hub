@@ -10,7 +10,7 @@ import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 import { Calendar, ChevronLeft, ChevronRight, Edit2, Loader2, Clock, DollarSign, Users } from 'lucide-react';
 import { busEmit } from '../../src/engine/EventBus';
 import { getStaffSession } from '../../src/lib/commander/clientAuth';
-import { commanderFetch } from '../../src/lib/commander/commanderFetch';
+import { commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 export default function TournamentMaintenance() {
   useEffect(() => { busEmit.sessionStart('commander-tournament-maintenance'); }, []);
@@ -34,9 +34,7 @@ export default function TournamentMaintenance() {
     const fetchTournaments = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await commanderFetch('/api/commander/tournaments?limit=100', {});
-            if (!res.ok) throw new Error(`Request failed (${res.status})`);
-            const json = await res.json();
+            const json = await commanderFetchJSON('/api/commander/tournaments?limit=100', {});
             if (json.success || json.data) {
                 setTournaments(json.data?.tournaments || json.data || []);
             }

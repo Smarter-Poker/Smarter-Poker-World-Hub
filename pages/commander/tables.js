@@ -14,7 +14,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import Pagination from '../../src/components/commander/shared/Pagination';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { getStaffSession } from '../../src/lib/commander/clientAuth';
-import { commanderFetch } from '../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const STATUS_COLORS = {
   available: { bg: 'rgba(49,162,76,0.15)', border: '#31A24C', text: '#31A24C', label: 'Available' },
@@ -141,9 +141,7 @@ const headers = { };
       await Promise.all(activeTables.map(async (t) => {
         try {
           const tNum = t.table_number || t.number;
-          const res = await commanderFetch(`/api/commander/dealer/sessions?table=${tNum}`, { headers });
-          if (!res.ok) throw new Error(`Sessions fetch failed (${res.status})`);
-          const json = await res.json();
+          const json = await commanderFetchJSON(`/api/commander/dealer/sessions?table=${tNum}`, { headers });
           if (json.success) sessionData[tNum] = json.data || [];
         } catch (e) { console.error("[tables.js]", e); }
       }));

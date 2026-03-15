@@ -23,7 +23,7 @@ import CommanderLayout from '../../../../src/components/commander/shared/Command
 import { broadcastChange, useCommanderSync } from '../../../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../../../src/engine/EventBus';
 import { getVenueId } from '../../../../src/lib/commander/clientAuth';
-import { commanderFetch } from '../../../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../../../src/lib/commander/commanderFetch';
 
 export default function BreakManager() {
   useEffect(() => { busEmit.sessionStart('commander-tournaments-id-break-manager'); }, []);
@@ -46,9 +46,7 @@ export default function BreakManager() {
     if (!tournamentId || checkingRef.current) return;
     checkingRef.current = true;
     try {
-      const res = await commanderFetch(`/api/commander/tournaments/${tournamentId}/auto-break`, {});
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const json = await res.json();
+      const json = await commanderFetchJSON(`/api/commander/tournaments/${tournamentId}/auto-break`, {});
       if (json.success) {
         setBreakData(json.data);
         if (json.data.assignments) setAssignments(json.data.assignments);

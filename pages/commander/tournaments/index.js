@@ -13,7 +13,7 @@ import Pagination from '../../../src/components/commander/shared/Pagination';
 import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../../src/engine/EventBus';
 import { getStaffSession } from '../../../src/lib/commander/clientAuth';
-import { commanderFetch } from '../../../src/lib/commander/commanderFetch';
+import { commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
 
 /* ─── Status Config ─────────────────────────────────────────── */
 const STATUS_CONFIG = {
@@ -97,9 +97,7 @@ export default function CommanderTournamentsPage() {
     try {
       const params = new URLSearchParams({ venue_id: venueId, limit: '200' });
       if (filter !== 'all') params.set('status', filter);
-      const res = await commanderFetch(`/api/commander/tournaments?${params}`);
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const data = await res.json();
+      const data = await commanderFetchJSON(`/api/commander/tournaments?${params}`);
       if (data.success) setTournaments(data.data.tournaments || []);
     } catch (err) { console.error('Fetch tournaments:', err); }
     finally { setLoading(false); setRefreshing(false); }

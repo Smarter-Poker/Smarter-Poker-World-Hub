@@ -12,7 +12,7 @@ import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCo
 import useDebounce from '../../src/hooks/useDebounce';
 import { busEmit } from '../../src/engine/EventBus';
 import { getStaffSession } from '../../src/lib/commander/clientAuth';
-import { commanderFetch } from '../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const INCIDENT_TYPES = [
   { value: 'dispute', label: 'Player Dispute', emoji: '⚔️' },
@@ -380,9 +380,7 @@ export default function IncidentsPage() {
   async function fetchIncidents(signal) {
     setLoading(true);
     try {
-const res = await commanderFetch(`/api/commander/incidents?venue_id=${venueId}`, {});
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const data = await res.json();
+const data = await commanderFetchJSON(`/api/commander/incidents?venue_id=${venueId}`, {});
       if (data.success) setIncidents(data.data?.incidents || []);
     } catch (err) {
       console.error('Fetch incidents failed:', err);

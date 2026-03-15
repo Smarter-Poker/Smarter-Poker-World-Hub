@@ -14,7 +14,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
 import { getStaffSession } from '../../src/lib/commander/clientAuth';
-import { commanderFetch } from '../../src/lib/commander/commanderFetch';
+import { commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 export default function ChurnPrediction() {
   useEffect(() => { busEmit.sessionStart('commander-churn-prediction'); }, []);
@@ -47,9 +47,7 @@ export default function ChurnPrediction() {
   const fetchPredictions = async(signal) => {
     setLoading(true);
     try {
-      const res = await commanderFetch(`/api/commander/ai/churn-prediction?venue_id=${staff.venue_id}&limit=100`, signal ? { signal } : {});
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const json = await res.json();
+      const json = await commanderFetchJSON(`/api/commander/ai/churn-prediction?venue_id=${staff.venue_id}&limit=100`, signal ? { signal } : {});
       if (json.success) {
         setPredictions(json.data.predictions);
         setSummary(json.data.summary);

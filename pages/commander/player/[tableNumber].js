@@ -38,7 +38,7 @@ import Script from 'next/script';
 import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../../src/engine/EventBus';
 import { getStaffData } from '../../../src/lib/commander/clientAuth';
-import { commanderFetch } from '../../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
 
 function formatCountdown(seconds) {
   if (seconds === null || seconds === undefined) return '--:--';
@@ -325,9 +325,7 @@ export default function PlayerTableDisplay() {
     if (!tableNumber) return;
     try {
       const venueParam = table?.venue_id ? `&venue_id=${table.venue_id}` : '';
-      const res = await commanderFetch(`/api/commander/dealer/tablet-data?table=${tableNumber}${venueParam}`);
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const json = await res.json();
+      const json = await commanderFetchJSON(`/api/commander/dealer/tablet-data?table=${tableNumber}${venueParam}`);
       if (json.success) {
         setPlayers(json.data.players || []);
         setTable(json.data.table || null);

@@ -11,7 +11,7 @@ import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCo
 import { Palette, Save, Loader2, Check, Plus, Trash2, Copy, Volume2, VolumeX, MonitorPlay } from 'lucide-react';
 import { busEmit } from '../../src/engine/EventBus';
 import { getStaffSession } from '../../src/lib/commander/clientAuth';
-import { commanderFetch } from '../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const DEFAULT_THEME = {
     background: '#0D192E',
@@ -91,9 +91,7 @@ export default function ClockSetup() {
     const fetchPresets = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await commanderFetch('/api/commander/clock-presets', {});
-            if (!res.ok) throw new Error(`Request failed (${res.status})`);
-            const json = await res.json();
+            const json = await commanderFetchJSON('/api/commander/clock-presets', {});
             if (json.success) setPresets(json.data || []);
         } catch (err) { console.error(err); }
         finally { setLoading(false); }

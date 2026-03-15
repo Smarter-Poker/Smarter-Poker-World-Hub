@@ -12,7 +12,7 @@ import Pagination from '../../src/components/commander/shared/Pagination';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
 import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
-import { commanderFetch } from '../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const ID_TYPES = [
   { value: 'drivers_license', label: "Driver's License" },
@@ -259,10 +259,8 @@ const res = await commanderFetch(`/api/commander/staff/${staffId}`, {
     setConfirmDeleteId(null);
     try {
       const token = getToken();
-const res = await commanderFetch(`/api/commander/staff/${staffId}`, {
+const data = await commanderFetchJSON(`/api/commander/staff/${staffId}`, {
         method: 'DELETE'});
-      if (!res.ok) throw new Error('Request failed');
-      const data = await res.json();
       if (data.success) {
         fetchStaff();
         broadcastChange('staff');

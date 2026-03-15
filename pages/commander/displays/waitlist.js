@@ -15,7 +15,7 @@ import DealerTicker from '../../../src/components/commander/shared/DealerTicker'
 import useWakeLock from '../../../src/hooks/useWakeLock';
 import { busEmit } from '../../../src/engine/EventBus';
 import { getVenueId, getStaffData } from '../../../src/lib/commander/clientAuth';
-import { commanderFetch } from '../../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
 
 // Capitalize first letter of every word
 function titleCase(str) {
@@ -63,9 +63,7 @@ export default function WaitlistDisplay() {
     try {
 const opts = signal ? { signal }
         : {};
-      const res = await commanderFetch('/api/commander/settings', opts);
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const json = await res.json();
+      const json = await commanderFetchJSON('/api/commander/settings', opts);
       if (json.success && json.data?.desk_customization) {
         setCustom(prev => ({ ...prev, ...json.data.desk_customization }));
       }

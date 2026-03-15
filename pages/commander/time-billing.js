@@ -15,7 +15,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
 import { getStaffSession, getVenueId } from '../../src/lib/commander/clientAuth';
-import { commanderFetch } from '../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 function formatDuration(startTime) {
   if (!startTime) return '0:00';
@@ -145,9 +145,7 @@ const headers = { };
       const controller = new AbortController();
       const { signal } = controller;
       try {
-const res = await commanderFetch('/api/commander/settings', {});
-        if (!res.ok) throw new Error(`Request failed (${res.status})`);
-        const json = await res.json();
+const json = await commanderFetchJSON('/api/commander/settings', {});
         if (json.success && json.data) {
           setPricing(prev => ({
             time_billing_rate: json.data.time_billing_rate ?? prev.time_billing_rate,
@@ -162,9 +160,7 @@ const res = await commanderFetch('/api/commander/settings', {});
     const loadMemberPlans = async () => {
       try {
 const venueId = getVenueId();
-        const res = await commanderFetch(`/api/commander/membership-plans?venue_id=${venueId}&include_inactive=true`, {});
-        if (!res.ok) throw new Error(`Request failed (${res.status})`);
-        const json = await res.json();
+        const json = await commanderFetchJSON(`/api/commander/membership-plans?venue_id=${venueId}&include_inactive=true`, {});
         if (json.success) setMemberPlans(json.data.plans || []);
       } catch { /* non-fatal */ }
     };

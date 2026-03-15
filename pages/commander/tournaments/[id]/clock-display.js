@@ -26,7 +26,7 @@ import { useCommanderSync, broadcastChange } from '../../../../src/lib/commander
 import useWakeLock from '../../../../src/hooks/useWakeLock';
 import { busEmit } from '../../../../src/engine/EventBus';
 import { getStaffSession } from '../../../../src/lib/commander/clientAuth';
-import { commanderFetch } from '../../../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../../../src/lib/commander/commanderFetch';
 
 function formatClock(seconds) {
   if (!seconds && seconds !== 0) return '--:--';
@@ -168,9 +168,7 @@ export default function ClockDisplay() {
   // Fetch clock preset
   const fetchPreset = useCallback(async (presetId) => {
     try {
-const res = await commanderFetch('/api/commander/clock-presets', { });
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const json = await res.json();
+const json = await commanderFetchJSON('/api/commander/clock-presets', { });
       if (json.success) {
         const found = (json.data || []).find(p => p.id === presetId);
         if (found) setPreset(found);

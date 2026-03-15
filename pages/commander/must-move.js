@@ -15,7 +15,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
 import { getStaffData } from '../../src/lib/commander/clientAuth';
-import { commanderFetch } from '../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const GAME_LABELS = { nlh: 'NLH', plo: 'PLO', plo5: 'PLO5', NLH: 'NLH', PLO: 'PLO', mixed: 'Mixed', limit: 'Limit', stud: 'Stud', razz: 'Razz', other: 'Other' };
 
@@ -81,10 +81,8 @@ export default function MustMoveManager() {
   const unlinkMustMove = async (gameId) => {
     setActionLoading(gameId);
     try {
-      const res = await commanderFetch(`/api/commander/games/${gameId}/must-move`, {
+      const json = await commanderFetchJSON(`/api/commander/games/${gameId}/must-move`, {
         method: 'DELETE'});
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const json = await res.json();
       if (json.success) {
         setMessage({ type: 'success', text: 'Must-Move Removed' });
         fetchData();

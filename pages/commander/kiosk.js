@@ -16,7 +16,7 @@ import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCo
 import useWakeLock from '../../src/hooks/useWakeLock';
 import { busEmit } from '../../src/engine/EventBus';
 import { getStaffSession } from '../../src/lib/commander/clientAuth';
-import { commanderFetch } from '../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 // Format phone to 555-555-5555 (internal display only)
 function formatPhone(raw) {
@@ -370,11 +370,9 @@ export default function MembershipKiosk() {
     setSubmitting(true);
     setScanError('');
     try {
-      const res = await commanderFetch(`/api/commander/waitlist?venue_id=${venueId}`, {
+      const json = await commanderFetchJSON(`/api/commander/waitlist?venue_id=${venueId}`, {
         headers: { 'x-staff-session': staffHeader }
       });
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const json = await res.json();
       if (json.success && json.data) {
         const matches = json.data.filter(entry => {
           const entryPhone = (entry.player_phone || '').replace(/\D/g, '');

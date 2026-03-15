@@ -15,7 +15,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
 import { getStaffSession, getVenueId } from '../../src/lib/commander/clientAuth';
-import { commanderFetch } from '../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const GAME_TYPES = [
   { type: 'NLH', name: "No Limit Hold'em", color: '#1877F2' },
@@ -52,9 +52,7 @@ export default function OpenGame() {
     setLoading(true);
     try {
 const venueId = getVenueId();
-const res = await commanderFetch(`/api/commander/tables?venue_id=${venueId}`, {});
-      if (!res.ok) throw new Error(`Tables fetch failed (${res.status})`);
-      const json = await res.json();
+const json = await commanderFetchJSON(`/api/commander/tables?venue_id=${venueId}`, {});
       if (json.success) {
         const tablesArr = Array.isArray(json.data) ? json.data
           : Array.isArray(json.data?.tables) ? json.data.tables : [];
@@ -80,9 +78,7 @@ const res = await commanderFetch(`/api/commander/tables?venue_id=${venueId}`, {}
     const fetchWaitlist = async () => {
       try {
 const venueId = getVenueId();
-const res = await commanderFetch(`/api/commander/waitlist?venue_id=${venueId}`, { signal: controller.signal });
-        if (!res.ok) throw new Error(`Waitlist fetch failed (${res.status})`);
-        const json = await res.json();
+const json = await commanderFetchJSON(`/api/commander/waitlist?venue_id=${venueId}`, { signal: controller.signal });
         if (json.success) {
           const matching = (json.data || []).filter(w =>
             w.status === 'waiting' &&

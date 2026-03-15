@@ -14,7 +14,7 @@ import CommanderLayout from '../../../src/components/commander/shared/CommanderL
 import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
 import { busEmit } from '../../../src/engine/EventBus';
 import { broadcastChange } from '../../../src/lib/commander/useCommanderSync';
-import { commanderFetch } from '../../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
 
 const STATUS_CONFIG = {
   new: { label: 'New', color: 'bg-blue-500', textColor: 'text-blue-400' },
@@ -55,9 +55,7 @@ export default function LeadManagementPage() {
     setLoading(true);
     try {
       const token = getToken();
-const res = await commanderFetch(`/api/commander/admin/leads?status=${statusFilter}`, {});
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const data = await res.json();
+const data = await commanderFetchJSON(`/api/commander/admin/leads?status=${statusFilter}`, {});
       if (data.success) {
         setLeads(data.leads);
         setStats(data.stats);

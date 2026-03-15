@@ -13,7 +13,7 @@ import { Server, Database, Wifi, Shield, Clock, RefreshCw,
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../src/engine/EventBus';
 import { getStaffSession } from '../../src/lib/commander/clientAuth';
-import { commanderFetch } from '../../src/lib/commander/commanderFetch';
+import { commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 export default function SystemInfoPage() {
   useEffect(() => { busEmit.sessionStart('commander-system-info'); }, []);
@@ -38,9 +38,7 @@ export default function SystemInfoPage() {
   async function fetchInfo(showRefresh = false) {
     if (showRefresh) setRefreshing(true);
     try {
-const res = await commanderFetch('/api/commander/system-info');
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const json = await res.json();
+const json = await commanderFetchJSON('/api/commander/system-info');
       if (json.success) setInfo(json.data);
     } catch (err) { console.error(err); }
     finally { setLoading(false); setRefreshing(false); }

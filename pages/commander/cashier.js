@@ -19,7 +19,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import useDebounce from '../../src/hooks/useDebounce';
 import { getStaffData } from '../../src/lib/commander/clientAuth';
-import { commanderFetch } from '../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const QUICK_AMOUNTS = [50, 100, 200, 300, 500, 1000];
 // Fallback time options — overridden by owner settings from Time Billing page
@@ -181,9 +181,7 @@ const headers = { };
       const { signal } = controller;
       try {
 const headers = { };
-        const res = await commanderFetch(`/api/commander/members/${member_id}?venue_id=${venueId}`, { headers });
-        if (!res.ok) throw new Error(`Member fetch failed (${res.status})`);
-        const json = await res.json();
+        const json = await commanderFetchJSON(`/api/commander/members/${member_id}?venue_id=${venueId}`, { headers });
         if (json.success && (json.data?.member || json.data)) {
           const m = json.data?.member || json.data;
           const name = member || `${m.first_name || ''} ${m.last_name || ''}`.trim();
@@ -373,9 +371,7 @@ const headers = { };
     try {
 const headers = { };
       const params = query ? `q=${encodeURIComponent(query)}&` : '';
-      const res = await commanderFetch(`/api/commander/members/search?${params}venue_id=${venueId}&limit=15`, { headers });
-      if (!res.ok) throw new Error(`Search failed (${res.status})`);
-      const json = await res.json();
+      const json = await commanderFetchJSON(`/api/commander/members/search?${params}venue_id=${venueId}&limit=15`, { headers });
       setSearchResults(json.data || []);
     } catch { setSearchResults([]); }
     finally { setSearchLoading(false); }

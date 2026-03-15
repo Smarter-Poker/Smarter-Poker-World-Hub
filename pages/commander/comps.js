@@ -19,7 +19,7 @@ import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCo
 import { busEmit } from '../../src/engine/EventBus';
 import useDebounce from '../../src/hooks/useDebounce';
 import { getToken, getStaffSession, getVenueId } from '../../src/lib/commander/clientAuth'
-import { commanderFetch } from '../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 // ─── Comp Categories ─────────────────────────────────────────
 const COMP_CATEGORIES = [
@@ -183,9 +183,7 @@ export default function CompSystem() {
         setStats({ today, week, allTime, count });
 
       } else if (tab === 'log') {
-        const res = await commanderFetch(`/api/commander/comps/balances?venue_id=${venueId}&history=true`, { headers });
-        if (!res.ok) throw new Error(`Request failed (${res.status})`);
-        const json = await res.json();
+        const json = await commanderFetchJSON(`/api/commander/comps/balances?venue_id=${venueId}&history=true`, { headers });
         setCompLog(json.data?.transactions || []);
       }
     } catch (err) { console.error(err); }

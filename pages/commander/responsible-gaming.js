@@ -15,7 +15,7 @@ import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
 import useDebounce from '../../src/hooks/useDebounce';
 import { getStaffData } from '../../src/lib/commander/clientAuth';
-import { commanderFetch } from '../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 export default function ResponsibleGaming() {
   useEffect(() => { busEmit.sessionStart('commander-responsible-gaming'); }, []);
@@ -37,9 +37,7 @@ export default function ResponsibleGaming() {
     if (!venueId) return;
     setLoading(true);
     try {
-      const res = await commanderFetch(`/api/commander/members?venue_id=${venueId}&limit=200`);
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const json = await res.json();
+      const json = await commanderFetchJSON(`/api/commander/members?venue_id=${venueId}&limit=200`);
       if (json.success) setMembers(json.data || []);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }

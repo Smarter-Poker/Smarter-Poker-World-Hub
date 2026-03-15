@@ -15,7 +15,7 @@ import ExportManager from '../../../src/components/commander/admin/ExportManager
 import { getToken } from '../../../src/lib/commander/clientAuth';
 import { busEmit } from '../../../src/engine/EventBus';
 import { broadcastChange } from '../../../src/lib/commander/useCommanderSync';
-import { commanderFetch } from '../../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
 
 // API Keys Modal
 function ApiKeysModal({ isOpen, onClose, venueId, onSuccess }) {
@@ -37,11 +37,9 @@ function ApiKeysModal({ isOpen, onClose, venueId, onSuccess }) {
     setError(null);
     try {
       const token = getToken();
-      const res = await commanderFetch(`/api/commander/admin/api-keys?venue_id=${venueId}`, {
+      const data = await commanderFetchJSON(`/api/commander/admin/api-keys?venue_id=${venueId}`, {
         
       });
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const data = await res.json();
       if (data.success) {
         setApiKeys(data.data?.keys || []);
       } else {
@@ -93,12 +91,10 @@ function ApiKeysModal({ isOpen, onClose, venueId, onSuccess }) {
     setError(null);
     try {
       const token = getToken();
-      const res = await commanderFetch(`/api/commander/admin/api-keys/${keyId}?venue_id=${venueId}`, {
+      const data = await commanderFetchJSON(`/api/commander/admin/api-keys/${keyId}?venue_id=${venueId}`, {
         method: 'DELETE',
         
       });
-      if (!res.ok) throw new Error('Request failed');
-      const data = await res.json();
       if (data.success) {
         setApiKeys(apiKeys.filter(k => k.id !== keyId));
         onSuccess?.();
@@ -498,11 +494,9 @@ export default function AdminDashboard() {
       if (filters.dateFrom) params.set('date_from', filters.dateFrom);
       if (filters.dateTo) params.set('date_to', filters.dateTo);
 
-      const res = await commanderFetch(`/api/commander/admin/audit-logs?${params}`, {
+      const data = await commanderFetchJSON(`/api/commander/admin/audit-logs?${params}`, {
         
       });
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const data = await res.json();
       if (data.logs) {
         setAuditLogs(data.logs);
       }

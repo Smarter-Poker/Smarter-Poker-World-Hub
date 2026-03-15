@@ -19,7 +19,7 @@ import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../../src/engine/EventBus';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { getVenueId } from '../../../src/lib/commander/clientAuth';
-import { commanderFetch } from '../../../src/lib/commander/commanderFetch';
+import { commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
 
 export default function DisplayManagement() {
   useEffect(() => { busEmit.sessionStart('commander-displays-index'); }, []);
@@ -30,11 +30,9 @@ export default function DisplayManagement() {
 
   const fetchData = useCallback(async(signal) => {
     try {
-const res = await commanderFetch('/api/commander/tournaments', {
+const json = await commanderFetchJSON('/api/commander/tournaments', {
         
       });
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const json = await res.json();
       if (json.success) {
         const list = json.data?.tournaments || (Array.isArray(json.data) ? json.data : []);
         setTournaments(list);

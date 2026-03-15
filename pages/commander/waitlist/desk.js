@@ -22,7 +22,7 @@ import dynamic from 'next/dynamic';
 const SkeletonDark = dynamic(() => import('../../../src/components/ui/SkeletonDark'), { ssr: false });
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
 import { getVenueId, getStaffData } from '../../../src/lib/commander/clientAuth';
-import { commanderFetch } from '../../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
 
 // Format phone to 555-555-5555 (internal display only)
 function formatPhone(raw) {
@@ -96,9 +96,7 @@ export default function WaitlistDesk() {
     const controller = new AbortController();
     (async () => {
       try {
-const res = await commanderFetch('/api/commander/settings', { signal: controller.signal });
-        if (!res.ok) throw new Error(`Request failed (${res.status})`);
-        const json = await res.json();
+const json = await commanderFetchJSON('/api/commander/settings', { signal: controller.signal });
         if (json.success && json.data?.desk_customization) {
           setCustom(prev => ({ ...prev, ...json.data.desk_customization }));
         }

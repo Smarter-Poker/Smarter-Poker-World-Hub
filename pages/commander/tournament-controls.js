@@ -14,7 +14,7 @@ import { Trophy, Users, Loader2, Play, Monitor, Settings } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 import { getStaffSession, getVenueId } from '../../src/lib/commander/clientAuth';
-import { commanderFetch } from '../../src/lib/commander/commanderFetch';
+import { commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const STATUS_COLORS = {
     running: { bg: 'bg-[#31A24C]/10', text: 'text-[#31A24C]', label: 'Running' },
@@ -34,9 +34,7 @@ export default function TournamentDirector() {
 
     const fetchTournaments = useCallback(async (signal) => {
         try {
-const res = await commanderFetch('/api/commander/tournaments', { });
-            if (!res.ok) throw new Error(`Request failed (${res.status})`);
-            const data = await res.json();
+const data = await commanderFetchJSON('/api/commander/tournaments', { });
             if (data.success) {
                 const active = (data.data?.tournaments || [])
                     .filter(t => !['completed', 'cancelled'].includes(t.status));

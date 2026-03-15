@@ -11,7 +11,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { busEmit } from '../../src/engine/EventBus';
 import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { getStaffSession } from '../../src/lib/commander/clientAuth';
-import { commanderFetch } from '../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const RATING_LABELS = {
   reliability: { label: 'Reliability', desc: 'Shows up, stays committed' },
@@ -55,9 +55,7 @@ export default function PlayerReputation() {
   const fetchScores = async (signal) => {
     setLoading(true);
     try {
-const res = await commanderFetch(`/api/commander/reputation?venue_id=${staff.venue_id}`, {});
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const json = await res.json();
+const json = await commanderFetchJSON(`/api/commander/reputation?venue_id=${staff.venue_id}`, {});
       if (json.success) setScores(json.data.scores || []);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
@@ -65,9 +63,7 @@ const res = await commanderFetch(`/api/commander/reputation?venue_id=${staff.ven
 
   const fetchReviews = async (playerId) => {
     try {
-const res = await commanderFetch(`/api/commander/reputation?player_id=${playerId}`, {});
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const json = await res.json();
+const json = await commanderFetchJSON(`/api/commander/reputation?player_id=${playerId}`, {});
       if (json.success) {
         setExpandedReviews(prev => ({ ...prev, [playerId]: json.data.recent_reviews || [] }));
       }

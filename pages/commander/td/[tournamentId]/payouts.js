@@ -16,7 +16,7 @@ import {
     Calculator, Save, RefreshCw, Loader2, FileText,
     ChevronDown, ChevronUp, AlertTriangle
 } from 'lucide-react';
-import { commanderFetch } from '../../../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../../../src/lib/commander/commanderFetch';
 
 const NAV_ITEMS = [
     { key: 'control', label: 'Control', path: '' },
@@ -47,9 +47,7 @@ export default function TDPayouts() {
     const fetchPayouts = useCallback(async () => {
         if (!tournamentId) return;
         try {
-            const res = await commanderFetch(`/api/commander/tournaments/${tournamentId}/payout?mode=calculate`, {});
-            if (!res.ok) throw new Error(`Request failed (${res.status})`);
-            const json = await res.json();
+            const json = await commanderFetchJSON(`/api/commander/tournaments/${tournamentId}/payout?mode=calculate`, {});
             if (json.success) {
                 setCalcData(json.data);
                 // Initialize overrides from calculated amounts

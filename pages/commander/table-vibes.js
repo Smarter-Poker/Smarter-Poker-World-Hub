@@ -11,7 +11,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
 import { getStaffSession } from '../../src/lib/commander/clientAuth';
-import { commanderFetch } from '../../src/lib/commander/commanderFetch';
+import { commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const VIBE_COLORS = {
   'Action Game': { bg: '#FEF2F2', text: '#991B1B', border: '#EF4444', emoji: '🔥' },
@@ -37,9 +37,7 @@ export default function TableVibes() {
   const fetchVibes = async(signal) => {
     setLoading(true);
     try {
-const res = await commanderFetch(`/api/commander/table-ratings?venue_id=${staff.venue_id}&days=${days}`, {});
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const json = await res.json();
+const json = await commanderFetchJSON(`/api/commander/table-ratings?venue_id=${staff.venue_id}&days=${days}`, {});
       if (json.success) {
         setVibes(json.data.vibes);
         setTotalRatings(json.data.total_ratings);

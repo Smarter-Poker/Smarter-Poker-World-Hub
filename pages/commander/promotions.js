@@ -16,7 +16,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
 import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
-import { commanderFetch } from '../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const PROMO_TYPES = [
   { value: 'high_hand', label: 'High Hand', icon: Trophy, color: '#F59E0B' },
@@ -333,9 +333,7 @@ export default function PromotionsPage() {
     if (!venueId) return;
     try {
       const token = getToken();
-const res = await commanderFetch(`/api/commander/promotions?venue_id=${venueId}`, {});
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const data = await res.json();
+const data = await commanderFetchJSON(`/api/commander/promotions?venue_id=${venueId}`, {});
       if (data.success) {
         setPromotions(data.data?.promotions || []);
       }
@@ -352,9 +350,7 @@ const res = await commanderFetch(`/api/commander/promotions?venue_id=${venueId}`
     if (!venueId) return;
     try {
       const token = getToken();
-const res = await commanderFetch(`/api/commander/high-hands?venue_id=${venueId}&limit=20`, {});
-      if (!res.ok) throw new Error('err');
-      const data = await res.json();
+const data = await commanderFetchJSON(`/api/commander/high-hands?venue_id=${venueId}&limit=20`, {});
       if (data.high_hands) {
         setHighHands(data.high_hands);
         setCurrentHighHand(data.current_high);
@@ -564,9 +560,7 @@ const results = await Promise.allSettled([...selectedIds].map(id =>
     setAwardsLoading(true);
     try {
       const token = getToken();
-const res = await commanderFetch(`/api/commander/promotions/${promo.id}/awards?limit=50`, {});
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const data = await res.json();
+const data = await commanderFetchJSON(`/api/commander/promotions/${promo.id}/awards?limit=50`, {});
       setPromoAwards(data.awards || []);
     } catch (error) {
       console.error('Fetch awards failed:', error);

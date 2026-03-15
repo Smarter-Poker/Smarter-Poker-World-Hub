@@ -12,7 +12,7 @@ import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 import { busEmit } from '../../src/engine/EventBus';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import useDebounce from '../../src/hooks/useDebounce';
-import { commanderFetch } from '../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const GAME_TYPES = ['nlhe', 'plo', 'plo8', 'mixed', 'stud', 'razz', 'omaha'];
 
@@ -467,9 +467,7 @@ export default function MarketplacePage() {
   const fetchDealers = useCallback(async () => {
     try {
       const token = getToken();
-const res = await commanderFetch('/api/commander/marketplace/dealers?limit=50', {});
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const data = await res.json();
+const data = await commanderFetchJSON('/api/commander/marketplace/dealers?limit=50', {});
       if (data.success) {
         setDealers(data.data?.dealers || []);
       }
@@ -481,9 +479,7 @@ const res = await commanderFetch('/api/commander/marketplace/dealers?limit=50', 
   const fetchEquipment = useCallback(async () => {
     try {
       const token = getToken();
-const res = await commanderFetch('/api/commander/marketplace/equipment?limit=50', {});
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const data = await res.json();
+const data = await commanderFetchJSON('/api/commander/marketplace/equipment?limit=50', {});
       if (data.success) {
         setEquipment(data.data?.equipment || []);
       }

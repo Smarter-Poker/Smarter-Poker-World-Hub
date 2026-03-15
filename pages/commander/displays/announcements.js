@@ -14,7 +14,7 @@ import DealerTicker from '../../../src/components/commander/shared/DealerTicker'
 import { busEmit } from '../../../src/engine/EventBus';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { getVenueId } from '../../../src/lib/commander/clientAuth';
-import { commanderFetch } from '../../../src/lib/commander/commanderFetch';
+import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -79,9 +79,7 @@ export default function AnnouncementsDisplay() {
   const fetchData = useCallback(async () => {
     if (!venueId) return;
     try {
-      const res = await commanderFetch(`/api/commander/announcements?venue_id=${venueId}`, { });
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const json = await res.json();
+      const json = await commanderFetchJSON(`/api/commander/announcements?venue_id=${venueId}`, { });
       if (json.success) setAnnouncements(json.data || []);
     } catch (err) { console.error(err); }
 
@@ -99,9 +97,7 @@ export default function AnnouncementsDisplay() {
   const fetchAllAnnouncements = useCallback(async () => {
     if (!venueId) return;
     try {
-      const res = await commanderFetch(`/api/commander/announcements?venue_id=${venueId}&include_scheduled=1`, { });
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const json = await res.json();
+      const json = await commanderFetchJSON(`/api/commander/announcements?venue_id=${venueId}&include_scheduled=1`, { });
       if (json.success) setAllAnnouncements(json.data || []);
     } catch (err) { console.error(err); }
   }, [venueId]);

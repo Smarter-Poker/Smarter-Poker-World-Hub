@@ -15,7 +15,7 @@ import {
     FileText, Download, Loader2, ClipboardList,
     UserCheck, CreditCard
 } from 'lucide-react';
-import { commanderFetch } from '../../../../src/lib/commander/commanderFetch';
+import { commanderFetchJSON } from '../../../../src/lib/commander/commanderFetch';
 
 const NAV_ITEMS = [
     { key: 'control', label: 'Control', path: '' },
@@ -51,9 +51,7 @@ export default function TDReports() {
         if (!tournamentId) return;
         setLoading(true);
         try {
-            const res = await commanderFetch(`/api/commander/tournaments/${tournamentId}/reports?type=${type}`, {});
-            if (!res.ok) throw new Error(`Request failed (${res.status})`);
-            const json = await res.json();
+            const json = await commanderFetchJSON(`/api/commander/tournaments/${tournamentId}/reports?type=${type}`, {});
             if (json.success) setReportData(json.data);
         } catch (err) {
             console.error('Fetch report error:', err);

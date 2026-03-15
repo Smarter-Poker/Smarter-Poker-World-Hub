@@ -11,7 +11,7 @@ import CommanderLayout from '../../../src/components/commander/shared/CommanderL
 import { busEmit } from '../../../src/engine/EventBus';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { getStaffSession } from '../../../src/lib/commander/clientAuth';
-import { commanderFetch } from '../../../src/lib/commander/commanderFetch';
+import { commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
 
 const REPORTS = [
   {
@@ -91,9 +91,7 @@ export default function ReportsPage() {
         const controller = new AbortController();
         const { signal } = controller;
       try {
-const res = await commanderFetch(`/api/commander/reports/summary?range=${dateRange}`, {});
-        if (!res.ok) throw new Error(`Request failed (${res.status})`);
-        const json = await res.json();
+const json = await commanderFetchJSON(`/api/commander/reports/summary?range=${dateRange}`, {});
         if (json.success) setSummary(json.data);
       } catch (err) { console.error(err); }
       finally { setLoading(false); }

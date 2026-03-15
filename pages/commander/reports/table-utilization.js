@@ -9,7 +9,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import { LayoutGrid, Loader2, RefreshCw, Clock, Users, TrendingUp, ArrowLeft } from 'lucide-react';
 import { busEmit } from '../../../src/engine/EventBus';
 import { getStaffData } from '../../../src/lib/commander/clientAuth';
-import { commanderFetch } from '../../../src/lib/commander/commanderFetch';
+import { commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
 
 const RANGES = [
   { value: 'today', label: 'Today' },
@@ -33,9 +33,7 @@ export default function TableUtilization() {
     if (!venueId) return;
     setLoading(true);
     try {
-const res = await commanderFetch(`/api/commander/reports/table-utilization?venue_id=${venueId}&range=${range}`, {});
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const json = await res.json();
+const json = await commanderFetchJSON(`/api/commander/reports/table-utilization?venue_id=${venueId}&range=${range}`, {});
       if (json.success) setData(json.data);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }

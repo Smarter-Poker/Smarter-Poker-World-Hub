@@ -10,7 +10,7 @@ import CommanderLayout from '../../../src/components/commander/shared/CommanderL
 import AuditLogViewer from '../../../src/components/commander/admin/AuditLogViewer';
 import { busEmit } from '../../../src/engine/EventBus';
 import { getStaffSession } from '../../../src/lib/commander/clientAuth';
-import { commanderFetch } from '../../../src/lib/commander/commanderFetch';
+import { commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
 
 export default function StaffActivity() {
   useEffect(() => { busEmit.sessionStart('commander-reports-staff-activity'); }, []);
@@ -26,9 +26,7 @@ export default function StaffActivity() {
       const controller = new AbortController();
       const { signal } = controller;
       try {
-const res = await commanderFetch('/api/commander/incidents?status=all&limit=50', {});
-        if (!res.ok) throw new Error(`Request failed (${res.status})`);
-        const json = await res.json();
+const json = await commanderFetchJSON('/api/commander/incidents?status=all&limit=50', {});
         if (json.success) setActivities(json.data || []);
       } catch (err) { console.error(err); }
       finally { setLoading(false); }
@@ -44,9 +42,7 @@ const params = new URLSearchParams();
       if (filters.dateFrom) params.set('date_from', filters.dateFrom);
       if (filters.dateTo) params.set('date_to', filters.dateTo);
 
-      const res = await commanderFetch(`/api/commander/admin/audit-logs?${params}`, {});
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const data = await res.json();
+      const data = await commanderFetchJSON(`/api/commander/admin/audit-logs?${params}`, {});
       if (data.logs) {
         setAuditLogs(data.logs);
       }
