@@ -9,8 +9,17 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        _supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL,
+            process.env.SUPABASE_SERVICE_ROLE_KEY
+        );
+    }
+    return _supabase;
+}
 
 // Training games catalog (simplified - could be pulled from DB)
 const TRAINING_GAMES = [
@@ -40,7 +49,7 @@ export default async function handler(req, res) {
       if (!applyRateLimit(req, res, LIMITS.read)) return;
 
       // BUG #246 FIX: Require JWT auth
-      const supabase = createClient(supabaseUrl, supabaseKey);
+      const supabase = getSupabase();
       const _token = req.headers.authorization?.replace('Bearer ', '');
       if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
       const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
@@ -49,7 +58,6 @@ export default async function handler(req, res) {
       if (req.method !== 'GET') {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
-
 
       // BUG FIX: was reading userId from query — IDOR; use JWT identity
       const userId = _authUser.id;

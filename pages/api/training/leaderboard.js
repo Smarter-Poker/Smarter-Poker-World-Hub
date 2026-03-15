@@ -9,8 +9,17 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { sanitizeParam, clampPagination, withTiming } from '../../../src/utils/trainingApiUtils';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        _supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL,
+            process.env.SUPABASE_SERVICE_ROLE_KEY
+        );
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -24,7 +33,7 @@ export default async function handler(req, res) {
           if (!applyRateLimit(req, res, LIMITS.write)) return;
       }
 
-      const supabase = createClient(supabaseUrl, supabaseKey);
+      const supabase = getSupabase();
 
       // Require JWT auth for write operations
       if (req.method !== 'GET') {
@@ -34,8 +43,6 @@ export default async function handler(req, res) {
           if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
           if (req.body) req.body.userId = _authUser.id;
       }
-
-
 
       // POST: Update leaderboard entry after session
       if (req.method === 'POST') {
@@ -116,12 +123,10 @@ export default async function handler(req, res) {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
 
-
       const { period: rawPeriod = 'daily', limit: rawLimit = '20', gameId: rawGameId } = req.query;
       const period = ['daily', 'weekly', 'monthly', 'alltime'].includes(rawPeriod) ? rawPeriod : 'daily';
       const gameId = rawGameId ? sanitizeParam(rawGameId, 100) : null;
       const { limit: boundedLimit } = clampPagination(rawLimit, 1);
-
 
       try {
           // Calculate period key

@@ -10,8 +10,17 @@ import { notifyDailyBonus } from '../../../src/utils/trainingNotifications';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        _supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL,
+            process.env.SUPABASE_SERVICE_ROLE_KEY
+        );
+    }
+    return _supabase;
+}
 
 // Base daily bonus amount
 const BASE_DAILY_BONUS = 25;
@@ -31,7 +40,7 @@ export default async function handler(req, res) {
       if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
 
-      const supabase = createClient(supabaseUrl, supabaseKey);
+      const supabase = getSupabase();
       const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 
       // ── Auth: verify JWT identity ──

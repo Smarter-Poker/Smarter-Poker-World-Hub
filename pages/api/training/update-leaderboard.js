@@ -10,8 +10,17 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withRetry } from '../../../src/lib/supabaseRetry';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        _supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL,
+            process.env.SUPABASE_SERVICE_ROLE_KEY
+        );
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -21,7 +30,7 @@ export default async function handler(req, res) {
       }
 
       // Require JWT auth for write operations
-      const supabase = createClient(supabaseUrl, supabaseKey);
+      const supabase = getSupabase();
       if (req.method !== 'GET') {
           const _token = req.headers.authorization?.replace('Bearer ', '');
           if (!_token) return res.status(401).json({ success: false, error: 'Authentication required' });
@@ -49,8 +58,6 @@ export default async function handler(req, res) {
       if (!userId) {
           return res.status(400).json({ success: false, error: 'userId required' });
       }
-
-
 
       try {
           const now = new Date();

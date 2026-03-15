@@ -12,8 +12,17 @@ import { notifyChallengeComplete } from '../../../src/utils/trainingNotification
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        _supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL,
+            process.env.SUPABASE_SERVICE_ROLE_KEY
+        );
+    }
+    return _supabase;
+}
 
 // Game ID to category mapping (extracted from TRAINING_LIBRARY)
 const CATEGORY_MAP = {
@@ -134,7 +143,7 @@ export default async function handler(req, res) {
       if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
 
-      const supabase = createClient(supabaseUrl, supabaseKey);
+      const supabase = getSupabase();
       const periods = getPeriodKeys();
 
       // ── Auth: verify JWT identity ──

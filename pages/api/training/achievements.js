@@ -10,8 +10,17 @@ import { notifyAchievementUnlock } from '../../../src/utils/trainingNotification
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        _supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL,
+            process.env.SUPABASE_SERVICE_ROLE_KEY
+        );
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -20,7 +29,7 @@ export default async function handler(req, res) {
           if (!applyRateLimit(req, res, LIMITS.write)) return;
       }
 
-      const supabase = createClient(supabaseUrl, supabaseKey);
+      const supabase = getSupabase();
 
       // ── Auth: verify JWT identity ──
       const token = req.headers.authorization?.replace('Bearer ', '');
@@ -117,7 +126,6 @@ export default async function handler(req, res) {
                   perfectRounds: leaderboardData?.perfect_rounds || 0
               };
 
-
               // Parallel fetch: definitions and existing unlocks are independent
               const [{ data: definitions }, { data: existing }] = await Promise.all([
                   supabase
@@ -164,7 +172,6 @@ export default async function handler(req, res) {
                           shouldUnlock = progress >= def.threshold;
                           break;
                   }
-
 
                   if (shouldUnlock) {
                       await supabase

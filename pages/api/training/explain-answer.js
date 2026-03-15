@@ -12,8 +12,17 @@ import crypto from 'crypto';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        _supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL,
+            process.env.SUPABASE_SERVICE_ROLE_KEY
+        );
+    }
+    return _supabase;
+}
 
 // Generate a hash key for the scenario (for cache lookup)
 function generateCacheKey(question, correctAnswer) {
@@ -50,7 +59,7 @@ export default async function handler(req, res) {
       // Prevent caching of personalized AI responses
       res.setHeader('Cache-Control', 'no-store');
       // ── Auth: verify JWT (prevent unauthenticated AI API abuse) ──
-      const supabase = createClient(supabaseUrl, supabaseKey);
+      const supabase = getSupabase();
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
       const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
@@ -89,7 +98,6 @@ export default async function handler(req, res) {
                   cached: true
               });
           }
-
 
           // 🧠 QUERY GROK
           const grok = getGrokClient();

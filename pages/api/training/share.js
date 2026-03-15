@@ -9,8 +9,17 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        _supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL,
+            process.env.SUPABASE_SERVICE_ROLE_KEY
+        );
+    }
+    return _supabase;
+}
 
 // Share type templates
 const SHARE_TEMPLATES = {
@@ -54,7 +63,7 @@ export default async function handler(req, res) {
       }
 
       // Require JWT auth for write operations
-      const supabase = createClient(supabaseUrl, supabaseKey);
+      const supabase = getSupabase();
       if (req.method !== 'GET') {
           const _token = req.headers.authorization?.replace('Bearer ', '');
           if (!_token) return res.status(401).json({ success: false, error: 'Authentication required' });
@@ -72,9 +81,6 @@ export default async function handler(req, res) {
       if (bodySize > 10240) {
           return res.status(413).json({ success: false, error: 'Request body too large' });
       }
-
-
-
 
       const {
           userId,
