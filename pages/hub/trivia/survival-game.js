@@ -654,17 +654,17 @@ export default function SurvivalGamePage() {
         const passed = finalCorrect >= config.minCorrect;
 
         if (passed) {
-            // Award diamonds for this level
-            const diamonds = currentLevel * 2; // 2, 4, 6, 8, 10, 12, 14, 16, 18, 20 diamonds per level
-            setTotalDiamondsEarned(prev => prev + diamonds);
+            // Award diamonds for this level ONLY (not cumulative)
+            const levelDiamonds = currentLevel * 2; // 2, 4, 6, 8, 10, 12, 14, 16, 18, 20 per level
+            setTotalDiamondsEarned(prev => prev + levelDiamonds);
 
             if (currentLevel >= 10) {
                 // Victory!
                 setGameState('victory');
-                saveProgress(10, totalDiamondsEarned + diamonds);
+                saveProgress(10, levelDiamonds);
             } else {
                 setGameState('levelComplete');
-                saveProgress(currentLevel, totalDiamondsEarned + diamonds);
+                saveProgress(currentLevel, levelDiamonds);
             }
         } else {
             setGameState('gameOver');

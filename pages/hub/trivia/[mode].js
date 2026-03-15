@@ -602,6 +602,7 @@ export default function TriviaModePage() {
                         user_id: userId,
                         question_id: q.id,
                         was_correct: answers ? answers[idx] === q.correct_index : null,
+                        seen_at: new Date().toISOString(),
                         mode
                     }));
 
