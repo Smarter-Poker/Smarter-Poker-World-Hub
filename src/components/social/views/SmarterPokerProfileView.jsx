@@ -624,6 +624,45 @@ export const SmarterPokerProfileView = ({ onNavigate, onOpenChat }) => {
         };
     }, [fetchPosts]);
 
+    // Listen for comment events to update comment counts
+    useEffect(() => {
+        const unsub = eventBus.on(EventType.SOCIAL_COMMENT_ADDED, (event) => {
+            const { postId } = event?.payload || {};
+            if (postId) {
+                setUserPosts(prev => prev.map(p => {
+                    if (p.id === postId) {
+                        return {
+                            ...p,
+                            engagement: {
+                                ...p.engagement,
+                                commentCount: (p.engagement?.commentCount || 0) + 1
+                            }
+                        };
+                    }
+                    return p;
+                }));
+            }
+        });
+        return () => { if (unsub) unsub(); };
+    }, []);
+
+    // Supabase Realtime: subscribeFeed for live post updates
+    useEffect(() => {
+        if (!socialService) return;
+        const unsubscribe = socialService.subscribeFeed(
+            (newPost) => {
+                setUserPosts(prev => {
+                    if (prev.some(p => p.id === newPost.id)) return prev;
+                    return [newPost, ...prev];
+                });
+            },
+            (updatedPost) => {
+                setUserPosts(prev => prev.map(p => p.id === updatedPost.id ? { ...p, ...updatedPost } : p));
+            }
+        );
+        return () => { if (unsubscribe) unsubscribe(); };
+    }, [socialService]);
+
     const handleToggleFriend = async (targetUser) => {
         // Optimistic UI update
         const wasFriend = isFriend;
