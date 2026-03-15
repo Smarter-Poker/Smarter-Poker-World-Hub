@@ -14,14 +14,17 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import crypto from 'crypto';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Missing Supabase environment variables');
+// ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        _supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL,
+            process.env.SUPABASE_SERVICE_ROLE_KEY
+        );
+    }
+    return _supabase;
 }
-
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 // 10 Test Games
 const TEST_GAMES = [
@@ -103,7 +106,7 @@ export default async function handler(req, res) {
 
                           if (question) {
                               // Save to cache
-                              const { error } = await supabase
+                              const { error } = await getSupabase()
                                   .from('training_question_cache')
                                   .insert({
                                       question_id: question.id,

@@ -22,14 +22,17 @@ function hashSeed(str) {
     return Math.abs(h);
 }
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Missing Supabase environment variables');
+// ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        _supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL,
+            process.env.SUPABASE_SERVICE_ROLE_KEY
+        );
+    }
+    return _supabase;
 }
-
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default async function handler(req, res) {
   try {
@@ -39,7 +42,7 @@ export default async function handler(req, res) {
       // BUG-05 FIX: Include success:false for consistent client error parsing
       const _token = req.headers.authorization?.replace('Bearer ', '');
       if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
-      const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
+      const { data: { user: _authUser }, error: _authErr } = await getSupabase().auth.getUser(_token);
       if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       if (req.method !== 'GET') {
@@ -59,7 +62,7 @@ export default async function handler(req, res) {
 
 
           // Fetch questions from cache
-          const { data: questions, error } = await supabase
+          const { data: questions, error } = await getSupabase()
               .from('training_question_cache')
               .select('question_data')
               .eq('game_id', gameId)
