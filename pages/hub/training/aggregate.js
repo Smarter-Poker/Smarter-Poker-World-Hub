@@ -12,7 +12,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
+import { authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -59,9 +59,7 @@ export default function AggregateReports() {
       });
       if (heroPosition) params.set('heroPosition', heroPosition);
 
-      const token = getAccessToken();
-      const res = await authedFetch(`/api/training/aggregate-report?${params}`, {
-      });
+      const res = await authedFetch(`/api/training/aggregate-report?${params}`);
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {

@@ -69,7 +69,6 @@ export default function MentalJournalPage() {
       const token = getAccessToken();
       if (!token) return;
       const res = await authedFetch('/api/training/get-sessions?gameId=mental-journal&limit=50', {
-        headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();

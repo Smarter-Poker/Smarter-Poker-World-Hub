@@ -756,7 +756,6 @@ export default function CustomSolvePage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
           heroPosition: heroPos,
@@ -863,7 +862,6 @@ export default function CustomSolvePage() {
         if (!token) return;
         await authedFetch('/api/training/save-session', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({
             gameId: 'custom-solve',
             gameName: `Custom Solve: ${heroPos} vs ${villainPos}`,

@@ -274,7 +274,6 @@ function usePlayMode() {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                ...(token && { Authorization: `Bearer ${token}` }),
               },
               body: JSON.stringify({
                 board: currentBoard,
@@ -645,7 +644,6 @@ function usePlayMode() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${sessionToken}`,
           },
           body: JSON.stringify(payload),
         });

@@ -290,7 +290,6 @@ export default function MultiwayPreflopPage() {
           const accuracy = Math.round((quizScore.correct / quizScore.total) * 100);
           await authedFetch('/api/training/save-session', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
             body: JSON.stringify({
               gameId: 'multiway-quiz',
               gameName: `Multiway Quiz (${quizScore.total} hands)`,

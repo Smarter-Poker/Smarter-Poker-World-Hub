@@ -106,7 +106,6 @@ export default function MultiTablePage() {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              Authorization: `Bearer ${getAccessToken()}`,
             },
             body: JSON.stringify({
               gameId: 'multi-table',

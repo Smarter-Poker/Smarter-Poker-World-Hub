@@ -351,7 +351,6 @@ export default function NodelockingPage() {
         const token = await getAccessToken();
         if (!token) return;
         const res = await authedFetch('/api/training/get-sessions?gameId=nodelocking_profile&limit=50', {
-          headers: { Authorization: `Bearer ${token}` },
         });
         if (res.ok) {
           const data = await res.json();
@@ -383,7 +382,6 @@ export default function NodelockingPage() {
       if (!token) throw new Error('No auth');
       await authedFetch('/api/training/save-session', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           gameId: 'nodelocking_profile',
           gameName: 'Nodelocking Custom Profile',
@@ -446,7 +444,6 @@ export default function NodelockingPage() {
         if (token) {
           await authedFetch('/api/training/delete-session', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
             body: JSON.stringify({ sessionId: profile.id }),
           });
         }
@@ -511,7 +508,6 @@ export default function NodelockingPage() {
       if (token) {
         const res = await authedFetch('/api/training/save-session', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({
             gameId: 'nodelocking',
             questionsAnswered: exploits.length,

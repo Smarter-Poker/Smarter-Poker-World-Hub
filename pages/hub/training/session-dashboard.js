@@ -411,7 +411,6 @@ export default function SessionDashboard() {
         }
 
         const res = await authedFetch('/api/training/get-sessions?limit=100', {
-          headers: { Authorization: `Bearer ${token}` },
         });
 
         if (cancelled) return;
@@ -445,7 +444,6 @@ export default function SessionDashboard() {
           const token = await getAccessToken();
           if (!token) return;
           const res = await authedFetch('/api/training/get-sessions?limit=100', {
-            headers: { Authorization: `Bearer ${token}` },
           });
           if (res.ok) {
             const data = await res.json();

@@ -153,7 +153,6 @@ export default function SessionWarmupPage() {
           if (!token) return;
           await authedFetch('/api/training/save-session', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
             body: JSON.stringify({
               gameId: 'session-warmup',
               gameName: `Session Warmup #${newCount}`,

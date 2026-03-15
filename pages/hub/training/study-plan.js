@@ -13,7 +13,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
+import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -446,9 +446,7 @@ export default function StudyPlanPage() {
       return;
     }
     try {
-      const token = getAccessToken();
-      const res = await authedFetch(`/api/training/get-sessions?limit=100`, {
-      });
+      const res = await authedFetch(`/api/training/get-sessions?limit=100`);
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success && data.sessions) {

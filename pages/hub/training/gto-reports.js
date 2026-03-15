@@ -295,7 +295,6 @@ export default function GTOReportsPage() {
       }
 
       const res = await authedFetch('/api/training/get-sessions?limit=500', {
-        headers: { Authorization: `Bearer ${token}` },
       });
       // HARDENED: Guard against non-OK responses and malformed JSON
       if (!res.ok) {

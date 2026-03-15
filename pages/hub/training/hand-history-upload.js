@@ -1071,7 +1071,6 @@ export default function HandHistoryUploadPage() {
       if (token) {
         await authedFetch('/api/training/save-session', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({
             gameId: 'hand-history-review',
             gameName: `Hand History Review (${sessionData.totalHands} hands)`,

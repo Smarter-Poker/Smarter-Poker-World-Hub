@@ -204,7 +204,6 @@ export default function ScenarioDemoPage() {
             quizScore.total > 0 ? Math.round((quizScore.correct / quizScore.total) * 100) : 100;
           await authedFetch('/api/training/save-session', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
             body: JSON.stringify({
               gameId: 'tutorial',
               gameName: 'GTO Training Tutorial',

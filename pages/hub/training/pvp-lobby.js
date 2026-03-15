@@ -242,7 +242,6 @@ function PersonalStats() {
         }
         const res = await authedFetch('/api/training/save-session', {
           method: 'GET',
-          headers: { Authorization: `Bearer ${token}` },
         });
         // API is POST-only, so use fallback data for now
         // In production, a GET /api/training/stats endpoint would provide real data

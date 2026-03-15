@@ -10,7 +10,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
-import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
+import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { usePersistedState } from '../../../src/hooks/usePersistedState';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
@@ -197,9 +197,7 @@ export default function GTOReports() {
     if (!userId) return;
     setLoading(true);
     try {
-      const token = getAccessToken();
-      const res = await authedFetch(`/api/training/gto-reports?userId=${userId}&period=${period}`, {
-      });
+      const res = await authedFetch(`/api/training/gto-reports?userId=${userId}&period=${period}`);
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) setReport(data.report);
