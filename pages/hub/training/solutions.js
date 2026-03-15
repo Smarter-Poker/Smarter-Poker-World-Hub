@@ -41,22 +41,6 @@ const SolverTreeViewer = dynamic(
 );
 
 // ═══════════════════════════════════════════════════════════════════════════
-// AUTH HELPER — Retrieve Bearer token from localStorage
-// ═══════════════════════════════════════════════════════════════════════════
-function getAuthHeaders() {
-  try {
-    const stored =
-      typeof window !== 'undefined'
-        ? JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}')
-        : {};
-    const token = stored.access_token;
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  } catch {
-    return {};
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
 // CONFIG
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -467,7 +451,6 @@ function SolutionsBrowserInner({ setError }) {
     async function loadBookmarks() {
       try {
         const res = await authedFetch('/api/training/bookmark-solution', {
-          headers: getAuthHeaders(),
         });
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
@@ -495,7 +478,7 @@ function SolutionsBrowserInner({ setError }) {
       try {
         const res = await authedFetch('/api/training/bookmark-solution', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+          
           body: JSON.stringify({ scenarioHash: hash, spotId: spot.id, action }),
         });
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
@@ -562,7 +545,6 @@ function SolutionsBrowserInner({ setError }) {
       if (position) params.set('position', position);
 
       const res = await authedFetch(`/api/training/browse-solutions?${params}`, {
-        headers: getAuthHeaders(),
       });
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const data = await res.json();
@@ -595,7 +577,6 @@ function SolutionsBrowserInner({ setError }) {
     setRunoutData({});
     try {
       const res = await authedFetch(`/api/training/browse-solutions?spotId=${spotId}`, {
-        headers: getAuthHeaders(),
       });
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const data = await res.json();
@@ -630,7 +611,6 @@ function SolutionsBrowserInner({ setError }) {
           nextCard,
         });
         const res = await authedFetch(`/api/training/tree-navigate?${params}`, {
-          headers: getAuthHeaders(),
         });
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
@@ -683,7 +663,6 @@ function SolutionsBrowserInner({ setError }) {
       const res = await fetch(
         `/api/training/runout-report?scenarioHash=${spotDetail.scenarioHash}`,
         {
-          headers: getAuthHeaders(),
         }
       );
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);

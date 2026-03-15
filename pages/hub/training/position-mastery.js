@@ -14,13 +14,9 @@ import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
-import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
+import { authedFetch } from '../../../src/lib/authUtils';
 
-function getAuthHeaders() {
-  const token = getAccessToken();
-  if (token) return { Authorization: `Bearer ${token}` };
-  return {};
-}
+
 
 // ═══════════════════════════════════════════════════════════════════════════
 // POSITION CONFIG
@@ -193,9 +189,8 @@ export default function PositionMasteryPage() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const headers = getAuthHeaders();
     try {
-      const res = await authedFetch('/api/training/get-progress', { headers });
+      const res = await authedFetch('/api/training/get-progress');
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {

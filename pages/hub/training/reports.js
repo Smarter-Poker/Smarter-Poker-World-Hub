@@ -198,7 +198,7 @@ export default function GTOReports() {
     setLoading(true);
     try {
       const token = getAccessToken();
-      const res = await fetch(`/api/training/gto-reports?userId=${userId}&period=${period}`, {
+      const res = await authedFetch(`/api/training/gto-reports?userId=${userId}&period=${period}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);

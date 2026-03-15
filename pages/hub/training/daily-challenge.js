@@ -15,13 +15,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import Card from '../../../src/components/training/Card';
-import { getAccessToken, authedFetch, getAuthUser } from '../../../src/lib/authUtils';
+import { authedFetch, getAuthUser } from '../../../src/lib/authUtils';
 
-function getAuthHeaders() {
-  const token = getAccessToken();
-  if (token) return { Authorization: `Bearer ${token}` };
-  return {};
-}
+
 
 // ═══════════════════════════════════════════════════════════════════════════
 // COUNTDOWN TIMER
@@ -146,9 +142,7 @@ export default function DailyChallengePage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await authedFetch('/api/training/hand-of-the-day', {
-        headers: getAuthHeaders(),
-      });
+      const res = await authedFetch('/api/training/hand-of-the-day');
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
@@ -245,7 +239,6 @@ export default function DailyChallengePage() {
         if (userId) {
           authedFetch('/api/training/hand-of-the-day', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify({
               userId,
               dailyId: `daily-${today}`,

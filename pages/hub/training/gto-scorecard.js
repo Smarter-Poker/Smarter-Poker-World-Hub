@@ -254,7 +254,7 @@ export default function GTOScorecardPage() {
     }
     try {
       const token = getAccessToken();
-      const res = await fetch(`/api/training/get-sessions?limit=500`, {
+      const res = await authedFetch(`/api/training/get-sessions?limit=500`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       // HARDENED: Guard against non-OK responses and malformed JSON

@@ -125,7 +125,7 @@ export default function PreflopCharts() {
           scenario,
         });
 
-        const res = await fetch(`/api/training/preflop-ranges?${params}`, {
+        const res = await authedFetch(`/api/training/preflop-ranges?${params}`, {
           headers: getAuthHeaders(),
         });
         // HARDENED: Guard against non-OK responses

@@ -121,7 +121,7 @@ export default function BankrollCoachPage() {
     }
     try {
       const token = getAccessToken();
-      const res = await fetch(`/api/training/get-sessions?limit=300`, {
+      const res = await authedFetch(`/api/training/get-sessions?limit=300`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
