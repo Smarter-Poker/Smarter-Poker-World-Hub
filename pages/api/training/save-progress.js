@@ -218,7 +218,8 @@ export default async function handler(req, res) {
               return res.status(200).json({
                   success: true,
                   progress: updatedProgress,
-                  levelHistory: levelHistory
+                  levelHistory: levelHistory,
+                  diamondsAwarded: diamondsEarned
               });
           } else {
               // Create new progress
@@ -274,7 +275,8 @@ export default async function handler(req, res) {
               return res.status(200).json({
                   success: true,
                   progress: newProgress,
-                  levelHistory: levelHistory
+                  levelHistory: levelHistory,
+                  diamondsAwarded: diamondsEarned
               });
           }
 

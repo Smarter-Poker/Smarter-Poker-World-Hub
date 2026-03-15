@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
+import { busEmit } from '../../engine/EventBus';
 import Link from 'next/link';
 
 const C = {
@@ -131,9 +132,11 @@ export function ReelsViewer({ onClose }) {
                     .eq('post_id', currentReel.id)
                     .eq('user_id', currentUserId)
                     .eq('interaction_type', 'like');
+                busEmit.socialPostLiked(currentReel.id, currentUserId, { added: false, reactionType: 'like' });
             } else {
                 await supabase.from('social_interactions')
                     .insert({ post_id: currentReel.id, user_id: currentUserId, interaction_type: 'like' });
+                busEmit.socialPostLiked(currentReel.id, currentUserId, { added: true, reactionType: 'like' });
             }
         } catch (err) {
             console.warn('Reel like persistence failed:', err.message);

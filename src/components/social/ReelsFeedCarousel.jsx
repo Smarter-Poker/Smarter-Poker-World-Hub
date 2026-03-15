@@ -6,6 +6,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
+import { useSupabase } from '../../providers/SupabaseProvider';
+import { busEmit } from '../../engine/EventBus';
 import Link from 'next/link';
 
 const C = {
@@ -210,8 +212,8 @@ function ReelCard({ reel, onClick }) {
     );
 }
 
-// Full-screen Reel Viewer (opens when clicking a reel)
 function ReelViewer({ reels, startIndex, onClose }) {
+    const { user: authUser } = useSupabase();
     const [currentIndex, setCurrentIndex] = useState(startIndex);
     const [muted, setMuted] = useState(false); // Sound ON by default - user clicked to watch
     const [liked, setLiked] = useState({});
@@ -225,6 +227,32 @@ function ReelViewer({ reels, startIndex, onClose }) {
 
     const goPrev = () => {
         if (currentIndex > 0) setCurrentIndex(prev => prev - 1);
+    };
+
+    const handleLike = async () => {
+        if (!currentReel || !authUser?.id) return;
+        const currentId = currentReel.id;
+        const userId = authUser.id;
+        const wasLiked = liked[currentId];
+        setLiked(prev => ({ ...prev, [currentId]: !prev[currentId] }));
+
+        try {
+            if (wasLiked) {
+                await supabase.from('social_interactions')
+                    .delete()
+                    .eq('post_id', currentId)
+                    .eq('user_id', userId)
+                    .eq('interaction_type', 'like');
+                busEmit.socialPostLiked(currentId, userId, { added: false, reactionType: 'like' });
+            } else {
+                await supabase.from('social_interactions')
+                    .insert({ post_id: currentId, user_id: userId, interaction_type: 'like' });
+                busEmit.socialPostLiked(currentId, userId, { added: true, reactionType: 'like' });
+            }
+        } catch (err) {
+            console.warn('Reel like persistence failed:', err.message);
+            setLiked(prev => ({ ...prev, [currentId]: wasLiked }));
+        }
     };
 
     // Keyboard navigation
@@ -354,7 +382,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                     display: 'flex', flexDirection: 'column', gap: 16,
                 }}>
                     <button
-                        onClick={() => setLiked(prev => ({ ...prev, [currentReel.id]: !prev[currentReel.id] }))}
+                        onClick={handleLike}
                         style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}
                     >
                         <span style={{ fontSize: 28 }}>{liked[currentReel.id] ? '❤️' : '🤍'}</span>

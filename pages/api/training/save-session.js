@@ -169,6 +169,7 @@ export default async function handler(req, res) {
                   gtowScore: parsedGtowScore,
                   handsPlayed: parsedHandsPlayed,
                   totalEVLoss: parsedTotalEVLoss,
+                  speedBonusAwarded: safeSpeedBonus,
               },
           });
 
