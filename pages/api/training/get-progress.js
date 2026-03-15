@@ -29,6 +29,8 @@ export default async function handler(req, res) {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
 
+      res.setHeader('Cache-Control', 'private, max-age=10, stale-while-revalidate=30');
+
       try {
           const gameId = sanitizeParam(req.query.gameId, 100);
           // BUG FIX: was reading userId from query and validating it — unnecessary IDOR surface;

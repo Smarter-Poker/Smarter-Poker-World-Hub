@@ -30,6 +30,8 @@ export default async function handler(req, res) {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
 
+      res.setHeader('Cache-Control', 'private, max-age=10, stale-while-revalidate=30');
+
       const { gameId: rawGameId, limit: rawLimit = '50' } = req.query;
       const gameId = rawGameId ? sanitizeParam(rawGameId, 100) : null;
       const { limit: boundedLimit } = clampPagination(rawLimit, 1);
@@ -57,7 +59,7 @@ export default async function handler(req, res) {
           // Fallback to training_level_history
           let histQuery = supabase
               .from('training_level_history')
-              .select('*')
+              .select('id, game_id, accuracy_percentage, questions_answered, questions_correct, best_streak, passed, level, created_at')
               .eq('user_id', user.id)
               .order('created_at', { ascending: false })
               .limit(boundedLimit);
