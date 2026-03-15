@@ -213,8 +213,15 @@ export default async function handler(req, res) {
                   ms
               });
           } catch (e) {
-              // Loop auth failures immediately
-              if (e.message.includes('authentication failed')) continue;
+              // Continue to next connection config on transient connection errors
+              if (e.message.includes('authentication failed') || 
+                  e.message.includes('Connection terminated') ||
+                  e.message.includes('timeout') ||
+                  e.message.includes('ECONNREFUSED') ||
+                  e.message.includes('ETIMEDOUT') ||
+                  e.message.includes('ENOTFOUND')) {
+                  continue;
+              }
 
               return res.status(500).json({
                   success: false,

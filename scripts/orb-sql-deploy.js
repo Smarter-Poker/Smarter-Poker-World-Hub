@@ -165,7 +165,15 @@ async function run() {
             await pool.end();
             process.exit(0);
         } catch (e) {
-            if (e.message.includes('authentication failed')) continue;
+            // Continue to next connection config on transient connection errors
+            if (e.message.includes('authentication failed') || 
+                e.message.includes('Connection terminated') ||
+                e.message.includes('timeout') ||
+                e.message.includes('ECONNREFUSED') ||
+                e.message.includes('ETIMEDOUT') ||
+                e.message.includes('ENOTFOUND')) {
+                continue;
+            }
             console.error(JSON.stringify({
                 success: false,
                 error: e.message,
