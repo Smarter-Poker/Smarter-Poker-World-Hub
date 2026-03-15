@@ -4572,7 +4572,7 @@ function SocialMediaPage() {
                     // Use native fetch to avoid AbortError (same issue as stories/profiles)
                     if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] Fetching profile for user:', authUser.id);
 
-                    let profileRes = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/profiles?id=eq.${authUser.id}&select=id,username,full_name,display_name_preference,skill_tier,avatar_url,hendon_url,hendon_total_cashes,hendon_total_earnings,hendon_best_finish,hendon_biggest_cash,role`, {
+                    let profileRes = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/profiles?id=eq.${authUser.id}&select=id,username,full_name,display_name,skill_tier,avatar_url,hendon_total_cashes,hendon_total_earnings,role`, {
                         headers: {
                             'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
                             'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`
@@ -4586,7 +4586,7 @@ function SocialMediaPage() {
 
                     // If no profile found by id, check if user owns another profile via owner_id
                     if (!p) {
-                        const ownedProfileRes = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/profiles?owner_id=eq.${authUser.id}&select=id,username,full_name,display_name_preference,skill_tier,avatar_url,hendon_url,hendon_total_cashes,hendon_total_earnings,hendon_best_finish,hendon_biggest_cash,role`, {
+                        const ownedProfileRes = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/profiles?owner_id=eq.${authUser.id}&select=id,username,full_name,display_name,skill_tier,avatar_url,hendon_total_cashes,hendon_total_earnings,role`, {
                             headers: {
                                 'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
                                 'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`
@@ -4600,11 +4600,8 @@ function SocialMediaPage() {
                     if (p?.role === 'god') {
                         setIsGodMode(true);
                     }
-                    // Respect display_name_preference: 'full_name' shows real name, 'username' shows alias
-                    const displayNamePref = p?.display_name_preference || 'full_name';
-                    const displayName = displayNamePref === 'full_name' && p?.full_name
-                        ? p.full_name
-                        : (p?.username || authUser.email?.split('@')[0] || 'Player');
+                    // Use display_name if set, else full_name, else username fallback
+                    const displayName = p?.display_name || p?.full_name || p?.username || authUser.email?.split('@')[0] || 'Player';
                     setUser({
                         id: p?.id || authUser.id, // Use profile ID if owned, else auth ID
                         name: displayName,
@@ -4612,12 +4609,9 @@ function SocialMediaPage() {
                         avatar: p?.avatar_url || null,
                         tier: p?.skill_tier,
                         role: p?.role || 'user',
-                        hendon: p?.hendon_url ? {
-                            url: p.hendon_url,
+                        hendon: (p?.hendon_total_cashes || p?.hendon_total_earnings) ? {
                             cashes: p.hendon_total_cashes,
-                            earnings: p.hendon_total_earnings,
-                            bestFinish: p.hendon_best_finish,
-                            biggestCash: p.hendon_biggest_cash
+                            earnings: p.hendon_total_earnings
                         } : null
                     });
                     await loadContacts(authUser.id);
@@ -5049,7 +5043,7 @@ function SocialMediaPage() {
                 if (authorIds.length) {
                     try {
                         if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] Fetching profiles for author IDs:', authorIds.slice(0, 3), '...');
-                        const profilesRes = await fetch(`${supabaseUrl}/rest/v1/profiles?id=in.(${authorIds.join(',')})&select=id,username,full_name,display_name_preference,avatar_url`, {
+                        const profilesRes = await fetch(`${supabaseUrl}/rest/v1/profiles?id=in.(${authorIds.join(',')})&select=id,username,full_name,display_name,avatar_url`, {
                             headers: {
                                 'apikey': supabaseKey,
                                 'Authorization': `Bearer ${supabaseKey}`
@@ -5125,9 +5119,7 @@ function SocialMediaPage() {
                             if (meta?.auto_generated && meta?.entity_type) return p.content?.split(' updated ')[0] || 'Page';
                             const a = authorMap[p.author_id];
                             if (!a) return 'Player';
-                            const pref = a.display_name_preference || 'full_name';
-                            if (pref === 'username') return a.username || a.full_name || 'Player';
-                            return a.full_name || a.username || 'Player';
+                            return a.display_name || a.full_name || a.username || 'Player';
                         })(),
                         username: authorMap[p.author_id]?.username || null,
                         avatar: (() => {
