@@ -71,35 +71,39 @@ export default function ClubArenaLobbyPage() {
     try {
       setLoading(true);
       setError(null);
-      const targetClubId = cId; // always pass cId explicitly — never read clubId from closure
+      const targetClubId = cId;
       if (!targetClubId) { setError('No club selected.'); setLoading(false); return; }
 
       const { supabase } = await import('../../../src/lib/supabase');
 
-      // Parallel fetch with retryAsync: tables (direct Supabase — works for ALL members), BBJ, announcements, member count
-      const results = await Promise.allSettled([
-        retryAsync(() => supabase.from('tables')
+      // 12s hard timeout — ensures loading always clears even if a fetch hangs
+      const timeoutP = new Promise((_, reject) => setTimeout(() => reject(new Error('load_timeout')), 12000));
+
+      const fetchP = Promise.allSettled([
+        supabase.from('tables')
           .select('id, name, status, current_players, max_players, game_variant, small_blind, big_blind, min_buy_in, max_buy_in')
           .eq('club_id', targetClubId)
-          .order('status', { ascending: true }), { label: 'lobby-tables' }),
-        retryAsync(() => apiGet(`/api/club-arena/bbj?clubId=${targetClubId}`), { label: 'lobby-bbj' }),
-        retryAsync(() => apiGet(`/api/club-arena/announcements?clubId=${targetClubId}`), { label: 'lobby-announcements' }),
-        retryAsync(() => supabase.from('club_members')
+          .order('status', { ascending: true }),
+        fetch(`/api/club-arena/bbj?clubId=${targetClubId}`).then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch(`/api/club-arena/announcements?clubId=${targetClubId}`).then(r => r.ok ? r.json() : null).catch(() => null),
+        supabase.from('club_members')
           .select('user_id', { count: 'exact', head: false })
           .eq('club_id', targetClubId)
-          .eq('status', 'active'), { label: 'lobby-members' }),
+          .eq('status', 'active'),
       ]);
+
+      const results = await Promise.race([fetchP, timeoutP.then(() => null)]).catch(() => null) || await fetchP.catch(() => []);
 
       if (mountedRef.current) {
         // Tables (direct query — no admin role needed)
-        if (results[0].status === 'fulfilled') {
-          const { data: tableData, error: tErr } = results[0].value;
+        if (results[0]?.status === 'fulfilled') {
+          const { data: tableData, error: tErr } = results[0].value || {};
           if (!tErr) {
             setTables(tableData || []);
             const active = (tableData || []).filter(t => ['active', 'playing', 'waiting', 'between_hands'].includes(t.status));
             const totalSeated = active.reduce((s, t) => s + (t.current_players || 0), 0);
             // Build summary from tables data
-            const memberCount = results[3]?.status === 'fulfilled' ? (results[3].value?.count || results[3].value?.data?.length || 0) : 0;
+            const memberCount = results[3]?.status === 'fulfilled' ? (results[3]?.value?.count || results[3]?.value?.data?.length || 0) : 0;
             setSummary({
               activeTables: active.length,
               totalSeated,
@@ -109,11 +113,11 @@ export default function ClubArenaLobbyPage() {
           }
         }
         // BBJ
-        if (results[1].status === 'fulfilled') {
+        if (results[1]?.status === 'fulfilled' && results[1].value) {
           setBbj(results[1].value);
         }
         // Announcements
-        if (results[2].status === 'fulfilled') {
+        if (results[2]?.status === 'fulfilled' && results[2].value) {
           const anns = results[2].value.announcements || [];
           setAnnouncements(anns.filter(a => a.pinned).slice(0, 3));
         }
@@ -123,7 +127,7 @@ export default function ClubArenaLobbyPage() {
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, [clubId]);
+  }, []);
 
   // ── Load Recommendations (admin-only, non-blocking) ─────────
   const loadRecommendations = useCallback(async (cId) => {
