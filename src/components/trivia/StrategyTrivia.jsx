@@ -641,7 +641,7 @@ export default function StrategyTrivia({ mode }) {
                     const { data: freshProfile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
                     if (freshProfile) setUserDiamonds(freshProfile.diamonds || 0);
                     busEmit.diamondsEarned(diamondsEarned, `${config.title} Reward`);
-                    if (correctCount >= questions.length) busEmit.celebration('confetti');
+                    if (actualCorrectCount >= questions.length) busEmit.celebration('confetti');
                 } catch (e) {
                     console.error('[StrategyTrivia] Error awarding diamonds:', e);
                 }
@@ -653,8 +653,8 @@ export default function StrategyTrivia({ mode }) {
                 await supabase.from('trivia_scores').insert({
                     user_id: userId,
                     mode,
-                    score: correctCount * 100,
-                    correct_count: correctCount,
+                    score: actualCorrectCount * 100,
+                    correct_count: actualCorrectCount,
                     total_questions: questions.length,
                     time_spent: timeSpent,
                     diamonds_earned: diamondsEarned,
