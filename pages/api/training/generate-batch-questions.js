@@ -11,6 +11,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getGrokClient } from '../../../src/lib/grokClient';
 import { getGameConfig, getStackDepthNumber } from '../../../src/config/gameConfigs';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import crypto from 'crypto';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -49,9 +50,10 @@ export default async function handler(req, res) {
       if (bodySize > 51200) return res.status(413).json({ success: false, error: 'Request body too large' });
 
       // ── Auth: Admin-only batch operation (generates 500 questions, very expensive) ──
-      const adminSecret = req.headers['x-admin-secret'];
-      const envSecret = process.env.ADMIN_ROUTE_SECRET;
-      if (!envSecret || !adminSecret || adminSecret !== envSecret) {
+      const adminSecret = req.headers['x-admin-secret'] || '';
+      const envSecret = process.env.ADMIN_ROUTE_SECRET || '';
+      if (!envSecret || !adminSecret || adminSecret.length !== envSecret.length ||
+          !crypto.timingSafeEqual(Buffer.from(adminSecret), Buffer.from(envSecret))) {
           return res.status(403).json({ success: false, error: 'Admin access required for batch generation' });
       }
 

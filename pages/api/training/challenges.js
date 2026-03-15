@@ -303,6 +303,10 @@ export default async function handler(req, res) {
                           // Get current streak value
                           directProgress = await getCurrentStreak(supabase, userId);
                           break;
+
+                      default:
+                          console.warn(`[Challenges] Unknown target_type: ${def.target_type} for challenge ${def.id}`);
+                          break;
                   }
 
                   // Skip if no change needed

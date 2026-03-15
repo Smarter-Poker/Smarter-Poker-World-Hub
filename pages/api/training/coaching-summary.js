@@ -31,6 +31,7 @@ export default async function handler(req, res) {
           return res.status(413).json({ success: false, error: 'Request body too large' });
       }
 
+      res.setHeader('Cache-Control', 'no-store');
       // ── Auth: verify JWT (prevent unauthenticated AI API abuse) ──
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ success: false, error: 'Auth required' });

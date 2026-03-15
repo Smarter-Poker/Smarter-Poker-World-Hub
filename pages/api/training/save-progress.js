@@ -160,21 +160,24 @@ export default async function handler(req, res) {
 
           if (existingProgress) {
               // Update existing progress
-              const { data: updatedProgress, error: updateError } = await supabase
-                  .from('training_progress')
-                  .update({
-                      level: passed ? Math.min(level + 1, 10) : level,
-                      hands_played: (existingProgress.hands_played || 0) + questionsAnswered,
-                      correct_answers: (existingProgress.correct_answers || 0) + questionsCorrect,
-                      total_answers: (existingProgress.total_answers || 0) + questionsAnswered,
-                      current_streak: streak,
-                      best_streak: Math.max(streak, existingProgress.best_streak || 0),
-                      last_played_at: new Date().toISOString()
-                  })
-                  .eq('user_id', userId)
-                  .eq('game_id', gameId)
-                  .select()
-                  .maybeSingle();
+              const { data: updatedProgress, error: updateError } = await withRetry(
+                  () => supabase
+                      .from('training_progress')
+                      .update({
+                          level: passed ? Math.min(level + 1, 10) : level,
+                          hands_played: (existingProgress.hands_played || 0) + questionsAnswered,
+                          correct_answers: (existingProgress.correct_answers || 0) + questionsCorrect,
+                          total_answers: (existingProgress.total_answers || 0) + questionsAnswered,
+                          current_streak: streak,
+                          best_streak: Math.max(streak, existingProgress.best_streak || 0),
+                          last_played_at: new Date().toISOString()
+                      })
+                      .eq('user_id', userId)
+                      .eq('game_id', gameId)
+                      .select()
+                      .maybeSingle(),
+                  { label: 'SaveProgress:update' }
+              );
 
               if (updateError) {
                   console.error('Error updating progress:', updateError);
@@ -210,21 +213,24 @@ export default async function handler(req, res) {
               });
           } else {
               // Create new progress
-              const { data: newProgress, error: insertError } = await supabase
-                  .from('training_progress')
-                  .insert({
-                      user_id: userId,
-                      game_id: gameId,
-                      level: passed ? Math.min(level + 1, 10) : level,
-                      hands_played: questionsAnswered,
-                      correct_answers: questionsCorrect,
-                      total_answers: questionsAnswered,
-                      current_streak: streak,
-                      best_streak: streak,
-                      last_played_at: new Date().toISOString()
-                  })
-                  .select()
-                  .maybeSingle();
+              const { data: newProgress, error: insertError } = await withRetry(
+                  () => supabase
+                      .from('training_progress')
+                      .insert({
+                          user_id: userId,
+                          game_id: gameId,
+                          level: passed ? Math.min(level + 1, 10) : level,
+                          hands_played: questionsAnswered,
+                          correct_answers: questionsCorrect,
+                          total_answers: questionsAnswered,
+                          current_streak: streak,
+                          best_streak: streak,
+                          last_played_at: new Date().toISOString()
+                      })
+                      .select()
+                      .maybeSingle(),
+                  { label: 'SaveProgress:insert' }
+              );
 
               if (insertError) {
                   console.error('Error creating progress:', JSON.stringify(insertError, null, 2));
