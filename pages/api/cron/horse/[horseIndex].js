@@ -312,7 +312,7 @@ async function postVideoClip(horse, assignedSources, horseIndex, clipType = 'spo
 
             // Quick check against recent posts
             const since48h = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
-            const { data: recentVideos } = await supabase
+            const { data: recentVideos } = await getSupabase()
                 .from('social_posts')
                 .select('media_urls')
                 .eq('content_type', 'video')
@@ -354,7 +354,7 @@ async function postVideoClip(horse, assignedSources, horseIndex, clipType = 'spo
 
         // GLOBAL DEDUPLICATION: Check which video URLs were already posted (last 48h)
         const since48h = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
-        const { data: recentVideos } = await supabase
+        const { data: recentVideos } = await getSupabase()
             .from('social_posts')
             .select('media_urls')
             .eq('content_type', 'video')
@@ -445,7 +445,7 @@ async function postNewsLink(horse, horseIndex, newsType) {
 
         // GLOBAL DEDUPLICATION: Check which links were already posted (last 48h)
         const since48h = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
-        const { data: recentPosts } = await supabase
+        const { data: recentPosts } = await getSupabase()
             .from('social_posts')
             .select('link_url')
             .not('link_url', 'is', null)
@@ -520,7 +520,7 @@ export default async function handler(req, res) {
           // Load ClipLibrary for poker video clips
           await loadClipLibrary();
 
-          const { data: horses, error: horseError } = await supabase
+          const { data: horses, error: horseError } = await getSupabase()
               .from('content_authors')
               .select('*')
               .eq('is_active', true)

@@ -160,7 +160,7 @@ function extractVideoIdFromUrl(url) {
 async function getRecentlyPostedClipIds() {
     const cutoff = new Date(Date.now() - CONFIG.CLIP_COOLDOWN_HOURS * 60 * 60 * 1000);
 
-    const { data: recentPosts } = await supabase
+    const { data: recentPosts } = await getSupabase()
         .from('social_posts')
         .select('metadata')
         .eq('content_type', 'video')
@@ -202,7 +202,7 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
         // Get this horse's EXCLUSIVE assigned content sources from database
         let assignedSources = null;
         try {
-            const { data: assignments, error: assignError } = await supabase
+            const { data: assignments, error: assignError } = await getSupabase()
                 .from('horse_source_assignments')
                 .select('source_name, is_primary')
                 .eq('horse_id', horse.profile_id)
@@ -422,7 +422,7 @@ BAD EXAMPLES:
         // NO hardcoded emojis - let applyWritingStyle handle it naturally (5% rate)
         const finalCaption = `${caption}\n\n${clip.source_url}`;
 
-        const { data: post, error: postError } = await supabase
+        const { data: post, error: postError } = await getSupabase()
             .from('social_posts')
             .insert({
                 author_id: horse.profile_id,
@@ -526,7 +526,7 @@ async function postOriginalContent(horse) {
         return null;
     }
 
-    const { data: post, error } = await supabase
+    const { data: post, error } = await getSupabase()
         .from('social_posts')
         .insert({
             author_id: horse.profile_id,
@@ -690,7 +690,7 @@ export default async function handler(req, res) {
           const currentHour = now.getHours();
 
           // Get ALL active horses
-          const { data: allHorses, error: horseError } = await supabase
+          const { data: allHorses, error: horseError } = await getSupabase()
               .from('content_authors')
               .select('*')
               .eq('is_active', true)

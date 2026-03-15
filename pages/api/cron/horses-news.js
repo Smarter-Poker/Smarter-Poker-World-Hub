@@ -229,7 +229,7 @@ function categorizeArticle(title, sourceCategories, sourceType = 'general') {
 async function isArticleRecentlyShared(link) {
     const cutoff = new Date(Date.now() - CONFIG.NEWS_COOLDOWN_HOURS * 60 * 60 * 1000);
 
-    const { data } = await supabase
+    const { data } = await getSupabase()
         .from('social_posts')
         .select('id')
         .ilike('content', `%${link}%`)
@@ -247,7 +247,7 @@ const HORSE_POST_COOLDOWN_HOURS = 4; // Same horse can't post within 4 hours
 async function hasHorsePostedRecently(horseProfileId) {
     const cutoff = new Date(Date.now() - HORSE_POST_COOLDOWN_HOURS * 60 * 60 * 1000);
 
-    const { data } = await supabase
+    const { data } = await getSupabase()
         .from('social_posts')
         .select('id')
         .eq('author_id', horseProfileId)
@@ -470,7 +470,7 @@ async function postNewsArticle(horse, article, timeEnergy = null) {
     // Append article link to commentary
     const postContent = `${commentary}\n\n🔗 ${article.link}`;
 
-    const { data: post, error } = await supabase
+    const { data: post, error } = await getSupabase()
         .from('social_posts')
         .insert({
             author_id: horse.profile_id,
@@ -522,7 +522,7 @@ export default async function handler(req, res) {
           }
 
           // Get random active horses
-          const { data: horses } = await supabase
+          const { data: horses } = await getSupabase()
               .from('content_authors')
               .select('*')
               .eq('is_active', true)

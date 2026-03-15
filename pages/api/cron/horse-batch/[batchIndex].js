@@ -301,7 +301,7 @@ async function postVideoClip(horse, assignedSources, horseIndex, clipType = 'spo
             const embedUrl = convertToEmbedUrl(candidate.source_url);
 
             const since48h = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
-            const { data: recentVideos } = await supabase
+            const { data: recentVideos } = await getSupabase()
                 .from('social_posts')
                 .select('media_urls')
                 .eq('content_type', 'video')
@@ -340,7 +340,7 @@ async function postVideoClip(horse, assignedSources, horseIndex, clipType = 'spo
         if (!clips.length) return { success: false, error: 'No sports clips' };
 
         const since48h = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
-        const { data: recentVideos } = await supabase
+        const { data: recentVideos } = await getSupabase()
             .from('social_posts')
             .select('media_urls')
             .eq('content_type', 'video')
@@ -428,7 +428,7 @@ async function postNewsLink(horse, horseIndex, newsType) {
         if (!allArticles.length) return { success: false, error: 'No articles' };
 
         const since48h = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
-        const { data: recentPosts } = await supabase
+        const { data: recentPosts } = await getSupabase()
             .from('social_posts')
             .select('link_url')
             .not('link_url', 'is', null)
@@ -437,8 +437,7 @@ async function postNewsLink(horse, horseIndex, newsType) {
 
         const usedLinks = new Set((recentPosts || []).map(p => p.link_url));
 
-        const freshArticles = allArticles.filter(a => !usedLinks.has(a.link))
-            .limit(100);
+        const freshArticles = allArticles.filter(a => !usedLinks.has(a.link));
 
         if (!freshArticles.length) {
             return { success: false, error: 'All articles already posted' };
@@ -532,7 +531,7 @@ export default async function handler(req, res) {
           await loadClipLibrary();
 
           // Get all active horses
-          const { data: horses, error: horseError } = await supabase
+          const { data: horses, error: horseError } = await getSupabase()
               .from('content_authors')
               .select('*')
               .eq('is_active', true)

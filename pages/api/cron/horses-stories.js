@@ -224,7 +224,7 @@ export default async function handler(req, res) {
           const currentHour = now.getHours();
 
           // Get ALL active horses
-          const { data: allHorses, error: horseError } = await supabase
+          const { data: allHorses, error: horseError } = await getSupabase()
               .from('content_authors')
               .select('*')
               .eq('is_active', true)

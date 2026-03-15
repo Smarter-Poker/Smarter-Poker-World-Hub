@@ -152,7 +152,7 @@ export default async function handler(req, res) {
           const currentHour = now.getHours();
 
           // Get ALL active horses
-          const { data: allHorses } = await supabase
+          const { data: allHorses } = await getSupabase()
               .from('content_authors')
               .select('*')
               .eq('is_active', true)
@@ -255,7 +255,7 @@ export default async function handler(req, res) {
               // NO hardcoded emojis - let applyWritingStyle handle it naturally (5% rate)
               const finalCaption = `${caption}\n\n${clip.source_url}`;
 
-              const { data: post, error: postError } = await supabase
+              const { data: post, error: postError } = await getSupabase()
                   .from('social_posts')
                   .insert({
                       author_id: horse.profile_id,

@@ -54,7 +54,7 @@ export default async function handler(req, res) {
       try {
 
           // Get all active horses ordered by profile_id
-          const { data: horses, error: horseError } = await supabase
+          const { data: horses, error: horseError } = await getSupabase()
               .from('content_authors')
               .select('*')
               .eq('is_active', true)
@@ -73,7 +73,7 @@ export default async function handler(req, res) {
           for (const horse of batchHorses) {
 
               // Get a clip
-              const { data: clips } = await supabase
+              const { data: clips } = await getSupabase()
                   .from('poker_clips')
                   .select('*')
                   .eq('is_active', true)
@@ -90,7 +90,7 @@ export default async function handler(req, res) {
               caption = applyWritingStyle(caption, horse.profile_id);
 
               // Create post
-              const { data: post, error } = await supabase
+              const { data: post, error } = await getSupabase()
                   .from('social_posts')
                   .insert({
                       author_id: horse.profile_id,

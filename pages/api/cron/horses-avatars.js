@@ -119,7 +119,7 @@ async function generateAndUploadAvatar(horse) {
         const publicUrl = urlData.publicUrl;
 
         // Update content_authors table
-        const { error: authorError } = await supabase
+        const { error: authorError } = await getSupabase()
             .from('content_authors')
             .update({ avatar_url: publicUrl })
             .eq('id', horse.id);
@@ -130,7 +130,7 @@ async function generateAndUploadAvatar(horse) {
 
         // Update profiles table (for display in social feed)
         if (horse.profile_id) {
-            const { error: profileError } = await supabase
+            const { error: profileError } = await getSupabase()
                 .from('profiles')
                 .update({ avatar_url: publicUrl })
                 .eq('id', horse.profile_id);

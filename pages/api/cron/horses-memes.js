@@ -73,7 +73,7 @@ async function postMeme(horse) {
         const content = `${meme.text} ${emoji}`;
 
         // Create text post (no images!)
-        const { data: post, error } = await supabase
+        const { data: post, error } = await getSupabase()
             .from('social_posts')
             .insert({
                 author_id: horse.profile_id,
@@ -108,7 +108,7 @@ async function postMemeToStory(horse) {
     const meme = getRandomMeme();
 
     try {
-        await supabase
+        await getSupabase()
             .from('stories')
             .insert({
                 author_id: horse.profile_id,
@@ -137,7 +137,7 @@ export default async function handler(req, res) {
 
       try {
           // Get random active horses
-          const { data: horses } = await supabase
+          const { data: horses } = await getSupabase()
               .from('content_authors')
               .select('*')
               .eq('is_active', true)

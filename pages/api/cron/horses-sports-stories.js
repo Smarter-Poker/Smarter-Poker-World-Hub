@@ -134,7 +134,7 @@ async function postSportsStory(horse, storyType, content) {
             storyData.text_content = content.text;
         }
 
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
             .from('stories')
             .insert([storyData])
             .select()
@@ -173,7 +173,7 @@ export default async function handler(req, res) {
 
       try {
           // Fetch active horses
-          const { data: horses, error: horsesError } = await supabase
+          const { data: horses, error: horsesError } = await getSupabase()
               .from('content_authors')
               .select('id, name, profile_id')
               .eq('is_active', true)

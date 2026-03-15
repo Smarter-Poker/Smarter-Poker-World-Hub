@@ -73,7 +73,7 @@ export default async function handler(req, res) {
 
       // Test horse fetch
       try {
-          const { data: horses, error } = await supabase
+          const { data: horses, error } = await getSupabase()
               .from('content_authors')
               .select('id, name, profile_id, voice, stakes')
               .eq('is_active', true)
@@ -110,7 +110,7 @@ export default async function handler(req, res) {
       // Test post creation (only if we have caption)
       if (clip && horse && result.captionTest && !result.captionTest.startsWith('error')) {
           try {
-              const { data: post, error: postError } = await supabase
+              const { data: post, error: postError } = await getSupabase()
                   .from('social_posts')
                   .insert({
                       author_id: horse.profile_id,

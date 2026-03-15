@@ -79,7 +79,7 @@ export default async function handler(req, res) {
           const todayContent = getTodayContent();
 
           // Create post using RPC function (bypasses RLS issues)
-          const { data: post, error: postError } = await supabase
+          const { data: post, error: postError } = await getSupabase()
               .rpc('fn_create_social_post', {
                   p_author_id: SYSTEM_UUID,
                   p_content: todayContent.content,
@@ -92,7 +92,7 @@ export default async function handler(req, res) {
           if (postError) {
               // Fallback: direct insert (may fail due to RLS)
 
-              const { data: directPost, error: directError } = await supabase
+              const { data: directPost, error: directError } = await getSupabase()
                   .from('social_posts')
                   .insert({
                       author_id: SYSTEM_UUID,
