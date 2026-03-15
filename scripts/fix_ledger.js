@@ -6,7 +6,10 @@ function getPasswordCandidates() {
     const candidates = [];
     if (process.env.SUPABASE_DB_PASSWORD) candidates.push(process.env.SUPABASE_DB_PASSWORD);
     if (process.env.POSTGRES_PASSWORD) candidates.push(process.env.POSTGRES_PASSWORD);
-    candidates.push('gbpAM0n7jNBzY4Co', '215SlalomCt!', 'Bek454545!!');
+    if (candidates.length === 0) {
+        console.error('No database password configured. Set SUPABASE_DB_PASSWORD in .env.local');
+        process.exit(1);
+    }
     return [...new Set(candidates)];
 }
 

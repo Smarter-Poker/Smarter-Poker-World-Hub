@@ -28,7 +28,7 @@ export function middleware(request: NextRequest) {
         '/api/poker/create-tables',
         '/api/poker/setup-venue-scraping',
     ];
-    const isProtectedRoute = (pathname.startsWith('/api/admin') && pathname !== '/api/admin/execute-sql') ||
+    const isProtectedRoute = pathname.startsWith('/api/admin') ||
         pathname.startsWith('/api/debug') ||
         pathname.startsWith('/api/emergency') ||
         DESTRUCTIVE_POKER_ROUTES.includes(pathname);

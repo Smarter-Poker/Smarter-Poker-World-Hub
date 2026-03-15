@@ -64,10 +64,12 @@ async function run() {
     const candidates = [
         process.env.SUPABASE_DB_PASSWORD,
         process.env.POSTGRES_PASSWORD,
-        '215SlalomCt!',
-        'Bek454545!!',
-        'gbpAM0n7jNBzY4Co'
     ].filter(Boolean);
+
+    if (candidates.length === 0) {
+        console.error(JSON.stringify({ success: false, error: 'No database password configured. Set SUPABASE_DB_PASSWORD in .env.local' }));
+        process.exit(1);
+    }
 
     // Deduplicate
     const uniqueCands = [...new Set(candidates)];

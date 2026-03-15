@@ -23,13 +23,10 @@ export const config = {
 
 export default async function handler(req, res) {
   try {
-      // CORS setup for CURL/Postman access
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+      // [HARDENED] No CORS — same-origin only. No cross-origin access allowed.
 
       if (req.method === 'OPTIONS') {
-          return res.status(200).end();
+          return res.status(405).json({ success: false, error: 'CORS preflight not supported.' });
       }
 
       if (req.method !== 'POST') {
@@ -84,25 +81,26 @@ export default async function handler(req, res) {
           return res.status(403).json({ success: false, error: 'Insufficient Agent or User permissions.' });
       }
 
-      // 1.5 Destructive Action Guard
-      const isDestructive = /DROP\s+TABLE|DELETE\s+FROM|TRUNCATE\s+TABLE|ALTER\s+TABLE\s+.*\s+DROP\s+COLUMN/i.test(sql);
-      const allowDestructive = req.body.allowDestructive === true;
+      // 1.5 Destructive Action Guard — UN-BYPASSABLE
+      const isDestructive = /DROP\s+TABLE|DROP\s+SCHEMA|DROP\s+FUNCTION|DROP\s+TRIGGER|DROP\s+INDEX|DELETE\s+FROM|TRUNCATE\s+TABLE|TRUNCATE\s+|ALTER\s+TABLE\s+.*\s+DROP\s+COLUMN|ALTER\s+TABLE\s+.*\s+RENAME|CASCADE|REVOKE\s+/i.test(sql);
 
-      if (isDestructive && !allowDestructive) {
+      if (isDestructive) {
           return res.status(403).json({
               success: false,
-              error: 'Destructive action detected (DROP, DELETE, TRUNCATE). Execution blocked to protect schema. Pass "allowDestructive": true in JSON to override.'
+              error: 'Destructive action detected (DROP, DELETE, TRUNCATE, CASCADE, REVOKE). This guard cannot be bypassed. Use Supabase Dashboard SQL Editor for destructive operations.'
           });
       }
 
       // 2. Direct PostgreSQL Execution (Bypassing PostgREST limitation)
+      // [HARDENED] Only env-var passwords — no hardcoded credentials
       const candidates = [
           process.env.SUPABASE_DB_PASSWORD,
           process.env.POSTGRES_PASSWORD,
-          '215SlalomCt!',
-          'Bek454545!!',
-          'gbpAM0n7jNBzY4Co'
       ].filter(Boolean);
+
+      if (candidates.length === 0) {
+          return res.status(500).json({ success: false, error: 'No database password configured in environment variables.' });
+      }
 
       const uniqueCands = [...new Set(candidates)];
 
