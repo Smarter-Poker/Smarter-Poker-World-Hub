@@ -1220,6 +1220,13 @@ export default function ClubArenaAdminPage() {
       const qClub = router.query.club || router.query.clubId;
       const { supabase } = await import('../../../src/lib/supabase');
       let targetClub = qClub;
+
+      // Resolve numeric club codes to UUID
+      if (qClub && /^\d+$/.test(qClub)) {
+        const { data: clubByCode } = await supabase
+          .from('clubs').select('id').eq('club_id', parseInt(qClub)).maybeSingle();
+        if (clubByCode?.id) targetClub = clubByCode.id;
+      }
       
       // Auto-discover club if none in URL
       if (!targetClub) {

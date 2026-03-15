@@ -93,7 +93,7 @@ function ClubArenaCard({ club, onNavigate }) {
     const [hovering, setHovering] = useState(false);
     return (
         <div
-            onClick={() => onNavigate(club.club_id)}
+            onClick={() => onNavigate(club.id)}
             onMouseEnter={() => setHovering(true)}
             onMouseLeave={() => setHovering(false)}
             style={{

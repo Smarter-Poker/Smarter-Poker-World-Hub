@@ -164,9 +164,17 @@ export default function ClubArenaLobbyPage() {
       let memberRole = 'player';
       let name = '';
 
+      // Resolve numeric club codes (5-digit) to UUID — my-clubs used to pass the code not the UUID
+      if (targetClub && /^\d+$/.test(targetClub)) {
+        const { data: clubByCode } = await supabase
+          .from('clubs').select('id').eq('club_id', parseInt(targetClub)).maybeSingle();
+        if (clubByCode?.id) targetClub = clubByCode.id;
+      }
+
       if (!targetClub) {
         const { data: membership } = await supabase
           .from('club_members').select('club_id, role').eq('user_id', session.user.id)
+          .eq('status', 'active').order('joined_at', { ascending: false })
           .limit(1).maybeSingle();
         if (membership?.club_id) { targetClub = membership.club_id; memberRole = membership.role || 'player'; }
       } else {

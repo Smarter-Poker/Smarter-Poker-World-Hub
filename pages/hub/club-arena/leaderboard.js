@@ -75,7 +75,10 @@ export default function ClubArenaLeaderboardPage() {
     const init = async (session) => {
       if (cancelled) return;
       const qClub = router.query.club || router.query.clubId;
-      if (qClub) { setClubId(qClub); loadLeaderboard(qClub, 'chips'); return; }
+      if (qClub) {
+        const resolvedClub = await resolveClubId(qClub);
+        setClubId(resolvedClub); loadLeaderboard(resolvedClub, 'chips'); return;
+      }
       if (session) {
         const { supabase } = await import('../../../src/lib/supabase');
         const { data: membership } = await supabase

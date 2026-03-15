@@ -97,7 +97,10 @@ export default function ClubArenaMarketplacePage() {
     const init = async (session) => {
       if (cancelled) return;
       const qClub = router.query.club || router.query.clubId;
-      if (qClub) { setClubId(qClub); loadMarketplace(qClub); return; }
+      if (qClub) {
+        const resolvedClub = await resolveClubId(qClub);
+        setClubId(resolvedClub); loadMarketplace(resolvedClub); return;
+      }
       if (session) {
         const { supabase } = await import('../../../src/lib/supabase');
         const { data: membership } = await supabase

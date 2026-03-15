@@ -89,6 +89,13 @@ export default function ClubArenaXMTTPage() {
       const { supabase } = await import('../../../src/lib/supabase');
       let targetClub = qClub;
 
+      // Resolve numeric club codes to UUID
+      if (qClub && /^\d+$/.test(qClub)) {
+        const { data: clubByCode } = await supabase
+          .from('clubs').select('id').eq('club_id', parseInt(qClub)).maybeSingle();
+        if (clubByCode?.id) targetClub = clubByCode.id;
+      }
+
       if (!targetClub) {
         const { data: mem } = await supabase.from('club_members').select('club_id').eq('user_id', session.user.id).limit(1).maybeSingle();
         targetClub = mem?.club_id;

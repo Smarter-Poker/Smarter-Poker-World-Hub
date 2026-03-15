@@ -170,8 +170,9 @@ export default function AgentDashboardPage() {
       // Get clubId from URL query
       const qClub = router.query.club || router.query.clubId;
       if (qClub) {
-        setClubId(qClub);
-        loadDashboard(qClub);
+        const resolvedClub = await resolveClubId(qClub);
+        setClubId(resolvedClub);
+        loadDashboard(resolvedClub);
         return;
       }
       // Fallback: discover user's first club

@@ -156,7 +156,10 @@ export default function ClubArenaPlayersPage() {
     const init = async (session) => {
       if (cancelled) return;
       const qClub = router.query.club || router.query.clubId;
-      if (qClub) { setClubId(qClub); loadSessions(qClub); return; }
+      if (qClub) {
+        const resolvedClub = await resolveClubId(qClub);
+        setClubId(resolvedClub); loadSessions(resolvedClub); return;
+      }
       if (session) {
         const { supabase } = await import('../../../src/lib/supabase');
         const { data: membership } = await supabase
