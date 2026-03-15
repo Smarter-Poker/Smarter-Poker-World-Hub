@@ -303,11 +303,17 @@ export default function TriviaGame({
         });
 
         const timeSpent = Math.floor((Date.now() - startTimeRef.current) / 1000);
+        // Capture ref-based values NOW to avoid stale closure in 2s setTimeout
+        const cashOutAnswers = [...answersRef.current];
+        const cashOutCC = cashOutAnswers.filter((a, i) => a === questions[i]?.correct_index).length;
+        const cashOutStreak = streakRef.current;
+        const cashOutStakePot = stakePotRef.current;
+        const cashOutTimeRemaining = timeRemaining || 0;
         setTimeout(() => {
             onComplete({
-                answers, correctCount, totalQuestions: questions.length,
-                timeSpent, timeRemaining: timeRemaining || 0,
-                stakePot, cashedOut: true, streak,
+                answers: cashOutAnswers, correctCount: cashOutCC, totalQuestions: questions.length,
+                timeSpent, timeRemaining: cashOutTimeRemaining,
+                stakePot: cashOutStakePot, cashedOut: true, streak: cashOutStreak,
                 opponentScore: opponentDataRef.current.score,
                 opponentName: opponentDataRef.current.name,
             });
