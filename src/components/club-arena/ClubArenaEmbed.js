@@ -231,6 +231,28 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
         return () => clearInterval(authRetryRef.current);
     }, [loadState]);
 
+    /* ── Auth Token Refresh — re-send token when Supabase refreshes session ── */
+    useEffect(() => {
+        if (loadState !== 'ready') return;
+
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            if ((event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') && session?.access_token) {
+                if (!iframeRef.current?.contentWindow) return;
+                const globalSettings = readWorldHubSettings();
+                iframeRef.current.contentWindow.postMessage({
+                    type: 'SMARTER_AUTH_TOKEN',
+                    token: session.access_token,
+                    refreshToken: session.refresh_token,
+                    settings: globalSettings,
+                }, window.location.origin);
+                console.log('[ClubArenaEmbed] 🔄 Token refreshed — re-sent to SPA');
+            }
+        });
+
+        return () => subscription?.unsubscribe?.();
+    }, [loadState]);
+
     /* ── Live Settings Push — real-time sync while iframe is open ──────── */
     useEffect(() => {
         if (loadState !== 'ready') return;

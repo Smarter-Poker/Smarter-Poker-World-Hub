@@ -10,7 +10,13 @@ export default function ClubArenaTablePage() {
     const router = useRouter();
     const { tableId } = router.query;
 
+    // Forward club context so SPA doesn't have to re-derive it from tableId
+    const clubId = router.query.club || router.query.clubId;
+
     if (!tableId) return null;
+
+    const query = {};
+    if (clubId) query.club = clubId;
 
     return (
         <HubErrorBoundary name="Club Arena Table">
@@ -18,6 +24,7 @@ export default function ClubArenaTablePage() {
             {/* NO UniversalHeader — table is full-screen immersive */}
             <ClubArenaEmbed
                 spaRoute={`table/${tableId}`}
+                query={query}
                 style={{
                     top: 0,
                     height: '100vh',

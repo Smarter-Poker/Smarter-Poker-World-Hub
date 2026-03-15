@@ -48,6 +48,7 @@ export default function ClubArenaPlayerStatsPage() {
   useEffect(() => () => { mountedRef.current = false; }, []);
 
   useEffect(() => {
+    if (!router.isReady) return; // Wait for Next.js to hydrate query params
     let cancelled = false;
     let authSub = null;
 
@@ -161,7 +162,7 @@ export default function ClubArenaPlayerStatsPage() {
     })();
 
     return () => { cancelled = true; authSub?.unsubscribe?.(); };
-  }, [router.query.club, router.query.clubId]);
+  }, [router.isReady, router.query.club, router.query.clubId]);
 
   // Refresh function (for button and visibilitychange)
   const refreshStats = useCallback(async () => {

@@ -183,6 +183,7 @@ export default function ClubArenaAntiCheatPage() {
 
   // ── Initial Load ───────────────────────────────────────────
   useEffect(() => {
+    if (!router.isReady) return; // Wait for Next.js to hydrate query params
     let cancelled = false;
     let authUnsub = null;
     const init = async (session) => {
@@ -215,7 +216,7 @@ export default function ClubArenaAntiCheatPage() {
     })();
 
     return () => { cancelled = true; authUnsub?.unsubscribe?.(); };
-  }, [router.query.club, router.query.clubId, loadStats]);
+  }, [router.isReady, router.query.club, router.query.clubId, loadStats]);
 
   // ── Lazy Tab Loading ───────────────────────────────────────
   useEffect(() => {

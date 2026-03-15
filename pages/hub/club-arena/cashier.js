@@ -75,6 +75,10 @@ export default function ClubArenaCashierPage() {
   const [distUserId, setDistUserId] = useState('');
   const [distAmount, setDistAmount] = useState('');
   const [distNotes, setDistNotes] = useState('');
+  const [distSearch, setDistSearch] = useState('');
+  const [distSearchResults, setDistSearchResults] = useState([]);
+  const [distSelectedName, setDistSelectedName] = useState('');
+  const [distSearching, setDistSearching] = useState(false);
 
   const mountedRef = useRef(true);
   useEffect(() => () => { mountedRef.current = false; }, []);
@@ -123,6 +127,7 @@ export default function ClubArenaCashierPage() {
 
   // ── Initial Load ───────────────────────────────────────────
   useEffect(() => {
+    if (!router.isReady) return; // Wait for Next.js to hydrate query params
     let cancelled = false;
     let authUnsub = null;
 
@@ -155,7 +160,7 @@ export default function ClubArenaCashierPage() {
     })();
 
     return () => { cancelled = true; authUnsub?.unsubscribe?.(); };
-  }, [router.query.club, router.query.clubId]);
+  }, [router.isReady, router.query.club, router.query.clubId]);
 
   // ── Lazy History Loading ───────────────────────────────────
   useEffect(() => {
@@ -267,6 +272,33 @@ export default function ClubArenaCashierPage() {
   }
 
   const availableForCashout = useMemo(() => balance - totalPending, [balance, totalPending]);
+
+  // ── Player search for distribute ─────────────────────────────
+  const searchPlayers = async (query) => {
+    setDistSearch(query);
+    if (!query || query.length < 2) { setDistSearchResults([]); return; }
+    setDistSearching(true);
+    try {
+      const { supabase } = await import('../../../src/lib/supabase');
+      const { data } = await supabase
+        .from('club_members')
+        .select('user_id, nickname, profiles!inner(display_name, username)')
+        .eq('club_id', clubId)
+        .eq('status', 'active')
+        .or(`nickname.ilike.%${query}%,profiles.display_name.ilike.%${query}%,profiles.username.ilike.%${query}%`)
+        .limit(8);
+      setDistSearchResults(data || []);
+    } catch { setDistSearchResults([]); }
+    finally { setDistSearching(false); }
+  };
+
+  const selectDistPlayer = (member) => {
+    const name = member.nickname || member.profiles?.display_name || member.profiles?.username || member.user_id;
+    setDistUserId(member.user_id);
+    setDistSelectedName(name);
+    setDistSearch(name);
+    setDistSearchResults([]);
+  };
 
   return (
     <HubErrorBoundary name="Cashier">

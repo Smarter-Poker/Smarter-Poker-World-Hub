@@ -150,6 +150,7 @@ export default function ClubArenaLobbyPage() {
 
   // ── Initial Load + Auth ────────────────────────────────────
   useEffect(() => {
+    if (!router.isReady) return; // Wait for Next.js to hydrate query params
     let cancelled = false;
     let authUnsub = null;
 
@@ -215,13 +216,30 @@ export default function ClubArenaLobbyPage() {
     })();
 
     return () => { cancelled = true; authUnsub?.unsubscribe?.(); };
-  }, [router.query.club, router.query.clubId, loadLobby, loadRecommendations]);
+  }, [router.isReady, router.query.club, router.query.clubId, loadLobby, loadRecommendations]);
 
-  // ── Auto-refresh every 30s ──────────────────────────────────
+  // ── Supabase Realtime: tables channel (replaces 30s polling) ──
   useEffect(() => {
     if (!clubId) return;
-    const interval = setInterval(() => loadLobby(clubId), 30000);
-    return () => clearInterval(interval);
+    let channel;
+    (async () => {
+      const { supabase } = await import('../../../src/lib/supabase');
+      channel = supabase
+        .channel(`lobby-tables:${clubId}`)
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'tables',
+          filter: `club_id=eq.${clubId}`,
+        }, () => { loadLobby(clubId); })
+        .subscribe();
+    })();
+    // Fallback: still poll every 60s in case realtime drops
+    const fallback = setInterval(() => loadLobby(clubId), 60000);
+    return () => {
+      clearInterval(fallback);
+      channel?.unsubscribe?.();
+    };
   }, [clubId, loadLobby]);
 
   // ── Visibility refresh ──────────────────────────────────────
@@ -544,8 +562,12 @@ export default function ClubArenaLobbyPage() {
                     <Link href={`/hub/club-arena/tournaments?club=${clubId}`} style={{ textDecoration: 'none' }}><button className={s.btnGhost}>🏆 Tournaments</button></Link>
                     <Link href={`/hub/club-arena/hand-histories?club=${clubId}`} style={{ textDecoration: 'none' }}><button className={s.btnGhost}>🎬 Hands</button></Link>
                     <Link href={`/hub/club-arena/leaderboard?club=${clubId}`} style={{ textDecoration: 'none' }}><button className={s.btnGhost}>🏅 Leaderboard</button></Link>
-                    {['owner', 'admin'].includes(role) && (
+                    <Link href={`/hub/club-arena/player-stats?club=${clubId}`} style={{ textDecoration: 'none' }}><button className={s.btnGhost}>📊 Stats</button></Link>
+                    {['owner', 'admin', 'super_agent'].includes(role) && (
                       <Link href={`/hub/club-arena/anti-cheat?club=${clubId}`} style={{ textDecoration: 'none' }}><button className={s.btnGhost}>🛡️ Anti-Cheat</button></Link>
+                    )}
+                    {['owner', 'admin', 'super_agent'].includes(role) && (
+                      <Link href={`/hub/club-arena/agent-dashboard?club=${clubId}`} style={{ textDecoration: 'none' }}><button className={s.btnGhost}>🤝 Agents</button></Link>
                     )}
                   </div>
                 </>

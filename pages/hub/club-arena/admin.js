@@ -1210,6 +1210,7 @@ export default function ClubArenaAdminPage() {
   const [activeTab, setActiveTab] = useState('dashboard'); // dashboard | settlements | history | audit | branding
 
   useEffect(() => {
+    if (!router.isReady) return; // Wait for Next.js to hydrate query params
     let cancelled = false;
     let authSub = null;
 
@@ -1261,7 +1262,7 @@ export default function ClubArenaAdminPage() {
     })();
 
     return () => { cancelled = true; authSub?.unsubscribe?.(); };
-  }, [router.query.club, router.query.clubId]);
+  }, [router.isReady, router.query.club, router.query.clubId]);
 
   if (loading) {
     return (

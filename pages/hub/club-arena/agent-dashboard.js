@@ -63,6 +63,10 @@ export default function AgentDashboardPage() {
   // Transfer modal state
   const [showTransfer, setShowTransfer] = useState(false);
   const [transferTarget, setTransferTarget] = useState('');
+  const [transferTargetName, setTransferTargetName] = useState('');
+  const [transferSearch, setTransferSearch] = useState('');
+  const [transferSearchResults, setTransferSearchResults] = useState([]);
+  const [transferSearching, setTransferSearching] = useState(false);
   const [transferAmount, setTransferAmount] = useState('');
 
   // Promo wallet state
@@ -157,6 +161,7 @@ export default function AgentDashboardPage() {
 
   // ── Initial Load with Session Hydration Awareness ──────────
   useEffect(() => {
+    if (!router.isReady) return; // Wait for Next.js to hydrate query params
     let cancelled = false;
     let authUnsub = null;
 
@@ -219,7 +224,7 @@ export default function AgentDashboardPage() {
     })();
 
     return () => { cancelled = true; authUnsub?.unsubscribe?.(); };
-  }, [router.query.club, router.query.clubId]);
+  }, [router.isReady, router.query.club, router.query.clubId]);
 
   // ── Lazy Analytics Loading ─────────────────────────────────
   useEffect(() => {
@@ -340,6 +345,33 @@ export default function AgentDashboardPage() {
 
   // Max commission from trends for sparkline scaling
   const maxTrend = trends ? Math.max(...trends.map(t => t.amount), 1) : 1;
+
+  // ── Agent search for transfer ─────────────────────────────
+  const searchAgents = async (query) => {
+    setTransferSearch(query);
+    if (!query || query.length < 2) { setTransferSearchResults([]); return; }
+    setTransferSearching(true);
+    try {
+      const { supabase } = await import('../../../src/lib/supabase');
+      // Search agents in this club who are NOT the current user
+      const { data: agentsData } = await supabase
+        .from('agents')
+        .select('user_id, profiles!inner(display_name, username)')
+        .eq('club_id', clubId)
+        .or(`profiles.display_name.ilike.%${query}%,profiles.username.ilike.%${query}%`)
+        .limit(8);
+      setTransferSearchResults(agentsData || []);
+    } catch { setTransferSearchResults([]); }
+    finally { setTransferSearching(false); }
+  };
+
+  const selectTransferAgent = (agent) => {
+    const name = agent.profiles?.display_name || agent.profiles?.username || agent.user_id;
+    setTransferTarget(agent.user_id);
+    setTransferTargetName(name);
+    setTransferSearch(name);
+    setTransferSearchResults([]);
+  };
 
   return (
     <HubErrorBoundary name="Agent Dashboard">
@@ -1059,9 +1091,33 @@ export default function AgentDashboardPage() {
                   <button onClick={() => setShowTransfer(false)} style={{ background: 'none', border: 'none', color: '#B0B3B8', cursor: 'pointer', fontSize: '18px' }}>✕</button>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12px', color: '#B0B3B8', marginBottom: '6px', fontWeight: 600 }}>Recipient Agent User ID</label>
-                    <input value={transferTarget} onChange={e => setTransferTarget(e.target.value)} placeholder="UUID of receiving agent" style={{ width: '100%', padding: '10px 12px', background: '#18191A', border: '1px solid #3A3B3C', borderRadius: '8px', color: '#E4E6EB', fontSize: '13px' }} />
+                  <div style={{ position: 'relative' }}>
+                    <label style={{ display: 'block', fontSize: '12px', color: '#B0B3B8', marginBottom: '6px', fontWeight: 600 }}>Recipient Agent</label>
+                    <input
+                      value={transferSearch}
+                      onChange={e => { searchAgents(e.target.value); if (!e.target.value) { setTransferTarget(''); setTransferTargetName(''); } }}
+                      placeholder="Search agent by name..."
+                      style={{ width: '100%', padding: '10px 12px', background: '#18191A', border: `1px solid ${transferTarget ? '#31A24C' : '#3A3B3C'}`, borderRadius: '8px', color: '#E4E6EB', fontSize: '13px', boxSizing: 'border-box' }}
+                    />
+                    {transferSearching && <div style={{ position: 'absolute', right: '12px', top: '38px', fontSize: '11px', color: '#B0B3B8' }}>Searching...</div>}
+                    {transferSearchResults.length > 0 && (
+                      <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#18191A', border: '1px solid #3A3B3C', borderRadius: '8px', zIndex: 50, marginTop: '2px', overflow: 'hidden' }}>
+                        {transferSearchResults.map(a => {
+                          const name = a.profiles?.display_name || a.profiles?.username || a.user_id;
+                          return (
+                            <div key={a.user_id} onClick={() => selectTransferAgent(a)}
+                              style={{ padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid #2D2E30', fontSize: '13px', color: '#E4E6EB' }}
+                              onMouseEnter={e => e.currentTarget.style.background = '#242526'}
+                              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                            >
+                              <span style={{ fontWeight: 600 }}>{name}</span>
+                              <span style={{ fontSize: '11px', color: '#6B7280', marginLeft: '8px' }}>@{a.profiles?.username || '—'}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {transferTarget && <div style={{ fontSize: '11px', color: '#31A24C', marginTop: '4px' }}>✓ Selected: {transferTargetName}</div>}
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: '12px', color: '#B0B3B8', marginBottom: '6px', fontWeight: 600 }}>Amount (chips)</label>

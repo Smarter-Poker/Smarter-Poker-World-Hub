@@ -149,6 +149,7 @@ export default function ClubArenaPlayersPage() {
 
   // ── Initial Load with Session Hydration Awareness ──────────
   useEffect(() => {
+    if (!router.isReady) return; // Wait for Next.js to hydrate query params
     let cancelled = false;
     let authUnsub = null;
 
@@ -181,7 +182,7 @@ export default function ClubArenaPlayersPage() {
     })();
 
     return () => { cancelled = true; authUnsub?.unsubscribe?.(); };
-  }, [router.query.club, router.query.clubId]);
+  }, [router.isReady, router.query.club, router.query.clubId]);
 
   // ── Lazy Tab Loading ───────────────────────────────────────
   useEffect(() => {

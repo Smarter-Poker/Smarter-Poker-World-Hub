@@ -369,6 +369,7 @@ export default function ClubArenaTournamentsPage() {
 
   // ── Initial Load ───────────────────────────────────────────
   useEffect(() => {
+    if (!router.isReady) return; // Wait for Next.js to hydrate query params
     let cancelled = false;
     let authUnsub = null;
 
@@ -412,7 +413,7 @@ export default function ClubArenaTournamentsPage() {
     })();
 
     return () => { cancelled = true; authUnsub?.unsubscribe?.(); };
-  }, [router.query.club, router.query.clubId]);
+  }, [router.isReady, router.query.club, router.query.clubId]);
 
   // ── EventBus (debounced) ───────────────────────────────────
   useEffect(() => {

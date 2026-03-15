@@ -82,6 +82,7 @@ export default function ClubArenaMessagesPage() {
 
   // Auth + init
   useEffect(() => {
+    if (!router.isReady) return; // Wait for Next.js to hydrate query params
     let cancelled = false;
     let authSub = null;
 
@@ -124,7 +125,7 @@ export default function ClubArenaMessagesPage() {
     })();
 
     return () => { cancelled = true; authSub?.unsubscribe?.(); };
-  }, [router.query.club, router.query.clubId, loadMessages]);
+  }, [router.isReady, router.query.club, router.query.clubId, loadMessages]);
 
   // Auto-polling every 10s
   useEffect(() => {

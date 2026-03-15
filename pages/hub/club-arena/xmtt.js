@@ -78,6 +78,7 @@ export default function ClubArenaXMTTPage() {
 
   // Auth + init
   useEffect(() => {
+    if (!router.isReady) return; // Wait for Next.js to hydrate query params
     let cancelled = false;
     let authSub = null;
 
@@ -119,7 +120,7 @@ export default function ClubArenaXMTTPage() {
     })();
 
     return () => { cancelled = true; authSub?.unsubscribe?.(); };
-  }, [router.query.club, router.query.clubId, loadTournaments]);
+  }, [router.isReady, router.query.club, router.query.clubId, loadTournaments]);
 
   // Auto-poll tournament list every 30s
   useEffect(() => {

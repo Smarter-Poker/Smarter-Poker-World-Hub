@@ -88,6 +88,7 @@ export default function ClubArenaHandHistoriesPage() {
   }, []);
 
   useEffect(() => {
+    if (!router.isReady) return; // Wait for Next.js to hydrate query params
     let cancelled = false;
     let authUnsub = null;
 
@@ -128,7 +129,7 @@ export default function ClubArenaHandHistoriesPage() {
     })();
 
     return () => { cancelled = true; authUnsub?.unsubscribe?.(); };
-  }, [router.query.club, router.query.clubId, loadHands]);
+  }, [router.isReady, router.query.club, router.query.clubId, loadHands]);
 
   // Refresh on tab visibility change
   useEffect(() => {
