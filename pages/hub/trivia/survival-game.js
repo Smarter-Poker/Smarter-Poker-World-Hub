@@ -634,6 +634,7 @@ export default function SurvivalGamePage() {
     }
 
     const [saveErrorPayload, setSaveErrorPayload] = useState(null);
+    const savePhaseRef = useRef(0); // 0=none, 1=diamonds, 2=progress, 3=history
 
     function evaluateLevelResult(finalCorrect) {
         const config = LEVEL_CONFIG[currentLevel - 1];
@@ -660,69 +661,79 @@ export default function SurvivalGamePage() {
         if (!userId) return;
 
         try {
-            // Update user diamonds via audit-safe RPC
-            const { error: rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
-                p_user_id: userId,
-                p_amount: diamonds,
-                p_type: 'survival_reward',
-                p_description: `Survival Level ${level} — ${diamonds}💎`,
-                p_reference_id: null
-            });
-            if (rpcErr) console.error('[Survival] Reward RPC error:', rpcErr.message);
-            const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
-            if (profile) setUserDiamonds(profile.diamonds || 0);
-            busEmit.diamondsEarned(diamonds, `Survival Level ${level}`);
-            busEmit.celebration('confetti');
-
-            // Upsert survival progress
-            await supabase
-                .from('survival_progress')
-                .upsert({
-                    user_id: userId,
-                    highest_level: Math.max(level, userProgress.highestLevel),
-                    last_played: new Date().toISOString()
-                }, { onConflict: 'user_id' });
-
-            setUserProgress(prev => ({
-                ...prev,
-                highestLevel: Math.max(level, prev.highestLevel)
-            }));
-
-            // Record question history for 60-day non-repeat
-            if (questions && questions.length > 0 && answersRef.current.length > 0) {
-                const answeredQuestions = questions.slice(0, answersRef.current.length);
-                const historyRecords = answeredQuestions.map((q, idx) => ({
-                    user_id: userId,
-                    question_id: q.id,
-                    was_correct: answersRef.current[idx] || false,
-                    seen_at: new Date().toISOString(),
-                    mode: 'survival'
-                }));
-
-                await supabase
-                    .from('trivia_user_question_history')
-                    .upsert(historyRecords, {
-                        onConflict: 'user_id,question_id',
-                        ignoreDuplicates: false
-                    });
+            // Phase 1: Award diamonds (only if not already awarded)
+            if (savePhaseRef.current < 1) {
+                const { error: rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
+                    p_user_id: userId,
+                    p_amount: diamonds,
+                    p_type: 'survival_reward',
+                    p_description: `Survival Level ${level} — ${diamonds}💎`,
+                    p_reference_id: null
+                });
+                if (rpcErr) console.error('[Survival] Reward RPC error:', rpcErr.message);
+                const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
+                if (profile) setUserDiamonds(profile.diamonds || 0);
+                busEmit.diamondsEarned(diamonds, `Survival Level ${level}`);
+                busEmit.celebration('confetti');
+                savePhaseRef.current = 1;
             }
-            
-            // Success! Game saved.
+
+            // Phase 2: Upsert survival progress (only if not already updated)
+            if (savePhaseRef.current < 2) {
+                await supabase
+                    .from('survival_progress')
+                    .upsert({
+                        user_id: userId,
+                        highest_level: Math.max(level, userProgress.highestLevel),
+                        last_played: new Date().toISOString()
+                    }, { onConflict: 'user_id' });
+
+                setUserProgress(prev => ({
+                    ...prev,
+                    highestLevel: Math.max(level, prev.highestLevel)
+                }));
+                savePhaseRef.current = 2;
+            }
+
+            // Phase 3: Record question history (only if not already recorded)
+            if (savePhaseRef.current < 3) {
+                if (questions && questions.length > 0 && answersRef.current.length > 0) {
+                    const answeredQuestions = questions.slice(0, answersRef.current.length);
+                    const historyRecords = answeredQuestions.map((q, idx) => ({
+                        user_id: userId,
+                        question_id: q.id,
+                        was_correct: answersRef.current[idx] || false,
+                        seen_at: new Date().toISOString(),
+                        mode: 'survival'
+                    }));
+
+                    await supabase
+                        .from('trivia_user_question_history')
+                        .upsert(historyRecords, {
+                            onConflict: 'user_id,question_id',
+                            ignoreDuplicates: false
+                        });
+                }
+                savePhaseRef.current = 3;
+            }
+
+            // Success! Game saved — reset phase for next level/game
             setGameState(targetGameState);
             setSaveErrorPayload(null);
+            savePhaseRef.current = 0;
         } catch (e) {
             console.error('[Survival] Failed to save progress:', e);
-            // Save failed (network drop) -> Provide Retry UI
+            // Save failed (network drop) -> Provide Retry UI (savePhaseRef preserves progress)
             setSaveErrorPayload({ level, diamonds, targetGameState });
             setGameState('saving_error');
         }
     }
 
-    // Retry function for network drops
+    // Retry function for network drops — resumes from where it left off
     const handleRetrySave = () => {
         setGameState('saving_progress');
         setSaveErrorPayload(null);
-        saveProgress(saveErrorPayload.level, saveErrorPayload.diamonds, saveErrorPayload.targetGameState);
+        saveProgress(saveErrorPayload.level, saveErrorPayload.diamonds, saveErrorPayload.targetGameState); // savePhaseRef skips already-completed steps
     };
 
     function continueToNextLevel() {

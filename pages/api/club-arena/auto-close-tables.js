@@ -8,7 +8,7 @@
  * Body: { clubId? } — optional: only check tables for a specific club
  * Auth: requires admin or engine-key
  */
-import { createClient } from '../src/lib/supabaseServerClient';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { checkIdempotency, cacheResponse } from '../../../src/lib/club-arena/idempotency';
 
@@ -76,7 +76,7 @@ export default async function handler(req, res) {
 
               if (hoursElapsed >= gameLengthHours) {
                   // Close the table — atomic guard ensures no double-close
-                  const { error: closeErr } = await supabase
+                  const { error: closeErr } = await getSupabase()
                       .from('tables')
                       .update({ status: 'closed', updated_at: new Date().toISOString() })
                       .eq('id', table.id)

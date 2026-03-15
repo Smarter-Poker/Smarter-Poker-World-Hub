@@ -20,11 +20,6 @@ function getSupabase() {
 }
 
 
-const _supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
-
 export default async function handler(req, res) {
   try {
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
@@ -38,7 +33,7 @@ export default async function handler(req, res) {
       // BUG #267 FIX: Require JWT auth — calls paid Grok API
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
-      const { data: { user: authUser }, error: authErr } = await _supabase.auth.getUser(token);
+      const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       const { scenario } = req.body;

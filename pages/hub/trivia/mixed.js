@@ -346,6 +346,7 @@ export default function MixedModePage() {
     }
 
     const [saveErrorPayload, setSaveErrorPayload] = useState(null);
+    const savePhaseRef = useRef(0); // 0=none, 1=diamonds, 2=mastery, 3=history, 4=score
 
     async function finishGame() {
         setIsTimerRunning(false);
@@ -365,119 +366,131 @@ export default function MixedModePage() {
         setDiamondsEarned(actualDiamonds);
 
         try {
-            // Award diamonds via audit-safe RPC
-            if (actualDiamonds > 0) {
-                await supabase.rpc('add_diamonds_to_balance', {
-                    p_user_id: userId,
-                    p_amount: actualDiamonds,
-                    p_type: 'mixed_reward',
-                    p_description: `Mixed mode — ${actualDiamonds}💎`,
-                    p_reference_id: null
-                });
-                const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
-                if (profile) setUserDiamonds(profile.diamonds || 0);
-                busEmit.diamondsEarned(actualDiamonds, 'Mixed Mode');
-                busEmit.celebration('confetti');
+            // Phase 1: Award diamonds (only if not already awarded)
+            if (savePhaseRef.current < 1) {
+                if (actualDiamonds > 0) {
+                    await supabase.rpc('add_diamonds_to_balance', {
+                        p_user_id: userId,
+                        p_amount: actualDiamonds,
+                        p_type: 'mixed_reward',
+                        p_description: `Mixed mode — ${actualDiamonds}💎`,
+                        p_reference_id: null
+                    });
+                    const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
+                    if (profile) setUserDiamonds(profile.diamonds || 0);
+                    busEmit.diamondsEarned(actualDiamonds, 'Mixed Mode');
+                    busEmit.celebration('confetti');
+                }
+                savePhaseRef.current = 1;
             }
 
-            // Recompute category stats from answersRef (always current) to avoid stale closure
-            const actualCategoryStats = {};
-            answersRef.current.forEach((wasCorrect, idx) => {
-                const q = questions[idx];
-                if (!q) return;
-                const cat = q.displayCategory || 'poker_history';
-                if (!actualCategoryStats[cat]) actualCategoryStats[cat] = { answered: 0, correct: 0 };
-                actualCategoryStats[cat].answered += 1;
-                if (wasCorrect) actualCategoryStats[cat].correct += 1;
-            });
+            // Phase 2: Update category mastery (only if not already updated)
+            if (savePhaseRef.current < 2) {
+                const actualCategoryStats = {};
+                answersRef.current.forEach((wasCorrect, idx) => {
+                    const q = questions[idx];
+                    if (!q) return;
+                    const cat = q.displayCategory || 'poker_history';
+                    if (!actualCategoryStats[cat]) actualCategoryStats[cat] = { answered: 0, correct: 0 };
+                    actualCategoryStats[cat].answered += 1;
+                    if (wasCorrect) actualCategoryStats[cat].correct += 1;
+                });
 
-            // Update category mastery
-            for (const [category, stats] of Object.entries(actualCategoryStats)) {
-                if (stats.answered === 0) continue;
+                for (const [category, stats] of Object.entries(actualCategoryStats)) {
+                    if (stats.answered === 0) continue;
 
-                const { data: existing } = await supabase
-                    .from('trivia_category_mastery')
-                    .select('*')
-                    .eq('user_id', userId)
-                    .eq('category', category)
-                    .maybeSingle();
-
-                if (existing) {
-                    const newTotal = existing.total_answered + stats.answered;
-                    const newCorrect = existing.correct_count + stats.correct;
-                    const accuracy = newTotal > 0 ? newCorrect / newTotal : 0;
-                    const newLevel = Math.min(10, Math.max(1, Math.floor(accuracy * 10) + 1));
-
-                    await supabase
+                    const { data: existing } = await supabase
                         .from('trivia_category_mastery')
-                        .update({
-                            total_answered: newTotal,
-                            correct_count: newCorrect,
-                            mastery_level: newLevel,
-                            updated_at: new Date().toISOString()
-                        })
+                        .select('*')
                         .eq('user_id', userId)
-                        .eq('category', category);
-                } else {
+                        .eq('category', category)
+                        .maybeSingle();
+
+                    if (existing) {
+                        const newTotal = existing.total_answered + stats.answered;
+                        const newCorrect = existing.correct_count + stats.correct;
+                        const accuracy = newTotal > 0 ? newCorrect / newTotal : 0;
+                        const newLevel = Math.min(10, Math.max(1, Math.floor(accuracy * 10) + 1));
+
+                        await supabase
+                            .from('trivia_category_mastery')
+                            .update({
+                                total_answered: newTotal,
+                                correct_count: newCorrect,
+                                mastery_level: newLevel,
+                                updated_at: new Date().toISOString()
+                            })
+                            .eq('user_id', userId)
+                            .eq('category', category);
+                    } else {
+                        await supabase
+                            .from('trivia_category_mastery')
+                            .insert({
+                                user_id: userId,
+                                category,
+                                total_answered: stats.answered,
+                                correct_count: stats.correct,
+                                mastery_level: 1
+                            });
+                    }
+                }
+                savePhaseRef.current = 2;
+            }
+
+            // Phase 3: Record question history (only if not already recorded)
+            if (savePhaseRef.current < 3) {
+                const answeredCount = answersRef.current.length;
+                if (answeredCount > 0) {
+                    const answeredQuestions = questions.slice(0, answeredCount);
+                    const historyRecords = answeredQuestions.map((q, idx) => ({
+                        user_id: userId,
+                        question_id: q.id,
+                        was_correct: answersRef.current[idx] || false,
+                        seen_at: new Date().toISOString(),
+                        mode: 'mixed'
+                    }));
+
                     await supabase
-                        .from('trivia_category_mastery')
-                        .insert({
-                            user_id: userId,
-                            category,
-                            total_answered: stats.answered,
-                            correct_count: stats.correct,
-                            mastery_level: 1
+                        .from('trivia_user_question_history')
+                        .upsert(historyRecords, {
+                            onConflict: 'user_id,question_id',
+                            ignoreDuplicates: false
                         });
                 }
+                savePhaseRef.current = 3;
             }
 
-            // Record question history (only answered questions)
-            const answeredCount = answersRef.current.length;
-            if (answeredCount > 0) {
-                const answeredQuestions = questions.slice(0, answeredCount);
-                const historyRecords = answeredQuestions.map((q, idx) => ({
+            // Phase 4: Save score (only if not already saved)
+            if (savePhaseRef.current < 4) {
+                await supabase.from('trivia_scores').insert({
                     user_id: userId,
-                    question_id: q.id,
-                    was_correct: answersRef.current[idx] || false,
-                    seen_at: new Date().toISOString(),
-                    mode: 'mixed'
-                }));
-
-                await supabase
-                    .from('trivia_user_question_history')
-                    .upsert(historyRecords, {
-                        onConflict: 'user_id,question_id',
-                        ignoreDuplicates: false
-                    });
+                    mode: 'mixed',
+                    score: actualCorrect * 100,
+                    correct_count: actualCorrect,
+                    total_questions: questions.length,
+                    diamonds_earned: actualDiamonds,
+                    play_date: new Date().toISOString().split('T')[0]
+                });
+                savePhaseRef.current = 4;
             }
 
-            // Save score
-            await supabase.from('trivia_scores').insert({
-                user_id: userId,
-                mode: 'mixed',
-                score: actualCorrect * 100,
-                correct_count: actualCorrect,
-                total_questions: questions.length,
-                diamonds_earned: actualDiamonds,
-                play_date: new Date().toISOString().split('T')[0]
-            });
-
-            // Success! Game saved.
+            // Success! Game saved — reset phase for next game
             setGameState('results');
             setSaveErrorPayload(null);
+            savePhaseRef.current = 0;
         } catch (e) {
             console.error('[Mixed] Failed to save results:', e);
-            // Save failed (network drop) -> Provide Retry UI
+            // Save failed (network drop) -> Provide Retry UI (savePhaseRef preserves progress)
             setSaveErrorPayload({ actualCorrect, actualDiamonds });
             setGameState('saving_error');
         }
     }
 
-    // Retry function for network drops
+    // Retry function for network drops — resumes from where it left off
     const handleRetrySave = () => {
         setGameState('saving');
         setSaveErrorPayload(null);
-        finishGame(); // It will recompute from answersRef, which is safe
+        finishGame(); // savePhaseRef skips already-completed steps
     };
 
     const currentQuestion = questions[currentQuestionIndex];

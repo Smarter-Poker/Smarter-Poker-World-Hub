@@ -12,6 +12,9 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
+// ORB-0 FIX-5: No hardcoded fallbacks — env vars are mandatory
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
@@ -32,6 +35,12 @@ export default async function handler(req, res) {
 
       if (!user_id) {
           return res.status(400).json({ error: 'Missing user_id' });
+      }
+
+      // ORB-0 FIX-4: Fail hard if service key is missing — never fall back to anon for admin ops
+      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+          console.error('[ANTIGRAVITY] FATAL: Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY env vars');
+          return res.status(500).json({ error: 'Server configuration error — contact admin' });
       }
 
       // BUG #240 FIX: Require JWT auth and verify caller is the same user

@@ -14,21 +14,28 @@
  * @param {object} supabase - Supabase client instance
  * @param {string|null} userId - Authenticated user ID (null = no filtering)
  * @param {number} [limit=200] - Max history rows to fetch
+ * @param {string} [mode] - Optional game mode to filter by (e.g. 'pvp', 'time-attack')
  * @returns {Promise<string[]>} Array of question IDs to exclude
  */
-export async function getRecentlySeenIds(supabase, userId, limit = 200) {
+export async function getRecentlySeenIds(supabase, userId, limit = 200, mode = null) {
     if (!userId) return [];
 
     try {
         const sixtyDaysAgo = new Date();
         sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
 
-        const { data: history } = await supabase
+        let query = supabase
             .from('trivia_user_question_history')
             .select('question_id')
             .eq('user_id', userId)
-            .gte('seen_at', sixtyDaysAgo.toISOString())
-            .limit(limit);
+            .gte('seen_at', sixtyDaysAgo.toISOString());
+
+        // If a specific mode is provided, only exclude questions seen in that mode
+        if (mode) {
+            query = query.eq('mode', mode);
+        }
+
+        const { data: history } = await query.limit(limit);
 
         return history ? history.map(h => h.question_id) : [];
     } catch (e) {
@@ -50,10 +57,10 @@ export function filterAndShuffle(questions, excludeIds, minFallback = 10) {
 
     let available = excludeIds.length > 0
         ? questions.filter(q => !excludeIds.includes(q.id))
-        : questions;
+        : [...questions]; // Clone to prevent mutating the caller's original array
 
     // Fallback to full pool if too few unseen questions remain
-    if (available.length < minFallback) available = questions;
+    if (available.length < minFallback) available = [...questions];
 
     // Fisher-Yates shuffle (unbiased, unlike sort(() => Math.random() - 0.5))
     for (let i = available.length - 1; i > 0; i--) {

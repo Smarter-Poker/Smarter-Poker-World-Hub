@@ -712,6 +712,11 @@ export const SmarterPokerProfileView = ({ onNavigate, onOpenChat }) => {
         setUserPosts(prev => prev.map(p => {
             if (p.id === postId) {
                 const isLiked = p.isLiked;
+                const isSwap = isLiked && reactionType !== (p.reactionType || 'like');
+
+                if (isSwap) {
+                    return { ...p, reactionType };
+                }
                 return {
                     ...p,
                     isLiked: !isLiked,

@@ -261,9 +261,18 @@ export const SPPostCard = ({
         const wasLiked = liked;
         const prevType = reactionType;
 
+        // Determine if this is a SWAP (already liked, different type) or TOGGLE
+        const isSwap = wasLiked && selectedType !== prevType;
+
         // Optimistic UI
-        setLiked(!wasLiked);
-        if (!wasLiked) setReactionType(selectedType);
+        if (isSwap) {
+            // Swap: stay liked, just change the type
+            setReactionType(selectedType);
+        } else {
+            // Toggle: flip liked state
+            setLiked(!wasLiked);
+            if (!wasLiked) setReactionType(selectedType);
+        }
 
         try {
             await onLike?.(post.id, selectedType);

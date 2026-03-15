@@ -423,6 +423,13 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
         setPosts(prev => prev.map(p => {
             if (p.id === postId) {
                 const isLiked = p.isLiked;
+                const isSwap = isLiked && reactionType !== (p.reactionType || 'like');
+
+                if (isSwap) {
+                    // Swap: keep liked, just change type. Count stays same.
+                    return { ...p, reactionType };
+                }
+                // Toggle: flip liked state
                 return {
                     ...p,
                     isLiked: !isLiked,

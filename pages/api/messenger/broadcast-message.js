@@ -1,6 +1,3 @@
-// API Route: Broadcast a message to all members (P2-3)
-// pages/api/messenger/broadcast-message.js
-
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
@@ -12,6 +9,16 @@ function sanitizeMessage(text) {
     return clean;
 }
 
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
+
 export default async function handler(req, res) {
   try {
       if (!applyRateLimit(req, res, LIMITS.write)) return;
@@ -20,7 +27,7 @@ export default async function handler(req, res) {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
 
-      if (!SUPABASE_SERVICE_ROLE_KEY) {
+      if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
           return res.status(500).json({ success: false, error: 'Service key not configured' });
       }
 
@@ -35,16 +42,6 @@ export default async function handler(req, res) {
       }
 
       const content = `📢 ${sanitizeMessage(rawContent)}`;
-
-      let _supabase = null;
-function getSupabase() {
-    if (!_supabase) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        _supabase = createClient(url, key);
-    }
-    return _supabase;
-}, SUPABASE_SERVICE_ROLE_KEY);
 
       try {
           // Auth Verification

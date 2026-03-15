@@ -27,18 +27,19 @@ import {
     detectContentType
 } from '../../../src/content-engine/pipeline/HorseScheduler.js';
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
-        const url = SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = SUPABASE_KEY;
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
         _supabase = createClient(url, key);
     }
     return _supabase;
 }
+const supabase = getSupabase();
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 const grok = getGrokClient();
 
@@ -228,7 +229,7 @@ function categorizeArticle(title, sourceCategories, sourceType = 'general') {
 async function isArticleRecentlyShared(link) {
     const cutoff = new Date(Date.now() - CONFIG.NEWS_COOLDOWN_HOURS * 60 * 60 * 1000);
 
-    const { data } = await getSupabase()
+    const { data } = await supabase
         .from('social_posts')
         .select('id')
         .ilike('content', `%${link}%`)
@@ -239,14 +240,14 @@ async function isArticleRecentlyShared(link) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// PER-HORSE COOLDOWN - Prevent same horse from posting consecutively
+// PER-HORSE COOLDOWN - Prevent same horse from posting consecutively  
 // ═══════════════════════════════════════════════════════════════════════════
 const HORSE_POST_COOLDOWN_HOURS = 4; // Same horse can't post within 4 hours
 
 async function hasHorsePostedRecently(horseProfileId) {
     const cutoff = new Date(Date.now() - HORSE_POST_COOLDOWN_HOURS * 60 * 60 * 1000);
 
-    const { data } = await getSupabase()
+    const { data } = await supabase
         .from('social_posts')
         .select('id')
         .eq('author_id', horseProfileId)
@@ -469,7 +470,7 @@ async function postNewsArticle(horse, article, timeEnergy = null) {
     // Append article link to commentary
     const postContent = `${commentary}\n\n🔗 ${article.link}`;
 
-    const { data: post, error } = await getSupabase()
+    const { data: post, error } = await supabase
         .from('social_posts')
         .insert({
             author_id: horse.profile_id,
@@ -521,7 +522,7 @@ export default async function handler(req, res) {
           }
 
           // Get random active horses
-          const { data: horses } = await getSupabase()
+          const { data: horses } = await supabase
               .from('content_authors')
               .select('*')
               .eq('is_active', true)

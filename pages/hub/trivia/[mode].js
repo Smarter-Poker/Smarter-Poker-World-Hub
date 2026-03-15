@@ -103,6 +103,7 @@ export default function TriviaModePage() {
     const [doubleQuestion, setDoubleQuestion] = useState(null);
 
     const [saveErrorPayload, setSaveErrorPayload] = useState(null);
+    const savePhaseRef = useRef(0); // 0=none, 1=score, 2=diamonds, 3=history, 4=mastery, 5=daily
 
     // Using existing supabase instance from lib
     const modeConfig = mode ? TRIVIA_MODES[mode] : null;
@@ -560,125 +561,140 @@ export default function TriviaModePage() {
             try {
                 const today = getTodayCST();
 
-                // Save score
-                await supabase.from('trivia_scores').insert({
-                    user_id: userId,
-                    mode,
-                    score: correctCount * 100 + (timeRemaining || 0) * 2,
-                    correct_count: correctCount,
-                    total_questions: totalQuestions,
-                    time_spent: timeSpent,
-                    diamonds_earned: diamondsEarned,
-                    play_date: today
-                });
-
-                // Update profile with diamonds via audit-safe RPC (base + daily bonus)
-                const totalDiamondsToAward = diamondsEarned + dailyBonusDiamonds;
-                if (totalDiamondsToAward > 0) {
-                    await supabase.rpc('add_diamonds_to_balance', {
-                        p_user_id: userId,
-                        p_amount: totalDiamondsToAward,
-                        p_type: 'trivia_reward',
-                        p_description: `Trivia ${mode} reward — ${totalDiamondsToAward}💎`,
-                        p_reference_id: null
+                // Phase 1: Save score (only if not already saved)
+                if (savePhaseRef.current < 1) {
+                    await supabase.from('trivia_scores').insert({
+                        user_id: userId,
+                        mode,
+                        score: correctCount * 100 + (timeRemaining || 0) * 2,
+                        correct_count: correctCount,
+                        total_questions: totalQuestions,
+                        time_spent: timeSpent,
+                        diamonds_earned: diamondsEarned,
+                        play_date: today
                     });
-                    // Refresh balance from DB
-                    const { data: profile } = await supabase
-                        .from('profiles')
-                        .select('diamonds')
-                        .eq('id', userId)
-                        .maybeSingle();
-                    if (profile && isMountedRef.current) setUserDiamonds(profile.diamonds || 0);
-
-                    busEmit.diamondsEarned(totalDiamondsToAward, `Trivia ${mode}`);
+                    savePhaseRef.current = 1;
                 }
 
-                // Record question history (60-day non-repeat tracking)
-                if (questions && questions.length > 0) {
-                    const historyRecords = questions.map((q, idx) => ({
-                        user_id: userId,
-                        question_id: q.id,
-                        was_correct: answers ? answers[idx] === q.correct_index : null,
-                        seen_at: new Date().toISOString(),
-                        mode
-                    }));
-
-                    // Use upsert to handle potential duplicates
-                    await supabase.from('trivia_user_question_history')
-                        .upsert(historyRecords, {
-                            onConflict: 'user_id,question_id',
-                            ignoreDuplicates: false
+                // Phase 2: Award diamonds (only if not already awarded)
+                if (savePhaseRef.current < 2) {
+                    const totalDiamondsToAward = diamondsEarned + dailyBonusDiamonds;
+                    if (totalDiamondsToAward > 0) {
+                        await supabase.rpc('add_diamonds_to_balance', {
+                            p_user_id: userId,
+                            p_amount: totalDiamondsToAward,
+                            p_type: 'trivia_reward',
+                            p_description: `Trivia ${mode} reward — ${totalDiamondsToAward}💎`,
+                            p_reference_id: null
                         });
+                        // Refresh balance from DB
+                        const { data: profile } = await supabase
+                            .from('profiles')
+                            .select('diamonds')
+                            .eq('id', userId)
+                            .maybeSingle();
+                        if (profile && isMountedRef.current) setUserDiamonds(profile.diamonds || 0);
+
+                        busEmit.diamondsEarned(totalDiamondsToAward, `Trivia ${mode}`);
+                    }
+                    savePhaseRef.current = 2;
                 }
 
-                // Update category mastery
-                const categoryStats = {};
-                questions.forEach((q, idx) => {
-                    const cat = q.category || 'general';
-                    if (!categoryStats[cat]) {
-                        categoryStats[cat] = { answered: 0, correct: 0 };
+                // Phase 3: Record question history (only if not already recorded)
+                if (savePhaseRef.current < 3) {
+                    if (questions && questions.length > 0) {
+                        const historyRecords = questions.map((q, idx) => ({
+                            user_id: userId,
+                            question_id: q.id,
+                            was_correct: answers ? answers[idx] === q.correct_index : null,
+                            seen_at: new Date().toISOString(),
+                            mode
+                        }));
+
+                        // Use upsert to handle potential duplicates
+                        await supabase.from('trivia_user_question_history')
+                            .upsert(historyRecords, {
+                                onConflict: 'user_id,question_id',
+                                ignoreDuplicates: false
+                            });
                     }
-                    categoryStats[cat].answered++;
-                    if (answers && answers[idx] === q.correct_index) {
-                        categoryStats[cat].correct++;
-                    }
-                });
+                    savePhaseRef.current = 3;
+                }
 
-                // Batch-read existing mastery for all categories
-                const categoryKeys = Object.keys(categoryStats);
-                const { data: existingMastery } = await supabase
-                    .from('trivia_category_mastery')
-                    .select('category, total_answered, correct_count')
-                    .eq('user_id', userId)
-                    .in('category', categoryKeys);
-
-                const existingMap = {};
-                (existingMastery || []).forEach(m => { existingMap[m.category] = m; });
-
-                // Build batch upsert records
-                const masteryRecords = categoryKeys.map(category => {
-                    const stats = categoryStats[category];
-                    const existing = existingMap[category];
-                    const newTotal = (existing?.total_answered || 0) + stats.answered;
-                    const newCorrect = (existing?.correct_count || 0) + stats.correct;
-                    const accuracy = newTotal > 0 ? newCorrect / newTotal : 0;
-                    const newLevel = Math.min(10, Math.max(1, Math.floor(accuracy * 10) + 1));
-                    return {
-                        user_id: userId,
-                        category,
-                        total_answered: newTotal,
-                        correct_count: newCorrect,
-                        mastery_level: newLevel,
-                        updated_at: new Date().toISOString()
-                    };
-                });
-
-                const { error: masteryError } = await supabase.from('trivia_category_mastery')
-                    .upsert(masteryRecords, { onConflict: 'user_id,category', ignoreDuplicates: false });
-                if (masteryError) console.error('[Trivia] Category mastery upsert failed:', masteryError);
-
-                // Record daily play
-                if (mode === 'daily') {
-                    await supabase.from('daily_trivia_plays').insert({
-                        user_id: userId,
-                        played_date: today,
-                        was_correct: correctCount > 0,
-                        streak_at_time: newStreak
+                // Phase 4: Update category mastery (only if not already updated)
+                if (savePhaseRef.current < 4) {
+                    const categoryStats = {};
+                    questions.forEach((q, idx) => {
+                        const cat = q.category || 'general';
+                        if (!categoryStats[cat]) {
+                            categoryStats[cat] = { answered: 0, correct: 0 };
+                        }
+                        categoryStats[cat].answered++;
+                        if (answers && answers[idx] === q.correct_index) {
+                            categoryStats[cat].correct++;
+                        }
                     });
 
-                    // Update streak
-                    await supabase.from('trivia_streaks').upsert({
-                        user_id: userId,
-                        current_streak: newStreak,
-                        best_streak: Math.max(newStreak, userStreak),
-                        last_play_date: today
+                    // Batch-read existing mastery for all categories
+                    const categoryKeys = Object.keys(categoryStats);
+                    const { data: existingMastery } = await supabase
+                        .from('trivia_category_mastery')
+                        .select('category, total_answered, correct_count')
+                        .eq('user_id', userId)
+                        .in('category', categoryKeys);
+
+                    const existingMap = {};
+                    (existingMastery || []).forEach(m => { existingMap[m.category] = m; });
+
+                    // Build batch upsert records
+                    const masteryRecords = categoryKeys.map(category => {
+                        const stats = categoryStats[category];
+                        const existing = existingMap[category];
+                        const newTotal = (existing?.total_answered || 0) + stats.answered;
+                        const newCorrect = (existing?.correct_count || 0) + stats.correct;
+                        const accuracy = newTotal > 0 ? newCorrect / newTotal : 0;
+                        const newLevel = Math.min(10, Math.max(1, Math.floor(accuracy * 10) + 1));
+                        return {
+                            user_id: userId,
+                            category,
+                            total_answered: newTotal,
+                            correct_count: newCorrect,
+                            mastery_level: newLevel,
+                            updated_at: new Date().toISOString()
+                        };
                     });
+
+                    const { error: masteryError } = await supabase.from('trivia_category_mastery')
+                        .upsert(masteryRecords, { onConflict: 'user_id,category', ignoreDuplicates: false });
+                    if (masteryError) console.error('[Trivia] Category mastery upsert failed:', masteryError);
+                    savePhaseRef.current = 4;
+                }
+
+                // Phase 5: Record daily play (only if not already recorded)
+                if (savePhaseRef.current < 5) {
+                    if (mode === 'daily') {
+                        await supabase.from('daily_trivia_plays').insert({
+                            user_id: userId,
+                            played_date: today,
+                            was_correct: correctCount > 0,
+                            streak_at_time: newStreak
+                        });
+
+                        // Update streak
+                        await supabase.from('trivia_streaks').upsert({
+                            user_id: userId,
+                            current_streak: newStreak,
+                            best_streak: Math.max(newStreak, userStreak),
+                            last_play_date: today
+                        });
+                    }
+                    savePhaseRef.current = 5;
                 }
             } catch (err) {
                 console.error('[mode] Failed to save data:', err);
                 setSaveErrorPayload(gameResult);
                 setGameState('saving_error');
-                return; // halt and show retry UI
+                return; // halt and show retry UI (savePhaseRef preserves progress)
             }
         }
 
@@ -703,6 +719,7 @@ export default function TriviaModePage() {
 
         setGameState('results');
         setSaveErrorPayload(null);
+        savePhaseRef.current = 0; // Reset for next game
 
         // Reload daily leaderboard after completion
         if (mode === 'daily') {
@@ -715,11 +732,11 @@ export default function TriviaModePage() {
         }
     };
 
-    // Retry function for network drops
+    // Retry function for network drops — resumes from where it left off
     const handleRetrySave = () => {
         setGameState('saving');
         setSaveErrorPayload(null);
-        handleComplete(saveErrorPayload || result);
+        handleComplete(saveErrorPayload || result); // savePhaseRef skips already-completed steps
     };
 
     const handlePlayAgain = () => {

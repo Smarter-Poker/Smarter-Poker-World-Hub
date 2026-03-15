@@ -298,34 +298,54 @@ export class SocialService {
     // ─────────────────────────────────────────────────────────────────────────
 
     /**
-     * Toggle like/reaction on post
+     * Toggle like/reaction on post — handles add, remove, AND swap
      * @param {string} postId - Post UUID
      * @param {string} userId - User UUID
-     * @param {string} interactionType - Interaction type
+     * @param {string} interactionType - Interaction type (like, love, haha, wow, sad, fire)
      * @returns {Promise<{ added: boolean, type: string }>}
      */
     async toggleReaction(postId, userId, interactionType = 'like') {
         try {
-            // Check if reaction exists
+            // Check if ANY reaction by this user on this post already exists
             const { data: existing } = await this.supabase
                 .from('social_interactions')
-                .select('id')
+                .select('id, interaction_type')
                 .eq('post_id', postId)
                 .eq('user_id', userId)
-                .eq('interaction_type', interactionType)
+                .in('interaction_type', ['like', 'love', 'haha', 'wow', 'sad', 'fire'])
                 .maybeSingle();
 
             if (existing) {
-                // Remove reaction
-                const { error } = await this.supabase
-                    .from('social_interactions')
-                    .delete()
-                    .eq('id', existing.id);
+                if (existing.interaction_type === interactionType) {
+                    // SAME type → toggle OFF (remove)
+                    const { error } = await this.supabase
+                        .from('social_interactions')
+                        .delete()
+                        .eq('id', existing.id);
+                    if (error) throw error;
+                    return { added: false, type: interactionType };
+                } else {
+                    // DIFFERENT type → SWAP (delete old, insert new)
+                    const { error: delErr } = await this.supabase
+                        .from('social_interactions')
+                        .delete()
+                        .eq('id', existing.id);
+                    if (delErr) throw delErr;
 
-                if (error) throw error;
-                return { added: false, type: interactionType };
+                    const { error: insErr } = await this.supabase
+                        .from('social_interactions')
+                        .insert({
+                            post_id: postId,
+                            user_id: userId,
+                            interaction_type: interactionType
+                        });
+                    if (insErr) throw insErr;
+
+                    // Swap = still liked, just different type. Count doesn't change.
+                    return { added: true, type: interactionType };
+                }
             } else {
-                // Add reaction
+                // NO existing reaction → ADD new
                 const { error } = await this.supabase
                     .from('social_interactions')
                     .insert({
@@ -333,7 +353,6 @@ export class SocialService {
                         user_id: userId,
                         interaction_type: interactionType
                     });
-
                 if (error) throw error;
 
                 // Award reaction diamonds (fire-and-forget, 2💎 max 10/day)

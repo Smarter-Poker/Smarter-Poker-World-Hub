@@ -75,8 +75,8 @@ export default async function handler(req, res) {
               { type: 'alltime', key: 'alltime' }
           ];
 
-          // Update each period
-          for (const period of periods) {
+          // Update all periods in parallel (each period is independent)
+          const results = await Promise.allSettled(periods.map(async (period) => {
               // Check if entry exists
               const { data: existing } = await withRetry(
                   () => supabase
@@ -129,6 +129,13 @@ export default async function handler(req, res) {
                       { label: `UpdateLB:insert:${period.type}` }
                   );
               }
+          }));
+
+          // Log any failures (non-blocking — partial success is fine)
+          const failures = results.filter(r => r.status === 'rejected');
+          if (failures.length > 0) {
+              console.warn(`[UpdateLeaderboard] ${failures.length}/4 period updates failed:`,
+                  failures.map(f => f.reason?.message || f.reason));
           }
 
           return res.status(200).json({

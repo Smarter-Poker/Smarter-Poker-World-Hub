@@ -1,8 +1,15 @@
-// API Route: Global Search across all conversations
-// pages/api/messenger/global-search.js
-
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -12,7 +19,7 @@ export default async function handler(req, res) {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
 
-      if (!SUPABASE_SERVICE_ROLE_KEY) {
+      if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
           return res.status(500).json({ success: false, error: 'Service key not configured' });
       }
 
@@ -21,16 +28,6 @@ export default async function handler(req, res) {
       if (!query || typeof query !== 'string' || query.length < 2) {
           return res.status(400).json({ success: false, error: 'Query must be at least 2 characters' });
       }
-
-      let _supabase = null;
-function getSupabase() {
-    if (!_supabase) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        _supabase = createClient(url, key);
-    }
-    return _supabase;
-}, SUPABASE_SERVICE_ROLE_KEY);
 
       try {
           // Auth

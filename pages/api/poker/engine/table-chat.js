@@ -7,7 +7,7 @@
  * Requires Bearer auth token.
  */
 
-import { createClient } from '../../src/lib/supabaseServerClient';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 
 let _supabase = null;
 function getSupabase() {

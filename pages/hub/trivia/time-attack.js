@@ -155,7 +155,8 @@ export default function TimeAttackPage() {
 
         if (data) {
             // Filter and shuffle questions using shared utility
-            const shuffled = filterAndShuffle(data, excludeIds, data.length);
+            // minFallback=30: if fewer than 30 unseen questions remain, use full pool
+            const shuffled = filterAndShuffle(data, excludeIds, 30);
             // also shuffle options
             const finalized = shuffleOptions(shuffled);
             setQuestions(finalized);
@@ -212,6 +213,7 @@ export default function TimeAttackPage() {
     }
 
     const [saveErrorPayload, setSaveErrorPayload] = useState(null);
+    const savePhaseRef = useRef(0); // Tracks which save steps completed: 0=none, 1=score, 2=diamonds, 3=history
 
     async function handleComplete(gameResult) {
         setResult(gameResult);
@@ -221,27 +223,33 @@ export default function TimeAttackPage() {
             const today = new Date().toISOString().split('T')[0];
 
             try {
-                // Save score
-                await supabase.from('trivia_scores').insert({
-                    user_id: userId,
-                    mode: 'time-attack',
-                    score: gameResult.correctCount * 100,
-                    correct_count: gameResult.correctCount,
-                    total_questions: gameResult.correctCount + gameResult.wrongCount,
-                    diamonds_earned: gameResult.diamondsEarned,
-                    play_date: today
-                });
-
-                // Award diamonds via audit-safe RPC
-                if (gameResult.diamondsEarned > 0) {
-                    await supabase.rpc('add_diamonds_to_balance', {
-                        p_user_id: userId,
-                        p_amount: gameResult.diamondsEarned,
-                        p_type: 'time_attack_reward',
-                        p_description: `Time Attack — ${gameResult.diamondsEarned}💎 (${gameResult.correctCount} correct)`,
-                        p_reference_id: null
+                // Phase 1: Save score (only if not already saved)
+                if (savePhaseRef.current < 1) {
+                    await supabase.from('trivia_scores').insert({
+                        user_id: userId,
+                        mode: 'time-attack',
+                        score: gameResult.correctCount * 100,
+                        correct_count: gameResult.correctCount,
+                        total_questions: gameResult.correctCount + gameResult.wrongCount,
+                        diamonds_earned: gameResult.diamondsEarned,
+                        play_date: today
                     });
-                    busEmit.diamondsEarned(gameResult.diamondsEarned, 'Time Attack');
+                    savePhaseRef.current = 1;
+                }
+
+                // Phase 2: Award diamonds (only if not already awarded)
+                if (savePhaseRef.current < 2) {
+                    if (gameResult.diamondsEarned > 0) {
+                        await supabase.rpc('add_diamonds_to_balance', {
+                            p_user_id: userId,
+                            p_amount: gameResult.diamondsEarned,
+                            p_type: 'time_attack_reward',
+                            p_description: `Time Attack — ${gameResult.diamondsEarned}💎 (${gameResult.correctCount} correct)`,
+                            p_reference_id: null
+                        });
+                        busEmit.diamondsEarned(gameResult.diamondsEarned, 'Time Attack');
+                    }
+                    savePhaseRef.current = 2;
                 }
 
                 if (gameResult.correctCount > personalBest) {
@@ -249,34 +257,38 @@ export default function TimeAttackPage() {
                 }
                 setDailyDiamondsEarned(prev => prev + gameResult.diamondsEarned);
 
-                // Record question history for 60-day non-repeat
-                const answeredCount = gameResult.correctCount + (gameResult.wrongCount || 0);
-                const answeredQuestions = questions.slice(0, answeredCount);
-                if (answeredQuestions.length > 0) {
-                    const historyRecords = answeredQuestions.map((q, idx) => ({
-                        user_id: userId,
-                        question_id: q.id,
-                        was_correct: gameResult.answerResults ? (gameResult.answerResults[idx] || false) : idx < gameResult.correctCount,
-                        seen_at: new Date().toISOString(),
-                        mode: 'time-attack'
-                    }));
+                // Phase 3: Record question history (only if not already recorded)
+                if (savePhaseRef.current < 3) {
+                    const answeredCount = gameResult.correctCount + (gameResult.wrongCount || 0);
+                    const answeredQuestions = questions.slice(0, answeredCount);
+                    if (answeredQuestions.length > 0) {
+                        const historyRecords = answeredQuestions.map((q, idx) => ({
+                            user_id: userId,
+                            question_id: q.id,
+                            was_correct: gameResult.answerResults ? (gameResult.answerResults[idx] || false) : idx < gameResult.correctCount,
+                            seen_at: new Date().toISOString(),
+                            mode: 'time-attack'
+                        }));
 
-                    await supabase.from('trivia_user_question_history')
-                        .upsert(historyRecords, {
-                            onConflict: 'user_id,question_id',
-                            ignoreDuplicates: false
-                        });
+                        await supabase.from('trivia_user_question_history')
+                            .upsert(historyRecords, {
+                                onConflict: 'user_id,question_id',
+                                ignoreDuplicates: false
+                            });
+                    }
+                    savePhaseRef.current = 3;
                 }
 
-                // Done saving
+                // Done saving — reset phase tracker for next game
                 setGameState('complete');
                 setSaveErrorPayload(null);
+                savePhaseRef.current = 0;
 
             } catch (e) {
                 console.error('[TimeAttack] Failed to save data:', e);
                 setSaveErrorPayload(gameResult);
                 setGameState('saving_error');
-                return; // halt and show retry UI
+                return; // halt and show retry UI (savePhaseRef preserves progress)
             }
         } else {
             setGameState('complete');
@@ -286,11 +298,11 @@ export default function TimeAttackPage() {
         loadLeaderboard();
     }
 
-    // Retry function for network drops
+    // Retry function for network drops — resumes from where it left off
     const handleRetrySave = () => {
         setGameState('saving');
         setSaveErrorPayload(null);
-        handleComplete(result); // result is cached in state
+        handleComplete(result); // savePhaseRef skips already-completed steps
     };
 
 

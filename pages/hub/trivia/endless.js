@@ -555,6 +555,7 @@ export default function EndlessModePage() {
     }
 
     const [saveErrorPayload, setSaveErrorPayload] = useState(null);
+    const savePhaseRef = useRef(0); // 0=none, 1=diamonds, 2=highscore, 3=history
 
     async function saveGameResult() {
         if (!userId) return;
@@ -565,81 +566,86 @@ export default function EndlessModePage() {
         const finalIndex = currentIndexRef.current;
 
         try {
-            // Update user diamonds via audit-safe RPC
-            if (finalDiamonds > 0) {
-                await supabase.rpc('add_diamonds_to_balance', {
-                    p_user_id: userId,
-                    p_amount: finalDiamonds,
-                    p_type: 'endless_reward',
-                    p_description: `Endless mode — ${finalDiamonds}💎 (${finalStreak} streak)`,
-                    p_reference_id: null
-                });
-                const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
-                if (profile) setUserDiamonds(profile.diamonds || 0);
-                busEmit.diamondsEarned(finalDiamonds, 'Endless Mode');
+            // Phase 1: Award diamonds (only if not already awarded)
+            if (savePhaseRef.current < 1) {
+                if (finalDiamonds > 0) {
+                    await supabase.rpc('add_diamonds_to_balance', {
+                        p_user_id: userId,
+                        p_amount: finalDiamonds,
+                        p_type: 'endless_reward',
+                        p_description: `Endless mode — ${finalDiamonds}💎 (${finalStreak} streak)`,
+                        p_reference_id: null
+                    });
+                    const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
+                    if (profile) setUserDiamonds(profile.diamonds || 0);
+                    busEmit.diamondsEarned(finalDiamonds, 'Endless Mode');
+                }
+                savePhaseRef.current = 1;
             }
 
-            // Update high score if beaten
-            if (finalStreak > highScore) {
-                await supabase
-                    .from('endless_high_scores')
-                    .upsert({
+            // Phase 2: Update high score (only if not already updated)
+            if (savePhaseRef.current < 2) {
+                if (finalStreak > highScore) {
+                    await supabase
+                        .from('endless_high_scores')
+                        .upsert({
+                            user_id: userId,
+                            mode: 'random',
+                            high_score: finalStreak,
+                            achieved_at: new Date().toISOString()
+                        }, { onConflict: 'user_id,mode' });
+                    setHighScore(finalStreak);
+                }
+                savePhaseRef.current = 2;
+            }
+
+            // Phase 3: Record question history (only if not already recorded)
+            if (savePhaseRef.current < 3) {
+                const correctQuestions = questions.slice(0, finalIndex);
+                const wrongQuestion = questions[finalIndex];
+                const historyRecords = [
+                    ...correctQuestions.map(q => ({
                         user_id: userId,
-                        mode: 'random',
-                        high_score: finalStreak,
-                        achieved_at: new Date().toISOString()
-                    }, { onConflict: 'user_id,mode' });
-                setHighScore(finalStreak);
-            }
-
-            // Record question history for 60-day non-repeat tracking
-            // currentIndex is the question that was answered wrong (ending the game)
-            // All questions BEFORE currentIndex were answered correctly
-            const correctQuestions = questions.slice(0, finalIndex);
-            const wrongQuestion = questions[finalIndex]; // The one that ended the run
-            const historyRecords = [
-                ...correctQuestions.map(q => ({
-                    user_id: userId,
-                    question_id: q.id,
-                    was_correct: true,
-                    seen_at: new Date().toISOString(),
-                    mode: 'endless'
-                })),
-                ...(wrongQuestion ? [{
-                    user_id: userId,
-                    question_id: wrongQuestion.id,
-                    was_correct: false,
-                    seen_at: new Date().toISOString(),
-                    mode: 'endless'
-                }] : [])
-            ];
-            if (historyRecords.length > 0) {
-                try {
+                        question_id: q.id,
+                        was_correct: true,
+                        seen_at: new Date().toISOString(),
+                        mode: 'endless'
+                    })),
+                    ...(wrongQuestion ? [{
+                        user_id: userId,
+                        question_id: wrongQuestion.id,
+                        was_correct: false,
+                        seen_at: new Date().toISOString(),
+                        mode: 'endless'
+                    }] : [])
+                ];
+                if (historyRecords.length > 0) {
                     await supabase.from('trivia_user_question_history')
                         .upsert(historyRecords, {
                             onConflict: 'user_id,question_id',
                             ignoreDuplicates: false
                         });
-                } catch (e) {
-                    console.error('[Endless] Error recording history:', e);
                 }
+                savePhaseRef.current = 3;
             }
-            // Success! Game saved.
+
+            // Success! Game saved — reset phase for next game
             setGameState('gameover');
             setSaveErrorPayload(null);
+            savePhaseRef.current = 0;
         } catch (e) {
             console.error('[Endless] Failed to save game result:', e);
-            // Save failed (network drop) -> Provide Retry UI
+            // Save failed (network drop) -> Provide Retry UI (savePhaseRef preserves progress)
             setSaveErrorPayload({ finalDiamonds, finalStreak, finalIndex });
             setGameState('saving_error');
         }
     }
 
-    // Retry function for network drops
+    // Retry function for network drops — resumes from where it left off
     const handleRetrySave = () => {
         setGameState('saving');
         setSaveErrorPayload(null);
-        saveGameResult();
+        saveGameResult(); // savePhaseRef skips already-completed steps
     };
 
     function playAgain() {
