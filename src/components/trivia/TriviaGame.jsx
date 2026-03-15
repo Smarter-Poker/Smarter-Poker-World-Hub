@@ -43,7 +43,7 @@ export default function TriviaGame({
     const [isLocked, setIsLocked] = useState(false);
 
     // Hint system state
-    const [hintsUsed, setHintsUsed] = useState({ fiftyFifty: false, skip: false, extraTime: false });
+    const [hintsUsed, setHintsUsed] = useState({ fifty_fifty: false, skip: false, extra_time: false });
     const [eliminatedOptions, setEliminatedOptions] = useState([]);
     const [diamonds, setDiamonds] = useState(userDiamonds);
 
@@ -545,16 +545,16 @@ export default function TriviaGame({
                         <div className="hints-section">
                             <HintButtons
                                 userDiamonds={diamonds}
-                                hintsUsed={hintsUsed}
+                                disabledHints={Object.entries(hintsUsed).filter(([, used]) => used).map(([id]) => id)}
                                 hasTimeLimit={!!timeLimit}
-                                onUseHint={(hintType, cost) => {
-                                    const result = applyHint(hintType, currentQuestion, eliminatedOptions, timeRemaining);
-                                    if (result.eliminatedOptions) setEliminatedOptions(result.eliminatedOptions);
+                                onUseHint={(hint) => {
+                                    const result = applyHint(hint.id, currentQuestion, { eliminatedOptions, timeRemaining });
+                                    if (result.hiddenOptions) setEliminatedOptions(result.hiddenOptions);
                                     if (result.addTime) setTimeRemaining(prev => (prev || 0) + result.addTime);
                                     if (result.skipQuestion) advanceQuestion([...answers, -1]);
-                                    setDiamonds(prev => prev - cost);
-                                    onDiamondsChange?.(-cost);
-                                    setHintsUsed(prev => ({ ...prev, [hintType]: true }));
+                                    setDiamonds(prev => prev - hint.cost);
+                                    onDiamondsChange?.(-hint.cost);
+                                    setHintsUsed(prev => ({ ...prev, [hint.id]: true }));
                                 }}
                             />
                         </div>
