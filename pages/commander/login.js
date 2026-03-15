@@ -173,7 +173,16 @@ export default function CommanderLogin() {
       }
 
       // Use window.location for guaranteed redirect (router.replace can silently fail)
-      window.location.href = '/commander/dashboard';
+      // Check for stored return URL (set by commanderFetch on 401 session expiry)
+      let redirectTo = '/commander/dashboard';
+      try {
+        const returnUrl = sessionStorage.getItem('commander_return_url');
+        if (returnUrl && returnUrl.startsWith('/commander/')) {
+          redirectTo = returnUrl;
+          sessionStorage.removeItem('commander_return_url');
+        }
+      } catch { /* sessionStorage may be unavailable */ }
+      window.location.href = redirectTo;
 
     } catch (err) {
       console.error('Login error:', err);
