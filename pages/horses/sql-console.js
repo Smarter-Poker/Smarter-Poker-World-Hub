@@ -58,6 +58,10 @@ export default function OmnichannelSQLConsole() {
 
         try {
             const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.access_token) {
+                setResult({ status: 401, data: { success: false, error: 'Session expired. Please refresh the page or log in again.' } });
+                return;
+            }
             const res = await fetch('/api/admin/execute-sql', {
                 method: 'POST',
                 headers: {
@@ -67,8 +71,12 @@ export default function OmnichannelSQLConsole() {
                 body: JSON.stringify({ sql: sqlQuery, allowDestructive })
             });
 
-            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const data = await res.json();
+            if (!res.ok) {
+                // Show the actual API error message instead of generic "Request failed"
+                setResult({ status: res.status, data: { success: false, error: data?.error || `Request failed (${res.status})` } });
+                return;
+            }
             setResult({ status: res.status, data });
 
             // [HARDENING] Real-time Sync — Broadcast mutation globally
