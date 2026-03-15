@@ -5,9 +5,8 @@
  */
 import crypto from 'crypto';
 import { createClient } from '../../../../src/lib/supabaseServerClient';
-import { verifyManagerSession } from '../../../../src/lib/commander/auth';
+import { verifyManagerSession, guardOwnerStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
-import { guardOwnerStaff } from '../../../../src/lib/commander/auth';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,

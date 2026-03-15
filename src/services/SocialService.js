@@ -192,6 +192,10 @@ export class SocialService {
                     throw error;
                 }
 
+                if (!data) {
+                    throw new Error('Post created but data not returned');
+                }
+
                 console.log('✅ Post created (Direct):', data.id);
                 postId = data.id;
 
@@ -259,6 +263,7 @@ export class SocialService {
                 .maybeSingle();
 
             if (error) throw error;
+            if (!data) return null; // Post not found or RLS blocked
 
             return createPost(data);
         } catch (error) {
@@ -450,12 +455,12 @@ export class SocialService {
             // Emit EventBus for cross-page comment count updates
             busEmit.socialCommentAdded(postId, authorId);
 
-            return createComment({
+            return data ? createComment({
                 ...data,
                 author_username: data.author?.username,
                 author_avatar: data.author?.avatar_url,
                 author_level: data.author?.current_level
-            });
+            }) : null;
         } catch (error) {
             console.error('Comment creation error:', error);
             throw error;

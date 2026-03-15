@@ -3,10 +3,9 @@
  * Sends the week's schedule to all staff via SMS and/or email
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
-import { verifyManagerSession } from '../../../../src/lib/commander/auth';
+import { verifyManagerSession, guardWriteStaff } from '../../../../src/lib/commander/auth';
 import twilio from 'twilio';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
-import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,

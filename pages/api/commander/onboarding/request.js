@@ -4,10 +4,9 @@
  * Captures lead information for new venue signups
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
-import { guardUser } from '../../../../src/lib/commander/auth';
+import { guardOwnerStaff } from '../../../../src/lib/commander/auth';
 import { checkMemoryRateLimit } from '../../../../src/lib/commander/rateLimit';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
-import { guardOwnerStaff } from '../../../../src/lib/commander/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -19,9 +18,6 @@ export default async function handler(req, res) {
     if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
       if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
-
-    if (req.method !== 'GET') { const _u = await guardUser(req, res); if (!_u) return; }
-
     // Rate limit: 3 onboarding requests per minute per IP
     const fwd = req.headers['x-forwarded-for'];
     const ip = fwd ? fwd.split(',')[0].trim() : req.socket?.remoteAddress || '0';

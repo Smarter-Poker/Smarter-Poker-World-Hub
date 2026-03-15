@@ -4,9 +4,8 @@
  * PUT /api/commander/responsible-gaming/limits
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
-import { guardUser } from '../../../../src/lib/commander/auth';
-import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
+import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -24,10 +23,6 @@ export default async function handler(req, res) {
       const _staff = await guardWriteStaff(req, res);
       if (!_staff) return;
     }
-
-
-    if (req.method !== 'GET') { const _u = await guardUser(req, res); if (!_u) return; }
-
     if (req.method === 'GET') {
       return handleGet(req, res);
     } else if (req.method === 'PUT') {

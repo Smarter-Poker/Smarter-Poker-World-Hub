@@ -145,6 +145,7 @@ export default function DiamondArcade() {
     const endGameRef = useRef(null); // Always points to latest endGame to avoid stale closure in setInterval
     const isStartingRef = useRef(false); // Prevent double-click race on game start
     const isDuelingRef = useRef(false); // Prevent double-click race on duel search
+    const duelMatchedRef = useRef(false); // Prevent Realtime+poll dual-fire race
     const [menuOpen, setMenuOpen] = useState(false);
     const [showOutOfDiamondsModal, setShowOutOfDiamondsModal] = useState(false);
     const [attemptedGameCharge, setAttemptedGameCharge] = useState(10);
@@ -461,6 +462,7 @@ export default function DiamondArcade() {
     async function findDuelMatch(duelType) {
         if (isDuelingRef.current) return;
         isDuelingRef.current = true;
+        duelMatchedRef.current = false; // Reset for this duel attempt
         try {
         const userId = typeof window !== 'undefined' ? localStorage.getItem('sp-anon-uid') : null;
         if (!userId) {
@@ -521,6 +523,9 @@ export default function DiamondArcade() {
                         filter: `id=eq.${queueId}`,
                     }, (payload) => {
                         if (payload.new?.status === 'matched') {
+                            // Guard: prevent dual-fire with poll
+                            if (duelMatchedRef.current) return;
+                            duelMatchedRef.current = true;
                             clearInterval(duelPollRef.current);
                             duelPollRef.current = null;
                             supabase.removeChannel(duelChannel);
@@ -543,6 +548,9 @@ export default function DiamondArcade() {
                         if (!pollRes.ok) throw new Error(`Request failed (${pollRes.status})`);
                         const pollJson = await pollRes.json();
                         if (pollJson.status === 'matched') {
+                            // Guard: prevent dual-fire with Realtime
+                            if (duelMatchedRef.current) return;
+                            duelMatchedRef.current = true;
                             clearInterval(duelPollRef.current);
                             duelPollRef.current = null;
                             supabase.removeChannel(duelChannel);

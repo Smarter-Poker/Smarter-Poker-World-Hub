@@ -14,17 +14,20 @@ const supabaseAdmin = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// Server-side prize caps per game type (prevent inflation)
+// Server-side prize caps per game type (must match arcadeEngine.ts maxPrize)
 const MAX_PRIZE = {
-    'hand-snap':     250,
-    'board-nuts':    125,
-    'the-gauntlet':  500,
-    'range-radar':   150,
-    'equity-edge':   200,
+    'hand-snap':        50,
+    'board-nuts':       75,
+    'chip-math':        50,
+    'showdown':         100,
+    'double-or-nothing': 100,
+    'the-gauntlet':     1000,
+    'mystery-box':      250,
+    'ev-or-fold':       150,
 };
 
-// Minimum accuracy to win
-const WIN_THRESHOLD = 0.7; // 70% correct
+// Minimum accuracy to win (must match arcadeEngine.ts: 0.5 = 50%)
+const WIN_THRESHOLD = 0.5;
 
 export default async function handler(req, res) {
   try {
@@ -52,12 +55,17 @@ export default async function handler(req, res) {
       const accuracy = totalQuestions > 0 ? correctCount / totalQuestions : 0;
       const won = accuracy >= WIN_THRESHOLD;
 
-      // Server calculates prize based on accuracy and game type
-      const entryFees = { 'hand-snap': 50, 'board-nuts': 25, 'the-gauntlet': 75, 'range-radar': 30, 'equity-edge': 40 };
-      const entryFee = entryFees[gameType] ?? 0;
+      // Server calculates prize using tiered system matching arcadeEngine.ts calculatePrize
       const cap = MAX_PRIZE[gameType] ?? 100;
-      const rawPrize = won ? Math.floor(entryFee * 1.8 * accuracy) : 0; // win = ~1.8x adjusted for accuracy
-      const prize = Math.min(rawPrize, cap);
+      let basePrize = 0;
+      if (won) {
+          if (accuracy >= 0.95) basePrize = cap;
+          else if (accuracy >= 0.85) basePrize = Math.floor(cap * 0.75);
+          else if (accuracy >= 0.70) basePrize = Math.floor(cap * 0.50);
+          else basePrize = Math.floor(cap * 0.25);
+      }
+      const rake = Math.floor(basePrize * 0.10); // 10% house rake
+      const prize = basePrize - rake;
 
       try {
           if (won && prize > 0) {

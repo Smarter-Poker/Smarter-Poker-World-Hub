@@ -46,6 +46,9 @@ function computeRangeStats(freqMap) {
         const combos = getCombos(hand);
         const weightedCombos = combos * freq;
 
+        const isPair = hand.length === 2;
+        const isSuited = hand.endsWith('s');
+
         totalCombos += weightedCombos;
         if (isPair) pairCombos += weightedCombos;
         else if (isSuited) suitedCombos += weightedCombos;
