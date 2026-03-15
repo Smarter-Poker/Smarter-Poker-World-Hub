@@ -154,80 +154,96 @@ export default function ClubArenaLobbyPage() {
 
   // ── Initial Load + Auth ────────────────────────────────────
   useEffect(() => {
-    if (!router.isReady) return; // Wait for Next.js to hydrate query params
+    if (!router.isReady) return;
     let cancelled = false;
-    let authUnsub = null;
 
-    const init = async (session) => {
-      if (cancelled) return;
-      setUserId(session.user.id);
-      const qClub = router.query.club || router.query.clubId;
-      const { supabase } = await import('../../../src/lib/supabase');
+    (async () => {
+      try {
+        const { supabase } = await import('../../../src/lib/supabase');
 
-      let targetClub = qClub;
-      let memberRole = 'player';
-      let name = '';
+        // 1. Get session with 5s timeout
+        let session = null;
+        try {
+          const sessionP = supabase.auth.getSession();
+          const timeoutP = new Promise((_, r) => setTimeout(() => r(new Error('session_timeout')), 5000));
+          const result = await Promise.race([sessionP, timeoutP]);
+          session = result?.data?.session || null;
+        } catch {
+          // session_timeout or error — try onAuthStateChange once
+          session = await new Promise(resolve => {
+            const t = setTimeout(() => resolve(null), 3000);
+            const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
+              clearTimeout(t);
+              subscription?.unsubscribe();
+              resolve(s);
+            });
+          });
+        }
 
-      // Resolve numeric club codes (5-digit) to UUID — my-clubs used to pass the code not the UUID
-      if (targetClub && /^\d+$/.test(targetClub)) {
-        const { data: clubByCode } = await supabase
-          .from('clubs').select('id').eq('club_id', parseInt(targetClub)).maybeSingle();
-        if (clubByCode?.id) targetClub = clubByCode.id;
-      }
+        if (!session) {
+          if (!cancelled) { setError('login_required'); setLoading(false); }
+          return;
+        }
+        if (cancelled) return;
 
-      if (!targetClub) {
-        const { data: membership } = await supabase
-          .from('club_members').select('club_id, role').eq('user_id', session.user.id)
-          .eq('status', 'active').order('joined_at', { ascending: false })
-          .limit(1).maybeSingle();
-        if (membership?.club_id) { targetClub = membership.club_id; memberRole = membership.role || 'player'; }
-      } else {
-        const { data: membership } = await supabase
-          .from('club_members').select('role').eq('club_id', targetClub).eq('user_id', session.user.id)
-          .maybeSingle();
-        memberRole = membership?.role || 'player';
-      }
+        setUserId(session.user.id);
+        const qClub = router.query.club || router.query.clubId;
+        let targetClub = qClub || null;
+        let memberRole = 'player';
+        let name = '';
 
-      if (targetClub) {
+        // 2. Resolve numeric club code → UUID
+        if (targetClub && /^\d+$/.test(targetClub)) {
+          const { data: byCode } = await supabase
+            .from('clubs').select('id').eq('club_id', parseInt(targetClub)).maybeSingle();
+          if (byCode?.id) targetClub = byCode.id;
+        }
+
+        // 3. Fallback: find user's first active club
+        if (!targetClub) {
+          const { data: mem } = await supabase
+            .from('club_members').select('club_id, role')
+            .eq('user_id', session.user.id).eq('status', 'active')
+            .order('joined_at', { ascending: false }).limit(1).maybeSingle();
+          if (mem?.club_id) { targetClub = mem.club_id; memberRole = mem.role || 'player'; }
+        } else {
+          const { data: mem } = await supabase
+            .from('club_members').select('role')
+            .eq('club_id', targetClub).eq('user_id', session.user.id).maybeSingle();
+          memberRole = mem?.role || 'player';
+        }
+
+        if (!targetClub) {
+          if (!cancelled) { setError('No club found. Join or create a club first.'); setLoading(false); }
+          return;
+        }
+
+        // 4. Get club name
         const { data: clubInfo } = await supabase
           .from('clubs').select('name').eq('id', targetClub).maybeSingle();
         name = clubInfo?.name || '';
-      }
 
-      if (targetClub && !cancelled) {
+        if (cancelled) return;
         setClubId(targetClub);
         setRole(memberRole);
         setClubName(name);
-        loadLobby(targetClub);
-        // Non-blocking: load recommendations for admins
-        if (['owner', 'admin', 'super_agent'].includes(memberRole)) {
-          loadRecommendations(targetClub);
+
+        // 5. Load data (awaited so the finally always clears loading)
+        await loadLobby(targetClub);
+
+        if (!cancelled && ['owner', 'admin', 'super_agent'].includes(memberRole)) {
+          loadRecommendations(targetClub).catch(() => {});
         }
-      } else if (!cancelled) {
-        setError('No club found. Join or create a club first.');
-        setLoading(false);
+      } catch (err) {
+        if (!cancelled) {
+          console.error('[lobby] init error:', err);
+          setError(err?.message || 'Failed to load club');
+          setLoading(false);
+        }
       }
-    };
-
-    (async () => {
-      const { supabase } = await import('../../../src/lib/supabase');
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) { await init(session); return; }
-
-      const timeout = setTimeout(() => {
-        if (!cancelled) { setError('login_required'); setLoading(false); }
-      }, 3000);
-
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, sess) => {
-        clearTimeout(timeout);
-        if (sess && !cancelled) await init(sess);
-        else if (!cancelled) { setError('login_required'); setLoading(false); }
-        subscription?.unsubscribe();
-      });
-      authUnsub = subscription;
     })();
 
-    return () => { cancelled = true; authUnsub?.unsubscribe?.(); };
+    return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router.isReady, router.query.club, router.query.clubId]);
 
