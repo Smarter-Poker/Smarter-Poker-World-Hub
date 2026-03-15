@@ -165,10 +165,19 @@ export const SPPostCard = ({
     user,
     onLike,
     onComment,
-    onShare
+    onShare,
+    onSubmitComment,
+    onLoadComments,
+    onDeletePost,
+    currentUserId
 }) => {
     const [liked, setLiked] = useState(post.userLiked || post.isLiked || false);
     const [showComments, setShowComments] = useState(false);
+    const [commentText, setCommentText] = useState('');
+    const [comments, setComments] = useState(post.comments || []);
+    const [commentsLoaded, setCommentsLoaded] = useState(false);
+    const [submittingComment, setSubmittingComment] = useState(false);
+    const [showMoreMenu, setShowMoreMenu] = useState(false);
 
     // Support both old and new data structures
     const author = user || post.author || post.user;
@@ -202,6 +211,51 @@ export const SPPostCard = ({
         onLike?.(post.id, !liked);
     };
 
+    // Toggle comments and load existing ones on first open
+    const handleToggleComments = async () => {
+        const willShow = !showComments;
+        setShowComments(willShow);
+        if (willShow && !commentsLoaded && onLoadComments) {
+            try {
+                const fetchedComments = await onLoadComments(post.id);
+                if (fetchedComments?.length > 0) setComments(fetchedComments);
+                setCommentsLoaded(true);
+            } catch { /* fail silently — show existing comments */ }
+        }
+    };
+
+    // Submit comment on Enter key
+    const handleCommentSubmit = async (e) => {
+        if (e.key !== 'Enter' || !commentText.trim() || submittingComment) return;
+        const text = commentText.trim();
+        setSubmittingComment(true);
+        setCommentText('');
+
+        // Optimistic append
+        const optimisticComment = {
+            id: Date.now(),
+            content: text,
+            author: { username: 'You', avatarUrl: null },
+            createdAt: new Date().toISOString()
+        };
+        setComments(prev => [...prev, optimisticComment]);
+
+        try {
+            await onSubmitComment?.(post.id, text);
+        } catch { /* optimistic stays — will sync on next load */ }
+        setSubmittingComment(false);
+    };
+
+    // Delete post
+    const handleDelete = async () => {
+        setShowMoreMenu(false);
+        if (window.confirm('Delete this post? This cannot be undone.')) {
+            await onDeletePost?.(post.id);
+        }
+    };
+
+    const isOwnPost = currentUserId && (post.author_id === currentUserId || post.author?.id === currentUserId || post.authorId === currentUserId);
+
     return (
         <div className="sp-post">
             {/* Header */}
@@ -218,7 +272,17 @@ export const SPPostCard = ({
                         {formatTime(post.createdAt)} · 🌐
                     </div>
                 </div>
-                <button className="sp-post-more">⋯</button>
+                <div className="sp-post-more-container" style={{ position: 'relative' }}>
+                    <button className="sp-post-more" onClick={() => setShowMoreMenu(!showMoreMenu)}>⋯</button>
+                    {showMoreMenu && (
+                        <div className="sp-more-dropdown">
+                            {isOwnPost && onDeletePost && (
+                                <button className="sp-more-item danger" onClick={handleDelete}>Delete Post</button>
+                            )}
+                            <button className="sp-more-item" onClick={() => setShowMoreMenu(false)}>Cancel</button>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Content */}
@@ -332,7 +396,7 @@ export const SPPostCard = ({
                 </button>
                 <button
                     className="sp-action-btn"
-                    onClick={() => setShowComments(!showComments)}
+                    onClick={handleToggleComments}
                 >
                     <span className="icon">💬</span>
                     <span>Comment</span>
@@ -351,10 +415,17 @@ export const SPPostCard = ({
                 <div className="sp-comments">
                     <div className="sp-comment-input">
                         <SPAvatar size={32} />
-                        <input type="text" placeholder="Write A Comment..." />
+                        <input
+                            type="text"
+                            placeholder="Write A Comment..."
+                            value={commentText}
+                            onChange={(e) => setCommentText(e.target.value)}
+                            onKeyDown={handleCommentSubmit}
+                            disabled={submittingComment}
+                        />
                     </div>
-                    {post.comments?.map((comment, i) => (
-                        <div key={i} className="sp-comment">
+                    {comments.map((comment, i) => (
+                        <div key={comment.id || i} className="sp-comment">
                             <SPAvatar src={comment.user?.avatar || comment.author?.avatarUrl} size={32} />
                             <div className="sp-comment-content">
                                 <span className="sp-comment-author">{getAuthorDisplayName(comment.user || comment.author)}</span>
@@ -437,6 +508,38 @@ export const SPPostCard = ({
 
                 .sp-post-more:hover {
                     background: ${SP_COLORS.bgHover};
+                }
+
+                .sp-more-dropdown {
+                    position: absolute;
+                    top: 100%;
+                    right: 0;
+                    background: ${SP_COLORS.bgWhite};
+                    border-radius: 8px;
+                    box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+                    min-width: 200px;
+                    z-index: 100;
+                    overflow: hidden;
+                }
+
+                .sp-more-item {
+                    display: block;
+                    width: 100%;
+                    padding: 12px 16px;
+                    border: none;
+                    background: none;
+                    text-align: left;
+                    font-size: 15px;
+                    cursor: pointer;
+                    color: ${SP_COLORS.textPrimary};
+                }
+
+                .sp-more-item:hover {
+                    background: ${SP_COLORS.bgHover};
+                }
+
+                .sp-more-item.danger {
+                    color: #EF4444;
                 }
 
                 .sp-post-content {

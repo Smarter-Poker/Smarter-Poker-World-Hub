@@ -5,7 +5,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { checkMemoryRateLimit } from '../../../src/lib/commander/rateLimit';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { guardWriteStaff } from '../../../src/lib/commander/auth';
+// Note: No auth guard — this is a public lead capture form. Protected by IP rate limiting.
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -24,12 +24,6 @@ export default async function handler(req, res) {
     const rl = checkMemoryRateLimit(`leads:${ip}`, 5, 60000);
     if (!rl.allowed) { return res.status(429).json({ success: false, error: 'Too many requests' }); }
 
-
-    // Auth guard
-    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-      const _staff = await guardWriteStaff(req, res);
-      if (!_staff) return;
-    }
 
     if (req.method !== 'POST') {
       res.setHeader('Allow', ['POST']);

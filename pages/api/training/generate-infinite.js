@@ -10,6 +10,7 @@
 import { getGrokClient } from '../../../src/lib/grokClient';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { sanitizeParam } from '../../../src/utils/trainingApiUtils';
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -67,7 +68,9 @@ export default async function handler(req, res) {
       const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
       if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-      const { gameId, level = '5', gameType = 'cash', category = 'CASH' } = req.query;
+      const { gameId: rawGameId, level = '5', gameType: rawGameType = 'cash', category = 'CASH' } = req.query;
+      const gameId = sanitizeParam(rawGameId, 100);
+      const gameType = ['cash', 'tournament', 'sng'].includes(rawGameType) ? rawGameType : 'cash';
 
       if (!gameId) {
           return res.status(400).json({ success: false, error: 'gameId is required' });
@@ -76,7 +79,7 @@ export default async function handler(req, res) {
       try {
           const grok = getGrokClient();
           const seed = generateVariationSeed(gameType);
-          const levelNum = parseInt(level, 10);
+          const levelNum = Math.min(10, Math.max(1, parseInt(level, 10) || 5));
 
           const prompt = `Generate a UNIQUE poker training question. Use these specific parameters to ensure variety:
 

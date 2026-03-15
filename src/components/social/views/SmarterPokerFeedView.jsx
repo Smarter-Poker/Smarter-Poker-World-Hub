@@ -420,6 +420,26 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
         }
     };
 
+    const handleComment = async (postId, text) => {
+        if (!socialService || !currentUser) return;
+        await socialService.createComment({ postId, authorId: currentUser.id, content: text });
+    };
+
+    const handleLoadComments = async (postId) => {
+        if (!socialService) return [];
+        return await socialService.getComments(postId);
+    };
+
+    const handleDeletePost = async (postId) => {
+        if (!socialService) return;
+        try {
+            await socialService.deletePost(postId);
+            setPosts(prev => prev.filter(p => p.id !== postId));
+        } catch (err) {
+            console.error('Delete failed:', err);
+        }
+    };
+
     return (
         <div className="sp-feed-view-container">
             <FBLeftSidebar currentUser={currentUser} />
@@ -457,6 +477,10 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
                             post={post}
                             user={post.user || post.author} // Handle both data shapes
                             onLike={() => handleLike(post.id)}
+                            onSubmitComment={handleComment}
+                            onLoadComments={handleLoadComments}
+                            onDeletePost={handleDeletePost}
+                            currentUserId={currentUser?.id}
                         />
                     ))
                 )}

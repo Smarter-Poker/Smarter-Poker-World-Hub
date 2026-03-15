@@ -365,6 +365,8 @@ export default function EndlessModePage() {
                     gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
                     osc.start(ctx.currentTime);
                     osc.stop(ctx.currentTime + 0.15);
+                    // Close context after oscillator finishes to prevent AudioContext leak
+                    setTimeout(() => { try { ctx.close(); } catch (_) {} }, 200);
                 } catch (e) { console.error("[endless.js]", e); }
             };
             const speed = Math.max(200, 600 - ((8 - timeLeft) * 50));
