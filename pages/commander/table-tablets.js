@@ -353,7 +353,6 @@ export default function TableTabletsPage() {
 
     const fetchAll = useCallback(async (signal) => {
         if (!venueId) return;
-        const staffSession = getStaffSession() || '';
 const headers = { };
 
         // Fetch tables — API already joins commander_games + commander_table_seats
@@ -494,7 +493,6 @@ const headers = { };
     const fetchDisplayStatus = useCallback(async () => {
         if (!venueId) return;
         try {
-            const staffSession = getStaffSession() || '';
 const res = await commanderFetch(`/api/commander/displays/status?venue_id=${venueId}`, { });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
@@ -626,7 +624,6 @@ const res = await commanderFetch(`/api/commander/displays/status?venue_id=${venu
         setScanError('');
         setScanResult(null);
         try {
-            const staffSession = getStaffSession() || '';
 const res = await commanderFetch('/api/commander/dealer/scan-in', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -660,7 +657,6 @@ const res = await commanderFetch('/api/commander/dealer/scan-in', {
     const callSessionAction = async (tableNumber, seatNumber, action, extra = {}) => {
         setPlayerActionLoading(true);
         try {
-            const staffSession = getStaffSession() || '';
 const res = await commanderFetch('/api/commander/dealer/session-action', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -679,7 +675,6 @@ const res = await commanderFetch('/api/commander/dealer/session-action', {
     const removePlayer = async (tableNumber, seatNumber) => {
         setPlayerActionLoading(true);
         try {
-            const staffSession = getStaffSession() || '';
 const res = await commanderFetch('/api/commander/dealer/player-unseat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -701,7 +696,6 @@ const res = await commanderFetch('/api/commander/dealer/player-unseat', {
     // ── Tournament-specific actions ──
     const bustTournamentPlayer = async (tournamentId, entryId, playerName) => {
         setPlayerActionLoading(true);
-        const staffSession = getStaffSession() || '';
 const headers = { 'Content-Type': 'application/json' };
         try {
             const res = await commanderFetch(`/api/commander/tournaments/${tournamentId}/eliminate`, {
@@ -739,7 +733,6 @@ const headers = { 'Content-Type': 'application/json' };
 
     const moveTournamentPlayer = async (tournamentId, entryId, toTable, toSeat, playerName) => {
         setPlayerActionLoading(true);
-        const staffSession = getStaffSession() || '';
 const headers = { 'Content-Type': 'application/json' };
         try {
             const res = await commanderFetch(`/api/commander/tournaments/${tournamentId}/move-player`, {
@@ -761,7 +754,6 @@ const headers = { 'Content-Type': 'application/json' };
 
     const updateTournamentChipCount = async (tournamentId, entryId, chipCount, playerName) => {
         setPlayerActionLoading(true);
-        const staffSession = getStaffSession() || '';
 const headers = { 'Content-Type': 'application/json' };
         try {
             // Direct Supabase-backed update via a lightweight API call
@@ -789,7 +781,6 @@ const headers = { 'Content-Type': 'application/json' };
     const handleSeatScan = async (qrData, tableNumber, seatNumber) => {
         closeSeatScanner();
         try {
-            const staffSession = getStaffSession() || '';
 const res = await commanderFetch('/api/commander/dealer/player-scan-in', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -1479,7 +1470,6 @@ const res = await commanderFetch('/api/commander/dealer/player-scan-in', {
                         <div style={{ width: '100%', maxWidth: 1100 }}>
                             {renderTableVisual(fullscreenTable, true)}
                         </div>
-
 
                         {/* ── Corner Floating Buttons ── */}
 

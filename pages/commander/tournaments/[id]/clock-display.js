@@ -168,8 +168,7 @@ export default function ClockDisplay() {
   // Fetch clock preset
   const fetchPreset = useCallback(async (presetId) => {
     try {
-      const staffSession = getStaffSession() || '';
-      const res = await commanderFetch('/api/commander/clock-presets', { });
+const res = await commanderFetch('/api/commander/clock-presets', { });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
@@ -183,8 +182,7 @@ export default function ClockDisplay() {
   const fetchData = useCallback(async (signal) => {
     if (!id) return;
     try {
-      const staffSession = getStaffSession() || '';
-      const res = await commanderFetch(`/api/commander/tournaments/${id}/floor-view`, { ...(signal ? { signal } : {}) });
+const res = await commanderFetch(`/api/commander/tournaments/${id}/floor-view`, { ...(signal ? { signal } : {}) });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
@@ -316,8 +314,7 @@ export default function ClockDisplay() {
     if (!id || actionLoading) return;
     setActionLoading(true);
     try {
-      const staffSession = getStaffSession() || '';
-      const res = await commanderFetch(`/api/commander/tournaments/${id}/clock`, {
+const res = await commanderFetch(`/api/commander/tournaments/${id}/clock`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action })

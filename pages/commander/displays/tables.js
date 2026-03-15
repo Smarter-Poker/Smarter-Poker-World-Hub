@@ -132,7 +132,6 @@ export default function TablesDisplay() {
   const fetchData = useCallback(async () => {
     if (!venueId) return;
     try {
-      const staffSession = getStaffSession() || '';
 const headers = { };
 
       const res = await commanderFetch(`/api/commander/tables?venue_id=${venueId}`, { headers });
@@ -188,7 +187,6 @@ const headers = { };
   const fetchDealers = useCallback(async () => {
     if (!venueId) return;
     try {
-      const staffSession = getStaffSession() || '';
 const res = await commanderFetch(`/api/commander/dealers/rotations?venue_id=${venueId}`, { });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
@@ -320,7 +318,6 @@ const res = await commanderFetch(`/api/commander/dealers/rotations?venue_id=${ve
 
   const handleScan = async (qrData, type, seatNumber) => {
     closeScanner();
-    const staffSession = getStaffSession() || '';
 const headers = { 'Content-Type': 'application/json' };
 
     if (type === 'dealer') {
@@ -364,7 +361,6 @@ const headers = { 'Content-Type': 'application/json' };
    const callSessionAction = async (seat, action, extra = {}) => {
     setPlayerActionLoading(true);
     try {
-      const staffSession = getStaffSession() || '';
 const res = await commanderFetch('/api/commander/dealer/session-action', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -383,7 +379,6 @@ const res = await commanderFetch('/api/commander/dealer/session-action', {
   const removePlayer = async (seat) => {
     setPlayerActionLoading(true);
     try {
-      const staffSession = getStaffSession() || '';
 const res = await commanderFetch('/api/commander/dealer/player-unseat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

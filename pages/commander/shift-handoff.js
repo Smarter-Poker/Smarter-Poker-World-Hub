@@ -52,8 +52,7 @@ export default function ShiftHandoff() {
   const fetchHandoffs = async (signal) => {
     setLoading(true);
     try {
-const staffSession = getStaffSession() || '';
-      const res = await commanderFetch(`/api/commander/shift-handoff?venue_id=${staff.venue_id}&limit=30`, { ...(signal ? { signal } : {}) });
+const res = await commanderFetch(`/api/commander/shift-handoff?venue_id=${staff.venue_id}&limit=30`, { ...(signal ? { signal } : {}) });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) setHandoffs(json.data.handoffs);
@@ -79,8 +78,7 @@ const staffSession = getStaffSession() || '';
     }
     setSubmitting(true);
     try {
-const staffSession = getStaffSession() || '';
-      const res = await commanderFetch('/api/commander/shift-handoff', {
+const res = await commanderFetch('/api/commander/shift-handoff', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -113,8 +111,7 @@ const staffSession = getStaffSession() || '';
 
   const handleAcknowledge = async (handoffId) => {
     try {
-const staffSession = getStaffSession() || '';
-      const res = await commanderFetch('/api/commander/shift-handoff', {
+const res = await commanderFetch('/api/commander/shift-handoff', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

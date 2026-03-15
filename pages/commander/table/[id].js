@@ -42,8 +42,7 @@ export default function TableSeating() {
   const fetchData = async (signal) => {
     try {
 const venueId = getVenueId();
-      const staffSession = getStaffSession();
-      const headers = { };
+const headers = { };
       const fo = signal ? { headers, signal } : { headers };
       const [tableRes, sessionsRes, waitlistRes] = await Promise.all([
         commanderFetch(`/api/commander/tables/${id}`, fo).then(r => r.json()).catch(() => ({ data: null })),

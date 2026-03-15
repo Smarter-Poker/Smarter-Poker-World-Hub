@@ -96,8 +96,7 @@ export default function WaitlistDesk() {
     const controller = new AbortController();
     (async () => {
       try {
-const staffSession = getStaffSession();
-        const res = await commanderFetch('/api/commander/settings', { signal: controller.signal });
+const res = await commanderFetch('/api/commander/settings', { signal: controller.signal });
         if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const json = await res.json();
         if (json.success && json.data?.desk_customization) {
@@ -111,8 +110,7 @@ const staffSession = getStaffSession();
   const saveCustomization = async (newCustom) => {
     setCustom(newCustom);
     try {
-const staffSession = getStaffSession();
-      const res = await commanderFetch('/api/commander/settings', {
+const res = await commanderFetch('/api/commander/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ desk_customization: newCustom })
@@ -125,8 +123,7 @@ const staffSession = getStaffSession();
 
   const fetchData = useCallback(async (signal) => {
     try {
-const staffSession = getStaffSession();
-      const staffData = JSON.parse(getStaffSession() || '{}');
+const staffData = JSON.parse(getStaffSession() || '{}');
       const vid = staffData.venue_id || '';
       const headers = { };
       const fetchOpts = signal ? { headers, signal } : { headers };
@@ -185,8 +182,7 @@ const staffSession = getStaffSession();
     setActionLock(entry.id); setCallLoading(entry.id); setSmsStatus(null);
     setSelectedPlayer(null);
     try {
-const staffSession = getStaffSession();
-      const res = await commanderFetch(`/api/commander/waitlist/${entry.id}/call`, {
+const res = await commanderFetch(`/api/commander/waitlist/${entry.id}/call`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-idempotency-key': genIdempotencyKey() },
         body: JSON.stringify({ notify_sms: true, notify_push: true })
@@ -219,8 +215,7 @@ const staffSession = getStaffSession();
     if (actionLock) return; // Optimistic lock — prevent double-tap
     setActionLock(entry.id);
     try {
-const staffSession = getStaffSession();
-      const res = await commanderFetch('/api/commander/waitlist/seat', {
+const res = await commanderFetch('/api/commander/waitlist/seat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-idempotency-key': genIdempotencyKey() },
         body: JSON.stringify({ waitlist_id: entry.id, table_number: tableNumber, seat_number: seatNumber })
@@ -251,8 +246,7 @@ const staffSession = getStaffSession();
     setActionLock(entry.id);
     setSelectedPlayer(null);
     try {
-const staffSession = getStaffSession();
-      const res = await commanderFetch(`/api/commander/waitlist/${entry.id}/pass`, {
+const res = await commanderFetch(`/api/commander/waitlist/${entry.id}/pass`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-idempotency-key': genIdempotencyKey() }
       });
@@ -282,8 +276,7 @@ const staffSession = getStaffSession();
     setActionLock(entry.id);
     setSelectedPlayer(null);
     try {
-const staffSession = getStaffSession();
-      const res = await commanderFetch(`/api/commander/waitlist/${entry.id}`, {
+const res = await commanderFetch(`/api/commander/waitlist/${entry.id}`, {
         method: 'DELETE',
         headers: { 'x-idempotency-key': genIdempotencyKey() }
       });
@@ -307,8 +300,7 @@ const staffSession = getStaffSession();
 
   const handleCheckIn = async (entry) => {
     try {
-const staffSession = getStaffSession();
-      const res = await commanderFetch(`/api/commander/waitlist/${entry.id}`, {
+const res = await commanderFetch(`/api/commander/waitlist/${entry.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ checked_in_at: new Date().toISOString() })
@@ -339,8 +331,7 @@ const staffSession = getStaffSession();
       if (!proceed) return;
     }
     try {
-const staffSession = getStaffSession();
-      const staffData = JSON.parse(getStaffSession() || '{}');
+const staffData = JSON.parse(getStaffSession() || '{}');
       const parts = (playerData.game_type || 'NLH 1/3').split(' ');
       const gameType = parts[0] || 'NLH';
       const stakes = parts.slice(1).join(' ') || '1/3';
@@ -387,8 +378,7 @@ const staffSession = getStaffSession();
     }
 
     try {
-const staffSession = getStaffSession();
-      // Find all entries that match the old game/stakes
+// Find all entries that match the old game/stakes
       const entriesToUpdate = waitlists.filter(w =>
         (w.game_type || '').toUpperCase() === oldGameType &&
         (w.stakes || '') === oldStakes &&
@@ -421,8 +411,7 @@ const staffSession = getStaffSession();
     // Auto-create table if a table number was provided
     if (tn) {
       try {
-const staffSession = getStaffSession();
-        const staffData = JSON.parse(getStaffSession() || '{}');
+const staffData = JSON.parse(getStaffSession() || '{}');
         const r = await commanderFetch('/api/commander/tables', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -442,8 +431,7 @@ const staffSession = getStaffSession();
   const handleRemoveGame = async (gameLabel) => {
     if (!confirm(`Remove "${gameLabel}" and all its waitlist entries?`)) return;
     try {
-const staffSession = getStaffSession();
-      const parts = gameLabel.split(' ');
+const parts = gameLabel.split(' ');
       const gameType = parts[0];
       const stakes = parts.slice(1).join(' ');
       // Delete all matching waitlist entries
@@ -894,8 +882,7 @@ const staffSession = getStaffSession();
                               onClick={async () => {
                                 setMoveLoading(mmGame.id);
                                 try {
-const staffSession = getStaffSession();
-                                  const res = await commanderFetch('/api/commander/games/must-move-status', {
+const res = await commanderFetch('/api/commander/games/must-move-status', {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({ must_move_game_id: mmGame.id, target_game_id: targetGame.id })

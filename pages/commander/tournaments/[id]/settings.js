@@ -269,8 +269,7 @@ export default function TournamentSettings() {
         const controller = new AbortController();
         const { signal } = controller;
       try {
-        const staffSession = getStaffSession();
-        const res = await commanderFetch(`/api/commander/tournaments/${id}`, {});
+const res = await commanderFetch(`/api/commander/tournaments/${id}`, {});
         if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const json = await res.json();
         if (json.success) {
@@ -346,8 +345,7 @@ export default function TournamentSettings() {
   const saveSettings = async () => {
     setSaving(true);
     try {
-      const staffSession = getStaffSession();
-      const res = await commanderFetch(`/api/commander/tournaments/${id}`, {
+const res = await commanderFetch(`/api/commander/tournaments/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -48,8 +48,7 @@ export default function MemberProfile() {
     setLoading(true);
     try {
 const venueId = getVenueId();
-      const staffSession = getStaffSession();
-      const headers = { };
+const headers = { };
       const [memberRes, sessionsRes, tournamentsRes] = await Promise.all([
         commanderFetch(`/api/commander/members/${id}?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ data: null })),
         commanderFetch(`/api/commander/time-billing/sessions?member_id=${id}&venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ data: [] })),

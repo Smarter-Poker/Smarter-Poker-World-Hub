@@ -69,8 +69,7 @@ export default function ExportsHub() {
   const createExport = async (exportType) => {
     setCreating(exportType);
     try {
-      const staffSession = getStaffSession() || '';
-      const res = await commanderFetch('/api/commander/exports', {
+const res = await commanderFetch('/api/commander/exports', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

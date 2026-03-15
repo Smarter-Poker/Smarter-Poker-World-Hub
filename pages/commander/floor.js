@@ -72,8 +72,7 @@ export default function FloorMap() {
   }, [router]);
 
   const getHeaders = () => {
-const staffSession = getStaffSession() || '';
-    return { };
+return { };
   };
 
   const fetchAll = useCallback(async () => {

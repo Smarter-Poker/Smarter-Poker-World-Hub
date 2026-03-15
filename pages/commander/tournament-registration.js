@@ -41,8 +41,7 @@ export default function TournamentRegistration() {
         if (!venueId) return;
         setLoading(true);
         try {
-const staffSession = getStaffSession() || '';
-            const headers = { };
+const headers = { };
             const res = await commanderFetch(`/api/commander/tournaments?venue_id=${venueId}&status=upcoming,active`, { headers });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
@@ -62,8 +61,7 @@ const staffSession = getStaffSession() || '';
         if (!query || query.length < 2) { setSearchResults([]); return; }
         setSearchLoading(true);
         try {
-const staffSession = getStaffSession() || '';
-            const headers = { };
+const headers = { };
             const res = await commanderFetch(`/api/commander/members/search?q=${encodeURIComponent(query)}&venue_id=${venueId}&limit=8`, { headers });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
@@ -275,8 +273,7 @@ ${total > 0 ? `<div class="fin-total-row"><span class="fin-total-label">Total Bu
         }
         setRegistering(true);
         try {
-const staffSession = getStaffSession() || '';
-            const headers = { 'Content-Type': 'application/json' };
+const headers = { 'Content-Type': 'application/json' };
 
             // 1. Register player in tournament via API
             const regRes = await commanderFetch(`/api/commander/tournaments/${selectedTournament.id}/register`, {

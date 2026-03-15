@@ -353,7 +353,6 @@ export default function DealersPage() {
   async function fetchDealers(signal) {
     setLoading(true);
     try {
-      const staffSession = getStaffSession() || '';
 const res = await commanderFetch(`/api/commander/dealers?venue_id=${venueId}`, { ...(signal ? { signal } : {}) });
       if (!res.ok) throw new Error(`Dealers fetch failed (${res.status})`);
       const data = await res.json();
@@ -370,7 +369,6 @@ const res = await commanderFetch(`/api/commander/dealers?venue_id=${venueId}`, {
 
   async function fetchTables(signal) {
     try {
-      const staffSession = getStaffSession() || '';
 const res = await commanderFetch(`/api/commander/tables?venue_id=${venueId}`, { ...(signal ? { signal } : {}) });
       if (!res.ok) throw new Error(`Tables fetch failed (${res.status})`);
       const data = await res.json();
@@ -386,7 +384,6 @@ const res = await commanderFetch(`/api/commander/tables?venue_id=${venueId}`, { 
 
   async function fetchRotations(signal) {
     try {
-      const staffSession = getStaffSession() || '';
 const res = await commanderFetch(`/api/commander/dealers/rotations?venue_id=${venueId}&limit=50`, { ...(signal ? { signal } : {}) });
       if (!res.ok) throw new Error(`Rotations fetch failed (${res.status})`);
       const data = await res.json();
@@ -401,7 +398,6 @@ const res = await commanderFetch(`/api/commander/dealers/rotations?venue_id=${ve
 
   async function handleAddDealer(data) {
     try {
-      const staffSession = getStaffSession() || '';
 const res = await commanderFetch('/api/commander/dealers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -423,7 +419,6 @@ const res = await commanderFetch('/api/commander/dealers', {
 
   async function handleEditDealer(data) {
     try {
-      const staffSession = getStaffSession() || '';
 const res = await commanderFetch(`/api/commander/dealers/${editingDealer.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -445,7 +440,6 @@ const res = await commanderFetch(`/api/commander/dealers/${editingDealer.id}`, {
 
   async function handleRotate(dealerId, tableId) {
     try {
-      const staffSession = getStaffSession() || '';
 const res = await commanderFetch('/api/commander/dealers/rotations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

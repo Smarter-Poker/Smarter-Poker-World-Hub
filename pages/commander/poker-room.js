@@ -38,8 +38,7 @@ export default function PokerRoomFunctions() {
 
   const fetchData = useCallback(async (signal) => {
     try {
-const staffSession = getStaffSession() || '';
-      const headers = { };
+const headers = { };
 
       // Get settings (room open/close state + venue_id)
       const vRes = await commanderFetch('/api/commander/settings', { headers });
@@ -110,8 +109,7 @@ const staffSession = getStaffSession() || '';
   const toggleRoom = async () => {
     setToggling(true);
     try {
-const staffSession = getStaffSession() || '';
-      const res = await commanderFetch('/api/commander/settings', {
+const res = await commanderFetch('/api/commander/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ room_open: !roomOpen })

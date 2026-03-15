@@ -55,8 +55,7 @@ export default function LeadManagementPage() {
     setLoading(true);
     try {
       const token = getToken();
-      const staffSession = getStaffSession() || '';
-      const res = await commanderFetch(`/api/commander/admin/leads?status=${statusFilter}`, {});
+const res = await commanderFetch(`/api/commander/admin/leads?status=${statusFilter}`, {});
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
@@ -75,8 +74,7 @@ export default function LeadManagementPage() {
   async function updateLeadStatus(leadId, newStatus) {
     try {
       const token = getToken();
-      const staffSession = getStaffSession() || '';
-      const res = await commanderFetch('/api/commander/admin/leads', {
+const res = await commanderFetch('/api/commander/admin/leads', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: leadId, status: newStatus }) });

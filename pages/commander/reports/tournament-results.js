@@ -24,8 +24,7 @@ export default function TournamentResultsReport() {
         const controller = new AbortController();
         const { signal } = controller;
       try {
-        const staffSession = getStaffSession();
-        const res = await commanderFetch('/api/commander/tournaments?status=completed&limit=50', {});
+const res = await commanderFetch('/api/commander/tournaments?status=completed&limit=50', {});
         if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const json = await res.json();
         if (json.success) {
@@ -42,8 +41,7 @@ export default function TournamentResultsReport() {
     if (expanded === tournamentId) { setExpanded(null); return; }
     setExpanded(tournamentId);
     try {
-      const staffSession = getStaffSession();
-      const res = await commanderFetch(`/api/commander/tournaments/${tournamentId}/entries?status=all`, {});
+const res = await commanderFetch(`/api/commander/tournaments/${tournamentId}/entries?status=all`, {});
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {

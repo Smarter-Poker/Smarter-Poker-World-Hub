@@ -59,8 +59,7 @@ function RecordHighHandModal({ isOpen, onClose, onSubmit, venueId, staff }) {
     setSubmitting(true);
     try {
       const token = getToken();
-      const staffSession = getStaffSession() || '';
-      const res = await commanderFetch('/api/commander/high-hands', {
+const res = await commanderFetch('/api/commander/high-hands', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -334,8 +333,7 @@ export default function PromotionsPage() {
     if (!venueId) return;
     try {
       const token = getToken();
-      const staffSession = getStaffSession() || '';
-      const res = await commanderFetch(`/api/commander/promotions?venue_id=${venueId}`, {});
+const res = await commanderFetch(`/api/commander/promotions?venue_id=${venueId}`, {});
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
@@ -354,8 +352,7 @@ export default function PromotionsPage() {
     if (!venueId) return;
     try {
       const token = getToken();
-      const staffSession = getStaffSession() || '';
-      const res = await commanderFetch(`/api/commander/high-hands?venue_id=${venueId}&limit=20`, {});
+const res = await commanderFetch(`/api/commander/high-hands?venue_id=${venueId}&limit=20`, {});
       if (!res.ok) throw new Error('err');
       const data = await res.json();
       if (data.high_hands) {
@@ -376,8 +373,7 @@ export default function PromotionsPage() {
     setPromoCodesLoading(true);
     try {
       const token = getToken();
-      const staffSession = getStaffSession() || '';
-      const res = await fetch('/api/promo/admin-promo-codes', {});
+const res = await fetch('/api/promo/admin-promo-codes', {});
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       setPromoCodes(data.codes || []);
@@ -389,8 +385,7 @@ export default function PromotionsPage() {
     setSeedingPromos(true);
     try {
       const token = getToken();
-      const staffSession = getStaffSession() || '';
-      const res = await fetch('/api/promo/seed-premade', {
+const res = await fetch('/api/promo/seed-premade', {
         method: 'POST'});
       if (!res.ok) throw new Error('Request failed');
       const data = await res.json();
@@ -407,8 +402,7 @@ export default function PromotionsPage() {
   const togglePromoCode = async (code) => {
     try {
       const token = getToken();
-      const staffSession = getStaffSession() || '';
-      const res = await fetch('/api/promo/admin-promo-codes', {
+const res = await fetch('/api/promo/admin-promo-codes', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: code.id, is_active: !code.is_active })
@@ -421,8 +415,7 @@ export default function PromotionsPage() {
     if (!confirm(`Deactivate promo code "${code.code}"?`)) return;
     try {
       const token = getToken();
-      const staffSession = getStaffSession() || '';
-      const res = await fetch(`/api/promo/admin-promo-codes?id=${code.id}`, {
+const res = await fetch(`/api/promo/admin-promo-codes?id=${code.id}`, {
         method: 'DELETE'});
       if (res.ok) fetchPromoCodes();
     } catch (err) { console.error('Delete promo code error:', err); alert('Action failed: Delete promo code. Please try again.'); }
@@ -437,8 +430,7 @@ export default function PromotionsPage() {
     if (!editingPromoCode) return;
     try {
       const token = getToken();
-      const staffSession = getStaffSession() || '';
-      const res = await fetch('/api/promo/admin-promo-codes', {
+const res = await fetch('/api/promo/admin-promo-codes', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -503,8 +495,7 @@ export default function PromotionsPage() {
   async function bulkToggle(activate) {
     try {
       const token = getToken();
-      const staffSession = getStaffSession() || '';
-      const results = await Promise.allSettled([...selectedIds].map(id =>
+const results = await Promise.allSettled([...selectedIds].map(id =>
         commanderFetch(`/api/commander/promotions/${id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -525,8 +516,7 @@ export default function PromotionsPage() {
     if (!confirm(`Delete ${selectedIds.size} promotion(s)?`)) return;
     try {
       const token = getToken();
-      const staffSession = getStaffSession() || '';
-      const results = await Promise.allSettled([...selectedIds].map(id =>
+const results = await Promise.allSettled([...selectedIds].map(id =>
         commanderFetch(`/api/commander/promotions/${id}`, { method: 'DELETE'})
         .then(r => { if (!r.ok) throw new Error('fail'); return r; })
       ));
@@ -574,8 +564,7 @@ export default function PromotionsPage() {
     setAwardsLoading(true);
     try {
       const token = getToken();
-      const staffSession = getStaffSession() || '';
-      const res = await commanderFetch(`/api/commander/promotions/${promo.id}/awards?limit=50`, {});
+const res = await commanderFetch(`/api/commander/promotions/${promo.id}/awards?limit=50`, {});
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       setPromoAwards(data.awards || []);
@@ -590,8 +579,7 @@ export default function PromotionsPage() {
   async function handleVerifyHighHand(highHand) {
     try {
       const token = getToken();
-      const staffSession = getStaffSession() || '';
-      const res = await commanderFetch(`/api/commander/high-hands/${highHand.id}`, {
+const res = await commanderFetch(`/api/commander/high-hands/${highHand.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -613,8 +601,7 @@ export default function PromotionsPage() {
   async function handleToggle(promo) {
     try {
       const token = getToken();
-      const staffSession = getStaffSession() || '';
-      const res = await commanderFetch(`/api/commander/promotions/${promo.id}`, {
+const res = await commanderFetch(`/api/commander/promotions/${promo.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_active: !promo.is_active })
@@ -633,8 +620,7 @@ export default function PromotionsPage() {
     if (!confirm(`Delete "${promo.name}"?`)) return;
     try {
       const token = getToken();
-      const staffSession = getStaffSession() || '';
-      const res = await commanderFetch(`/api/commander/promotions/${promo.id}`, { method: 'DELETE'});
+const res = await commanderFetch(`/api/commander/promotions/${promo.id}`, { method: 'DELETE'});
       if (res.ok) {
         broadcastChange('settings');
         fetchPromotions();
@@ -653,8 +639,7 @@ export default function PromotionsPage() {
   async function handleDuplicate(promo) {
     try {
       const token = getToken();
-      const staffSession = getStaffSession() || '';
-      const cloneData = {
+const cloneData = {
         venue_id: venueId,
         name: `${promo.name} (Copy)`,
         description: promo.description,
@@ -727,8 +712,7 @@ export default function PromotionsPage() {
     setDraggedId(null); setDragOverId(null);
     // Persist in background
     const token = getToken();
-    const staffSession = getStaffSession() || '';
-    try {
+try {
       await Promise.allSettled(items.map((p, idx) =>
         commanderFetch(`/api/commander/promotions/${p.id}`, {
           method: 'PATCH',
@@ -1036,8 +1020,7 @@ export default function PromotionsPage() {
                   onSubmitHand={async (handData) => {
                     try {
                       const token = getToken();
-                      const staffSession = getStaffSession() || '';
-                      const res = await commanderFetch('/api/commander/high-hands', {
+const res = await commanderFetch('/api/commander/high-hands', {
                         method: 'POST',
                         headers: {
                           'Content-Type': 'application/json'
@@ -1416,8 +1399,7 @@ export default function PromotionsPage() {
                   onSubmit={async (data) => {
                     try {
                       const token = getToken();
-                      const staffSession = getStaffSession() || '';
-                      const res = await commanderFetch('/api/commander/promotions', {
+const res = await commanderFetch('/api/commander/promotions', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(data)
@@ -1447,8 +1429,7 @@ export default function PromotionsPage() {
               onSave={async (data) => {
                 try {
                   const token = getToken();
-                  const staffSession = getStaffSession() || '';
-                  const res = await commanderFetch('/api/commander/promotions', {
+const res = await commanderFetch('/api/commander/promotions', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
@@ -1479,8 +1460,7 @@ export default function PromotionsPage() {
             onSave={async (data) => {
               try {
                 const token = getToken();
-                const staffSession = getStaffSession() || '';
-                const res = await commanderFetch(`/api/commander/promotions/${editingPromo.id}`, {
+const res = await commanderFetch(`/api/commander/promotions/${editingPromo.id}`, {
                   method: 'PUT',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify(data)
@@ -1504,8 +1484,7 @@ export default function PromotionsPage() {
               if (!confirm('Delete this promotion?')) return;
               try {
                 const token = getToken();
-                const staffSession = getStaffSession() || '';
-                const res = await commanderFetch(`/api/commander/promotions/${id}`, { method: 'DELETE'});
+const res = await commanderFetch(`/api/commander/promotions/${id}`, { method: 'DELETE'});
                 if (res.ok) {
                   fetchPromotions();
                   broadcastChange('settings');

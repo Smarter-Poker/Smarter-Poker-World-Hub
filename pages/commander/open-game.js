@@ -52,8 +52,7 @@ export default function OpenGame() {
     setLoading(true);
     try {
 const venueId = getVenueId();
-      const staffSession = getStaffSession() || '';
-      const res = await commanderFetch(`/api/commander/tables?venue_id=${venueId}`, {});
+const res = await commanderFetch(`/api/commander/tables?venue_id=${venueId}`, {});
       if (!res.ok) throw new Error(`Tables fetch failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
@@ -81,8 +80,7 @@ const venueId = getVenueId();
     const fetchWaitlist = async () => {
       try {
 const venueId = getVenueId();
-        const staffSession = getStaffSession() || '';
-        const res = await commanderFetch(`/api/commander/waitlist?venue_id=${venueId}`, { signal: controller.signal });
+const res = await commanderFetch(`/api/commander/waitlist?venue_id=${venueId}`, { signal: controller.signal });
         if (!res.ok) throw new Error(`Waitlist fetch failed (${res.status})`);
         const json = await res.json();
         if (json.success) {
@@ -105,8 +103,7 @@ const venueId = getVenueId();
     setOpening(true);
     try {
 const venueId = getVenueId();
-      const staffSession = getStaffSession() || '';
-      const headers = { 'Content-Type': 'application/json' };
+const headers = { 'Content-Type': 'application/json' };
       const gameTypeLower = selectedGame.type.toLowerCase();
 
       // 1. Create the game record in commander_games

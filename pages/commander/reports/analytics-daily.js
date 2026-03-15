@@ -42,8 +42,7 @@ export default function AnalyticsDailyReport() {
   const fetchAnalytics = async(signal) => {
     setLoading(true);
     try {
-const staffSession = getStaffSession() || '';
-      const endDate = new Date().toISOString().split('T')[0];
+const endDate = new Date().toISOString().split('T')[0];
       const startDate = new Date(Date.now() - range * 86400000).toISOString().split('T')[0];
       const res = await commanderFetch(`/api/commander/analytics/daily?venue_id=${staff.venue_id}&start_date=${startDate}&end_date=${endDate}&days=${range}`, {});
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -62,8 +61,7 @@ const staffSession = getStaffSession() || '';
   const handleManualRefresh = async () => {
     setRefreshing(true);
     try {
-const staffSession = getStaffSession() || '';
-      // Trigger cron for yesterday
+// Trigger cron for yesterday
       const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
       const res = await fetch('/api/cron/commander-daily-aggregate', {
         method: 'POST',

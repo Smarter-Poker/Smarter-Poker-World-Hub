@@ -129,8 +129,7 @@ export default function Cashier() {
     if (!venueId) return;
     setLoading(true);
     try {
-const staffSession = getStaffSession() || '';
-      const headers = { };
+const headers = { };
 
       const today = new Date().toISOString().split('T')[0];
       const txRes = await commanderFetch(`/api/commander/cashier?venue_id=${venueId}&date=${today}&limit=50`, { headers });
@@ -181,8 +180,7 @@ const staffSession = getStaffSession() || '';
       const controller = new AbortController();
       const { signal } = controller;
       try {
-const staffSession = getStaffSession() || '';
-        const headers = { };
+const headers = { };
         const res = await commanderFetch(`/api/commander/members/${member_id}?venue_id=${venueId}`, { headers });
         if (!res.ok) throw new Error(`Member fetch failed (${res.status})`);
         const json = await res.json();
@@ -224,8 +222,7 @@ const staffSession = getStaffSession() || '';
       const controller = new AbortController();
       const { signal } = controller;
       try {
-const staffSession = getStaffSession() || '';
-        const headers = { };
+const headers = { };
 
         // Time billing settings
         const settingsRes = await commanderFetch('/api/commander/settings', { headers });
@@ -326,8 +323,7 @@ const staffSession = getStaffSession() || '';
   const handleScanResult = async (qrData) => {
     stopScan();
     try {
-const staffSession = getStaffSession() || '';
-      const headers = { };
+const headers = { };
       const res = await commanderFetch(`/api/commander/members?search=${encodeURIComponent(qrData)}&venue_id=${venueId}`, { headers });
       if (!res.ok) throw new Error(`Search failed (${res.status})`);
       const json = await res.json();
@@ -375,8 +371,7 @@ const staffSession = getStaffSession() || '';
   const executeSearch = useCallback(async (query) => {
     setSearchLoading(true);
     try {
-const staffSession = getStaffSession() || '';
-      const headers = { };
+const headers = { };
       const params = query ? `q=${encodeURIComponent(query)}&` : '';
       const res = await commanderFetch(`/api/commander/members/search?${params}venue_id=${venueId}&limit=15`, { headers });
       if (!res.ok) throw new Error(`Search failed (${res.status})`);
@@ -481,8 +476,7 @@ const staffSession = getStaffSession() || '';
     }
     setActionLoading(true);
     try {
-      const staffSession = getStaffSession() || '';
-      const res = await commanderFetch('/api/commander/cashier', {
+const res = await commanderFetch('/api/commander/cashier', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -544,8 +538,7 @@ const staffSession = getStaffSession() || '';
     const timeLabel2 = timeOpt?.label || `${mins} min`;
     setActionLoading(true);
     try {
-      const staffSession = getStaffSession() || '';
-      const headers = { 'Content-Type': 'application/json' };
+const headers = { 'Content-Type': 'application/json' };
       const newBalance = (selectedPlayer.time_balance_minutes || 0) + mins;
 
       // 1. Update member time balance
@@ -614,8 +607,7 @@ const staffSession = getStaffSession() || '';
     const price = tierInfo?.price || 0;
     setActionLoading(true);
     try {
-      const staffSession = getStaffSession() || '';
-      const headers = { 'Content-Type': 'application/json' };
+const headers = { 'Content-Type': 'application/json' };
       const expires = new Date();
       expires.setDate(expires.getDate() + (tierInfo?.duration || 1));
 
@@ -694,8 +686,7 @@ const staffSession = getStaffSession() || '';
     if (!confirm(`${actionLabel} this ${type} transaction for $${details.amount}?`)) return;
     setActionLoading(true);
     try {
-      const staffSession = getStaffSession() || '';
-      const headers = { 'Content-Type': 'application/json' };
+const headers = { 'Content-Type': 'application/json' };
       const voidAmount = details.amount || 0;
 
       // 1. ALWAYS record the void/refund transaction (even for $0 — creates audit trail)
@@ -839,8 +830,7 @@ const staffSession = getStaffSession() || '';
     setPlayerHistoryLoading(true);
     setShowPlayerHistory(true);
     try {
-const staffSession = getStaffSession() || '';
-      const headers = { };
+const headers = { };
       // Use server-side player_name filter for efficiency
       const res = await commanderFetch(`/api/commander/cashier?venue_id=${venueId}&player_name=${encodeURIComponent(selectedPlayer.player_name)}&limit=100`, { headers });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);

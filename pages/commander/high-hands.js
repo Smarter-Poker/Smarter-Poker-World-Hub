@@ -48,8 +48,7 @@ export default function HighHands() {
     if (!venueId) return;
     setLoading(true);
     try {
-      const staffSession = getStaffSession() || '';
-      const res = await commanderFetch(`/api/commander/high-hands?venue_id=${venueId}&limit=50`, {});
+const res = await commanderFetch(`/api/commander/high-hands?venue_id=${venueId}&limit=50`, {});
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       setHighHands(json.high_hands || []);
@@ -67,8 +66,7 @@ export default function HighHands() {
     if (!form.player_name || !form.hand_rank) return;
     setSubmitting(true);
     try {
-      const staffSession = getStaffSession() || '';
-      const res = await commanderFetch('/api/commander/high-hands', {
+const res = await commanderFetch('/api/commander/high-hands', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -99,8 +97,7 @@ export default function HighHands() {
 
   const handleVerify = async (id) => {
     try {
-      const staffSession = getStaffSession() || '';
-      const res = await commanderFetch(`/api/commander/high-hands/${id}`, {
+const res = await commanderFetch(`/api/commander/high-hands/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'verify' })
@@ -115,8 +112,7 @@ export default function HighHands() {
   const handleDelete = async (id) => {
     if (!confirm('Delete this high hand?')) return;
     try {
-      const staffSession = getStaffSession() || '';
-      const res = await commanderFetch(`/api/commander/high-hands/${id}`, {
+const res = await commanderFetch(`/api/commander/high-hands/${id}`, {
         method: 'DELETE'});
       if (res.ok) {
         broadcastChange('settings');

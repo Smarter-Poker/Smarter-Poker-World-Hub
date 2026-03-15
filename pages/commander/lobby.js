@@ -36,8 +36,7 @@ export default function LobbyDisplay() {
   const fetchData = useCallback(async (signal) => {
     if (!venueId) return;
     try {
-const staffSession = getStaffSession() || '';
-      const headers = { };
+const headers = { };
       const opts = signal ? { headers, signal } : { headers };
       const [tablesRes, waitlistRes, tournamentsRes] = await Promise.all([
         fetch(`/api/commander/tables?venue_id=${venueId}`, opts).then(r => r.json()).catch(() => ({ data: [] })),

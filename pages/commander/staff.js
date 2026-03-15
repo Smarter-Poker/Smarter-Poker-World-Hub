@@ -93,8 +93,7 @@ export default function CommanderStaffPage() {
     if (!venueId) return;
     try {
       const token = getToken();
-      const staffSession = getStaffSession() || '';
-      const res = await commanderFetch(`/api/commander/staff/venue/${venueId}`, { ...(signal ? { signal } : {}) });
+const res = await commanderFetch(`/api/commander/staff/venue/${venueId}`, { ...(signal ? { signal } : {}) });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
@@ -117,8 +116,7 @@ export default function CommanderStaffPage() {
   async function handleAddStaff(staffData) {
     try {
       const token = getToken();
-      const staffSession = getStaffSession() || '';
-      const res = await commanderFetch('/api/commander/staff', {
+const res = await commanderFetch('/api/commander/staff', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...staffData, venue_id: venueId })
@@ -231,8 +229,7 @@ export default function CommanderStaffPage() {
   async function handleUpdateStaff(staffId, staffData) {
     try {
       const token = getToken();
-      const staffSession = getStaffSession() || '';
-      const res = await commanderFetch(`/api/commander/staff/${staffId}`, {
+const res = await commanderFetch(`/api/commander/staff/${staffId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(staffData)
@@ -262,8 +259,7 @@ export default function CommanderStaffPage() {
     setConfirmDeleteId(null);
     try {
       const token = getToken();
-      const staffSession = getStaffSession() || '';
-      const res = await commanderFetch(`/api/commander/staff/${staffId}`, {
+const res = await commanderFetch(`/api/commander/staff/${staffId}`, {
         method: 'DELETE'});
       if (!res.ok) throw new Error('Request failed');
       const data = await res.json();
@@ -301,8 +297,7 @@ export default function CommanderStaffPage() {
     setLinkCodeLoading(staffId);
     try {
       const token = getToken();
-      const staffSession = getStaffSession() || '';
-      const res = await commanderFetch('/api/commander/staff/generate-claim', {
+const res = await commanderFetch('/api/commander/staff/generate-claim', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ venue_id: venueId, staff_id: staffId }) });

@@ -95,8 +95,7 @@ export default function TournamentDetailPage() {
     if (!id) return;
 
     try {
-      const staffSession = getStaffSession() || '';
-      const headers = { };
+const headers = { };
       const fo = signal ? { headers, signal } : { headers };
       const [tournamentRes, entriesRes] = await Promise.all([
         commanderFetch(`/api/commander/tournaments/${id}`, fo).catch(() => ({ ok: false })),
@@ -164,8 +163,7 @@ export default function TournamentDetailPage() {
   // Clock actions
   async function handleClockAction(action) {
     try {
-      const staffSession = getStaffSession() || '';
-      const res = await commanderFetch(`/api/commander/tournaments/${id}/clock`, {
+const res = await commanderFetch(`/api/commander/tournaments/${id}/clock`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action })
@@ -186,8 +184,7 @@ export default function TournamentDetailPage() {
   // Tournament status update
   async function handleStatusChange(newStatus) {
     try {
-      const staffSession = getStaffSession() || '';
-      const res = await commanderFetch(`/api/commander/tournaments/${id}`, {
+const res = await commanderFetch(`/api/commander/tournaments/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
@@ -294,8 +291,7 @@ export default function TournamentDetailPage() {
                     if (!confirm(`Close tournament "${tournament.name}"? This will cancel the tournament and cannot be undone.`)) return;
                     setClosing(true);
                     try {
-                      const staffSession = getStaffSession() || '';
-                      const res = await commanderFetch(`/api/commander/tournaments/${tournament.id}`, {
+const res = await commanderFetch(`/api/commander/tournaments/${tournament.id}`, {
                         method: 'DELETE'});
                       if (!res.ok) throw new Error(`Request failed (${res.status})`);
                       const json = await res.json();

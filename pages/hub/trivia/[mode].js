@@ -861,7 +861,6 @@ export default function TriviaModePage() {
                         />
                     )}
 
-                    {/* TODO: Survival mode moved to separate page at /hub/trivia/survival-game */}
 
                     {gameState === 'results' && result && (
                         <div className="results-section">

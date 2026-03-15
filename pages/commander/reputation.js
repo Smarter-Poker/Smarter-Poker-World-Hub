@@ -55,8 +55,7 @@ export default function PlayerReputation() {
   const fetchScores = async (signal) => {
     setLoading(true);
     try {
-const staffSession = getStaffSession() || '';
-      const res = await commanderFetch(`/api/commander/reputation?venue_id=${staff.venue_id}`, {});
+const res = await commanderFetch(`/api/commander/reputation?venue_id=${staff.venue_id}`, {});
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) setScores(json.data.scores || []);
@@ -66,8 +65,7 @@ const staffSession = getStaffSession() || '';
 
   const fetchReviews = async (playerId) => {
     try {
-const staffSession = getStaffSession() || '';
-      const res = await commanderFetch(`/api/commander/reputation?player_id=${playerId}`, {});
+const res = await commanderFetch(`/api/commander/reputation?player_id=${playerId}`, {});
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
@@ -90,8 +88,7 @@ const staffSession = getStaffSession() || '';
     if (!showReviewForm) return;
     setSubmitting(true);
     try {
-const staffSession = getStaffSession() || '';
-      const res = await commanderFetch('/api/commander/reputation', {
+const res = await commanderFetch('/api/commander/reputation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

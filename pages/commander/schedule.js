@@ -236,8 +236,7 @@ export default function StaffSchedule() {
   const lastWriteRef = useRef(0);
   const WRITE_COOLDOWN_MS = 2000;
   const getHeaders = () => {
-const staffSession = getStaffSession() || '';
-    return { 'Content-Type': 'application/json' };
+return { 'Content-Type': 'application/json' };
   };
 
   // Fetch shifts + staff

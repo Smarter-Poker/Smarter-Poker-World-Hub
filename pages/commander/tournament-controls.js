@@ -34,8 +34,7 @@ export default function TournamentDirector() {
 
     const fetchTournaments = useCallback(async (signal) => {
         try {
-            const staffSession = getStaffSession() || '';
-            const res = await commanderFetch('/api/commander/tournaments', { });
+const res = await commanderFetch('/api/commander/tournaments', { });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const data = await res.json();
             if (data.success) {

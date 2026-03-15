@@ -43,8 +43,7 @@ export default function TimeClock() {
     const fetchEntries = useCallback(async (signal) => {
         if (!venueId) return;
         try {
-const staffSession = getStaffSession() || '';
-            const res = await commanderFetch(`/api/commander/time-clock?venue_id=${venueId}`, { ...(signal ? { signal } : {}) });
+const res = await commanderFetch(`/api/commander/time-clock?venue_id=${venueId}`, { ...(signal ? { signal } : {}) });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const data = await res.json();
             if (data.success) {

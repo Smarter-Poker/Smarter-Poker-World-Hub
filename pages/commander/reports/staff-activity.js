@@ -26,8 +26,7 @@ export default function StaffActivity() {
       const controller = new AbortController();
       const { signal } = controller;
       try {
-const staffSession = getStaffSession() || '';
-        const res = await commanderFetch('/api/commander/incidents?status=all&limit=50', {});
+const res = await commanderFetch('/api/commander/incidents?status=all&limit=50', {});
         if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const json = await res.json();
         if (json.success) setActivities(json.data || []);
@@ -40,8 +39,7 @@ const staffSession = getStaffSession() || '';
   const fetchAuditLogs = async (filters = {}) => {
     setAuditLoading(true);
     try {
-const staffSession = getStaffSession() || '';
-      const params = new URLSearchParams();
+const params = new URLSearchParams();
       if (filters.category) params.set('action_category', filters.category);
       if (filters.dateFrom) params.set('date_from', filters.dateFrom);
       if (filters.dateTo) params.set('date_to', filters.dateTo);

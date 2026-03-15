@@ -380,8 +380,7 @@ export default function IncidentsPage() {
   async function fetchIncidents(signal) {
     setLoading(true);
     try {
-const staffSession = getStaffSession() || '';
-      const res = await commanderFetch(`/api/commander/incidents?venue_id=${venueId}`, {});
+const res = await commanderFetch(`/api/commander/incidents?venue_id=${venueId}`, {});
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) setIncidents(data.data?.incidents || []);
@@ -393,8 +392,7 @@ const staffSession = getStaffSession() || '';
 
   async function handleCreateIncident(data) {
     try {
-const staffSession = getStaffSession() || '';
-      const res = await commanderFetch('/api/commander/incidents', {
+const res = await commanderFetch('/api/commander/incidents', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ venue_id: venueId, reported_by: staff.id, ...data })
@@ -414,8 +412,7 @@ const staffSession = getStaffSession() || '';
 
   async function handleResolveIncident(incidentId, resolution) {
     try {
-const staffSession = getStaffSession() || '';
-      const res = await commanderFetch(`/api/commander/incidents/${incidentId}/resolve`, {
+const res = await commanderFetch(`/api/commander/incidents/${incidentId}/resolve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ resolution })

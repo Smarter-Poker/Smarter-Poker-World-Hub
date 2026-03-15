@@ -105,7 +105,6 @@ export default function CommanderTablesPage() {
   // Fetch tables + games + sessions
   const fetchTables = useCallback(async (signal) => {
     if (!venueId) return;
-    const staffSession = getStaffSession() || '';
 const headers = { };
 
     // Fetch tables
@@ -204,8 +203,7 @@ const headers = { };
     if (!selectedTable) return;
     setActionLoading(true);
     try {
-      const staffSession = getStaffSession() || '';
-      const res = await commanderFetch('/api/commander/games', {
+const res = await commanderFetch('/api/commander/games', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -236,8 +234,7 @@ const headers = { };
     if (!confirm('Close this game? Players will be unseated.')) return;
     setActionLoading(true);
     try {
-      const staffSession = getStaffSession() || '';
-      const res1 = await commanderFetch(`/api/commander/games/${gameId}`, {
+const res1 = await commanderFetch(`/api/commander/games/${gameId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'closed' })
@@ -261,8 +258,7 @@ const headers = { };
     if (!selectedTable) return;
     setActionLoading(true);
     try {
-      const staffSession = getStaffSession() || '';
-      const updates = { status };
+const updates = { status };
       if (status === 'available') {
         updates.game_type = null;
         updates.stakes = null;
@@ -285,8 +281,7 @@ const headers = { };
     if (!confirm(`Delete Table ${selectedTable.table_number}? This cannot be undone.`)) return;
     setActionLoading(true);
     try {
-      const staffSession = getStaffSession() || '';
-      const res = await commanderFetch(`/api/commander/tables/${selectedTable.id}`, {
+const res = await commanderFetch(`/api/commander/tables/${selectedTable.id}`, {
         method: 'DELETE'});
       if (res.ok) {
         setSelectedTableId(null);
@@ -299,8 +294,7 @@ const headers = { };
 
   const handleAddTable = async (tableData) => {
     try {
-      const staffSession = getStaffSession() || '';
-      const res = await commanderFetch('/api/commander/tables', {
+const res = await commanderFetch('/api/commander/tables', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...tableData, venue_id: venueId })
@@ -321,8 +315,7 @@ const headers = { };
     if (!selectedTable) return;
     setActionLoading(true);
     try {
-      const staffSession = getStaffSession() || '';
-      // Sync both table_purpose and mode columns
+// Sync both table_purpose and mode columns
       const mode = purpose === 'tournament' ? 'tournament' : 'cash';
       const res = await commanderFetch(`/api/commander/tables/${selectedTable.id}`, {
         method: 'PATCH',

@@ -67,8 +67,7 @@ export default function CommanderAnnouncementsPage() {
     setSuccess(null);
 
     try {
-const staffSession = getStaffSession() || '';
-      const res = await commanderFetch('/api/commander/notifications/send', {
+const res = await commanderFetch('/api/commander/notifications/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

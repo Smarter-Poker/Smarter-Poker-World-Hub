@@ -110,8 +110,7 @@ const res = await commanderFetch('/api/commander/game-types?include_inactive=tru
     setSaving(true);
     setError(null);
     try {
-const staffSession = getStaffSession() || '';
-      const url = editingId
+const url = editingId
         ? `/api/commander/game-types?id=${editingId}`
         : '/api/commander/game-types';
       const res = await fetch(url, {
@@ -136,7 +135,6 @@ const staffSession = getStaffSession() || '';
 
   async function handleToggleActive(gt) {
     try {
-      const staffSession = getStaffSession() || '';
 const res = await commanderFetch(`/api/commander/game-types/${gt.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -152,7 +150,6 @@ const res = await commanderFetch(`/api/commander/game-types/${gt.id}`, {
   async function handleDelete(gt) {
     if (!confirm(`Remove "${gt.name} ${gt.stakes}" permanently?`)) return;
     try {
-      const staffSession = getStaffSession() || '';
 const res = await commanderFetch(`/api/commander/game-types/${gt.id}?venue_id=${venueId}`, {
         method: 'DELETE'});
       if (res.ok) {

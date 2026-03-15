@@ -45,8 +45,7 @@ export default function TaxCompliance() {
   const fetchEvents = async(signal) => {
     setLoading(true);
     try {
-const staffSession = getStaffSession() || '';
-      let url = `/api/commander/tax/w2g?venue_id=${staff.venue_id}&year=${year}`;
+let url = `/api/commander/tax/w2g?venue_id=${staff.venue_id}&year=${year}`;
       if (filter === 'pending') url += '&w2g_generated=false';
       if (filter === 'generated') url += '&w2g_generated=true';
       const res = await fetch(url, {});
@@ -63,8 +62,7 @@ const staffSession = getStaffSession() || '';
   const handleGenerate = async (eventId) => {
     setGenerating(eventId);
     try {
-const staffSession = getStaffSession() || '';
-      const res = await commanderFetch('/api/commander/tax/w2g', {
+const res = await commanderFetch('/api/commander/tax/w2g', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tax_event_id: eventId })

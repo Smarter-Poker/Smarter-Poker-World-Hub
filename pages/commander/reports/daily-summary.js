@@ -25,8 +25,7 @@ export default function DailySummaryReport() {
       setLoading(true);
       try {
 const venueId = getVenueId();
-        const staffSession = getStaffSession() || '';
-        const headers = { };
+const headers = { };
 
         // General summary
         const [summaryRes, cashierRes] = await Promise.all([

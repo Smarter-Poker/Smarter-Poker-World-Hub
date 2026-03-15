@@ -44,8 +44,7 @@ export default function CloseDay() {
     setLoading(true);
     try {
 const venueId = getVenueId();
-      const staffSession = getStaffSession() || '';
-      const headers = { };
+const headers = { };
       const fetchOpts = signal ? { headers, signal } : { headers };
       const [tablesRes, waitlistRes, sessionsRes, reportRes] = await Promise.all([
         commanderFetch(`/api/commander/tables?venue_id=${venueId}`, fetchOpts).then(r => r.json()).catch(() => ({ data: [] })),
@@ -78,8 +77,7 @@ const venueId = getVenueId();
   const forceCloseAll = async () => {
     setClosing(true);
     try {
-const staffSession = getStaffSession() || '';
-      const headers = { 'Content-Type': 'application/json' };
+const headers = { 'Content-Type': 'application/json' };
 
       // Close all open tables
       let successCount = 0;
@@ -113,8 +111,7 @@ const staffSession = getStaffSession() || '';
   const submitClose = async () => {
     setVerifying(true);
     try {
-const staffSession = getStaffSession() || '';
-      const venueId = getVenueId();
+const venueId = getVenueId();
       const res = await commanderFetch('/api/commander/staff/verify-pin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

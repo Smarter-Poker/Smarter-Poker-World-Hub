@@ -49,8 +49,7 @@ export default function TableAssignments() {
   const [filterMode, setFilterMode] = useState('all');
 
   const getHeaders = () => {
-const staffSession = getStaffSession() || '';
-    return {
+return {
       'Content-Type': 'application/json'
     };
   };

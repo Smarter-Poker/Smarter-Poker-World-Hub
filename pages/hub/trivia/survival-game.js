@@ -23,6 +23,7 @@ import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
 import { busEmit } from '../../../src/engine/EventBus';
+import { playHeartbeat, closeHeartbeatAudio } from '../../../src/lib/heartbeatAudio';
 
 const GAME_ENTRY_COST = 10; // 💎 per game for non-VIP
 /** Shuffle answer options so correct answer isn't always A */
@@ -203,35 +204,18 @@ export default function SurvivalGamePage() {
 
         // Heartbeat audio at 8 seconds - speeds up (if enabled)
         if (settings.audio && timeLeft <= 8 && timeLeft > 0) {
-            const playHeartbeat = () => {
-                try {
-                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                    const osc = ctx.createOscillator();
-                    const gain = ctx.createGain();
-                    osc.connect(gain);
-                    gain.connect(ctx.destination);
-                    osc.frequency.value = 80;
-                    osc.type = 'sine';
-                    // Volume based on intensity
-                    const volume = 0.3 * intensityMultiplier;
-                    gain.gain.setValueAtTime(volume, ctx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
-                    osc.start(ctx.currentTime);
-                    osc.stop(ctx.currentTime + 0.15);
-                    // Close context after oscillator finishes to prevent AudioContext leak
-                    setTimeout(() => { try { ctx.close(); } catch (_) {} }, 200);
-                } catch (e) { console.error("[survival-game.js]", e); }
-            };
+            const volume = 0.3 * intensityMultiplier;
             const speed = Math.max(200, 600 - ((8 - timeLeft) * 50));
             if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
-            heartbeatIntervalRef.current = setInterval(playHeartbeat, speed);
-            playHeartbeat();
+            heartbeatIntervalRef.current = setInterval(() => playHeartbeat(volume), speed);
+            playHeartbeat(volume);
         }
 
         return () => {
             if (timerRef.current) clearInterval(timerRef.current);
             if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
             if (answerTimeoutRef.current) clearTimeout(answerTimeoutRef.current);
+            closeHeartbeatAudio();
         };
     }, [isTimerRunning, showResult, timeLeft, settings]);
 
@@ -278,7 +262,7 @@ export default function SurvivalGamePage() {
                 .maybeSingle();
             if (data) setUserDiamonds(data.diamonds || 0);
         } catch (e) {
-            // Ignore
+            console.warn('[Survival] Diamond balance load failed:', e);
         }
     }
 

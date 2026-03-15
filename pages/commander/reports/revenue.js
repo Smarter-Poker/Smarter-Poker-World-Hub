@@ -37,8 +37,7 @@ export default function RevenueReport() {
     if (!venueId) return;
     setLoading(true);
     try {
-      const staffSession = getStaffSession() || '';
-      const res = await commanderFetch(`/api/commander/reports/revenue?venue_id=${venueId}&range=${range}`, {});
+const res = await commanderFetch(`/api/commander/reports/revenue?venue_id=${venueId}&range=${range}`, {});
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) setData(json.data);

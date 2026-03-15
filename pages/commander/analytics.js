@@ -253,8 +253,7 @@ export default function AnalyticsPage() {
     try {
       // Convert period to days; fetch 2x to get previous period for comparison
       const periodDays = period === 'week' ? 7 : period === 'month' ? 30 : 365;
-const staffSession = getStaffSession() || '';
-      const headers = { };
+const headers = { };
       const [dailyRes, playersRes] = await Promise.all([
         fetch(`/api/commander/analytics/daily?venue_id=${venueId}&days=${periodDays * 2}`, { headers }).catch(() => ({ ok: false })),
         fetch(`/api/commander/analytics/players?venue_id=${venueId}&limit=10`, { headers }).catch(() => ({ ok: false }))

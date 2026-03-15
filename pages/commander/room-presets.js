@@ -97,8 +97,7 @@ export default function DailyPresetsPage() {
     try {
       const token = getToken();
       if (!token) return;
-      const staffSession = getStaffSession() || '';
-      const res = await commanderFetch('/api/commander/settings', {
+const res = await commanderFetch('/api/commander/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ hard_stop_enabled: hardStopEnabled, hard_stop_time: hardStopTime })
@@ -121,8 +120,7 @@ export default function DailyPresetsPage() {
     try {
       const token = getToken();
       if (!token) return;
-      const staffSession = getStaffSession() || '';
-      const res = await commanderFetch('/api/commander/settings', {
+const res = await commanderFetch('/api/commander/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ auto_comp_rate: autoCompRate })

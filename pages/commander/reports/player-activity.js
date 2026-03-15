@@ -28,8 +28,7 @@ export default function PlayerActivityReport() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-const staffSession = getStaffSession() || '';
-      const headers = { };
+const headers = { };
       const [membersRes, sessionsRes] = await Promise.all([
         commanderFetch(`/api/commander/members?sort=${sortBy}&limit=100`, { headers }).catch(() => ({ ok: false })),
         commanderFetch('/api/commander/time-billing/sessions?limit=200&status=all', { headers }).catch(() => ({ ok: false }))

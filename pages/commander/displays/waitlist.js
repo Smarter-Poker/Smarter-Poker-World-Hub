@@ -61,8 +61,7 @@ export default function WaitlistDisplay() {
   // Fetch customization settings — periodic re-fetch so desk changes sync
   const fetchSettings = useCallback(async (signal) => {
     try {
-const staffSession = getStaffSession();
-      const opts = signal ? { signal }
+const opts = signal ? { signal }
         : {};
       const res = await commanderFetch('/api/commander/settings', opts);
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -82,8 +81,7 @@ const staffSession = getStaffSession();
   // fetchData — EXACT copy of desk.js logic (desk is source of truth)
   const fetchData = useCallback(async (signal) => {
     try {
-const staffSession = getStaffSession();
-      const staffData = JSON.parse(getStaffSession() || '{}');
+const staffData = JSON.parse(getStaffSession() || '{}');
       const vid = staffData.venue_id || '';
       const headers = { };
       const opts = signal ? { headers, signal } : { headers };

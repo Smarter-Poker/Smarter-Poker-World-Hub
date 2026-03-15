@@ -79,8 +79,7 @@ export default function TimeBilling() {
     const { signal } = controller;
     try {
 const venueId = getVenueId();
-      const staffSession = getStaffSession() || '';
-      const headers = { };
+const headers = { };
 
       // Fetch tables to know which are active
       const tabRes = await commanderFetch(`/api/commander/tables?venue_id=${venueId}`, { headers });
@@ -146,8 +145,7 @@ const venueId = getVenueId();
       const controller = new AbortController();
       const { signal } = controller;
       try {
-const staffSession = getStaffSession() || '';
-        const res = await commanderFetch('/api/commander/settings', {});
+const res = await commanderFetch('/api/commander/settings', {});
         if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const json = await res.json();
         if (json.success && json.data) {
@@ -163,8 +161,7 @@ const staffSession = getStaffSession() || '';
     // Load membership plans
     const loadMemberPlans = async () => {
       try {
-const staffSession = getStaffSession() || '';
-        const venueId = getVenueId();
+const venueId = getVenueId();
         const res = await commanderFetch(`/api/commander/membership-plans?venue_id=${venueId}&include_inactive=true`, {});
         if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const json = await res.json();
@@ -178,8 +175,7 @@ const staffSession = getStaffSession() || '';
   const savePricing = async () => {
     setPricingSaving(true);
     try {
-const staffSession = getStaffSession() || '';
-      const res = await commanderFetch('/api/commander/settings', {
+const res = await commanderFetch('/api/commander/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -267,8 +263,7 @@ const staffSession = getStaffSession() || '';
   const doStopSession = async (sessionId, staff) => {
     setStopping(sessionId);
     try {
-const staffSession = getStaffSession() || '';
-      const res = await commanderFetch(`/api/commander/dealer/sessions/${sessionId}/end`, {
+const res = await commanderFetch(`/api/commander/dealer/sessions/${sessionId}/end`, {
         method: 'POST'});
       if (res.ok) {
         const json = await res.json();
@@ -351,8 +346,7 @@ const staffSession = getStaffSession() || '';
   const doRecordPayment = async (staff) => {
     if (!payModal || !payAmount) return;
     try {
-const staffSession = getStaffSession() || '';
-      const res = await commanderFetch(`/api/commander/time-billing/sessions/${payModal.id}/payment`, {
+const res = await commanderFetch(`/api/commander/time-billing/sessions/${payModal.id}/payment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ amount: parseFloat(payAmount), staff_name: staff?.display_name })
@@ -393,8 +387,7 @@ const staffSession = getStaffSession() || '';
     setMemberSaving(plan.id);
     try {
 const venueId = getVenueId();
-      const staffSession = getStaffSession() || '';
-      const res = await commanderFetch(`/api/commander/membership-plans?venue_id=${venueId}&id=${plan.id}`, {
+const res = await commanderFetch(`/api/commander/membership-plans?venue_id=${venueId}&id=${plan.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ [field]: parseFloat(value) || 0 })

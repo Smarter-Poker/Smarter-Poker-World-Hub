@@ -156,7 +156,6 @@ export default function CommanderDashboard() {
     }
   }, [router.isReady, router.query.card]);
 
-
   // Auth guard — validate localStorage AND Supabase session
   useEffect(() => {
     const controller = new AbortController();
@@ -216,8 +215,7 @@ export default function CommanderDashboard() {
   const fetchHardStop = useCallback(() => {
     if (!staff) return;
     try {
-      const staffSession = getStaffSession() || '';
-      const venueId = staff?.venue_id;
+const venueId = staff?.venue_id;
       if (!venueId) return;
       fetch(`/api/commander/settings?venue_id=${venueId}`, {})
         .then(r => r.json())
@@ -333,7 +331,6 @@ export default function CommanderDashboard() {
           color: #888;
           margin-top: 2px;
         }
-
 
         /* ── 6-CARD GRID ── */
         .cmd-grid {
