@@ -46,10 +46,14 @@ export default async function handler(req, res) {
           gameType,
           correctCount = 0,
           totalQuestions = 1,
+          streak: rawStreak = 0,
           timeSpentMs = 0,
       } = req.body;
 
       if (!gameType) return res.status(400).json({ error: 'gameType required' });
+
+      // Sanitize streak — don't fully trust client, clamp to reasonable range
+      const streak = Math.max(0, Math.min(Number(rawStreak) || 0, 10));
 
       // Server verifies win condition — never trust client-supplied 'won' or 'prize'
       const accuracy = totalQuestions > 0 ? correctCount / totalQuestions : 0;
@@ -65,7 +69,12 @@ export default async function handler(req, res) {
           else basePrize = Math.floor(cap * 0.25);
       }
       const rake = Math.floor(basePrize * 0.10); // 10% house rake
-      const prize = basePrize - rake;
+      const afterRake = basePrize - rake;
+
+      // Streak bonus: 10% per streak level, max 50% — matches arcadeEngine.ts
+      const streakMultiplier = Math.min(streak * 0.10, 0.50);
+      const streakBonus = Math.floor(afterRake * streakMultiplier);
+      const prize = afterRake + streakBonus;
 
       try {
           if (won && prize > 0) {

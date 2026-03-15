@@ -436,6 +436,7 @@ export default function DiamondArcade() {
                         won: result.won,
                         prize: result.won ? result.finalPrize : 0,
                         entryFee: activeGame?.entryFee || 0,
+                        streak: streak || 0,
                         timeSpentMs: activeGame?.durationSeconds ? (activeGame.durationSeconds - timeLeft) * 1000 : 0,
                     }),
                 });

@@ -356,7 +356,7 @@ export const EnhancedPostCreator = ({
     } finally {
       setIsSubmitting(false);
     }
-  }, [content, mediaFiles, visibility, user, supabase, onPostCreated, onClose]);
+  }, [content, mediaFiles, visibility, user, supabase, onPostCreated, onClose, isSubmitting]);
 
   // Success particle effect
   const triggerSuccessParticles = useCallback(() => {

@@ -124,6 +124,9 @@ const SPNavBar = ({
                                             .update({ read: true })
                                             .eq('user_id', authUser.id)
                                             .eq('read', false);
+                                        // Update local state immediately
+                                        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+                                        setUnreadCount(0);
                                     } catch (e) {
                                         console.warn('Mark all read failed:', e.message);
                                     }
