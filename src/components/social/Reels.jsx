@@ -203,6 +203,9 @@ export function ReelsViewer({ onClose }) {
     // Keyboard navigation
     useEffect(() => {
         const handleKey = (e) => {
+            // Skip when typing in any input or textarea
+            const tag = e.target?.tagName?.toLowerCase();
+            if (tag === 'input' || tag === 'textarea') return;
             if (e.key === 'ArrowDown' || e.key === 'ArrowRight') goNext();
             if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') goPrev();
             if (e.key === 'Escape') onClose();
