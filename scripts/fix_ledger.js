@@ -11,10 +11,11 @@ function getPasswordCandidates() {
 }
 
 const passwords = getPasswordCandidates();
-const connStrings = passwords.flatMap(pw => [
-    `postgresql://postgres:${encodeURIComponent(pw)}@db.kuklfnapbkmacvwxktbh.supabase.co:5432/postgres`,
-    `postgresql://postgres.kuklfnapbkmacvwxktbh:${encodeURIComponent(pw)}@aws-0-us-west-2.pooler.supabase.com:5432/postgres`,
-    `postgresql://postgres.kuklfnapbkmacvwxktbh:${encodeURIComponent(pw)}@aws-0-us-east-1.pooler.supabase.com:5432/postgres`
+
+// Build parameter-based configs (avoids encodeURIComponent mangling special chars like !)
+const connConfigs = passwords.flatMap(pw => [
+    { host: 'aws-0-us-west-2.pooler.supabase.com', port: 6543, user: 'postgres.kuklfnapbkmacvwxktbh', password: pw, database: 'postgres' },
+    { host: 'db.kuklfnapbkmacvwxktbh.supabase.co', port: 5432, user: 'postgres', password: pw, database: 'postgres' },
 ]);
 
 const pendingOld = [
@@ -36,14 +37,19 @@ const pendingOld = [
 
 async function run() {
     let client;
-    for (const cs of connStrings) {
+    let connPool;
+    for (const cfg of connConfigs) {
+        let pool;
         try {
-            const p = new Pool({ connectionString: cs, ssl: { rejectUnauthorized: false }, connectionTimeoutMillis: 5000 });
-            client = await p.connect();
+            pool = new Pool({ ...cfg, ssl: { rejectUnauthorized: false }, connectionTimeoutMillis: 10000 });
+            client = await pool.connect();
             await client.query('SELECT 1');
+            connPool = pool;
             console.log('✅ Connected to Postgres');
             break;
-        } catch(e) {}
+        } catch(e) {
+            if (pool) { try { await pool.end(); } catch (_) {} }
+        }
     }
     
     if (!client) {
