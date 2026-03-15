@@ -71,7 +71,7 @@ export default function ClubArenaLobbyPage() {
     try {
       setLoading(true);
       setError(null);
-      const targetClubId = cId || clubId;
+      const targetClubId = cId; // always pass cId explicitly — never read clubId from closure
       if (!targetClubId) { setError('No club selected.'); setLoading(false); return; }
 
       const { supabase } = await import('../../../src/lib/supabase');
@@ -224,7 +224,8 @@ export default function ClubArenaLobbyPage() {
     })();
 
     return () => { cancelled = true; authUnsub?.unsubscribe?.(); };
-  }, [router.isReady, router.query.club, router.query.clubId, loadLobby, loadRecommendations]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router.isReady, router.query.club, router.query.clubId]);
 
   // ── Supabase Realtime: tables channel (replaces 30s polling) ──
   useEffect(() => {
@@ -248,7 +249,8 @@ export default function ClubArenaLobbyPage() {
       clearInterval(fallback);
       channel?.unsubscribe?.();
     };
-  }, [clubId, loadLobby]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clubId]);
 
   // ── Visibility refresh ──────────────────────────────────────
   useEffect(() => {
@@ -256,7 +258,8 @@ export default function ClubArenaLobbyPage() {
     const h = () => { if (document.visibilityState === 'visible') loadLobby(clubId); };
     document.addEventListener('visibilitychange', h);
     return () => document.removeEventListener('visibilitychange', h);
-  }, [clubId, loadLobby]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clubId]);
 
   // ── EventBus: cross-page sync (debounced — prevents rapid-fire refreshes) ──
   useEffect(() => {
@@ -266,7 +269,8 @@ export default function ClubArenaLobbyPage() {
       'TABLE_PAUSED', 'TABLE_RESUMED', 'TABLE_CLOSED', 'CLUB_UPDATED'];
     events.forEach(ev => eventBus.on(ev, debouncedRefresh));
     return () => { debouncedRefresh.cancel(); events.forEach(ev => eventBus.off(ev, debouncedRefresh)); };
-  }, [clubId, loadLobby]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clubId]);
 
   // ── Load waitlist positions once tables are loaded ──────────
   useEffect(() => {
