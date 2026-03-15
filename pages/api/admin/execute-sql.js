@@ -1,4 +1,4 @@
-import { createClient } from '../src/lib/supabaseServerClient';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { Pool } from 'pg';
 
 let _supabase = null;
@@ -66,7 +66,7 @@ export default async function handler(req, res) {
                   return res.status(401).json({ success: false, error: 'Invalid JWT token.' });
               }
 
-              const { data: profile } = await supabase
+              const { data: profile } = await getSupabase()
                   .from('profiles')
                   .select('role')
                   .eq('id', user.id)
@@ -105,7 +105,7 @@ export default async function handler(req, res) {
       ].filter(Boolean);
 
       const uniqueCands = [...new Set(candidates)];
-      const connStrings = uniqueCands.map(pw => `postgresql://postgres.kuklfnapbkmacvwxktbh:${encodeURIComponent(pw)}@aws-0-us-west-2.pooler.getSupabase().com:5432/postgres`);
+      const connStrings = uniqueCands.map(pw => `postgresql://postgres.kuklfnapbkmacvwxktbh:${encodeURIComponent(pw)}@aws-0-us-west-2.pooler.supabase.com:5432/postgres`);
 
       for (const cs of connStrings) {
           let pool;
