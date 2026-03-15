@@ -474,12 +474,14 @@ export default function DiamondArcade() {
         const userId = typeof window !== 'undefined' ? localStorage.getItem('sp-anon-uid') : null;
         if (!userId) {
             setDuelResult({ error: 'Please sign in to play duels' });
+            isDuelingRef.current = false;
             setTimeout(() => setDuelResult(null), 3000);
             return;
         }
         const costs = { 'quick': 25, 'best-of-3': 50, 'high-roller': 100 };
         if (balance < (costs[duelType] || 25)) {
             setDuelResult({ error: 'Not enough diamonds!' });
+            isDuelingRef.current = false;
             setTimeout(() => setDuelResult(null), 3000);
             return;
         }
@@ -514,6 +516,7 @@ export default function DiamondArcade() {
                 setTimeout(() => {
                     setDuelSearching(null);
                     setDuelResult(null);
+                    isDuelingRef.current = false;
                     startGame('hand-snap', { isDuel: true });
                 }, 1500);
             } else {
@@ -543,6 +546,7 @@ export default function DiamondArcade() {
                             setTimeout(() => {
                                 setDuelSearching(null);
                                 setDuelResult(null);
+                                isDuelingRef.current = false;
                                 startGame('hand-snap', { isDuel: true });
                             }, 1500);
                         }
@@ -571,6 +575,7 @@ export default function DiamondArcade() {
                             setTimeout(() => {
                                 setDuelSearching(null);
                                 setDuelResult(null);
+                                isDuelingRef.current = false;
                                 startGame('hand-snap', { isDuel: true });
                             }, 1500);
                         } else if (Date.now() - pollStart >= 30000) {
@@ -580,6 +585,7 @@ export default function DiamondArcade() {
                             duelChannelRef.current = null;
                             setDuelResult({ error: 'No opponent found. Entry fee refunded.' });
                             setDuelSearching(null);
+                            isDuelingRef.current = false;
                             setTimeout(() => setDuelResult(null), 3000);
                         }
                     } catch (pollErr) {
@@ -590,6 +596,7 @@ export default function DiamondArcade() {
                         duelChannelRef.current = null;
                         setDuelResult({ error: 'Matchmaking failed. Try again.' });
                         setDuelSearching(null);
+                        isDuelingRef.current = false;
                         setTimeout(() => setDuelResult(null), 3000);
                     }
                 }, 2000);
@@ -598,10 +605,12 @@ export default function DiamondArcade() {
             console.error('Duel match error:', err);
             setDuelResult({ error: 'Matchmaking failed. Try again.' });
             setDuelSearching(null);
+            isDuelingRef.current = false;
             setTimeout(() => setDuelResult(null), 3000);
         }
         } finally {
-            isDuelingRef.current = false;
+            // Note: isDuelingRef is reset in each terminal path above, not here,
+            // because the poll/Realtime run asynchronously after this block completes.
         }
     }
 
