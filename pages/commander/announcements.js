@@ -9,7 +9,7 @@ import { Send, Users, Clock, CheckCircle, Loader2 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
-import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const QUICK_MESSAGES = [
@@ -67,11 +67,10 @@ export default function CommanderAnnouncementsPage() {
     setSuccess(null);
 
     try {
-      const token = getToken();
-      const staffSession = getStaffSession() || '';
+const staffSession = getStaffSession() || '';
       const res = await commanderFetch('/api/commander/notifications/send', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           venue_id: venueId,
           message: message.trim(),

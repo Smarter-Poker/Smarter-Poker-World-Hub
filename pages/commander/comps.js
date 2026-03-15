@@ -103,7 +103,7 @@ export default function CompSystem() {
   const getHeaders = () => {
     const token = getToken();
     const staffSession = getStaffSession();
-    const headers = { Authorization: `Bearer ${token}` };
+    const headers = { };
     if (staffSession) headers['x-staff-session'] = staffSession;
     return headers;
   };
@@ -239,7 +239,7 @@ export default function CompSystem() {
       const venueId = getVenueId();
       const pinRes = await commanderFetch('/api/commander/staff/verify-pin', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': getStaffSession(), Authorization: `Bearer ${getToken()}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ venue_id: venueId, pin_code: pinCode })
       });
       if (!pinRes.ok) throw new Error(`Request failed (${pinRes.status})`);
@@ -268,7 +268,7 @@ export default function CompSystem() {
       setAwardError('');
       const token = getToken();
       const staffSession = getStaffSession();
-      const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+      const headers = { 'Content-Type': 'application/json' };
       if (staffSession) headers['x-staff-session'] = staffSession;
 
       const catLabel = COMP_CATEGORIES.find(c => c.key === selectedCategory)?.label || selectedCategory;
@@ -291,8 +291,7 @@ export default function CompSystem() {
           ? `📍 ${compLocation}${compNotes ? ' — ' + compNotes : ''}`
           : (compNotes || ''),
         authorized_by: authorizerName,
-        authorized_pin: true,
-      };
+        authorized_pin: true };
       if (isMembership) {
         body.membership_days = parseInt(compAmount);
       }
@@ -452,7 +451,7 @@ export default function CompSystem() {
     var venueId = getVenueId();
     commanderFetch('/api/commander/staff/verify-pin', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-staff-session': getStaffSession(), Authorization: `Bearer ${getToken()}` },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ venue_id: venueId, pin_code: voidPinCode })
     }).then(r => { if (!r.ok) throw new Error('fail'); return r; })
       .then(function (r) { return r.json(); })

@@ -14,7 +14,7 @@ import {
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
-import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const GAME_LABELS = { nlh: 'NLH', plo: 'PLO', plo5: 'PLO5', NLH: 'NLH', PLO: 'PLO', mixed: 'Mixed', limit: 'Limit', stud: 'Stud', razz: 'Razz', other: 'Other' };
@@ -56,10 +56,7 @@ export default function MustMoveManager() {
     if (!venueId) return;
     setLoading(true);
     try {
-      const res = await commanderFetch(`/api/commander/games/must-move-status?venue_id=${venueId}`, {
-        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
-        ...(signal ? { signal } : {}),
-      });
+      const res = await commanderFetch(`/api/commander/games/must-move-status?venue_id=${venueId}`, { ...(signal ? { signal } : {}) });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) setData(json.data);
@@ -85,9 +82,7 @@ export default function MustMoveManager() {
     setActionLoading(gameId);
     try {
       const res = await commanderFetch(`/api/commander/games/${gameId}/must-move`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
-      });
+        method: 'DELETE'});
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
@@ -107,7 +102,7 @@ export default function MustMoveManager() {
     try {
       const res = await commanderFetch('/api/commander/games/must-move-status', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ must_move_game_id: mustMoveGameId, target_game_id: targetGameId })
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -142,13 +137,11 @@ export default function MustMoveManager() {
         <div style={{
           background: '#242526', borderBottom: '1px solid #3A3B3C',
           padding: '16px 20px',
-          display: 'flex', alignItems: 'center', gap: 12,
-        }}>
+          display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{
             width: 40, height: 40, borderRadius: 10,
             background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
+            display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <ArrowRightLeft size={20} color="#F59E0B" />
           </div>
           <div style={{ flex: 1 }}>
@@ -159,8 +152,7 @@ export default function MustMoveManager() {
           </div>
           <button onClick={fetchData} style={{
             padding: 8, borderRadius: 8, background: '#3A3B3C', border: '1px solid #4E4F50',
-            cursor: 'pointer', color: '#B0B3B8',
-          }}>
+            cursor: 'pointer', color: '#B0B3B8' }}>
             <RefreshCw size={16} />
           </button>
         </div>
@@ -172,8 +164,7 @@ export default function MustMoveManager() {
             display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600,
             background: message.type === 'success' ? 'rgba(49,162,76,0.12)' : 'rgba(239,68,68,0.12)',
             color: message.type === 'success' ? '#4ADE80' : '#F87171',
-            border: `1px solid ${message.type === 'success' ? 'rgba(49,162,76,0.3)' : 'rgba(239,68,68,0.3)'}`,
-          }}>
+            border: `1px solid ${message.type === 'success' ? 'rgba(49,162,76,0.3)' : 'rgba(239,68,68,0.3)'}` }}>
             {message.type === 'success' ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}
             {message.text}
           </div>
@@ -189,8 +180,7 @@ export default function MustMoveManager() {
             {/* How Chain-Based Must-Move Works */}
             <div style={{
               background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)',
-              borderRadius: 14, padding: '14px 16px',
-            }}>
+              borderRadius: 14, padding: '14px 16px' }}>
               <p style={{ fontSize: 13, color: '#B0B3B8', margin: 0, lineHeight: 1.6 }}>
                 <span style={{ color: '#F59E0B', fontWeight: 700 }}>Chain Movement:</span> Players move
                 <strong style={{ color: '#F59E0B' }}> one table at a time</strong> toward the main game.
@@ -207,13 +197,11 @@ export default function MustMoveManager() {
               return (
                 <div key={gi} style={{
                   background: '#242526', border: '1px solid #3A3B3C',
-                  borderRadius: 14, overflow: 'hidden',
-                }}>
+                  borderRadius: 14, overflow: 'hidden' }}>
                   {/* Group Header */}
                   <div style={{
                     padding: '14px 18px', borderBottom: '1px solid #3A3B3C',
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  }}>
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div>
                       <div style={{ fontSize: 16, fontWeight: 800, color: '#E4E6EB' }}>
                         {gameLabel}
@@ -227,8 +215,7 @@ export default function MustMoveManager() {
                         display: 'flex', alignItems: 'center', gap: 4,
                         padding: '4px 10px', borderRadius: 8,
                         background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.3)',
-                        color: '#A78BFA', fontSize: 11, fontWeight: 700,
-                      }}>
+                        color: '#A78BFA', fontSize: 11, fontWeight: 700 }}>
                         <List size={12} /> {group.waitlist_count} Waiting
                       </div>
                     )}
@@ -240,8 +227,7 @@ export default function MustMoveManager() {
                     display: 'flex',
                     gap: 0,
                     overflowX: 'auto',
-                    WebkitOverflowScrolling: 'touch',
-                  }}>
+                    WebkitOverflowScrolling: 'touch' }}>
 
                     {/* Render chain in REVERSE order: furthest table first (left) → main game last (right) */}
                     {[...chain].reverse().map((game, revIdx) => {
@@ -262,14 +248,12 @@ export default function MustMoveManager() {
                             background: isMain ? 'rgba(49,162,76,0.06)' : isLinked ? 'rgba(245,158,11,0.04)' : '#2D2E2F',
                             borderRadius: 12,
                             display: 'flex', flexDirection: 'column',
-                            overflow: 'hidden',
-                          }}>
+                            overflow: 'hidden' }}>
                             {/* Card Header */}
                             <div style={{
                               padding: '12px 14px',
                               borderBottom: `1px solid ${isMain ? 'rgba(49,162,76,0.2)' : 'rgba(58,59,60,0.6)'}`,
-                              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                            }}>
+                              display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                 {isMain ? <Crown size={16} color="#31A24C" /> : <ArrowRightLeft size={14} color="#F59E0B" />}
                                 <div>
@@ -279,8 +263,7 @@ export default function MustMoveManager() {
                                   <div style={{
                                     fontSize: 10, fontWeight: 700, letterSpacing: 0.5,
                                     color: isMain ? '#4ADE80' : '#F59E0B',
-                                    textTransform: 'uppercase',
-                                  }}>
+                                    textTransform: 'uppercase' }}>
                                     {isMain ? 'Main Game' : `${ordinal(chainIdx)} Table → T${targetGame?.table_number}`}
                                   </div>
                                 </div>
@@ -292,16 +275,14 @@ export default function MustMoveManager() {
                                 {!isMain && (
                                   <div style={{
                                     fontSize: 10, fontWeight: 700,
-                                    color: targetOpenSeats > 0 ? '#4ADE80' : '#F87171',
-                                  }}>
+                                    color: targetOpenSeats > 0 ? '#4ADE80' : '#F87171' }}>
                                     {targetOpenSeats > 0 ? `${targetOpenSeats} Open At T${targetGame?.table_number}` : `T${targetGame?.table_number} Full`}
                                   </div>
                                 )}
                                 {isMain && (
                                   <div style={{
                                     fontSize: 10, fontWeight: 700,
-                                    color: (game.max_seats - game.player_count) > 0 ? '#4ADE80' : '#F87171',
-                                  }}>
+                                    color: (game.max_seats - game.player_count) > 0 ? '#4ADE80' : '#F87171' }}>
                                     {(game.max_seats - game.player_count) > 0 ? `${game.max_seats - game.player_count} Open` : 'Full'}
                                   </div>
                                 )}
@@ -323,8 +304,7 @@ export default function MustMoveManager() {
                                   <div style={{
                                     fontSize: 10, fontWeight: 700, color: '#8A8D91',
                                     textTransform: 'uppercase', letterSpacing: 0.8,
-                                    marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4,
-                                  }}>
+                                    marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
                                     <Users size={10} /> {gameLabel} Must Move List
                                   </div>
                                   <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -335,23 +315,20 @@ export default function MustMoveManager() {
                                           display: 'flex', alignItems: 'center', gap: 6,
                                           padding: '6px 8px', borderRadius: 8,
                                           background: isNext ? 'rgba(24,119,242,0.1)' : 'transparent',
-                                          border: isNext ? '1px solid rgba(24,119,242,0.25)' : '1px solid transparent',
-                                        }}>
+                                          border: isNext ? '1px solid rgba(24,119,242,0.25)' : '1px solid transparent' }}>
                                           <div style={{
                                             width: 20, height: 20, borderRadius: 5,
                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                                             fontSize: 10, fontWeight: 800, flexShrink: 0,
                                             background: isNext ? '#1877F2' : '#3A3B3C',
-                                            color: isNext ? '#fff' : '#8A8D91',
-                                          }}>
+                                            color: isNext ? '#fff' : '#8A8D91' }}>
                                             {idx + 1}
                                           </div>
                                           <div style={{ flex: 1, minWidth: 0 }}>
                                             <div style={{
                                               fontSize: 12, fontWeight: isNext ? 700 : 500,
                                               color: isNext ? '#E4E6EB' : '#B0B3B8',
-                                              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                                            }}>
+                                              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                               {seat.player_name || 'Unknown'}
                                             </div>
                                             <div style={{ fontSize: 9, color: '#8A8D91' }}>
@@ -364,8 +341,7 @@ export default function MustMoveManager() {
                                               background: targetOpenSeats > 0 ? '#1877F2' : 'rgba(239,68,68,0.15)',
                                               color: targetOpenSeats > 0 ? '#fff' : '#F87171',
                                               fontSize: 9, fontWeight: 800, textTransform: 'uppercase',
-                                              whiteSpace: 'nowrap',
-                                            }}>
+                                              whiteSpace: 'nowrap' }}>
                                               {targetOpenSeats > 0 ? 'Next' : 'Wait'}
                                             </div>
                                           )}
@@ -390,8 +366,7 @@ export default function MustMoveManager() {
                             {!isMain && (
                               <div style={{
                                 padding: '8px 12px 12px',
-                                display: 'flex', gap: 6, borderTop: '1px solid rgba(58,59,60,0.5)',
-                              }}>
+                                display: 'flex', gap: 6, borderTop: '1px solid rgba(58,59,60,0.5)' }}>
                                 {isLinked ? (
                                   <>
                                     <button onClick={() => movePlayer(game.id, targetGame.id)}
@@ -403,8 +378,7 @@ export default function MustMoveManager() {
                                         color: canMove ? '#fff' : '#8A8D91',
                                         border: 'none',
                                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
-                                        opacity: moveLoading === game.id ? 0.6 : 1,
-                                      }}>
+                                        opacity: moveLoading === game.id ? 0.6 : 1 }}>
                                       {moveLoading === game.id
                                         ? <Loader2 size={12} className="animate-spin" />
                                         : <ArrowRight size={12} />}
@@ -418,8 +392,7 @@ export default function MustMoveManager() {
                                         padding: '8px 10px', borderRadius: 8, cursor: 'pointer',
                                         background: '#3A3B3C', color: '#B0B3B8',
                                         border: 'none', fontSize: 11, fontWeight: 600,
-                                        display: 'flex', alignItems: 'center', gap: 3,
-                                      }}>
+                                        display: 'flex', alignItems: 'center', gap: 3 }}>
                                       {actionLoading === game.id ? <Loader2 size={10} className="animate-spin" /> : <Unlink size={10} />}
                                       Unlink
                                     </button>
@@ -435,11 +408,9 @@ export default function MustMoveManager() {
                           {revIdx < chain.length - 1 && (
                             <div style={{
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              padding: '0 8px', flexShrink: 0,
-                            }}>
+                              padding: '0 8px', flexShrink: 0 }}>
                               <div style={{
-                                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-                              }}>
+                                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
                                 <ChevronRight size={20} color="#F59E0B" />
                                 <div style={{ fontSize: 9, color: '#8A8D91', fontWeight: 600, whiteSpace: 'nowrap' }}>
                                   Move
@@ -456,8 +427,7 @@ export default function MustMoveManager() {
             }) : (
               <div style={{
                 background: '#242526', border: '1px solid #3A3B3C',
-                borderRadius: 14, padding: 40, textAlign: 'center',
-              }}>
+                borderRadius: 14, padding: 40, textAlign: 'center' }}>
                 <ArrowRightLeft size={40} color="#3A3B3C" style={{ margin: '0 auto 12px' }} />
                 <p style={{ color: '#B0B3B8', fontSize: 14, margin: '0 0 4px' }}>No Must-Move Games Active</p>
                 <p style={{ color: '#8A8D91', fontSize: 12, margin: 0 }}>
@@ -470,20 +440,17 @@ export default function MustMoveManager() {
             {singles.length > 0 && (
               <div style={{
                 background: '#242526', border: '1px solid #3A3B3C',
-                borderRadius: 14, padding: 16,
-              }}>
+                borderRadius: 14, padding: 16 }}>
                 <div style={{
                   fontSize: 13, fontWeight: 700, color: '#B0B3B8',
-                  marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6,
-                }}>
+                  marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
                   <Hash size={14} /> Single-Table Games ({singles.length})
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {singles.map(g => (
                     <div key={g.id} style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      padding: '10px 12px', background: '#3A3B3C', borderRadius: 8,
-                    }}>
+                      padding: '10px 12px', background: '#3A3B3C', borderRadius: 8 }}>
                       <div>
                         <div style={{ fontSize: 13, fontWeight: 600, color: '#E4E6EB' }}>
                           {GAME_LABELS[g.game_type] || g.game_type} {g.stakes}

@@ -12,7 +12,7 @@ import { Trophy, Plus, Users, Calendar, DollarSign, Loader2, ChevronDown, Chevro
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
-import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 /* ───────── Status colors ───────── */
@@ -23,8 +23,7 @@ const STATUS_COLORS = {
   qualifying: { bg: 'bg-[#1877F2]/10', text: 'text-[#1877F2]' },
   closed: { bg: 'bg-[#EF4444]/10', text: 'text-[#EF4444]' },
   running: { bg: 'bg-[#31A24C]/10', text: 'text-[#31A24C]' },
-  cancelled: { bg: 'bg-[#64748B]/10', text: 'text-[#64748B]' },
-};
+  cancelled: { bg: 'bg-[#64748B]/10', text: 'text-[#64748B]' } };
 
 const QUAL_TYPES = [
   { value: 'cash_hours', label: 'Cash Game Hours' },
@@ -98,10 +97,7 @@ export default function LeaguesAndFreerollsManagement() {
   const fetchLeagues = useCallback(async (signal) => {
     setLeaguesLoading(true);
     try {
-      const res = await commanderFetch('/api/commander/leagues?limit=50', {
-        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
-        ...(signal ? { signal } : {}),
-      });
+      const res = await commanderFetch('/api/commander/leagues?limit=50', { ...(signal ? { signal } : {}) });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) setLeagues(json.data?.leagues || []);
@@ -113,10 +109,7 @@ export default function LeaguesAndFreerollsManagement() {
   const fetchFreerolls = useCallback(async (signal) => {
     setFreerollsLoading(true);
     try {
-      const res = await commanderFetch('/api/commander/freerolls?limit=50', {
-        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
-        ...(signal ? { signal } : {}),
-      });
+      const res = await commanderFetch('/api/commander/freerolls?limit=50', { ...(signal ? { signal } : {}) });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) setFreerolls(json.data?.freerolls || []);
@@ -144,9 +137,7 @@ export default function LeaguesAndFreerollsManagement() {
   /* ── League standings ── */
   const fetchStandings = async (leagueId) => {
     try {
-      const res = await commanderFetch(`/api/commander/leagues/${leagueId}/standings`, {
-        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
-      });
+      const res = await commanderFetch(`/api/commander/leagues/${leagueId}/standings`, {});
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
@@ -178,7 +169,7 @@ export default function LeaguesAndFreerollsManagement() {
       };
       const res = await commanderFetch('/api/commander/leagues', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -199,9 +190,7 @@ export default function LeaguesAndFreerollsManagement() {
   /* ── Freeroll qualifications ── */
   const fetchQualifications = async (freerollId) => {
     try {
-      const res = await commanderFetch(`/api/commander/freerolls/${freerollId}/qualifications`, {
-        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
-      });
+      const res = await commanderFetch(`/api/commander/freerolls/${freerollId}/qualifications`, {});
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
@@ -236,7 +225,7 @@ export default function LeaguesAndFreerollsManagement() {
       };
       const res = await commanderFetch('/api/commander/freerolls', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -269,11 +258,10 @@ export default function LeaguesAndFreerollsManagement() {
         points_earned: addPlayerForm.points_earned ? parseInt(addPlayerForm.points_earned) : 0,
         custom_value: addPlayerForm.custom_value || null,
         manually_added: true,
-        is_qualified: addPlayerForm.manually_added,
-      };
+        is_qualified: addPlayerForm.manually_added };
       const res = await commanderFetch(`/api/commander/freerolls/${freerollId}/qualifications`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -297,9 +285,7 @@ export default function LeaguesAndFreerollsManagement() {
       const res = await fetch('/api/cron/freeroll-qualification-sync', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${getToken()}`,
-          'x-staff-session': getStaffSession()
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ freeroll_id: freerollId, manual: true })
       });
@@ -322,9 +308,7 @@ export default function LeaguesAndFreerollsManagement() {
     if (!confirm(`Remove ${playerName || 'this player'} from qualifications?`)) return;
     try {
       const res = await commanderFetch(`/api/commander/freerolls/${freerollId}/qualifications?player_id=${playerId}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
-      });
+        method: 'DELETE'});
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {

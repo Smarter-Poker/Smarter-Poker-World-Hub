@@ -18,7 +18,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import useWakeLock from '../../src/hooks/useWakeLock';
 import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
-import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 export default function LobbyDisplay() {
@@ -36,9 +36,8 @@ export default function LobbyDisplay() {
   const fetchData = useCallback(async (signal) => {
     if (!venueId) return;
     try {
-      const token = getToken();
-      const staffSession = getStaffSession() || '';
-      const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
+const staffSession = getStaffSession() || '';
+      const headers = { };
       const opts = signal ? { headers, signal } : { headers };
       const [tablesRes, waitlistRes, tournamentsRes] = await Promise.all([
         fetch(`/api/commander/tables?venue_id=${venueId}`, opts).then(r => r.json()).catch(() => ({ data: [] })),
@@ -78,8 +77,6 @@ export default function LobbyDisplay() {
 
   // Cross-tab + cross-device real-time sync
   useCommanderSync(venueId, fetchData, { entities: ['tables', 'waitlist', 'games', 'tournaments'] });
-
-
 
   const goFullscreen = () => document.documentElement.requestFullscreen?.();
 

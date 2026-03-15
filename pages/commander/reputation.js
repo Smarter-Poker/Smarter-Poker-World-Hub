@@ -10,7 +10,7 @@ import { Star, Loader2, ChevronDown, ChevronUp, Plus, X, Send } from 'lucide-rea
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../src/engine/EventBus';
 import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
-import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const RATING_LABELS = {
@@ -55,11 +55,8 @@ export default function PlayerReputation() {
   const fetchScores = async (signal) => {
     setLoading(true);
     try {
-      const token = getToken();
-      const staffSession = getStaffSession() || '';
-      const res = await commanderFetch(`/api/commander/reputation?venue_id=${staff.venue_id}`, {
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
-      });
+const staffSession = getStaffSession() || '';
+      const res = await commanderFetch(`/api/commander/reputation?venue_id=${staff.venue_id}`, {});
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) setScores(json.data.scores || []);
@@ -69,11 +66,8 @@ export default function PlayerReputation() {
 
   const fetchReviews = async (playerId) => {
     try {
-      const token = getToken();
-      const staffSession = getStaffSession() || '';
-      const res = await commanderFetch(`/api/commander/reputation?player_id=${playerId}`, {
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
-      });
+const staffSession = getStaffSession() || '';
+      const res = await commanderFetch(`/api/commander/reputation?player_id=${playerId}`, {});
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
@@ -96,11 +90,10 @@ export default function PlayerReputation() {
     if (!showReviewForm) return;
     setSubmitting(true);
     try {
-      const token = getToken();
-      const staffSession = getStaffSession() || '';
+const staffSession = getStaffSession() || '';
       const res = await commanderFetch('/api/commander/reputation', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           player_id: showReviewForm,
           reviewer_id: staff.id || staff.user_id,

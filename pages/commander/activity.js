@@ -20,7 +20,7 @@ import { RefreshCw, Loader2, UserCheck, LogIn, LogOut, Clock, AlertTriangle, Use
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
-import { getToken, getStaffSession, getVenueId } from '../../src/lib/commander/clientAuth';
+import { getStaffSession, getVenueId } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const EVENT_TYPES = {
@@ -85,11 +85,10 @@ export default function ActivityFeed() {
 
   const fetchEvents = async () => {
     try {
-      const token = getToken();
-      const staffSession = getStaffSession() || '';
+const staffSession = getStaffSession() || '';
       let venueId = '';
       try { venueId = JSON.parse(staffSession).venue_id || ''; } catch (e) { /* silent */ }
-      const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
+      const headers = { };
 
       // Aggregate from multiple sources for the activity feed
       const [incidents, checkins, sessions, waitlist] = await Promise.all([

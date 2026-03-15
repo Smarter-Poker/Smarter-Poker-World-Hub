@@ -17,7 +17,7 @@ import { Calendar, Users, Plus, X, Clock, Send, ChevronLeft, ChevronRight, Loade
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
-import { getToken, getStaffSession, getVenueId } from '../../src/lib/commander/clientAuth'
+import { getStaffSession, getVenueId } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 // ═══════════════════════════════════════════════════════════════
@@ -143,8 +143,7 @@ const SHIFT_PATTERNS = {
   manager: [
     { start: '10:00', end: '20:00' },
     { start: '14:00', end: '00:00' },
-  ],
-};
+  ] };
 
 // Staff weekly schedule patterns (which days each person works)
 const STAFF_SCHEDULES = {
@@ -173,8 +172,7 @@ const STAFF_SHIFT_IDX = {
   'demo-f1': 0, 'demo-f2': 1, 'demo-f3': 2,
   'demo-c1': 0, 'demo-c2': 1, 'demo-c3': 2,
   'demo-s1': 0, 'demo-s2': 1, 'demo-s3': 2,
-  'demo-m1': 0,
-};
+  'demo-m1': 0 };
 
 function generateMockShifts() {
   const shifts = [];
@@ -204,8 +202,7 @@ function generateMockShifts() {
           shift_date: dateStr,
           start_time: shift.start,
           end_time: shift.end,
-          notes: null,
-        });
+          notes: null });
       }
     }
   }
@@ -239,9 +236,8 @@ export default function StaffSchedule() {
   const lastWriteRef = useRef(0);
   const WRITE_COOLDOWN_MS = 2000;
   const getHeaders = () => {
-    const token = getToken();
-    const staffSession = getStaffSession() || '';
-    return { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession, 'Content-Type': 'application/json' };
+const staffSession = getStaffSession() || '';
+    return { 'Content-Type': 'application/json' };
   };
 
   // Fetch shifts + staff
@@ -321,8 +317,7 @@ export default function StaffSchedule() {
       // Add to mock shifts locally
       const newShift = {
         id: `mock-new-${Date.now()}`,
-        ...data,
-      };
+        ...data };
       setShifts(prev => [...prev, newShift]);
       setShowAddModal(false);
       showToast('Shift added', 'success');
@@ -513,8 +508,7 @@ export default function StaffSchedule() {
                     cursor: 'pointer', transition: 'all 0.15s',
                     border: roleFilter === f.value ? `1px solid ${f.color}60` : '1px solid #4A4B4C',
                     background: roleFilter === f.value ? `${f.color}25` : '#3A3B3C',
-                    color: roleFilter === f.value ? f.color : '#B0B3B8',
-                  }}
+                    color: roleFilter === f.value ? f.color : '#B0B3B8' }}
                 >
                   {titleCase(f.label)} ({count})
                 </button>
@@ -807,8 +801,7 @@ function AddShiftModal({ allStaff, defaultDate, defaultStaffId, weekDays, onClos
                     border: 'none', textAlign: 'center',
                     background: date === day.date ? '#1877F2' : day.isToday ? '#1877F210' : '#3A3B3C',
                     color: date === day.date ? 'white' : day.isToday ? '#1877F2' : '#B0B3B8',
-                    outline: day.isToday && date !== day.date ? '1px solid #1877F230' : 'none',
-                  }}>
+                    outline: day.isToday && date !== day.date ? '1px solid #1877F230' : 'none' }}>
                   <p style={{ margin: 0 }}>{day.label}</p>
                   <p style={{ margin: 0, fontSize: 14, fontWeight: 800 }}>{day.dayNum}</p>
                 </button>
@@ -827,8 +820,7 @@ function AddShiftModal({ allStaff, defaultDate, defaultStaffId, weekDays, onClos
                     padding: '4px 10px', borderRadius: 16, fontSize: 12, fontWeight: 600, cursor: 'pointer',
                     border: startTime === p.start && endTime === p.end ? '1px solid #1877F260' : '1px solid #4A4B4C',
                     background: startTime === p.start && endTime === p.end ? '#1877F2' : '#3A3B3C',
-                    color: startTime === p.start && endTime === p.end ? 'white' : '#B0B3B8',
-                  }}>
+                    color: startTime === p.start && endTime === p.end ? 'white' : '#B0B3B8' }}>
                   {titleCase(p.label)}
                 </button>
               ))}

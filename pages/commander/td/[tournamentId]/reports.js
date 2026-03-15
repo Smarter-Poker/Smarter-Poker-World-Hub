@@ -10,7 +10,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import CommanderLayout from '../../../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../../../src/engine/EventBus';
-import { getToken, getStaffSession } from '../../../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../../../src/lib/commander/clientAuth';
 import {
     Trophy, Users, DollarSign, LayoutGrid, Monitor,
     FileText, Download, Loader2, ClipboardList,
@@ -48,15 +48,11 @@ export default function TDReports() {
     const [loading, setLoading] = useState(true);
     const [reportData, setReportData] = useState(null);
 
-
-
     const fetchReport = useCallback(async (type) => {
         if (!tournamentId) return;
         setLoading(true);
         try {
-            const res = await fetch(`/api/commander/tournaments/${tournamentId}/reports?type=${type}`, {
-                headers: { 'x-staff-session': getStaffSession(), Authorization: `Bearer ${getToken()}` }
-            });
+            const res = await fetch(`/api/commander/tournaments/${tournamentId}/reports?type=${type}`, {});
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) setReportData(json.data);

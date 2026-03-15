@@ -26,8 +26,7 @@ const STATUS_CONFIG = {
   setup: { label: 'In Setup', color: 'bg-teal-500', textColor: 'text-teal-400' },
   live: { label: 'Live', color: 'bg-green-500', textColor: 'text-green-400' },
   declined: { label: 'Declined', color: 'bg-red-500', textColor: 'text-red-400' },
-  lost: { label: 'Lost', color: 'bg-gray-500', textColor: 'text-gray-400' },
-};
+  lost: { label: 'Lost', color: 'bg-gray-500', textColor: 'text-gray-400' } };
 
 export default function LeadManagementPage() {
   useEffect(() => { busEmit.sessionStart('commander-admin-leads'); }, []);
@@ -57,9 +56,7 @@ export default function LeadManagementPage() {
     try {
       const token = getToken();
       const staffSession = getStaffSession() || '';
-      const res = await commanderFetch(`/api/commander/admin/leads?status=${statusFilter}`, {
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
-      });
+      const res = await commanderFetch(`/api/commander/admin/leads?status=${statusFilter}`, {});
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
@@ -81,9 +78,8 @@ export default function LeadManagementPage() {
       const staffSession = getStaffSession() || '';
       const res = await commanderFetch('/api/commander/admin/leads', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
-        body: JSON.stringify({ id: leadId, status: newStatus }),
-      });
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: leadId, status: newStatus }) });
       if (!res.ok) throw new Error('Request failed');
       const data = await res.json();
       if (data.success) {

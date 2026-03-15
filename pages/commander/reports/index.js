@@ -10,7 +10,7 @@ import { BarChart3, Users, Trophy, Clock, DollarSign, FileText, Activity, Chevro
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../../src/engine/EventBus';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
 
 const REPORTS = [
@@ -91,11 +91,8 @@ export default function ReportsPage() {
         const controller = new AbortController();
         const { signal } = controller;
       try {
-        const token = getToken();
-        const staffSession = getStaffSession() || '';
-        const res = await fetch(`/api/commander/reports/summary?range=${dateRange}`, {
-          headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
-        });
+const staffSession = getStaffSession() || '';
+        const res = await fetch(`/api/commander/reports/summary?range=${dateRange}`, {});
         if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const json = await res.json();
         if (json.success) setSummary(json.data);

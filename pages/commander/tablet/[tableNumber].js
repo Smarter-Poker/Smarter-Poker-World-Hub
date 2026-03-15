@@ -71,8 +71,7 @@ function computeSeatPositions(maxSeats) {
         const angle = startAngle + (idx / STEPS) * 2 * Math.PI;
         allPos.push({
             top: `${cyE + ry * Math.sin(angle)}%`,
-            left: `${cxE + rx * Math.cos(angle)}%`,
-        });
+            left: `${cxE + rx * Math.cos(angle)}%` });
     }
     const dealerPos = allPos[0];
     const seatPositions = allPos.slice(1);
@@ -187,8 +186,7 @@ export default function TabletDisplay() {
             commanderFetch('/api/commander/displays/heartbeat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ table_number: parseInt(tableNumber), venue_id: venueId, device_type: 'tablet' }),
-            }).then(res => { if (!res.ok) console.warn('Heartbeat failed'); }).catch(() => { });
+                body: JSON.stringify({ table_number: parseInt(tableNumber), venue_id: venueId, device_type: 'tablet' }) }).then(res => { if (!res.ok) console.warn('Heartbeat failed'); }).catch(() => { });
         };
         sendHeartbeat();
         const hb = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL);
@@ -206,28 +204,24 @@ export default function TabletDisplay() {
                 event: '*',
                 schema: 'public',
                 table: 'commander_table_sessions',
-                filter: `table_number=eq.${tableNumber}`,
-            }, () => fetchData())
+                filter: `table_number=eq.${tableNumber}` }, () => fetchData())
             .on('postgres_changes', {
                 event: '*',
                 schema: 'public',
                 table: 'commander_dealer_rotations',
-                filter: `table_number=eq.${tableNumber}`,
-            }, () => fetchData())
+                filter: `table_number=eq.${tableNumber}` }, () => fetchData())
             .on('postgres_changes', {
                 event: '*',
                 schema: 'public',
                 table: 'commander_games',
-                filter: `venue_id=eq.${venueId}`,
-            }, () => fetchData())
+                filter: `venue_id=eq.${venueId}` }, () => fetchData())
             .on('postgres_changes', {
                 // Tournament players moved by auto-break: new entrant has to_table = this table.
                 // Filter on table_number so only changes relevant to THIS seat appear.
                 event: '*',
                 schema: 'public',
                 table: 'commander_tournament_entries',
-                filter: `table_number=eq.${tableNumber}`,
-            }, () => fetchData())
+                filter: `table_number=eq.${tableNumber}` }, () => fetchData())
             .subscribe();
 
 
@@ -306,14 +300,12 @@ export default function TabletDisplay() {
                                     alt="Poker Table"
                                     style={{
                                         position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-                                        objectFit: 'contain', pointerEvents: 'none', zIndex: 0,
-                                    }} />
+                                        objectFit: 'contain', pointerEvents: 'none', zIndex: 0 }} />
 
                                 {/* Center info */}
                                 <div style={{
                                     position: 'absolute', top: '48%', left: '50%',
-                                    transform: 'translate(-50%, -50%)', zIndex: 5, textAlign: 'center',
-                                }}>
+                                    transform: 'translate(-50%, -50%)', zIndex: 5, textAlign: 'center' }}>
                                     <div style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 6 }}>
                                         {venueName || 'Poker Room'}
                                     </div>
@@ -333,16 +325,14 @@ export default function TabletDisplay() {
                                 {/* Dealer badge */}
                                 <div style={{
                                     position: 'absolute', top: dealerPos.top, left: dealerPos.left,
-                                    transform: 'translate(-50%, -50%)', textAlign: 'center', width: 100, zIndex: 3,
-                                }}>
+                                    transform: 'translate(-50%, -50%)', textAlign: 'center', width: 100, zIndex: 3 }}>
                                     <div style={{
                                         width: 76, height: 76, borderRadius: '50%', margin: '0 auto 6px',
                                         background: dealer ? 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)' : 'rgba(62,64,66,0.5)',
                                         border: '3px solid #E4E6EB',
                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                                         boxShadow: '0 2px 16px rgba(0,0,0,0.6), 0 0 20px rgba(24,119,242,0.3)',
-                                        overflow: 'hidden',
-                                    }}>
+                                        overflow: 'hidden' }}>
                                         {dealer?.photo_url ? (
                                             <img src={dealer.photo_url} alt={dealer.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                         ) : (
@@ -396,8 +386,7 @@ export default function TabletDisplay() {
                                             border: `2px solid ${borderColor}`,
                                             backdropFilter: 'blur(8px)',
                                             minWidth: 90,
-                                            animation: isExpired ? 'pulse-border 1.5s ease-in-out infinite' : 'none',
-                                        }}>
+                                            animation: isExpired ? 'pulse-border 1.5s ease-in-out infinite' : 'none' }}>
                                             {/* Avatar circle */}
                                             <div style={{
                                                 width: 60, height: 60, borderRadius: '50%', flexShrink: 0,
@@ -406,8 +395,7 @@ export default function TabletDisplay() {
                                                     ? 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)'
                                                     : 'rgba(255,255,255,0.06)',
                                                 border: `2px solid ${borderColor}`,
-                                                overflow: 'hidden',
-                                            }}>
+                                                overflow: 'hidden' }}>
                                                 {isOccupied ? (
                                                     <span style={{ fontSize: 26, fontWeight: 800, color: '#fff' }}>{firstName.charAt(0).toUpperCase()}</span>
                                                 ) : (
@@ -420,15 +408,13 @@ export default function TabletDisplay() {
                                                     fontSize: 15, fontWeight: 600, lineHeight: 1.2,
                                                     color: isOccupied ? '#E4E6EB' : '#6B7280',
                                                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                                                    maxWidth: 140,
-                                                }}>
+                                                    maxWidth: 140 }}>
                                                     {isOccupied ? fullName : 'Open'}
                                                 </div>
                                                 {timerText && (
                                                     <div style={{
                                                         fontSize: 14, fontWeight: 700, color: timerColor,
-                                                        fontFamily: 'monospace', lineHeight: 1.3,
-                                                    }}>
+                                                        fontFamily: 'monospace', lineHeight: 1.3 }}>
                                                         {timerText}
                                                     </div>
                                                 )}
@@ -454,8 +440,7 @@ export default function TabletDisplay() {
                         position: 'absolute', bottom: 60, left: '50%', transform: 'translateX(-50%)',
                         padding: '8px 20px', borderRadius: 12,
                         background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)',
-                        color: '#EF4444', fontSize: 13, fontWeight: 600, zIndex: 20,
-                    }}>
+                        color: '#EF4444', fontSize: 13, fontWeight: 600, zIndex: 20 }}>
                         {error}
                     </div>
                 )}
@@ -483,5 +468,4 @@ const fullScreenStyle = {
     display: 'flex', flexDirection: 'column',
     background: '#0A0A0A', color: '#E4E6EB',
     fontFamily: 'Inter, sans-serif',
-    overflow: 'hidden',
-};
+    overflow: 'hidden' };

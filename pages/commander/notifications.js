@@ -10,7 +10,7 @@ import { Bell, BellOff, CheckCheck, Loader2, RefreshCw, Trash2, Trophy, Users, D
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../src/engine/EventBus';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
-import { getToken, getStaffSession, getVenueId } from '../../src/lib/commander/clientAuth'
+import { getStaffSession, getVenueId } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const TYPE_CONFIG = {
@@ -28,8 +28,7 @@ const PRIORITY_CONFIG = {
   urgent: { color: '#EF4444', label: 'Urgent', bg: 'rgba(239,68,68,0.15)' },
   high: { color: '#F59E0B', label: 'Important', bg: 'rgba(245,158,11,0.12)' },
   normal: { color: '#1877F2', label: 'Normal', bg: 'rgba(24,119,242,0.08)' },
-  low: { color: '#6A6B6D', label: 'Low', bg: 'rgba(255,255,255,0.04)' },
-};
+  low: { color: '#6A6B6D', label: 'Low', bg: 'rgba(255,255,255,0.04)' } };
 
 const ANNOUNCEMENT_TYPES = [
   { value: 'general', label: 'General' },
@@ -71,8 +70,7 @@ export default function NotificationCenter() {
   const [editingAnnouncement, setEditingAnnouncement] = useState(null);
   const [savingAnnouncement, setSavingAnnouncement] = useState(false);
   const [formData, setFormData] = useState({
-    title: '', message: '', priority: 'normal', type: 'general', expires_at: '', starts_at: '',
-  });
+    title: '', message: '', priority: 'normal', type: 'general', expires_at: '', starts_at: '' });
   const [showTemplates, setShowTemplates] = useState(false);
 
   // ─── Notifications ───
@@ -80,10 +78,7 @@ export default function NotificationCenter() {
     setLoading(true);
     try {
       const params = filter === 'unread' ? '&unread_only=true' : '';
-      const res = await commanderFetch(`/api/commander/notifications/my?limit=100${params}`, {
-        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
-        ...(signal ? { signal } : {}),
-      });
+      const res = await commanderFetch(`/api/commander/notifications/my?limit=100${params}`, { ...(signal ? { signal } : {}) });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
@@ -102,7 +97,7 @@ export default function NotificationCenter() {
     try {
       const res = await commanderFetch(`/api/commander/notifications/${id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ read_at: new Date().toISOString() })
       });
       if (res.ok) {
@@ -117,9 +112,7 @@ export default function NotificationCenter() {
     setMarkingAll(true);
     try {
       const res = await commanderFetch('/api/commander/notifications/mark-all-read', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
-      });
+        method: 'POST'});
       if (res.ok) {
         setNotifications(prev => prev.map(n => ({ ...n, read_at: n.read_at || new Date().toISOString() })));
         setUnreadCount(0);
@@ -132,9 +125,7 @@ export default function NotificationCenter() {
   const deleteNotification = async (id) => {
     try {
       const res = await commanderFetch(`/api/commander/notifications/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
-      });
+        method: 'DELETE'});
       if (res.ok) {
         setNotifications(prev => prev.filter(n => n.id !== id));
         broadcastChange('notifications');
@@ -148,9 +139,7 @@ export default function NotificationCenter() {
     try {
       const venueId = getVenueId();
       if (!venueId) return;
-      const res = await commanderFetch(`/api/commander/announcements?venue_id=${venueId}&include_scheduled=1`, {
-        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
-      });
+      const res = await commanderFetch(`/api/commander/announcements?venue_id=${venueId}&include_scheduled=1`, {});
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) setAnnouncements(json.data || []);
@@ -183,8 +172,7 @@ export default function NotificationCenter() {
       priority: a.priority || 'normal',
       type: a.type || a.message_type || 'general',
       expires_at: a.expires_at ? new Date(a.expires_at).toISOString().slice(0, 16) : '',
-      starts_at: a.starts_at ? new Date(a.starts_at).toISOString().slice(0, 16) : '',
-    });
+      starts_at: a.starts_at ? new Date(a.starts_at).toISOString().slice(0, 16) : '' });
     setEditingAnnouncement(a);
     setShowTemplates(false);
     setShowCreateForm(true);
@@ -196,8 +184,7 @@ export default function NotificationCenter() {
       title: tpl.title,
       message: tpl.message,
       priority: tpl.priority,
-      type: tpl.type,
-    }));
+      type: tpl.type }));
     setShowTemplates(false);
   };
 
@@ -210,7 +197,7 @@ export default function NotificationCenter() {
         // PATCH
         const res = await commanderFetch('/api/commander/announcements', {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             id: editingAnnouncement.id,
             title: formData.title,
@@ -218,8 +205,7 @@ export default function NotificationCenter() {
             priority: formData.priority,
             type: formData.type,
             expires_at: formData.expires_at || null,
-            starts_at: formData.starts_at || null,
-          })
+            starts_at: formData.starts_at || null })
         });
         if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const json = await res.json();
@@ -228,7 +214,7 @@ export default function NotificationCenter() {
         // POST
         const res = await commanderFetch('/api/commander/announcements', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             venue_id: venueId,
             title: formData.title,
@@ -236,8 +222,7 @@ export default function NotificationCenter() {
             priority: formData.priority,
             type: formData.type,
             expires_at: formData.expires_at || null,
-            starts_at: formData.starts_at || null,
-          })
+            starts_at: formData.starts_at || null })
         });
         if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const json = await res.json();
@@ -258,9 +243,7 @@ export default function NotificationCenter() {
     if (!confirm('Delete this announcement? This cannot be undone.')) return;
     try {
       const res = await commanderFetch(`/api/commander/announcements?id=${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
-      });
+        method: 'DELETE'});
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
@@ -292,8 +275,7 @@ export default function NotificationCenter() {
 
         {/* Tab Header */}
         <div style={{
-          display: 'flex', borderBottom: '2px solid #3A3B3C', background: '#242526',
-        }}>
+          display: 'flex', borderBottom: '2px solid #3A3B3C', background: '#242526' }}>
           {[
             { id: 'notifications', label: 'Notifications', icon: Bell, count: unreadCount },
             { id: 'announcements', label: 'Announcements', icon: Megaphone },
@@ -305,15 +287,13 @@ export default function NotificationCenter() {
                 borderBottom: activeTab === tab.id ? '3px solid #1877F2' : '3px solid transparent',
                 color: activeTab === tab.id ? '#E4E6EB' : '#6A6B6D',
                 fontSize: 13, fontWeight: 600, cursor: 'pointer', border: 'none',
-                transition: 'all 0.2s',
-              }}>
+                transition: 'all 0.2s' }}>
               <tab.icon size={16} />
               {tab.label}
               {tab.count > 0 && (
                 <span style={{
                   background: '#EF4444', color: '#fff', fontSize: 10, fontWeight: 700,
-                  padding: '1px 6px', borderRadius: 10, minWidth: 18, textAlign: 'center',
-                }}>
+                  padding: '1px 6px', borderRadius: 10, minWidth: 18, textAlign: 'center' }}>
                   {tab.count}
                 </span>
               )}
@@ -397,8 +377,7 @@ export default function NotificationCenter() {
           <>
             <div style={{
               background: '#242526', borderBottom: '1px solid #3A3B3C', padding: '12px 16px',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            }}>
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <p style={{ fontSize: 12, color: '#B0B3B8', margin: 0 }}>
                 {announcements.length} Active Announcement{announcements.length !== 1 ? 's' : ''}
               </p>
@@ -406,16 +385,14 @@ export default function NotificationCenter() {
                 <button onClick={fetchAnnouncements}
                   style={{
                     padding: '8px', borderRadius: 8, background: '#3A3B3C', border: 'none',
-                    color: '#B0B3B8', cursor: 'pointer', display: 'flex', alignItems: 'center',
-                  }}>
+                    color: '#B0B3B8', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                   <RefreshCw size={16} />
                 </button>
                 <button onClick={openCreateForm}
                   style={{
                     padding: '8px 14px', borderRadius: 8, background: '#1877F2', border: 'none',
                     color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
-                    fontSize: 13, fontWeight: 600,
-                  }}>
+                    fontSize: 13, fontWeight: 600 }}>
                   <Plus size={15} /> New Announcement
                 </button>
               </div>
@@ -434,8 +411,7 @@ export default function NotificationCenter() {
                   style={{
                     padding: '10px 20px', borderRadius: 10, background: '#1877F2', border: 'none',
                     color: '#fff', cursor: 'pointer', fontSize: 14, fontWeight: 600,
-                    display: 'flex', alignItems: 'center', gap: 6,
-                  }}>
+                    display: 'flex', alignItems: 'center', gap: 6 }}>
                   <Plus size={16} /> Create First Announcement
                 </button>
               </div>
@@ -446,28 +422,24 @@ export default function NotificationCenter() {
                   return (
                     <div key={a.id} style={{
                       background: '#242526', border: '1px solid #3A3B3C', borderRadius: 14,
-                      padding: 16, borderLeft: `4px solid ${pcfg.color}`,
-                    }}>
+                      padding: 16, borderLeft: `4px solid ${pcfg.color}` }}>
                       {/* Header row */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                         <span style={{
                           fontSize: 10, fontWeight: 700, color: pcfg.color, textTransform: 'uppercase',
-                          letterSpacing: 1, padding: '2px 8px', borderRadius: 6, background: pcfg.bg,
-                        }}>
+                          letterSpacing: 1, padding: '2px 8px', borderRadius: 6, background: pcfg.bg }}>
                           {pcfg.label}
                         </span>
                         <span style={{
                           fontSize: 10, fontWeight: 600, color: '#6A6B6D', textTransform: 'uppercase',
-                          letterSpacing: 0.5, padding: '2px 8px', borderRadius: 6, background: 'rgba(255,255,255,0.05)',
-                        }}>
+                          letterSpacing: 0.5, padding: '2px 8px', borderRadius: 6, background: 'rgba(255,255,255,0.05)' }}>
                           {a.type || a.message_type || 'general'}
                         </span>
                         {/* Scheduled badge */}
                         {a.starts_at && new Date(a.starts_at) > new Date() && (
                           <span style={{
                             fontSize: 10, fontWeight: 700, color: '#A855F7', textTransform: 'uppercase',
-                            letterSpacing: 0.5, padding: '2px 8px', borderRadius: 6, background: 'rgba(168,85,247,0.15)',
-                          }}>
+                            letterSpacing: 0.5, padding: '2px 8px', borderRadius: 6, background: 'rgba(168,85,247,0.15)' }}>
                             Scheduled
                           </span>
                         )}
@@ -502,16 +474,14 @@ export default function NotificationCenter() {
                           style={{
                             flex: 1, padding: '8px', borderRadius: 8, background: '#3A3B3C', border: 'none',
                             color: '#B0B3B8', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                            fontSize: 12, fontWeight: 600,
-                          }}>
+                            fontSize: 12, fontWeight: 600 }}>
                           <Edit3 size={13} /> Edit
                         </button>
                         <button onClick={() => deleteAnnouncement(a.id)}
                           style={{
                             flex: 1, padding: '8px', borderRadius: 8, background: 'rgba(239,68,68,0.1)', border: 'none',
                             color: '#EF4444', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                            fontSize: 12, fontWeight: 600,
-                          }}>
+                            fontSize: 12, fontWeight: 600 }}>
                           <Trash2 size={13} /> Delete
                         </button>
                       </div>
@@ -531,13 +501,11 @@ export default function NotificationCenter() {
           }}>
             <div style={{
               background: '#242526', borderRadius: 16, width: '100%', maxWidth: 480,
-              border: '1px solid #3A3B3C', maxHeight: '90vh', overflow: 'auto',
-            }}>
+              border: '1px solid #3A3B3C', maxHeight: '90vh', overflow: 'auto' }}>
               {/* Modal Header */}
               <div style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '16px 20px', borderBottom: '1px solid #3A3B3C',
-              }}>
+                padding: '16px 20px', borderBottom: '1px solid #3A3B3C' }}>
                 <h2 style={{ fontSize: 16, fontWeight: 700, color: '#E4E6EB', margin: 0 }}>
                   {editingAnnouncement ? 'Edit Announcement' : 'New Announcement'}
                 </h2>
@@ -561,8 +529,7 @@ export default function NotificationCenter() {
                         border: 'none', color: showTemplates ? '#fff' : '#B0B3B8',
                         fontSize: 13, fontWeight: 600, cursor: 'pointer',
                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                        transition: 'all 0.2s',
-                      }}>
+                        transition: 'all 0.2s' }}>
                       {showTemplates ? 'Hide Templates' : 'Use a Template'}
                       <ChevronDown size={14} style={{ transform: showTemplates ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
                     </button>
@@ -570,8 +537,7 @@ export default function NotificationCenter() {
                       <div style={{
                         display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8,
                         marginTop: 10, maxHeight: 200, overflow: 'auto',
-                        padding: 2,
-                      }}>
+                        padding: 2 }}>
                         {ANNOUNCEMENT_TEMPLATES.map((tpl, i) => (
                           <button key={i} onClick={() => applyTemplate(tpl)}
                             style={{
@@ -580,8 +546,7 @@ export default function NotificationCenter() {
                               color: '#E4E6EB', cursor: 'pointer', textAlign: 'left',
                               display: 'flex', alignItems: 'center', gap: 8,
                               fontSize: 12, fontWeight: 500,
-                              transition: 'border-color 0.2s',
-                            }}
+                              transition: 'border-color 0.2s' }}
                             onMouseEnter={e => e.target.style.borderColor = '#1877F2'}
                             onMouseLeave={e => e.target.style.borderColor = '#3A3B3C'}>
                             <span style={{ fontSize: 18 }}>{tpl.emoji}</span>
@@ -604,8 +569,7 @@ export default function NotificationCenter() {
                     style={{
                       width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #3A3B3C',
                       background: '#18191A', color: '#E4E6EB', fontSize: 14, outline: 'none',
-                      boxSizing: 'border-box',
-                    }}
+                      boxSizing: 'border-box' }}
                   />
                 </div>
 
@@ -622,8 +586,7 @@ export default function NotificationCenter() {
                     style={{
                       width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #3A3B3C',
                       background: '#18191A', color: '#E4E6EB', fontSize: 14, outline: 'none',
-                      resize: 'vertical', fontFamily: 'Inter, sans-serif', boxSizing: 'border-box',
-                    }}
+                      resize: 'vertical', fontFamily: 'Inter, sans-serif', boxSizing: 'border-box' }}
                   />
                 </div>
 
@@ -639,8 +602,7 @@ export default function NotificationCenter() {
                       style={{
                         width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #3A3B3C',
                         background: '#18191A', color: '#E4E6EB', fontSize: 14, outline: 'none',
-                        cursor: 'pointer',
-                      }}>
+                        cursor: 'pointer' }}>
                       {Object.entries(PRIORITY_CONFIG).map(([val, cfg]) => (
                         <option key={val} value={val}>{cfg.label}</option>
                       ))}
@@ -656,8 +618,7 @@ export default function NotificationCenter() {
                       style={{
                         width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #3A3B3C',
                         background: '#18191A', color: '#E4E6EB', fontSize: 14, outline: 'none',
-                        cursor: 'pointer',
-                      }}>
+                        cursor: 'pointer' }}>
                       {ANNOUNCEMENT_TYPES.map(t => (
                         <option key={t.value} value={t.value}>{t.label}</option>
                       ))}
@@ -678,8 +639,7 @@ export default function NotificationCenter() {
                       style={{
                         width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #3A3B3C',
                         background: '#18191A', color: '#E4E6EB', fontSize: 14, outline: 'none',
-                        boxSizing: 'border-box',
-                      }}
+                        boxSizing: 'border-box' }}
                     />
                     <p style={{ fontSize: 11, color: '#6A6B6D', marginTop: 4 }}>
                       Leave blank to publish immediately
@@ -696,8 +656,7 @@ export default function NotificationCenter() {
                       style={{
                         width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #3A3B3C',
                         background: '#18191A', color: '#E4E6EB', fontSize: 14, outline: 'none',
-                        boxSizing: 'border-box',
-                      }}
+                        boxSizing: 'border-box' }}
                     />
                     <p style={{ fontSize: 11, color: '#6A6B6D', marginTop: 4 }}>
                       Leave blank for no expiration
@@ -710,8 +669,7 @@ export default function NotificationCenter() {
                   <div style={{
                     background: (PRIORITY_CONFIG[formData.priority] || PRIORITY_CONFIG.normal).bg,
                     border: `1px solid ${(PRIORITY_CONFIG[formData.priority] || PRIORITY_CONFIG.normal).color}30`,
-                    borderRadius: 10, padding: 12,
-                  }}>
+                    borderRadius: 10, padding: 12 }}>
                     <p style={{ fontSize: 10, fontWeight: 700, color: '#6A6B6D', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>
                       Preview
                     </p>
@@ -725,13 +683,11 @@ export default function NotificationCenter() {
 
               {/* Modal Footer */}
               <div style={{
-                display: 'flex', gap: 10, padding: '16px 20px', borderTop: '1px solid #3A3B3C',
-              }}>
+                display: 'flex', gap: 10, padding: '16px 20px', borderTop: '1px solid #3A3B3C' }}>
                 <button onClick={() => { setShowCreateForm(false); setEditingAnnouncement(null); }}
                   style={{
                     flex: 1, padding: '12px', borderRadius: 10, background: '#3A3B3C', border: 'none',
-                    color: '#B0B3B8', fontSize: 14, fontWeight: 600, cursor: 'pointer',
-                  }}>
+                    color: '#B0B3B8', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
                   Cancel
                 </button>
                 <button onClick={saveAnnouncement} disabled={savingAnnouncement}
@@ -739,8 +695,7 @@ export default function NotificationCenter() {
                     flex: 1, padding: '12px', borderRadius: 10, background: '#1877F2', border: 'none',
                     color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                    opacity: savingAnnouncement ? 0.6 : 1,
-                  }}>
+                    opacity: savingAnnouncement ? 0.6 : 1 }}>
                   {savingAnnouncement ? <Loader2 size={16} className="animate-spin" /> : <Send size={15} />}
                   {editingAnnouncement ? 'Save Changes' : (formData.starts_at ? 'Schedule' : 'Publish')}
                 </button>

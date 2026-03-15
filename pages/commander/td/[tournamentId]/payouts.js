@@ -11,7 +11,7 @@ import CommanderLayout from '../../../../src/components/commander/shared/Command
 import useTournamentRealtime from '../../../../src/hooks/useTournamentRealtime';
 import { broadcastChange } from '../../../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../../../src/engine/EventBus';
-import { getToken, getStaffSession } from '../../../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../../../src/lib/commander/clientAuth';
 import {
     Trophy, Users, DollarSign, LayoutGrid, Monitor,
     Calculator, Save, RefreshCw, Loader2, FileText,
@@ -45,14 +45,10 @@ export default function TDPayouts() {
     const [overrides, setOverrides] = useState({});
     const [showICM, setShowICM] = useState(false);
 
-
-
     const fetchPayouts = useCallback(async () => {
         if (!tournamentId) return;
         try {
-            const res = await fetch(`/api/commander/tournaments/${tournamentId}/payout?mode=calculate`, {
-                headers: { 'x-staff-session': getStaffSession(), Authorization: `Bearer ${getToken()}` }
-            });
+            const res = await fetch(`/api/commander/tournaments/${tournamentId}/payout?mode=calculate`, {});
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) {
@@ -96,7 +92,7 @@ export default function TDPayouts() {
 
             const res = await fetch(`/api/commander/tournaments/${tournamentId}/payout`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'x-staff-session': getStaffSession(), Authorization: `Bearer ${getToken()}` },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ payouts })
             });
 

@@ -8,7 +8,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { FileText, DollarSign, AlertTriangle, CheckCircle2, Loader2, Printer, ChevronDown, ChevronUp, ArrowLeft } from 'lucide-react';
 import { busEmit } from '../../../src/engine/EventBus';
-import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
 
 export default function TaxCompliance() {
@@ -45,12 +45,11 @@ export default function TaxCompliance() {
   const fetchEvents = async(signal) => {
     setLoading(true);
     try {
-      const token = getToken();
-      const staffSession = getStaffSession() || '';
+const staffSession = getStaffSession() || '';
       let url = `/api/commander/tax/w2g?venue_id=${staff.venue_id}&year=${year}`;
       if (filter === 'pending') url += '&w2g_generated=false';
       if (filter === 'generated') url += '&w2g_generated=true';
-      const res = await fetch(url, { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } });
+      const res = await fetch(url, {});
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
@@ -64,11 +63,10 @@ export default function TaxCompliance() {
   const handleGenerate = async (eventId) => {
     setGenerating(eventId);
     try {
-      const token = getToken();
-      const staffSession = getStaffSession() || '';
+const staffSession = getStaffSession() || '';
       const res = await commanderFetch('/api/commander/tax/w2g', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tax_event_id: eventId })
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);

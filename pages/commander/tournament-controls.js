@@ -13,7 +13,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { Trophy, Users, Loader2, Play, Monitor, Settings } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
-import { getToken, getStaffSession, getVenueId } from '../../src/lib/commander/clientAuth'
+import { getStaffSession, getVenueId } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const STATUS_COLORS = {
@@ -21,8 +21,7 @@ const STATUS_COLORS = {
     break: { bg: 'bg-[#F59E0B]/10', text: 'text-[#F59E0B]', label: 'On Break' },
     final_table: { bg: 'bg-[#8B5CF6]/10', text: 'text-[#8B5CF6]', label: 'Final Table' },
     registering: { bg: 'bg-[#1877F2]/10', text: 'text-[#1877F2]', label: 'Registration' },
-    scheduled: { bg: 'bg-[#B0B3B8]/10', text: 'text-[#B0B3B8]', label: 'Scheduled' },
-};
+    scheduled: { bg: 'bg-[#B0B3B8]/10', text: 'text-[#B0B3B8]', label: 'Scheduled' } };
 
 export default function TournamentDirector() {
     const router = useRouter();
@@ -33,13 +32,10 @@ export default function TournamentDirector() {
     const [loading, setLoading] = useState(true);
     const [tab, setTab] = useState('current'); // 'current' or 'upcoming'
 
-
     const fetchTournaments = useCallback(async (signal) => {
         try {
             const staffSession = getStaffSession() || '';
-            const res = await commanderFetch('/api/commander/tournaments', {
-                headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
-            });
+            const res = await commanderFetch('/api/commander/tournaments', { });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const data = await res.json();
             if (data.success) {

@@ -33,7 +33,7 @@ export default function SeatingDisplay() {
     try {
       const staffSession = typeof window !== 'undefined' ? (getStaffSession() || '') : '';
       const bearerToken = typeof window !== 'undefined' ? (getToken()) : '';
-      const headers = { 'x-staff-session': staffSession, Authorization: `Bearer ${bearerToken}` };
+      const headers = { Authorization: `Bearer ${bearerToken}` };
       const [tRes, eRes] = await Promise.all([
         fetch(`/api/commander/tournaments/${id}`, { headers }).then(r => r.json()).catch(() => ({ success: false })),
         fetch(`/api/commander/tournaments/${id}/entries`, { headers }).then(r => r.json()).catch(() => ({ success: false }))

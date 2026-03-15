@@ -92,7 +92,7 @@ export default function DealerTablet() {
     if (!tableNumber) return;
     try {
       const token = getToken();
-      const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() };
+      const headers = { };
       // Fetch table by number (includes mode, tournament_id from assignment system)
       const tableRes = await commanderFetch(`/api/commander/tables/by-number?tableNumber=${tableNumber}`, { headers, signal });
       if (!tableRes.ok) throw new Error(`Table fetch failed (${tableRes.status})`);
@@ -283,7 +283,7 @@ export default function DealerTablet() {
       try { vid = JSON.parse(staffSession).venue_id || ''; } catch (e) { console.error("[[tableNumber].js]", e); }
       const res = await commanderFetch('/api/commander/dealer/scan-in', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ qr_code: qrCode, table_number: parseInt(tableNumber), venue_id: vid })
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -306,7 +306,7 @@ export default function DealerTablet() {
       const token = getToken();
       const res = await commanderFetch('/api/commander/dealer/scan', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ qr_code: qrCode, table_number: parseInt(tableNumber) })
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -324,7 +324,7 @@ export default function DealerTablet() {
       const token = getToken();
       const res = await commanderFetch('/api/commander/dealer/seat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           member_id: scannedMember.member.id,
           table_number: parseInt(tableNumber),
@@ -345,8 +345,7 @@ export default function DealerTablet() {
     try {
       const token = getToken();
       const res = await commanderFetch(`/api/commander/dealer/sessions/${sessionId}/end`, {
-        method: 'POST', headers: { Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() }
-      });
+        method: 'POST'});
       if (res.ok) {
         await fetchTable();
         broadcastChange('tables');
@@ -362,7 +361,7 @@ export default function DealerTablet() {
       const token = getToken();
       const res = await commanderFetch(`/api/commander/dealer/sessions/${addTimePlayer.session_id}/add-time`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ minutes: parseInt(addTimeMinutes) || 60 })
       });
       if (res.ok) {
@@ -380,7 +379,7 @@ export default function DealerTablet() {
       // Use the tournament eliminate API
       const res = await commanderFetch(`/api/commander/tournaments/${tournamentMode.tournament_id}/eliminate`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': getStaffSession(), Authorization: `Bearer ${getToken()}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           entry_id: player.entry_id || player.id,
           finish_position: tournamentMode.players_remaining || 0,
@@ -396,8 +395,7 @@ export default function DealerTablet() {
       // Also remove from table session if applicable
       if (player.session_id) {
         const res = await commanderFetch(`/api/commander/dealer/sessions/${player.session_id}/end`, {
-          method: 'POST', headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
-        }).catch(() => { });
+          method: 'POST'}).catch(() => { });
         if (!res.ok) throw new Error('Request failed');
       }
       await fetchTable();
@@ -415,7 +413,7 @@ export default function DealerTablet() {
       const entryId = chipEntryPlayer.entry_id || chipEntryPlayer.id;
       const res = await commanderFetch(`/api/commander/tournaments/${tournamentMode.tournament_id}/entries/${entryId}/chips`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': getStaffSession(), Authorization: `Bearer ${getToken()}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ chips: parseInt(chipEntryValue) || 0 })
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -438,7 +436,7 @@ export default function DealerTablet() {
     setRemovingAll(true);
     try {
       const token = getToken();
-      const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() };
+      const headers = { };
       // End all active sessions for this table
       const results = await Promise.all(
         seatedPlayers.map(player =>
@@ -466,7 +464,7 @@ export default function DealerTablet() {
       const token = getToken();
       const res = await commanderFetch('/api/commander/table-assignments', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ table_id: table?.id })
       });
       if (res.ok) {
@@ -486,7 +484,7 @@ export default function DealerTablet() {
       try { vid = JSON.parse(staffSession).venue_id || ''; } catch (e) { console.error("[[tableNumber].js]", e); }
       const res = await commanderFetch('/api/commander/floor-calls', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ venue_id: vid, table_number: parseInt(tableNumber), reason: 'floor_assistance', description: `Floor requested at Table ${tableNumber}`, priority: 'normal', called_by: 'dealer' })
       });
       if (res.ok) broadcastChange('floor_calls');
@@ -796,7 +794,7 @@ export default function DealerTablet() {
                 const token = getToken();
                 const res = await commanderFetch('/api/commander/dealer/hand-count', {
                   method: 'POST',
-                  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() },
+                  headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ table_number: parseInt(tableNumber), action: 'increment' })
                 });
                 if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -837,7 +835,7 @@ export default function DealerTablet() {
                 const token = getToken();
                 const res = await commanderFetch('/api/commander/dealer/hand-count', {
                   method: 'POST',
-                  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() || '' },
+                  headers: { 'Content-Type': 'application/json' || '' },
                   body: JSON.stringify({ table_number: parseInt(tableNumber), action: 'reset' })
                 });
                 if (res.ok) setHandCount(0);

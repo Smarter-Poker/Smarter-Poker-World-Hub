@@ -16,7 +16,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { CheckCircle2, XCircle, AlertTriangle, Loader2, Lock, FileText, ChevronRight } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
-import { getToken, getStaffSession, getVenueId } from '../../src/lib/commander/clientAuth'
+import { getStaffSession, getVenueId } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 export default function CloseDay() {
@@ -43,10 +43,9 @@ export default function CloseDay() {
   const fetchStatus = useCallback(async (signal) => {
     setLoading(true);
     try {
-      const token = getToken();
-      const venueId = getVenueId();
+const venueId = getVenueId();
       const staffSession = getStaffSession() || '';
-      const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
+      const headers = { };
       const fetchOpts = signal ? { headers, signal } : { headers };
       const [tablesRes, waitlistRes, sessionsRes, reportRes] = await Promise.all([
         commanderFetch(`/api/commander/tables?venue_id=${venueId}`, fetchOpts).then(r => r.json()).catch(() => ({ data: [] })),
@@ -79,9 +78,8 @@ export default function CloseDay() {
   const forceCloseAll = async () => {
     setClosing(true);
     try {
-      const token = getToken();
-      const staffSession = getStaffSession() || '';
-      const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
+const staffSession = getStaffSession() || '';
+      const headers = { 'Content-Type': 'application/json' };
 
       // Close all open tables
       let successCount = 0;
@@ -115,12 +113,11 @@ export default function CloseDay() {
   const submitClose = async () => {
     setVerifying(true);
     try {
-      const token = getToken();
-      const staffSession = getStaffSession() || '';
+const staffSession = getStaffSession() || '';
       const venueId = getVenueId();
       const res = await commanderFetch('/api/commander/staff/verify-pin', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pin_code: pin, venue_id: venueId })
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);

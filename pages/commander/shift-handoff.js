@@ -14,7 +14,7 @@ import {
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
-import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 export default function ShiftHandoff() {
@@ -52,12 +52,8 @@ export default function ShiftHandoff() {
   const fetchHandoffs = async (signal) => {
     setLoading(true);
     try {
-      const token = getToken();
-      const staffSession = getStaffSession() || '';
-      const res = await commanderFetch(`/api/commander/shift-handoff?venue_id=${staff.venue_id}&limit=30`, {
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
-        ...(signal ? { signal } : {}),
-      });
+const staffSession = getStaffSession() || '';
+      const res = await commanderFetch(`/api/commander/shift-handoff?venue_id=${staff.venue_id}&limit=30`, { ...(signal ? { signal } : {}) });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) setHandoffs(json.data.handoffs);
@@ -83,11 +79,10 @@ export default function ShiftHandoff() {
     }
     setSubmitting(true);
     try {
-      const token = getToken();
-      const staffSession = getStaffSession() || '';
+const staffSession = getStaffSession() || '';
       const res = await commanderFetch('/api/commander/shift-handoff', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           venue_id: staff.venue_id,
           staff_name: staff.name || staff.display_name || 'Floor Staff',
@@ -118,11 +113,10 @@ export default function ShiftHandoff() {
 
   const handleAcknowledge = async (handoffId) => {
     try {
-      const token = getToken();
-      const staffSession = getStaffSession() || '';
+const staffSession = getStaffSession() || '';
       const res = await commanderFetch('/api/commander/shift-handoff', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           handoff_id: handoffId,
           staff_name: staff.name || staff.display_name || 'Floor Staff'

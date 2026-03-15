@@ -25,8 +25,7 @@ const STATUS_CONFIG = {
   break: { color: '#F59E0B', bg: 'rgba(245,158,11,0.12)', label: 'On Break' },
   final_table: { color: '#1877F2', bg: 'rgba(24,119,242,0.12)', label: 'Final Table' },
   completed: { color: '#B0B3B8', bg: 'rgba(176,179,184,0.10)', label: 'Completed' },
-  cancelled: { color: '#EF4444', bg: 'rgba(239,68,68,0.10)', label: 'Cancelled' },
-};
+  cancelled: { color: '#EF4444', bg: 'rgba(239,68,68,0.10)', label: 'Cancelled' } };
 
 const FILTER_OPTIONS = [
   { value: 'current_future', label: 'Current & Future' },
@@ -56,10 +55,8 @@ const S = {
   page: { minHeight: '100vh', background: '#18191A', color: '#E4E6EB', fontFamily: "var(--font-inter), sans-serif" },
   panel: {
     background: '#242526', border: '1px solid #3A3B3C', borderRadius: 14,
-    transition: 'border-color 0.18s',
-  },
-  label: { fontSize: 11, fontWeight: 700, color: '#B0B3B8', textTransform: 'uppercase', letterSpacing: 1 },
-};
+    transition: 'border-color 0.18s' },
+  label: { fontSize: 11, fontWeight: 700, color: '#B0B3B8', textTransform: 'uppercase', letterSpacing: 1 } };
 
 /* ─── Page ──────────────────────────────────────────────────── */
 export default function CommanderTournamentsPage() {
@@ -102,7 +99,7 @@ export default function CommanderTournamentsPage() {
       if (filter !== 'all') params.set('status', filter);
       const staffSession = getStaffSession() || '';
       const bearerToken = getToken();
-      const res = await fetch(`/api/commander/tournaments?${params}`, { headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${bearerToken}` } });
+      const res = await fetch(`/api/commander/tournaments?${params}`, { headers: { Authorization: `Bearer ${bearerToken}` } });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) setTournaments(data.data.tournaments || []);
@@ -191,8 +188,7 @@ export default function CommanderTournamentsPage() {
               width: '100%', padding: '14px 18px', cursor: 'pointer', textAlign: 'left',
               display: 'flex', alignItems: 'center', gap: 14,
               borderColor: 'rgba(245,158,11,0.3)',
-              background: 'linear-gradient(135deg, rgba(245,158,11,0.07) 0%, #242526 60%)',
-            }}
+              background: 'linear-gradient(135deg, rgba(245,158,11,0.07) 0%, #242526 60%)' }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(245,158,11,0.55)'; }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(245,158,11,0.3)'; }}
           >
@@ -200,8 +196,7 @@ export default function CommanderTournamentsPage() {
             <div style={{
               width: 52, height: 52, borderRadius: 14, flexShrink: 0,
               background: 'rgba(245,158,11,0.12)', border: '1.5px solid rgba(245,158,11,0.35)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
-            }}>
+              display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
               <img
                 src="/images/commander/icons/tn-controls.png"
                 alt="TD"
@@ -223,8 +218,7 @@ export default function CommanderTournamentsPage() {
             <div style={{
               padding: '7px 14px', borderRadius: 10, background: '#F59E0B',
               color: '#000', fontSize: 12, fontWeight: 800, flexShrink: 0,
-              display: 'flex', alignItems: 'center', gap: 5, letterSpacing: 0.3,
-            }}>
+              display: 'flex', alignItems: 'center', gap: 5, letterSpacing: 0.3 }}>
               <Sliders size={13} /> Launch TD
             </div>
           </button>
@@ -243,8 +237,7 @@ export default function CommanderTournamentsPage() {
                   ...S.panel,
                   padding: '14px 10px', textAlign: 'center', cursor: 'pointer', border: 'none',
                   borderLeft: filter === filterKey ? `3px solid ${color}` : '1px solid #3A3B3C',
-                  background: filter === filterKey ? `rgba(${color === '#31A24C' ? '49,162,76' : color === '#1877F2' ? '24,119,242' : '245,158,11'},0.08)` : '#242526',
-                }}
+                  background: filter === filterKey ? `rgba(${color === '#31A24C' ? '49,162,76' : color === '#1877F2' ? '24,119,242' : '245,158,11'},0.08)` : '#242526' }}
               >
                 <Icon size={20} style={{ color, marginBottom: 4, display: 'block', margin: '0 auto 6px' }} />
                 <p style={{ fontSize: 24, fontWeight: 800, color: '#E4E6EB', margin: '0 0 2px' }}>{count}</p>
@@ -265,8 +258,7 @@ export default function CommanderTournamentsPage() {
                   fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0,
                   background: filter === opt.value ? '#1877F2' : '#3A3B3C',
                   color: filter === opt.value ? '#fff' : '#B0B3B8',
-                  transition: 'background 0.15s',
-                }}
+                  transition: 'background 0.15s' }}
               >
                 {opt.label}
               </button>
@@ -306,8 +298,7 @@ export default function CommanderTournamentsPage() {
                     style={{
                       ...S.panel,
                       width: '100%', padding: '16px 18px', textAlign: 'left', cursor: 'pointer',
-                      borderLeft: isActive ? '3px solid #31A24C' : '1px solid #3A3B3C',
-                    }}
+                      borderLeft: isActive ? '3px solid #31A24C' : '1px solid #3A3B3C' }}
                     onMouseEnter={e => { e.currentTarget.style.borderColor = '#1877F2'; }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = isActive ? '#31A24C' : '#3A3B3C'; }}
                   >

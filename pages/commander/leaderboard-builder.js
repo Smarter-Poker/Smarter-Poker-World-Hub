@@ -23,7 +23,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { busEmit } from '../../src/engine/EventBus';
 import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import SEOHead from '../../src/components/seo/SEOHead';
-import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const BOARD_TYPES = [
@@ -58,8 +58,7 @@ export default function LeaderboardBuilder() {
     const [newBoard, setNewBoard] = useState({
         name: '', description: '', leaderboard_type: 'custom',
         period_type: 'monthly', start_date: '', end_date: '',
-        prizes: '', rules_description: '', status: 'active',
-    });
+        prizes: '', rules_description: '', status: 'active' });
 
     // Add entry form
     const [addEntry, setAddEntry] = useState({ player_id: '', score: '', hours_played: '', sessions_count: '' });
@@ -73,10 +72,7 @@ export default function LeaderboardBuilder() {
     // ── Fetch boards ──
     const fetchBoards = useCallback(async (signal) => {
         try {
-            const res = await commanderFetch('/api/commander/leaderboards?status=all', {
-                headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
-                ...(signal ? { signal } : {}),
-            });
+            const res = await commanderFetch('/api/commander/leaderboards?status=all', { ...(signal ? { signal } : {}) });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             setBoards(json?.leaderboards || json?.data || []);
@@ -88,10 +84,7 @@ export default function LeaderboardBuilder() {
     const fetchMembers = useCallback(async (signal) => {
         if (!venueId) return;
         try {
-            const res = await commanderFetch(`/api/commander/members?venue_id=${venueId}&limit=200`, {
-                headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
-                ...(signal ? { signal } : {}),
-            });
+            const res = await commanderFetch(`/api/commander/members?venue_id=${venueId}&limit=200`, { ...(signal ? { signal } : {}) });
             if (!res.ok) throw new Error('err');
             const json = await res.json();
             setMembers(json?.data?.members || json?.members || []);
@@ -101,9 +94,7 @@ export default function LeaderboardBuilder() {
     // ── Fetch entries for a board ──
     const fetchEntries = async (boardId) => {
         try {
-            const res = await commanderFetch(`/api/commander/leaderboards/${boardId}/entries`, {
-                headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
-            });
+            const res = await commanderFetch(`/api/commander/leaderboards/${boardId}/entries`, {});
             if (!res.ok) throw new Error('Failed');
             const json = await res.json();
             setEntries(prev => ({ ...prev, [boardId]: (json?.entries || json?.data || []).sort((a, b) => (b.score || 0) - (a.score || 0)) }));
@@ -116,13 +107,12 @@ export default function LeaderboardBuilder() {
     const handleCreate = async () => {
         if (!newBoard.name.trim()) { flash('error', 'Board name required'); return; }
         try {
-            const token = getToken();
-            const today = new Date();
+const today = new Date();
             const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
 
             const res = await commanderFetch('/api/commander/leaderboards', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     venue_id: venueId,
                     name: newBoard.name,
@@ -133,9 +123,7 @@ export default function LeaderboardBuilder() {
                     end_date: newBoard.end_date || endOfMonth.toISOString().split('T')[0],
                     prizes: newBoard.prizes ? [{ description: newBoard.prizes }] : [],
                     rules_description: newBoard.rules_description || null,
-                    status: newBoard.status,
-                }),
-            });
+                    status: newBoard.status }) });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (res.ok) {
@@ -154,18 +142,15 @@ export default function LeaderboardBuilder() {
     const handleAddEntry = async (boardId) => {
         if (!addEntry.player_id) { flash('error', 'Select a player'); return; }
         try {
-            const token = getToken();
-            const res = await commanderFetch(`/api/commander/leaderboards/${boardId}/entries`, {
+const res = await commanderFetch(`/api/commander/leaderboards/${boardId}/entries`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     player_id: addEntry.player_id,
                     score: Number(addEntry.score) || 0,
                     hours_played: Number(addEntry.hours_played) || 0,
                     sessions_count: Number(addEntry.sessions_count) || 0,
-                    points_earned: Number(addEntry.score) || 0,
-                }),
-            });
+                    points_earned: Number(addEntry.score) || 0 }) });
             if (res.ok) {
                 flash('success', 'Entry added!');
                 setAddEntry({ player_id: '', score: '', hours_played: '', sessions_count: '' });
@@ -182,12 +167,10 @@ export default function LeaderboardBuilder() {
     const toggleStatus = async (board) => {
         const newStatus = board.status === 'active' ? 'completed' : 'active';
         try {
-            const token = getToken();
-            const res = await commanderFetch(`/api/commander/leaderboards/${board.id}`, {
+const res = await commanderFetch(`/api/commander/leaderboards/${board.id}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() },
-                body: JSON.stringify({ status: newStatus }),
-            });
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus }) });
             if (res.ok) {
                 flash('success', `Board ${newStatus === 'active' ? 'activated' : 'deactivated'}`);
                 fetchBoards();
@@ -202,12 +185,10 @@ export default function LeaderboardBuilder() {
     // ── Auto-calculate ──
     const autoCalculate = async (boardId) => {
         try {
-            const token = getToken();
-            const res = await commanderFetch(`/api/commander/leaderboards/${boardId}/entries`, {
+const res = await commanderFetch(`/api/commander/leaderboards/${boardId}/entries`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() },
-                body: JSON.stringify({ action: 'calculate' }),
-            });
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'calculate' }) });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json().catch(() => ({}));
             if (res.ok) {
@@ -234,8 +215,7 @@ export default function LeaderboardBuilder() {
         btn: { padding: '8px 16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.2)', cursor: 'pointer', fontWeight: 600, fontSize: '13px' },
         input: { background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px', padding: '10px 14px', color: 'white', width: '100%', fontSize: '14px', outline: 'none', boxSizing: 'border-box' },
         select: { background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px', padding: '10px 14px', color: 'white', width: '100%', fontSize: '14px', outline: 'none', boxSizing: 'border-box' },
-        label: { display: 'block', fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginBottom: '6px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' },
-    };
+        label: { display: 'block', fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginBottom: '6px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' } };
 
     return (
         <CommanderLayout title="Leaderboard Builder" backHref="/commander/dashboard?card=displays">

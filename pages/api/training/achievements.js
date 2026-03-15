@@ -167,11 +167,11 @@ export default async function handler(req, res) {
                   if (shouldUnlock) {
                       await supabase
                           .from('training_user_achievements')
-                          .insert({
+                          .upsert({
                               user_id: userId,
                               achievement_id: def.id,
                               progress: def.threshold
-                          });
+                          }, { onConflict: 'user_id,achievement_id', ignoreDuplicates: true });
 
                       // Award diamonds via logging RPC
                       if (def.diamond_reward > 0) {

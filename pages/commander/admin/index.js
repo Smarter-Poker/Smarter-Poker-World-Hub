@@ -38,7 +38,7 @@ function ApiKeysModal({ isOpen, onClose, venueId, onSuccess }) {
     try {
       const token = getToken();
       const res = await commanderFetch(`/api/commander/admin/api-keys?venue_id=${venueId}`, {
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() || '' }
+        headers: { || '' }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
@@ -64,9 +64,7 @@ function ApiKeysModal({ isOpen, onClose, venueId, onSuccess }) {
       const res = await commanderFetch('/api/commander/admin/api-keys', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-          'x-staff-session': getStaffSession() || ''
+          'Content-Type': 'application/json' || ''
         },
         body: JSON.stringify({ name: newKeyName, venue_id: venueId })
       });
@@ -97,7 +95,7 @@ function ApiKeysModal({ isOpen, onClose, venueId, onSuccess }) {
       const token = getToken();
       const res = await commanderFetch(`/api/commander/admin/api-keys/${keyId}?venue_id=${venueId}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() || '' }
+        headers: { || '' }
       });
       if (!res.ok) throw new Error('Request failed');
       const data = await res.json();
@@ -251,9 +249,7 @@ function VenueSettingsModal({ isOpen, onClose, venue, onSave, onSuccess }) {
       const res = await commanderFetch(`/api/commander/admin/venues/${venue.id}/settings`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-          'x-staff-session': getStaffSession() || ''
+          'Content-Type': 'application/json' || ''
         },
         body: JSON.stringify(settings)
       });
@@ -470,7 +466,7 @@ export default function AdminDashboard() {
 
       // Load venues with summary
       const fetchOpts = (h) => signal ? { headers: h, signal } : { headers: h };
-      const venuesRes = await commanderFetch('/api/commander/admin/venues?summary=true', fetchOpts({ Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() || '' }));
+      const venuesRes = await commanderFetch('/api/commander/admin/venues?summary=true', fetchOpts({ || '' }));
       if (!venuesRes.ok) throw new Error(`Request failed (${venuesRes.status})`);
       const venuesData = await venuesRes.json();
       if (venuesData.venues) {
@@ -479,7 +475,7 @@ export default function AdminDashboard() {
       }
 
       // Load exports
-      const exportsRes = await commanderFetch('/api/commander/exports', fetchOpts({ Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() || '' }));
+      const exportsRes = await commanderFetch('/api/commander/exports', fetchOpts({ || '' }));
       if (!exportsRes.ok) throw new Error(`Request failed (${exportsRes.status})`);
       const exportsData = await exportsRes.json();
       if (exportsData.exports) {
@@ -503,7 +499,7 @@ export default function AdminDashboard() {
       if (filters.dateTo) params.set('date_to', filters.dateTo);
 
       const res = await commanderFetch(`/api/commander/admin/audit-logs?${params}`, {
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() || '' }
+        headers: { || '' }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
@@ -525,9 +521,7 @@ export default function AdminDashboard() {
       const res = await commanderFetch('/api/commander/exports', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-          'x-staff-session': getStaffSession() || ''
+          'Content-Type': 'application/json' || ''
         },
         body: JSON.stringify({
           venue_id: venueId,

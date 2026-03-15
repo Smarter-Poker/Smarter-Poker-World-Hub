@@ -34,7 +34,7 @@ export default function StructureDisplay() {
     try {
       const staffSession = typeof window !== 'undefined' ? (getStaffSession() || '') : '';
       const bearerToken = typeof window !== 'undefined' ? (getToken()) : '';
-      const headers = { 'x-staff-session': staffSession, Authorization: `Bearer ${bearerToken}` };
+      const headers = { Authorization: `Bearer ${bearerToken}` };
       const [tRes, cRes] = await Promise.all([
         fetch(`/api/commander/tournaments/${id}`, { headers }).then(r => r.json()).catch(() => ({ success: false })),
         fetch(`/api/commander/tournaments/${id}/clock`, { headers }).then(r => r.json()).catch(() => ({ success: false }))

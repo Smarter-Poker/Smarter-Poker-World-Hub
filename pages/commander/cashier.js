@@ -18,7 +18,7 @@ import { QrCode, CreditCard, Loader2, Search, CheckCircle2, AlertTriangle, Chevr
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import useDebounce from '../../src/hooks/useDebounce';
-import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const QUICK_AMOUNTS = [50, 100, 200, 300, 500, 1000];
@@ -129,9 +129,8 @@ export default function Cashier() {
     if (!venueId) return;
     setLoading(true);
     try {
-      const token = getToken();
-      const staffSession = getStaffSession() || '';
-      const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
+const staffSession = getStaffSession() || '';
+      const headers = { };
 
       const today = new Date().toISOString().split('T')[0];
       const txRes = await commanderFetch(`/api/commander/cashier?venue_id=${venueId}&date=${today}&limit=50`, { headers });
@@ -146,9 +145,7 @@ export default function Cashier() {
       setSelectedPlayer(prev => {
         if (!prev?.id || String(prev.id).startsWith('wl-')) return prev;
         // Fire async refresh for the selected player
-        commanderFetch(`/api/commander/members/${prev.id}`, {
-          headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
-        }).then(r => r.json()).then(json => {
+        commanderFetch(`/api/commander/members/${prev.id}`, {}).then(r => r.json()).then(json => {
           if (json.success && json.data?.member) {
             const m = json.data.member;
             setSelectedPlayer(p => p?.id === m.id ? {
@@ -158,8 +155,7 @@ export default function Cashier() {
               comp_lifetime_earned: m.comp_lifetime_earned || 0,
               membership_tier: m.membership_tier,
               membership_status: m.membership_status,
-              membership_expires: m.membership_expires,
-            } : p);
+              membership_expires: m.membership_expires } : p);
           }
         }).catch(() => { /* silent — don't break cashier if refresh fails */ });
         return prev;
@@ -185,9 +181,8 @@ export default function Cashier() {
       const controller = new AbortController();
       const { signal } = controller;
       try {
-        const token = getToken();
-        const staffSession = getStaffSession() || '';
-        const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
+const staffSession = getStaffSession() || '';
+        const headers = { };
         const res = await commanderFetch(`/api/commander/members/${member_id}?venue_id=${venueId}`, { headers });
         if (!res.ok) throw new Error(`Member fetch failed (${res.status})`);
         const json = await res.json();
@@ -205,8 +200,7 @@ export default function Cashier() {
             comp_balance: m.comp_balance || 0,
             comp_lifetime_earned: m.comp_lifetime_earned || 0,
             member_number: m.member_number,
-            phone: m.phone,
-          });
+            phone: m.phone });
           if (action === 'addtime') {
             setShowAddTime(true);
           } else if (action === 'membership') {
@@ -230,9 +224,8 @@ export default function Cashier() {
       const controller = new AbortController();
       const { signal } = controller;
       try {
-        const token = getToken();
-        const staffSession = getStaffSession() || '';
-        const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
+const staffSession = getStaffSession() || '';
+        const headers = { };
 
         // Time billing settings
         const settingsRes = await commanderFetch('/api/commander/settings', { headers });
@@ -264,14 +257,12 @@ export default function Cashier() {
       const pkgOpts = bulkTimePackages.map(pkg => ({
         label: pkg.name || `${pkg.hours} Hr Pack`,
         minutes: (pkg.hours || 0) * 60,
-        price: pkg.price || 0,
-      }));
+        price: pkg.price || 0 }));
       return [...hourlyOpt, ...pkgOpts];
     }
     return hourlyOpt.length > 0
       ? [...hourlyOpt, ...DEFAULT_TIME_OPTIONS.slice(1).map(opt => ({
-        ...opt, price: Math.round(timeBillingRate * (opt.minutes / 60)),
-      }))]
+        ...opt, price: Math.round(timeBillingRate * (opt.minutes / 60)) }))]
       : DEFAULT_TIME_OPTIONS.map(opt => ({ ...opt, price: 0 }));
   })();
 
@@ -286,8 +277,7 @@ export default function Cashier() {
         color: plan.color || '#1877F2',
         duration: durationMap[plan.tier] || 30,
         price: plan[priceField] || 0,
-        planId: plan.id,
-      };
+        planId: plan.id };
     })
     : DEFAULT_MEMBERSHIP_TIERS.map(t => ({ ...t, price: 0 }));
 
@@ -336,9 +326,8 @@ export default function Cashier() {
   const handleScanResult = async (qrData) => {
     stopScan();
     try {
-      const token = getToken();
-      const staffSession = getStaffSession() || '';
-      const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
+const staffSession = getStaffSession() || '';
+      const headers = { };
       const res = await commanderFetch(`/api/commander/members?search=${encodeURIComponent(qrData)}&venue_id=${venueId}`, { headers });
       if (!res.ok) throw new Error(`Search failed (${res.status})`);
       const json = await res.json();
@@ -370,8 +359,7 @@ export default function Cashier() {
       comp_balance: member.comp_balance || 0,
       comp_lifetime_earned: member.comp_lifetime_earned || 0,
       member_number: member.member_number,
-      phone: member.phone,
-    });
+      phone: member.phone });
     setShowPlayerSearch(false);
     setSearchQuery('');
     setSearchResults([]);
@@ -387,9 +375,8 @@ export default function Cashier() {
   const executeSearch = useCallback(async (query) => {
     setSearchLoading(true);
     try {
-      const token = getToken();
-      const staffSession = getStaffSession() || '';
-      const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
+const staffSession = getStaffSession() || '';
+      const headers = { };
       const params = query ? `q=${encodeURIComponent(query)}&` : '';
       const res = await commanderFetch(`/api/commander/members/search?${params}venue_id=${venueId}&limit=15`, { headers });
       if (!res.ok) throw new Error(`Search failed (${res.status})`);
@@ -441,7 +428,7 @@ export default function Cashier() {
     try {
       const pinRes = await commanderFetch('/api/commander/staff/verify-pin', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() || '' },
+        headers: { 'Content-Type': 'application/json' || '' },
         body: JSON.stringify({ venue_id: venueId, pin_code: digits })
       });
       if (!pinRes.ok) throw new Error('Request failed');
@@ -497,7 +484,7 @@ export default function Cashier() {
       const staffSession = getStaffSession() || '';
       const res = await commanderFetch('/api/commander/cashier', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           venue_id: venueId,
           player_name: selectedPlayer?.player_name || 'Walk-Up',
@@ -558,7 +545,7 @@ export default function Cashier() {
     setActionLoading(true);
     try {
       const staffSession = getStaffSession() || '';
-      const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession };
+      const headers = { 'Content-Type': 'application/json' };
       const newBalance = (selectedPlayer.time_balance_minutes || 0) + mins;
 
       // 1. Update member time balance
@@ -609,8 +596,7 @@ export default function Cashier() {
           payment_method: timePayMethod,
           new_balance_minutes: newBalance,
           staff_name: staff?.display_name || 'Staff',
-          transaction_id: txJson?.data?.id || null,
-        });
+          transaction_id: txJson?.data?.id || null });
       } else {
         setMessage({ type: 'error', text: 'Failed to update time balance' });
       }
@@ -629,7 +615,7 @@ export default function Cashier() {
     setActionLoading(true);
     try {
       const staffSession = getStaffSession() || '';
-      const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession };
+      const headers = { 'Content-Type': 'application/json' };
       const expires = new Date();
       expires.setDate(expires.getDate() + (tierInfo?.duration || 1));
 
@@ -677,8 +663,7 @@ export default function Cashier() {
           payment_method: memberPayMethod,
           expires: expires.toLocaleDateString(),
           staff_name: staff?.display_name || 'Staff',
-          transaction_id: txJson?.data?.id || null,
-        });
+          transaction_id: txJson?.data?.id || null });
       } else {
         setMessage({ type: 'error', text: 'Failed to update membership' });
       }
@@ -710,7 +695,7 @@ export default function Cashier() {
     setActionLoading(true);
     try {
       const staffSession = getStaffSession() || '';
-      const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession };
+      const headers = { 'Content-Type': 'application/json' };
       const voidAmount = details.amount || 0;
 
       // 1. ALWAYS record the void/refund transaction (even for $0 — creates audit trail)
@@ -854,9 +839,8 @@ export default function Cashier() {
     setPlayerHistoryLoading(true);
     setShowPlayerHistory(true);
     try {
-      const token = getToken();
-      const staffSession = getStaffSession() || '';
-      const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
+const staffSession = getStaffSession() || '';
+      const headers = { };
       // Use server-side player_name filter for efficiency
       const res = await commanderFetch(`/api/commander/cashier?venue_id=${venueId}&player_name=${encodeURIComponent(selectedPlayer.player_name)}&limit=100`, { headers });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -1172,8 +1156,7 @@ export default function Cashier() {
                 style={{
                   position: 'absolute', top: '12%', left: '8%', width: '84%', height: '12.5%',
                   background: 'transparent', border: 'none', cursor: 'pointer',
-                  borderRadius: 8,
-                }}
+                  borderRadius: 8 }}
                 aria-label="Scan Player Card"
               />
 
@@ -1185,8 +1168,7 @@ export default function Cashier() {
                 style={{
                   position: 'absolute', top: '26%', left: '8%', width: '84%', height: '12.5%',
                   background: 'transparent', border: 'none', cursor: 'pointer',
-                  borderRadius: 8,
-                }}
+                  borderRadius: 8 }}
                 aria-label="Add Time To Player Balance"
               />
 
@@ -1198,8 +1180,7 @@ export default function Cashier() {
                 style={{
                   position: 'absolute', top: '40%', left: '8%', width: '84%', height: '12.5%',
                   background: 'transparent', border: 'none', cursor: 'pointer',
-                  borderRadius: 8,
-                }}
+                  borderRadius: 8 }}
                 aria-label="Update Membership"
               />
 
@@ -1209,8 +1190,7 @@ export default function Cashier() {
                 style={{
                   position: 'absolute', top: '54%', left: '8%', width: '84%', height: '12.5%',
                   background: 'transparent', border: 'none', cursor: 'pointer',
-                  borderRadius: 8,
-                }}
+                  borderRadius: 8 }}
                 aria-label="Tournament Registration"
               />
 
@@ -1220,8 +1200,7 @@ export default function Cashier() {
                 style={{
                   position: 'absolute', top: '68%', left: '8%', width: '84%', height: '12.5%',
                   background: 'transparent', border: 'none', cursor: 'pointer',
-                  borderRadius: 8,
-                }}
+                  borderRadius: 8 }}
                 aria-label="Cash Game Buy-In Receipt"
               />
 
@@ -1231,8 +1210,7 @@ export default function Cashier() {
                 style={{
                   position: 'absolute', top: '82%', left: '8%', width: '84%', height: '12%',
                   background: 'transparent', border: 'none', cursor: 'pointer',
-                  borderRadius: 8,
-                }}
+                  borderRadius: 8 }}
                 aria-label="Transaction Log"
               />
             </div>

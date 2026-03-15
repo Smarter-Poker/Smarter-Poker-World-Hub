@@ -16,7 +16,7 @@ const SkeletonDark = dynamic(() => import('../../src/components/ui/SkeletonDark'
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
-import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 export default function PokerRoomFunctions() {
@@ -28,8 +28,6 @@ export default function PokerRoomFunctions() {
   const [loading, setLoading] = useState(true);
   const [venueId, setVenueId] = useState(null);
 
-
-
   // Init venueId from localStorage
   useEffect(() => {
     try {
@@ -40,9 +38,8 @@ export default function PokerRoomFunctions() {
 
   const fetchData = useCallback(async (signal) => {
     try {
-      const token = getToken();
-      const staffSession = getStaffSession() || '';
-      const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
+const staffSession = getStaffSession() || '';
+      const headers = { };
 
       // Get settings (room open/close state + venue_id)
       const vRes = await commanderFetch('/api/commander/settings', { headers });
@@ -79,8 +76,7 @@ export default function PokerRoomFunctions() {
                   game_type: (game.game_type || t.game_type || '').toUpperCase(),
                   stakes: game.stakes || t.stakes || '',
                   current_players: game.current_players || 0,
-                  max_players: game.max_players || t.max_seats || 9,
-                };
+                  max_players: game.max_players || t.max_seats || 9 };
               }
               return t;
             });
@@ -94,7 +90,7 @@ export default function PokerRoomFunctions() {
             try {
               const res = await commanderFetch('/api/commander/settings', {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ room_open: true })
               });
               if (res.ok) setRoomOpen(true);
@@ -114,11 +110,10 @@ export default function PokerRoomFunctions() {
   const toggleRoom = async () => {
     setToggling(true);
     try {
-      const token = getToken();
-      const staffSession = getStaffSession() || '';
+const staffSession = getStaffSession() || '';
       const res = await commanderFetch('/api/commander/settings', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ room_open: !roomOpen })
       });
       if (res.ok) {

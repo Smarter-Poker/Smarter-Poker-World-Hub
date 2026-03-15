@@ -73,8 +73,7 @@ export default function LeaderboardDisplay() {
     platinum: { l: 'Platinum', i: '', c: '#E5E4E2' }, gold: { l: 'Gold', i: '', c: '#FFD700' },
     vip: { l: 'VIP', i: '', c: '#FFD700' }, silver: { l: 'Silver', i: '', c: '#C0C0C0' },
     annual: { l: 'Annual', i: '', c: '#8B5CF6' }, monthly: { l: 'Monthly', i: '', c: '#3B82F6' },
-    weekly: { l: 'Weekly', i: '', c: '#10B981' }, daily: { l: 'Daily', i: '', c: '#6B7280' },
-  };
+    weekly: { l: 'Weekly', i: '', c: '#10B981' }, daily: { l: 'Daily', i: '', c: '#6B7280' } };
   function ti(t) { return TIERS[(t || '').toLowerCase()] || { l: t || 'Member', i: '', c: '#6B7280' }; }
 
   // ═══════════════════════════════════════════════════════════════
@@ -84,7 +83,7 @@ export default function LeaderboardDisplay() {
     if (!venueId) return;
     const staffSession = typeof window !== 'undefined' ? getStaffSession() || '' : '';
     const token = typeof window !== 'undefined' ? (getToken()) : '';
-    const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
+    const headers = { };
     const fetchOpts = signal ? { headers, signal } : { headers };
     try {
       // ── Fetch members ──
@@ -128,9 +127,7 @@ export default function LeaderboardDisplay() {
                   avatar: e.profiles?.avatar_url, score: e.score || e.points || 0,
                   scoreDisplay: lb.leaderboard_type === 'hours_played' ? fmtHours(e.hours_played || e.score || 0) : String(e.score || e.points || 0),
                   detail: [e.hours_played ? `${fmtHours(e.hours_played)} played` : null, e.sessions_count ? `${e.sessions_count} sessions` : null].filter(Boolean).join(' • ') || '',
-                  barPct: Math.round(((e.score || e.points || 0) / maxScore) * 100),
-                })),
-              });
+                  barPct: Math.round(((e.score || e.points || 0) / maxScore) * 100) })) });
             }
           });
         }
@@ -161,9 +158,7 @@ export default function LeaderboardDisplay() {
                     rank: i + 1, name: s.player_name || 'Player', avatar: s.avatar_url,
                     score: s.points || 0, scoreDisplay: String(s.points || 0),
                     detail: [s.events_played ? `${s.events_played} events` : null, s.wins ? `${s.wins} wins` : null, s.cashes ? `${s.cashes} cashes` : null, s.earnings ? `$${Number(s.earnings).toLocaleString()}` : null].filter(Boolean).join(' • '),
-                    barPct: Math.round(((s.points || 0) / maxPts) * 100),
-                  })),
-                });
+                    barPct: Math.round(((s.points || 0) / maxPts) * 100) })) });
               }
             } catch (e) { console.error("[leaderboard.js]", e); }
           }
@@ -192,9 +187,7 @@ export default function LeaderboardDisplay() {
               scoreDisplay: fmtHours(p.total_hours),
               detail: `${p.session_count} sessions • ${p.visit_count} visits • ${ti(p.membership_tier).i} ${ti(p.membership_tier).l}`,
               barPct: Math.round((p.total_hours / maxH) * 100),
-              tier: p.membership_tier,
-            })),
-          });
+              tier: p.membership_tier })) });
         }
       } catch (e) { console.error("[leaderboard.js]", e); }
 
@@ -209,9 +202,7 @@ export default function LeaderboardDisplay() {
           entries: byVisits.map((m, i) => ({
             rank: i + 1, name: mName(m), avatar: m.photo_url, score: m.visit_count || 0,
             scoreDisplay: String(m.visit_count), detail: m.last_checkin ? `Last seen ${tAgo(m.last_checkin)}` : 'Never checked in',
-            barPct: Math.round(((m.visit_count || 0) / topV) * 100), tier: m.membership_tier,
-          })),
-        });
+            barPct: Math.round(((m.visit_count || 0) / topV) * 100), tier: m.membership_tier })) });
       }
 
       // ── C3: Today's Check-Ins ──
@@ -225,9 +216,7 @@ export default function LeaderboardDisplay() {
           entries: todayIn.map((m, i) => ({
             rank: i + 1, name: mName(m), avatar: m.photo_url, score: m.visit_count || 0,
             scoreDisplay: tAgo(m.last_checkin), detail: `${m.visit_count || 0} lifetime visits • ${ti(m.membership_tier).l}`,
-            barPct: 0, tier: m.membership_tier,
-          })),
-        });
+            barPct: 0, tier: m.membership_tier })) });
       }
 
       // ── C4: VIP Hall of Fame ──
@@ -242,9 +231,7 @@ export default function LeaderboardDisplay() {
           entries: vips.map((m, i) => ({
             rank: i + 1, name: mName(m), avatar: m.photo_url, score: m.visit_count || 0,
             scoreDisplay: String(m.visit_count || 0), detail: `${ti(m.membership_tier).i} ${ti(m.membership_tier).l} • Member since ${mSince(m.created_at)}`,
-            barPct: 0, tier: m.membership_tier, tierBadge: true,
-          })),
-        });
+            barPct: 0, tier: m.membership_tier, tierBadge: true })) });
       }
 
       // ── FALLBACK ──

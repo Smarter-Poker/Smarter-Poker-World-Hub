@@ -85,9 +85,7 @@ export default function CommanderLogin() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
+          redirectTo: `${window.location.origin}/auth/callback` } });
       if (error) throw error;
     } catch (err) {
       console.error(`${provider} sign in error:`, err);
@@ -122,11 +120,9 @@ export default function CommanderLogin() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${data.session.access_token}`,
-        },
+          'Authorization': `Bearer ${data.session.access_token}` },
         body: JSON.stringify({ userId: data.user.id }),
-        signal: abortController.signal,
-      });
+        signal: abortController.signal });
       if (!subRes.ok) throw new Error('Request failed');
       clearTimeout(fetchTimeout);
       const subData = await subRes.json();
@@ -160,8 +156,7 @@ export default function CommanderLogin() {
           manage_settings: true,
           view_analytics: true,
           view_reports: true,
-          send_announcements: true,
-        }
+          send_announcements: true }
       };
       localStorage.setItem('commander_staff', JSON.stringify(staffSession));
 

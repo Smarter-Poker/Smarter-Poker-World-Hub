@@ -11,7 +11,7 @@ import { Download, FileText, Loader2, RefreshCw, Clock, Users, Trophy, BarChart3
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../src/engine/EventBus';
 import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
-import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const EXPORT_TYPES = [
@@ -52,7 +52,7 @@ export default function ExportsHub() {
     if (!venueId) return;
     setLoading(true);
     try {
-      const headers = { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() || '' };
+      const headers = { || '' };
       const [expRes, tRes] = await Promise.all([
         commanderFetch(`/api/commander/exports?venue_id=${venueId}`, { headers }).catch(() => ({ ok: false })),
         commanderFetch(`/api/commander/tournaments?venue_id=${venueId}&status=completed&limit=20`, { headers }).catch(() => ({ ok: false })),
@@ -73,7 +73,7 @@ export default function ExportsHub() {
       const staffSession = getStaffSession() || '';
       const res = await commanderFetch('/api/commander/exports', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           venue_id: venueId,
           export_type: exportType,
@@ -108,7 +108,7 @@ export default function ExportsHub() {
     setCreating('hendon');
     try {
       const res = await commanderFetch(`/api/commander/exports/hendon-mob?tournament_id=${tournamentId}`, {
-        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() || '' }
+        headers: { || '' }
       });
       if (res.ok) {
         const blob = await res.blob();

@@ -22,7 +22,7 @@ const SkeletonDark = dynamic(() => import('../../src/components/ui/SkeletonDark'
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
-import { getVenueId, getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
+import { getVenueId, getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const PUSH_THRESHOLD = 30; // minutes before highlighting for rotation
@@ -53,9 +53,7 @@ export default function DealerRotation() {
   const [showHistory, setShowHistory] = useState(false);
 
   const getHeaders = () => ({
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${getToken()}`,
-    'x-staff-session': getStaffSession()
+    'Content-Type': 'application/json'
   });
 
   const fetchData = useCallback(async (signal) => {

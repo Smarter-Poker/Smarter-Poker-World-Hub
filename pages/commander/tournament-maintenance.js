@@ -9,7 +9,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 import { Calendar, ChevronLeft, ChevronRight, Edit2, Loader2, Clock, DollarSign, Users } from 'lucide-react';
 import { busEmit } from '../../src/engine/EventBus';
-import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 export default function TournamentMaintenance() {
@@ -34,9 +34,7 @@ export default function TournamentMaintenance() {
     const fetchTournaments = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await commanderFetch('/api/commander/tournaments?limit=100', {
-                headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
-            });
+            const res = await commanderFetch('/api/commander/tournaments?limit=100', {});
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success || json.data) {
@@ -79,8 +77,7 @@ export default function TournamentMaintenance() {
         completed: 'bg-[#64748B]/10 text-[#64748B]',
         cancelled: 'bg-[#EF4444]/10 text-[#EF4444]',
         paused: 'bg-[#F59E0B]/10 text-[#F59E0B]',
-        final_table: 'bg-[#8B5CF6]/10 text-[#8B5CF6]',
-    };
+        final_table: 'bg-[#8B5CF6]/10 text-[#8B5CF6]' };
 
     if (!staff) {
         return (
@@ -147,8 +144,7 @@ export default function TournamentMaintenance() {
                                     completed: 'text-[#64748B]',
                                     cancelled: 'text-[#EF4444]',
                                     paused: 'text-[#F59E0B]',
-                                    final_table: 'text-[#8B5CF6]',
-                                };
+                                    final_table: 'text-[#8B5CF6]' };
 
                                 return (
                                     <button

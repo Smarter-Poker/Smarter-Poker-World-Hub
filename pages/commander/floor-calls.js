@@ -29,16 +29,14 @@ const PRIORITY_CONFIG = {
   urgent: { color: '#EF4444', label: 'URGENT', bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.4)' },
   high: { color: '#F59E0B', label: 'HIGH', bg: 'rgba(245,158,11,0.10)', border: 'rgba(245,158,11,0.3)' },
   normal: { color: '#1877F2', label: 'Normal', bg: 'rgba(24,119,242,0.08)', border: 'rgba(24,119,242,0.2)' },
-  low: { color: '#8A8D91', label: 'Low', bg: 'rgba(138,141,145,0.08)', border: 'rgba(138,141,145,0.2)' },
-};
+  low: { color: '#8A8D91', label: 'Low', bg: 'rgba(138,141,145,0.08)', border: 'rgba(138,141,145,0.2)' } };
 
 const STATUS_CONFIG = {
   pending: { color: '#EF4444', label: 'Pending', icon: Bell },
   acknowledged: { color: '#F59E0B', label: 'Acknowledged', icon: Check },
   en_route: { color: '#1877F2', label: 'En Route', icon: ArrowRight },
   resolved: { color: '#31A24C', label: 'Resolved', icon: CheckCircle2 },
-  cancelled: { color: '#6B7280', label: 'Cancelled', icon: X },
-};
+  cancelled: { color: '#6B7280', label: 'Cancelled', icon: X } };
 
 const REASON_CONFIG = {
   dispute: { icon: Gavel, label: 'Dispute', color: '#EF4444' },
@@ -49,8 +47,7 @@ const REASON_CONFIG = {
   maintenance: { icon: Wrench, label: 'Maintenance', color: '#6B7280' },
   dealer_relief: { icon: Coffee, label: 'Dealer Relief', color: '#8B5CF6' },
   floor_assistance: { icon: Bell, label: 'Floor Assist', color: '#1877F2' },
-  other: { icon: HelpCircle, label: 'Other', color: '#B0B3B8' },
-};
+  other: { icon: HelpCircle, label: 'Other', color: '#B0B3B8' } };
 
 const PRIORITY_ORDER = { urgent: 0, high: 1, normal: 2, low: 3 };
 
@@ -120,7 +117,7 @@ export default function FloorCalls() {
   const fetchCalls = useCallback(async () => {
     try {
       const { token, staffSession, venueId: vid } = getAuth();
-      const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
+      const headers = { };
 
       const [activeRes, resolvedRes] = await Promise.all([
         commanderFetch(`/api/commander/floor-calls?status=pending,acknowledged,en_route&venue_id=${vid}`, { headers }).then(r => r.json()).catch(() => ({ data: [] })),
@@ -180,7 +177,7 @@ export default function FloorCalls() {
 
       const res = await commanderFetch(`/api/commander/floor-calls/${id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status, responded_by: respondedBy, resolution })
       });
       if (res.ok) {
@@ -198,7 +195,7 @@ export default function FloorCalls() {
       const { token, staffSession, venueId: vid } = getAuth();
       const res = await commanderFetch('/api/commander/floor-calls', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           venue_id: vid,
           table_number: parseInt(newTable),
@@ -288,8 +285,7 @@ export default function FloorCalls() {
                 background: 'transparent', border: 'none', cursor: 'pointer',
                 color: tab === t.key ? t.color : '#6B7280',
                 borderBottom: tab === t.key ? `2px solid ${t.color}` : '2px solid transparent',
-                marginBottom: -1,
-              }}>{t.label}</button>
+                marginBottom: -1 }}>{t.label}</button>
           ))}
         </div>
 
@@ -306,8 +302,7 @@ export default function FloorCalls() {
                   background: reasonFilter === f.key ? '#1877F2' : '#242526',
                   color: reasonFilter === f.key ? '#fff' : '#B0B3B8',
                   border: `1px solid ${reasonFilter === f.key ? '#1877F2' : '#3A3B3C'}`,
-                  cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
-                }}>{f.label}</button>
+                  cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>{f.label}</button>
             ))}
           </div>
         )}
@@ -344,8 +339,7 @@ export default function FloorCalls() {
                       <div key={call.id} style={{
                         background: '#1A1B1D', borderRadius: 14, overflow: 'hidden',
                         border: `1px solid ${isUrgent ? 'rgba(239,68,68,0.5)' : '#2A2B2D'}`,
-                        animation: isUrgent ? 'urgent-pulse 2s ease-in-out infinite' : 'none',
-                      }}>
+                        animation: isUrgent ? 'urgent-pulse 2s ease-in-out infinite' : 'none' }}>
                         {/* Card body */}
                         <div style={{ padding: '14px 16px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -353,8 +347,7 @@ export default function FloorCalls() {
                               <span style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>Table {call.table_number}</span>
                               <span style={{
                                 fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 6,
-                                background: pCfg.bg, color: pCfg.color, border: `1px solid ${pCfg.border}`,
-                              }}>{pCfg.label}</span>
+                                background: pCfg.bg, color: pCfg.color, border: `1px solid ${pCfg.border}` }}>{pCfg.label}</span>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                               <Clock size={12} color="#6B7280" />
@@ -366,8 +359,7 @@ export default function FloorCalls() {
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                             <div style={{
                               width: 28, height: 28, borderRadius: 8,
-                              background: `${rCfg.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            }}>
+                              background: `${rCfg.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                               <ReasonIcon size={14} color={rCfg.color} />
                             </div>
                             <span style={{ fontSize: 14, fontWeight: 600, color: '#E4E6EB', textTransform: 'capitalize' }}>
@@ -454,13 +446,11 @@ export default function FloorCalls() {
                       return (
                         <div key={call.id} style={{
                           display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
-                          background: '#1A1B1D', border: '1px solid #2A2B2D', borderRadius: 12, opacity: 0.85,
-                        }}>
+                          background: '#1A1B1D', border: '1px solid #2A2B2D', borderRadius: 12, opacity: 0.85 }}>
                           <div style={{
                             width: 32, height: 32, borderRadius: 8,
                             background: 'rgba(49,162,76,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            flexShrink: 0,
-                          }}>
+                            flexShrink: 0 }}>
                             <CheckCircle2 size={16} color="#31A24C" />
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
@@ -498,8 +488,7 @@ export default function FloorCalls() {
               position: 'fixed', bottom: 24, right: 20, width: 56, height: 56, borderRadius: 28,
               background: 'linear-gradient(135deg, #1877F2, #1565D8)', color: '#fff',
               border: 'none', cursor: 'pointer', boxShadow: '0 4px 20px rgba(24,119,242,0.4)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 30,
-            }}>
+              display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 30 }}>
             <Plus size={24} />
           </button>
         )}
@@ -530,8 +519,7 @@ export default function FloorCalls() {
                         background: newReason === key ? `${cfg.color}20` : '#242526',
                         color: newReason === key ? cfg.color : '#8A8D91',
                         border: `1px solid ${newReason === key ? `${cfg.color}50` : '#3A3B3C'}`,
-                        cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-                      }}>
+                        cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
                       <Icon size={16} />
                       {cfg.label}
                     </button>
@@ -549,8 +537,7 @@ export default function FloorCalls() {
                       background: newPriority === key ? cfg.bg : '#242526',
                       color: newPriority === key ? cfg.color : '#6B7280',
                       border: `1px solid ${newPriority === key ? cfg.border : '#3A3B3C'}`,
-                      cursor: 'pointer',
-                    }}>{cfg.label}</button>
+                      cursor: 'pointer' }}>{cfg.label}</button>
                 ))}
               </div>
 
@@ -567,8 +554,7 @@ export default function FloorCalls() {
                   background: newTable ? 'linear-gradient(135deg, #1877F2, #1565D8)' : '#3A3B3C',
                   color: newTable ? '#fff' : '#6B7280',
                   border: 'none', cursor: newTable ? 'pointer' : 'default', marginTop: 14,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                }}>
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                 {submitting ? <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> : <Bell size={18} />}
                 {submitting ? 'Creating...' : 'Create Floor Call'}
               </button>
@@ -599,8 +585,7 @@ export default function FloorCalls() {
                       background: resolveNote === q ? '#31A24C' : '#242526',
                       color: resolveNote === q ? '#fff' : '#B0B3B8',
                       border: `1px solid ${resolveNote === q ? '#31A24C' : '#3A3B3C'}`,
-                      cursor: 'pointer',
-                    }}>{q}</button>
+                      cursor: 'pointer' }}>{q}</button>
                 ))}
               </div>
 
@@ -636,8 +621,7 @@ function StatCard({ label, value, color }) {
   return (
     <div style={{
       background: '#1A1B1D', border: '1px solid #2A2B2D', borderRadius: 12,
-      padding: '10px 16px', minWidth: 120, flexShrink: 0,
-    }}>
+      padding: '10px 16px', minWidth: 120, flexShrink: 0 }}>
       <div style={{ fontSize: 20, fontWeight: 800, color }}>{value}</div>
       <div style={{ fontSize: 10, color: '#6B7280', fontWeight: 600, textTransform: 'uppercase', marginTop: 2 }}>{label}</div>
     </div>
@@ -650,34 +634,28 @@ const iconBtnStyle = {
   width: 36, height: 36, borderRadius: 10,
   background: '#242526', border: '1px solid #3A3B3C',
   display: 'flex', alignItems: 'center', justifyContent: 'center',
-  cursor: 'pointer', flexShrink: 0,
-};
+  cursor: 'pointer', flexShrink: 0 };
 
 const actionBtnStyle = {
   flex: 1, padding: '12px 0', fontSize: 12, fontWeight: 600,
   background: 'transparent', border: 'none', cursor: 'pointer',
-  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-};
+  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 };
 
 const overlayStyle = {
   position: 'fixed', inset: 0, zIndex: 50,
   background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)',
-  display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-};
+  display: 'flex', alignItems: 'flex-end', justifyContent: 'center' };
 
 const modalStyle = {
   background: '#1A1B1D', borderRadius: '20px 20px 0 0',
   width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto',
-  padding: '20px 20px 28px', border: '1px solid #2A2B2D',
-};
+  padding: '20px 20px 28px', border: '1px solid #2A2B2D' };
 
 const labelStyle = {
   display: 'block', fontSize: 11, fontWeight: 600, color: '#8A8D91',
-  textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6,
-};
+  textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 };
 
 const inputStyle = {
   width: '100%', padding: '12px 14px', borderRadius: 10, fontSize: 14,
   background: '#242526', color: '#E4E6EB', border: '1px solid #3A3B3C',
-  outline: 'none', boxSizing: 'border-box',
-};
+  outline: 'none', boxSizing: 'border-box' };

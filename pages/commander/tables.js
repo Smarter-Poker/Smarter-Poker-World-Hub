@@ -13,21 +13,17 @@ import { Plus, Trash2, Table2, Users, Loader2, Play, Square, X } from 'lucide-re
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import Pagination from '../../src/components/commander/shared/Pagination';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
-import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
-
-
 
 const STATUS_COLORS = {
   available: { bg: 'rgba(49,162,76,0.15)', border: '#31A24C', text: '#31A24C', label: 'Available' },
   in_use: { bg: 'rgba(24,119,242,0.15)', border: '#1877F2', text: '#1877F2', label: 'In Use' },
-  reserved: { bg: 'rgba(245,158,11,0.15)', border: '#F59E0B', text: '#F59E0B', label: 'Reserved' },
-};
+  reserved: { bg: 'rgba(245,158,11,0.15)', border: '#F59E0B', text: '#F59E0B', label: 'Reserved' } };
 
 const PURPOSE_COLORS = {
   cash_game: { bg: 'rgba(49,162,76,0.15)', border: '#31A24C', text: '#31A24C', label: 'Cash Game' },
-  tournament: { bg: 'rgba(255,215,0,0.15)', border: '#FFD700', text: '#FFD700', label: 'Tournament' },
-};
+  tournament: { bg: 'rgba(255,215,0,0.15)', border: '#FFD700', text: '#FFD700', label: 'Tournament' } };
 
 const GAME_TYPES = ['NLH', 'PLO', 'NLO8', 'PLO8', 'Mixed', 'Stud', 'Razz', 'Draw'];
 const COMMON_STAKES = ['$1/$2', '$1/$3', '$2/$5', '$5/$10', '$10/$20', '$25/$50'];
@@ -55,8 +51,7 @@ function computeSeatPositions(maxSeats) {
     const angle = startAngle + (idx / STEPS) * 2 * Math.PI;
     allPos.push({
       top: `${cyE + ry * Math.sin(angle)}%`,
-      left: `${cxE + rx * Math.cos(angle)}%`,
-    });
+      left: `${cxE + rx * Math.cos(angle)}%` });
   }
   const dealerPos = allPos[0];
   const seatPositions = allPos.slice(1);
@@ -111,8 +106,7 @@ export default function CommanderTablesPage() {
   const fetchTables = useCallback(async (signal) => {
     if (!venueId) return;
     const staffSession = getStaffSession() || '';
-    const token = getToken();
-    const headers = { 'x-staff-session': staffSession, Authorization: `Bearer ${token}` };
+const headers = { };
 
     // Fetch tables
     let tablesArr = [];
@@ -213,7 +207,7 @@ export default function CommanderTablesPage() {
       const staffSession = getStaffSession() || '';
       const res = await commanderFetch('/api/commander/games', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           venue_id: venueId, table_id: selectedTable.id,
           game_type: newGameType, stakes: newStakes,
@@ -225,7 +219,7 @@ export default function CommanderTablesPage() {
       if (data.success || data.data) {
         const res = await commanderFetch(`/api/commander/tables/${selectedTable.id}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: 'in_use', game_type: newGameType, stakes: newStakes, mode: 'cash', table_purpose: 'cash_game' })
         });
         if (!res.ok) throw new Error('Request failed');
@@ -245,14 +239,14 @@ export default function CommanderTablesPage() {
       const staffSession = getStaffSession() || '';
       const res1 = await commanderFetch(`/api/commander/games/${gameId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'closed' })
       });
       if (!res1.ok) throw new Error('Failed to close game');
       if (selectedTable) {
         const res2 = await commanderFetch(`/api/commander/tables/${selectedTable.id}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: 'available', game_type: null, stakes: null, mode: 'inactive' })
         });
         if (!res2.ok) throw new Error('Failed to update table status');
@@ -275,7 +269,7 @@ export default function CommanderTablesPage() {
       }
       const res = await commanderFetch(`/api/commander/tables/${selectedTable.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates)
       });
       if (res.ok) {
@@ -293,9 +287,7 @@ export default function CommanderTablesPage() {
     try {
       const staffSession = getStaffSession() || '';
       const res = await commanderFetch(`/api/commander/tables/${selectedTable.id}`, {
-        method: 'DELETE',
-        headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` }
-      });
+        method: 'DELETE'});
       if (res.ok) {
         setSelectedTableId(null);
         await fetchTables();
@@ -310,7 +302,7 @@ export default function CommanderTablesPage() {
       const staffSession = getStaffSession() || '';
       const res = await commanderFetch('/api/commander/tables', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...tableData, venue_id: venueId })
       });
       if (!res.ok) throw new Error('Request failed');
@@ -334,7 +326,7 @@ export default function CommanderTablesPage() {
       const mode = purpose === 'tournament' ? 'tournament' : 'cash';
       const res = await commanderFetch(`/api/commander/tables/${selectedTable.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ table_purpose: purpose, mode })
       });
       if (res.ok) {
@@ -466,8 +458,7 @@ export default function CommanderTablesPage() {
                                 background: '#242526', borderRadius: 16,
                                 border: `2px solid ${isSelected ? '#1877F2' : '#3A3B3C'}`,
                                 overflow: 'hidden', cursor: 'pointer',
-                                transition: 'border-color 0.2s',
-                              }}
+                                transition: 'border-color 0.2s' }}
                               onClick={() => { setSelectedTableId(isSelected ? null : table.id); setShowStartGame(false); }}
                             >
                               <div style={{
@@ -475,8 +466,7 @@ export default function CommanderTablesPage() {
                                 background: game.status === 'running'
                                   ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
                                   : 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
-                                color: '#fff',
-                              }}>
+                                color: '#fff' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                   <div>
                                     <div style={{ fontSize: 16, fontWeight: 800 }}>
@@ -490,8 +480,7 @@ export default function CommanderTablesPage() {
                                     <span style={{
                                       padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
                                       background: 'rgba(255,255,255,0.2)', textTransform: 'uppercase',
-                                      display: 'flex', alignItems: 'center', gap: 4,
-                                    }}>
+                                      display: 'flex', alignItems: 'center', gap: 4 }}>
                                       <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff' }} />
                                       {game.status === 'running' ? 'RUNNING' : game.status?.toUpperCase() || 'ACTIVE'}
                                     </span>
@@ -506,14 +495,12 @@ export default function CommanderTablesPage() {
                                   {/* Table image */}
                                   <Image src="/images/poker-table-black-gold.png" alt="Poker Table" width={640} height={640} style={{
                                     position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-                                    objectFit: 'contain', pointerEvents: 'none', zIndex: 0,
-                                  }} />
+                                    objectFit: 'contain', pointerEvents: 'none', zIndex: 0 }} />
 
                                   {/* Game info in center */}
                                   <div style={{
                                     position: 'absolute', top: '48%', left: '50%',
-                                    transform: 'translate(-50%, -50%)', zIndex: 5, textAlign: 'center',
-                                  }}>
+                                    transform: 'translate(-50%, -50%)', zIndex: 5, textAlign: 'center' }}>
                                     <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 4 }}>
                                       {venue?.name || 'Table'} #{tNum}
                                     </div>
@@ -528,16 +515,14 @@ export default function CommanderTablesPage() {
                                   {/* Dealer */}
                                   <div style={{
                                     position: 'absolute', top: dealerPos.top, left: dealerPos.left,
-                                    transform: 'translate(-50%, -50%)', textAlign: 'center', width: 80, zIndex: 3,
-                                  }}>
+                                    transform: 'translate(-50%, -50%)', textAlign: 'center', width: 80, zIndex: 3 }}>
                                     <div style={{
                                       width: 64, height: 64, borderRadius: '50%', margin: '0 auto 4px',
                                       background: 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
                                       border: '3px solid #E4E6EB',
                                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                                       boxShadow: '0 2px 12px rgba(0,0,0,0.6), 0 0 16px rgba(24,119,242,0.4)',
-                                      fontSize: 28, fontWeight: 900, color: '#fff',
-                                    }}>D</div>
+                                      fontSize: 28, fontWeight: 900, color: '#fff' }}>D</div>
                                     <div style={{ fontSize: 11, fontWeight: 700, color: '#1877F2', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                       {dealerMap[tNum] || game.dealer_name || 'No Dealer'}
                                     </div>
@@ -589,8 +574,7 @@ export default function CommanderTablesPage() {
                                         padding: '5px 10px 5px 5px',
                                         border: `2px solid ${isOccupied ? 'rgba(24,119,242,0.5)' : 'rgba(255,255,255,0.08)'}`,
                                         backdropFilter: 'blur(6px)',
-                                        minWidth: 70,
-                                      }}>
+                                        minWidth: 70 }}>
                                         {/* Avatar circle */}
                                         <div style={{
                                           width: 52, height: 52, borderRadius: '50%', flexShrink: 0,
@@ -599,8 +583,7 @@ export default function CommanderTablesPage() {
                                             ? 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)'
                                             : 'rgba(255,255,255,0.06)',
                                           border: `2px solid ${isOccupied ? '#1877F2' : 'rgba(62,64,66,0.5)'}`,
-                                          overflow: 'hidden',
-                                        }}>
+                                          overflow: 'hidden' }}>
                                           {isOccupied ? (
                                             <span style={{ fontSize: 20, fontWeight: 800, color: '#fff' }}>{firstName.charAt(0).toUpperCase()}</span>
                                           ) : (
@@ -613,15 +596,13 @@ export default function CommanderTablesPage() {
                                             fontSize: 13, fontWeight: 600, lineHeight: 1.2,
                                             color: isOccupied ? '#E4E6EB' : '#B0B3B8',
                                             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                                            maxWidth: 110,
-                                          }}>
+                                            maxWidth: 110 }}>
                                             {isOccupied ? fullName : 'Open'}
                                           </div>
                                           {timerText && (
                                             <div style={{
                                               fontSize: 12, fontWeight: 700, color: timerColor,
-                                              fontFamily: 'monospace', lineHeight: 1.2,
-                                            }}>
+                                              fontFamily: 'monospace', lineHeight: 1.2 }}>
                                               {timerText}
                                             </div>
                                           )}
@@ -638,14 +619,12 @@ export default function CommanderTablesPage() {
                               <div style={{
                                 background: '#242526', border: '2px solid #1877F2', borderTop: 'none',
                                 borderRadius: '0 0 12px 12px', padding: '16px',
-                                animation: 'fadeIn 0.2s',
-                              }}>
+                                animation: 'fadeIn 0.2s' }}>
                                 {/* Active Game Info */}
                                 <div style={{
                                   background: 'rgba(24,119,242,0.1)', border: '1px solid #1877F240',
                                   borderRadius: '8px', padding: '12px', marginBottom: '12px',
-                                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                }}>
+                                  display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                   <div>
                                     <div style={{ color: '#1877F2', fontWeight: 700, fontSize: '15px' }}>
                                       {(game.game_type || table.game_type || '').toUpperCase()} {game.stakes || table.stakes || ''}
@@ -663,8 +642,7 @@ export default function CommanderTablesPage() {
                                       display: 'flex', alignItems: 'center', gap: '6px',
                                       padding: '8px 16px', background: 'rgba(239,68,68,0.15)', color: '#EF4444',
                                       fontWeight: 600, fontSize: '13px', borderRadius: '8px', border: '1px solid #EF444440',
-                                      cursor: 'pointer', opacity: actionLoading ? 0.5 : 1,
-                                    }}
+                                      cursor: 'pointer', opacity: actionLoading ? 0.5 : 1 }}
                                   >
                                     <Square size={14} /> Close Game
                                   </button>
@@ -686,8 +664,7 @@ export default function CommanderTablesPage() {
                                           background: isActive ? pc.bg : 'rgba(58,59,60,0.4)',
                                           color: isActive ? pc.text : '#B0B3B8',
                                           border: `2px solid ${isActive ? pc.border : '#3A3B3C'}`,
-                                          opacity: actionLoading ? 0.5 : 1,
-                                        }}
+                                          opacity: actionLoading ? 0.5 : 1 }}
                                       >{pc.label}</button>
                                     );
                                   })}
@@ -704,8 +681,7 @@ export default function CommanderTablesPage() {
                                           padding: '8px 14px', fontSize: '13px', fontWeight: 600,
                                           borderRadius: '8px', cursor: 'pointer',
                                           background: sc.bg, color: sc.text, border: `1px solid ${sc.border}40`,
-                                          opacity: actionLoading ? 0.4 : 1,
-                                        }}
+                                          opacity: actionLoading ? 0.4 : 1 }}
                                       >
                                         Set {sc.label}
                                       </button>
@@ -718,8 +694,7 @@ export default function CommanderTablesPage() {
                                       padding: '8px 14px', fontSize: '13px', fontWeight: 600,
                                       borderRadius: '8px', cursor: 'pointer', marginLeft: 'auto',
                                       background: 'rgba(239,68,68,0.1)', color: '#EF4444', border: '1px solid #EF444430',
-                                      opacity: (actionLoading || table.status === 'in_use') ? 0.4 : 1,
-                                    }}
+                                      opacity: (actionLoading || table.status === 'in_use') ? 0.4 : 1 }}
                                   >
                                     <Trash2 size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
                                     Delete
@@ -753,8 +728,7 @@ export default function CommanderTablesPage() {
                               background: isSelected ? 'rgba(24,119,242,0.1)' : '#242526',
                               border: `2px solid ${isSelected ? '#1877F2' : '#3A3B3C'}`,
                               borderRadius: '10px', cursor: 'pointer',
-                              transition: 'all 0.2s',
-                            }}
+                              transition: 'all 0.2s' }}
                           >
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
                               <div>
@@ -767,8 +741,7 @@ export default function CommanderTablesPage() {
                               </div>
                               <span style={{
                                 padding: '3px 8px', fontSize: '11px', fontWeight: 600, borderRadius: '6px',
-                                background: sc.bg, color: sc.text, border: `1px solid ${sc.border}40`,
-                              }}>
+                                background: sc.bg, color: sc.text, border: `1px solid ${sc.border}40` }}>
                                 {sc.label}
                               </span>
                             </div>
@@ -786,8 +759,7 @@ export default function CommanderTablesPage() {
                                     background: isInactive ? 'rgba(176,179,184,0.15)' : pc.bg,
                                     color: isInactive ? '#B0B3B8' : pc.text,
                                     border: `1px solid ${isInactive ? '#B0B3B840' : pc.border + '40'}`,
-                                    textTransform: 'uppercase',
-                                  }}>{label}</span>
+                                    textTransform: 'uppercase' }}>{label}</span>
                                 );
                               })()}
                             </div>
@@ -800,8 +772,7 @@ export default function CommanderTablesPage() {
                     {selectedTable && !selectedGame && (
                       <div style={{
                         background: '#242526', border: '2px solid #1877F2', borderRadius: '12px',
-                        padding: '20px', marginTop: '16px', animation: 'fadeIn 0.2s',
-                      }}>
+                        padding: '20px', marginTop: '16px', animation: 'fadeIn 0.2s' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                           <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>
                             Table {selectedTable.table_number}
@@ -822,16 +793,14 @@ export default function CommanderTablesPage() {
                                   width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                                   padding: '12px', background: 'rgba(49,162,76,0.15)', color: '#31A24C',
                                   fontWeight: 600, fontSize: '14px', borderRadius: '8px', border: '1px solid #31A24C40',
-                                  cursor: 'pointer', marginBottom: '16px',
-                                }}
+                                  cursor: 'pointer', marginBottom: '16px' }}
                               >
                                 <Play size={16} /> Start Game on Table {selectedTable.table_number}
                               </button>
                             ) : (
                               <div style={{
                                 background: '#18191A', borderRadius: '10px', padding: '16px',
-                                marginBottom: '16px', border: '1px solid #3A3B3C',
-                              }}>
+                                marginBottom: '16px', border: '1px solid #3A3B3C' }}>
                                 <h4 style={{ color: '#fff', fontWeight: 600, fontSize: '15px', marginBottom: '12px' }}>Start New Game</h4>
 
                                 <div style={{ marginBottom: '12px' }}>
@@ -841,8 +810,7 @@ export default function CommanderTablesPage() {
                                       <button key={gt} onClick={() => setNewGameType(gt)}
                                         style={{
                                           padding: '6px 14px', fontSize: '13px', fontWeight: 600, borderRadius: '6px', border: 'none', cursor: 'pointer',
-                                          background: newGameType === gt ? '#1877F2' : '#3A3B3C', color: newGameType === gt ? '#fff' : '#B0B3B8',
-                                        }}
+                                          background: newGameType === gt ? '#1877F2' : '#3A3B3C', color: newGameType === gt ? '#fff' : '#B0B3B8' }}
                                       >{gt}</button>
                                     ))}
                                   </div>
@@ -855,8 +823,7 @@ export default function CommanderTablesPage() {
                                       <button key={s} onClick={() => setNewStakes(s)}
                                         style={{
                                           padding: '6px 14px', fontSize: '13px', fontWeight: 600, borderRadius: '6px', border: 'none', cursor: 'pointer',
-                                          background: newStakes === s ? '#1877F2' : '#3A3B3C', color: newStakes === s ? '#fff' : '#B0B3B8',
-                                        }}
+                                          background: newStakes === s ? '#1877F2' : '#3A3B3C', color: newStakes === s ? '#fff' : '#B0B3B8' }}
                                       >{s}</button>
                                     ))}
                                   </div>
@@ -869,8 +836,7 @@ export default function CommanderTablesPage() {
                                       <button key={n} onClick={() => setNewMaxPlayers(n)}
                                         style={{
                                           padding: '6px 16px', fontSize: '13px', fontWeight: 600, borderRadius: '6px', border: 'none', cursor: 'pointer',
-                                          background: newMaxPlayers === n ? '#1877F2' : '#3A3B3C', color: newMaxPlayers === n ? '#fff' : '#B0B3B8',
-                                        }}
+                                          background: newMaxPlayers === n ? '#1877F2' : '#3A3B3C', color: newMaxPlayers === n ? '#fff' : '#B0B3B8' }}
                                       >{n}</button>
                                     ))}
                                   </div>
@@ -884,8 +850,7 @@ export default function CommanderTablesPage() {
                                     style={{
                                       flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
                                       padding: '10px', background: '#31A24C', color: '#fff', fontWeight: 700, fontSize: '14px', borderRadius: '8px', border: 'none', cursor: 'pointer',
-                                      opacity: actionLoading ? 0.5 : 1,
-                                    }}
+                                      opacity: actionLoading ? 0.5 : 1 }}
                                   ><Play size={16} /> Start {newGameType} {newStakes}</button>
                                 </div>
                               </div>
@@ -908,8 +873,7 @@ export default function CommanderTablesPage() {
                                   background: isActive ? pc.bg : 'rgba(58,59,60,0.4)',
                                   color: isActive ? pc.text : '#B0B3B8',
                                   border: `2px solid ${isActive ? pc.border : '#3A3B3C'}`,
-                                  opacity: actionLoading ? 0.5 : 1,
-                                }}
+                                  opacity: actionLoading ? 0.5 : 1 }}
                               >{pc.label}</button>
                             );
                           })}
@@ -922,8 +886,7 @@ export default function CommanderTablesPage() {
                                 style={{
                                   padding: '8px 14px', fontSize: '13px', fontWeight: 600, borderRadius: '8px', cursor: 'pointer',
                                   background: sc.bg, color: sc.text, border: `1px solid ${sc.border}40`,
-                                  opacity: actionLoading ? 0.4 : 1,
-                                }}
+                                  opacity: actionLoading ? 0.4 : 1 }}
                               >Set {sc.label}</button>
                             );
                           })}
@@ -931,8 +894,7 @@ export default function CommanderTablesPage() {
                             style={{
                               padding: '8px 14px', fontSize: '13px', fontWeight: 600, borderRadius: '8px', cursor: 'pointer', marginLeft: 'auto',
                               background: 'rgba(239,68,68,0.1)', color: '#EF4444', border: '1px solid #EF444430',
-                              opacity: (actionLoading || selectedTable.status === 'in_use') ? 0.4 : 1,
-                            }}
+                              opacity: (actionLoading || selectedTable.status === 'in_use') ? 0.4 : 1 }}
                           >
                             <Trash2 size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} /> Delete
                           </button>

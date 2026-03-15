@@ -9,7 +9,7 @@ import { Activity, Loader2, Shield } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import AuditLogViewer from '../../../src/components/commander/admin/AuditLogViewer';
 import { busEmit } from '../../../src/engine/EventBus';
-import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
 
 export default function StaffActivity() {
@@ -26,11 +26,8 @@ export default function StaffActivity() {
       const controller = new AbortController();
       const { signal } = controller;
       try {
-        const token = getToken();
-        const staffSession = getStaffSession() || '';
-        const res = await commanderFetch('/api/commander/incidents?status=all&limit=50', {
-          headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
-        });
+const staffSession = getStaffSession() || '';
+        const res = await commanderFetch('/api/commander/incidents?status=all&limit=50', {});
         if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const json = await res.json();
         if (json.success) setActivities(json.data || []);
@@ -43,16 +40,13 @@ export default function StaffActivity() {
   const fetchAuditLogs = async (filters = {}) => {
     setAuditLoading(true);
     try {
-      const token = getToken();
-      const staffSession = getStaffSession() || '';
+const staffSession = getStaffSession() || '';
       const params = new URLSearchParams();
       if (filters.category) params.set('action_category', filters.category);
       if (filters.dateFrom) params.set('date_from', filters.dateFrom);
       if (filters.dateTo) params.set('date_to', filters.dateTo);
 
-      const res = await commanderFetch(`/api/commander/admin/audit-logs?${params}`, {
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
-      });
+      const res = await commanderFetch(`/api/commander/admin/audit-logs?${params}`, {});
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.logs) {

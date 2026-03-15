@@ -11,7 +11,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
 import useDebounce from '../../src/hooks/useDebounce';
-import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const GAME_CERTIFICATIONS = [
@@ -354,11 +354,7 @@ export default function DealersPage() {
     setLoading(true);
     try {
       const staffSession = getStaffSession() || '';
-      const token = getToken();
-      const res = await commanderFetch(`/api/commander/dealers?venue_id=${venueId}`, {
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
-        ...(signal ? { signal } : {}),
-      });
+const res = await commanderFetch(`/api/commander/dealers?venue_id=${venueId}`, { ...(signal ? { signal } : {}) });
       if (!res.ok) throw new Error(`Dealers fetch failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
@@ -375,11 +371,7 @@ export default function DealersPage() {
   async function fetchTables(signal) {
     try {
       const staffSession = getStaffSession() || '';
-      const token = getToken();
-      const res = await commanderFetch(`/api/commander/tables?venue_id=${venueId}`, {
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
-        ...(signal ? { signal } : {}),
-      });
+const res = await commanderFetch(`/api/commander/tables?venue_id=${venueId}`, { ...(signal ? { signal } : {}) });
       if (!res.ok) throw new Error(`Tables fetch failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
@@ -395,11 +387,7 @@ export default function DealersPage() {
   async function fetchRotations(signal) {
     try {
       const staffSession = getStaffSession() || '';
-      const token = getToken();
-      const res = await commanderFetch(`/api/commander/dealers/rotations?venue_id=${venueId}&limit=50`, {
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
-        ...(signal ? { signal } : {}),
-      });
+const res = await commanderFetch(`/api/commander/dealers/rotations?venue_id=${venueId}&limit=50`, { ...(signal ? { signal } : {}) });
       if (!res.ok) throw new Error(`Rotations fetch failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
@@ -414,10 +402,9 @@ export default function DealersPage() {
   async function handleAddDealer(data) {
     try {
       const staffSession = getStaffSession() || '';
-      const token = getToken();
-      const res = await commanderFetch('/api/commander/dealers', {
+const res = await commanderFetch('/api/commander/dealers', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ venue_id: venueId, ...data })
       });
       if (res.ok) {
@@ -437,10 +424,9 @@ export default function DealersPage() {
   async function handleEditDealer(data) {
     try {
       const staffSession = getStaffSession() || '';
-      const token = getToken();
-      const res = await commanderFetch(`/api/commander/dealers/${editingDealer.id}`, {
+const res = await commanderFetch(`/api/commander/dealers/${editingDealer.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       });
       if (res.ok) {
@@ -460,10 +446,9 @@ export default function DealersPage() {
   async function handleRotate(dealerId, tableId) {
     try {
       const staffSession = getStaffSession() || '';
-      const token = getToken();
-      const res = await commanderFetch('/api/commander/dealers/rotations', {
+const res = await commanderFetch('/api/commander/dealers/rotations', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ dealer_id: dealerId, table_id: tableId, venue_id: venueId })
       });
       if (res.ok) {

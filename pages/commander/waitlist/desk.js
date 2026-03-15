@@ -21,7 +21,7 @@ import { Loader2, Users, UserPlus, ArrowLeft, ArrowRight, ArrowRightLeft, PhoneC
 import dynamic from 'next/dynamic';
 const SkeletonDark = dynamic(() => import('../../../src/components/ui/SkeletonDark'), { ssr: false });
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
-import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
 
 // Format phone to 555-555-5555 (internal display only)
@@ -54,8 +54,7 @@ const DEFAULT_CUSTOM = {
   logoUrl: '',
   tickerMessage: '',
   gameTypes: [],  // empty = auto-detect from tables
-  playerFontSize: 28,
-};
+  playerFontSize: 28 };
 
 export default function WaitlistDesk() {
   const router = useRouter();
@@ -97,12 +96,8 @@ export default function WaitlistDesk() {
     const controller = new AbortController();
     (async () => {
       try {
-        const token = getToken();
-        const staffSession = getStaffSession();
-        const res = await commanderFetch('/api/commander/settings', {
-          headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
-          signal: controller.signal,
-        });
+const staffSession = getStaffSession();
+        const res = await commanderFetch('/api/commander/settings', { signal: controller.signal });
         if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const json = await res.json();
         if (json.success && json.data?.desk_customization) {
@@ -116,11 +111,10 @@ export default function WaitlistDesk() {
   const saveCustomization = async (newCustom) => {
     setCustom(newCustom);
     try {
-      const token = getToken();
-      const staffSession = getStaffSession();
+const staffSession = getStaffSession();
       const res = await commanderFetch('/api/commander/settings', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ desk_customization: newCustom })
       });
       if (!res.ok) throw new Error('Request failed');
@@ -131,11 +125,10 @@ export default function WaitlistDesk() {
 
   const fetchData = useCallback(async (signal) => {
     try {
-      const token = getToken();
-      const staffSession = getStaffSession();
+const staffSession = getStaffSession();
       const staffData = JSON.parse(getStaffSession() || '{}');
       const vid = staffData.venue_id || '';
-      const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
+      const headers = { };
       const fetchOpts = signal ? { headers, signal } : { headers };
       const [tabRes, wlRes, mmRes] = await Promise.all([
         commanderFetch(`/api/commander/tables?venue_id=${vid}`, fetchOpts).then(r => { if (!r.ok) throw new Error(`tables ${r.status}`); return r; }).catch(() => ({ json: async () => ({ success: false }) })),
@@ -158,9 +151,7 @@ export default function WaitlistDesk() {
         if (expiredCalled.length > 0) {
           await Promise.all(expiredCalled.map(e =>
             commanderFetch(`/api/commander/waitlist/${e.id}`, {
-              method: 'DELETE',
-              headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
-            }).then(r => { if (!r.ok) console.warn('Non-critical cleanup err'); }).catch(() => { /* non-critical */ })
+              method: 'DELETE'}).then(r => { if (!r.ok) console.warn('Non-critical cleanup err'); }).catch(() => { /* non-critical */ })
           ));
           // Filter out expired entries from the display
           const expiredIds = new Set(expiredCalled.map(e => e.id));
@@ -194,11 +185,10 @@ export default function WaitlistDesk() {
     setActionLock(entry.id); setCallLoading(entry.id); setSmsStatus(null);
     setSelectedPlayer(null);
     try {
-      const token = getToken();
-      const staffSession = getStaffSession();
+const staffSession = getStaffSession();
       const res = await commanderFetch(`/api/commander/waitlist/${entry.id}/call`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession, 'x-idempotency-key': genIdempotencyKey() },
+        headers: { 'Content-Type': 'application/json', 'x-idempotency-key': genIdempotencyKey() },
         body: JSON.stringify({ notify_sms: true, notify_push: true })
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -229,11 +219,10 @@ export default function WaitlistDesk() {
     if (actionLock) return; // Optimistic lock — prevent double-tap
     setActionLock(entry.id);
     try {
-      const token = getToken();
-      const staffSession = getStaffSession();
+const staffSession = getStaffSession();
       const res = await commanderFetch('/api/commander/waitlist/seat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession, 'x-idempotency-key': genIdempotencyKey() },
+        headers: { 'Content-Type': 'application/json', 'x-idempotency-key': genIdempotencyKey() },
         body: JSON.stringify({ waitlist_id: entry.id, table_number: tableNumber, seat_number: seatNumber })
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -262,11 +251,10 @@ export default function WaitlistDesk() {
     setActionLock(entry.id);
     setSelectedPlayer(null);
     try {
-      const token = getToken();
-      const staffSession = getStaffSession();
+const staffSession = getStaffSession();
       const res = await commanderFetch(`/api/commander/waitlist/${entry.id}/pass`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession, 'x-idempotency-key': genIdempotencyKey() }
+        headers: { 'Content-Type': 'application/json', 'x-idempotency-key': genIdempotencyKey() }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
@@ -294,11 +282,10 @@ export default function WaitlistDesk() {
     setActionLock(entry.id);
     setSelectedPlayer(null);
     try {
-      const token = getToken();
-      const staffSession = getStaffSession();
+const staffSession = getStaffSession();
       const res = await commanderFetch(`/api/commander/waitlist/${entry.id}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession, 'x-idempotency-key': genIdempotencyKey() }
+        headers: { 'x-idempotency-key': genIdempotencyKey() }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
@@ -320,11 +307,10 @@ export default function WaitlistDesk() {
 
   const handleCheckIn = async (entry) => {
     try {
-      const token = getToken();
-      const staffSession = getStaffSession();
+const staffSession = getStaffSession();
       const res = await commanderFetch(`/api/commander/waitlist/${entry.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ checked_in_at: new Date().toISOString() })
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -353,15 +339,14 @@ export default function WaitlistDesk() {
       if (!proceed) return;
     }
     try {
-      const token = getToken();
-      const staffSession = getStaffSession();
+const staffSession = getStaffSession();
       const staffData = JSON.parse(getStaffSession() || '{}');
       const parts = (playerData.game_type || 'NLH 1/3').split(' ');
       const gameType = parts[0] || 'NLH';
       const stakes = parts.slice(1).join(' ') || '1/3';
       const res = await commanderFetch('/api/commander/waitlist', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession, 'x-idempotency-key': genIdempotencyKey() },
+        headers: { 'Content-Type': 'application/json', 'x-idempotency-key': genIdempotencyKey() },
         body: JSON.stringify({
           venue_id: staffData.venue_id, player_name: playerData.player_name,
           game_type: gameType, stakes: stakes,
@@ -402,8 +387,7 @@ export default function WaitlistDesk() {
     }
 
     try {
-      const token = getToken();
-      const staffSession = getStaffSession();
+const staffSession = getStaffSession();
       // Find all entries that match the old game/stakes
       const entriesToUpdate = waitlists.filter(w =>
         (w.game_type || '').toUpperCase() === oldGameType &&
@@ -414,7 +398,7 @@ export default function WaitlistDesk() {
       await Promise.all(entriesToUpdate.map(entry =>
         commanderFetch(`/api/commander/waitlist/${entry.id}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ game_type: newGameType, stakes: newStakes })
         }).then(r => { if (!r.ok) console.warn('err'); })
       ));
@@ -437,12 +421,11 @@ export default function WaitlistDesk() {
     // Auto-create table if a table number was provided
     if (tn) {
       try {
-        const token = getToken();
-        const staffSession = getStaffSession();
+const staffSession = getStaffSession();
         const staffData = JSON.parse(getStaffSession() || '{}');
         const r = await commanderFetch('/api/commander/tables', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ venue_id: staffData.venue_id, table_number: parseInt(tn) || tn, table_name: `Table ${tn}`, max_seats: 9, game_type: gt, stakes: st })
         });
         if (!r.ok) console.warn('Auto table err');
@@ -459,8 +442,7 @@ export default function WaitlistDesk() {
   const handleRemoveGame = async (gameLabel) => {
     if (!confirm(`Remove "${gameLabel}" and all its waitlist entries?`)) return;
     try {
-      const token = getToken();
-      const staffSession = getStaffSession();
+const staffSession = getStaffSession();
       const parts = gameLabel.split(' ');
       const gameType = parts[0];
       const stakes = parts.slice(1).join(' ');
@@ -472,9 +454,7 @@ export default function WaitlistDesk() {
       );
       await Promise.all(entriesToDelete.map(entry =>
         commanderFetch(`/api/commander/waitlist/${entry.id}`, {
-          method: 'DELETE',
-          headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
-        }).then(r => { if (!r.ok) throw new Error('Delete failed'); })
+          method: 'DELETE'}).then(r => { if (!r.ok) throw new Error('Delete failed'); })
       ));
       // Remove from custom gameTypes
       const updatedGameTypes = (custom.gameTypes || []).filter(g => g !== gameLabel);
@@ -816,8 +796,7 @@ export default function WaitlistDesk() {
                           border: `2px solid ${c.accentColor}`,
                           borderRadius: '6px', color: '#fff', cursor: 'pointer',
                           boxShadow: `0 2px 8px ${c.accentColor}33, inset 0 1px 0 rgba(255,255,255,0.15)`,
-                          textShadow: '0 1px 3px rgba(0,0,0,0.5)',
-                        }}
+                          textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}
                       >
                         Join Wait List
                       </button>
@@ -845,14 +824,12 @@ export default function WaitlistDesk() {
                         border: `3px solid ${c.accentColor}44`,
                         borderRadius: '4px',
                         display: 'flex', flexDirection: 'column', overflow: 'hidden',
-                        background: c.bgColor,
-                      }}>
+                        background: c.bgColor }}>
                         {/* Must-Move Header */}
                         <div style={{
                           padding: '10px 8px', textAlign: 'center',
                           background: `linear-gradient(180deg, ${c.accentColor}25, ${c.accentColor}10)`,
-                          borderBottom: `2px solid ${c.accentColor}33`,
-                        }}>
+                          borderBottom: `2px solid ${c.accentColor}33` }}>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', marginBottom: '2px' }}>
                             <ArrowRightLeft size={14} color={c.accentColor} />
                             <span style={{ fontSize: '13px', fontWeight: 800, color: c.accentColor, letterSpacing: '0.5px', textTransform: 'uppercase' }}>
@@ -872,15 +849,13 @@ export default function WaitlistDesk() {
                               <div key={seat.id} style={{
                                 padding: '6px 8px', display: 'flex', alignItems: 'center', gap: '6px',
                                 borderBottom: `1px solid ${c.bgColor === '#000000' ? '#1a1a1a' : c.borderColor + '22'}`,
-                                background: isNext ? `${c.accentColor}12` : 'transparent',
-                              }}>
+                                background: isNext ? `${c.accentColor}12` : 'transparent' }}>
                                 <span style={{
                                   width: '20px', height: '20px', borderRadius: '4px', flexShrink: 0,
                                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                                   fontSize: '10px', fontWeight: 800,
                                   background: isNext ? c.accentColor : `${c.textColor}15`,
-                                  color: isNext ? c.bgColor : `${c.textColor}66`,
-                                }}>
+                                  color: isNext ? c.bgColor : `${c.textColor}66` }}>
                                   {idx + 1}
                                 </span>
                                 <span style={{ flex: 1, minWidth: 0 }}>
@@ -888,8 +863,7 @@ export default function WaitlistDesk() {
                                     fontSize: `${Math.max(14, c.playerFontSize - 8)}px`,
                                     fontWeight: isNext ? 700 : 500,
                                     color: isNext ? c.accentColor : `${c.textColor}99`,
-                                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block',
-                                  }}>
+                                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
                                     {titleCase(seat.player_name || 'Unknown')}
                                   </span>
                                   {seat.seated_at && (
@@ -903,8 +877,7 @@ export default function WaitlistDesk() {
                                     padding: '2px 5px', borderRadius: '3px', fontSize: '9px', fontWeight: 800,
                                     letterSpacing: '0.5px', flexShrink: 0,
                                     background: canMove ? c.accentColor : '#EF4444',
-                                    color: canMove ? c.bgColor : '#fff',
-                                  }}>
+                                    color: canMove ? c.bgColor : '#fff' }}>
                                     {canMove ? 'NEXT' : 'FULL'}
                                   </span>
                                 )}
@@ -921,11 +894,10 @@ export default function WaitlistDesk() {
                               onClick={async () => {
                                 setMoveLoading(mmGame.id);
                                 try {
-                                  const token = getToken();
-                                  const staffSession = getStaffSession();
+const staffSession = getStaffSession();
                                   const res = await commanderFetch('/api/commander/games/must-move-status', {
                                     method: 'POST',
-                                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+                                    headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({ must_move_game_id: mmGame.id, target_game_id: targetGame.id })
                                   });
                                   if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -949,8 +921,7 @@ export default function WaitlistDesk() {
                                 border: `1px solid ${c.accentColor}`, borderRadius: '4px',
                                 color: '#fff', cursor: 'pointer',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
-                                opacity: moveLoading === mmGame.id ? 0.6 : 1,
-                              }}
+                                opacity: moveLoading === mmGame.id ? 0.6 : 1 }}
                             >
                               {moveLoading === mmGame.id
                                 ? <Loader2 size={12} className="animate-spin" />
@@ -986,7 +957,6 @@ export default function WaitlistDesk() {
             ))}
           </div>
         )}
-
 
         {/* ═══ SCROLLING TICKER ═══ */}
         <div style={{ padding: '18px 0', borderTop: `2px solid ${c.borderColor}55`, background: c.cardBgColor, overflow: 'hidden', whiteSpace: 'nowrap', position: 'relative' }}>
@@ -1043,8 +1013,7 @@ export default function WaitlistDesk() {
             const angle = startAngle + (idx / STEPS) * 2 * Math.PI;
             allPos.push({
               top: `${cyE + ry * Math.sin(angle)}%`,
-              left: `${cxE + rx * Math.cos(angle)}%`,
-            });
+              left: `${cxE + rx * Math.cos(angle)}%` });
           }
           const dealerPos = allPos[0];
           const seatPositions = allPos.slice(1);
@@ -1144,15 +1113,13 @@ export default function WaitlistDesk() {
                                   background: 'rgba(36,37,38,0.9)', borderRadius: 12,
                                   padding: '4px 10px 4px 4px',
                                   border: '2px solid rgba(24,119,242,0.5)',
-                                  backdropFilter: 'blur(6px)', minWidth: 60,
-                                }}>
+                                  backdropFilter: 'blur(6px)', minWidth: 60 }}>
                                   <div style={{
                                     width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
                                     background: 'linear-gradient(135deg, #1877F2, #1565c0)',
                                     border: '2px solid rgba(24,119,242,0.6)',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    fontSize: 18, fontWeight: 800, color: '#fff',
-                                  }}>{initial}</div>
+                                    fontSize: 18, fontWeight: 800, color: '#fff' }}>{initial}</div>
                                   <div style={{ fontSize: 11, fontWeight: 600, color: '#E4E6EB', maxWidth: 70, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                     {firstName}
                                   </div>
@@ -1170,8 +1137,7 @@ export default function WaitlistDesk() {
                                 padding: '4px 10px 4px 4px',
                                 border: '2px solid rgba(76,175,80,0.5)',
                                 backdropFilter: 'blur(6px)', minWidth: 60,
-                                cursor: 'pointer', transition: 'all 0.2s',
-                              }}
+                                cursor: 'pointer', transition: 'all 0.2s' }}
                                 onMouseEnter={e => { e.currentTarget.style.background = 'rgba(76,175,80,0.2)'; e.currentTarget.style.borderColor = '#4CAF50'; e.currentTarget.style.boxShadow = '0 0 12px rgba(76,175,80,0.5)'; }}
                                 onMouseLeave={e => { e.currentTarget.style.background = 'rgba(36,37,38,0.7)'; e.currentTarget.style.borderColor = 'rgba(76,175,80,0.5)'; e.currentTarget.style.boxShadow = 'none'; }}
                               >
@@ -1180,8 +1146,7 @@ export default function WaitlistDesk() {
                                   background: 'rgba(76,175,80,0.15)',
                                   border: '2px solid rgba(76,175,80,0.4)',
                                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                  fontSize: 16, fontWeight: 800, color: '#4CAF50',
-                                }}>{seat.number}</div>
+                                  fontSize: 16, fontWeight: 800, color: '#4CAF50' }}>{seat.number}</div>
                                 <div style={{ fontSize: 10, fontWeight: 700, color: '#4CAF50', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                                   Open
                                 </div>
@@ -1400,8 +1365,7 @@ function DeskSettingsModal({ custom, onSave, onClose, onUpdate }) {
       const res = await fetch('/api/social/upload', {
         method: 'POST',
         headers: _deskSess?.access_token ? { Authorization: `Bearer ${_deskSess.access_token}` } : {},
-        body: formData,
-      });
+        body: formData });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success && json.url) {
@@ -1588,7 +1552,6 @@ function DeskSettingsModal({ custom, onSave, onClose, onUpdate }) {
               </div>
             </div>
           )}
-
 
         </div>
 

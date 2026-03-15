@@ -22,7 +22,7 @@ import { Loader2, RefreshCw, Printer, ArrowRight, Check, Zap } from 'lucide-reac
 import CommanderLayout from '../../../../src/components/commander/shared/CommanderLayout';
 import { broadcastChange, useCommanderSync } from '../../../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../../../src/engine/EventBus';
-import { getToken, getStaffSession } from '../../../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../../../src/lib/commander/commanderFetch';
 
 export default function BreakManager() {
@@ -46,9 +46,7 @@ export default function BreakManager() {
     if (!tournamentId || checkingRef.current) return;
     checkingRef.current = true;
     try {
-      const res = await fetch(`/api/commander/tournaments/${tournamentId}/auto-break`, {
-        headers: { 'x-staff-session': getStaffSession(), Authorization: `Bearer ${getToken()}` }
-      });
+      const res = await fetch(`/api/commander/tournaments/${tournamentId}/auto-break`, {});
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
@@ -78,7 +76,7 @@ export default function BreakManager() {
     try {
       const res = await fetch(`/api/commander/tournaments/${tournamentId}/auto-break`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': getStaffSession(), Authorization: `Bearer ${getToken()}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           break_table: breakData.break_table,
           assignments

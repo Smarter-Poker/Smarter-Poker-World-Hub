@@ -35,8 +35,7 @@ const CARDS = [
       { label: 'Member Import', href: '/commander/member-import', icon: '/images/commander/icons/wl-member-import.png' },
       { label: 'Membership Plans', href: '/commander/membership-plans', icon: '/images/commander/icons/mg-membership-plans.png' },
       { label: 'Player Display', href: '/commander/displays/waitlist', icon: '/images/commander/icons/wl-player-view.png' },
-    ],
-  },
+    ] },
   {
     id: 'tournaments',
     title: 'Tournaments & Events',
@@ -51,8 +50,7 @@ const CARDS = [
       { label: 'Clock Setup', href: '/commander/clock-setup', icon: '/images/commander/icons/tn-clock-setup.png' },
       { label: 'Tournament Maintenance', href: '/commander/leagues', icon: '/images/commander/icons/tn-leagues-freerolls.png?v=2' },
       { label: 'Tournament Director', href: '/commander/tournament-controls', icon: '/images/commander/icons/tn-controls.png' },
-    ],
-  },
+    ] },
   {
     id: 'floor',
     title: 'Tables & Floor',
@@ -68,8 +66,7 @@ const CARDS = [
       { label: 'Floor Calls', href: '/commander/floor-calls', icon: '/images/commander/icons/mg-floor-calls.png' },
       { label: 'Dealer Rotation', href: '/commander/dealer-rotation', icon: '/images/commander/icons/mg-dealer-rotation.png' },
       { label: 'Table Tablets', href: '/commander/table-tablets', icon: '/images/commander/icons/mg-table-tablets.png?v=5' },
-    ],
-  },
+    ] },
   {
     id: 'staff',
     title: 'Staff & Operations',
@@ -86,8 +83,7 @@ const CARDS = [
       { label: 'Time Billing', href: '/commander/time-billing', icon: '/images/commander/icons/mg-time-billing.png' },
       { label: 'Incidents', href: '/commander/incidents', icon: '/images/commander/icons/mg-incidents.png' },
       { label: 'Daily Presets', href: '/commander/room-presets', icon: '/images/commander/icons/mg-room-presets.png' },
-    ],
-  },
+    ] },
   {
     id: 'displays',
     title: 'Promotions & Displays',
@@ -107,8 +103,7 @@ const CARDS = [
       { label: 'Promotions', href: '/commander/promotions', icon: '/images/commander/icons/mg-promotions.png' },
       { label: 'Display: Dealers', href: '/commander/displays/dealers', icon: '/images/commander/icons/mg-display-dealers.png' },
       { label: 'High Hands', href: '/commander/high-hands', icon: '/images/commander/icons/mg-high-hands.png' },
-    ],
-  },
+    ] },
   {
     id: 'reports',
     title: 'Reports & System',
@@ -137,8 +132,7 @@ const CARDS = [
       { label: 'Responsible Gaming', href: '/commander/responsible-gaming', icon: '/images/commander/icons/rp-responsible-gaming.png' },
       { label: 'Marketplace', href: '/commander/marketplace', icon: '/images/commander/icons/rp-marketplace.png' },
       { label: 'Reputation', href: '/commander/reputation', icon: '/images/commander/icons/rp-reputation.png' },
-    ],
-  },
+    ] },
 ];
 
 export default function CommanderDashboard() {
@@ -225,7 +219,7 @@ export default function CommanderDashboard() {
       const staffSession = getStaffSession() || '';
       const venueId = staff?.venue_id;
       if (!venueId) return;
-      fetch(`/api/commander/settings?venue_id=${venueId}`, { headers: { 'x-staff-session': staffSession } })
+      fetch(`/api/commander/settings?venue_id=${venueId}`, {})
         .then(r => r.json())
         .then(data => {
           if (data?.data?.hard_stop_enabled && data.data.hard_stop_time) {
@@ -281,8 +275,7 @@ export default function CommanderDashboard() {
       setShowUpgradeModal({
         label: feat.label,
         upgradeTierName: upgradeConfig?.name || 'a higher tier',
-        upgradePrice: upgradeConfig?.price || '',
-      });
+        upgradePrice: upgradeConfig?.price || '' });
     }
   };
 
@@ -298,8 +291,7 @@ export default function CommanderDashboard() {
   const staffRole = staff?.role || 'dealer';
   const filteredCards = CARDS.map(card => ({
     ...card,
-    features: card.features.filter(f => canRoleAccessRoute(staffRole, f.href)),
-  })).filter(card => card.features.length > 0);
+    features: card.features.filter(f => canRoleAccessRoute(staffRole, f.href)) })).filter(card => card.features.length > 0);
 
   return (
     <CommanderLayout title="Club Commander | Dashboard" backHref="/commander/dashboard" hideBack={true}>
@@ -591,17 +583,14 @@ export default function CommanderDashboard() {
                     position: 'absolute', bottom: 0, left: 0, right: 0,
                     padding: '20px 16px 14px',
                     background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 60%, transparent 100%)',
-                    zIndex: 2,
-                  }}>
+                    zIndex: 2 }}>
                     <div style={{
                       color: card.glow, fontSize: 18, fontWeight: 800,
                       textTransform: 'uppercase', letterSpacing: 1.5,
-                      textShadow: `0 0 20px ${card.glow}60, 0 2px 4px rgba(0,0,0,0.8)`,
-                    }}>{card.title}</div>
+                      textShadow: `0 0 20px ${card.glow}60, 0 2px 4px rgba(0,0,0,0.8)` }}>{card.title}</div>
                     <div style={{
                       color: '#94A3B8', fontSize: 11, marginTop: 2,
-                      fontWeight: 500, letterSpacing: 0.5,
-                    }}>{card.subtitle}</div>
+                      fontWeight: 500, letterSpacing: 0.5 }}>{card.subtitle}</div>
                   </div>
                 </div>
               ))}
@@ -633,8 +622,7 @@ export default function CommanderDashboard() {
                           '--glow': openCard.glow,
                           '--glow-dim': `${openCard.glow}30`,
                           opacity: isLocked ? 0.4 : 1,
-                          filter: isLocked ? 'grayscale(0.6)' : 'none',
-                        }}
+                          filter: isLocked ? 'grayscale(0.6)' : 'none' }}
                         onClick={() => handleFeatureClick(feat)}
                       >
                         <img src={feat.icon} alt={feat.label} loading="lazy" decoding="async" />
@@ -642,13 +630,11 @@ export default function CommanderDashboard() {
                           <div style={{
                             position: 'absolute', inset: 0, display: 'flex',
                             alignItems: 'center', justifyContent: 'center',
-                            background: 'rgba(0,0,0,0.55)', borderRadius: 14,
-                          }}>
+                            background: 'rgba(0,0,0,0.55)', borderRadius: 14 }}>
                             <div style={{
                               background: 'rgba(0,0,0,0.7)', borderRadius: 8,
                               padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 5,
-                              border: '2px solid rgba(245,158,11,0.3)',
-                            }}>
+                              border: '2px solid rgba(245,158,11,0.3)' }}>
                               <Lock size={14} color="#F59E0B" />
                               <span style={{ color: '#F59E0B', fontSize: 11, fontWeight: 700, letterSpacing: 0.5 }}>UPGRADE</span>
                             </div>

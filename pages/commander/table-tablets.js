@@ -22,8 +22,7 @@ const STATUS_BADGE = {
     in_use: { bg: '#31A24C', label: 'Active' },
     available: { bg: '#1877F2', label: 'Open' },
     reserved: { bg: '#F59E0B', label: 'Reserved' },
-    maintenance: { bg: '#6B7280', label: 'Maint.' },
-};
+    maintenance: { bg: '#6B7280', label: 'Maint.' } };
 
 // Full game type name mapping — never show abbreviations to dealers
 const GAME_TYPE_MAP = {
@@ -35,8 +34,7 @@ const GAME_TYPE_MAP = {
     mix: 'Mixed Games', mixed: 'Mixed Games',
     plo5: 'PLO 5-Card', plo6: 'PLO 6-Card',
     stud: 'Seven Card Stud', razz: 'Razz',
-    horse: 'H.O.R.S.E.',
-};
+    horse: 'H.O.R.S.E.' };
 function getFullGameName(type) {
     if (!type) return 'Cash Game';
     return GAME_TYPE_MAP[type.toLowerCase()] || type.toUpperCase();
@@ -105,8 +103,7 @@ function computeSeatPositions(maxSeats) {
         const angle = startAngle + (idx / STEPS) * 2 * Math.PI;
         allPos.push({
             top: `${cyE + ry * Math.sin(angle)}%`,
-            left: `${cxE + rx * Math.cos(angle)}%`,
-        });
+            left: `${cxE + rx * Math.cos(angle)}%` });
     }
     const dealerPos = allPos[0];
     const seatPositions = allPos.slice(1);
@@ -329,9 +326,8 @@ export default function TableTabletsPage() {
         try {
             const res = await commanderFetch('/api/commander/staff/verify-pin', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-staff-session': getStaffSession() || '', Authorization: `Bearer ${getToken()}` },
-                body: JSON.stringify({ pin_code: pinValue, venue_id: venueId }),
-            });
+                headers: { 'Content-Type': 'application/json' || '' },
+                body: JSON.stringify({ pin_code: pinValue, venue_id: venueId }) });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success && json.data?.staff) {
@@ -358,8 +354,7 @@ export default function TableTabletsPage() {
     const fetchAll = useCallback(async (signal) => {
         if (!venueId) return;
         const staffSession = getStaffSession() || '';
-        const token = getToken();
-        const headers = { 'x-staff-session': staffSession, Authorization: `Bearer ${token}` };
+const headers = { };
 
         // Fetch tables — API already joins commander_games + commander_table_seats
         try {
@@ -408,8 +403,7 @@ export default function TableTabletsPage() {
                                         tournament_id: tid,
                                         tournament: fJson.data.tournament,
                                         stats: fJson.data.stats,
-                                        players: ft.players || [],
-                                    };
+                                        players: ft.players || [] };
                                 });
                             }
                         } catch (e) { console.error("[table-tablets.js]", e); }
@@ -434,8 +428,7 @@ export default function TableTabletsPage() {
                                     current_chips: p.current_chips,
                                     rebuy_count: p.rebuy_count || 0,
                                     addon_taken: p.addon_taken || false,
-                                    status: 'occupied',
-                                }))
+                                    status: 'occupied' }))
                             };
                         }
 
@@ -459,8 +452,7 @@ export default function TableTabletsPage() {
                                 missed_blinds: s.missed_blinds || 0,
                                 session_id: s.session_id,
                                 member_number: s.member_number,
-                                status: 'occupied',
-                            }))
+                                status: 'occupied' }))
                         };
                     });
                 }
@@ -503,10 +495,7 @@ export default function TableTabletsPage() {
         if (!venueId) return;
         try {
             const staffSession = getStaffSession() || '';
-            const token = getToken();
-            const res = await commanderFetch(`/api/commander/displays/status?venue_id=${venueId}`, {
-                headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${token}` },
-            });
+const res = await commanderFetch(`/api/commander/displays/status?venue_id=${venueId}`, { });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success && json.data) {
@@ -638,19 +627,16 @@ export default function TableTabletsPage() {
         setScanResult(null);
         try {
             const staffSession = getStaffSession() || '';
-            const token = getToken();
-            const res = await commanderFetch('/api/commander/dealer/scan-in', {
+const res = await commanderFetch('/api/commander/dealer/scan-in', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ venue_id: venueId, qr_code: qrCode, table_number: scanningTable }),
-            });
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ venue_id: venueId, qr_code: qrCode, table_number: scanningTable }) });
             if (!res.ok) throw new Error('Request failed');
             const data = await res.json();
             if (data.success) {
                 setScanResult({
                     dealer_name: data.data?.dealer?.name || data.data?.dealer_name || 'Dealer',
-                    table_number: data.data?.table_number || scanningTable,
-                });
+                    table_number: data.data?.table_number || scanningTable });
                 fetchAll();
                 broadcastChange('dealers');
                 broadcastChange('tables'); // <== NEW FIX: ensuring other clients know the dealer changed
@@ -675,12 +661,10 @@ export default function TableTabletsPage() {
         setPlayerActionLoading(true);
         try {
             const staffSession = getStaffSession() || '';
-            const token = getToken();
-            const res = await commanderFetch('/api/commander/dealer/session-action', {
+const res = await commanderFetch('/api/commander/dealer/session-action', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ table_number: tableNumber, seat_number: seatNumber, venue_id: venueId, action, ...extra }),
-            });
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ table_number: tableNumber, seat_number: seatNumber, venue_id: venueId, action, ...extra }) });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) broadcastChange('tables'); // <== NEW FIX: Sync player actions across floor
@@ -696,12 +680,10 @@ export default function TableTabletsPage() {
         setPlayerActionLoading(true);
         try {
             const staffSession = getStaffSession() || '';
-            const token = getToken();
-            const res = await commanderFetch('/api/commander/dealer/player-unseat', {
+const res = await commanderFetch('/api/commander/dealer/player-unseat', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ table_number: tableNumber, seat_number: seatNumber }),
-            });
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ table_number: tableNumber, seat_number: seatNumber }) });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) {
@@ -720,13 +702,11 @@ export default function TableTabletsPage() {
     const bustTournamentPlayer = async (tournamentId, entryId, playerName) => {
         setPlayerActionLoading(true);
         const staffSession = getStaffSession() || '';
-        const token = getToken();
-        const headers = { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${token}` };
+const headers = { 'Content-Type': 'application/json' };
         try {
             const res = await commanderFetch(`/api/commander/tournaments/${tournamentId}/eliminate`, {
                 method: 'POST', headers,
-                body: JSON.stringify({ entry_id: entryId }),
-            });
+                body: JSON.stringify({ entry_id: entryId }) });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.entry || json.success) {
@@ -760,13 +740,11 @@ export default function TableTabletsPage() {
     const moveTournamentPlayer = async (tournamentId, entryId, toTable, toSeat, playerName) => {
         setPlayerActionLoading(true);
         const staffSession = getStaffSession() || '';
-        const token = getToken();
-        const headers = { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${token}` };
+const headers = { 'Content-Type': 'application/json' };
         try {
             const res = await commanderFetch(`/api/commander/tournaments/${tournamentId}/move-player`, {
                 method: 'POST', headers,
-                body: JSON.stringify({ entry_id: entryId, to_table: toTable, to_seat: toSeat }),
-            });
+                body: JSON.stringify({ entry_id: entryId, to_table: toTable, to_seat: toSeat }) });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) {
@@ -784,8 +762,7 @@ export default function TableTabletsPage() {
     const updateTournamentChipCount = async (tournamentId, entryId, chipCount, playerName) => {
         setPlayerActionLoading(true);
         const staffSession = getStaffSession() || '';
-        const token = getToken();
-        const headers = { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${token}` };
+const headers = { 'Content-Type': 'application/json' };
         try {
             // Direct Supabase-backed update via a lightweight API call
             const res = await commanderFetch('/api/commander/dealer/session-action', {
@@ -795,9 +772,7 @@ export default function TableTabletsPage() {
                     tournament_id: tournamentId,
                     entry_id: entryId,
                     chip_count: chipCount,
-                    venue_id: venueId,
-                }),
-            });
+                    venue_id: venueId }) });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) {
@@ -815,12 +790,10 @@ export default function TableTabletsPage() {
         closeSeatScanner();
         try {
             const staffSession = getStaffSession() || '';
-            const token = getToken();
-            const res = await commanderFetch('/api/commander/dealer/player-scan-in', {
+const res = await commanderFetch('/api/commander/dealer/player-scan-in', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ qr_code: qrData, table_number: tableNumber, seat_number: seatNumber, venue_id: venueId }),
-            });
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ qr_code: qrData, table_number: tableNumber, seat_number: seatNumber, venue_id: venueId }) });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) {
@@ -942,14 +915,12 @@ export default function TableTabletsPage() {
                         alt="Poker Table"
                         style={{
                             position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-                            objectFit: 'contain', pointerEvents: 'none', zIndex: 0,
-                        }} loading="lazy" />
+                            objectFit: 'contain', pointerEvents: 'none', zIndex: 0 }} loading="lazy" />
 
                     {/* Game info in center */}
                     <div style={{
                         position: 'absolute', top: '48%', left: '50%',
-                        transform: 'translate(-50%, -50%)', zIndex: 5, textAlign: 'center',
-                    }}>
+                        transform: 'translate(-50%, -50%)', zIndex: 5, textAlign: 'center' }}>
                         <div style={{ fontSize: isFullscreen ? 16 : 13, fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 4 }}>
                             {venueName || ''}{venueName ? ' · ' : ''}TABLE {tNum}
                         </div>
@@ -981,8 +952,7 @@ export default function TableTabletsPage() {
                                     position: 'absolute', top: dealerPos.top, left: dealerPos.left,
                                     transform: 'translate(-50%, -50%)', zIndex: 3,
                                     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-                                    cursor: isFullscreen ? 'pointer' : 'default',
-                                }}>
+                                    cursor: isFullscreen ? 'pointer' : 'default' }}>
                                 {/* Dealer card */}
                                 <div style={{
                                     display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 8,
@@ -991,8 +961,7 @@ export default function TableTabletsPage() {
                                     padding: '5px 10px 5px 5px',
                                     border: `2px solid ${isFullscreen ? 'rgba(24,119,242,0.8)' : 'rgba(24,119,242,0.6)'}`,
                                     backdropFilter: 'blur(6px)',
-                                    minWidth: isFullscreen ? 80 : 70,
-                                }}>
+                                    minWidth: isFullscreen ? 80 : 70 }}>
                                     {/* D avatar circle */}
                                     <div style={{
                                         width: avatarSize, height: avatarSize, borderRadius: '50%', flexShrink: 0,
@@ -1000,8 +969,7 @@ export default function TableTabletsPage() {
                                         background: 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
                                         border: '2px solid #1877F2',
                                         boxShadow: '0 2px 12px rgba(0,0,0,0.6), 0 0 16px rgba(24,119,242,0.4)',
-                                        fontSize: isFullscreen ? 28 : 24, fontWeight: 900, color: '#fff',
-                                    }}>
+                                        fontSize: isFullscreen ? 28 : 24, fontWeight: 900, color: '#fff' }}>
                                         D
                                     </div>
                                     {/* Name + DEALER label */}
@@ -1010,8 +978,7 @@ export default function TableTabletsPage() {
                                             fontSize, fontWeight: 600, lineHeight: 1.2,
                                             color: '#E4E6EB',
                                             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                                            maxWidth: nameMaxWidth,
-                                        }}>
+                                            maxWidth: nameMaxWidth }}>
                                             {dealerName}
                                         </div>
                                         <div style={{ fontSize: isFullscreen ? 11 : 10, fontWeight: 700, color: '#1877F2', lineHeight: 1.2, textTransform: 'uppercase', letterSpacing: 0.5 }}>
@@ -1102,8 +1069,7 @@ export default function TableTabletsPage() {
                                         ? (memberActive ? 'rgba(49,162,76,0.7)' : seat.taken?.membership_status ? 'rgba(239,68,68,0.5)' : 'rgba(24,119,242,0.5)')
                                         : 'rgba(62,64,66,0.6)'}`,
                                     backdropFilter: 'blur(6px)',
-                                    minWidth: isFullscreen ? 80 : 70,
-                                }}>
+                                    minWidth: isFullscreen ? 80 : 70 }}>
                                 {/* Avatar circle */}
                                 <div style={{
                                     width: avatarSize, height: avatarSize, borderRadius: '50%', flexShrink: 0,
@@ -1114,8 +1080,7 @@ export default function TableTabletsPage() {
                                     border: `2px solid ${isOccupied
                                         ? (memberActive ? '#31A24C' : seat.taken?.membership_status ? '#EF4444' : '#1877F2')
                                         : 'rgba(62,64,66,0.5)'}`,
-                                    overflow: 'hidden',
-                                }}>
+                                    overflow: 'hidden' }}>
                                     {isOccupied ? (
                                         <span style={{ fontSize: isFullscreen ? 24 : 20, fontWeight: 800, color: '#fff' }}>{firstName.charAt(0).toUpperCase()}</span>
                                     ) : (
@@ -1132,8 +1097,7 @@ export default function TableTabletsPage() {
                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                                             fontSize: isFullscreen ? 10 : 8, fontWeight: 900, color: '#fff',
                                             boxShadow: '0 2px 6px rgba(0,0,0,0.6)',
-                                            zIndex: 3,
-                                        }}>
+                                            zIndex: 3 }}>
                                             {seat.taken.missed_blinds}
                                         </div>
                                     )}
@@ -1144,8 +1108,7 @@ export default function TableTabletsPage() {
                                         fontSize, fontWeight: 600, lineHeight: 1.2,
                                         color: isOccupied ? '#E4E6EB' : (movingPlayer && isFullscreen ? '#22c55e' : '#B0B3B8'),
                                         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                                        maxWidth: nameMaxWidth, position: 'relative',
-                                    }}>
+                                        maxWidth: nameMaxWidth, position: 'relative' }}>
                                         {isOccupied ? fullName : (movingPlayer && isFullscreen ? 'Move here' : (isFullscreen ? 'Open' : 'Open'))}
 
                                     </div>
@@ -1161,8 +1124,7 @@ export default function TableTabletsPage() {
                                     {timerText && (
                                         <div style={{
                                             fontSize: isFullscreen ? 13 : 12, fontWeight: 700, color: timerColor,
-                                            fontFamily: 'monospace', lineHeight: 1.2,
-                                        }}>
+                                            fontFamily: 'monospace', lineHeight: 1.2 }}>
                                             {timerText}
                                         </div>
                                     )}
@@ -1205,8 +1167,7 @@ export default function TableTabletsPage() {
                             onClick={() => setShowAssignPanel(!showAssignPanel)}
                             style={{
                                 width: '100%', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                background: 'transparent', border: 'none', cursor: 'pointer', color: '#E4E6EB',
-                            }}
+                                background: 'transparent', border: 'none', cursor: 'pointer', color: '#E4E6EB' }}
                         >
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                 <Link2 size={16} color="#1877F2" />
@@ -1233,14 +1194,12 @@ export default function TableTabletsPage() {
                                         return (
                                             <div key={tNum} style={{
                                                 display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
-                                                background: '#1a1b1d', border: '1px solid #3A3B3C', borderRadius: 10,
-                                            }}>
+                                                background: '#1a1b1d', border: '1px solid #3A3B3C', borderRadius: 10 }}>
                                                 {/* Online indicator */}
                                                 <div style={{
                                                     width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
                                                     background: isOnline ? '#31A24C' : '#4E4F50',
-                                                    boxShadow: isOnline ? '0 0 6px rgba(49,162,76,0.5)' : 'none',
-                                                }} title={isOnline ? 'Tablet Online' : 'Tablet Offline'} />
+                                                    boxShadow: isOnline ? '0 0 6px rgba(49,162,76,0.5)' : 'none' }} title={isOnline ? 'Tablet Online' : 'Tablet Offline'} />
                                                 {/* Table info */}
                                                 <div style={{ flex: 1, minWidth: 0 }}>
                                                     <div style={{ fontSize: 13, fontWeight: 700, color: '#E4E6EB' }}>Table {tNum}</div>
@@ -1257,8 +1216,7 @@ export default function TableTabletsPage() {
                                                         color: isCopied ? '#fff' : '#B0B3B8',
                                                         border: 'none', cursor: 'pointer',
                                                         display: 'flex', alignItems: 'center', gap: 4,
-                                                        transition: 'all 0.2s',
-                                                    }}
+                                                        transition: 'all 0.2s' }}
                                                 >
                                                     {isCopied ? <><CheckCircle size={12} /> Copied</> : <><Copy size={12} /> Copy URL</>}
                                                 </button>
@@ -1269,8 +1227,7 @@ export default function TableTabletsPage() {
                                                         padding: '6px 10px', borderRadius: 8,
                                                         background: 'rgba(24,119,242,0.1)', border: '1px solid rgba(24,119,242,0.3)',
                                                         color: '#1877F2', textDecoration: 'none',
-                                                        display: 'flex', alignItems: 'center',
-                                                    }}
+                                                        display: 'flex', alignItems: 'center' }}
                                                     title="Preview in new tab"
                                                 >
                                                     <ExternalLink size={12} />
@@ -1316,16 +1273,14 @@ export default function TableTabletsPage() {
                                                     onClick={() => setFullscreenTable(table)}
                                                     style={{
                                                         background: '#1a1a2e', border: '2px solid rgba(255,215,0,0.5)', borderRadius: 16,
-                                                        cursor: 'pointer', overflow: 'hidden', transition: 'border-color 0.2s, transform 0.2s',
-                                                    }}>
+                                                        cursor: 'pointer', overflow: 'hidden', transition: 'border-color 0.2s, transform 0.2s' }}>
 
                                                     {/* Table header — tournament amber gradient */}
                                                     <div style={{
                                                         padding: '6px 12px',
                                                         background: 'linear-gradient(135deg, #FFD700 0%, #B8860B 100%)',
                                                         color: '#fff',
-                                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                                    }}>
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                                         <div>
                                                             <div style={{ fontSize: 18, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6 }}>
                                                                 <Trophy size={22} />
@@ -1375,16 +1330,14 @@ export default function TableTabletsPage() {
                                                     onClick={() => setFullscreenTable(table)}
                                                     style={{
                                                         background: '#1a1a2e', border: '2px solid rgba(24,119,242,0.3)', borderRadius: 16,
-                                                        cursor: 'pointer', overflow: 'hidden', transition: 'border-color 0.2s, transform 0.2s',
-                                                    }}>
+                                                        cursor: 'pointer', overflow: 'hidden', transition: 'border-color 0.2s, transform 0.2s' }}>
 
                                                     {/* Table header — game info bar */}
                                                     <div style={{
                                                         padding: '12px 16px',
                                                         background: 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
                                                         color: '#fff',
-                                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                                    }}>
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                                         <div>
                                                             <div style={{ fontSize: 16, fontWeight: 800 }}>
                                                                 {formatStakes(game?.stakes || table.stakes)} {getFullGameName(game?.game_type || table.game_type)}
@@ -1400,8 +1353,7 @@ export default function TableTabletsPage() {
                                                                     background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)',
                                                                     borderRadius: 8, padding: '6px 10px', cursor: 'pointer',
                                                                     display: 'flex', alignItems: 'center', gap: 4,
-                                                                    fontSize: 10, fontWeight: 700, color: '#fff',
-                                                                }}
+                                                                    fontSize: 10, fontWeight: 700, color: '#fff' }}
                                                                 title="Scan dealer QR code"
                                                             >
                                                                 <ScanLine size={12} /> Dealer
@@ -1409,8 +1361,7 @@ export default function TableTabletsPage() {
                                                             <span style={{
                                                                 padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
                                                                 background: 'rgba(255,255,255,0.2)', textTransform: 'uppercase',
-                                                                display: 'flex', alignItems: 'center', gap: 4,
-                                                            }}>
+                                                                display: 'flex', alignItems: 'center', gap: 4 }}>
                                                                 <Users size={13} /> {seatedCount}/{maxSeats}
                                                             </span>
                                                             <Maximize2 size={14} color="rgba(255,255,255,0.7)" />
@@ -1442,14 +1393,12 @@ export default function TableTabletsPage() {
                                                     style={{
                                                         background: '#242526', border: '1px solid #3A3B3C', borderRadius: 12,
                                                         padding: '14px 12px', cursor: 'pointer', textAlign: 'left',
-                                                        display: 'flex', flexDirection: 'column', gap: 6, transition: 'border-color 0.2s',
-                                                    }}>
+                                                        display: 'flex', flexDirection: 'column', gap: 6, transition: 'border-color 0.2s' }}>
                                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                                                         <span style={{ fontWeight: 700, color: '#fff', fontSize: 14 }}>Table {tNum}</span>
                                                         <span style={{
                                                             fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 6,
-                                                            background: `${statusCfg.bg}20`, color: statusCfg.bg,
-                                                        }}>
+                                                            background: `${statusCfg.bg}20`, color: statusCfg.bg }}>
                                                             {statusCfg.label}
                                                         </span>
                                                     </div>
@@ -1490,8 +1439,7 @@ export default function TableTabletsPage() {
                                     style={{
                                         background: 'none', border: 'none', cursor: 'pointer', padding: 0,
                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.7))',
-                                    }}
+                                        filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.7))' }}
                                 >
                                     <Unlock size={42} color="#C0C0C0" strokeWidth={2.2} />
                                 </button>
@@ -1502,8 +1450,7 @@ export default function TableTabletsPage() {
                                 style={{
                                     background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '50%',
                                     width: 40, height: 40, cursor: 'pointer',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                }}
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                             >
                                 <X size={20} color="#fff" />
                             </button>
@@ -1519,8 +1466,7 @@ export default function TableTabletsPage() {
                                     background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
                                     borderRadius: 10, padding: '6px 14px', cursor: 'pointer',
                                     display: 'flex', alignItems: 'center', gap: 6,
-                                    fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.4)',
-                                }}
+                                    fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.4)' }}
                                 title="Unlock — requires manager PIN"
                             >
                                 <Lock size={12} /> Unlock
@@ -1540,7 +1486,7 @@ export default function TableTabletsPage() {
                         {/* BOTTOM-LEFT: Call Floor */}
                         {(() => {
                             const isA = callFloorSent; const _ss = getStaffSession() || ''; const _tk = getToken(); return (
-                                <button disabled={callFloorSending} onClick={!isA ? async () => { haptic('heavy'); setCallFloorSending(true); try { const n = fullscreenTable.table_number || fullscreenTable.number; const r = await commanderFetch('/api/commander/floor-call', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-staff-session': _ss, Authorization: `Bearer ${_tk}` }, body: JSON.stringify({ venue_id: venueId, table_number: n, table_name: fullscreenTable.table_name || `Table ${n}` }) }).then(r => { if (!r.ok) throw new Error('fail'); return r; }); const j = await r.json(); if (j.success) { setCallFloorSent(true); setCallFloorId(j.data?.id || null); setToast({ type: 'success', text: `Floor called — Table ${n}` }); broadcastChange('floor_calls'); } else { setToast({ type: 'error', text: j.error || 'Floor call failed' }); } } catch { setToast({ type: 'error', text: 'Network error' }); } setCallFloorSending(false); } : async () => { haptic(); if (callFloorId) { try { const r = await commanderFetch('/api/commander/floor-call', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-staff-session': _ss, Authorization: `Bearer ${_tk}` }, body: JSON.stringify({ action: 'cancel', call_id: callFloorId }) }); const j = await r.json(); if (j.success) { setToast({ type: 'success', text: 'Floor call cancelled' }); broadcastChange('floor_calls'); setCallFloorSent(false); setCallFloorId(null); } else { setToast({ type: 'error', text: j.error || 'Cancel failed' }); } } catch (e) { console.error("[table-tablets.js]", e); setToast({ type: 'error', text: 'Network error' }); } } }}
+                                <button disabled={callFloorSending} onClick={!isA ? async () => { haptic('heavy'); setCallFloorSending(true); try { const n = fullscreenTable.table_number || fullscreenTable.number; const r = await commanderFetch('/api/commander/floor-call', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ venue_id: venueId, table_number: n, table_name: fullscreenTable.table_name || `Table ${n}` }) }).then(r => { if (!r.ok) throw new Error('fail'); return r; }); const j = await r.json(); if (j.success) { setCallFloorSent(true); setCallFloorId(j.data?.id || null); setToast({ type: 'success', text: `Floor called — Table ${n}` }); broadcastChange('floor_calls'); } else { setToast({ type: 'error', text: j.error || 'Floor call failed' }); } } catch { setToast({ type: 'error', text: 'Network error' }); } setCallFloorSending(false); } : async () => { haptic(); if (callFloorId) { try { const r = await commanderFetch('/api/commander/floor-call', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'cancel', call_id: callFloorId }) }); const j = await r.json(); if (j.success) { setToast({ type: 'success', text: 'Floor call cancelled' }); broadcastChange('floor_calls'); setCallFloorSent(false); setCallFloorId(null); } else { setToast({ type: 'error', text: j.error || 'Cancel failed' }); } } catch (e) { console.error("[table-tablets.js]", e); setToast({ type: 'error', text: 'Network error' }); } } }}
                                     style={{ position: 'fixed', bottom: 4, left: 4, zIndex: 60, height: '20.25vh', width: '27vh', border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, opacity: callFloorSending ? 0.5 : 1, transition: 'opacity 0.2s, transform 0.1s', filter: isA ? 'hue-rotate(320deg) saturate(1.5)' : 'none' }}>
 
                                     <img src='/assets/tablet-buttons/call-floor.png' alt="" style={{ position: 'relative', zIndex: 1, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }} loading="lazy" />
@@ -1609,8 +1555,7 @@ export default function TableTabletsPage() {
                                         zIndex: 60, width: 72, height: 48, border: 'none', cursor: 'pointer', padding: 0,
                                         background: scActive ? 'rgba(239,68,68,0.2)' : 'rgba(59,130,246,0.15)',
                                         borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
-                                        transition: 'background 0.2s',
-                                    }}>
+                                        transition: 'background 0.2s' }}>
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={scActive ? '#EF4444' : '#3B82F6'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                         <circle cx="12" cy="13" r="8" /><path d="M12 9v4l2 2" /><path d="M5 3l2 2" /><path d="M19 3l-2 2" /><path d="M12 5V3" />
                                     </svg>
@@ -1637,15 +1582,13 @@ export default function TableTabletsPage() {
                         && isTournamentTable(fullscreenTable) && (
                             <div style={{
                                 position: 'absolute', inset: 0, zIndex: 10001,
-                                background: '#0D192E', display: 'flex', flexDirection: 'column',
-                            }}>
+                                background: '#0D192E', display: 'flex', flexDirection: 'column' }}>
                                 {/* Tournament Table back button — icon only, top-left of overlay */}
                                 <button onClick={() => { haptic(); setShowTournamentClock(false); setLockedTournamentId(null); }}
                                     style={{
                                         position: 'absolute', top: 8, left: 8, zIndex: 10002,
                                         width: 102, height: 76, border: 'none', background: 'transparent',
-                                        cursor: 'pointer', padding: 0,
-                                    }}>
+                                        cursor: 'pointer', padding: 0 }}>
                                     <img src='/assets/tablet-buttons/tournament-table.png' alt='' style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }} loading="lazy" />
                                 </button>
                                 <iframe
@@ -1673,8 +1616,7 @@ export default function TableTabletsPage() {
                                     background: isExpired ? 'rgba(239,68,68,0.92)' : isUrgent ? 'rgba(30,10,10,0.95)' : 'rgba(10,20,40,0.95)',
                                     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                                     cursor: 'pointer', transition: 'background 0.5s',
-                                    animation: isUrgent && !isExpired ? 'pulse 0.5s infinite alternate' : 'none',
-                                }}>
+                                    animation: isUrgent && !isExpired ? 'pulse 0.5s infinite alternate' : 'none' }}>
                                 {/* Title */}
                                 <div style={{ fontSize: 22, fontWeight: 800, color: '#FFFFFF', letterSpacing: 3, textTransform: 'uppercase', marginBottom: 24, opacity: 0.9 }}>
                                     {isExpired ? 'TIME\'S UP' : 'CALL CLOCK'}
@@ -1694,8 +1636,7 @@ export default function TableTabletsPage() {
                                             fontSize: isExpired ? 72 : 96, fontWeight: 900, fontVariantNumeric: 'tabular-nums',
                                             color: isExpired ? '#FFFFFF' : isUrgent ? '#EF4444' : '#FFFFFF',
                                             textShadow: isUrgent ? '0 0 40px rgba(239,68,68,0.6)' : '0 0 20px rgba(59,130,246,0.3)',
-                                            lineHeight: 1, transition: 'color 0.5s',
-                                        }}>{secs}</span>
+                                            lineHeight: 1, transition: 'color 0.5s' }}>{secs}</span>
                                         <span style={{ fontSize: 18, fontWeight: 600, color: 'rgba(255,255,255,0.5)', marginTop: 4, letterSpacing: 2 }}>SECONDS</span>
                                     </div>
                                 </div>
@@ -1729,8 +1670,7 @@ export default function TableTabletsPage() {
                                         borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center',
                                         cursor: 'pointer', border: `2px solid ${isUrgent ? '#EF4444' : '#3B82F6'}`,
                                         boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
-                                        animation: isUrgent ? 'pulse 0.5s infinite alternate' : 'none',
-                                    }}>
+                                        animation: isUrgent ? 'pulse 0.5s infinite alternate' : 'none' }}>
                                     <span style={{ fontSize: 26, fontWeight: 900, color: '#fff', fontVariantNumeric: 'tabular-nums' }}>{secs}</span>
                                     <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.5)', marginLeft: 2 }}>s</span>
                                 </div>
@@ -1744,8 +1684,7 @@ export default function TableTabletsPage() {
                                 background: isExpired ? 'rgba(239,68,68,0.92)' : isUrgent ? 'rgba(30,10,10,0.95)' : 'rgba(10,20,40,0.95)',
                                 display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                                 transition: 'background 0.5s',
-                                animation: isUrgent && !isExpired ? 'pulse 0.5s infinite alternate' : 'none',
-                            }}>
+                                animation: isUrgent && !isExpired ? 'pulse 0.5s infinite alternate' : 'none' }}>
                                 {/* Title */}
                                 <div style={{ fontSize: 20, fontWeight: 800, color: '#FFFFFF', letterSpacing: 3, textTransform: 'uppercase', marginBottom: 20, opacity: 0.9 }}>
                                     {isExpired ? 'TIME\'S UP' : 'SHOT CLOCK'}
@@ -1765,8 +1704,7 @@ export default function TableTabletsPage() {
                                             fontSize: isExpired ? 64 : 88, fontWeight: 900, fontVariantNumeric: 'tabular-nums',
                                             color: isExpired ? '#FFFFFF' : isUrgent ? '#EF4444' : '#FFFFFF',
                                             textShadow: isUrgent ? '0 0 40px rgba(239,68,68,0.6)' : '0 0 20px rgba(59,130,246,0.3)',
-                                            lineHeight: 1, transition: 'color 0.5s',
-                                        }}>{secs}</span>
+                                            lineHeight: 1, transition: 'color 0.5s' }}>{secs}</span>
                                         <span style={{ fontSize: 16, fontWeight: 600, color: 'rgba(255,255,255,0.5)', marginTop: 4, letterSpacing: 2 }}>SECONDS</span>
                                     </div>
                                 </div>
@@ -1777,8 +1715,7 @@ export default function TableTabletsPage() {
                                         style={{
                                             padding: '10px 20px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.2)',
                                             background: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: 13, fontWeight: 600,
-                                            cursor: 'pointer', letterSpacing: 1,
-                                        }}>
+                                            cursor: 'pointer', letterSpacing: 1 }}>
                                         MINIMIZE
                                     </button>
                                     {/* Reset button */}
@@ -1790,8 +1727,7 @@ export default function TableTabletsPage() {
                                         style={{
                                             padding: '10px 20px', borderRadius: 10, border: 'none',
                                             background: '#3B82F6', color: '#fff', fontSize: 13, fontWeight: 700,
-                                            cursor: 'pointer', letterSpacing: 1,
-                                        }}>
+                                            cursor: 'pointer', letterSpacing: 1 }}>
                                         RESET
                                     </button>
                                     {/* Stop button */}
@@ -1804,8 +1740,7 @@ export default function TableTabletsPage() {
                                         style={{
                                             padding: '10px 20px', borderRadius: 10, border: '1px solid rgba(239,68,68,0.4)',
                                             background: 'rgba(239,68,68,0.15)', color: '#EF4444', fontSize: 13, fontWeight: 600,
-                                            cursor: 'pointer', letterSpacing: 1,
-                                        }}>
+                                            cursor: 'pointer', letterSpacing: 1 }}>
                                         STOP
                                     </button>
                                 </div>
@@ -1818,8 +1753,7 @@ export default function TableTabletsPage() {
                             position: 'absolute', top: 80, left: '50%', transform: 'translateX(-50%)', zIndex: 10001,
                             padding: '12px 24px', borderRadius: 14,
                             background: toast.type === 'success' ? 'rgba(49,162,76,0.95)' : 'rgba(239,68,68,0.95)',
-                            color: '#fff', fontSize: 15, fontWeight: 700, boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-                        }}>
+                            color: '#fff', fontSize: 15, fontWeight: 700, boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}>
                             {toast.text}
                         </div>
                     )}
@@ -1830,8 +1764,7 @@ export default function TableTabletsPage() {
                             position: 'absolute', top: 80, left: '50%', transform: 'translateX(-50%)', zIndex: 10001,
                             padding: '10px 20px', borderRadius: 14, display: 'flex', alignItems: 'center', gap: 12,
                             background: 'rgba(24,119,242,0.95)', color: '#fff', fontSize: 14, fontWeight: 700,
-                            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-                        }}>
+                            boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}>
                             Moving {movingPlayer.player_name} — tap an empty seat
                             <button onClick={() => { haptic(); setMovingPlayer(null); setToast({ type: 'success', text: 'Move cancelled' }); }}
                                 style={{ padding: '4px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.15)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
@@ -1954,8 +1887,7 @@ export default function TableTabletsPage() {
                     <div style={{
                         position: 'relative', background: '#242526', borderRadius: 16,
                         width: '90%', maxWidth: 400, padding: 24,
-                        border: '2px solid #3A3B3C', boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-                    }}>
+                        border: '2px solid #3A3B3C', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                             <div>
                                 <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#fff' }}>Dealer Scan-In</h3>
@@ -2021,15 +1953,13 @@ export default function TableTabletsPage() {
                     <div style={{
                         position: 'relative', background: '#242526', borderRadius: 20,
                         width: '90%', maxWidth: 360, padding: 32,
-                        border: '2px solid #3A3B3C', boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
-                    }}>
+                        border: '2px solid #3A3B3C', boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}>
                         {/* Header */}
                         <div style={{ textAlign: 'center', marginBottom: 24 }}>
                             <div style={{
                                 width: 64, height: 64, borderRadius: '50%', margin: '0 auto 12px',
                                 background: 'rgba(239,68,68,0.1)', border: '2px solid rgba(239,68,68,0.3)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            }}>
+                                display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                 <ShieldCheck size={32} color="#EF4444" />
                             </div>
                             <h3 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: '#fff' }}>Unlock Tablet</h3>
@@ -2040,16 +1970,14 @@ export default function TableTabletsPage() {
 
                         {/* PIN display */}
                         <div style={{
-                            display: 'flex', justifyContent: 'center', gap: 10, marginBottom: 20,
-                        }}>
+                            display: 'flex', justifyContent: 'center', gap: 10, marginBottom: 20 }}>
                             {[0, 1, 2, 3].map(i => (
                                 <div key={i} style={{
                                     width: 40, height: 48, borderRadius: 10,
                                     background: pinValue.length > i ? '#1877F2' : '#3A3B3C',
                                     border: `2px solid ${pinValue.length > i ? '#1877F2' : '#4E4F50'}`,
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    transition: 'all 0.15s',
-                                }}>
+                                    transition: 'all 0.15s' }}>
                                     {pinValue.length > i && (
                                         <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#fff' }} />
                                     )}
@@ -2062,8 +1990,7 @@ export default function TableTabletsPage() {
                             <div style={{
                                 padding: '8px 12px', marginBottom: 16, borderRadius: 10,
                                 background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
-                                color: '#EF4444', fontSize: 13, fontWeight: 600, textAlign: 'center',
-                            }}>
+                                color: '#EF4444', fontSize: 13, fontWeight: 600, textAlign: 'center' }}>
                                 {pinError}
                             </div>
                         )}
@@ -2086,8 +2013,7 @@ export default function TableTabletsPage() {
                                         color: '#E4E6EB', fontSize: key === 'del' ? 14 : 22, fontWeight: 700,
                                         cursor: key === null ? 'default' : 'pointer',
                                         visibility: key === null ? 'hidden' : 'visible',
-                                        transition: 'background 0.15s',
-                                    }}
+                                        transition: 'background 0.15s' }}
                                 >
                                     {key === 'del' ? '⌫' : key}
                                 </button>
@@ -2105,8 +2031,7 @@ export default function TableTabletsPage() {
                                 cursor: pinValue.length === 4 ? 'pointer' : 'not-allowed',
                                 opacity: pinLoading ? 0.7 : 1,
                                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                                transition: 'all 0.2s',
-                            }}
+                                transition: 'all 0.2s' }}
                         >
                             {pinLoading ? (
                                 <><Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> Verifying...</>
@@ -2121,8 +2046,7 @@ export default function TableTabletsPage() {
                             style={{
                                 width: '100%', padding: '10px', marginTop: 8,
                                 background: 'transparent', border: 'none', borderRadius: 8,
-                                color: '#8A8D91', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                            }}
+                                color: '#8A8D91', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
                         >
                             Cancel
                         </button>

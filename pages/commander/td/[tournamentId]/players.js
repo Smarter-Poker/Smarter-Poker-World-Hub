@@ -13,7 +13,7 @@ import useTournamentRealtime from '../../../../src/hooks/useTournamentRealtime';
 import { broadcastChange } from '../../../../src/lib/commander/useCommanderSync';
 import { Trophy, LayoutGrid, Users, Monitor, Search, X, Loader2, ChevronDown, ArrowRightLeft, UserX, RotateCcw, Star, Coins, DollarSign, FileText } from 'lucide-react';
 import { busEmit } from '../../../../src/engine/EventBus';
-import { getToken, getStaffSession } from '../../../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../../../src/lib/commander/commanderFetch';
 
 const NAV_ITEMS = [
@@ -54,18 +54,13 @@ export default function TDPlayers() {
   const [moveSeat, setMoveSeat] = useState('');
   const [confirmAction, setConfirmAction] = useState(null); // { type, player, message }
 
-
-
   const fetchFloor = useCallback(async (signal) => {
 
   if (!router.isReady) return null;
 
     if (!tournamentId) return;
     try {
-      const res = await fetch(`/api/commander/tournaments/${tournamentId}/floor-view`, {
-        headers: { 'x-staff-session': getStaffSession(), Authorization: `Bearer ${getToken()}` },
-        ...(signal ? { signal } : {}),
-      });
+      const res = await fetch(`/api/commander/tournaments/${tournamentId}/floor-view`, { ...(signal ? { signal } : {}) });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) setFloor(json.data);
@@ -84,8 +79,7 @@ export default function TDPlayers() {
       floor.entries.forEach(e => {
         allPlayers.push({
           ...e,
-          status: e.status === 'seated' ? 'active' : e.status,
-        });
+          status: e.status === 'seated' ? 'active' : e.status });
       });
     } else {
       // Fallback to old table-based approach
@@ -113,7 +107,7 @@ export default function TDPlayers() {
   const apiCall = async (url, body) => {
     const res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-staff-session': getStaffSession(), Authorization: `Bearer ${getToken()}` },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
     if (!res.ok) return { success: false, error: 'API Error' };
@@ -125,8 +119,7 @@ export default function TDPlayers() {
       type: 'eliminate', player,
       message: `Eliminate ${player.player_name}?`,
       detail: `Position #${floor?.stats?.players_remaining || '?'} — This cannot be undone.`,
-      color: '#EF4444',
-    });
+      color: '#EF4444' });
   };
 
   const confirmRebuy = (player) => {
@@ -134,8 +127,7 @@ export default function TDPlayers() {
       type: 'rebuy', player,
       message: `Rebuy for ${player.player_name}?`,
       detail: floor?.tournament?.rebuy_cost ? `Cost: $${floor.tournament.rebuy_cost} — Chips: ${formatChips(floor.tournament.rebuy_chips || floor.tournament.starting_chips)}` : 'Process rebuy for this player.',
-      color: '#31A24C',
-    });
+      color: '#31A24C' });
   };
 
   const printBluetoothReceipt = (player, actionType, cost, chips) => {
@@ -272,8 +264,7 @@ ${receipts.map(r => `<div class="card">
       type: 'addon', player,
       message: `Add-on for ${player.player_name}?`,
       detail: floor?.tournament?.addon_cost ? `Cost: $${floor.tournament.addon_cost} — Chips: ${formatChips(floor.tournament.addon_chips || floor.tournament.starting_chips)}` : 'Process add-on for this player.',
-      color: '#8B5CF6',
-    });
+      color: '#8B5CF6' });
   };
 
   const handleUpdateChips = async () => {
@@ -282,7 +273,7 @@ ${receipts.map(r => `<div class="card">
     try {
       const res = await fetch(`/api/commander/tournaments/${tournamentId}/entries/${chipModal.entry_id}/chips`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': getStaffSession(), Authorization: `Bearer ${getToken()}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ chips: parseInt(chipValue) })
       });
       if (res.ok) {

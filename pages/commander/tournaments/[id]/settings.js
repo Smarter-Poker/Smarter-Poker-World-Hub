@@ -14,7 +14,7 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import { Save, Plus, Trash2, Clock, DollarSign, Coffee, ChevronUp, ChevronDown, Loader2, Settings, Check, ArrowLeft } from 'lucide-react';
 import { broadcastChange } from '../../../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../../../src/engine/EventBus';
-import { getStaffSession, getToken } from '../../../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../../../src/lib/commander/commanderFetch';
 
 // ===== PRESET TEMPLATES =====
@@ -270,9 +270,7 @@ export default function TournamentSettings() {
         const { signal } = controller;
       try {
         const staffSession = getStaffSession();
-        const res = await fetch(`/api/commander/tournaments/${id}`, {
-          headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` }
-        });
+        const res = await fetch(`/api/commander/tournaments/${id}`, {});
         if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const json = await res.json();
         if (json.success) {
@@ -351,7 +349,7 @@ export default function TournamentSettings() {
       const staffSession = getStaffSession();
       const res = await fetch(`/api/commander/tournaments/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name, tournament_type: tournamentType,
           buyin_amount: buyinAmount, buyin_fee: buyinFee,

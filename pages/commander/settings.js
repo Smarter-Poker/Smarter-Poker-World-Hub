@@ -9,9 +9,8 @@ import { Bell, Clock, Users, Save, Loader2, ChevronRight, DollarSign, Package, I
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { broadcastChange, useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
-import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
-
 
 export default function CommanderSettingsPage() {
   const router = useRouter();
@@ -41,8 +40,7 @@ export default function CommanderSettingsPage() {
     time_billing_rate: 12,
     auto_comp_rate: 1,
     bulk_time_packages: [],
-    security_gate_enabled: true,
-  });
+    security_gate_enabled: true });
 
   // Check staff session
   useEffect(() => {
@@ -78,7 +76,7 @@ export default function CommanderSettingsPage() {
     const { signal } = controller;
     try {
       commanderFetch('/api/commander/settings', {
-        headers: { 'x-staff-session': storedStaffData, Authorization: `Bearer ${getToken()}` }
+        headers: { 'x-staff-session': storedStaffData }
       })
         .then(r => r.json())
         .then(data => {
@@ -96,8 +94,7 @@ export default function CommanderSettingsPage() {
               time_billing_rate: data.data.time_billing_rate ?? prev.time_billing_rate,
               auto_comp_rate: data.data.auto_comp_rate ?? prev.auto_comp_rate,
               bulk_time_packages: data.data.bulk_time_packages ?? prev.bulk_time_packages,
-              security_gate_enabled: data.data.security_gate_enabled ?? true,
-            }));
+              security_gate_enabled: data.data.security_gate_enabled ?? true }));
             // Persist security gate state to localStorage for CommanderLayout
             localStorage.setItem('commander_security_gate', data.data.security_gate_enabled === false ? 'off' : 'on');
             // Load logo URL
@@ -116,7 +113,7 @@ export default function CommanderSettingsPage() {
     if (!venueId) return;
     const storedStaffData = getStaffSession();
     if (!storedStaffData) return;
-    commanderFetch('/api/commander/settings', { headers: { 'x-staff-session': storedStaffData, Authorization: `Bearer ${getToken()}` } })
+    commanderFetch('/api/commander/settings', { headers: { 'x-staff-session': storedStaffData } })
       .then(r => r.json())
       .then(data => {
         if (data?.data) {
@@ -133,8 +130,7 @@ export default function CommanderSettingsPage() {
             time_billing_rate: data.data.time_billing_rate ?? prev.time_billing_rate,
             auto_comp_rate: data.data.auto_comp_rate ?? prev.auto_comp_rate,
             bulk_time_packages: data.data.bulk_time_packages ?? prev.bulk_time_packages,
-            security_gate_enabled: data.data.security_gate_enabled ?? true,
-          }));
+            security_gate_enabled: data.data.security_gate_enabled ?? true }));
           localStorage.setItem('commander_security_gate', data.data.security_gate_enabled === false ? 'off' : 'on');
           if (data.data.club_logo_url !== undefined) setLogoUrl(data.data.club_logo_url || null);
         }
@@ -160,7 +156,7 @@ export default function CommanderSettingsPage() {
       // Note: hard_stop settings managed from Room Presets page
       const res = await commanderFetch('/api/commander/settings', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           auto_refresh_interval: settings.auto_refresh_interval,
           show_player_names_on_display: settings.show_player_names_on_display,
@@ -206,7 +202,7 @@ export default function CommanderSettingsPage() {
       const staffSession = getStaffSession();
       const res = await commanderFetch('/api/commander/settings', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ [key]: newValue })
       });
       if (!res.ok) throw new Error('Request failed');
@@ -267,8 +263,7 @@ export default function CommanderSettingsPage() {
                 borderRadius: 12, padding: '12px 20px',
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 boxShadow: '0 4px 20px rgba(24,119,242,0.4)',
-                animation: 'slideDown 0.2s ease-out',
-              }}>
+                animation: 'slideDown 0.2s ease-out' }}>
                 <p style={{ color: '#fff', fontSize: 14, fontWeight: 600, margin: 0 }}>You have unsaved changes</p>
                 <button
                   onClick={handleSave}
@@ -279,8 +274,7 @@ export default function CommanderSettingsPage() {
                     background: 'rgba(255,255,255,0.2)', color: '#fff',
                     border: '1px solid rgba(255,255,255,0.3)',
                     fontSize: 13, fontWeight: 700, cursor: 'pointer',
-                    opacity: saving ? 0.6 : 1,
-                  }}
+                    opacity: saving ? 0.6 : 1 }}
                 >
                   {saving ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -374,16 +368,14 @@ export default function CommanderSettingsPage() {
                     width: 80, height: 80, borderRadius: 16, overflow: 'hidden',
                     background: '#242526', border: '2px solid #3A3B3C',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    flexShrink: 0,
-                  }}>
+                    flexShrink: 0 }}>
                     {logoUrl ? (
                       <img src={logoUrl} alt="Club Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
                     ) : (
                       <span style={{
                         fontSize: 36, fontWeight: 900, color: '#4A5E78',
-                        fontFamily: "var(--font-orbitron), sans-serif", textTransform: 'uppercase',
-                      }}>
+                        fontFamily: "var(--font-orbitron), sans-serif", textTransform: 'uppercase' }}>
                         {(venue?.name || 'P').charAt(0)}
                       </span>
                     )}
@@ -423,9 +415,7 @@ export default function CommanderSettingsPage() {
                               const res = await commanderFetch('/api/commander/settings/logo', {
                                 method: 'POST',
                                 headers: {
-                                  'Content-Type': 'application/json',
-                                  'x-staff-session': staffSession,
-                                  Authorization: `Bearer ${getToken()}`
+                                  'Content-Type': 'application/json'
                                 },
                                 body: JSON.stringify({
                                   data: base64,
@@ -456,9 +446,7 @@ export default function CommanderSettingsPage() {
                           try {
                             const staffSession = getStaffSession() || '';
                             const res = await commanderFetch('/api/commander/settings/logo', {
-                              method: 'DELETE',
-                              headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` }
-                            });
+                              method: 'DELETE'});
                             if (!res.ok) throw new Error(`Request failed (${res.status})`);
                             const json = await res.json();
                             if (json.success) {

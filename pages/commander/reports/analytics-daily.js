@@ -8,7 +8,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { BarChart3, Users, DollarSign, Clock, TrendingUp, Loader2, RefreshCw, Trophy, CreditCard, AlertTriangle, ArrowLeft } from 'lucide-react';
 import { busEmit } from '../../../src/engine/EventBus';
-import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
 
 export default function AnalyticsDailyReport() {
@@ -42,13 +42,10 @@ export default function AnalyticsDailyReport() {
   const fetchAnalytics = async(signal) => {
     setLoading(true);
     try {
-      const token = getToken();
-      const staffSession = getStaffSession() || '';
+const staffSession = getStaffSession() || '';
       const endDate = new Date().toISOString().split('T')[0];
       const startDate = new Date(Date.now() - range * 86400000).toISOString().split('T')[0];
-      const res = await fetch(`/api/commander/analytics/daily?venue_id=${staff.venue_id}&start_date=${startDate}&end_date=${endDate}&days=${range}`, {
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
-      });
+      const res = await fetch(`/api/commander/analytics/daily?venue_id=${staff.venue_id}&start_date=${startDate}&end_date=${endDate}&days=${range}`, {});
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.analytics) {
@@ -65,13 +62,12 @@ export default function AnalyticsDailyReport() {
   const handleManualRefresh = async () => {
     setRefreshing(true);
     try {
-      const token = getToken();
-      const staffSession = getStaffSession() || '';
+const staffSession = getStaffSession() || '';
       // Trigger cron for yesterday
       const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
       const res = await fetch('/api/cron/commander-daily-aggregate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ manual: true, date: yesterday })
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);

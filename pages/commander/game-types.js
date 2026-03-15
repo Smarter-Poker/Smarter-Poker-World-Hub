@@ -10,7 +10,7 @@ import { Plus, Edit2, Trash2, X, Loader2, Save, DollarSign, Users, Percent, Cloc
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
-import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const PRESET_GAMES = [
@@ -61,9 +61,8 @@ export default function GameTypesPage() {
   const fetchGameTypes = useCallback(async () => {
     if (!venueId) return;
     try {
-      const token = getToken();
-      const res = await commanderFetch('/api/commander/game-types?include_inactive=true', {
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() || '' }
+const res = await commanderFetch('/api/commander/game-types?include_inactive=true', {
+        headers: { || '' }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
@@ -113,14 +112,13 @@ export default function GameTypesPage() {
     setSaving(true);
     setError(null);
     try {
-      const token = getToken();
-      const staffSession = getStaffSession() || '';
+const staffSession = getStaffSession() || '';
       const url = editingId
         ? `/api/commander/game-types?id=${editingId}`
         : '/api/commander/game-types';
       const res = await fetch(url, {
         method: editingId ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form)
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -141,10 +139,9 @@ export default function GameTypesPage() {
   async function handleToggleActive(gt) {
     try {
       const staffSession = getStaffSession() || '';
-      const token = getToken();
-      const res = await commanderFetch(`/api/commander/game-types/${gt.id}`, {
+const res = await commanderFetch(`/api/commander/game-types/${gt.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ venue_id: venueId, is_active: !gt.is_active })
       });
       if (res.ok) {
@@ -158,11 +155,8 @@ export default function GameTypesPage() {
     if (!confirm(`Remove "${gt.name} ${gt.stakes}" permanently?`)) return;
     try {
       const staffSession = getStaffSession() || '';
-      const token = getToken();
-      const res = await commanderFetch(`/api/commander/game-types/${gt.id}?venue_id=${venueId}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
-      });
+const res = await commanderFetch(`/api/commander/game-types/${gt.id}?venue_id=${venueId}`, {
+        method: 'DELETE'});
       if (res.ok) {
         fetchGameTypes();
         broadcastChange('games');

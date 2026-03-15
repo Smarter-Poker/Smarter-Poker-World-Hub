@@ -14,7 +14,7 @@ import { Check, ChevronRight, Loader2, Play, AlertTriangle } from 'lucide-react'
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
-import { getToken, getStaffSession, getVenueId } from '../../src/lib/commander/clientAuth'
+import { getStaffSession, getVenueId } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const GAME_TYPES = [
@@ -51,10 +51,9 @@ export default function OpenGame() {
   const fetchTables = useCallback(async () => {
     setLoading(true);
     try {
-      const token = getToken();
-      const venueId = getVenueId();
+const venueId = getVenueId();
       const staffSession = getStaffSession() || '';
-      const res = await commanderFetch(`/api/commander/tables?venue_id=${venueId}`, { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } });
+      const res = await commanderFetch(`/api/commander/tables?venue_id=${venueId}`, {});
       if (!res.ok) throw new Error(`Tables fetch failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
@@ -81,10 +80,9 @@ export default function OpenGame() {
     const controller = new AbortController();
     const fetchWaitlist = async () => {
       try {
-        const token = getToken();
-        const venueId = getVenueId();
+const venueId = getVenueId();
         const staffSession = getStaffSession() || '';
-        const res = await commanderFetch(`/api/commander/waitlist?venue_id=${venueId}`, { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }, signal: controller.signal });
+        const res = await commanderFetch(`/api/commander/waitlist?venue_id=${venueId}`, { signal: controller.signal });
         if (!res.ok) throw new Error(`Waitlist fetch failed (${res.status})`);
         const json = await res.json();
         if (json.success) {
@@ -106,10 +104,9 @@ export default function OpenGame() {
   const openTable = async () => {
     setOpening(true);
     try {
-      const token = getToken();
-      const venueId = getVenueId();
+const venueId = getVenueId();
       const staffSession = getStaffSession() || '';
-      const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
+      const headers = { 'Content-Type': 'application/json' };
       const gameTypeLower = selectedGame.type.toLowerCase();
 
       // 1. Create the game record in commander_games

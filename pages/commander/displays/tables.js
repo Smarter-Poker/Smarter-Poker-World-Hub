@@ -18,7 +18,7 @@ import DealerTicker from '../../../src/components/commander/shared/DealerTicker'
 import useCommanderSync, { broadcastChange } from '../../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../../src/engine/EventBus';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
 
 /* ─── Helpers ────────────────────────────────────────────── */
@@ -133,8 +133,7 @@ export default function TablesDisplay() {
     if (!venueId) return;
     try {
       const staffSession = getStaffSession() || '';
-      const token = getToken();
-      const headers = { 'x-staff-session': staffSession, Authorization: `Bearer ${token}` };
+const headers = { };
 
       const res = await commanderFetch(`/api/commander/tables?venue_id=${venueId}`, { headers });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -173,8 +172,7 @@ export default function TablesDisplay() {
                 missed_blinds: s.missed_blinds || 0,
                 session_status: s.session_status || 'active',
                 session_id: s.session_id,
-                status: 'occupied',
-              }))
+                status: 'occupied' }))
             };
           });
         }
@@ -191,10 +189,7 @@ export default function TablesDisplay() {
     if (!venueId) return;
     try {
       const staffSession = getStaffSession() || '';
-      const token = getToken();
-      const res = await commanderFetch(`/api/commander/dealers/rotations?venue_id=${venueId}`, {
-        headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${token}` },
-      });
+const res = await commanderFetch(`/api/commander/dealers/rotations?venue_id=${venueId}`, { });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
@@ -249,9 +244,8 @@ export default function TablesDisplay() {
     try {
       const res = await commanderFetch('/api/commander/staff/verify-pin', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': getStaffSession() || '', Authorization: `Bearer ${getToken()}` },
-        body: JSON.stringify({ pin_code: pinValue, venue_id: venueId }),
-      });
+        headers: { 'Content-Type': 'application/json' || '' },
+        body: JSON.stringify({ pin_code: pinValue, venue_id: venueId }) });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success && json.data?.staff) {
@@ -327,16 +321,14 @@ export default function TablesDisplay() {
   const handleScan = async (qrData, type, seatNumber) => {
     closeScanner();
     const staffSession = getStaffSession() || '';
-    const token = getToken();
-    const headers = { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${token}` };
+const headers = { 'Content-Type': 'application/json' };
 
     if (type === 'dealer') {
       // Scan in a dealer
       try {
         const res = await commanderFetch('/api/commander/dealer/scan-in', {
           method: 'POST', headers,
-          body: JSON.stringify({ venue_id: venueId, qr_code: qrData, table_number: lockedTableNum }),
-        });
+          body: JSON.stringify({ venue_id: venueId, qr_code: qrData, table_number: lockedTableNum }) });
         if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const json = await res.json();
         if (json.success) {
@@ -353,8 +345,7 @@ export default function TablesDisplay() {
       try {
         const seatRes = await commanderFetch('/api/commander/dealer/player-scan-in', {
           method: 'POST', headers,
-          body: JSON.stringify({ qr_code: qrData, table_number: lockedTableNum, seat_number: seatNumber, venue_id: venueId }),
-        });
+          body: JSON.stringify({ qr_code: qrData, table_number: lockedTableNum, seat_number: seatNumber, venue_id: venueId }) });
         if (!seatRes.ok) throw new Error('Request failed');
         const seatJson = await seatRes.json();
         if (seatJson.success) {
@@ -374,12 +365,10 @@ export default function TablesDisplay() {
     setPlayerActionLoading(true);
     try {
       const staffSession = getStaffSession() || '';
-      const token = getToken();
-      const res = await commanderFetch('/api/commander/dealer/session-action', {
+const res = await commanderFetch('/api/commander/dealer/session-action', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ table_number: lockedTableNum, seat_number: seat.number, venue_id: venueId, action, ...extra }),
-      });
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ table_number: lockedTableNum, seat_number: seat.number, venue_id: venueId, action, ...extra }) });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       setPlayerActionLoading(false);
@@ -395,12 +384,10 @@ export default function TablesDisplay() {
     setPlayerActionLoading(true);
     try {
       const staffSession = getStaffSession() || '';
-      const token = getToken();
-      const res = await commanderFetch('/api/commander/dealer/player-unseat', {
+const res = await commanderFetch('/api/commander/dealer/player-unseat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ table_number: lockedTableNum, seat_number: seat.number }),
-      });
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ table_number: lockedTableNum, seat_number: seat.number }) });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
@@ -551,24 +538,20 @@ export default function TablesDisplay() {
         <div style={{
           position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column',
           background: 'radial-gradient(ellipse at 50% 45%, #0f1a12 0%, #0c1210 25%, #080d0b 50%, #050808 75%, #020303 100%)',
-          color: '#E4E6EB', fontFamily: 'Inter, sans-serif', overflow: 'hidden', zIndex: 50,
-        }}>
+          color: '#E4E6EB', fontFamily: 'Inter, sans-serif', overflow: 'hidden', zIndex: 50 }}>
 
           {/* ── Minimal Top Bar (no green header) ── */}
           <div style={{
             position: 'absolute', top: 12, right: 16, zIndex: 60,
-            display: 'flex', alignItems: 'center', gap: 12,
-          }}>
+            display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{
               padding: '6px 14px', borderRadius: 20, background: 'rgba(255,255,255,0.06)',
               border: '1px solid rgba(255,255,255,0.12)', fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.5)',
-              display: 'flex', alignItems: 'center', gap: 6,
-            }}>
+              display: 'flex', alignItems: 'center', gap: 6 }}>
               👥 {occupiedCount}/{maxSeats}
             </div>
             <div style={{
-              fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace',
-            }}>
+              fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace' }}>
               {now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
             </div>
             <button
@@ -577,8 +560,7 @@ export default function TablesDisplay() {
                 width: 40, height: 40, borderRadius: 10,
                 background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
                 color: '#EF4444', fontSize: 18, cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}
+                display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >🔓</button>
           </div>
 
@@ -589,8 +571,7 @@ export default function TablesDisplay() {
               padding: '12px 24px', borderRadius: 14,
               background: toast.type === 'success' ? 'rgba(49,162,76,0.95)' : 'rgba(239,68,68,0.95)',
               color: '#fff', fontSize: 15, fontWeight: 700, boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-              animation: 'fadeIn 0.2s ease',
-            }}>
+              animation: 'fadeIn 0.2s ease' }}>
               {toast.text}
             </div>
           )}
@@ -601,14 +582,12 @@ export default function TablesDisplay() {
               position: 'absolute', top: 60, left: '50%', transform: 'translateX(-50%)', zIndex: 80,
               padding: '10px 20px', borderRadius: 14, display: 'flex', alignItems: 'center', gap: 12,
               background: 'rgba(24,119,242,0.95)', color: '#fff', fontSize: 14, fontWeight: 700,
-              boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-            }}>
+              boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}>
               🪑 Moving {movingPlayer.player_name} — tap an empty seat
               <button onClick={() => { setMovingPlayer(null); setToast({ type: 'success', text: 'Move cancelled' }); }}
                 style={{
                   padding: '4px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.3)',
-                  background: 'rgba(255,255,255,0.15)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                }}
+                  background: 'rgba(255,255,255,0.15)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
               >Cancel</button>
             </div>
           )}
@@ -631,14 +610,12 @@ export default function TablesDisplay() {
                       <div style={{
                         fontSize: 28, fontWeight: 900, color: 'rgba(255,215,0,0.85)',
                         textTransform: 'uppercase', letterSpacing: 3, marginBottom: 8,
-                        textShadow: '0 2px 12px rgba(255,215,0,0.3)',
-                      }}>
+                        textShadow: '0 2px 12px rgba(255,215,0,0.3)' }}>
                         {venueName || 'Poker Room'}
                       </div>
                       <div style={{
                         fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.5)',
-                        letterSpacing: 2, textTransform: 'uppercase', marginBottom: 4,
-                      }}>
+                        letterSpacing: 2, textTransform: 'uppercase', marginBottom: 4 }}>
                         Table {lockedTableNum}
                       </div>
                       <div style={{ fontSize: 36, fontWeight: 900, color: 'rgba(255,255,255,0.85)', textTransform: 'uppercase', letterSpacing: 1 }}>
@@ -664,16 +641,14 @@ export default function TablesDisplay() {
                         background: 'rgba(24,119,242,0.15)', borderRadius: 14, padding: '6px 12px 6px 6px',
                         border: '2px solid rgba(24,119,242,0.6)', backdropFilter: 'blur(8px)', minWidth: 90,
                         transition: 'border-color 0.2s, box-shadow 0.2s',
-                        boxShadow: '0 2px 16px rgba(0,0,0,0.4), 0 0 12px rgba(24,119,242,0.15)',
-                      }}
+                        boxShadow: '0 2px 16px rgba(0,0,0,0.4), 0 0 12px rgba(24,119,242,0.15)' }}
                     >
                       <div style={{
                         width: 60, height: 60, borderRadius: '50%', flexShrink: 0,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         background: 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
                         border: '2px solid rgba(24,119,242,0.6)', overflow: 'hidden',
-                        fontSize: 26, fontWeight: 800, color: '#fff',
-                      }}>D</div>
+                        fontSize: 26, fontWeight: 800, color: '#fff' }}>D</div>
                       <div style={{ overflow: 'hidden' }}>
                         <div style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.2, color: '#E4E6EB', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140 }}>
                           {dealerName}
@@ -721,16 +696,14 @@ export default function TablesDisplay() {
                             background: isExpired ? 'rgba(239,68,68,0.15)' : 'rgba(36,37,38,0.92)',
                             borderRadius: 14, padding: '6px 12px 6px 6px',
                             border: `2px solid ${borderColor}`, backdropFilter: 'blur(8px)', minWidth: 90,
-                            transition: 'border-color 0.2s, box-shadow 0.2s',
-                          }}
+                            transition: 'border-color 0.2s, box-shadow 0.2s' }}
                         >
                           <div style={{
                             width: 60, height: 60, borderRadius: '50%', flexShrink: 0,
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             background: isOccupied ? 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)' : 'rgba(255,255,255,0.06)',
                             border: `2px solid ${borderColor}`,
-                            position: 'relative',
-                          }}>
+                            position: 'relative' }}>
                             {isOccupied ? (
                               <span style={{ fontSize: 26, fontWeight: 800, color: '#fff' }}>{firstName.charAt(0).toUpperCase()}</span>
                             ) : (
@@ -746,8 +719,7 @@ export default function TablesDisplay() {
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 fontSize: 10, fontWeight: 900, color: '#fff',
                                 boxShadow: '0 2px 6px rgba(0,0,0,0.6)',
-                                zIndex: 3, overflow: 'visible',
-                              }}>
+                                zIndex: 3, overflow: 'visible' }}>
                                 {seat.player.missed_blinds}
                               </div>
                             )}
@@ -796,20 +768,17 @@ export default function TablesDisplay() {
           {showPlayerMenu && (
             <div style={{
               position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 90,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }} onClick={() => setShowPlayerMenu(null)}>
+              display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setShowPlayerMenu(null)}>
               <div onClick={e => e.stopPropagation()} style={{
                 background: '#242526', borderRadius: 20, padding: '24px', width: '90%', maxWidth: 340,
-                border: '2px solid #3A3B3C', boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
-              }}>
+                border: '2px solid #3A3B3C', boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}>
                 {/* Player Header */}
                 <div style={{ textAlign: 'center', marginBottom: 20 }}>
                   <div style={{
                     width: 64, height: 64, borderRadius: '50%', margin: '0 auto 10px',
                     background: 'linear-gradient(135deg, #1877F2, #1565c0)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 28, fontWeight: 900, color: '#fff',
-                  }}>
+                    fontSize: 28, fontWeight: 900, color: '#fff' }}>
                     {(showPlayerMenu.player?.player_name || 'P').charAt(0).toUpperCase()}
                   </div>
                   <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#fff' }}>
@@ -837,8 +806,7 @@ export default function TablesDisplay() {
                         padding: '14px', borderRadius: 12, border: 'none', cursor: 'pointer',
                         background: `${btn.color}15`, color: btn.color, fontSize: 15, fontWeight: 700,
                         textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10,
-                        transition: 'background 0.15s',
-                      }}
+                        transition: 'background 0.15s' }}
                     >
                       {btn.label}
                     </button>
@@ -848,8 +816,7 @@ export default function TablesDisplay() {
                 <button onClick={() => setShowPlayerMenu(null)}
                   style={{
                     width: '100%', marginTop: 12, padding: '12px', borderRadius: 12,
-                    background: '#3A3B3C', border: 'none', color: '#8A8D91', fontSize: 14, fontWeight: 600, cursor: 'pointer',
-                  }}
+                    background: '#3A3B3C', border: 'none', color: '#8A8D91', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
                 >Cancel</button>
               </div>
             </div>
@@ -859,8 +826,7 @@ export default function TablesDisplay() {
           {showScanner && (
             <div style={{
               position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 95,
-              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            }}>
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
               <div style={{ textAlign: 'center', marginBottom: 20 }}>
                 <div style={{ fontSize: 36, marginBottom: 8 }}>
                   {showScanner.type === 'dealer' ? '🃏' : '📸'}
@@ -874,13 +840,11 @@ export default function TablesDisplay() {
               </div>
               <div style={{
                 width: '90%', maxWidth: 400, aspectRatio: '4/3', borderRadius: 16, overflow: 'hidden',
-                border: '3px solid #1877F2', position: 'relative',
-              }}>
+                border: '3px solid #1877F2', position: 'relative' }}>
                 <video ref={scannerVideoRef} style={{ width: '100%', height: '100%', objectFit: 'cover' }} playsInline muted />
                 <div style={{
                   position: 'absolute', inset: 0, border: '3px solid rgba(24,119,242,0.5)',
-                  borderRadius: 14, pointerEvents: 'none',
-                }} />
+                  borderRadius: 14, pointerEvents: 'none' }} />
               </div>
               {/* Manual QR Entry */}
               <form onSubmit={(e) => { e.preventDefault(); const val = e.target.elements.qr.value.trim(); if (val) handleScan(val, showScanner.type, showScanner.seatNumber); }}
@@ -888,18 +852,15 @@ export default function TablesDisplay() {
                 <input name="qr" type="text" placeholder="Or enter QR code manually..."
                   style={{
                     flex: 1, padding: '12px 16px', borderRadius: 12, border: '2px solid #3A3B3C',
-                    background: '#18191A', color: '#E4E6EB', fontSize: 14, outline: 'none',
-                  }} autoComplete="off" />
+                    background: '#18191A', color: '#E4E6EB', fontSize: 14, outline: 'none' }} autoComplete="off" />
                 <button type="submit" style={{
                   padding: '12px 20px', borderRadius: 12, background: '#1877F2', border: 'none',
-                  color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
-                }}>Scan</button>
+                  color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>Scan</button>
               </form>
               <button onClick={closeScanner}
                 style={{
                   marginTop: 12, padding: '14px 48px', borderRadius: 12,
-                  background: '#EF4444', border: 'none', color: '#fff', fontSize: 16, fontWeight: 700, cursor: 'pointer',
-                }}
+                  background: '#EF4444', border: 'none', color: '#fff', fontSize: 16, fontWeight: 700, cursor: 'pointer' }}
               >Cancel</button>
             </div>
           )}
@@ -908,12 +869,10 @@ export default function TablesDisplay() {
           {showPinModal && (
             <div style={{
               position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 100,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }} onClick={() => setShowPinModal(false)}>
+              display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setShowPinModal(false)}>
               <div onClick={(e) => e.stopPropagation()} style={{
                 background: '#242526', borderRadius: 20, padding: '32px 28px', width: '90%', maxWidth: 360,
-                border: '2px solid #3A3B3C', boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
-              }}>
+                border: '2px solid #3A3B3C', boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}>
                 <div style={{ textAlign: 'center', marginBottom: 20 }}>
                   <div style={{ fontSize: 40, marginBottom: 8 }}>🔐</div>
                   <h3 style={{ fontSize: 18, fontWeight: 700, color: '#E4E6EB', margin: 0 }}>Manager Unlock</h3>
@@ -923,16 +882,14 @@ export default function TablesDisplay() {
                   background: '#18191A', border: '2px solid #3A3B3C', borderRadius: 14,
                   padding: '16px', textAlign: 'center', marginBottom: 16,
                   fontSize: 32, fontWeight: 700, color: '#E4E6EB', letterSpacing: 12, fontFamily: 'monospace',
-                  minHeight: 50,
-                }}>
+                  minHeight: 50 }}>
                   {'•'.repeat(pinValue.length) || <span style={{ color: '#4E4F50', fontSize: 16, letterSpacing: 1 }}>Enter PIN</span>}
                 </div>
                 {pinError && (
                   <div style={{
                     padding: '8px 12px', borderRadius: 8, marginBottom: 12,
                     background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
-                    color: '#EF4444', fontSize: 13, fontWeight: 600, textAlign: 'center',
-                  }}>{pinError}</div>
+                    color: '#EF4444', fontSize: 13, fontWeight: 600, textAlign: 'center' }}>{pinError}</div>
                 )}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 12 }}>
                   {[1, 2, 3, 4, 5, 6, 7, 8, 9, null, 0, 'del'].map((key, i) => {
@@ -948,8 +905,7 @@ export default function TablesDisplay() {
                           padding: '14px', borderRadius: 12, fontSize: isDelete ? 14 : 22,
                           fontWeight: 700, cursor: 'pointer',
                           background: isDelete ? '#3A3B3C' : '#2A2B2D',
-                          border: '1px solid #4A4B4D', color: '#E4E6EB',
-                        }}
+                          border: '1px solid #4A4B4D', color: '#E4E6EB' }}
                       >
                         {isDelete ? '⌫' : key}
                       </button>
@@ -964,8 +920,7 @@ export default function TablesDisplay() {
                     background: pinValue.length === 4 ? '#1877F2' : '#3A3B3C',
                     color: '#fff', border: 'none', fontSize: 16, fontWeight: 700,
                     cursor: pinValue.length === 4 ? 'pointer' : 'default',
-                    opacity: pinLoading ? 0.6 : 1,
-                  }}
+                    opacity: pinLoading ? 0.6 : 1 }}
                 >
                   {pinLoading ? 'Verifying...' : '🔓 Unlock Display'}
                 </button>
@@ -978,8 +933,6 @@ export default function TablesDisplay() {
   }
 
   /* ─── NORMAL ALL-TABLES VIEW ─────────────────────── */
-
-
 
   return (
     <CommanderLayout title="Table Status Display" backHref="/commander/dashboard?card=displays">

@@ -14,7 +14,7 @@ import { Loader2, Users, ArrowLeft, CheckCircle } from 'lucide-react';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
 import useWakeLock from '../../../src/hooks/useWakeLock';
 import { busEmit } from '../../../src/engine/EventBus';
-import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
 
 // Capitalize first letter of every word
@@ -37,8 +37,7 @@ const DEFAULT_CUSTOM = {
   logoUrl: '',
   tickerMessage: '',
   gameTypes: [],
-  playerFontSize: 28,
-};
+  playerFontSize: 28 };
 
 export default function WaitlistDisplay() {
   useEffect(() => { busEmit.sessionStart('commander-displays-waitlist'); }, []);
@@ -62,10 +61,9 @@ export default function WaitlistDisplay() {
   // Fetch customization settings — periodic re-fetch so desk changes sync
   const fetchSettings = useCallback(async (signal) => {
     try {
-      const token = getToken();
-      const staffSession = getStaffSession();
-      const opts = signal ? { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }, signal }
-        : { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } };
+const staffSession = getStaffSession();
+      const opts = signal ? { signal }
+        : {};
       const res = await commanderFetch('/api/commander/settings', opts);
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
@@ -84,11 +82,10 @@ export default function WaitlistDisplay() {
   // fetchData — EXACT copy of desk.js logic (desk is source of truth)
   const fetchData = useCallback(async (signal) => {
     try {
-      const token = getToken();
-      const staffSession = getStaffSession();
+const staffSession = getStaffSession();
       const staffData = JSON.parse(getStaffSession() || '{}');
       const vid = staffData.venue_id || '';
-      const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
+      const headers = { };
       const opts = signal ? { headers, signal } : { headers };
       const [tabRes, wlRes] = await Promise.all([
         commanderFetch(`/api/commander/tables?venue_id=${vid}`, opts).catch(() => ({ ok: false })),

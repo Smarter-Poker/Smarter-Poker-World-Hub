@@ -36,9 +36,7 @@ export default function ResponsibleGaming() {
     if (!venueId) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/commander/members?venue_id=${venueId}&limit=200`, {
-        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
-      });
+      const res = await fetch(`/api/commander/members?venue_id=${venueId}&limit=200`, {});
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) setMembers(json.data || []);
@@ -55,9 +53,7 @@ export default function ResponsibleGaming() {
     setSearchResult(null);
     try {
       // Search members first
-      const res = await fetch(`/api/commander/members/search?q=${encodeURIComponent(query)}&venue_id=${venueId}`, {
-        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
-      });
+      const res = await fetch(`/api/commander/members/search?q=${encodeURIComponent(query)}&venue_id=${venueId}`, {});
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       const players = json.data || json.members || [];
@@ -71,9 +67,7 @@ export default function ResponsibleGaming() {
       const results = [];
       for (const player of players.slice(0, 5)) {
         try {
-          const checkRes = await fetch(`/api/commander/responsible-gaming/check/${player.user_id || player.id}?venue_id=${venueId}`, {
-            headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
-          });
+          const checkRes = await fetch(`/api/commander/responsible-gaming/check/${player.user_id || player.id}?venue_id=${venueId}`, {});
           if (!checkRes.ok) throw new Error(`Request failed (${checkRes.status})`);
           const checkJson = await checkRes.json();
           results.push({

@@ -10,7 +10,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { Palette, Save, Loader2, Check, Plus, Trash2, Copy, Volume2, VolumeX, MonitorPlay } from 'lucide-react';
 import { busEmit } from '../../src/engine/EventBus';
-import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const DEFAULT_THEME = {
@@ -18,8 +18,7 @@ const DEFAULT_THEME = {
     text: '#ffffff',
     accent: '#1877F2',
     blinds: '#ffffff',
-    headerBg: 'rgba(0,0,0,0.3)',
-};
+    headerBg: 'rgba(0,0,0,0.3)' };
 
 const DEFAULT_DISPLAY_OPTIONS = {
     chip_denominations: [
@@ -46,8 +45,7 @@ const DEFAULT_DISPLAY_OPTIONS = {
     sound_final_table: true,
     burn_in_prevention: false,
     logo_url: '',
-    background_image_url: '',
-};
+    background_image_url: '' };
 
 const SOUND_PACKS = [
     { value: 'classic', label: 'Classic', desc: 'Single clean tones' },
@@ -93,9 +91,7 @@ export default function ClockSetup() {
     const fetchPresets = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await commanderFetch('/api/commander/clock-presets', {
-                headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
-            });
+            const res = await commanderFetch('/api/commander/clock-presets', {});
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) setPresets(json.data || []);
@@ -140,8 +136,7 @@ export default function ClockSetup() {
                 name: formName.trim(),
                 theme: formTheme,
                 display_options: formDisplay,
-                is_default: formDefault,
-            };
+                is_default: formDefault };
 
             const isNew = editing === 'new';
             const url = isNew ? '/api/commander/clock-presets' : `/api/commander/clock-presets?id=${editing.id}`;
@@ -151,9 +146,8 @@ export default function ClockSetup() {
 
             const res = await fetch(url, {
                 method,
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
-                body: JSON.stringify(body),
-            });
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body) });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (res.ok && json.success) {
@@ -171,9 +165,7 @@ export default function ClockSetup() {
         if (!confirm('Delete this clock preset?')) return;
         try {
             const res = await commanderFetch(`/api/commander/clock-presets?id=${presetId}`, {
-                method: 'DELETE',
-                headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
-            });
+                method: 'DELETE' });
             if (res.ok) {
                 fetchPresets();
                 broadcastChange('tournaments');
@@ -236,8 +228,7 @@ export default function ClockSetup() {
                             <p style={{ fontSize: 11, color: '#64748B', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Live Preview</p>
                             <div style={{
                                 background: formDisplay.background_image_url ? `url(${formDisplay.background_image_url}) center/cover` : formTheme.background,
-                                borderRadius: 12, padding: 24, textAlign: 'center', border: '1px solid rgba(255,255,255,0.1)',
-                            }}>
+                                borderRadius: 12, padding: 24, textAlign: 'center', border: '1px solid rgba(255,255,255,0.1)' }}>
                                 {formDisplay.logo_url && <img src={formDisplay.logo_url} alt="" style={{ height: 32, marginBottom: 8, opacity: 0.8 }} loading="lazy" decoding="async" />}
                                 <p style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 3, marginBottom: 2, color: formTheme.accent }}>
                                     Level 8
@@ -290,8 +281,7 @@ export default function ClockSetup() {
                                         onClick={() => setFormTheme({ ...st.theme })}
                                         style={{
                                             padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.15)',
-                                            background: st.theme.background, color: '#fff', fontSize: 10, fontWeight: 600, cursor: 'pointer',
-                                        }}
+                                            background: st.theme.background, color: '#fff', fontSize: 10, fontWeight: 600, cursor: 'pointer' }}
                                     >{st.name}</button>
                                 ))}
                             </div>
@@ -315,8 +305,7 @@ export default function ClockSetup() {
                                         display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 8,
                                         background: formDisplay[key] ? 'rgba(24,119,242,0.1)' : 'rgba(255,255,255,0.03)',
                                         border: `1px solid ${formDisplay[key] ? 'rgba(24,119,242,0.3)' : 'rgba(255,255,255,0.08)'}`,
-                                        cursor: 'pointer', transition: 'all 0.2s',
-                                    }}>
+                                        cursor: 'pointer', transition: 'all 0.2s' }}>
                                         <input type="checkbox" checked={formDisplay[key]} onChange={e => setFormDisplay({ ...formDisplay, [key]: e.target.checked })} style={{ accentColor: '#1877F2' }} />
                                         <span style={{ fontSize: 12, fontWeight: 500 }}>{icon} {label}</span>
                                     </label>
@@ -503,8 +492,7 @@ export default function ClockSetup() {
                                 {STARTER_THEMES.map(st => (
                                     <button key={st.name} onClick={() => startNew(st)} style={{
                                         padding: '6px 14px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.15)',
-                                        background: st.theme.background, color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                                    }}>{st.name}</button>
+                                        background: st.theme.background, color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>{st.name}</button>
                                 ))}
                             </div>
                         </div>
@@ -513,8 +501,7 @@ export default function ClockSetup() {
                             {presets.map(preset => (
                                 <div key={preset.id} style={{
                                     ...panelStyle, padding: 0, overflow: 'hidden',
-                                    display: 'flex', alignItems: 'stretch',
-                                }}>
+                                    display: 'flex', alignItems: 'stretch' }}>
                                     {/* Color swatch */}
                                     <div style={{ width: 6, background: preset.theme?.accent || '#1877F2', flexShrink: 0 }} />
                                     <div style={{ flex: 1, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -523,8 +510,7 @@ export default function ClockSetup() {
                                             width: 44, height: 44, borderRadius: 10, flexShrink: 0,
                                             background: preset.theme?.background || '#0D192E',
                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            border: `2px solid ${preset.theme?.accent || '#1877F2'}30`,
-                                        }}>
+                                            border: `2px solid ${preset.theme?.accent || '#1877F2'}30` }}>
                                             <span style={{ fontSize: 16, fontWeight: 800, fontFamily: 'monospace', color: preset.theme?.text || '#fff' }}>12</span>
                                         </div>
                                         <div style={{ flex: 1, minWidth: 0 }}>
@@ -559,8 +545,7 @@ export default function ClockSetup() {
                                     {STARTER_THEMES.map(st => (
                                         <button key={st.name} onClick={() => startNew(st)} style={{
                                             padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.1)',
-                                            background: st.theme.background, color: '#fff', fontSize: 10, fontWeight: 600, cursor: 'pointer',
-                                        }}>{st.name}</button>
+                                            background: st.theme.background, color: '#fff', fontSize: 10, fontWeight: 600, cursor: 'pointer' }}>{st.name}</button>
                                     ))}
                                 </div>
                             </div>
@@ -575,27 +560,22 @@ export default function ClockSetup() {
 // ── Inline Styles ──
 const panelStyle = {
     background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
-    borderRadius: 12, padding: 16, marginBottom: 12,
-};
+    borderRadius: 12, padding: 16, marginBottom: 12 };
 const labelStyle = { fontSize: 12, fontWeight: 600, color: '#94A3B8', marginBottom: 4, display: 'block' };
 const sectionTitle = { fontSize: 11, color: '#64748B', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10, marginTop: 0 };
 const inputStyle = {
     width: '100%', padding: '10px 12px', borderRadius: 8, border: '2px solid #1E3A5F',
     background: 'rgba(0,0,0,0.3)', color: '#fff', fontSize: 14, fontFamily: "var(--font-inter), sans-serif",
-    outline: 'none', boxSizing: 'border-box',
-};
+    outline: 'none', boxSizing: 'border-box' };
 const btnPrimary = {
     display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8,
     border: 'none', background: '#1877F2', color: '#fff', fontSize: 13, fontWeight: 600,
-    cursor: 'pointer', fontFamily: "var(--font-inter), sans-serif",
-};
+    cursor: 'pointer', fontFamily: "var(--font-inter), sans-serif" };
 const btnSecondary = {
     display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8,
     border: '2px solid rgba(255,255,255,0.15)', background: 'transparent', color: '#94A3B8',
-    fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: "var(--font-inter), sans-serif",
-};
+    fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: "var(--font-inter), sans-serif" };
 const iconBtn = {
     padding: 6, borderRadius: 6, border: '1px solid rgba(255,255,255,0.1)',
     background: 'transparent', color: '#94A3B8', cursor: 'pointer',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-};
+    display: 'flex', alignItems: 'center', justifyContent: 'center' };

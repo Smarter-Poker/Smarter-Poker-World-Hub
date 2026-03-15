@@ -11,7 +11,7 @@ import {
   BarChart3, Repeat, ChevronDown, Search, ArrowLeft
 } from 'lucide-react';
 import { busEmit } from '../../../src/engine/EventBus';
-import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
 
 export default function PlayerActivityReport() {
@@ -28,9 +28,8 @@ export default function PlayerActivityReport() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const token = getToken();
-      const staffSession = getStaffSession() || '';
-      const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
+const staffSession = getStaffSession() || '';
+      const headers = { };
       const [membersRes, sessionsRes] = await Promise.all([
         commanderFetch(`/api/commander/members?sort=${sortBy}&limit=100`, { headers }).catch(() => ({ ok: false })),
         commanderFetch('/api/commander/time-billing/sessions?limit=200&status=all', { headers }).catch(() => ({ ok: false }))

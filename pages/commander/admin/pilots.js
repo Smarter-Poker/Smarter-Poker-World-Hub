@@ -20,8 +20,7 @@ const SUCCESS_CRITERIA = {
   uptime: { target: 95, label: 'Uptime', unit: '%' },
   tickets: { target: 5, label: 'Support Tickets/Week', unit: '', comparison: 'less' },
   staffSatisfaction: { target: 4.0, label: 'Staff Satisfaction', unit: '/5' },
-  playerAdoption: { target: 50, label: 'Player Adoption', unit: '%' },
-};
+  playerAdoption: { target: 50, label: 'Player Adoption', unit: '%' } };
 
 // Target pilot regions
 const TARGET_REGIONS = [
@@ -53,7 +52,7 @@ export default function PilotVenuesPage() {
     try {
       const token = getToken();
       const res = await commanderFetch('/api/commander/admin/pilots', {
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() || '' }
+        headers: { || '' }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
@@ -74,8 +73,7 @@ export default function PilotVenuesPage() {
     TX: pilots.filter((p) => p.state === 'TX').length,
     CA: pilots.filter((p) => p.state === 'CA').length,
     NV: pilots.filter((p) => p.state === 'NV').length,
-    FL: pilots.filter((p) => p.state === 'FL').length,
-  };
+    FL: pilots.filter((p) => p.state === 'FL').length };
 
   // Calculate overall metrics
   const avgUptime =

@@ -39,9 +39,7 @@ function RentEquipmentModal({ isOpen, onClose, equipment, venueId, onSuccess }) 
       const res = await commanderFetch(`/api/commander/marketplace/equipment/${equipment.id}/rent`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'x-staff-session': staffSession,
-          Authorization: `Bearer ${getToken()}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           venue_id: venueId,
@@ -185,8 +183,7 @@ function BookDealerModal({ isOpen, onClose, dealer, venueId, onSuccess }) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-          'x-staff-session': staffSession
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           venue_id: venueId,
@@ -473,9 +470,7 @@ export default function MarketplacePage() {
     try {
       const token = getToken();
       const staffSession = getStaffSession() || '';
-      const res = await commanderFetch('/api/commander/marketplace/dealers?limit=50', {
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
-      });
+      const res = await commanderFetch('/api/commander/marketplace/dealers?limit=50', {});
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
@@ -490,9 +485,7 @@ export default function MarketplacePage() {
     try {
       const token = getToken();
       const staffSession = getStaffSession() || '';
-      const res = await commanderFetch('/api/commander/marketplace/equipment?limit=50', {
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
-      });
+      const res = await commanderFetch('/api/commander/marketplace/equipment?limit=50', {});
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {

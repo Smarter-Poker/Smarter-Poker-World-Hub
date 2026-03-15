@@ -9,7 +9,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import { BarChart3, Users, DollarSign, Clock, TrendingUp, Loader2, Printer, CreditCard, Banknote, AlertTriangle } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../../src/engine/EventBus';
-import { getToken, getStaffSession, getVenueId } from '../../../src/lib/commander/clientAuth'
+import { getStaffSession, getVenueId } from '../../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
 
 export default function DailySummaryReport() {
@@ -20,15 +20,13 @@ export default function DailySummaryReport() {
   const [cashierData, setCashierData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-
   useEffect(() => {
     const fetchAll = async () => {
       setLoading(true);
       try {
-        const token = getToken();
-        const venueId = getVenueId();
+const venueId = getVenueId();
         const staffSession = getStaffSession() || '';
-        const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
+        const headers = { };
 
         // General summary
         const [summaryRes, cashierRes] = await Promise.all([
@@ -65,8 +63,7 @@ export default function DailySummaryReport() {
             buyIn: { count: buyInTxns.length, total: sumAmount(buyInTxns), cash: cashCount(buyInTxns), card: cardCount(buyInTxns) },
             voids: { count: voidTxns.length, total: sumAmount(voidTxns) },
             cashTotal: sumAmount(txns.filter(t => t.payment_method === 'cash' && (t.type === 'buy_in' || t.type === 'add_on'))),
-            cardTotal: sumAmount(txns.filter(t => t.payment_method === 'card' && (t.type === 'buy_in' || t.type === 'add_on'))),
-          });
+            cardTotal: sumAmount(txns.filter(t => t.payment_method === 'card' && (t.type === 'buy_in' || t.type === 'add_on'))) });
         }
       } catch (err) { console.error(err); }
       finally { setLoading(false); }

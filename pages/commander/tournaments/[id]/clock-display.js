@@ -25,7 +25,7 @@ import { calculateICM, calculateChipChop } from '../../../../src/lib/commander/i
 import { useCommanderSync, broadcastChange } from '../../../../src/lib/commander/useCommanderSync';
 import useWakeLock from '../../../../src/hooks/useWakeLock';
 import { busEmit } from '../../../../src/engine/EventBus';
-import { getToken, getStaffSession } from '../../../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../../../src/lib/commander/commanderFetch';
 
 function formatClock(seconds) {
@@ -58,8 +58,7 @@ function formatElapsed(startTime) {
 
 const DEFAULT_THEME = {
   background: '#0D192E', text: '#ffffff', accent: '#1877F2',
-  blinds: '#ffffff', headerBg: 'rgba(0,0,0,0.3)',
-};
+  blinds: '#ffffff', headerBg: 'rgba(0,0,0,0.3)' };
 
 // Display screens for cycling
 const SCREENS = { CLOCK: 'clock', PAYOUTS: 'payouts', SCHEDULE: 'schedule', ICM: 'icm' };
@@ -135,8 +134,6 @@ export default function ClockDisplay() {
     };
   }, [activeScreen, data?.stats?.players_remaining, data?.tournament?.payout_structure, data?.stats?.payouts]);
 
-
-
   // (Current Time display removed — wall clock no longer needed)
 
   // Burn-in prevention
@@ -172,9 +169,7 @@ export default function ClockDisplay() {
   const fetchPreset = useCallback(async (presetId) => {
     try {
       const staffSession = getStaffSession() || '';
-      const res = await commanderFetch('/api/commander/clock-presets', {
-        headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
-      });
+      const res = await commanderFetch('/api/commander/clock-presets', { });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
@@ -189,10 +184,7 @@ export default function ClockDisplay() {
     if (!id) return;
     try {
       const staffSession = getStaffSession() || '';
-      const res = await commanderFetch(`/api/commander/tournaments/${id}/floor-view`, {
-        headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
-        ...(signal ? { signal } : {}),
-      });
+      const res = await commanderFetch(`/api/commander/tournaments/${id}/floor-view`, { ...(signal ? { signal } : {}) });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
@@ -248,8 +240,6 @@ export default function ClockDisplay() {
 
   // Instant Real-Time Synchronization
   useCommanderSync(venueId, fetchData, { entities: ['tournaments'] });
-
-
 
   // Sound alert playback
   const playAlert = (type) => {
@@ -329,15 +319,13 @@ export default function ClockDisplay() {
       const staffSession = getStaffSession() || '';
       const res = await commanderFetch(`/api/commander/tournaments/${id}/clock`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action })
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
-        const res2 = await commanderFetch(`/api/commander/tournaments/${id}/floor-view`, {
-          headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
-        });
+        const res2 = await commanderFetch(`/api/commander/tournaments/${id}/floor-view`, { });
         if (!res2.ok) throw new Error(`Request failed (${res2.status})`);
         const json2 = await res2.json();
         if (json2.success) {
@@ -374,8 +362,7 @@ export default function ClockDisplay() {
   const displayOpts = preset?.display_options || {
     show_prize_pool: true, show_payouts: true, show_icm: false,
     show_chip_chop: false, show_chip_colors: false, show_next_round: true,
-    show_schedule_preview: false, show_seating: false,
-  };
+    show_schedule_preview: false, show_seating: false };
 
   // Chip leaders — unique by name, top 20 sorted by stack
   const uniqueLeaders = [];
@@ -472,8 +459,7 @@ export default function ClockDisplay() {
 
       <div style={{
         ...S.container, ...bgStyle,
-        transform: `translate(${burnInOffset.x}px, ${burnInOffset.y}px)`,
-      }} onClick={goFullscreen}>
+        transform: `translate(${burnInOffset.x}px, ${burnInOffset.y}px)` }} onClick={goFullscreen}>
 
         {/* ===== HAND TIMER OVERLAY ===== */}
         {handTimerActive && (
@@ -520,16 +506,14 @@ export default function ClockDisplay() {
                 <button key={key} onClick={() => setActiveScreen(key)} style={{
                   ...S.controlBtn, padding: '8px 14px', fontSize: 13,
                   background: activeScreen === key ? 'rgba(24,119,242,0.4)' : 'rgba(255,255,255,0.1)',
-                  borderColor: activeScreen === key ? '#1877F2' : 'rgba(255,255,255,0.2)',
-                }}>{label}</button>
+                  borderColor: activeScreen === key ? '#1877F2' : 'rgba(255,255,255,0.2)' }}>{label}</button>
               ))}
             </div>
             {/* Chop / ICM toggles */}
             <div style={{ display: 'flex', gap: 4, marginLeft: 8 }}>
               <button onClick={() => setActiveScreen(SCREENS.ICM)} style={{
                 ...S.controlBtn, padding: '8px 14px', fontSize: 12,
-                background: 'rgba(49,162,76,0.3)', borderColor: '#31A24C',
-              }}>Chop / ICM</button>
+                background: 'rgba(49,162,76,0.3)', borderColor: '#31A24C' }}>Chop / ICM</button>
             </div>
           </div>
         )}
@@ -723,14 +707,12 @@ export default function ClockDisplay() {
                   padding: '6px 16px', borderRadius: 6, border: '2px solid',
                   borderColor: chopMode === 'icm' ? '#31A24C' : 'rgba(255,255,255,0.2)',
                   background: chopMode === 'icm' ? 'rgba(49,162,76,0.3)' : 'rgba(255,255,255,0.05)',
-                  color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer',
-                }}>ICM</button>
+                  color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>ICM</button>
                 <button onClick={() => setChopMode('chip_chop')} style={{
                   padding: '6px 16px', borderRadius: 6, border: '2px solid',
                   borderColor: chopMode === 'chip_chop' ? '#1877F2' : 'rgba(255,255,255,0.2)',
                   background: chopMode === 'chip_chop' ? 'rgba(24,119,242,0.3)' : 'rgba(255,255,255,0.05)',
-                  color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer',
-                }}>Chip Chop</button>
+                  color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Chip Chop</button>
               </div>
             </div>
 
@@ -745,15 +727,13 @@ export default function ClockDisplay() {
               }} style={{
                 padding: '6px 14px', borderRadius: 6, border: '2px solid rgba(24,119,242,0.5)',
                 background: 'rgba(24,119,242,0.15)', color: '#1877F2', fontSize: 12,
-                fontWeight: 700, cursor: 'pointer',
-              }}>Load from Tournament</button>
+                fontWeight: 700, cursor: 'pointer' }}>Load from Tournament</button>
               <button onClick={() => {
                 setEditableStacks([...editableStacks, { name: `Player ${editableStacks.length + 1}`, chips: 0 }]);
               }} style={{
                 padding: '6px 14px', borderRadius: 6, border: '2px solid rgba(49,162,76,0.5)',
                 background: 'rgba(49,162,76,0.15)', color: '#31A24C', fontSize: 12,
-                fontWeight: 700, cursor: 'pointer',
-              }}>+ Add Player</button>
+                fontWeight: 700, cursor: 'pointer' }}>+ Add Player</button>
               <div style={{ fontSize: 13, opacity: 0.5 }}>{editableStacks.length} Players</div>
             </div>
 
@@ -788,8 +768,7 @@ export default function ClockDisplay() {
                         display: 'grid', gridTemplateColumns: '30px 1fr 140px 140px 140px 80px 36px',
                         gap: '0 12px', padding: '6px 8px', alignItems: 'center',
                         background: i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent',
-                        borderBottom: '1px solid rgba(255,255,255,0.06)',
-                      }}>
+                        borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                         <span style={{ fontSize: 14, fontWeight: 800, opacity: 0.4 }}>{i + 1}</span>
                         <input
                           value={player.name}
@@ -801,8 +780,7 @@ export default function ClockDisplay() {
                           style={{
                             background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
                             borderRadius: 4, padding: '5px 8px', color: '#fff', fontSize: 14,
-                            fontWeight: 600, fontFamily: "var(--font-inter), sans-serif", width: '100%',
-                          }}
+                            fontWeight: 600, fontFamily: "var(--font-inter), sans-serif", width: '100%' }}
                         />
                         <input
                           type="number"
@@ -816,8 +794,7 @@ export default function ClockDisplay() {
                             background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
                             borderRadius: 4, padding: '5px 8px', color: '#fff', fontSize: 14,
                             fontWeight: 700, fontFamily: "var(--font-inter), sans-serif", width: '100%',
-                            textAlign: 'right',
-                          }}
+                            textAlign: 'right' }}
                         />
                         <span style={{ color: '#31A24C', fontWeight: 700, fontSize: 15, textAlign: 'right' }}>
                           {isValid && icmRow ? formatMoney(chopMode === 'icm' ? icmRow.equity : chopRow?.chop || 0) : '-'}
@@ -833,8 +810,7 @@ export default function ClockDisplay() {
                         }} style={{
                           background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)',
                           borderRadius: 4, color: '#EF4444', fontSize: 14, cursor: 'pointer',
-                          padding: '4px 8px', fontWeight: 700,
-                        }}>×</button>
+                          padding: '4px 8px', fontWeight: 700 }}>×</button>
                       </div>
                     );
                   });
@@ -887,8 +863,7 @@ const S = {
     height: '100vh', maxHeight: '100vh', fontFamily: "var(--font-inter), 'Segoe UI', sans-serif", color: '#fff',
     display: 'flex', flexDirection: 'column', userSelect: 'none', position: 'relative',
     overflow: 'hidden', transition: 'transform 0.5s ease', fontFeatureSettings: "'zero' 0",
-    overscrollBehavior: 'none',
-  },
+    overscrollBehavior: 'none' },
   header: {
     background: 'rgba(0,0,0,0.3)', textAlign: 'center', padding: '10px 16px 8px',
     borderBottom: '2px solid rgba(255,255,255,0.15)', flexShrink: 0
@@ -897,15 +872,13 @@ const S = {
   headerSub: { fontSize: 13, opacity: 0.65, marginTop: 2 },
   main: {
     flex: 1, display: 'grid', gridTemplateColumns: '160px 1fr 260px', minHeight: 0,
-    overflow: 'hidden', borderBottom: '2px solid rgba(255,255,255,0.15)',
-  },
+    overflow: 'hidden', borderBottom: '2px solid rgba(255,255,255,0.15)' },
   leftPanel: { display: 'flex', flexDirection: 'column', overflow: 'hidden' },
   rightPanel: { display: 'flex', flexDirection: 'column', overflow: 'hidden' },
   centerPanel: {
     display: 'flex', flexDirection: 'column',
     position: 'relative', padding: '0',
-    overflow: 'hidden',
-  },
+    overflow: 'hidden' },
   statCell: {
     flex: 1, background: 'rgba(255,255,255,0.06)', border: '2px solid rgba(255,255,255,0.15)',
     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -917,8 +890,7 @@ const S = {
     fontSize: 'min(15vw, 160px)', fontWeight: 800, fontVariantNumeric: 'tabular-nums',
     lineHeight: 1, textShadow: '0 4px 20px rgba(0,0,0,0.5)', letterSpacing: -2,
     fontFamily: "var(--font-inter), 'Segoe UI', sans-serif", padding: '8px 0', textAlign: 'center', width: '100%',
-    fontFeatureSettings: "'zero' 0",
-  },
+    fontFeatureSettings: "'zero' 0" },
   blindsBlock: {
     background: 'rgba(0,0,0,0.25)', border: '2px solid rgba(255,255,255,0.15)',
     width: '100%', textAlign: 'center', padding: '8px 16px'
@@ -930,15 +902,13 @@ const S = {
   nextRound: {
     background: 'rgba(0,0,0,0.15)', border: '2px solid rgba(255,255,255,0.12)',
     width: '100%', textAlign: 'center', padding: '20px 12px', fontSize: 27, lineHeight: 1.5, flexShrink: 0,
-    overflow: 'hidden',
-  },
+    overflow: 'hidden' },
   // Right panel sections — Prizes + Chip Leaders
   rightSection: {
     flex: 1, display: 'flex', flexDirection: 'column',
     background: 'rgba(255,255,255,0.04)',
     border: '2px solid rgba(255,255,255,0.12)',
-    overflow: 'hidden', minHeight: 0,
-  },
+    overflow: 'hidden', minHeight: 0 },
   // Top 3 chip leaders fixed at bottom
   top3Container: {
     width: '100%', background: 'rgba(0,0,0,0.2)', border: '2px solid rgba(255,255,255,0.10)',
@@ -946,14 +916,12 @@ const S = {
   },
   top3Row: {
     display: 'flex', alignItems: 'center', gap: 8,
-    padding: '2px 0', borderBottom: '1px solid rgba(255,255,255,0.06)',
-  },
+    padding: '2px 0', borderBottom: '1px solid rgba(255,255,255,0.06)' },
   // Next Break — compact fixed-height box in right panel
   nextBreakCompact: {
     background: 'rgba(255,255,255,0.06)', border: '2px solid rgba(255,255,255,0.15)',
     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-    padding: '8px', textAlign: 'center', flexShrink: 0,
-  },
+    padding: '8px', textAlign: 'center', flexShrink: 0 },
   // Payout auto-scroll ticker viewport
   payoutTickerViewport: {
     flex: 1, overflow: 'hidden', position: 'relative', minHeight: 0,
@@ -965,82 +933,63 @@ const S = {
     flexShrink: 0, background: 'rgba(0,0,0,0.4)',
     borderTop: '2px solid rgba(255,255,255,0.15)',
     overflow: 'hidden', whiteSpace: 'nowrap', height: 80,
-    display: 'flex', alignItems: 'center',
-  },
+    display: 'flex', alignItems: 'center' },
   sportsTickerTrack: {
-    display: 'inline-flex', gap: 32, whiteSpace: 'nowrap', fontSize: 35,
-  },
+    display: 'inline-flex', gap: 32, whiteSpace: 'nowrap', fontSize: 35 },
   sportsTickerItem: {
-    display: 'inline-flex', gap: 6, alignItems: 'center',
-  },
+    display: 'inline-flex', gap: 6, alignItems: 'center' },
   rightSectionHeader: {
     fontSize: 22, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase',
     textAlign: 'center', padding: '10px 8px', color: '#FFFFFF',
     borderBottom: '1px solid rgba(255,255,255,0.1)',
-    background: 'rgba(0,0,0,0.2)', flexShrink: 0,
-  },
+    background: 'rgba(0,0,0,0.2)', flexShrink: 0 },
   top3Header: {
     fontSize: 22, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase',
     textAlign: 'center', padding: '10px 8px', color: '#FFFFFF',
     borderBottom: '1px solid rgba(255,255,255,0.1)',
-    marginBottom: 8,
-  },
+    marginBottom: 8 },
   payoutScroll: {
     flex: 1, overflowY: 'auto', padding: '4px 10px',
-    display: 'flex', flexDirection: 'column', gap: 2,
-  },
+    display: 'flex', flexDirection: 'column', gap: 2 },
   payoutRow: {
     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    padding: '3px 0', borderBottom: '1px solid rgba(255,255,255,0.05)',
-  },
+    padding: '3px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' },
   leadersScroll: {
     flex: 1, overflowY: 'auto', padding: '4px 8px',
-    display: 'flex', flexDirection: 'column', gap: 3,
-  },
+    display: 'flex', flexDirection: 'column', gap: 3 },
   leaderRow: {
     display: 'flex', alignItems: 'center', gap: 6,
-    padding: '4px 0', borderBottom: '1px solid rgba(255,255,255,0.05)',
-  },
+    padding: '4px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' },
   leaderRank: {
-    fontSize: 13, fontWeight: 800, opacity: 0.5, minWidth: 18, textAlign: 'center',
-  },
+    fontSize: 13, fontWeight: 800, opacity: 0.5, minWidth: 18, textAlign: 'center' },
   leaderName: {
     flex: 1, fontSize: 13, fontWeight: 600, overflow: 'hidden',
-    textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-  },
+    textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   leaderChips: {
-    fontSize: 13, fontWeight: 700, color: '#31A24C', whiteSpace: 'nowrap',
-  },
+    fontSize: 13, fontWeight: 700, color: '#31A24C', whiteSpace: 'nowrap' },
   // Chip leaders in center panel (under blinds)
   chipLeadersCenter: {
     width: '100%', maxWidth: 500, marginTop: 8,
     background: 'rgba(0,0,0,0.25)', border: '2px solid rgba(255,255,255,0.12)',
-    display: 'flex', flexDirection: 'column', maxHeight: 160, overflow: 'hidden',
-  },
+    display: 'flex', flexDirection: 'column', maxHeight: 160, overflow: 'hidden' },
   chipLeadersHeader: {
     fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase',
     textAlign: 'center', padding: '4px 8px', opacity: 0.6,
     borderBottom: '1px solid rgba(255,255,255,0.1)',
-    background: 'rgba(0,0,0,0.2)', flexShrink: 0,
-  },
+    background: 'rgba(0,0,0,0.2)', flexShrink: 0 },
   chipLeadersScroll: {
     flex: 1, overflowY: 'auto', padding: '2px 12px',
-    display: 'flex', flexDirection: 'column', gap: 1,
-  },
+    display: 'flex', flexDirection: 'column', gap: 1 },
   chipLeaderItem: {
     display: 'flex', alignItems: 'center', gap: 8,
-    padding: '2px 0', borderBottom: '1px solid rgba(255,255,255,0.05)',
-  },
+    padding: '2px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' },
   chipLeaderRank: {
-    fontSize: 12, fontWeight: 800, opacity: 0.5, minWidth: 18, textAlign: 'center',
-  },
+    fontSize: 12, fontWeight: 800, opacity: 0.5, minWidth: 18, textAlign: 'center' },
   chipLeaderName: {
     flex: 1, fontSize: 13, fontWeight: 600, overflow: 'hidden',
-    textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-  },
+    textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   chipLeaderChips: {
-    fontSize: 13, fontWeight: 700, color: '#31A24C', whiteSpace: 'nowrap',
-  },
+    fontSize: 13, fontWeight: 700, color: '#31A24C', whiteSpace: 'nowrap' },
   breakBanner: {
     position: 'absolute', top: 8, background: 'rgba(245,158,11,0.2)',
     border: '2px solid rgba(245,158,11,0.5)', padding: '8px 32px', borderRadius: 8,
@@ -1074,11 +1023,8 @@ const S = {
     position: 'absolute', inset: 0, zIndex: 100,
     background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(4px)',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    cursor: 'pointer',
-  },
+    cursor: 'pointer' },
   handTimerBox: {
     textAlign: 'center', padding: 40,
     border: '4px solid rgba(239,68,68,0.5)', borderRadius: 24,
-    background: 'rgba(239,68,68,0.1)',
-  },
-};
+    background: 'rgba(239,68,68,0.1)' } };

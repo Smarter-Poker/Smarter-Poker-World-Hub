@@ -16,7 +16,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { RefreshCw, Users, Loader2, Lock, Unlock, Save, AlertTriangle, Activity, X, Clock, ZoomIn, ZoomOut, RotateCw } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
-import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const STATUS_CONFIG = {
@@ -24,13 +24,11 @@ const STATUS_CONFIG = {
   available: { color: '#1877F2', glow: '0 0 8px rgba(24,119,242,0.3)', label: 'Open' },
   reserved: { color: '#F59E0B', glow: '0 0 8px rgba(245,158,11,0.3)', label: 'Reserved' },
   maintenance: { color: '#6B7280', glow: '0 0 6px rgba(107,114,128,0.2)', label: 'Maintenance' },
-  breaking: { color: '#EF4444', glow: '0 0 8px rgba(239,68,68,0.3)', label: 'Breaking' },
-};
+  breaking: { color: '#EF4444', glow: '0 0 8px rgba(239,68,68,0.3)', label: 'Breaking' } };
 
 const GAME_COLORS = {
   'NLH': '#1877F2', 'PLO': '#31A24C', 'MIXED': '#F59E0B',
-  'TOURNAMENT': '#A855F7', 'OMAHA': '#EF4444', 'NLO': '#22D3EE',
-};
+  'TOURNAMENT': '#A855F7', 'OMAHA': '#EF4444', 'NLO': '#22D3EE' };
 
 const TABLE_WIDTH = 150;
 const TABLE_HEIGHT = 100;
@@ -74,9 +72,8 @@ export default function FloorMap() {
   }, [router]);
 
   const getHeaders = () => {
-    const token = getToken();
-    const staffSession = getStaffSession() || '';
-    return { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
+const staffSession = getStaffSession() || '';
+    return { };
   };
 
   const fetchAll = useCallback(async () => {
@@ -108,8 +105,7 @@ export default function FloorMap() {
               stakes: game.stakes || t.stakes || '',
               current_players: game.current_players || 0,
               max_players: game.max_players || t.max_seats || 9,
-              game_started_at: game.started_at || game.created_at,
-            };
+              game_started_at: game.started_at || game.created_at };
           }
           return t;
         });
@@ -177,8 +173,7 @@ export default function FloorMap() {
         const rot = rotations[t.id] || 0;
         return fetch(`/api/commander/tables/${t.id}`, {
           method: 'PATCH', headers,
-          body: JSON.stringify({ position_x: pos.x, position_y: pos.y, rotation: rot }),
-        }).then(r => { if (!r.ok) throw new Error('fail'); return r; });
+          body: JSON.stringify({ position_x: pos.x, position_y: pos.y, rotation: rot }) }).then(r => { if (!r.ok) throw new Error('fail'); return r; });
       }));
       setHasChanges(false);
       setSaved(true);
@@ -208,8 +203,7 @@ export default function FloorMap() {
     setDraggingId(tableId);
     setDragOffset({
       x: clientX - (canvasRect?.left || 0) + scrollLeft - pos.x * zoom,
-      y: clientY - (canvasRect?.top || 0) + scrollTop - pos.y * zoom,
-    });
+      y: clientY - (canvasRect?.top || 0) + scrollTop - pos.y * zoom });
   };
 
   const handleDragMove = useCallback((e) => {
@@ -223,8 +217,7 @@ export default function FloorMap() {
     const newY = (clientY - canvasRect.top + scrollTop - dragOffset.y) / zoom;
     setPositions(prev => ({
       ...prev,
-      [draggingId]: { x: Math.max(0, newX), y: Math.max(0, newY) },
-    }));
+      [draggingId]: { x: Math.max(0, newX), y: Math.max(0, newY) } }));
     setHasChanges(true);
   }, [draggingId, dragOffset, zoom]);
 
@@ -301,8 +294,7 @@ export default function FloorMap() {
               title={editMode ? 'Lock layout' : 'Unlock to edit'}
               style={{
                 background: 'none', border: 'none', padding: 6,
-                cursor: 'pointer', display: 'flex', alignItems: 'center',
-              }}>
+                cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
               {editMode ? <Unlock size={22} color="#F59E0B" /> : <Lock size={22} color="#8A8D91" />}
             </button>
 
@@ -354,8 +346,7 @@ export default function FloorMap() {
               #0D0E10
             `,
             backgroundSize: '100% 100%, 40px 40px, 40px 40px',
-            cursor: editMode ? 'crosshair' : 'default',
-          }}>
+            cursor: editMode ? 'crosshair' : 'default' }}>
             <div style={{ width: canvasWidth * zoom, height: canvasHeight * zoom, position: 'relative', transformOrigin: '0 0' }}>
               {tables.map(table => {
                 const tNum = table.table_number || table.number;
@@ -388,8 +379,7 @@ export default function FloorMap() {
                       zIndex: isDragging ? 100 : isActive ? 2 : 1,
                       transition: isDragging ? 'none' : 'box-shadow 0.2s, transform 0.3s',
                       userSelect: 'none',
-                      WebkitUserSelect: 'none',
-                    }}>
+                      WebkitUserSelect: 'none' }}>
                     {/* Table oval */}
                     <div style={{
                       width: '100%', height: '100%',
@@ -407,15 +397,13 @@ export default function FloorMap() {
                       alignItems: 'center', justifyContent: 'center',
                       padding: `${4 * zoom}px`,
                       position: 'relative',
-                      overflow: 'hidden',
-                    }}>
+                      overflow: 'hidden' }}>
                       {/* Gold rim for active tables */}
                       {isActive && (
                         <div style={{
                           position: 'absolute', inset: 2, borderRadius: '50%',
                           border: '1px solid rgba(180,150,60,0.3)',
-                          pointerEvents: 'none',
-                        }} />
+                          pointerEvents: 'none' }} />
                       )}
 
                       {/* Table number */}
@@ -447,8 +435,7 @@ export default function FloorMap() {
                           color: '#F59E0B', background: 'rgba(245,158,11,0.15)',
                           padding: `${1 * zoom}px ${3 * zoom}px`, borderRadius: 3 * zoom,
                           border: '1px solid rgba(245,158,11,0.3)',
-                          lineHeight: 1, letterSpacing: 0.5,
-                        }}>T</div>
+                          lineHeight: 1, letterSpacing: 0.5 }}>T</div>
                       )}
                     </div>
 
@@ -459,8 +446,7 @@ export default function FloorMap() {
                           position: 'absolute', top: -4, right: -4,
                           width: 12, height: 12, borderRadius: 6,
                           background: '#F59E0B', border: '2px solid #0D0E10',
-                          boxShadow: '0 1px 4px rgba(0,0,0,0.4)',
-                        }} />
+                          boxShadow: '0 1px 4px rgba(0,0,0,0.4)' }} />
                         <button
                           onClick={(e) => { e.stopPropagation(); setRotations(prev => ({ ...prev, [table.id]: ((prev[table.id] || 0) + 90) % 360 })); setHasChanges(true); }}
                           onMouseDown={(e) => e.stopPropagation()}
@@ -471,8 +457,7 @@ export default function FloorMap() {
                             background: '#1877F2', border: '2px solid #0D0E10',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             cursor: 'pointer', zIndex: 10, padding: 0,
-                            boxShadow: '0 2px 6px rgba(0,0,0,0.5)',
-                          }}>
+                            boxShadow: '0 2px 6px rgba(0,0,0,0.5)' }}>
                           <RotateCw size={11} color="#fff" />
                         </button>
                       </>
@@ -491,8 +476,7 @@ export default function FloorMap() {
             background: '#242526', borderTop: '2px solid #3A3B3C',
             borderRadius: '16px 16px 0 0', padding: '16px 20px',
             boxShadow: '0 -8px 32px rgba(0,0,0,0.5)',
-            zIndex: 50,
-          }}>
+            zIndex: 50 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <div>
                 <h3 style={{ fontSize: 18, fontWeight: 800, color: '#fff', margin: 0 }}>
@@ -566,8 +550,7 @@ export default function FloorMap() {
             background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)',
             borderRadius: 12, padding: '8px 20px', zIndex: 40,
             display: 'flex', alignItems: 'center', gap: 8,
-            backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
-          }}>
+            backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
             <Unlock size={14} color="#F59E0B" />
             <span style={{ fontSize: 12, color: '#F59E0B', fontWeight: 600 }}>
               Drag tables to match your room layout · {hasChanges ? 'Unsaved changes' : 'No changes'}
@@ -598,5 +581,4 @@ const btnStyle = {
   width: 32, height: 32, borderRadius: 8,
   background: '#242526', border: '1px solid #3A3B3C',
   display: 'flex', alignItems: 'center', justifyContent: 'center',
-  cursor: 'pointer', flexShrink: 0,
-};
+  cursor: 'pointer', flexShrink: 0 };

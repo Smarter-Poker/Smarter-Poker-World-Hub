@@ -14,7 +14,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
 import SEOHead from '../../src/components/seo/SEOHead';
-import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const PLAN_ORDER = ['daily', 'weekly', 'monthly', 'yearly'];
@@ -29,8 +29,7 @@ const CARD_ZONES = {
   daily: [27, 38],
   weekly: [39, 51],
   monthly: [52, 64],
-  yearly: [65, 77],
-};
+  yearly: [65, 77] };
 
 function getPlanPrice(plan) {
   if (plan.tier === 'daily') return plan.price_daily;
@@ -79,9 +78,8 @@ export default function MembershipPlansPage() {
   async function fetchPlans(signal) {
     setLoading(true);
     try {
-      const token = getToken();
-      const res = await fetch(`/api/commander/membership-plans?venue_id=${venueId}&include_inactive=true`, {
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() || '' }
+const res = await fetch(`/api/commander/membership-plans?venue_id=${venueId}&include_inactive=true`, {
+        headers: { || '' }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
@@ -135,10 +133,9 @@ export default function MembershipPlansPage() {
       const price = parseFloat(editPrice);
       if (isNaN(price) || price < 0) { setError('Enter A Valid Price'); setSaving(null); return; }
       const field = getPriceField(plan.tier);
-      const token = getToken();
-      const res = await fetch(`/api/commander/membership-plans?venue_id=${venueId}&id=${plan.id}`, {
+const res = await fetch(`/api/commander/membership-plans?venue_id=${venueId}&id=${plan.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() || '' },
+        headers: { 'Content-Type': 'application/json' || '' },
         body: JSON.stringify({ [field]: price })
       });
       if (!res.ok) throw new Error('Request failed');
@@ -397,8 +394,7 @@ export default function MembershipPlansPage() {
                   style={{
                     top: `${midPct}%`,
                     transform: 'translateY(-50%)',
-                    minHeight: `${heightPct}%`,
-                  }}
+                    minHeight: `${heightPct}%` }}
                 >
                   <div className="mp-edit-label">
                     <strong>{meta}</strong>

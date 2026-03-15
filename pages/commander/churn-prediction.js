@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../src/engine/EventBus';
-import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 export default function ChurnPrediction() {
@@ -46,11 +46,8 @@ export default function ChurnPrediction() {
   const fetchPredictions = async(signal) => {
     setLoading(true);
     try {
-      const token = getToken();
-      const staffSession = getStaffSession() || '';
-      const res = await fetch(`/api/commander/ai/churn-prediction?venue_id=${staff.venue_id}&limit=100`, {
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
-      });
+const staffSession = getStaffSession() || '';
+      const res = await fetch(`/api/commander/ai/churn-prediction?venue_id=${staff.venue_id}&limit=100`, {});
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {

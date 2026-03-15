@@ -10,7 +10,7 @@ import { Video, Play, Square, Settings, Loader2, Clock, Wifi, Youtube, Twitch, F
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../src/engine/EventBus';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
-import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const PLATFORMS = [
@@ -296,12 +296,8 @@ export default function StreamingPage() {
   const fetchStreams = useCallback(async (signal) => {
     setLoading(true);
     try {
-      const token = getToken();
-      const staffSession = getStaffSession() || '';
-      const res = await fetch(`/api/commander/streaming?venue_id=${venueId}`, {
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
-        ...(signal ? { signal } : {}),
-      });
+const staffSession = getStaffSession() || '';
+      const res = await fetch(`/api/commander/streaming?venue_id=${venueId}`, { ...(signal ? { signal } : {}) });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
@@ -328,11 +324,10 @@ export default function StreamingPage() {
 
   async function handleStartStream(tableId) {
     try {
-      const token = getToken();
-      const staffSession = getStaffSession() || '';
+const staffSession = getStaffSession() || '';
       const res = await fetch(`/api/commander/streaming/${tableId}/start`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ venue_id: venueId })
       });
       if (res.ok) {
@@ -348,11 +343,10 @@ export default function StreamingPage() {
 
   async function handleStopStream(tableId) {
     try {
-      const token = getToken();
-      const staffSession = getStaffSession() || '';
+const staffSession = getStaffSession() || '';
       const res = await fetch(`/api/commander/streaming/${tableId}/stop`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ venue_id: venueId })
       });
       if (res.ok) {
@@ -367,11 +361,10 @@ export default function StreamingPage() {
 
   async function handleSaveConfig(tableId, config) {
     try {
-      const token = getToken();
-      const staffSession = getStaffSession() || '';
+const staffSession = getStaffSession() || '';
       const res = await fetch(`/api/commander/streaming/${tableId}/config`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ venue_id: venueId, ...config })
       });
       if (res.ok) {

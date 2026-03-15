@@ -82,7 +82,7 @@ export default function DailyPresetsPage() {
       const token = getToken();
       if (!token) return;
       const staffSession = getStaffSession() || '';
-      commanderFetch('/api/commander/settings', { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } })
+      commanderFetch('/api/commander/settings', {})
         .then(r => r.json())
         .then(data => {
           if (data?.data) {
@@ -103,7 +103,7 @@ export default function DailyPresetsPage() {
       const staffSession = getStaffSession() || '';
       const res = await commanderFetch('/api/commander/settings', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ hard_stop_enabled: hardStopEnabled, hard_stop_time: hardStopTime })
       });
       if (res.ok) {
@@ -127,7 +127,7 @@ export default function DailyPresetsPage() {
       const staffSession = getStaffSession() || '';
       const res = await commanderFetch('/api/commander/settings', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ auto_comp_rate: autoCompRate })
       });
       if (res.ok) {
@@ -146,7 +146,7 @@ export default function DailyPresetsPage() {
   const fetchData = useCallback(async () => {
     try {
       const token = getToken();
-      const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() || '' };
+      const headers = { || '' };
       const stored = JSON.parse(getStaffSession() || '{}');
       const venueId = stored.venue_id;
       const safeJson = (r) => (r && typeof r.json === 'function') ? r.json().catch(() => ({})) : Promise.resolve({});
@@ -187,9 +187,7 @@ export default function DailyPresetsPage() {
       const token = getToken();
       const staffSession = getStaffSession() || '';
       const res = await commanderFetch(`/api/commander/room-presets?id=${preset.id}&action=apply`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
-      });
+        method: 'POST'});
       if (res.ok) {
         const json = await res.json();
         if (json.success) {
@@ -307,7 +305,7 @@ export default function DailyPresetsPage() {
       const url = editingId ? `/api/commander/room-presets?id=${editingId}` : '/api/commander/room-presets';
       const res = await fetch(url, {
         method: editingId ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form)
       });
       if (res.ok) {
@@ -335,9 +333,7 @@ export default function DailyPresetsPage() {
       const token = getToken();
       const staffSession = getStaffSession() || '';
       const res = await commanderFetch(`/api/commander/room-presets?id=${preset.id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
-      });
+        method: 'DELETE'});
       if (res.ok) {
         const json = await res.json();
         if (json.success) {

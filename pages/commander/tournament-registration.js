@@ -12,7 +12,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
 import useDebounce from '../../src/hooks/useDebounce';
-import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 export default function TournamentRegistration() {
@@ -41,9 +41,8 @@ export default function TournamentRegistration() {
         if (!venueId) return;
         setLoading(true);
         try {
-            const token = getToken();
-            const staffSession = getStaffSession() || '';
-            const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
+const staffSession = getStaffSession() || '';
+            const headers = { };
             const res = await fetch(`/api/commander/tournaments?venue_id=${venueId}&status=upcoming,active`, { headers });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
@@ -63,9 +62,8 @@ export default function TournamentRegistration() {
         if (!query || query.length < 2) { setSearchResults([]); return; }
         setSearchLoading(true);
         try {
-            const token = getToken();
-            const staffSession = getStaffSession() || '';
-            const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
+const staffSession = getStaffSession() || '';
+            const headers = { };
             const res = await fetch(`/api/commander/members/search?q=${encodeURIComponent(query)}&venue_id=${venueId}&limit=8`, { headers });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
@@ -277,9 +275,8 @@ ${total > 0 ? `<div class="fin-total-row"><span class="fin-total-label">Total Bu
         }
         setRegistering(true);
         try {
-            const token = getToken();
-            const staffSession = getStaffSession() || '';
-            const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
+const staffSession = getStaffSession() || '';
+            const headers = { 'Content-Type': 'application/json' };
 
             // 1. Register player in tournament via API
             const regRes = await fetch(`/api/commander/tournaments/${selectedTournament.id}/register`, {
@@ -349,8 +346,7 @@ ${total > 0 ? `<div class="fin-total-row"><span class="fin-total-label">Total Bu
                         padding: '12px 16px', borderRadius: 12, display: 'flex', alignItems: 'center', gap: 8,
                         fontSize: 13, fontWeight: 600, marginBottom: 12,
                         background: message.type === 'success' ? 'rgba(49,162,76,0.15)' : 'rgba(240,40,73,0.15)',
-                        color: message.type === 'success' ? '#31A24C' : '#F02849',
-                    }}>
+                        color: message.type === 'success' ? '#31A24C' : '#F02849' }}>
                         {message.type === 'success' ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}
                         {message.text}
                     </div>
@@ -383,8 +379,7 @@ ${total > 0 ? `<div class="fin-total-row"><span class="fin-total-label">Total Bu
                                     style={{
                                         width: '100%', background: '#3A3B3C', border: '1px solid #4A4B4C', borderRadius: 10,
                                         padding: '10px 12px 10px 38px', color: '#E4E6EB', fontSize: 14, fontWeight: 500,
-                                        outline: 'none', boxSizing: 'border-box',
-                                    }}
+                                        outline: 'none', boxSizing: 'border-box' }}
                                 />
                                 {searchLoading && <Loader2 size={16} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: '#1877F2', animation: 'spin 1s linear infinite' }} />}
                             </div>
@@ -431,8 +426,7 @@ ${total > 0 ? `<div class="fin-total-row"><span class="fin-total-label">Total Bu
                                         display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 10, cursor: 'pointer', textAlign: 'left',
                                         background: selectedTournament?.id === t.id ? 'rgba(24,119,242,0.15)' : 'rgba(58,59,60,0.3)',
                                         border: `2px solid ${selectedTournament?.id === t.id ? '#1877F2' : '#3A3B3C'}`,
-                                        color: '#E4E6EB',
-                                    }}>
+                                        color: '#E4E6EB' }}>
                                     <Trophy size={20} color={selectedTournament?.id === t.id ? '#1877F2' : '#B0B3B8'} />
                                     <div style={{ flex: 1 }}>
                                         <p style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{t.name || t.tournament_name || 'Tournament'}</p>
@@ -463,8 +457,7 @@ ${total > 0 ? `<div class="fin-total-row"><span class="fin-total-label">Total Bu
                         background: selectedPlayer && selectedTournament ? '#31A24C' : '#3A3B3C',
                         color: '#fff', fontSize: 15, fontWeight: 700,
                         opacity: selectedPlayer && selectedTournament && !registering ? 1 : 0.5,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                    }}
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
                 >
                     {registering ? <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> : <Trophy size={18} />}
                     {registering ? 'Registering...' : 'Register Player'}

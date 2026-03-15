@@ -14,7 +14,7 @@ import useTournamentRealtime from '../../../../src/hooks/useTournamentRealtime';
 import { broadcastChange } from '../../../../src/lib/commander/useCommanderSync';
 import { Trophy, LayoutGrid, Users, Monitor, Loader2, RefreshCw, X, ArrowRightLeft, AlertTriangle, Printer, UserX, DollarSign, FileText } from 'lucide-react';
 import { busEmit } from '../../../../src/engine/EventBus';
-import { getToken, getStaffSession } from '../../../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../../../src/lib/commander/commanderFetch';
 
 const NAV_ITEMS = [
@@ -31,8 +31,7 @@ const COLOR_MAP = {
   yellow: { bg: 'bg-[#F59E0B]/15', border: 'border-[#F59E0B]/40', dot: 'bg-[#F59E0B]', text: 'text-[#F59E0B]' },
   red: { bg: 'bg-[#EF4444]/15', border: 'border-[#EF4444]/40', dot: 'bg-[#EF4444]', text: 'text-[#EF4444]' },
   blue: { bg: 'bg-[#1877F2]/15', border: 'border-[#1877F2]/40', dot: 'bg-[#1877F2]', text: 'text-[#1877F2]' },
-  grey: { bg: 'bg-[#3A3B3C]/30', border: 'border-[#3A3B3C]', dot: 'bg-[#3A3B3C]', text: 'text-[#B0B3B8]' },
-};
+  grey: { bg: 'bg-[#3A3B3C]/30', border: 'border-[#3A3B3C]', dot: 'bg-[#3A3B3C]', text: 'text-[#B0B3B8]' } };
 
 function formatChips(n) {
   if (!n) return '0';
@@ -68,15 +67,13 @@ export default function TDTablesMap() {
   const [breakExecuting, setBreakExecuting] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
 
-
-
   const fetchFloor = useCallback(async (signal) => {
 
   if (!router.isReady) return null;
 
     if (!tournamentId) return;
     try {
-      const headers = { 'x-staff-session': getStaffSession(), Authorization: `Bearer ${getToken()}` };
+      const headers = { };
       const fetchOpts = signal ? { headers, signal } : { headers };
       const [floorRes, breakRes] = await Promise.all([
         fetch(`/api/commander/tournaments/${tournamentId}/floor-view`, fetchOpts),
@@ -163,7 +160,7 @@ ${receipts.map(r => `<div class="card">
         try {
           const elimRes = await fetch(`/api/commander/tournaments/${tournamentId}/eliminate`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'x-staff-session': getStaffSession(), Authorization: `Bearer ${getToken()}` },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ entry_id: entryId, finish_position: floor?.stats?.players_remaining || 0 })
           });
           if (!elimRes.ok) throw new Error('Request failed');
@@ -242,7 +239,7 @@ ${receipts.map(r => `<div class="card">
                 try {
                   const res = await fetch(`/api/commander/tournaments/${tournamentId}/auto-break`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'x-staff-session': getStaffSession(), Authorization: `Bearer ${getToken()}` },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                       break_table: autoBreak.break_table,
                       assignments: autoBreak.assignments
@@ -439,7 +436,7 @@ ${receipts.map(r => `<div class="card">
                           // not the system's automatically-detected smallest table.
                           const breakSuggestRes = await fetch(
                             `/api/commander/tournaments/${tournamentId}/auto-break?force_table=${selectedTable.table_number}`,
-                            { headers: { 'x-staff-session': getStaffSession(), Authorization: `Bearer ${getToken()}` } }
+                            {}
                           );
                           if (!breakSuggestRes.ok) throw new Error(`Request failed (${breakSuggestRes.status})`);
                           const breakSuggestJson = await breakSuggestRes.json();
@@ -457,7 +454,7 @@ ${receipts.map(r => `<div class="card">
                           // Step 2: Execute the break via break-table API
                           const res = await fetch(`/api/commander/tournaments/${tournamentId}/break-table`, {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'x-staff-session': getStaffSession(), Authorization: `Bearer ${getToken()}` },
+                            headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
                               table_number: selectedTable.table_number,
                               assignments

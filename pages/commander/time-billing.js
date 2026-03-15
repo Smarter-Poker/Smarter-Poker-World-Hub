@@ -14,7 +14,7 @@ import { DollarSign, Clock, Loader2, Package, Trash2, Save, RefreshCw } from 'lu
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
-import { getToken, getStaffSession, getVenueId } from '../../src/lib/commander/clientAuth'
+import { getStaffSession, getVenueId } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 function formatDuration(startTime) {
@@ -78,10 +78,9 @@ export default function TimeBilling() {
     const controller = new AbortController();
     const { signal } = controller;
     try {
-      const token = getToken();
-      const venueId = getVenueId();
+const venueId = getVenueId();
       const staffSession = getStaffSession() || '';
-      const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
+      const headers = { };
 
       // Fetch tables to know which are active
       const tabRes = await commanderFetch(`/api/commander/tables?venue_id=${venueId}`, { headers });
@@ -108,8 +107,7 @@ export default function TimeBilling() {
               id: s.session_id,
               status: s.is_expired ? 'expired' : 'active',
               started_at: s.started_at,
-              rate_per_hour: t.rate_per_hour || pricing.time_billing_rate || 0,
-            }));
+              rate_per_hour: t.rate_per_hour || pricing.time_billing_rate || 0 }));
           }
         } catch { /* non-fatal */ }
       }));
@@ -148,11 +146,8 @@ export default function TimeBilling() {
       const controller = new AbortController();
       const { signal } = controller;
       try {
-        const token = getToken();
-        const staffSession = getStaffSession() || '';
-        const res = await commanderFetch('/api/commander/settings', {
-          headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
-        });
+const staffSession = getStaffSession() || '';
+        const res = await commanderFetch('/api/commander/settings', {});
         if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const json = await res.json();
         if (json.success && json.data) {
@@ -168,12 +163,9 @@ export default function TimeBilling() {
     // Load membership plans
     const loadMemberPlans = async () => {
       try {
-        const token = getToken();
-        const staffSession = getStaffSession() || '';
+const staffSession = getStaffSession() || '';
         const venueId = getVenueId();
-        const res = await commanderFetch(`/api/commander/membership-plans?venue_id=${venueId}&include_inactive=true`, {
-          headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
-        });
+        const res = await commanderFetch(`/api/commander/membership-plans?venue_id=${venueId}&include_inactive=true`, {});
         if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const json = await res.json();
         if (json.success) setMemberPlans(json.data.plans || []);
@@ -186,11 +178,10 @@ export default function TimeBilling() {
   const savePricing = async () => {
     setPricingSaving(true);
     try {
-      const token = getToken();
-      const staffSession = getStaffSession() || '';
+const staffSession = getStaffSession() || '';
       const res = await commanderFetch('/api/commander/settings', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           time_billing_rate: pricing.time_billing_rate,
           auto_comp_rate: pricing.auto_comp_rate,
@@ -235,7 +226,7 @@ export default function TimeBilling() {
       const venueId = getVenueId();
       const pinRes = await commanderFetch('/api/commander/staff/verify-pin', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() || '' },
+        headers: { 'Content-Type': 'application/json' || '' },
         body: JSON.stringify({ venue_id: venueId, pin_code: digits })
       });
       if (!pinRes.ok) throw new Error('Request failed');
@@ -276,12 +267,9 @@ export default function TimeBilling() {
   const doStopSession = async (sessionId, staff) => {
     setStopping(sessionId);
     try {
-      const token = getToken();
-      const staffSession = getStaffSession() || '';
+const staffSession = getStaffSession() || '';
       const res = await commanderFetch(`/api/commander/dealer/sessions/${sessionId}/end`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
-      });
+        method: 'POST'});
       if (res.ok) {
         const json = await res.json();
         // Print time billing receipt
@@ -292,12 +280,11 @@ export default function TimeBilling() {
               ...session,
               duration_minutes: json.data.elapsed_minutes,
               total_charge: calculateCharge(session.started_at, session.rate_per_hour || pricing.time_billing_rate || 0),
-              staff_name: staff?.display_name || 'Staff',
-            });
+              staff_name: staff?.display_name || 'Staff' });
 
             const venueId = getVenueId();
             const res = await commanderFetch(`/api/commander/cashier`, {
-              method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 venue_id: venueId,
                 player_id: session.player_id,
@@ -308,8 +295,7 @@ export default function TimeBilling() {
                 description: `Auto-charge: Time Billing session stopped (${json.data.elapsed_minutes}m)`,
                 duration_minutes: json.data.elapsed_minutes,
                 total_charge: calculateCharge(session.started_at, session.rate_per_hour || pricing.time_billing_rate || 0),
-                staff_name: staff?.display_name || 'Staff',
-              })
+                staff_name: staff?.display_name || 'Staff' })
             });
             if (res.ok) {
               await fetchData();
@@ -365,11 +351,10 @@ export default function TimeBilling() {
   const doRecordPayment = async (staff) => {
     if (!payModal || !payAmount) return;
     try {
-      const token = getToken();
-      const staffSession = getStaffSession() || '';
+const staffSession = getStaffSession() || '';
       const res = await commanderFetch(`/api/commander/time-billing/sessions/${payModal.id}/payment`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ amount: parseFloat(payAmount), staff_name: staff?.display_name })
       });
 
@@ -407,12 +392,11 @@ export default function TimeBilling() {
   const saveMemberPrice = async (plan, field, value) => {
     setMemberSaving(plan.id);
     try {
-      const token = getToken();
-      const venueId = getVenueId();
+const venueId = getVenueId();
       const staffSession = getStaffSession() || '';
       const res = await commanderFetch(`/api/commander/membership-plans?venue_id=${venueId}&id=${plan.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ [field]: parseFloat(value) || 0 })
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);

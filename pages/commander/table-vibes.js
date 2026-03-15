@@ -10,7 +10,7 @@ import { Loader2, MessageSquare } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
-import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const VIBE_COLORS = {
@@ -37,11 +37,8 @@ export default function TableVibes() {
   const fetchVibes = async(signal) => {
     setLoading(true);
     try {
-      const token = getToken();
-      const staffSession = getStaffSession() || '';
-      const res = await fetch(`/api/commander/table-ratings?venue_id=${staff.venue_id}&days=${days}`, {
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
-      });
+const staffSession = getStaffSession() || '';
+      const res = await fetch(`/api/commander/table-ratings?venue_id=${staff.venue_id}&days=${days}`, {});
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {

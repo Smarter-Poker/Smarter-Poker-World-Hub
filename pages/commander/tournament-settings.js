@@ -12,14 +12,11 @@ import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import BlindStructureEditor from '../../src/components/commander/tournaments/BlindStructureEditor';
 import { TOURNAMENT_TEMPLATES, TOURNAMENT_TYPES, formatBuyin, formatChips } from '../../src/components/commander/tournaments/tournamentTemplates';
 import { busEmit } from '../../src/engine/EventBus';
-import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
-
-
 const ICON_MAP = {
-    Trophy, Zap, Crown, Target, RefreshCw, Rocket, Crosshair,
-};
+    Trophy, Zap, Crown, Target, RefreshCw, Rocket, Crosshair };
 
 export default function TournamentSettingsPage() {
   useEffect(() => { busEmit.sessionStart('commander-tournament-settings'); }, []);
@@ -53,8 +50,7 @@ export default function TournamentSettingsPage() {
     async function fetchClockPresets(staffSession) {
         try {
             const res = await commanderFetch('/api/commander/clock-presets', {
-                headers: { 'x-staff-session': staffSession || '', Authorization: `Bearer ${getToken()}` },
-            });
+                headers: { || '' } });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) {
@@ -100,18 +96,12 @@ export default function TournamentSettingsPage() {
                 broadcast_to_smarter: true,
                 settings: {
                     ...(selectedPreset ? { clock_preset_id: selectedPreset } : {}),
-                    ...(shotClockEnabled ? { shot_clock_enabled: true, shot_clock_seconds: shotClockSeconds } : {}),
-                },
-            };
+                    ...(shotClockEnabled ? { shot_clock_enabled: true, shot_clock_seconds: shotClockSeconds } : {}) } };
             const res = await commanderFetch('/api/commander/tournaments', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'x-staff-session': staffSession || '',
-                    Authorization: `Bearer ${getToken()}`,
-                },
-                body: JSON.stringify(payload),
-            });
+                    'Content-Type': 'application/json' || '' },
+                body: JSON.stringify(payload) });
 
             if (!res.ok) throw new Error('Failed to create tournament');
             const data = await res.json();
@@ -129,18 +119,12 @@ export default function TournamentSettingsPage() {
                             buyin_fee: template.buyin_fee,
                             scheduled_start: tomorrow.toISOString(),
                             starting_chips: template.starting_chips,
-                            guaranteed_pool: null,
-                        },
-                    };
+                            guaranteed_pool: null } };
                     const r = await commanderFetch('/api/commander/sync-tournament-to-club', {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json',
-                            'x-staff-session': staffSession || '',
-                            Authorization: `Bearer ${getToken()}`,
-                        },
-                        body: JSON.stringify(syncPayload),
-                    });
+                            'Content-Type': 'application/json' || '' },
+                        body: JSON.stringify(syncPayload) });
                     if (!r.ok) console.warn('Club sync failed');
                 } catch (e) { /* silent */ }
 

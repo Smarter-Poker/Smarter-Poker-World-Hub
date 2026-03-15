@@ -94,10 +94,7 @@ export default function CommanderStaffPage() {
     try {
       const token = getToken();
       const staffSession = getStaffSession() || '';
-      const res = await commanderFetch(`/api/commander/staff/venue/${venueId}`, {
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
-        ...(signal ? { signal } : {}),
-      });
+      const res = await commanderFetch(`/api/commander/staff/venue/${venueId}`, { ...(signal ? { signal } : {}) });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
@@ -123,7 +120,7 @@ export default function CommanderStaffPage() {
       const staffSession = getStaffSession() || '';
       const res = await commanderFetch('/api/commander/staff', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...staffData, venue_id: venueId })
       });
       if (!res.ok) throw new Error('Request failed');
@@ -237,7 +234,7 @@ export default function CommanderStaffPage() {
       const staffSession = getStaffSession() || '';
       const res = await commanderFetch(`/api/commander/staff/${staffId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(staffData)
       });
       if (!res.ok) throw new Error('Request failed');
@@ -267,9 +264,7 @@ export default function CommanderStaffPage() {
       const token = getToken();
       const staffSession = getStaffSession() || '';
       const res = await commanderFetch(`/api/commander/staff/${staffId}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
-      });
+        method: 'DELETE'});
       if (!res.ok) throw new Error('Request failed');
       const data = await res.json();
       if (data.success) {
@@ -309,9 +304,8 @@ export default function CommanderStaffPage() {
       const staffSession = getStaffSession() || '';
       const res = await commanderFetch('/api/commander/staff/generate-claim', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
-        body: JSON.stringify({ venue_id: venueId, staff_id: staffId }),
-      });
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ venue_id: venueId, staff_id: staffId }) });
       if (!res.ok) throw new Error('Request failed');
       const data = await res.json();
       if (data.success) {
@@ -591,8 +585,7 @@ function StaffModal({ staff, existingStaff = [], onClose, onSubmit }) {
       id_number: idNumber.trim() || null,
       id_state: idState || null,
       id_expiry: idExpiry || null,
-      date_of_birth: dateOfBirth || null,
-    });
+      date_of_birth: dateOfBirth || null });
     if (result && !result.success) {
       setError(result.error || 'Failed to save');
     }

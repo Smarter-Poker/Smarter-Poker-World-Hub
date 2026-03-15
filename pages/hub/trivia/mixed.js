@@ -390,8 +390,19 @@ export default function MixedModePage() {
                 busEmit.celebration('confetti');
             }
 
+            // Recompute category stats from answersRef (always current) to avoid stale closure
+            const actualCategoryStats = {};
+            answersRef.current.forEach((wasCorrect, idx) => {
+                const q = questions[idx];
+                if (!q) return;
+                const cat = q.displayCategory || 'poker_history';
+                if (!actualCategoryStats[cat]) actualCategoryStats[cat] = { answered: 0, correct: 0 };
+                actualCategoryStats[cat].answered += 1;
+                if (wasCorrect) actualCategoryStats[cat].correct += 1;
+            });
+
             // Update category mastery
-            for (const [category, stats] of Object.entries(categoryStats)) {
+            for (const [category, stats] of Object.entries(actualCategoryStats)) {
                 if (stats.answered === 0) continue;
 
                 const { data: existing } = await supabase

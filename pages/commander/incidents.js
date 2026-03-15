@@ -11,7 +11,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import useDebounce from '../../src/hooks/useDebounce';
 import { busEmit } from '../../src/engine/EventBus';
-import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const INCIDENT_TYPES = [
@@ -50,8 +50,7 @@ function IncidentCard({ incident, onClick }) {
         border: `2px solid ${incident.resolved ? '#3A3B3C' : `${sev.color}30`}`,
         borderRadius: 12,
         padding: 14,
-        borderLeft: `4px solid ${incident.resolved ? '#31A24C' : sev.color}`,
-      }}>
+        borderLeft: `4px solid ${incident.resolved ? '#31A24C' : sev.color}` }}>
       <div className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-2 flex-wrap">
           <span style={{
@@ -62,8 +61,7 @@ function IncidentCard({ incident, onClick }) {
             borderRadius: 6,
             fontSize: 11,
             fontWeight: 700,
-            letterSpacing: 0.5,
-          }}>
+            letterSpacing: 0.5 }}>
             {incident.severity?.toUpperCase()}
           </span>
           <span style={{
@@ -72,8 +70,7 @@ function IncidentCard({ incident, onClick }) {
             padding: '2px 8px',
             borderRadius: 6,
             fontSize: 11,
-            fontWeight: 600,
-          }}>
+            fontWeight: 600 }}>
             {typeInfo.emoji} {typeInfo.label}
           </span>
         </div>
@@ -85,8 +82,7 @@ function IncidentCard({ incident, onClick }) {
             borderRadius: 6,
             fontSize: 11,
             fontWeight: 700,
-            display: 'flex', alignItems: 'center', gap: 3,
-          }}>
+            display: 'flex', alignItems: 'center', gap: 3 }}>
             <Check size={12} /> Resolved
           </span>
         ) : (
@@ -97,8 +93,7 @@ function IncidentCard({ incident, onClick }) {
             borderRadius: 6,
             fontSize: 11,
             fontWeight: 700,
-            animation: incident.severity === 'critical' ? 'pulse 2s infinite' : 'none',
-          }}>
+            animation: incident.severity === 'critical' ? 'pulse 2s infinite' : 'none' }}>
             ● Open
           </span>
         )}
@@ -175,8 +170,7 @@ function CreateIncidentModal({ onSubmit, onClose }) {
                     cursor: 'pointer',
                     fontSize: 13,
                     fontWeight: 600,
-                    textAlign: 'left',
-                  }}>
+                    textAlign: 'left' }}>
                   {type.emoji} {type.label}
                 </button>
               ))}
@@ -199,8 +193,7 @@ function CreateIncidentModal({ onSubmit, onClose }) {
                     cursor: 'pointer',
                     fontSize: 12,
                     fontWeight: 700,
-                    textAlign: 'center',
-                  }}>
+                    textAlign: 'center' }}>
                   {level.label}
                 </button>
               ))}
@@ -387,11 +380,8 @@ export default function IncidentsPage() {
   async function fetchIncidents(signal) {
     setLoading(true);
     try {
-      const token = getToken();
-      const staffSession = getStaffSession() || '';
-      const res = await commanderFetch(`/api/commander/incidents?venue_id=${venueId}`, {
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
-      });
+const staffSession = getStaffSession() || '';
+      const res = await commanderFetch(`/api/commander/incidents?venue_id=${venueId}`, {});
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) setIncidents(data.data?.incidents || []);
@@ -403,11 +393,10 @@ export default function IncidentsPage() {
 
   async function handleCreateIncident(data) {
     try {
-      const token = getToken();
-      const staffSession = getStaffSession() || '';
+const staffSession = getStaffSession() || '';
       const res = await commanderFetch('/api/commander/incidents', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ venue_id: venueId, reported_by: staff.id, ...data })
       });
       if (res.ok) {
@@ -425,11 +414,10 @@ export default function IncidentsPage() {
 
   async function handleResolveIncident(incidentId, resolution) {
     try {
-      const token = getToken();
-      const staffSession = getStaffSession() || '';
+const staffSession = getStaffSession() || '';
       const res = await commanderFetch(`/api/commander/incidents/${incidentId}/resolve`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ resolution })
       });
       if (res.ok) {
@@ -531,8 +519,7 @@ export default function IncidentsPage() {
                     color: filter === f.value ? 'white' : '#B0B3B8',
                     fontSize: 13,
                     fontWeight: 600,
-                    cursor: 'pointer',
-                  }}>
+                    cursor: 'pointer' }}>
                   {f.label}
                 </button>
               ))}

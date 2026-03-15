@@ -12,7 +12,7 @@ import { Server, Database, Wifi, Shield, Clock, RefreshCw,
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../src/engine/EventBus';
-import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 export default function SystemInfoPage() {
@@ -38,9 +38,8 @@ export default function SystemInfoPage() {
   async function fetchInfo(showRefresh = false) {
     if (showRefresh) setRefreshing(true);
     try {
-      const token = getToken();
-      const res = await commanderFetch('/api/commander/system-info', {
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() || '' }
+const res = await commanderFetch('/api/commander/system-info', {
+        headers: { || '' }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();

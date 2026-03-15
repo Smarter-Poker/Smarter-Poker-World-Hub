@@ -9,7 +9,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 import { Clock, Monitor, Play, Loader2, Tv } from 'lucide-react';
 import { busEmit } from '../../src/engine/EventBus';
-import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 export default function TournamentClocks() {
@@ -32,9 +32,7 @@ export default function TournamentClocks() {
     const fetchTournaments = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await commanderFetch('/api/commander/tournaments?limit=50', {
-                headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
-            });
+            const res = await commanderFetch('/api/commander/tournaments?limit=50', {});
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success || json.data) {

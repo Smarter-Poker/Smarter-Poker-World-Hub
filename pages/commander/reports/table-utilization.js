@@ -8,7 +8,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { LayoutGrid, Loader2, RefreshCw, Clock, Users, TrendingUp, ArrowLeft } from 'lucide-react';
 import { busEmit } from '../../../src/engine/EventBus';
-import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
 
 const RANGES = [
@@ -34,9 +34,7 @@ export default function TableUtilization() {
     setLoading(true);
     try {
       const staffSession = getStaffSession() || '';
-      const res = await fetch(`/api/commander/reports/table-utilization?venue_id=${venueId}&range=${range}`, {
-        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession }
-      });
+      const res = await fetch(`/api/commander/reports/table-utilization?venue_id=${venueId}&range=${range}`, {});
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) setData(json.data);

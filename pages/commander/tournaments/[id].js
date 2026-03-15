@@ -28,9 +28,8 @@ import CommanderLayout from '../../../src/components/commander/shared/CommanderL
 import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/useCommanderSync';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
-
 
 const STATUS_CONFIG = {
   scheduled: { bg: 'bg-[#64748B]/10', text: 'text-[#64748B]', label: 'Scheduled' },
@@ -97,7 +96,7 @@ export default function TournamentDetailPage() {
 
     try {
       const staffSession = getStaffSession() || '';
-      const headers = { 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` };
+      const headers = { };
       const fo = signal ? { headers, signal } : { headers };
       const [tournamentRes, entriesRes] = await Promise.all([
         fetch(`/api/commander/tournaments/${id}`, fo).catch(() => ({ ok: false })),
@@ -168,7 +167,7 @@ export default function TournamentDetailPage() {
       const staffSession = getStaffSession() || '';
       const res = await fetch(`/api/commander/tournaments/${id}/clock`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action })
       });
       if (!res.ok) throw new Error('Request failed');
@@ -190,7 +189,7 @@ export default function TournamentDetailPage() {
       const staffSession = getStaffSession() || '';
       const res = await fetch(`/api/commander/tournaments/${id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
       });
       if (!res.ok) throw new Error('Request failed');
@@ -297,9 +296,7 @@ export default function TournamentDetailPage() {
                     try {
                       const staffSession = getStaffSession() || '';
                       const res = await fetch(`/api/commander/tournaments/${tournament.id}`, {
-                        method: 'DELETE',
-                        headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` }
-                      });
+                        method: 'DELETE'});
                       if (!res.ok) throw new Error(`Request failed (${res.status})`);
                       const json = await res.json();
                       if (json.success) {

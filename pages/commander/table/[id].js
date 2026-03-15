@@ -18,7 +18,7 @@ import { Plus, RefreshCw, UserPlus, ArrowLeft } from 'lucide-react';
 import dynamic from 'next/dynamic';
 const SkeletonDark = dynamic(() => import('../../../src/components/ui/SkeletonDark'), { ssr: false });
 import { busEmit } from '../../../src/engine/EventBus';
-import { getToken, getStaffSession, getVenueId } from '../../../src/lib/commander/clientAuth'
+import { getStaffSession, getVenueId } from '../../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
 
 function formatCountdown(minutes) {
@@ -41,10 +41,9 @@ export default function TableSeating() {
   // fetchData declared first — must precede useEffect/useCommanderSync that reference it
   const fetchData = async (signal) => {
     try {
-      const token = getToken();
-      const venueId = getVenueId();
+const venueId = getVenueId();
       const staffSession = getStaffSession();
-      const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
+      const headers = { };
       const fo = signal ? { headers, signal } : { headers };
       const [tableRes, sessionsRes, waitlistRes] = await Promise.all([
         fetch(`/api/commander/tables/${id}`, fo).then(r => r.json()).catch(() => ({ data: null })),
@@ -78,10 +77,9 @@ export default function TableSeating() {
   useCommanderSync(venueId, fetchData, { entities: ['tables', 'games', 'waitlist'] });
   const removePlayer = async (sessionId) => {
     try {
-      const token = getToken();
-      const res = await fetch(`/api/commander/dealer/sessions/${sessionId}/end`, {
+const res = await fetch(`/api/commander/dealer/sessions/${sessionId}/end`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reason: 'removed' })
       });
       if (res.ok) {

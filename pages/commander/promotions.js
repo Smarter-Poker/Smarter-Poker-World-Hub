@@ -64,8 +64,7 @@ function RecordHighHandModal({ isOpen, onClose, onSubmit, venueId, staff }) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-          'x-staff-session': staffSession
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           venue_id: venueId,
@@ -336,9 +335,7 @@ export default function PromotionsPage() {
     try {
       const token = getToken();
       const staffSession = getStaffSession() || '';
-      const res = await commanderFetch(`/api/commander/promotions?venue_id=${venueId}`, {
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
-      });
+      const res = await commanderFetch(`/api/commander/promotions?venue_id=${venueId}`, {});
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
@@ -358,9 +355,7 @@ export default function PromotionsPage() {
     try {
       const token = getToken();
       const staffSession = getStaffSession() || '';
-      const res = await commanderFetch(`/api/commander/high-hands?venue_id=${venueId}&limit=20`, {
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
-      });
+      const res = await commanderFetch(`/api/commander/high-hands?venue_id=${venueId}&limit=20`, {});
       if (!res.ok) throw new Error('err');
       const data = await res.json();
       if (data.high_hands) {
@@ -382,9 +377,7 @@ export default function PromotionsPage() {
     try {
       const token = getToken();
       const staffSession = getStaffSession() || '';
-      const res = await fetch('/api/promo/admin-promo-codes', {
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
-      });
+      const res = await fetch('/api/promo/admin-promo-codes', {});
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       setPromoCodes(data.codes || []);
@@ -398,9 +391,7 @@ export default function PromotionsPage() {
       const token = getToken();
       const staffSession = getStaffSession() || '';
       const res = await fetch('/api/promo/seed-premade', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
-      });
+        method: 'POST'});
       if (!res.ok) throw new Error('Request failed');
       const data = await res.json();
       if (data.success) {
@@ -419,7 +410,7 @@ export default function PromotionsPage() {
       const staffSession = getStaffSession() || '';
       const res = await fetch('/api/promo/admin-promo-codes', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: code.id, is_active: !code.is_active })
       });
       if (res.ok) fetchPromoCodes();
@@ -432,9 +423,7 @@ export default function PromotionsPage() {
       const token = getToken();
       const staffSession = getStaffSession() || '';
       const res = await fetch(`/api/promo/admin-promo-codes?id=${code.id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
-      });
+        method: 'DELETE'});
       if (res.ok) fetchPromoCodes();
     } catch (err) { console.error('Delete promo code error:', err); alert('Action failed: Delete promo code. Please try again.'); }
   };
@@ -451,13 +440,12 @@ export default function PromotionsPage() {
       const staffSession = getStaffSession() || '';
       const res = await fetch('/api/promo/admin-promo-codes', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id: editingPromoCode.id,
           code: editCodeForm.code,
           description: editCodeForm.description,
-          max_uses: editCodeForm.max_uses === '' ? null : parseInt(editCodeForm.max_uses),
-        })
+          max_uses: editCodeForm.max_uses === '' ? null : parseInt(editCodeForm.max_uses) })
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
@@ -519,7 +507,7 @@ export default function PromotionsPage() {
       const results = await Promise.allSettled([...selectedIds].map(id =>
         commanderFetch(`/api/commander/promotions/${id}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: activate ? 'active' : 'draft', is_active: activate })
         }).then(r => { if (!r.ok) throw new Error('fail'); return r; })
       ));
@@ -539,7 +527,7 @@ export default function PromotionsPage() {
       const token = getToken();
       const staffSession = getStaffSession() || '';
       const results = await Promise.allSettled([...selectedIds].map(id =>
-        commanderFetch(`/api/commander/promotions/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } })
+        commanderFetch(`/api/commander/promotions/${id}`, { method: 'DELETE'})
         .then(r => { if (!r.ok) throw new Error('fail'); return r; })
       ));
       const failed = results.filter(r => r.status === 'rejected').length;
@@ -587,9 +575,7 @@ export default function PromotionsPage() {
     try {
       const token = getToken();
       const staffSession = getStaffSession() || '';
-      const res = await commanderFetch(`/api/commander/promotions/${promo.id}/awards?limit=50`, {
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
-      });
+      const res = await commanderFetch(`/api/commander/promotions/${promo.id}/awards?limit=50`, {});
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       setPromoAwards(data.awards || []);
@@ -609,8 +595,7 @@ export default function PromotionsPage() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-          'x-staff-session': staffSession
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ action: 'verify' })
       });
@@ -631,7 +616,7 @@ export default function PromotionsPage() {
       const staffSession = getStaffSession() || '';
       const res = await commanderFetch(`/api/commander/promotions/${promo.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_active: !promo.is_active })
       });
       if (res.ok) {
@@ -649,7 +634,7 @@ export default function PromotionsPage() {
     try {
       const token = getToken();
       const staffSession = getStaffSession() || '';
-      const res = await commanderFetch(`/api/commander/promotions/${promo.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } });
+      const res = await commanderFetch(`/api/commander/promotions/${promo.id}`, { method: 'DELETE'});
       if (res.ok) {
         broadcastChange('settings');
         fetchPromotions();
@@ -696,7 +681,7 @@ export default function PromotionsPage() {
       };
       const res = await commanderFetch('/api/commander/promotions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(cloneData)
       });
       if (!res.ok) throw new Error('Request failed');
@@ -747,7 +732,7 @@ export default function PromotionsPage() {
       await Promise.allSettled(items.map((p, idx) =>
         commanderFetch(`/api/commander/promotions/${p.id}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ settings: { ...(p.settings || {}), display_order: idx } })
         }).then(r => { if (!r.ok) throw new Error('revert needed'); })
       ));
@@ -780,12 +765,10 @@ export default function PromotionsPage() {
           {/* ── Premium Header ── */}
           <header style={{
             position: 'sticky', top: 0, zIndex: 40,
-            background: '#242526', borderBottom: '1px solid #3A3B3C',
-          }}>
+            background: '#242526', borderBottom: '1px solid #3A3B3C' }}>
             <div style={{
               maxWidth: 960, margin: '0 auto', padding: '14px 20px',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            }}>
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
                 <h1 style={{ fontSize: 20, fontWeight: 800, color: '#E4E6EB', margin: 0 }}>
                   Promotions
@@ -808,8 +791,7 @@ export default function PromotionsPage() {
                       background: 'rgba(24,119,242,0.1)', color: '#1877F2',
                       border: '1px solid rgba(24,119,242,0.3)',
                       fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                      transition: 'background 0.15s',
-                    }}
+                      transition: 'background 0.15s' }}
                   >
                     <Zap size={15} />
                     Wizard
@@ -822,8 +804,7 @@ export default function PromotionsPage() {
                       background: '#1877F2', color: '#fff',
                       border: 'none',
                       fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                      transition: 'background 0.15s',
-                    }}
+                      transition: 'background 0.15s' }}
                   >
                     <Plus size={15} />
                     New Promo
@@ -837,8 +818,7 @@ export default function PromotionsPage() {
                     padding: '8px 16px', borderRadius: 8,
                     background: '#F59E0B', color: '#fff',
                     border: 'none',
-                    fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                  }}
+                    fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
                 >
                   <Trophy size={15} />
                   Record High Hand
@@ -853,8 +833,7 @@ export default function PromotionsPage() {
                     background: '#31A24C', color: '#fff',
                     border: 'none',
                     fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                    opacity: seedingPromos ? 0.5 : 1,
-                  }}
+                    opacity: seedingPromos ? 0.5 : 1 }}
                 >
                   {seedingPromos ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
                   Load 25 Pre-Made
@@ -865,8 +844,7 @@ export default function PromotionsPage() {
             {/* ── Tab Bar ── */}
             <div style={{
               maxWidth: 960, margin: '0 auto', padding: '0 20px',
-              display: 'flex', gap: 0, borderTop: '1px solid #3A3B3C',
-            }}>
+              display: 'flex', gap: 0, borderTop: '1px solid #3A3B3C' }}>
               {[
                 { key: 'promotions', label: 'Promotions', icon: Gift, color: '#1877F2' },
                 { key: 'high-hands', label: 'High Hands', icon: Trophy, color: '#F59E0B' },
@@ -886,8 +864,7 @@ export default function PromotionsPage() {
                       fontSize: 13, fontWeight: isActive ? 700 : 500,
                       color: isActive ? tab.color : '#8A8D91',
                       borderBottom: `2px solid ${isActive ? tab.color : 'transparent'}`,
-                      transition: 'color 0.15s, border-color 0.15s',
-                    }}
+                      transition: 'color 0.15s, border-color 0.15s' }}
                   >
                     <TabIcon size={15} />
                     {tab.label}
@@ -916,8 +893,7 @@ export default function PromotionsPage() {
                           background: isActive ? '#1877F2' : '#3A3B3C',
                           color: isActive ? '#fff' : '#B0B3B8',
                           border: isActive ? '1px solid #1877F2' : '1px solid #4E4F50',
-                          transition: 'all 0.15s',
-                        }}
+                          transition: 'all 0.15s' }}
                       >
                         {f}
                       </button>
@@ -935,8 +911,7 @@ export default function PromotionsPage() {
                       background: selectedIds.size > 0 ? 'rgba(24,119,242,0.1)' : '#3A3B3C',
                       color: selectedIds.size > 0 ? '#1877F2' : '#8A8D91',
                       border: `1px solid ${selectedIds.size > 0 ? 'rgba(24,119,242,0.3)' : '#4E4F50'}`,
-                      fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                    }}
+                      fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
                   >
                     {selectedIds.size > 0 ? <CheckSquare size={14} /> : <Square size={14} />}
                     {selectedIds.size > 0 ? `${selectedIds.size} Selected` : 'Select'}
@@ -979,8 +954,7 @@ export default function PromotionsPage() {
                 ) : filteredPromos.length === 0 ? (
                   <div style={{
                     background: '#242526', border: '1px solid #3A3B3C', borderRadius: 14,
-                    padding: '48px 24px', textAlign: 'center',
-                  }}>
+                    padding: '48px 24px', textAlign: 'center' }}>
                     <Gift size={48} color="#3A3B3C" style={{ margin: '0 auto 12px' }} />
                     <p style={{ color: '#B0B3B8', fontSize: 15, fontWeight: 500, marginBottom: 8 }}>
                       {filter !== 'all' ? `No ${filter} promotions found` : 'No Promotions Yet'}
@@ -992,8 +966,7 @@ export default function PromotionsPage() {
                           padding: '8px 20px', borderRadius: 8,
                           background: '#3A3B3C', color: '#E4E6EB',
                           border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                          marginRight: 8,
-                        }}
+                          marginRight: 8 }}
                       >
                         Clear Filter
                       </button>
@@ -1003,8 +976,7 @@ export default function PromotionsPage() {
                       style={{
                         padding: '8px 20px', borderRadius: 8,
                         background: '#1877F2', color: '#fff',
-                        border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                      }}
+                        border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
                     >
                       Create Promotion
                     </button>
@@ -1013,8 +985,7 @@ export default function PromotionsPage() {
                   <div style={{
                     display: 'grid',
                     gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
-                    gap: 16,
-                  }}>
+                    gap: 16 }}>
                     {filteredPromos.map((promo) => (
                       <div
                         key={promo.id}
@@ -1039,8 +1010,7 @@ export default function PromotionsPage() {
                               border: '2px solid ' + (selectedIds.has(promo.id) ? '#1877F2' : '#4E4F50'),
                               borderRadius: 6, width: 24, height: 24,
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              cursor: 'pointer', transition: 'all 0.15s',
-                            }}
+                              cursor: 'pointer', transition: 'all 0.15s' }}
                           >
                             {selectedIds.has(promo.id) && <Check size={14} color="#fff" />}
                           </button>
@@ -1070,9 +1040,7 @@ export default function PromotionsPage() {
                       const res = await commanderFetch('/api/commander/high-hands', {
                         method: 'POST',
                         headers: {
-                          'Content-Type': 'application/json',
-                          Authorization: `Bearer ${token}`,
-                          'x-staff-session': staffSession
+                          'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({
                           venue_id: venueId,
@@ -1101,8 +1069,7 @@ export default function PromotionsPage() {
                 ) : highHands.length === 0 ? (
                   <div style={{
                     background: '#242526', border: '1px solid #3A3B3C', borderRadius: 14,
-                    padding: '48px 24px', textAlign: 'center', marginTop: 16,
-                  }}>
+                    padding: '48px 24px', textAlign: 'center', marginTop: 16 }}>
                     <Trophy size={48} color="#3A3B3C" style={{ margin: '0 auto 12px' }} />
                     <p style={{ color: '#B0B3B8', fontSize: 15, fontWeight: 500, marginBottom: 16 }}>
                       No High Hands Recorded Today
@@ -1112,8 +1079,7 @@ export default function PromotionsPage() {
                       style={{
                         padding: '10px 24px', borderRadius: 8,
                         background: '#F59E0B', color: '#fff',
-                        border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                      }}
+                        border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
                     >
                       Record High Hand
                     </button>
@@ -1143,8 +1109,7 @@ export default function PromotionsPage() {
                 ) : promoCodes.length === 0 ? (
                   <div style={{
                     background: '#242526', border: '1px solid #3A3B3C', borderRadius: 14,
-                    padding: '48px 24px', textAlign: 'center',
-                  }}>
+                    padding: '48px 24px', textAlign: 'center' }}>
                     <Target size={48} color="#3A3B3C" style={{ margin: '0 auto 12px' }} />
                     <p style={{ color: '#B0B3B8', fontSize: 15, fontWeight: 500, marginBottom: 6 }}>
                       No Promo Codes Yet
@@ -1160,8 +1125,7 @@ export default function PromotionsPage() {
                         padding: '10px 24px', borderRadius: 8,
                         background: '#31A24C', color: '#fff',
                         border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                        opacity: seedingPromos ? 0.5 : 1,
-                      }}
+                        opacity: seedingPromos ? 0.5 : 1 }}
                     >
                       {seedingPromos ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
                       Load 25 Pre-Made Promo Codes
@@ -1177,29 +1141,25 @@ export default function PromotionsPage() {
                     <div style={{
                       display: 'grid',
                       gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
-                      gap: 14,
-                    }}>
+                      gap: 14 }}>
                       {promoCodes.map(code => (
                         <div key={code.id} style={{
                           background: '#242526', border: '1px solid #3A3B3C', borderRadius: 12,
-                          padding: 16, transition: 'border-color 0.15s',
-                        }}>
+                          padding: 16, transition: 'border-color 0.15s' }}>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                               <span style={{
                                 background: 'rgba(49,162,76,0.15)', color: '#31A24C',
                                 padding: '3px 10px', borderRadius: 6,
                                 fontFamily: 'monospace', fontSize: 13, fontWeight: 700,
-                                border: '1px solid rgba(49,162,76,0.3)',
-                              }}>{code.code}</span>
+                                border: '1px solid rgba(49,162,76,0.3)' }}>{code.code}</span>
                               <span style={{
                                 fontSize: 10, fontWeight: 700, letterSpacing: 0.5,
                                 padding: '3px 8px', borderRadius: 20,
                                 background: code.is_active ? 'rgba(49,162,76,0.12)' : '#3A3B3C',
                                 color: code.is_active ? '#4ADE80' : '#8A8D91',
                                 border: `1px solid ${code.is_active ? 'rgba(49,162,76,0.3)' : '#4E4F50'}`,
-                                textTransform: 'uppercase',
-                              }}>
+                                textTransform: 'uppercase' }}>
                                 {code.is_active ? 'Active' : 'Inactive'}
                               </span>
                             </div>
@@ -1207,8 +1167,7 @@ export default function PromotionsPage() {
                               onClick={() => togglePromoCode(code)}
                               style={{
                                 background: 'none', border: 'none', padding: 2, cursor: 'pointer',
-                                color: code.is_active ? '#31A24C' : '#3A3B3C',
-                              }}
+                                color: code.is_active ? '#31A24C' : '#3A3B3C' }}
                             >
                               {code.is_active ? <ToggleRight size={26} /> : <ToggleLeft size={26} />}
                             </button>
@@ -1230,8 +1189,7 @@ export default function PromotionsPage() {
                                 padding: '8px 12px', borderRadius: 8,
                                 background: 'transparent', color: '#1877F2',
                                 border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                                transition: 'background 0.15s',
-                              }}
+                                transition: 'background 0.15s' }}
                               onMouseEnter={e => e.currentTarget.style.background = 'rgba(24,119,242,0.08)'}
                               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                             >
@@ -1245,8 +1203,7 @@ export default function PromotionsPage() {
                                 padding: '8px 12px', borderRadius: 8,
                                 background: 'transparent', color: '#EF4444',
                                 border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                                transition: 'background 0.15s',
-                              }}
+                                transition: 'background 0.15s' }}
                               onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}
                               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                             >
@@ -1282,8 +1239,7 @@ export default function PromotionsPage() {
                         return (
                           <div key={i} style={{
                             background: '#242526', border: '1px solid #3A3B3C', borderRadius: 12,
-                            padding: 18, display: 'flex', flexDirection: 'column', gap: 8,
-                          }}>
+                            padding: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                               <div style={{ width: 32, height: 32, borderRadius: 8, background: `${card.color}15`, border: `1px solid ${card.color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                 <CardIcon size={16} color={card.color} />
@@ -1355,12 +1311,10 @@ export default function PromotionsPage() {
         {editingPromoCode && (
           <div style={{
             position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex',
-            alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16,
-          }}>
+            alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }}>
             <div style={{
               background: '#242526', border: '1px solid #3A3B3C', borderRadius: 14,
-              width: '100%', maxWidth: 440, padding: 24,
-            }}>
+              width: '100%', maxWidth: 440, padding: 24 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
                 <h3 style={{ fontSize: 17, fontWeight: 700, color: '#E4E6EB' }}>Edit Promo Code</h3>
                 <button
@@ -1382,8 +1336,7 @@ export default function PromotionsPage() {
                     width: '100%', padding: '10px 14px', borderRadius: 8,
                     background: '#18191A', border: '1px solid #3A3B3C', color: '#E4E6EB',
                     fontSize: 15, fontFamily: 'monospace', fontWeight: 700,
-                    outline: 'none',
-                  }}
+                    outline: 'none' }}
                   placeholder="e.g. WELCOME50"
                 />
               </div>
@@ -1398,8 +1351,7 @@ export default function PromotionsPage() {
                   style={{
                     width: '100%', padding: '10px 14px', borderRadius: 8,
                     background: '#18191A', border: '1px solid #3A3B3C', color: '#E4E6EB',
-                    fontSize: 14, outline: 'none',
-                  }}
+                    fontSize: 14, outline: 'none' }}
                   placeholder="Promotion description"
                 />
               </div>
@@ -1415,8 +1367,7 @@ export default function PromotionsPage() {
                   style={{
                     width: '100%', padding: '10px 14px', borderRadius: 8,
                     background: '#18191A', border: '1px solid #3A3B3C', color: '#E4E6EB',
-                    fontSize: 15, outline: 'none',
-                  }}
+                    fontSize: 15, outline: 'none' }}
                   placeholder="∞ Unlimited"
                   min="0"
                 />
@@ -1428,8 +1379,7 @@ export default function PromotionsPage() {
                   style={{
                     flex: 1, padding: '10px 16px', borderRadius: 8,
                     background: '#3A3B3C', color: '#E4E6EB', border: 'none',
-                    fontSize: 14, fontWeight: 600, cursor: 'pointer',
-                  }}
+                    fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
                 >
                   Cancel
                 </button>
@@ -1438,8 +1388,7 @@ export default function PromotionsPage() {
                   style={{
                     flex: 1, padding: '10px 16px', borderRadius: 8,
                     background: '#1877F2', color: '#fff', border: 'none',
-                    fontSize: 14, fontWeight: 600, cursor: 'pointer',
-                  }}
+                    fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
                 >
                   <Check size={15} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
                   Save Changes
@@ -1470,7 +1419,7 @@ export default function PromotionsPage() {
                       const staffSession = getStaffSession() || '';
                       const res = await commanderFetch('/api/commander/promotions', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(data)
                       });
                       if (!res.ok) throw new Error('Request failed');
@@ -1501,7 +1450,7 @@ export default function PromotionsPage() {
                   const staffSession = getStaffSession() || '';
                   const res = await commanderFetch('/api/commander/promotions', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
                   });
                   if (!res.ok) throw new Error('Request failed');
@@ -1533,7 +1482,7 @@ export default function PromotionsPage() {
                 const staffSession = getStaffSession() || '';
                 const res = await commanderFetch(`/api/commander/promotions/${editingPromo.id}`, {
                   method: 'PUT',
-                  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+                  headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify(data)
                 });
                 if (!res.ok) throw new Error('Request failed');
@@ -1556,7 +1505,7 @@ export default function PromotionsPage() {
               try {
                 const token = getToken();
                 const staffSession = getStaffSession() || '';
-                const res = await commanderFetch(`/api/commander/promotions/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } });
+                const res = await commanderFetch(`/api/commander/promotions/${id}`, { method: 'DELETE'});
                 if (res.ok) {
                   fetchPromotions();
                   broadcastChange('settings');

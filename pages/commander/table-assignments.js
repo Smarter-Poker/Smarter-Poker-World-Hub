@@ -20,7 +20,7 @@ import {
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
-import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const MODE_COLORS = {
@@ -49,12 +49,9 @@ export default function TableAssignments() {
   const [filterMode, setFilterMode] = useState('all');
 
   const getHeaders = () => {
-    const token = getToken();
-    const staffSession = getStaffSession() || '';
+const staffSession = getStaffSession() || '';
     return {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-      'x-staff-session': staffSession
+      'Content-Type': 'application/json'
     };
   };
 
@@ -387,8 +384,6 @@ export default function TableAssignments() {
                     ))}
                   </div>
                 </div>
-
-
 
                 {/* Tournament Selection */}
                 {assignMode === 'tournament' && (

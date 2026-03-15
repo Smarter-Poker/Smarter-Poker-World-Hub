@@ -13,7 +13,7 @@ import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/us
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
 import { busEmit } from '../../../src/engine/EventBus';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -23,8 +23,7 @@ const PRIORITY_CONFIG = {
   urgent: { color: '#EF4444', label: 'Urgent', bg: 'rgba(239,68,68,0.15)', bgAlpha: 'rgba(239,68,68,0.15)', border: 'rgba(239,68,68,0.5)', text: '#EF4444', pulse: true },
   high: { color: '#F59E0B', label: 'Important', bg: 'rgba(245,158,11,0.12)', bgAlpha: 'rgba(245,158,11,0.12)', border: 'rgba(245,158,11,0.4)', text: '#F59E0B', pulse: false },
   normal: { color: '#1877F2', label: 'Normal', bg: 'rgba(24,119,242,0.08)', bgAlpha: 'rgba(24,119,242,0.08)', border: 'rgba(24,119,242,0.25)', text: '#1877F2', pulse: false },
-  low: { color: '#6A6B6D', label: 'Low', bg: 'rgba(255,255,255,0.04)', bgAlpha: 'rgba(255,255,255,0.04)', border: 'rgba(255,255,255,0.08)', text: '#6A6B6D', pulse: false },
-};
+  low: { color: '#6A6B6D', label: 'Low', bg: 'rgba(255,255,255,0.04)', bgAlpha: 'rgba(255,255,255,0.04)', border: 'rgba(255,255,255,0.08)', text: '#6A6B6D', pulse: false } };
 
 const ANNOUNCEMENT_TYPES = [
   { value: 'general', label: 'General' },
@@ -51,8 +50,7 @@ const TEMPLATES = [
 
 const TYPE_ICONS = {
   general: '', announcement: '', game_reminder: '', event: '',
-  update: '', urgent: '', promotion: '', maintenance: '',
-};
+  update: '', urgent: '', promotion: '', maintenance: '' };
 
 export default function AnnouncementsDisplay() {
   useEffect(() => { busEmit.sessionStart('commander-displays-announcements'); }, []);
@@ -71,31 +69,24 @@ export default function AnnouncementsDisplay() {
   const [saving, setSaving] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
   const [formData, setFormData] = useState({
-    title: '', message: '', priority: 'normal', type: 'general', expires_at: '', starts_at: '',
-  });
+    title: '', message: '', priority: 'normal', type: 'general', expires_at: '', starts_at: '' });
 
   const [venueId] = useState(() => {
     try { return JSON.parse(getStaffSession() || '{}').venue_id; } catch { return null; }
   });
 
-
-
   // ─── Fetch active announcements (for display) ───
   const fetchData = useCallback(async () => {
     if (!venueId) return;
     try {
-      const res = await commanderFetch(`/api/commander/announcements?venue_id=${venueId}`, {
-        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
-      });
+      const res = await commanderFetch(`/api/commander/announcements?venue_id=${venueId}`, { });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) setAnnouncements(json.data || []);
     } catch (err) { console.error(err); }
 
     try {
-      const settingsRes = await commanderFetch(`/api/commander/settings?venue_id=${venueId}`, {
-        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
-      });
+      const settingsRes = await commanderFetch(`/api/commander/settings?venue_id=${venueId}`, { });
       if (!settingsRes.ok) throw new Error(`Request failed (${settingsRes.status})`);
       const sj = await settingsRes.json();
       if (sj.success) setRoomOpen(sj.data?.room_open ?? true);
@@ -108,9 +99,7 @@ export default function AnnouncementsDisplay() {
   const fetchAllAnnouncements = useCallback(async () => {
     if (!venueId) return;
     try {
-      const res = await commanderFetch(`/api/commander/announcements?venue_id=${venueId}&include_scheduled=1`, {
-        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
-      });
+      const res = await commanderFetch(`/api/commander/announcements?venue_id=${venueId}&include_scheduled=1`, { });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) setAllAnnouncements(json.data || []);
@@ -135,8 +124,7 @@ export default function AnnouncementsDisplay() {
     const channel = supabase.channel(`announcements-display-${venueId}`)
       .on('postgres_changes', {
         event: '*', schema: 'public', table: 'commander_club_announcements',
-        filter: `venue_id=eq.${venueId}`,
-      }, () => { fetchData(); if (showPanel) fetchAllAnnouncements(); })
+        filter: `venue_id=eq.${venueId}` }, () => { fetchData(); if (showPanel) fetchAllAnnouncements(); })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [venueId, fetchData, showPanel, fetchAllAnnouncements]);
@@ -176,8 +164,7 @@ export default function AnnouncementsDisplay() {
       title: a.title || '', message: a.message || '', priority: a.priority || 'normal',
       type: a.type || a.message_type || 'general',
       expires_at: a.expires_at ? new Date(a.expires_at).toISOString().slice(0, 16) : '',
-      starts_at: a.starts_at ? new Date(a.starts_at).toISOString().slice(0, 16) : '',
-    });
+      starts_at: a.starts_at ? new Date(a.starts_at).toISOString().slice(0, 16) : '' });
     setEditingAnnouncement(a);
     setShowTemplates(false);
     setShowForm(true);
@@ -192,15 +179,13 @@ export default function AnnouncementsDisplay() {
     if (!formData.message.trim()) return alert('Message is required');
     setSaving(true);
     try {
-      const hdrs = { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() };
+      const hdrs = { 'Content-Type': 'application/json' };
       const body = {
         ...(editingAnnouncement ? { id: editingAnnouncement.id } : { venue_id: venueId }),
         title: formData.title, message: formData.message, priority: formData.priority, type: formData.type,
-        expires_at: formData.expires_at || null, starts_at: formData.starts_at || null,
-      };
+        expires_at: formData.expires_at || null, starts_at: formData.starts_at || null };
       const res = await commanderFetch('/api/commander/announcements', {
-        method: editingAnnouncement ? 'PATCH' : 'POST', headers: hdrs, body: JSON.stringify(body),
-      });
+        method: editingAnnouncement ? 'PATCH' : 'POST', headers: hdrs, body: JSON.stringify(body) });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (!json.success) throw new Error(json.error);
@@ -216,8 +201,7 @@ export default function AnnouncementsDisplay() {
     if (!confirm('Delete this announcement?')) return;
     try {
       const res = await commanderFetch(`/api/commander/announcements?id=${id}`, {
-        method: 'DELETE', headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
-      });
+        method: 'DELETE' });
       if (res.ok) {
         fetchData(); fetchAllAnnouncements();
         broadcastChange('settings');
@@ -259,14 +243,12 @@ export default function AnnouncementsDisplay() {
         style={{
           height: '100vh', background: '#18191A', color: '#E4E6EB',
           fontFamily: "var(--font-inter), sans-serif", userSelect: 'none',
-          overflow: 'hidden', display: 'flex', flexDirection: 'column',
-        }}>
+          overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
 
         {/* ─── HEADER BAR ─── SmarterPoker Dark */}
         <div style={{
           padding: '16px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          background: '#242526', borderBottom: '1px solid #3A3B3C',
-        }}>
+          background: '#242526', borderBottom: '1px solid #3A3B3C' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <Megaphone size={24} style={{ color: '#1877F2' }} />
             <h1 style={{ fontSize: 24, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase', margin: 0, color: '#E4E6EB' }}>
@@ -276,8 +258,7 @@ export default function AnnouncementsDisplay() {
               padding: '4px 14px', borderRadius: 20, fontSize: 12, fontWeight: 700, letterSpacing: 1,
               background: roomOpen ? 'rgba(49,162,76,0.2)' : 'rgba(239,68,68,0.2)',
               color: roomOpen ? '#31A24C' : '#EF4444',
-              border: `1px solid ${roomOpen ? 'rgba(49,162,76,0.3)' : 'rgba(239,68,68,0.3)'}`,
-            }}>
+              border: `1px solid ${roomOpen ? 'rgba(49,162,76,0.3)' : 'rgba(239,68,68,0.3)'}` }}>
               {roomOpen ? 'ROOM OPEN' : 'ROOM CLOSED'}
             </span>
             {announcements.length > 0 && (
@@ -301,8 +282,7 @@ export default function AnnouncementsDisplay() {
                 padding: '10px 18px', borderRadius: 10, border: '1px solid #3A3B3C', cursor: 'pointer',
                 background: showPanel ? '#1877F2' : '#3A3B3C', color: showPanel ? '#fff' : '#B0B3B8',
                 display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600,
-                transition: 'all 0.2s',
-              }}>
+                transition: 'all 0.2s' }}>
               <Settings size={16} /> Manage
             </button>
           </div>
@@ -327,8 +307,7 @@ export default function AnnouncementsDisplay() {
                     style={{
                       padding: '12px 24px', borderRadius: 10, background: '#1877F2', border: 'none',
                       color: '#fff', cursor: 'pointer', fontSize: 14, fontWeight: 600,
-                      display: 'inline-flex', alignItems: 'center', gap: 8,
-                    }}>
+                      display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                     <Plus size={16} /> Create Announcement
                   </button>
                 </div>
@@ -348,8 +327,7 @@ export default function AnnouncementsDisplay() {
                           borderLeft: `4px solid ${cfg.color}`,
                           borderRadius: 14, padding: '24px 28px',
                           animationDelay: `${i * 0.1}s`,
-                          flex: 1, display: 'flex', alignItems: 'center', gap: 20,
-                        }}>
+                          flex: 1, display: 'flex', alignItems: 'center', gap: 20 }}>
                         <span style={{ fontSize: 36, lineHeight: 1, flexShrink: 0 }}>{icon}</span>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
@@ -357,8 +335,7 @@ export default function AnnouncementsDisplay() {
                               <span style={{
                                 color: cfg.text, fontSize: 10, fontWeight: 800, letterSpacing: 1.5,
                                 textTransform: 'uppercase', padding: '3px 10px', borderRadius: 8,
-                                background: cfg.bg,
-                              }}>
+                                background: cfg.bg }}>
                                 {cfg.label}
                               </span>
                             )}
@@ -384,8 +361,7 @@ export default function AnnouncementsDisplay() {
                     {Array.from({ length: totalPages }).map((_, i) => (
                       <div key={i} style={{
                         width: currentPage === i ? 24 : 8, height: 8, borderRadius: 4, transition: 'all 0.3s',
-                        background: currentPage === i ? '#1877F2' : '#3A3B3C',
-                      }} />
+                        background: currentPage === i ? '#1877F2' : '#3A3B3C' }} />
                     ))}
                   </div>
                 )}
@@ -398,13 +374,11 @@ export default function AnnouncementsDisplay() {
             <div className="mgmt-panel" onClick={(e) => e.stopPropagation()}
               style={{
                 width: 400, background: '#242526', borderLeft: '1px solid #3A3B3C',
-                display: 'flex', flexDirection: 'column', overflow: 'hidden',
-              }}>
+                display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               {/* Panel Header */}
               <div style={{
                 padding: '16px 20px', borderBottom: '1px solid #3A3B3C',
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              }}>
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <h3 style={{ fontSize: 15, fontWeight: 700, color: '#E4E6EB', margin: 0 }}>
                   Manage Announcements
                 </h3>
@@ -417,8 +391,7 @@ export default function AnnouncementsDisplay() {
                     style={{
                       padding: '6px 14px', borderRadius: 8, background: '#1877F2', border: 'none',
                       color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5,
-                      fontSize: 12, fontWeight: 600,
-                    }}>
+                      fontSize: 12, fontWeight: 600 }}>
                     <Plus size={13} /> New
                   </button>
                   <button onClick={() => setShowPanel(false)}
@@ -440,8 +413,7 @@ export default function AnnouncementsDisplay() {
                         padding: '8px 10px', borderRadius: 8, background: '#18191A', border: '1px solid #3A3B3C',
                         color: '#E4E6EB', cursor: 'pointer', textAlign: 'left',
                         display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 500,
-                        transition: 'border-color 0.2s',
-                      }}
+                        transition: 'border-color 0.2s' }}
                       onMouseEnter={e => e.currentTarget.style.borderColor = '#1877F2'}
                       onMouseLeave={e => e.currentTarget.style.borderColor = '#3A3B3C'}>
                       <span style={{ fontSize: 16 }}>{tpl.emoji}</span>
@@ -461,8 +433,7 @@ export default function AnnouncementsDisplay() {
                       style={{
                         padding: '10px 20px', borderRadius: 10, background: '#1877F2', border: 'none',
                         color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600,
-                        display: 'flex', alignItems: 'center', gap: 6,
-                      }}>
+                        display: 'flex', alignItems: 'center', gap: 6 }}>
                       <Plus size={14} /> Create First Announcement
                     </button>
                   </div>
@@ -473,23 +444,19 @@ export default function AnnouncementsDisplay() {
                     return (
                       <div key={a.id} style={{
                         background: '#18191A', border: '1px solid #3A3B3C', borderRadius: 12,
-                        padding: 12, borderLeft: `3px solid ${pcfg.color}`,
-                      }}>
+                        padding: 12, borderLeft: `3px solid ${pcfg.color}` }}>
                         {/* Badge row */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, flexWrap: 'wrap' }}>
                           <span style={{
                             fontSize: 9, fontWeight: 700, color: pcfg.color, textTransform: 'uppercase',
-                            letterSpacing: 0.8, padding: '2px 6px', borderRadius: 4, background: pcfg.bg,
-                          }}>{pcfg.label}</span>
+                            letterSpacing: 0.8, padding: '2px 6px', borderRadius: 4, background: pcfg.bg }}>{pcfg.label}</span>
                           <span style={{
                             fontSize: 9, fontWeight: 600, color: '#6A6B6D', textTransform: 'uppercase',
-                            letterSpacing: 0.5, padding: '2px 6px', borderRadius: 4, background: 'rgba(255,255,255,0.05)',
-                          }}>{a.type || 'general'}</span>
+                            letterSpacing: 0.5, padding: '2px 6px', borderRadius: 4, background: 'rgba(255,255,255,0.05)' }}>{a.type || 'general'}</span>
                           {isScheduled && (
                             <span style={{
                               fontSize: 9, fontWeight: 700, color: '#A855F7', textTransform: 'uppercase',
-                              letterSpacing: 0.5, padding: '2px 6px', borderRadius: 4, background: 'rgba(168,85,247,0.15)',
-                            }}>Scheduled</span>
+                              letterSpacing: 0.5, padding: '2px 6px', borderRadius: 4, background: 'rgba(168,85,247,0.15)' }}>Scheduled</span>
                           )}
                           <span style={{ fontSize: 9, color: '#6A6B6D', marginLeft: 'auto' }}>
                             {isScheduled
@@ -515,16 +482,14 @@ export default function AnnouncementsDisplay() {
                             style={{
                               flex: 1, padding: '6px', borderRadius: 6, background: '#3A3B3C', border: 'none',
                               color: '#B0B3B8', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
-                              fontSize: 11, fontWeight: 600,
-                            }}>
+                              fontSize: 11, fontWeight: 600 }}>
                             <Edit3 size={11} /> Edit
                           </button>
                           <button onClick={() => deleteAnnouncement(a.id)}
                             style={{
                               flex: 1, padding: '6px', borderRadius: 6, background: 'rgba(239,68,68,0.1)', border: 'none',
                               color: '#EF4444', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
-                              fontSize: 11, fontWeight: 600,
-                            }}>
+                              fontSize: 11, fontWeight: 600 }}>
                             <Trash2 size={11} /> Delete
                           </button>
                         </div>
@@ -543,8 +508,7 @@ export default function AnnouncementsDisplay() {
         {/* Bottom bar */}
         <div style={{
           borderTop: '1px solid #3A3B3C', padding: '10px 32px', background: '#242526',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        }}>
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <p style={{ fontSize: 13, color: '#6A6B6D', margin: 0 }}>See The Front Desk For Assistance</p>
           <p style={{ fontSize: 11, color: '#4A4B4C', letterSpacing: 1.5, margin: 0 }}>Powered By Smarter.Poker</p>
         </div>
@@ -555,17 +519,14 @@ export default function AnnouncementsDisplay() {
         <div onClick={(e) => e.stopPropagation()}
           style={{
             position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 1000,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
-          }}>
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <div style={{
             background: '#242526', borderRadius: 16, width: '100%', maxWidth: 480,
-            border: '1px solid #3A3B3C', maxHeight: '90vh', overflow: 'auto',
-          }}>
+            border: '1px solid #3A3B3C', maxHeight: '90vh', overflow: 'auto' }}>
             {/* Modal Header */}
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '16px 20px', borderBottom: '1px solid #3A3B3C',
-            }}>
+              padding: '16px 20px', borderBottom: '1px solid #3A3B3C' }}>
               <h2 style={{ fontSize: 16, fontWeight: 700, color: '#E4E6EB', margin: 0 }}>
                 {editingAnnouncement ? 'Edit Announcement' : 'New Announcement'}
               </h2>
@@ -586,8 +547,7 @@ export default function AnnouncementsDisplay() {
                       background: showTemplates ? '#1877F2' : '#3A3B3C',
                       border: 'none', color: showTemplates ? '#fff' : '#B0B3B8',
                       fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                    }}>
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                     {showTemplates ? 'Hide Templates' : 'Use a Template'}
                     <ChevronDown size={14} style={{ transform: showTemplates ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
                   </button>
@@ -598,8 +558,7 @@ export default function AnnouncementsDisplay() {
                           style={{
                             padding: '10px 12px', borderRadius: 10, background: '#18191A', border: '1px solid #3A3B3C',
                             color: '#E4E6EB', cursor: 'pointer', textAlign: 'left',
-                            display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 500,
-                          }}>
+                            display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 500 }}>
                           <span style={{ fontSize: 18 }}>{tpl.emoji}</span>
                           <span>{tpl.name}</span>
                         </button>
@@ -618,8 +577,7 @@ export default function AnnouncementsDisplay() {
                   onChange={e => setFormData(p => ({ ...p, title: e.target.value }))}
                   style={{
                     width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #3A3B3C',
-                    background: '#18191A', color: '#E4E6EB', fontSize: 14, outline: 'none', boxSizing: 'border-box',
-                  }}
+                    background: '#18191A', color: '#E4E6EB', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
                 />
               </div>
 
@@ -633,8 +591,7 @@ export default function AnnouncementsDisplay() {
                   style={{
                     width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #3A3B3C',
                     background: '#18191A', color: '#E4E6EB', fontSize: 14, outline: 'none',
-                    resize: 'vertical', fontFamily: 'Inter, sans-serif', boxSizing: 'border-box',
-                  }}
+                    resize: 'vertical', fontFamily: 'Inter, sans-serif', boxSizing: 'border-box' }}
                 />
               </div>
 
@@ -685,8 +642,7 @@ export default function AnnouncementsDisplay() {
                 <div style={{
                   background: (PRIORITY_CONFIG[formData.priority] || PRIORITY_CONFIG.normal).bg,
                   border: `1px solid ${(PRIORITY_CONFIG[formData.priority] || PRIORITY_CONFIG.normal).color}30`,
-                  borderRadius: 10, padding: 12,
-                }}>
+                  borderRadius: 10, padding: 12 }}>
                   <p style={{ fontSize: 10, fontWeight: 700, color: '#6A6B6D', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Preview</p>
                   {formData.title && <p style={{ fontSize: 13, fontWeight: 700, color: '#E4E6EB', margin: '0 0 2px' }}>{formData.title}</p>}
                   <p style={{ fontSize: 13, color: '#B0B3B8', margin: 0 }}>{formData.message}</p>
@@ -705,8 +661,7 @@ export default function AnnouncementsDisplay() {
                   flex: 1, padding: '12px', borderRadius: 10, background: '#1877F2', border: 'none',
                   color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                  opacity: saving ? 0.6 : 1,
-                }}>
+                  opacity: saving ? 0.6 : 1 }}>
                 {saving ? <Loader2 size={16} className="animate-spin" /> : <Send size={15} />}
                 {editingAnnouncement ? 'Save Changes' : (formData.starts_at ? 'Schedule' : 'Publish')}
               </button>

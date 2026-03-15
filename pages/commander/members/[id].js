@@ -17,7 +17,7 @@ import { Clock, DollarSign, Users, Calendar, Loader2, Plus, Ban, Check } from 'l
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../../src/engine/EventBus';
-import { getToken, getStaffSession, getVenueId } from '../../../src/lib/commander/clientAuth'
+import { getStaffSession, getVenueId } from '../../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
 
 export default function MemberProfile() {
@@ -47,10 +47,9 @@ export default function MemberProfile() {
   const fetchMember = async (signal) => {
     setLoading(true);
     try {
-      const token = getToken();
-      const venueId = getVenueId();
+const venueId = getVenueId();
       const staffSession = getStaffSession();
-      const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
+      const headers = { };
       const [memberRes, sessionsRes, tournamentsRes] = await Promise.all([
         fetch(`/api/commander/members/${id}?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ data: null })),
         fetch(`/api/commander/time-billing/sessions?member_id=${id}&venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ data: [] })),
@@ -72,10 +71,9 @@ export default function MemberProfile() {
     const minutes = parseInt(addTimeAmount);
     if (!minutes || minutes <= 0) return;
     try {
-      const token = getToken();
-      const res = await fetch(`/api/commander/members/${id}`, {
+const res = await fetch(`/api/commander/members/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           time_balance_minutes: (member.time_balance_minutes || 0) + minutes
         })
@@ -95,10 +93,9 @@ export default function MemberProfile() {
 
   const toggleStatus = async (newStatus) => {
     try {
-      const token = getToken();
-      const res = await fetch(`/api/commander/members/${id}`, {
+const res = await fetch(`/api/commander/members/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ membership_status: newStatus })
       });
       if (res.ok) {

@@ -18,7 +18,7 @@ import CommanderLayout from '../../../src/components/commander/shared/CommanderL
 import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../../src/engine/EventBus';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
 
 export default function DisplayManagement() {
@@ -30,9 +30,8 @@ export default function DisplayManagement() {
 
   const fetchData = useCallback(async(signal) => {
     try {
-      const token = getToken();
-      const res = await commanderFetch('/api/commander/tournaments', {
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() || '' }
+const res = await commanderFetch('/api/commander/tournaments', {
+        headers: { || '' }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();

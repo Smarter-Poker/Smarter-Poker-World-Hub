@@ -12,7 +12,7 @@ import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
 import { busEmit } from '../../../src/engine/EventBus';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
 
 export default function DealerRotationDisplay() {
@@ -28,8 +28,7 @@ export default function DealerRotationDisplay() {
   const getHeaders = () => {
     try {
       const staff = getStaffSession() || '';
-      const token = getToken();
-      return { Authorization: `Bearer ${token}`, 'x-staff-session': staff };
+return { 'x-staff-session': staff };
     } catch { return {}; }
   };
 
