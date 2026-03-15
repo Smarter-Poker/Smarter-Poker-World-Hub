@@ -4,8 +4,9 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-// Note: No auth guard import — this route is called during login BEFORE staff session exists.
-// It has its own inline JWT validation below (lines 33-41).
+import { checkMemoryRateLimit } from '../../../src/lib/commander/rateLimit';
+// Note: No auth guard — this route is called during login BEFORE staff session exists.
+// It has its own inline JWT validation below.
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -18,6 +19,11 @@ export default async function handler(req, res) {
       if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
 
+    // IP rate limit: 5 sub checks per minute (abuse prevention)
+    const fwd = req.headers['x-forwarded-for'];
+    const ip = fwd ? fwd.split(',')[0].trim() : req.socket?.remoteAddress || '0';
+    const rl = checkMemoryRateLimit(`chksub:${ip}`, 5, 60000);
+    if (!rl.allowed) { return res.status(429).json({ error: 'Too many requests' }); }
 
       if (req.method !== 'POST') {
           return res.status(405).json({ error: 'Method not allowed' });

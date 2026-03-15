@@ -102,7 +102,7 @@ export default async function handler(req, res) {
         success: true,
         data: {
           valid: true,
-          staff: { id: staff.id, role: staff.role, user_id: staff.profiles?.id || null, display_name: name, avatar_url: staff.profiles?.avatar_url || null },
+          staff: { id: staff.id, role: staff.role, user_id: staff.profiles?.id || null, display_name: name, avatar_url: staff.profiles?.avatar_url || null, session_ts: Date.now() },
           permissions
         }
       });

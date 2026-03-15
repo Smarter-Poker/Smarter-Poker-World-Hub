@@ -211,6 +211,12 @@ export async function verifyStaffSession(req) {
 
   // Path 1: PIN-based staff terminal — session contains staff row `id`
   if (sessionData.id) {
+    // TTL check: reject PIN sessions older than 12 hours (if timestamp present)
+    const PIN_SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
+    if (sessionData.session_ts && (Date.now() - sessionData.session_ts > PIN_SESSION_TTL_MS)) {
+      return { error: { status: 401, code: 'SESSION_EXPIRED', message: 'PIN session expired — please re-enter your PIN' } };
+    }
+
     const { data: staff, error: staffError } = await supabase
       .from('commander_staff')
       .select('id, venue_id, role, is_active')

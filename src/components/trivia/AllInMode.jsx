@@ -85,7 +85,7 @@ export default function AllInMode({
 
     const handleStartGame = () => {
         const stake = customStake ? parseInt(customStake) : stakeAmount;
-        if (stake > userDiamonds || Stake < 10) return;
+        if (stake > userDiamonds || stake < 10) return;
         setStakeAmount(stake);
         setStage('playing');
     };
