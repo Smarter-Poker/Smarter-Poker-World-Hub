@@ -12,7 +12,7 @@ import CreateTournamentModal from '../../../src/components/commander/modals/Crea
 import Pagination from '../../../src/components/commander/shared/Pagination';
 import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../../src/engine/EventBus';
-import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
+import { getStaffSession } from '../../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
 
 /* ─── Status Config ─────────────────────────────────────────── */
