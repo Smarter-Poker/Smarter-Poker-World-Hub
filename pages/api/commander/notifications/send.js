@@ -19,6 +19,7 @@ const supabase = createClient(
 const VALID_TYPES = ['seat_available', 'tournament_starting', 'called_for_seat', 'promotion', 'custom'];
 const VALID_CHANNELS = ['sms', 'push', 'email', 'in_app'];
 
+// Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
   try {
     if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {

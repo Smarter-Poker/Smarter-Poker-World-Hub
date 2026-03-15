@@ -14,6 +14,7 @@ const supabase = createClient(
 
 const VALID_REQUEST_TYPES = ['food', 'drink', 'chips', 'table_change', 'cashout', 'floor', 'other'];
 
+// Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
   try {
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {

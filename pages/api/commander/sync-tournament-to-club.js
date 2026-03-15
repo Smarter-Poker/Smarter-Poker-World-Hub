@@ -70,6 +70,7 @@ function formatTournamentPost(tournament) {
     return lines.join('\n');
 }
 
+// Auth: STAFF — requires valid staff session
 export default async function handler(req, res) {
   try {
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {

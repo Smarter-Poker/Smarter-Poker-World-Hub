@@ -31,6 +31,7 @@ const NOTIFICATION_TYPES = [
     'custom'
 ];
 
+// Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
   try {
       if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {

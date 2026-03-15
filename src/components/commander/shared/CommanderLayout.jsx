@@ -11,12 +11,12 @@
  *   hideBack    — set true on dashboard to hide the back button
  *   children    — page content
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { X, Users, Clock, Layout, Map, Bell, Trophy,
   Monitor, DollarSign, Gift, Calendar, Tv, Activity, BarChart3,
-  AlertTriangle, PlusCircle, Lock, Upload, QrCode, Settings, LogOut, Globe, Crown, FileText, Shield
+  AlertTriangle, PlusCircle, Lock, Upload, QrCode, Settings, LogOut, Globe, Crown, FileText, Shield, AlertCircle
 } from 'lucide-react';
 import CommanderErrorBoundary from './CommanderErrorBoundary';
 import FloorCallAlert from './FloorCallAlert';
@@ -78,6 +78,14 @@ export default function CommanderLayout({ children, title, backHref = '/commande
   const [gateGranted, setGateGranted] = useState(false);
   const [pinAttempts, setPinAttempts] = useState(0);
   const [pinLockout, setPinLockout] = useState(false);
+
+  // Session expiry warning
+  const [sessionExpiring, setSessionExpiring] = useState(null); // null or { minutesLeft }
+  useEffect(() => {
+    const handler = (e) => setSessionExpiring(e.detail);
+    window.addEventListener('commander:session-expiring', handler);
+    return () => window.removeEventListener('commander:session-expiring', handler);
+  }, []);
 
   useEffect(() => {
     try {
@@ -736,6 +744,27 @@ export default function CommanderLayout({ children, title, backHref = '/commande
             </div>
           </div>
         </div>
+
+        {/* ── SESSION EXPIRY WARNING BANNER ── */}
+        {sessionExpiring && (
+          <div style={{
+            background: 'linear-gradient(90deg, #F59E0B22, #EF444422)',
+            borderBottom: '1px solid #F59E0B44',
+            padding: '8px 16px',
+            display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'space-between',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <AlertCircle size={16} color="#F59E0B" />
+              <span style={{ fontSize: 12, color: '#F59E0B', fontWeight: 600 }}>
+                Session expires in ~{sessionExpiring.minutesLeft} min — save your work
+              </span>
+            </div>
+            <button onClick={() => setSessionExpiring(null)} style={{
+              background: 'none', border: 'none', color: '#F59E0B', cursor: 'pointer', padding: 4,
+              fontSize: 16, lineHeight: 1,
+            }}>×</button>
+          </div>
+        )}
 
         {/* ── HAMBURGER SLIDE-OUT MENU ── */}
         {menuOpen && (

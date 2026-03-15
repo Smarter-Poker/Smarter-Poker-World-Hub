@@ -147,6 +147,23 @@ export default function SurvivalGamePage() {
         } catch (e) { console.error("[survival-game.js]", e); }
     }, [avatarUser?.id, authLoading]);
 
+    // Realtime: Sync diamond balance when it changes externally
+    useEffect(() => {
+        if (!userId) return;
+        const _ch = supabase
+            .channel(`trivia-survival:${userId}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${userId}` }, async () => {
+                try {
+                    const { data } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
+                    if (data) setUserDiamonds(data.diamonds || 0);
+                } catch (e) {
+                    console.warn('[Survival] Realtime diamond refresh failed:', e);
+                }
+            })
+            .subscribe();
+        return () => { supabase.removeChannel(_ch); };
+    }, [userId]);
+
     // Save settings to localStorage when changed
     useEffect(() => {
         try {

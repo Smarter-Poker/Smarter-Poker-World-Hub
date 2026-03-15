@@ -17,6 +17,7 @@ const supabase = createClient(
 // Average wait time per position (minutes) - simple initial estimate
 const AVERAGE_WAIT_PER_POSITION = 15;
 
+// Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
   try {
     if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {

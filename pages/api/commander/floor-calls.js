@@ -21,6 +21,7 @@ const VALID_REASONS = [
 const VALID_PRIORITIES = ['urgent', 'high', 'normal', 'low'];
 const VALID_STATUSES = ['pending', 'acknowledged', 'en_route', 'resolved', 'cancelled'];
 
+// Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
   try {
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {

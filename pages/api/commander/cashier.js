@@ -16,6 +16,7 @@ const supabase = createClient(
 
 const VALID_TYPES = ['buy_in', 'cash_out', 'add_on', 'time_purchase', 'membership', 'void'];
 
+// Auth: STAFF — requires valid staff session
 export default async function handler(req, res) {
   try {
     if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {

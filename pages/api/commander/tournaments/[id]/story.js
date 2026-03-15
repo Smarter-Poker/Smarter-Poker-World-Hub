@@ -27,6 +27,7 @@ const TOURNAMENT_GRADIENTS = {
 
 const VALID_STORY_TYPES = ['registered', 'chip_update', 'itm', 'final_table', 'winner', 'bubble', 'custom'];
 
+// Auth: USER — requires authenticated user
 export default async function handler(req, res) {
   try {
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {

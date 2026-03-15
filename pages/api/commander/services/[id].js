@@ -14,6 +14,7 @@ const supabase = createClient(
 
 const VALID_STATUSES = ['pending', 'acknowledged', 'in_progress', 'completed', 'cancelled'];
 
+// Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
   try {
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {

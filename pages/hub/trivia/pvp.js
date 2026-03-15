@@ -97,6 +97,23 @@ export default function PvPPage() {
         };
     }, [avatarUser?.id, authLoading]);
 
+    // Realtime: Sync diamond balance when it changes externally
+    useEffect(() => {
+        if (!userId) return;
+        const _ch = supabase
+            .channel(`trivia-pvp-bal:${userId}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${userId}` }, async () => {
+                try {
+                    const { data } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
+                    if (data) setUserDiamonds(data.diamonds || 0);
+                } catch (e) {
+                    console.warn('[PvP] Realtime diamond refresh failed:', e);
+                }
+            })
+            .subscribe();
+        return () => { supabase.removeChannel(_ch); };
+    }, [userId]);
+
     // Timer effect
     useEffect(() => {
         if (!isTimerRunning || showResult) {

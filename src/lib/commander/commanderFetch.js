@@ -60,6 +60,25 @@ export async function commanderFetch(url, opts = {}) {
     throw new Error('Session expired — redirecting to login');
   }
 
+  // Session expiry warning: check PIN session TTL (non-blocking)
+  if (typeof window !== 'undefined' && staffSession) {
+    try {
+      const parsed = JSON.parse(staffSession);
+      if (parsed.session_ts) {
+        const elapsed = Date.now() - parsed.session_ts;
+        const TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
+        const WARN_MS = TTL_MS - (15 * 60 * 1000); // warn at 11h45m
+        if (elapsed > WARN_MS && !window.__commander_ttl_warned) {
+          window.__commander_ttl_warned = true;
+          const minsLeft = Math.max(0, Math.round((TTL_MS - elapsed) / 60000));
+          console.warn(`[Commander] PIN session expires in ~${minsLeft} minutes`);
+          // Dispatch event that CommanderLayout can listen to for a banner
+          window.dispatchEvent(new CustomEvent('commander:session-expiring', { detail: { minutesLeft: minsLeft } }));
+        }
+      }
+    } catch { /* not a PIN session or malformed — ignore */ }
+  }
+
   return response;
 }
 
