@@ -12,6 +12,7 @@ import { claimReward } from '../../lib/claimReward';
 import { useSupabase } from '../../providers/SupabaseProvider';
 import { SocialService } from '../../services/SocialService';
 import { FEED_FILTERS, initialFeedState } from '../../services/social-types';
+import { busEmit } from '../../engine/EventBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 📜 SPATIAL FEED COMPONENT
@@ -148,7 +149,8 @@ export const SpatialFeed = ({
     if (!socialService || !user) return;
 
     try {
-      await socialService.toggleReaction(postId, user.id, reactionType);
+      const { added, type } = await socialService.toggleReaction(postId, user.id, reactionType);
+      busEmit.socialPostLiked(postId, user.id, { added, reactionType: type });
     } catch (error) {
       console.error('Like error:', error);
       throw error; // Let card handle rollback

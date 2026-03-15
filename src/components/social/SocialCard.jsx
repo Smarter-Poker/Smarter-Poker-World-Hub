@@ -6,7 +6,7 @@
  * and haptic scale-spring feedback on interaction.
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { getAuthorDisplayName } from '../../utils/displayName';
 import { INTERACTION_TYPES } from '../../services/social-types';
 
@@ -27,8 +27,16 @@ export const SocialCard = ({
 }) => {
   const [isLiked, setIsLiked] = useState(post.isLiked);
   const [likeCount, setLikeCount] = useState(post.engagement?.likeCount || 0);
+  const [currentReactionType, setCurrentReactionType] = useState('like');
   const [showReactions, setShowReactions] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+  const likePendingRef = useRef(false);
+
+  // Sync from parent when props change (e.g. EventBus-driven updates)
+  useEffect(() => {
+    setIsLiked(post.isLiked);
+    setLikeCount(post.engagement?.likeCount || 0);
+  }, [post.isLiked, post.engagement?.likeCount]);
 
   // Tier-based styling
   const tierStyles = useMemo(() => {
@@ -41,18 +49,31 @@ export const SocialCard = ({
     return tiers[post.author?.tier] || tiers.BRONZE;
   }, [post.author?.tier]);
 
-  // Handle like with optimistic update and particle burst
+  // Handle like with optimistic update, swap detection, and rapid-click guard
   const handleLike = useCallback(async (reactionType = 'like') => {
+    if (likePendingRef.current) return; // prevent rapid fire
+    likePendingRef.current = true;
+
     const wasLiked = isLiked;
+    const prevType = currentReactionType;
+    const prevCount = likeCount;
+    const isSwap = wasLiked && reactionType !== prevType;
 
     // Optimistic update
-    setIsLiked(!wasLiked);
-    setLikeCount(prev => wasLiked ? prev - 1 : prev + 1);
+    if (isSwap) {
+      // Swap: stay liked, just change type. Count unchanged.
+      setCurrentReactionType(reactionType);
+    } else {
+      // Toggle
+      setIsLiked(!wasLiked);
+      setLikeCount(prev => wasLiked ? prev - 1 : prev + 1);
+      if (!wasLiked) setCurrentReactionType(reactionType);
+    }
     setIsAnimating(true);
     setShowReactions(false);
 
-    // Trigger particle burst
-    if (!wasLiked) {
+    // Trigger particle burst only on NEW like
+    if (!wasLiked && !isSwap) {
       triggerParticleBurst();
     }
 
@@ -61,11 +82,13 @@ export const SocialCard = ({
     } catch (error) {
       // Rollback on error
       setIsLiked(wasLiked);
-      setLikeCount(prev => wasLiked ? prev + 1 : prev - 1);
+      setLikeCount(prevCount);
+      setCurrentReactionType(prevType);
     }
 
+    likePendingRef.current = false;
     setTimeout(() => setIsAnimating(false), 600);
-  }, [isLiked, post.id, onLike]);
+  }, [isLiked, likeCount, currentReactionType, post.id, onLike]);
 
   // Particle burst effect
   const triggerParticleBurst = useCallback(() => {
