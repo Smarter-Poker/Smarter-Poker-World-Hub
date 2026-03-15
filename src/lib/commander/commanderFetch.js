@@ -68,8 +68,9 @@ export async function commanderFetch(url, opts = {}) {
         const elapsed = Date.now() - parsed.session_ts;
         const TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
         const WARN_MS = TTL_MS - (15 * 60 * 1000); // warn at 11h45m
-        if (elapsed > WARN_MS && !window.__commander_ttl_warned) {
-          window.__commander_ttl_warned = true;
+        // Track WHICH session_ts we already warned about — resets on new login
+        if (elapsed > WARN_MS && window.__commander_ttl_warned_ts !== parsed.session_ts) {
+          window.__commander_ttl_warned_ts = parsed.session_ts;
           const minsLeft = Math.max(0, Math.round((TTL_MS - elapsed) / 60000));
           console.warn(`[Commander] PIN session expires in ~${minsLeft} minutes`);
           // Dispatch event that CommanderLayout can listen to for a banner
