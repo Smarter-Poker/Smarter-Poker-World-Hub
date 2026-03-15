@@ -16,7 +16,7 @@ import { getGameConfig, getStackDepthNumber } from '../../../src/config/gameConf
 import { pioQueryService } from '../../../src/services/PIOQueryService';
 import { deterministicEngine } from '../../../src/engines/DeterministicGTOEngine';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { sanitizeParam } from '../../../src/utils/trainingApiUtils';
+import { sanitizeParam, withTiming } from '../../../src/utils/trainingApiUtils';
 
 // ── Deterministic hash for seeded fallback data ──
 function hashSeed(str) {
@@ -34,6 +34,7 @@ const supabase = createClient(
 
 export default async function handler(req, res) {
   try {
+      withTiming(res);
       if (!applyRateLimit(req, res, LIMITS.read)) return;
 
       // BUG #245 FIX: Require JWT auth

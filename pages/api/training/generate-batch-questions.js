@@ -12,6 +12,7 @@ import { getGrokClient } from '../../../src/lib/grokClient';
 import { getGameConfig, getStackDepthNumber } from '../../../src/config/gameConfigs';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import crypto from 'crypto';
+import { withTiming } from '../../../src/utils/trainingApiUtils';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -38,6 +39,7 @@ const TEST_GAMES = [
 
 export default async function handler(req, res) {
   try {
+      withTiming(res);
       if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
           if (!applyRateLimit(req, res, LIMITS.write)) return;
       }

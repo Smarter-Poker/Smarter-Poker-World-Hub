@@ -8,7 +8,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { sanitizeParam } from '../../../src/utils/trainingApiUtils';
+import { sanitizeParam, withTiming } from '../../../src/utils/trainingApiUtils';
 import { deterministicEngine } from '../../../src/engines/DeterministicGTOEngine';
 import { pioQueryService } from '../../../src/services/PIOQueryService';
 import { getGameConfig as getGameCfg } from '../../../src/config/gameConfigs';
@@ -33,6 +33,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default async function handler(req, res) {
   try {
+      withTiming(res);
       if (!applyRateLimit(req, res, LIMITS.read)) return;
 
       // BUG-05 FIX: Include success:false for consistent client error parsing

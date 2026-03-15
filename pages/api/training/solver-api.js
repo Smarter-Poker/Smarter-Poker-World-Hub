@@ -8,6 +8,7 @@
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { withTiming } from '../../../src/utils/trainingApiUtils';
 
 // ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
 let _supabase = null;
@@ -93,6 +94,7 @@ function hashScenario({ board, heroPosition, villainPosition, stackDepth, gameTy
 
 export default async function handler(req, res) {
   try {
+      withTiming(res);
       // Only POST
       if (req.method !== 'POST') {
           return res.status(405).json({ success: false, error: 'Method not allowed' });

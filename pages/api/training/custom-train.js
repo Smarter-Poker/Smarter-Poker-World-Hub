@@ -14,7 +14,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { DeterministicGTOEngine } from '../../../src/engines/DeterministicGTOEngine';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { sanitizeParam } from '../../../src/utils/trainingApiUtils';
+import { sanitizeParam, withTiming } from '../../../src/utils/trainingApiUtils';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -31,6 +31,7 @@ const GAME_TYPE_TO_PIO = {
 
 export default async function handler(req, res) {
   try {
+      withTiming(res);
       if (!applyRateLimit(req, res, LIMITS.read)) return;
 
       // Auth

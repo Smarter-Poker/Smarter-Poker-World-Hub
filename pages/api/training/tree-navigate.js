@@ -17,7 +17,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { getAllHands, parseBoardFromHash, extractPositionFromHash, sanitizeParam } from '../../../src/utils/trainingApiUtils';
+import { getAllHands, parseBoardFromHash, extractPositionFromHash, sanitizeParam, withTiming } from '../../../src/utils/trainingApiUtils';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -27,6 +27,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default async function handler(req, res) {
   try {
+      withTiming(res);
       if (!applyRateLimit(req, res, LIMITS.read)) return;
 
       if (req.method !== 'GET') {

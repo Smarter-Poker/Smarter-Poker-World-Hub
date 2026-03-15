@@ -8,6 +8,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { withTiming } from '../../../src/utils/trainingApiUtils';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -27,6 +28,7 @@ function dateHash(dateStr) {
 
 export default async function handler(req, res) {
   try {
+      withTiming(res);
       if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
           if (!applyRateLimit(req, res, LIMITS.write)) return;
       }

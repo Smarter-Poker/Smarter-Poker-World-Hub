@@ -7,13 +7,14 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { sanitizeParam, clampPagination } from '../../../src/utils/trainingApiUtils';
+import { sanitizeParam, clampPagination, withTiming } from '../../../src/utils/trainingApiUtils';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export default async function handler(req, res) {
   try {
+      withTiming(res);
       // CDN cache: fresh for 30s, serve stale up to 120s
       if (req.method === 'GET') {
           res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=120');

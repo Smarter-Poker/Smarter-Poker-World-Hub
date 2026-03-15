@@ -7,7 +7,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { sanitizeParam } from '../../../src/utils/trainingApiUtils';
+import { sanitizeParam, withTiming } from '../../../src/utils/trainingApiUtils';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -25,6 +25,7 @@ const DEFAULT_PROGRESS = {
 
 export default async function handler(req, res) {
   try {
+      withTiming(res);
       if (!applyRateLimit(req, res, LIMITS.read)) return;
 
       if (req.method !== 'GET') {

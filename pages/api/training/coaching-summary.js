@@ -9,6 +9,7 @@
 import { getGrokClient } from '../../../src/lib/grokClient';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { withTiming } from '../../../src/utils/trainingApiUtils';
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -17,6 +18,7 @@ const supabaseAdmin = createClient(
 
 export default async function handler(req, res) {
   try {
+      withTiming(res);
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
       if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
