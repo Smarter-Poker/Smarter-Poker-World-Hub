@@ -45,25 +45,8 @@ export default async function handler(req, res) {
               .maybeSingle();
 
           if (error) {
-              // Auto-create table logic if missing
               if (error.code === '42P01') {
-                  await supabase.rpc('exec_sql', {
-                      query: `
-                      CREATE TABLE IF NOT EXISTS public.sandbox_saved_hands (
-                          id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-                          user_id UUID REFERENCES auth.users NOT NULL,
-                          folder_name TEXT NOT NULL,
-                          tags TEXT[] DEFAULT '{}',
-                          state_json JSONB NOT NULL,
-                          created_at TIMESTAMPTZ DEFAULT NOW()
-                      );
-                      CREATE INDEX idx_sandbox_saved_hands_user ON public.sandbox_saved_hands(user_id);
-                      `
-                  });
-                  // Retry once
-                  const retry = await supabase.from('sandbox_saved_hands').insert({ user_id: userId, folder_name: folder_name.trim(), tags: Array.isArray(tags) ? tags : [], state_json }).select('*').maybeSingle();
-                  if (retry.error) throw retry.error;
-                  return res.status(200).json({ success: true, hand: retry.data });
+                  console.error('[save-hand] sandbox_saved_hands table missing — run migration to restore');
               }
               throw error;
           }

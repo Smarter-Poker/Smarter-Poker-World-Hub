@@ -61,14 +61,21 @@ export default async function handler(req, res) {
 
               if (updateError) throw updateError;
 
-              // Manually update cache stats (since trigger only fires on insert)
-              await supabase.rpc('exec_sql', {
-                  sql: `
-                      UPDATE geeves_knowledge_cache
-                      SET rating_sum = rating_sum - ${existingRating.rating} + ${rating}
-                      WHERE id = '${cacheId}'
-                  `
-              });
+              // Safely update cache stats using Supabase query
+              const ratingDiff = rating - existingRating.rating;
+              if (ratingDiff !== 0) {
+                  const { data: cacheRow } = await supabase
+                      .from('geeves_knowledge_cache')
+                      .select('rating_sum')
+                      .eq('id', cacheId)
+                      .maybeSingle();
+                  if (cacheRow) {
+                      await supabase
+                          .from('geeves_knowledge_cache')
+                          .update({ rating_sum: (cacheRow.rating_sum || 0) + ratingDiff })
+                          .eq('id', cacheId);
+                  }
+              }
 
               return res.status(200).json({
                   success: true,
