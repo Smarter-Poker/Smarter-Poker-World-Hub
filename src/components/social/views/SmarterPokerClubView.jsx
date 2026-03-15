@@ -11,7 +11,7 @@ import { CreatePostBox, SPPostCard, SPAvatar, SP_COLORS } from '../SmarterPokerS
 import { PokerTierBadge } from '../PokerReputationBadges';
 import { useSupabase } from '../../../providers/SupabaseProvider';
 import { SocialService } from '../../../services/SocialService';
-import { eventBus, EventType } from '../../../engine/EventBus';
+import { busEmit, eventBus, EventType } from '../../../engine/EventBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🏆 CLUB LEADERBOARD COMPONENTS
@@ -605,6 +605,7 @@ export const SmarterPokerClubView = ({ onNavigate }) => {
     const handleComment = async (postId, text) => {
         if (!socialService || !currentUser) return;
         await socialService.createComment({ postId, authorId: currentUser.id, content: text });
+        busEmit.socialCommentAdded(postId, currentUser.id);
     };
 
     const handleLoadComments = async (postId) => {
