@@ -28,11 +28,8 @@ import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 // ── Save-session helper (SSR-safe) ──────────────────────────────
 
 function saveSession(payload) {
-  const token = getAccessToken();
-  if (!token) return;
-  fetch('/api/training/save-session', {
+  authedFetch('/api/training/save-session', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify(payload),
   }).catch(() => {});
 }
