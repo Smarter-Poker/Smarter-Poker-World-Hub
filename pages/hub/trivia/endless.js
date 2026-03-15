@@ -204,7 +204,7 @@ export default function EndlessModePage() {
     async function loadMoreQuestions() {
         try {
             // 60-day non-repeat: Get user's recently seen question IDs using shared utility
-            const excludeIds = await getRecentlySeenIds(supabase, userId, 200);
+            const excludeIds = await getRecentlySeenIds(supabase, userId, 200, 'endless');
 
             // Get ALL questions from ALL categories
             const { data, error } = await supabase

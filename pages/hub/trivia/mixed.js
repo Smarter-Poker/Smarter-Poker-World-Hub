@@ -183,7 +183,7 @@ export default function MixedModePage() {
     async function loadMixedQuestions(uid) {
         try {
             // 60-day non-repeat: Get user's recently seen question IDs using shared utility
-            const excludeIds = await getRecentlySeenIds(supabase, uid, 200);
+            const excludeIds = await getRecentlySeenIds(supabase, uid, 200, 'mixed');
 
             // Load questions from all categories
             const allQuestions = [];

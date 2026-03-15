@@ -307,7 +307,7 @@ export default function SurvivalGamePage() {
 
         try {
             // 60-day non-repeat: Get user's recently seen question IDs using shared utility
-            const excludeIds = await getRecentlySeenIds(supabase, userId, 200);
+            const excludeIds = await getRecentlySeenIds(supabase, userId, 200, 'survival');
 
             // Get questions with appropriate difficulty based on level
             let query = supabase
