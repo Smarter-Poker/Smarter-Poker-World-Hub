@@ -11,7 +11,7 @@ import { Download, FileText, Loader2, RefreshCw, Clock, Users, Trophy, BarChart3
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../src/engine/EventBus';
 import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
-import { getStaffSession } from '../../src/lib/commander/clientAuth';
+import { getStaffData } from '../../src/lib/commander/clientAuth';
 import { commanderFetch } from '../../src/lib/commander/commanderFetch';
 
 const EXPORT_TYPES = [
@@ -45,7 +45,7 @@ export default function ExportsHub() {
   const [format, setFormat] = useState('csv');
 
   useEffect(() => {
-    try { const s = JSON.parse(getStaffSession() || '{}'); if (s.venue_id) setVenueId(s.venue_id); } catch (e) { /* silent */ }
+    try { const s = getStaffData(); if (s.venue_id) setVenueId(s.venue_id); } catch (e) { /* silent */ }
   }, []);
 
   const fetchData = useCallback(async () => {

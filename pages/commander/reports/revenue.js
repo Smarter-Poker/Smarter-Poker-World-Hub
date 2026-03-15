@@ -9,7 +9,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import { DollarSign, Trophy, Clock, Gift, Loader2, RefreshCw } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../../src/engine/EventBus';
-import { getStaffSession } from '../../../src/lib/commander/clientAuth';
+import { getStaffData } from '../../../src/lib/commander/clientAuth';
 import { commanderFetch } from '../../../src/lib/commander/commanderFetch';
 
 const RANGES = [
@@ -30,7 +30,7 @@ export default function RevenueReport() {
   const [venueId, setVenueId] = useState(null);
 
   useEffect(() => {
-    try { const s = JSON.parse(getStaffSession() || '{}'); if (s.venue_id) setVenueId(s.venue_id); } catch (e) { /* silent */ }
+    try { const s = getStaffData(); if (s.venue_id) setVenueId(s.venue_id); } catch (e) { /* silent */ }
   }, []);
 
   const fetchData = useCallback(async () => {

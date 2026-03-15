@@ -18,7 +18,7 @@ import { QrCode, CreditCard, Loader2, Search, CheckCircle2, AlertTriangle, Chevr
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import useDebounce from '../../src/hooks/useDebounce';
-import { getStaffSession } from '../../src/lib/commander/clientAuth';
+import { getStaffData } from '../../src/lib/commander/clientAuth';
 import { commanderFetch } from '../../src/lib/commander/commanderFetch';
 
 const QUICK_AMOUNTS = [50, 100, 200, 300, 500, 1000];
@@ -118,7 +118,7 @@ export default function Cashier() {
 
   useEffect(() => {
     try {
-      const s = JSON.parse(getStaffSession() || '{}');
+      const s = getStaffData();
       if (s.venue_id) setVenueId(s.venue_id);
     } catch (e) { /* silent */ }
   }, []);

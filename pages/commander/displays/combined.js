@@ -17,7 +17,7 @@ import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
 import { busEmit } from '../../../src/engine/EventBus';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import { getStaffSession } from '../../../src/lib/commander/clientAuth';
+import { getStaffSession, getStaffData } from '../../../src/lib/commander/clientAuth';
 import { commanderFetch } from '../../../src/lib/commander/commanderFetch';
 
 function formatClockTime(seconds) {
@@ -43,7 +43,7 @@ export default function CombinedDisplay() {
   const panels = layout.split('+').filter(Boolean);
 
   const venueIdRef = useRef(null);
-  try { venueIdRef.current = typeof window !== 'undefined' ? JSON.parse(getStaffSession() || '{}').venue_id : null; } catch { venueIdRef.current = null; }
+  try { venueIdRef.current = typeof window !== 'undefined' ? getStaffData().venue_id : null; } catch { venueIdRef.current = null; }
 
   const getHeaders = () => {
     try {

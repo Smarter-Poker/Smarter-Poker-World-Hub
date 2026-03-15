@@ -16,7 +16,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { hasFeature } from '../../src/lib/commander/tierConfig';
 import { busEmit } from '../../src/engine/EventBus';
-import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
+import { getToken, getStaffSession, getStaffData } from '../../src/lib/commander/clientAuth';
 import { commanderFetch } from '../../src/lib/commander/commanderFetch';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -140,7 +140,7 @@ const res = await commanderFetch('/api/commander/settings', {
 
   const fetchData = useCallback(async () => {
     try {
-      const stored = JSON.parse(getStaffSession() || '{}');
+      const stored = getStaffData();
       const venueId = stored.venue_id;
       const safeJson = (r) => (r && typeof r.json === 'function') ? r.json().catch(() => ({})) : Promise.resolve({});
       const [presetsRes, typesRes, promosRes] = await Promise.all([

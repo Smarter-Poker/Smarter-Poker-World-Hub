@@ -20,7 +20,7 @@ import {
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
-import { getStaffSession } from '../../src/lib/commander/clientAuth';
+import { getStaffSession, getStaffData } from '../../src/lib/commander/clientAuth';
 import { commanderFetch } from '../../src/lib/commander/commanderFetch';
 
 const MODE_COLORS = {
@@ -82,7 +82,7 @@ return {
   }, [fetchData, router]);
 
   // Commander Data Bus — sync when tables are changed from other tabs
-  const venueId = (() => { try { return JSON.parse(getStaffSession() || '{}').venue_id || ''; } catch { return ''; } })();
+  const venueId = (() => { try { return getStaffData().venue_id || ''; } catch { return ''; } })();
   useCommanderSync(venueId, fetchData, { entities: ['tables'] });
 
   const openAssign = (table) => {

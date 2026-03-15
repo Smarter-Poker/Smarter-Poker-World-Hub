@@ -8,7 +8,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { LayoutGrid, Loader2, RefreshCw, Clock, Users, TrendingUp, ArrowLeft } from 'lucide-react';
 import { busEmit } from '../../../src/engine/EventBus';
-import { getStaffSession } from '../../../src/lib/commander/clientAuth';
+import { getStaffData } from '../../../src/lib/commander/clientAuth';
 import { commanderFetch } from '../../../src/lib/commander/commanderFetch';
 
 const RANGES = [
@@ -26,7 +26,7 @@ export default function TableUtilization() {
   const [venueId, setVenueId] = useState(null);
 
   useEffect(() => {
-    try { const s = JSON.parse(getStaffSession() || '{}'); if (s.venue_id) setVenueId(s.venue_id); } catch (e) { /* silent */ }
+    try { const s = getStaffData(); if (s.venue_id) setVenueId(s.venue_id); } catch (e) { /* silent */ }
   }, []);
 
   const fetchData = useCallback(async () => {

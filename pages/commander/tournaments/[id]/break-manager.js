@@ -22,7 +22,7 @@ import { Loader2, RefreshCw, Printer, ArrowRight, Check, Zap } from 'lucide-reac
 import CommanderLayout from '../../../../src/components/commander/shared/CommanderLayout';
 import { broadcastChange, useCommanderSync } from '../../../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../../../src/engine/EventBus';
-import { getStaffSession } from '../../../../src/lib/commander/clientAuth';
+import { getVenueId } from '../../../../src/lib/commander/clientAuth';
 import { commanderFetch } from '../../../../src/lib/commander/commanderFetch';
 
 export default function BreakManager() {
@@ -61,7 +61,7 @@ export default function BreakManager() {
   }, [tournamentId]);
 
   const [venueId] = useState(() => {
-    try { return JSON.parse(getStaffSession() || '{}').venue_id; } catch { return null; }
+    return getVenueId();
   });
 
   // Real-time sync — instantly reacts to tournament changes from other TD pages

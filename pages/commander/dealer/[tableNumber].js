@@ -20,7 +20,7 @@ import { AlertTriangle, Coffee, Hash, Loader2, RefreshCw, UserX, Bell, RotateCcw
 import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/useCommanderSync';
 import useWakeLock from '../../../src/hooks/useWakeLock';
 import { busEmit } from '../../../src/engine/EventBus';
-import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
+import { getToken, getStaffSession, getVenueId } from '../../../src/lib/commander/clientAuth';
 import { commanderFetch } from '../../../src/lib/commander/commanderFetch';
 
 const TIER_COLORS = { standard: '#B0B3B8', gold: '#F59E0B', platinum: '#94A3B8', vip: '#A855F7' };
@@ -173,7 +173,7 @@ export default function DealerTablet() {
 
   // Extract venueId for cross-device Supabase sync
   const [venueId] = useState(() => {
-    try { return JSON.parse(getStaffSession() || '{}').venue_id; } catch { return null; }
+    return getVenueId();
   });
 
   // Commander Data Bus — instant cross-tab sync + Supabase Realtime cross-device

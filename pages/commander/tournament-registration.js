@@ -12,7 +12,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
 import useDebounce from '../../src/hooks/useDebounce';
-import { getStaffSession } from '../../src/lib/commander/clientAuth';
+import { getStaffData } from '../../src/lib/commander/clientAuth';
 import { commanderFetch } from '../../src/lib/commander/commanderFetch';
 
 export default function TournamentRegistration() {
@@ -32,7 +32,7 @@ export default function TournamentRegistration() {
 
     useEffect(() => {
         try {
-            const s = JSON.parse(getStaffSession() || '{}');
+            const s = getStaffData();
             if (s.venue_id) setVenueId(s.venue_id);
         } catch (e) { /* silent */ }
     }, []);
@@ -296,7 +296,7 @@ const headers = { 'Content-Type': 'application/json' };
             // 3. Auto-print registration receipts — use REAL data from API response + tournament record
             const registeredEntry = regJson.data?.entry || {};
             let staffName = '';
-            try { staffName = JSON.parse(getStaffSession() || '{}').name || ''; } catch (e) { /* silent */ }
+            try { staffName = getStaffData().name || ''; } catch (e) { /* silent */ }
             const venue = selectedTournament.poker_venues || {};
             printTournamentReceipts({
                 playerName: selectedPlayer.player_name,

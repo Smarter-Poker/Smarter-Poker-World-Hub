@@ -14,7 +14,7 @@ import { Loader2, Users, ArrowLeft, CheckCircle } from 'lucide-react';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
 import useWakeLock from '../../../src/hooks/useWakeLock';
 import { busEmit } from '../../../src/engine/EventBus';
-import { getStaffSession } from '../../../src/lib/commander/clientAuth';
+import { getVenueId, getStaffData } from '../../../src/lib/commander/clientAuth';
 import { commanderFetch } from '../../../src/lib/commander/commanderFetch';
 
 // Capitalize first letter of every word
@@ -53,7 +53,7 @@ export default function WaitlistDisplay() {
   // Load venue info
   useEffect(() => {
     try {
-      const staff = JSON.parse(getStaffSession() || '{}');
+      const staff = getStaffData();
       if (staff.venue_name) setVenueName(staff.venue_name);
     } catch (e) { /* silent */ }
   }, []);
@@ -81,7 +81,7 @@ const opts = signal ? { signal }
   // fetchData — EXACT copy of desk.js logic (desk is source of truth)
   const fetchData = useCallback(async (signal) => {
     try {
-const staffData = JSON.parse(getStaffSession() || '{}');
+const staffData = getStaffData();
       const vid = staffData.venue_id || '';
       const headers = { };
       const opts = signal ? { headers, signal } : { headers };
@@ -111,7 +111,7 @@ const staffData = JSON.parse(getStaffSession() || '{}');
 
   // Real-time Supabase subscription — same as desk.js
   const [venueId] = useState(() => {
-    try { return JSON.parse(getStaffSession() || '{}').venue_id; } catch { return null; }
+    return getVenueId();
   });
   useCommanderSync(venueId, fetchData, { entities: ['waitlist', 'tables', 'games'] });
 

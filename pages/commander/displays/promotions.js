@@ -13,7 +13,7 @@ import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
 import useClubBranding from '../../../src/lib/commander/useClubBranding';
 import useWakeLock from '../../../src/hooks/useWakeLock';
-import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
+import { getToken, getStaffSession, getVenueId } from '../../../src/lib/commander/clientAuth';
 import { busEmit } from '../../../src/engine/EventBus';
 import SEOHead from '../../../src/components/seo/SEOHead';
 
@@ -41,7 +41,7 @@ export default function PromotionsDisplay() {
 
   // Extract venue info for API calls and cross-device sync
   const [venueId] = useState(() => {
-    try { return JSON.parse(getStaffSession() || '{}').venue_id; } catch { return null; }
+    return getVenueId();
   });
 
   // Central club branding — logo + name from Settings

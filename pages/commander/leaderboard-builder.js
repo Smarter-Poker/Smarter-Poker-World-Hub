@@ -23,7 +23,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { busEmit } from '../../src/engine/EventBus';
 import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import SEOHead from '../../src/components/seo/SEOHead';
-import { getStaffSession } from '../../src/lib/commander/clientAuth';
+import { getVenueId } from '../../src/lib/commander/clientAuth';
 import { commanderFetch } from '../../src/lib/commander/commanderFetch';
 
 const BOARD_TYPES = [
@@ -64,7 +64,7 @@ export default function LeaderboardBuilder() {
     const [addEntry, setAddEntry] = useState({ player_id: '', score: '', hours_played: '', sessions_count: '' });
 
     const [venueId] = useState(() => {
-        try { return JSON.parse(getStaffSession() || '{}').venue_id; } catch { return null; }
+        return getVenueId();
     });
 
     const flash = (type, msg) => { setToast({ type, msg }); setTimeout(() => setToast(null), 4000); };

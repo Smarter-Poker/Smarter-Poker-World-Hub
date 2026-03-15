@@ -13,7 +13,7 @@ import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/us
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
 import { busEmit } from '../../../src/engine/EventBus';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import { getStaffSession } from '../../../src/lib/commander/clientAuth';
+import { getVenueId } from '../../../src/lib/commander/clientAuth';
 import { commanderFetch } from '../../../src/lib/commander/commanderFetch';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -72,7 +72,7 @@ export default function AnnouncementsDisplay() {
     title: '', message: '', priority: 'normal', type: 'general', expires_at: '', starts_at: '' });
 
   const [venueId] = useState(() => {
-    try { return JSON.parse(getStaffSession() || '{}').venue_id; } catch { return null; }
+    return getVenueId();
   });
 
   // ─── Fetch active announcements (for display) ───

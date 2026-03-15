@@ -20,7 +20,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { Check, Clock, Loader2, RefreshCw, Bell, Plus, X, Volume2, VolumeX, Users, Shield, Wrench, DollarSign, Gavel, Coffee, HelpCircle, ArrowRight, CheckCircle2, Timer } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
-import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
+import { getToken, getStaffSession, getVenueId } from '../../src/lib/commander/clientAuth';
 import { commanderFetch } from '../../src/lib/commander/commanderFetch';
 
 /* ─── Constants ──────────────────────────────────────────────── */
@@ -109,7 +109,7 @@ export default function FloorCalls() {
   };
 
   const [venueId] = useState(() => {
-    try { return JSON.parse(getStaffSession() || '{}').venue_id; } catch { return null; }
+    return getVenueId();
   });
 
   /* ─── API ──────────────────────────────────────────────────── */

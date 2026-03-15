@@ -18,7 +18,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import { Shield, Timer, Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';
 import { commanderFetch } from '../../../src/lib/commander/commanderFetch';
-import { getStaffSession } from '../../../src/lib/commander/clientAuth';
+import { getVenueId } from '../../../src/lib/commander/clientAuth';
 
 function formatCountdown(seconds) {
   if (seconds === null || seconds === undefined || seconds < 0) return '--:--';
@@ -105,7 +105,7 @@ useEffect(() => {
 
   // Extract venueId for cross-device Supabase sync
   const [venueId] = useState(() => {
-    try { return JSON.parse(getStaffSession() || '{}').venue_id; } catch { return null; }
+    return getVenueId();
   });
 
   // Commander Data Bus — sync member status in real-time

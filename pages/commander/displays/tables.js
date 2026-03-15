@@ -18,7 +18,7 @@ import DealerTicker from '../../../src/components/commander/shared/DealerTicker'
 import useCommanderSync, { broadcastChange } from '../../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../../src/engine/EventBus';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import { getStaffSession } from '../../../src/lib/commander/clientAuth';
+import { getStaffData } from '../../../src/lib/commander/clientAuth';
 import { commanderFetch } from '../../../src/lib/commander/commanderFetch';
 
 /* ─── Helpers ────────────────────────────────────────────── */
@@ -100,7 +100,7 @@ export default function TablesDisplay() {
   // Mount: read localStorage for staff session + restore lock state
   useEffect(() => {
     try {
-      const staff = JSON.parse(getStaffSession() || '{}');
+      const staff = getStaffData();
       if (staff.venue_id) setVenueId(staff.venue_id);
       if (staff.venue_name) setVenueName(staff.venue_name);
     } catch { /* ignore */ }

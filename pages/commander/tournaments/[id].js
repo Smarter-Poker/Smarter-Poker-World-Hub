@@ -28,7 +28,7 @@ import CommanderLayout from '../../../src/components/commander/shared/CommanderL
 import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/useCommanderSync';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { getStaffSession } from '../../../src/lib/commander/clientAuth';
+import { getStaffSession, getVenueId } from '../../../src/lib/commander/clientAuth';
 import { commanderFetch } from '../../../src/lib/commander/commanderFetch';
 
 const STATUS_CONFIG = {
@@ -68,7 +68,7 @@ export default function TournamentDetailPage() {
   // Extract venueId for sync
   const [venueId] = useState(() => {
     if (typeof window === 'undefined') return null;
-    try { return JSON.parse(getStaffSession() || '{}').venue_id; } catch { return null; }
+    return getVenueId();
   });
 
   // Check staff session

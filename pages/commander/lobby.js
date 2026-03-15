@@ -18,7 +18,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import useWakeLock from '../../src/hooks/useWakeLock';
 import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
-import { getStaffSession } from '../../src/lib/commander/clientAuth';
+import { getVenueId } from '../../src/lib/commander/clientAuth';
 import { commanderFetch } from '../../src/lib/commander/commanderFetch';
 
 export default function LobbyDisplay() {
@@ -30,7 +30,7 @@ export default function LobbyDisplay() {
   const [now, setNow] = useState(new Date());
   useWakeLock();
   const [venueId] = useState(() => {
-    try { return JSON.parse(getStaffSession() || '{}').venue_id; } catch { return null; }
+    return getVenueId();
   });
 
   const fetchData = useCallback(async (signal) => {

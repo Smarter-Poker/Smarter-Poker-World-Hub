@@ -10,7 +10,7 @@ import { Plus, Trophy, CheckCircle2, Loader2, RefreshCw, Trash2, Star, X, Crown 
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
-import { getStaffSession } from '../../src/lib/commander/clientAuth';
+import { getStaffData } from '../../src/lib/commander/clientAuth';
 import { commanderFetch } from '../../src/lib/commander/commanderFetch';
 
 const HAND_RANKS = [
@@ -41,7 +41,7 @@ export default function HighHands() {
   });
 
   useEffect(() => {
-    try { const s = JSON.parse(getStaffSession() || '{}'); if (s.venue_id) setVenueId(s.venue_id); } catch (e) { /* silent */ }
+    try { const s = getStaffData(); if (s.venue_id) setVenueId(s.venue_id); } catch (e) { /* silent */ }
   }, []);
 
   const fetchData = useCallback(async () => {

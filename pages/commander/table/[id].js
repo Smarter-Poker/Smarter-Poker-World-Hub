@@ -18,7 +18,7 @@ import { Plus, RefreshCw, UserPlus, ArrowLeft } from 'lucide-react';
 import dynamic from 'next/dynamic';
 const SkeletonDark = dynamic(() => import('../../../src/components/ui/SkeletonDark'), { ssr: false });
 import { busEmit } from '../../../src/engine/EventBus';
-import { getStaffSession, getVenueId } from '../../../src/lib/commander/clientAuth';
+import { getVenueId, getStaffData } from '../../../src/lib/commander/clientAuth';
 import { commanderFetch } from '../../../src/lib/commander/commanderFetch';
 
 function formatCountdown(minutes) {
@@ -71,7 +71,7 @@ const headers = { };
 
   // Real-time sync — instant cross-tab + cross-device updates
   const venueId = typeof window !== 'undefined'
-    ? (() => { try { return JSON.parse(getStaffSession() || '{}').venue_id || ''; } catch { return ''; } })()
+    ? (() => { try { return getStaffData().venue_id || ''; } catch { return ''; } })()
     : '';
   useCommanderSync(venueId, fetchData, { entities: ['tables', 'games', 'waitlist'] });
   const removePlayer = async (sessionId) => {

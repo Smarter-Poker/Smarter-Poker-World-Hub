@@ -21,7 +21,7 @@ import { Loader2, Users, UserPlus, ArrowLeft, ArrowRight, ArrowRightLeft, PhoneC
 import dynamic from 'next/dynamic';
 const SkeletonDark = dynamic(() => import('../../../src/components/ui/SkeletonDark'), { ssr: false });
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
-import { getStaffSession } from '../../../src/lib/commander/clientAuth';
+import { getVenueId, getStaffData } from '../../../src/lib/commander/clientAuth';
 import { commanderFetch } from '../../../src/lib/commander/commanderFetch';
 
 // Format phone to 555-555-5555 (internal display only)
@@ -88,7 +88,7 @@ export default function WaitlistDesk() {
   // Load venue info + saved desk customization
   useEffect(() => {
     try {
-      const staff = JSON.parse(getStaffSession() || '{}');
+      const staff = getStaffData();
       if (staff.venue_name) setVenueName(staff.venue_name);
     } catch (e) { /* silent */ }
 
@@ -123,7 +123,7 @@ const res = await commanderFetch('/api/commander/settings', {
 
   const fetchData = useCallback(async (signal) => {
     try {
-const staffData = JSON.parse(getStaffSession() || '{}');
+const staffData = getStaffData();
       const vid = staffData.venue_id || '';
       const headers = { };
       const fetchOpts = signal ? { headers, signal } : { headers };
@@ -169,7 +169,7 @@ const staffData = JSON.parse(getStaffSession() || '{}');
   }, [fetchData]);
 
   const [venueId] = useState(() => {
-    try { return JSON.parse(getStaffSession() || '{}').venue_id; } catch { return null; }
+    return getVenueId();
   });
   useCommanderSync(venueId, fetchData, { entities: ['waitlist', 'tables', 'games'] });
 
@@ -331,7 +331,7 @@ const res = await commanderFetch(`/api/commander/waitlist/${entry.id}`, {
       if (!proceed) return;
     }
     try {
-const staffData = JSON.parse(getStaffSession() || '{}');
+const staffData = getStaffData();
       const parts = (playerData.game_type || 'NLH 1/3').split(' ');
       const gameType = parts[0] || 'NLH';
       const stakes = parts.slice(1).join(' ') || '1/3';
@@ -411,7 +411,7 @@ const staffData = JSON.parse(getStaffSession() || '{}');
     // Auto-create table if a table number was provided
     if (tn) {
       try {
-const staffData = JSON.parse(getStaffSession() || '{}');
+const staffData = getStaffData();
         const r = await commanderFetch('/api/commander/tables', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
