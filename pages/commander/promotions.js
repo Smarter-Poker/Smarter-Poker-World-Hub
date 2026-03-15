@@ -286,6 +286,14 @@ function CurrentHighHandBanner({ highHand }) {
 
 export default function PromotionsPage() {
   const router = useRouter();
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   useEffect(() => { busEmit.sessionStart('commander-promotions'); }, []);
 
   const [staff, setStaff] = useState(null);
@@ -386,12 +394,12 @@ const res = await fetch('/api/promo/seed-premade', {
       if (!res.ok) throw new Error('Request failed');
       const data = await res.json();
       if (data.success) {
-        alert(`${data.message}`);
+        setToast({ type: 'error', text: `${data.message}` });
         fetchPromoCodes();
       } else {
-        alert(data.error || 'Failed to seed promos');
+        setToast({ type: 'error', text: data.error || 'Failed to seed promos' });
       }
-    } catch (err) { console.error('Seed promos error:', err); alert('Failed to seed promos'); }
+    } catch (err) { console.error('Seed promos error:', err); setToast({ type: 'error', text: 'Failed to seed promos' }); }
     finally { setSeedingPromos(false); }
   };
 
@@ -404,7 +412,7 @@ const res = await fetch('/api/promo/admin-promo-codes', {
         body: JSON.stringify({ id: code.id, is_active: !code.is_active })
       });
       if (res.ok) fetchPromoCodes();
-    } catch (err) { console.error('Toggle promo code error:', err); alert('Action failed: Toggle promo code. Please try again.'); }
+    } catch (err) { console.error('Toggle promo code error:', err); setToast({ type: 'error', text: 'Action failed: Toggle promo code. Please try again.' }); }
   };
 
   const deletePromoCode = async (code) => {
@@ -414,7 +422,7 @@ const res = await fetch('/api/promo/admin-promo-codes', {
 const res = await fetch(`/api/promo/admin-promo-codes?id=${code.id}`, {
         method: 'DELETE'});
       if (res.ok) fetchPromoCodes();
-    } catch (err) { console.error('Delete promo code error:', err); alert('Action failed: Delete promo code. Please try again.'); }
+    } catch (err) { console.error('Delete promo code error:', err); setToast({ type: 'error', text: 'Action failed: Delete promo code. Please try again.' }); }
   };
 
   const openEditPromoCode = (code) => {
@@ -441,9 +449,9 @@ const res = await fetch('/api/promo/admin-promo-codes', {
         setEditingPromoCode(null);
         fetchPromoCodes();
       } else {
-        alert(data.error || 'Failed to save');
+        setToast({ type: 'error', text: data.error || 'Failed to save' });
       }
-    } catch (err) { console.error('Save promo code error:', err); alert('Failed to save'); }
+    } catch (err) { console.error('Save promo code error:', err); setToast({ type: 'error', text: 'Failed to save' }); }
   };
 
   useEffect(() => {
@@ -499,13 +507,13 @@ const results = await Promise.allSettled([...selectedIds].map(id =>
         }).then(r => { if (!r.ok) throw new Error('fail'); return r; })
       ));
       const failed = results.filter(r => r.status === 'rejected').length;
-      if (failed > 0) alert(`${failed} of ${selectedIds.size} operations failed`);
+      if (failed > 0) setToast({ type: 'error', text: `${failed} of ${selectedIds.size} operations failed` });
       clearSelection();
       broadcastChange('settings');
       fetchPromotions();
     } catch (error) {
       console.error('Bulk toggle failed:', error);
-      alert('Bulk operation failed: ' + error.message);
+      setToast({ type: 'error', text: 'Bulk operation failed: ' + error.message });
     }
   }
   async function bulkDelete() {
@@ -517,13 +525,13 @@ const results = await Promise.allSettled([...selectedIds].map(id =>
         .then(r => { if (!r.ok) throw new Error('fail'); return r; })
       ));
       const failed = results.filter(r => r.status === 'rejected').length;
-      if (failed > 0) alert(`${failed} of ${selectedIds.size} deletions failed`);
+      if (failed > 0) setToast({ type: 'error', text: `${failed} of ${selectedIds.size} deletions failed` });
       clearSelection();
       broadcastChange('settings');
       fetchPromotions();
     } catch (error) {
       console.error('Bulk delete failed:', error);
-      alert('Bulk delete failed: ' + error.message);
+      setToast({ type: 'error', text: 'Bulk delete failed: ' + error.message });
     }
   }
 
@@ -588,7 +596,7 @@ const res = await commanderFetch(`/api/commander/high-hands/${highHand.id}`, {
     } catch (error) {
       setAwardsLoading(false);
       console.error('Verify high hand failed:', error);
-      alert('Verify high hand failed. Please check your connection and try again.');
+      setToast({ type: 'error', text: 'Verify high hand failed. Please check your connection and try again.' });
     }
   }
 
@@ -606,7 +614,7 @@ const res = await commanderFetch(`/api/commander/promotions/${promo.id}`, {
       }
     } catch (error) {
       console.error('Toggle failed:', error);
-      alert('Failed to toggle promotion. Please try again.');
+      setToast({ type: 'error', text: 'Failed to toggle promotion. Please try again.' });
     }
   }
 
@@ -621,7 +629,7 @@ const res = await commanderFetch(`/api/commander/promotions/${promo.id}`, { meth
       }
     } catch (error) {
       console.error('Delete failed:', error);
-      alert('Failed to delete promotion. Please try again.');
+      setToast({ type: 'error', text: 'Failed to delete promotion. Please try again.' });
     }
   }
 
@@ -669,16 +677,19 @@ const cloneData = {
         broadcastChange('settings');
         fetchPromotions();
       } else {
-        alert('Duplicate failed: ' + (result.error || 'Unknown error'));
+        setToast({ type: 'error', text: 'Duplicate failed: ' + (result.error || 'Unknown error') });
       }
     } catch (error) {
       console.error('Duplicate promo failed:', error);
-      alert('Duplicate failed: ' + error.message);
+      setToast({ type: 'error', text: 'Duplicate failed: ' + error.message });
     }
   }
 
   const [draggedId, setDraggedId] = useState(null);
   const [dragOverId, setDragOverId] = useState(null);
+
+  // ── Toast notification state ──
+  const [toast, setToast] = useState(null);
 
   const filteredPromos = promotions.filter(p => {
     if (filter === 'active') return p.is_active;
@@ -717,7 +728,7 @@ try {
       broadcastChange('settings');
     } catch (err) {
       console.error('Drag reorder save failed:', err);
-      alert('Failed to save reorder. Reverting...');
+      setToast({ type: 'error', text: 'Failed to save reorder. Reverting...' });
       fetchPromotions(); // Revert on failure
     }
   }
@@ -1030,7 +1041,7 @@ const res = await commanderFetch('/api/commander/high-hands', {
                       }
                     } catch (error) {
                       console.error('Submit high hand failed:', error);
-                      alert('Failed to submit high hand. Please try again.');
+                      setToast({ type: 'error', text: 'Failed to submit high hand. Please try again.' });
                     }
                   }}
                 />
@@ -1406,11 +1417,11 @@ const res = await commanderFetch('/api/commander/promotions', {
                         setShowCreateModal(false);
                         setUseWizard(false);
                       } else {
-                        alert('Create failed: ' + (result.error || 'Unknown error'));
+                        setToast({ type: 'error', text: 'Create failed: ' + (result.error || 'Unknown error') });
                       }
                     } catch (error) {
                       console.error('Create promo failed:', error);
-                      alert('Create failed: ' + error.message);
+                      setToast({ type: 'error', text: 'Create failed: ' + error.message });
                     }
                   }}
                   onCancel={() => { setUseWizard(false); setShowCreateModal(false); }}
@@ -1435,11 +1446,11 @@ const res = await commanderFetch('/api/commander/promotions', {
                     fetchPromotions();
                     setShowCreateModal(false);
                   } else {
-                    alert('Create failed: ' + (result.error || 'Unknown error'));
+                    setToast({ type: 'error', text: 'Create failed: ' + (result.error || 'Unknown error') });
                   }
                 } catch (error) {
                   console.error('Create promo failed:', error);
-                  alert('Create failed: ' + error.message);
+                  setToast({ type: 'error', text: 'Create failed: ' + error.message });
                 }
               }}
               onClose={() => setShowCreateModal(false)}
@@ -1467,11 +1478,11 @@ const res = await commanderFetch(`/api/commander/promotions/${editingPromo.id}`,
                   setShowEditModal(false);
                   setEditingPromo(null);
                 } else {
-                  alert('Update failed: ' + (result.error || 'Unknown error'));
+                  setToast({ type: 'error', text: 'Update failed: ' + (result.error || 'Unknown error') });
                 }
               } catch (error) {
                 console.error('Update promo failed:', error);
-                alert('Update failed: ' + error.message);
+                setToast({ type: 'error', text: 'Update failed: ' + error.message });
               }
             }}
             onDelete={async (id) => {
@@ -1486,7 +1497,7 @@ const res = await commanderFetch(`/api/commander/promotions/${id}`, { method: 'D
                 }
               } catch (error) {
                 console.error('Delete failed:', error);
-                alert('Failed to delete promotion. Please try again.');
+                setToast({ type: 'error', text: 'Failed to delete promotion. Please try again.' });
               }
             }}
             onClose={() => {
@@ -1580,6 +1591,26 @@ const res = await commanderFetch(`/api/commander/promotions/${id}`, { method: 'D
         <style jsx>{`
 `}</style>
       </>
+    
+      {/* TOAST */}
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
+          padding: '12px 20px', borderRadius: 12,
+          background: toast.type === 'success' ? '#22C55E' : '#EF4444',
+          color: '#fff', fontSize: 13, fontWeight: 600,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+          display: 'flex', alignItems: 'center', gap: 8,
+          animation: 'slideUp 0.3s ease',
+          maxWidth: 360,
+        }}>
+          <span>{toast.text}</span>
+          <button onClick={() => setToast(null)} style={{
+            background: 'none', border: 'none', color: '#fff',
+            cursor: 'pointer', fontSize: 16, lineHeight: 1, padding: 0, marginLeft: 8,
+          }}>×</button>
+        </div>
+      )}
     </CommanderLayout>
   );
 }

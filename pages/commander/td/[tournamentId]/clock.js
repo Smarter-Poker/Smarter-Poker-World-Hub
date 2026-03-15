@@ -23,6 +23,14 @@ const NAV_ITEMS = [
 const NAV_ICONS = { control: Trophy, tables: LayoutGrid, players: Users, payouts: DollarSign, reports: FileText, clock: Monitor };
 
 export default function TDClock() {
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   useEffect(() => { busEmit.sessionStart('commander-td-tournamentId-clock'); }, []);
   const router = useRouter();
   const { tournamentId } = router.query;
@@ -33,6 +41,9 @@ export default function TDClock() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [messageText, setMessageText] = useState('');
   const [showMessage, setShowMessage] = useState(false);
+
+  // ── Toast notification state ──
+  const [toast, setToast] = useState(null);
   const timerRef = useRef(null);
   const containerRef = useRef(null);
 
@@ -195,9 +206,9 @@ ${receipts.map(r => `<div class="card">
           alert(json.error?.message || json.error || 'Clock action failed.');
         }
       } else {
-        alert('Clock action failed.');
+        setToast({ type: 'error', text: 'Clock action failed.' });
       }
-    } catch (err) { console.error(err); alert('Clock action failed. Check console.'); }
+    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Clock action failed. Check console.' }); }
     finally { setActionLoading(null); }
   };
 
@@ -218,9 +229,9 @@ ${receipts.map(r => `<div class="card">
           broadcastChange('tournaments');
         }
       } else {
-        alert('Failed to toggle Hand-for-Hand.');
+        setToast({ type: 'error', text: 'Failed to toggle Hand-for-Hand.' });
       }
-    } catch (err) { console.error(err); alert('Hand-for-Hand toggle failed.'); }
+    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Hand-for-Hand toggle failed.' }); }
   };
 
   const triggerFinalTable = async () => {
@@ -240,9 +251,9 @@ ${receipts.map(r => `<div class="card">
           broadcastChange('tournaments');
         }
       } else {
-        alert('Final table action failed.');
+        setToast({ type: 'error', text: 'Final table action failed.' });
       }
-    } catch (err) { console.error(err); alert('Final table action failed. Check console.'); }
+    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Final table action failed. Check console.' }); }
     finally { setActionLoading(null); }
   };
 
@@ -432,6 +443,26 @@ ${receipts.map(r => `<div class="card">
           </nav>
         )}
       </div>
+    
+      {/* TOAST */}
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
+          padding: '12px 20px', borderRadius: 12,
+          background: toast.type === 'success' ? '#22C55E' : '#EF4444',
+          color: '#fff', fontSize: 13, fontWeight: 600,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+          display: 'flex', alignItems: 'center', gap: 8,
+          animation: 'slideUp 0.3s ease',
+          maxWidth: 360,
+        }}>
+          <span>{toast.text}</span>
+          <button onClick={() => setToast(null)} style={{
+            background: 'none', border: 'none', color: '#fff',
+            cursor: 'pointer', fontSize: 16, lineHeight: 1, padding: 0, marginLeft: 8,
+          }}>×</button>
+        </div>
+      )}
     </CommanderLayout>
   );
 }

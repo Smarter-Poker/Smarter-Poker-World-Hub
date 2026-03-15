@@ -233,9 +233,8 @@ export default function GtoNewsPage() {
     if (next.size % 5 === 0) {
       const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
       if (token) {
-        fetch('/api/training/save-session', {
+        authedFetch('/api/training/save-session', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({
             gameId: 'gto-news',
             gameName: `GTO News (${next.size} articles read)`,

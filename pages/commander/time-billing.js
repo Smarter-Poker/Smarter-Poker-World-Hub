@@ -35,6 +35,14 @@ function calculateCharge(startTime, ratePerHour) {
 }
 
 export default function TimeBilling() {
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   useEffect(() => { busEmit.sessionStart('commander-time-billing'); }, []);
   const router = useRouter();
   const [sessions, setSessions] = useState([]);
@@ -135,6 +143,9 @@ const headers = { };
   // Memoized venueId for Supabase sync (avoid function call per render)
   const [syncVenueId] = useState(() => getVenueId());
 
+  // ── Toast notification state ──
+  const [toast, setToast] = useState(null);
+
   // Cross-tab + cross-device real-time sync
   useCommanderSync(syncVenueId, fetchData, { entities: ['tables', 'settings'] });
   useEffect(() => { const i = setInterval(() => setNow(Date.now()), 30000); return () => clearInterval(i); }, []);
@@ -186,7 +197,7 @@ const res = await commanderFetch('/api/commander/settings', {
         setPricingDirty(false);
         broadcastChange('settings');
       }
-    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
+    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
     finally { setPricingSaving(false); }
   };
 
@@ -295,7 +306,7 @@ const res = await commanderFetch(`/api/commander/dealer/sessions/${sessionId}/en
           }
         }
       }
-    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
+    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
     finally { setStopping(null); }
   };
 
@@ -366,7 +377,7 @@ const res = await commanderFetch(`/api/commander/time-billing/sessions/${payModa
           broadcastChange('tables');
         }
       }
-    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
+    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
   };
 
   const activeSessions = sessions.filter(s => s.status === 'active');
@@ -395,7 +406,7 @@ const res = await commanderFetch(`/api/commander/membership-plans?venue_id=${ven
         setMemberDirty(prev => ({ ...prev, [plan.id]: false }));
         broadcastChange('settings');
       }
-    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
+    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
     finally { setMemberSaving(null); }
   };
 
@@ -602,6 +613,26 @@ const res = await commanderFetch(`/api/commander/membership-plans?venue_id=${ven
       </div>
       <style jsx>{`
 `}</style>
+    
+      {/* TOAST */}
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
+          padding: '12px 20px', borderRadius: 12,
+          background: toast.type === 'success' ? '#22C55E' : '#EF4444',
+          color: '#fff', fontSize: 13, fontWeight: 600,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+          display: 'flex', alignItems: 'center', gap: 8,
+          animation: 'slideUp 0.3s ease',
+          maxWidth: 360,
+        }}>
+          <span>{toast.text}</span>
+          <button onClick={() => setToast(null)} style={{
+            background: 'none', border: 'none', color: '#fff',
+            cursor: 'pointer', fontSize: 16, lineHeight: 1, padding: 0, marginLeft: 8,
+          }}>×</button>
+        </div>
+      )}
     </CommanderLayout>
   );
 }

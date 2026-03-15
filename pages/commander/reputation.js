@@ -21,6 +21,14 @@ const RATING_LABELS = {
 };
 
 export default function PlayerReputation() {
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   useEffect(() => { busEmit.sessionStart('commander-reputation'); }, []);
   const router = useRouter();
   const [staff, setStaff] = useState(null);
@@ -31,6 +39,9 @@ export default function PlayerReputation() {
   const [showReviewForm, setShowReviewForm] = useState(null);
   const [reviewForm, setReviewForm] = useState({ reliability: 3, sportsmanship: 3, etiquette: 3, communication: 3, comment: '', context: 'cash_game' });
   const [submitting, setSubmitting] = useState(false);
+
+  // ── Toast notification state ──
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     const _c = new AbortController();
@@ -104,7 +115,7 @@ const res = await commanderFetch('/api/commander/reputation', {
         if (expandedId) fetchReviews(expandedId);
         broadcastChange('reputation');
       }
-    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
+    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
     finally { setSubmitting(false); }
   };
 
@@ -258,6 +269,26 @@ const res = await commanderFetch('/api/commander/reputation', {
       </div>
       <style jsx global>{`
 .spin { animation: spin 1s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    
+      {/* TOAST */}
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
+          padding: '12px 20px', borderRadius: 12,
+          background: toast.type === 'success' ? '#22C55E' : '#EF4444',
+          color: '#fff', fontSize: 13, fontWeight: 600,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+          display: 'flex', alignItems: 'center', gap: 8,
+          animation: 'slideUp 0.3s ease',
+          maxWidth: 360,
+        }}>
+          <span>{toast.text}</span>
+          <button onClick={() => setToast(null)} style={{
+            background: 'none', border: 'none', color: '#fff',
+            cursor: 'pointer', fontSize: 16, lineHeight: 1, padding: 0, marginLeft: 8,
+          }}>×</button>
+        </div>
+      )}
     </CommanderLayout>
   );
 }

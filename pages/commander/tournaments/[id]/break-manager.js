@@ -26,6 +26,14 @@ import { getVenueId } from '../../../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../../../src/lib/commander/commanderFetch';
 
 export default function BreakManager() {
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   useEffect(() => { busEmit.sessionStart('commander-tournaments-id-break-manager'); }, []);
   const router = useRouter();
   const { id: tournamentId } = router.query;
@@ -59,6 +67,9 @@ export default function BreakManager() {
   }, [tournamentId]);
 
   const [venueId] = useState(() => {
+
+  // ── Toast notification state ──
+  const [toast, setToast] = useState(null);
     return getVenueId();
   });
 
@@ -87,9 +98,9 @@ export default function BreakManager() {
         setReceipts(json.data.receipts);
         broadcastChange('tournaments');
       } else {
-        alert(json.error || 'Break failed — please try again.');
+        setToast({ type: 'error', text: json.error || 'Break failed — please try again.' });
       }
-    } catch (err) { console.error(err); alert('Break failed. Check console.'); }
+    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Break failed. Check console.' }); }
     finally { setExecuting(false); }
   };
 
@@ -285,6 +296,26 @@ ${receipts.map(r => `<div class="card">
         </div>
 
       </>
+    
+      {/* TOAST */}
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
+          padding: '12px 20px', borderRadius: 12,
+          background: toast.type === 'success' ? '#22C55E' : '#EF4444',
+          color: '#fff', fontSize: 13, fontWeight: 600,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+          display: 'flex', alignItems: 'center', gap: 8,
+          animation: 'slideUp 0.3s ease',
+          maxWidth: 360,
+        }}>
+          <span>{toast.text}</span>
+          <button onClick={() => setToast(null)} style={{
+            background: 'none', border: 'none', color: '#fff',
+            cursor: 'pointer', fontSize: 16, lineHeight: 1, padding: 0, marginLeft: 8,
+          }}>×</button>
+        </div>
+      )}
     </CommanderLayout>
   );
 }

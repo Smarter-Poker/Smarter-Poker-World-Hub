@@ -13,11 +13,8 @@ import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 
 function saveSession(payload) {
-  const sessionToken = getAccessToken();
-  if (!sessionToken) return;
-  fetch('/api/training/save-session', {
+  authedFetch('/api/training/save-session', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionToken}` },
     body: JSON.stringify(payload),
   }).catch(() => { });
 }

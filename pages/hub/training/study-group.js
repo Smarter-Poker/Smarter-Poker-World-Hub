@@ -87,9 +87,8 @@ export default function StudyGroupRoom() {
     if (!isCreating) {
       const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
       if (!token) return;
-      fetch('/api/training/save-session', {
+      authedFetch('/api/training/save-session', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           gameId: 'study-group',
           stats: {

@@ -50,6 +50,14 @@ function formatTime(seconds) {
 
 export default function TournamentDetailPage() {
   useTrainingBus('commander-tournaments-id');
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   useEffect(() => { busEmit.sessionStart('commander-tournaments-id'); }, []);
   const router = useRouter();
   const { id } = router.query;
@@ -67,6 +75,9 @@ export default function TournamentDetailPage() {
 
   // Extract venueId for sync
   const [venueId] = useState(() => {
+
+  // ── Toast notification state ──
+  const [toast, setToast] = useState(null);
     if (typeof window === 'undefined') return null;
     return getVenueId();
   });
@@ -177,7 +188,7 @@ const res = await commanderFetch(`/api/commander/tournaments/${id}/clock`, {
       }
     } catch (error) {
       console.error('Clock action failed:', error);
-      alert('Clock action failed. Please try again.');
+      setToast({ type: 'error', text: 'Clock action failed. Please try again.' });
     }
   }
 
@@ -198,7 +209,7 @@ const res = await commanderFetch(`/api/commander/tournaments/${id}`, {
       }
     } catch (error) {
       console.error('Status change failed:', error);
-      alert('Status change failed. Please try again.');
+      setToast({ type: 'error', text: 'Status change failed. Please try again.' });
     }
   }
 
@@ -301,7 +312,7 @@ const json = await commanderFetchJSON(`/api/commander/tournaments/${tournament.i
                       }
                     } catch (err) {
                       console.error(err);
-                      alert('Failed to close tournament');
+                      setToast({ type: 'error', text: 'Failed to close tournament' });
                     } finally {
                       setClosing(false);
                     }
@@ -531,6 +542,26 @@ const json = await commanderFetchJSON(`/api/commander/tournaments/${tournament.i
         entries={entries}
       />
 
+    
+      {/* TOAST */}
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
+          padding: '12px 20px', borderRadius: 12,
+          background: toast.type === 'success' ? '#22C55E' : '#EF4444',
+          color: '#fff', fontSize: 13, fontWeight: 600,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+          display: 'flex', alignItems: 'center', gap: 8,
+          animation: 'slideUp 0.3s ease',
+          maxWidth: 360,
+        }}>
+          <span>{toast.text}</span>
+          <button onClick={() => setToast(null)} style={{
+            background: 'none', border: 'none', color: '#fff',
+            cursor: 'pointer', fontSize: 16, lineHeight: 1, padding: 0, marginLeft: 8,
+          }}>×</button>
+        </div>
+      )}
     </CommanderLayout>
   );
 }

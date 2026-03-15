@@ -103,9 +103,8 @@ export default function BlindDefensePage() {
       if ((score.total + 1) % 5 === 0) {
         const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
         if (!token) return;
-        fetch('/api/training/save-session', {
+        authedFetch('/api/training/save-session', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({
             gameId: 'blind-defense',
             stats: {

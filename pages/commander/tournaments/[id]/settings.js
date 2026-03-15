@@ -225,6 +225,14 @@ function calculatePayouts(entries, buyinAmount, structure) {
 }
 
 export default function TournamentSettings() {
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   useEffect(() => { busEmit.sessionStart('commander-tournaments-id-settings'); }, []);
   const router = useRouter();
   const { id } = router.query;
@@ -258,6 +266,9 @@ export default function TournamentSettings() {
   const [payoutStructure, setPayoutStructure] = useState('standard');
   const [estimatedEntries, setEstimatedEntries] = useState(30);
   const [customPayouts, setCustomPayouts] = useState([]);
+
+  // ── Toast notification state ──
+  const [toast, setToast] = useState(null);
 
   // Fetch tournament
   useEffect(() => {
@@ -365,7 +376,7 @@ const res = await commanderFetch(`/api/commander/tournaments/${id}`, {
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) { setSaved(true); setTimeout(() => setSaved(false), 2000); broadcastChange('tournaments'); }
-    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
+    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
     finally { setSaving(false); }
   };
 

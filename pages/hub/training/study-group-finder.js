@@ -174,9 +174,8 @@ export default function StudyGroupFinderPage() {
       // Save to Supabase
       const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
       if (token) {
-        fetch('/api/training/save-session', {
+        authedFetch('/api/training/save-session', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({
             gameId: 'study-group',
             gameName: 'Study Group Application',

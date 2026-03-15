@@ -19,11 +19,8 @@ import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 
 function saveSession(payload) {
-  const token = getAccessToken();
-  if (!token) return;
-  fetch('/api/training/save-session', {
+  authedFetch('/api/training/save-session', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify(payload),
   }).catch(() => { });
 }

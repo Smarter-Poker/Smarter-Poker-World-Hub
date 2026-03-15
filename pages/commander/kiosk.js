@@ -42,6 +42,14 @@ function liveFormatPhone(value) {
 }
 
 export default function MembershipKiosk() {
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   useEffect(() => { busEmit.sessionStart('commander-kiosk'); }, []);
   const router = useRouter();
   const [mode, setMode] = useState('home');
@@ -80,6 +88,9 @@ export default function MembershipKiosk() {
 
   // Staff session header for API calls
   const [staffHeader, setStaffHeader] = useState('');
+
+  // ── Toast notification state ──
+  const [toast, setToast] = useState(null);
 
   // Load venue info from staff session
   useEffect(() => {
@@ -224,7 +235,7 @@ export default function MembershipKiosk() {
       } else {
         throw new Error('Check-in failed on server');
       }
-    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
+    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
     finally { setSubmitting(false); }
   };
 
@@ -473,7 +484,7 @@ export default function MembershipKiosk() {
         setMode('success');
         broadcastChange('waitlist');
       }
-    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
+    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
     finally { setSubmitting(false); }
   };
 

@@ -54,6 +54,14 @@ const ANNOUNCEMENT_TEMPLATES = [
 ];
 
 export default function NotificationCenter() {
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   useEffect(() => { busEmit.sessionStart('commander-notifications'); }, []);
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('notifications');
@@ -72,6 +80,9 @@ export default function NotificationCenter() {
   const [formData, setFormData] = useState({
     title: '', message: '', priority: 'normal', type: 'general', expires_at: '', starts_at: '' });
   const [showTemplates, setShowTemplates] = useState(false);
+
+  // ── Toast notification state ──
+  const [toast, setToast] = useState(null);
 
   // ─── Notifications ───
   const fetchNotifications = useCallback(async (signal) => {
@@ -105,7 +116,7 @@ export default function NotificationCenter() {
         setUnreadCount(prev => Math.max(0, prev - 1));
         broadcastChange('notifications');
       }
-    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
+    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
   };
 
   const markAllRead = async () => {
@@ -118,7 +129,7 @@ export default function NotificationCenter() {
         setUnreadCount(0);
         broadcastChange('notifications');
       }
-    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
+    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
     finally { setMarkingAll(false); }
   };
 
@@ -130,7 +141,7 @@ export default function NotificationCenter() {
         setNotifications(prev => prev.filter(n => n.id !== id));
         broadcastChange('notifications');
       }
-    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
+    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
   };
 
   // ─── Announcements ───
@@ -187,7 +198,7 @@ export default function NotificationCenter() {
   };
 
   const saveAnnouncement = async () => {
-    if (!formData.message.trim()) return alert('Message is required');
+    if (!formData.message.trim()) return setToast({ type: 'error', text: 'Message is required' });
     setSavingAnnouncement(true);
     try {
       const venueId = getVenueId();
@@ -232,7 +243,7 @@ export default function NotificationCenter() {
       broadcastChange('announcements');
     } catch (err) {
       console.error(err);
-      alert(err.message || 'Failed to save');
+      setToast({ type: 'error', text: err.message || 'Failed to save' });
     }
     finally { setSavingAnnouncement(false); }
   };
@@ -246,7 +257,7 @@ export default function NotificationCenter() {
         setAnnouncements(prev => prev.filter(a => a.id !== id));
         broadcastChange('announcements');
       }
-    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
+    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
   };
 
   const formatTime = (ts) => {
@@ -700,6 +711,26 @@ export default function NotificationCenter() {
           </div>
         )}
       </div>
+    
+      {/* TOAST */}
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
+          padding: '12px 20px', borderRadius: 12,
+          background: toast.type === 'success' ? '#22C55E' : '#EF4444',
+          color: '#fff', fontSize: 13, fontWeight: 600,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+          display: 'flex', alignItems: 'center', gap: 8,
+          animation: 'slideUp 0.3s ease',
+          maxWidth: 360,
+        }}>
+          <span>{toast.text}</span>
+          <button onClick={() => setToast(null)} style={{
+            background: 'none', border: 'none', color: '#fff',
+            cursor: 'pointer', fontSize: 16, lineHeight: 1, padding: 0, marginLeft: 8,
+          }}>×</button>
+        </div>
+      )}
     </CommanderLayout>
   );
 }

@@ -37,6 +37,14 @@ function formatChips(n) {
 }
 
 export default function TDPlayers() {
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   useEffect(() => { busEmit.sessionStart('commander-td-tournamentId-players'); }, []);
   const router = useRouter();
   const { tournamentId, move: moveEntryId } = router.query;
@@ -52,6 +60,9 @@ export default function TDPlayers() {
   const [moveTable, setMoveTable] = useState('');
   const [moveSeat, setMoveSeat] = useState('');
   const [confirmAction, setConfirmAction] = useState(null); // { type, player, message }
+
+  // ── Toast notification state ──
+  const [toast, setToast] = useState(null);
 
   const fetchFloor = useCallback(async (signal) => {
 
@@ -226,7 +237,7 @@ ${receipts.map(r => `<div class="card">
             printAutoBreakReceipts(res.data.auto_break);
           }
         } else {
-          alert(res.error || 'Elimination failed.');
+          setToast({ type: 'error', text: res.error || 'Elimination failed.' });
         }
       } else if (type === 'rebuy') {
         const res = await apiCall(`/api/commander/tournaments/${tournamentId}/entries/${player.entry_id}/rebuy`, {});
@@ -234,7 +245,7 @@ ${receipts.map(r => `<div class="card">
           success = true;
           printBluetoothReceipt(player, 'Rebuy', floor?.tournament?.rebuy_cost, floor?.tournament?.rebuy_chips || floor?.tournament?.starting_chips);
         } else {
-          alert(res.error || 'Rebuy failed.');
+          setToast({ type: 'error', text: res.error || 'Rebuy failed.' });
         }
       } else if (type === 'addon') {
         const res = await apiCall(`/api/commander/tournaments/${tournamentId}/entries/${player.entry_id}/addon`, {});
@@ -242,7 +253,7 @@ ${receipts.map(r => `<div class="card">
           success = true;
           printBluetoothReceipt(player, 'Add-on', floor?.tournament?.addon_cost, floor?.tournament?.addon_chips || floor?.tournament?.starting_chips);
         } else {
-          alert(res.error || 'Add-on failed.');
+          setToast({ type: 'error', text: res.error || 'Add-on failed.' });
         }
       }
       
@@ -251,7 +262,7 @@ ${receipts.map(r => `<div class="card">
         await fetchFloor();
         broadcastChange('tournaments');
       }
-    } catch (err) { console.error(err); alert('Action failed. Check console.'); }
+    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Action failed. Check console.' }); }
     finally { setActionLoading(null); }
   };
 
@@ -284,12 +295,12 @@ ${receipts.map(r => `<div class="card">
           await fetchFloor();
           broadcastChange('tournaments');
         } else {
-          alert(json.error || 'Failed to update chips.');
+          setToast({ type: 'error', text: json.error || 'Failed to update chips.' });
         }
       } else {
-        alert('Failed to update chips.');
+        setToast({ type: 'error', text: 'Failed to update chips.' });
       }
-    } catch (err) { console.error(err); alert('Failed to update chips. Check console.'); }
+    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Failed to update chips. Check console.' }); }
     finally { setActionLoading(null); }
   };
 
@@ -308,9 +319,9 @@ ${receipts.map(r => `<div class="card">
         await fetchFloor();
         broadcastChange('tournaments');
       } else {
-        alert(res.error || 'Move failed — seat may be occupied.');
+        setToast({ type: 'error', text: res.error || 'Move failed — seat may be occupied.' });
       }
-    } catch (err) { console.error(err); alert('Move failed. Check console.'); }
+    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Move failed. Check console.' }); }
     finally { setActionLoading(null); }
   };
 
@@ -635,6 +646,26 @@ ${receipts.map(r => `<div class="card">
           </div>
         </nav>
       </div>
+    
+      {/* TOAST */}
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
+          padding: '12px 20px', borderRadius: 12,
+          background: toast.type === 'success' ? '#22C55E' : '#EF4444',
+          color: '#fff', fontSize: 13, fontWeight: 600,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+          display: 'flex', alignItems: 'center', gap: 8,
+          animation: 'slideUp 0.3s ease',
+          maxWidth: 360,
+        }}>
+          <span>{toast.text}</span>
+          <button onClick={() => setToast(null)} style={{
+            background: 'none', border: 'none', color: '#fff',
+            cursor: 'pointer', fontSize: 16, lineHeight: 1, padding: 0, marginLeft: 8,
+          }}>×</button>
+        </div>
+      )}
     </CommanderLayout>
   );
 }

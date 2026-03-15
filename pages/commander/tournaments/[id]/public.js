@@ -58,6 +58,14 @@ export default function TournamentPublic() {
   const router = useRouter();
   const { id } = router.query;
   useTrainingBus('commander-tournament-public');
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   useEffect(() => { busEmit.sessionStart('commander-tournament-public'); }, []);
   const [tournament, setTournament] = useState(null);
   const [clock, setClock] = useState(null);
@@ -70,6 +78,9 @@ export default function TournamentPublic() {
   const [copied, setCopied] = useState(false);
   const [posting, setPosting] = useState(false);
   const [posted, setPosted] = useState(false);
+
+  // ── Toast notification state ──
+  const [toast, setToast] = useState(null);
 
   const fetchData = useCallback(async (signal) => {
     try {
@@ -205,7 +216,7 @@ export default function TournamentPublic() {
         setPosted(true);
         setTimeout(() => setPosted(false), 3000);
       }
-    } catch (err) { console.error('Post error:', err); alert('Action failed: Post. Please try again.'); }
+    } catch (err) { console.error('Post error:', err); setToast({ type: 'error', text: 'Action failed: Post. Please try again.' }); }
     finally { setPosting(false); }
   };
 

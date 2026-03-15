@@ -60,6 +60,14 @@ export default function WaitlistDesk() {
   const router = useRouter();
 
   // ── EventBus: Commander session telemetry ──
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   useEffect(() => { busEmit.sessionStart('commander-waitlist-desk'); }, []);
   const [tables, setTables] = useState([]);
   const [waitlists, setWaitlists] = useState([]);
@@ -114,7 +122,7 @@ const res = await commanderFetch('/api/commander/settings', {
         body: JSON.stringify({ desk_customization: newCustom })
       });
       if (!res.ok) throw new Error('Request failed');
-    } catch (err) { console.error('Failed to save customization:', err); alert('Action failed: Failed to save customization. Please try again.'); }
+    } catch (err) { console.error('Failed to save customization:', err); setToast({ type: 'error', text: 'Action failed: Failed to save customization. Please try again.' }); }
   };
 
   const CALL_EXPIRY_MINUTES = 10; // Auto-delete called entries after 10 minutes
@@ -265,7 +273,7 @@ const res = await commanderFetch(`/api/commander/waitlist/${entry.id}/pass`, {
         await fetchData();
         broadcastChange('waitlist');
       }
-    } catch (err) { console.error('Pass error:', err); alert('Action failed: Pass. Please try again.'); await fetchData(); }
+    } catch (err) { console.error('Pass error:', err); setToast({ type: 'error', text: 'Action failed: Pass. Please try again.' }); await fetchData(); }
     finally { setActionLock(null); }
   };
 
@@ -292,7 +300,7 @@ const res = await commanderFetch(`/api/commander/waitlist/${entry.id}`, {
         await fetchData();
         broadcastChange('waitlist');
       }
-    } catch (err) { console.error('Remove error:', err); alert('Action failed: Remove. Please try again.'); await fetchData(); }
+    } catch (err) { console.error('Remove error:', err); setToast({ type: 'error', text: 'Action failed: Remove. Please try again.' }); await fetchData(); }
     finally { setActionLock(null); }
   };
 
@@ -393,7 +401,7 @@ const staffData = getStaffData();
       setEditGame(null);
       await fetchData();
       broadcastChange('waitlist');
-    } catch (err) { console.error('Rename game error:', err); alert('Action failed: Rename game. Please try again.'); }
+    } catch (err) { console.error('Rename game error:', err); setToast({ type: 'error', text: 'Action failed: Rename game. Please try again.' }); }
   };
 
   // ── ADD GAME: Create a new game column (interest list) ──
@@ -448,7 +456,7 @@ const parts = gameLabel.split(' ');
       setEditGame(null);
       await fetchData();
       broadcastChange('waitlist');
-    } catch (err) { console.error('Remove game error:', err); alert('Action failed: Remove game. Please try again.'); }
+    } catch (err) { console.error('Remove game error:', err); setToast({ type: 'error', text: 'Action failed: Remove game. Please try again.' }); }
   };
 
   // ── GROUP & SORT ────────────────────────────────────────────────
@@ -1335,6 +1343,9 @@ function DeskSettingsModal({ custom, onSave, onClose, onUpdate }) {
   const [activeTab, setActiveTab] = useState('colors');
   const [newGame, setNewGame] = useState('');
   const [uploading, setUploading] = useState(false);
+
+  // ── Toast notification state ──
+  const [toast, setToast] = useState(null);
   const logoInputRef = useRef(null);
 
   const handleLogoUpload = async (e) => {
@@ -1356,11 +1367,11 @@ function DeskSettingsModal({ custom, onSave, onClose, onUpdate }) {
       if (json.success && json.url) {
         update('logoUrl', json.url);
       } else {
-        alert('Upload failed: ' + (json.error || 'Unknown error'));
+        setToast({ type: 'error', text: 'Upload failed: ' + (json.error || 'Unknown error') });
       }
     } catch (err) {
       console.error('Logo upload error:', err);
-      alert('Upload failed');
+      setToast({ type: 'error', text: 'Upload failed' });
     }
     setUploading(false);
     if (logoInputRef.current) logoInputRef.current.value = '';
@@ -1550,6 +1561,26 @@ function DeskSettingsModal({ custom, onSave, onClose, onUpdate }) {
           </button>
         </div>
       </div>
+
+      {/* TOAST */}
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
+          padding: '12px 20px', borderRadius: 12,
+          background: toast.type === 'success' ? '#22C55E' : '#EF4444',
+          color: '#fff', fontSize: 13, fontWeight: 600,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+          display: 'flex', alignItems: 'center', gap: 8,
+          animation: 'slideUp 0.3s ease',
+          maxWidth: 360,
+        }}>
+          <span>{toast.text}</span>
+          <button onClick={() => setToast(null)} style={{
+            background: 'none', border: 'none', color: '#fff',
+            cursor: 'pointer', fontSize: 16, lineHeight: 1, padding: 0, marginLeft: 8,
+          }}>×</button>
+        </div>
+      )}
     </div>
   );
 }

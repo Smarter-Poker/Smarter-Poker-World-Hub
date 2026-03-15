@@ -37,6 +37,14 @@ export default function FloorMap() {
   const router = useRouter();
 
   // ── EventBus: Commander session telemetry ──
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   useEffect(() => { busEmit.sessionStart('commander-floor'); }, []);
   const canvasRef = useRef(null);
   const [tables, setTables] = useState([]);
@@ -57,6 +65,9 @@ export default function FloorMap() {
   const [positions, setPositions] = useState({}); // { table_id: { x, y } }
   const [hasChanges, setHasChanges] = useState(false);
   const [rotations, setRotations] = useState({}); // { table_id: degrees }
+
+  // ── Toast notification state ──
+  const [toast, setToast] = useState(null);
 
   // Auth
   useEffect(() => {
@@ -178,7 +189,7 @@ return { };
       busEmit.celebration('confetti');
       setTimeout(() => setSaved(false), 2000);
       broadcastChange('tables');
-    } catch (err) { console.error('Save error:', err); alert('Action failed: Save. Please try again.'); }
+    } catch (err) { console.error('Save error:', err); setToast({ type: 'error', text: 'Action failed: Save. Please try again.' }); }
     finally { setSaving(false); }
   };
 
@@ -560,6 +571,26 @@ return { };
       <style jsx>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
+    
+      {/* TOAST */}
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
+          padding: '12px 20px', borderRadius: 12,
+          background: toast.type === 'success' ? '#22C55E' : '#EF4444',
+          color: '#fff', fontSize: 13, fontWeight: 600,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+          display: 'flex', alignItems: 'center', gap: 8,
+          animation: 'slideUp 0.3s ease',
+          maxWidth: 360,
+        }}>
+          <span>{toast.text}</span>
+          <button onClick={() => setToast(null)} style={{
+            background: 'none', border: 'none', color: '#fff',
+            cursor: 'pointer', fontSize: 16, lineHeight: 1, padding: 0, marginLeft: 8,
+          }}>×</button>
+        </div>
+      )}
     </CommanderLayout>
   );
 }

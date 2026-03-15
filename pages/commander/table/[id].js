@@ -29,6 +29,14 @@ function formatCountdown(minutes) {
 }
 
 export default function TableSeating() {
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   useEffect(() => { busEmit.sessionStart('commander-table-id'); }, []);
   const router = useRouter();
   const { id } = router.query;
@@ -37,6 +45,9 @@ export default function TableSeating() {
   const [waitlist, setWaitlist] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showSeatPicker, setShowSeatPicker] = useState(null); // seat number to fill
+
+  // ── Toast notification state ──
+  const [toast, setToast] = useState(null);
 
   // fetchData declared first — must precede useEffect/useCommanderSync that reference it
   const fetchData = async (signal) => {
@@ -85,7 +96,7 @@ const res = await commanderFetch(`/api/commander/dealer/sessions/${sessionId}/en
         fetchData();
         broadcastChange('tables');
       }
-    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
+    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
   };
 
   if (loading) return (

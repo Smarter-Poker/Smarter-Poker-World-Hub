@@ -220,9 +220,8 @@ export default function EVTrainer() {
       // Persist to Supabase via save-session API
       const token = getAccessToken();
       if (token) {
-        fetch('/api/training/save-session', {
+        authedFetch('/api/training/save-session', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({
             game_id: 'ev-trainer',
             accuracy,

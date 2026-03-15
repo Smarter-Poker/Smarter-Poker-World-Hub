@@ -45,6 +45,14 @@ function getSeatPositions(count) {
 }
 
 export default function DealerTablet() {
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   useEffect(() => { busEmit.sessionStart('commander-dealer-tableNumber'); }, []);
   const router = useRouter();
   const { tableNumber } = router.query;
@@ -350,7 +358,7 @@ export default function DealerTablet() {
         await fetchTable();
         broadcastChange('tables');
       }
-    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
+    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
   setScanLoading(false);
   };
 
@@ -368,7 +376,7 @@ export default function DealerTablet() {
         setAddTimePlayer(null); await fetchTable();
         broadcastChange('tables');
       }
-    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
+    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
     finally { setAddingTime(false); }
   };
 
@@ -390,7 +398,7 @@ export default function DealerTablet() {
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (!json.success && json.error) {
-        alert(json.error || 'Bust out failed.');
+        setToast({ type: 'error', text: json.error || 'Bust out failed.' });
       }
       // Also remove from table session if applicable
       if (player.session_id) {
@@ -401,7 +409,7 @@ export default function DealerTablet() {
       await fetchTable();
       broadcastChange('tables');
       broadcastChange('tournaments');
-    } catch (err) { console.error(err); alert('Bust out failed. Check console.'); }
+    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Bust out failed. Check console.' }); }
     finally { setBustingOut(null); }
   };
 
@@ -419,7 +427,7 @@ export default function DealerTablet() {
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (!res.ok || json.success === false) {
-        alert(json.error || 'Failed to update chips.');
+        setToast({ type: 'error', text: json.error || 'Failed to update chips.' });
         return;
       }
       setChipEntryPlayer(null);
@@ -427,7 +435,7 @@ export default function DealerTablet() {
       await fetchTable();
       broadcastChange('tables');
       broadcastChange('tournaments');
-    } catch (err) { console.error('Update chips error:', err); alert('Failed to update chips. Check console.'); }
+    } catch (err) { console.error('Update chips error:', err); setToast({ type: 'error', text: 'Failed to update chips. Check console.' }); }
     finally { setSavingChips(false); }
   };
 
@@ -452,12 +460,15 @@ export default function DealerTablet() {
       } else {
         setConfirmRemoveAll(false);
       }
-    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
+    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
     finally { setRemovingAll(false); }
   };
 
   // Cash Game: Close table (set inactive via assignment API, no players left)
   const [closingTable, setClosingTable] = useState(false);
+
+  // ── Toast notification state ──
+  const [toast, setToast] = useState(null);
   const closeTableAction = async () => {
     setClosingTable(true);
     try {
@@ -471,7 +482,7 @@ export default function DealerTablet() {
         // Redirect back to poker room — table is now inactive
         router.push('/commander/poker-room');
       }
-    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
+    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
     finally { setClosingTable(false); }
   };
 
@@ -488,7 +499,7 @@ export default function DealerTablet() {
         body: JSON.stringify({ venue_id: vid, table_number: parseInt(tableNumber), reason: 'floor_assistance', description: `Floor requested at Table ${tableNumber}`, priority: 'normal', called_by: 'dealer' })
       });
       if (res.ok) broadcastChange('floor_calls');
-    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
+    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
     setTimeout(() => setFloorRequested(false), 30000);
   };
 
@@ -800,7 +811,7 @@ export default function DealerTablet() {
                 if (!res.ok) throw new Error(`Request failed (${res.status})`);
                 const json = await res.json();
                 if (json.success) setHandCount(json.hands_dealt);
-              } catch (err) { console.error('Hand count error:', err); alert('Action failed: Hand count. Please try again.'); }
+              } catch (err) { console.error('Hand count error:', err); setToast({ type: 'error', text: 'Action failed: Hand count. Please try again.' }); }
             }} className="py-4 rounded-xl bg-[#1877F2] text-white text-sm font-semibold flex items-center justify-center gap-2 active:bg-[#1565D8]"><Hash className="w-5 h-5" /> Hand +1</button>
             <button onClick={requestFloor} disabled={floorRequested}
               className={`py-4 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 ${floorRequested ? 'bg-[#F59E0B] text-white animate-pulse' : 'bg-[#EF4444] text-white active:bg-[#DC2626]'}`}>
@@ -838,7 +849,7 @@ export default function DealerTablet() {
                   body: JSON.stringify({ table_number: parseInt(tableNumber), action: 'reset' })
                 });
                 if (res.ok) setHandCount(0);
-              } catch (err) { console.error('Hand reset error:', err); alert('Action failed: Hand reset. Please try again.'); }
+              } catch (err) { console.error('Hand reset error:', err); setToast({ type: 'error', text: 'Action failed: Hand reset. Please try again.' }); }
             }} className="flex-1 py-2.5 rounded-lg bg-[#3A3B3C] text-[#B0B3B8] text-xs font-medium flex items-center justify-center gap-1 active:bg-[#4A4B4C]"><RotateCcw className="w-3.5 h-3.5" /> Reset</button>
             <button onClick={() => router.push('/commander/poker-room')} className="flex-1 py-2.5 rounded-lg bg-[#3A3B3C] text-[#B0B3B8] text-xs font-medium active:bg-[#4A4B4C]">Exit</button>
           </div>

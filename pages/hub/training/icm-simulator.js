@@ -98,9 +98,8 @@ export default function IcmSimulatorPage() {
       // Persist session with auth
       const token = getAccessToken();
       if (token) {
-        fetch('/api/training/save-session', {
+        authedFetch('/api/training/save-session', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({ game_id: 'icm-simulator', hands_played: 1, accuracy: 100 }),
         }).catch(() => {});
       }

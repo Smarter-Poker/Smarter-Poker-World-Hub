@@ -63,6 +63,14 @@ export default function CommanderTablesPage() {
   const router = useRouter();
 
   // ── EventBus: Commander session telemetry ──
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   useEffect(() => { busEmit.sessionStart('commander-tables'); }, []);
   const [staff, setStaff] = useState(null);
   const [venueId, setVenueId] = useState(null);
@@ -224,7 +232,7 @@ const res = await commanderFetch('/api/commander/games', {
         broadcastChange('games');
         busEmit.celebration('confetti');
       }
-    } catch (err) { console.error('Start game error:', err); alert('Action failed: Start game. Please try again.'); }
+    } catch (err) { console.error('Start game error:', err); setToast({ type: 'error', text: 'Action failed: Start game. Please try again.' }); }
     finally { setActionLoading(false); }
   };
 
@@ -248,7 +256,7 @@ const res1 = await commanderFetch(`/api/commander/games/${gameId}`, {
       }
       await fetchTables();
       broadcastChange('games');
-    } catch (err) { console.error('Close game error:', err); alert('Action failed: Close game. Please try again.'); }
+    } catch (err) { console.error('Close game error:', err); setToast({ type: 'error', text: 'Action failed: Close game. Please try again.' }); }
     finally { setActionLoading(false); }
   };
 
@@ -270,7 +278,7 @@ const updates = { status };
         await fetchTables();
         broadcastChange('tables');
       }
-    } catch (err) { console.error('Set status error:', err); alert('Action failed: Set status. Please try again.'); }
+    } catch (err) { console.error('Set status error:', err); setToast({ type: 'error', text: 'Action failed: Set status. Please try again.' }); }
     finally { setActionLoading(false); }
   };
 
@@ -286,7 +294,7 @@ const res = await commanderFetch(`/api/commander/tables/${selectedTable.id}`, {
         await fetchTables();
         broadcastChange('tables');
       }
-    } catch (err) { console.error('Delete table error:', err); alert('Action failed: Delete table. Please try again.'); }
+    } catch (err) { console.error('Delete table error:', err); setToast({ type: 'error', text: 'Action failed: Delete table. Please try again.' }); }
     finally { setActionLoading(false); }
   };
 
@@ -304,7 +312,7 @@ const res = await commanderFetch('/api/commander/tables', {
         await fetchTables();
         broadcastChange('tables');
       }
-    } catch (err) { console.error('Add table error:', err); alert('Action failed: Add table. Please try again.'); }
+    } catch (err) { console.error('Add table error:', err); setToast({ type: 'error', text: 'Action failed: Add table. Please try again.' }); }
   setActionLoading(false);
   };
 
@@ -324,7 +332,7 @@ const res = await commanderFetch('/api/commander/tables', {
         await fetchTables();
         broadcastChange('tables');
       }
-    } catch (err) { console.error('Set purpose error:', err); alert('Action failed: Set purpose. Please try again.'); }
+    } catch (err) { console.error('Set purpose error:', err); setToast({ type: 'error', text: 'Action failed: Set purpose. Please try again.' }); }
     finally { setActionLoading(false); }
   };
 
@@ -921,6 +929,26 @@ const res = await commanderFetch('/api/commander/tables', {
           @keyframes fadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
         `}</style>
       </>
+    
+      {/* TOAST */}
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
+          padding: '12px 20px', borderRadius: 12,
+          background: toast.type === 'success' ? '#22C55E' : '#EF4444',
+          color: '#fff', fontSize: 13, fontWeight: 600,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+          display: 'flex', alignItems: 'center', gap: 8,
+          animation: 'slideUp 0.3s ease',
+          maxWidth: 360,
+        }}>
+          <span>{toast.text}</span>
+          <button onClick={() => setToast(null)} style={{
+            background: 'none', border: 'none', color: '#fff',
+            cursor: 'pointer', fontSize: 16, lineHeight: 1, padding: 0, marginLeft: 8,
+          }}>×</button>
+        </div>
+      )}
     </CommanderLayout>
   );
 }
@@ -931,6 +959,9 @@ function AddTableModal({ existingCount, onClose, onSubmit }) {
   const [maxSeats, setMaxSeats] = useState(9);
   const [bulkCount, setBulkCount] = useState(1);
   const [submitting, setSubmitting] = useState(false);
+
+  // ── Toast notification state ──
+  const [toast, setToast] = useState(null);
 
   async function handleSubmit(e) {
     e.preventDefault();

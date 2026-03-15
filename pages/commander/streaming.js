@@ -263,6 +263,14 @@ function ConfigureModal({ stream, onSave, onClose }) {
 }
 
 export default function StreamingPage() {
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   useEffect(() => { busEmit.sessionStart('commander-streaming'); }, []);
   const router = useRouter();
 
@@ -271,6 +279,9 @@ export default function StreamingPage() {
   const [loading, setLoading] = useState(true);
   const [streams, setStreams] = useState([]);
   const [configuring, setConfiguring] = useState(null);
+
+  // ── Toast notification state ──
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     const storedStaff = getStaffSession();
@@ -335,7 +346,7 @@ const res = await commanderFetch(`/api/commander/streaming/${tableId}/start`, {
     } catch (err) {
       setLoading(false);
       console.error('Start stream failed:', err);
-      alert('Failed to start stream. Please try again.');
+      setToast({ type: 'error', text: 'Failed to start stream. Please try again.' });
     }
   }
 
@@ -352,7 +363,7 @@ const res = await commanderFetch(`/api/commander/streaming/${tableId}/stop`, {
       }
     } catch (err) {
       console.error('Stop stream failed:', err);
-      alert('Failed to stop stream. Please try again.');
+      setToast({ type: 'error', text: 'Failed to stop stream. Please try again.' });
     }
   }
 
@@ -370,7 +381,7 @@ const res = await commanderFetch(`/api/commander/streaming/${tableId}/config`, {
       }
     } catch (err) {
       console.error('Save config failed:', err);
-      alert('Failed to save streaming config. Please try again.');
+      setToast({ type: 'error', text: 'Failed to save streaming config. Please try again.' });
     }
   }
 
@@ -454,6 +465,26 @@ const res = await commanderFetch(`/api/commander/streaming/${tableId}/config`, {
           />
         )}
       </div>
+    
+      {/* TOAST */}
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
+          padding: '12px 20px', borderRadius: 12,
+          background: toast.type === 'success' ? '#22C55E' : '#EF4444',
+          color: '#fff', fontSize: 13, fontWeight: 600,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+          display: 'flex', alignItems: 'center', gap: 8,
+          animation: 'slideUp 0.3s ease',
+          maxWidth: 360,
+        }}>
+          <span>{toast.text}</span>
+          <button onClick={() => setToast(null)} style={{
+            background: 'none', border: 'none', color: '#fff',
+            cursor: 'pointer', fontSize: 16, lineHeight: 1, padding: 0, marginLeft: 8,
+          }}>×</button>
+        </div>
+      )}
     </CommanderLayout>
   );
 }

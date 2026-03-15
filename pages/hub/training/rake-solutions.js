@@ -165,9 +165,8 @@ export default function RakeSolutionsPage() {
     try {
       const token = await getAccessToken();
       if (token) {
-        fetch('/api/training/save-session', {
+        authedFetch('/api/training/save-session', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({
             gameId: 'rake-solutions',
             questionsAnswered: 1,

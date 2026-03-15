@@ -302,6 +302,14 @@ function RotateModal({ dealer, tables, onSubmit, onClose }) {
 
 export default function DealersPage() {
   const router = useRouter();
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   useEffect(() => { busEmit.sessionStart('commander-dealers'); }, []);
 
   const [staff, setStaff] = useState(null);
@@ -316,6 +324,9 @@ export default function DealersPage() {
   const [editingDealer, setEditingDealer] = useState(null);
   const [rotatingDealer, setRotatingDealer] = useState(null);
   const [activeTab, setActiveTab] = useState('dealers');
+
+  // ── Toast notification state ──
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     const storedStaff = getStaffSession();
@@ -413,7 +424,7 @@ const res = await commanderFetch('/api/commander/dealers', {
       }
     } catch (err) {
       console.error('Add dealer failed:', err);
-      alert('Failed to add dealer. Please try again.');
+      setToast({ type: 'error', text: 'Failed to add dealer. Please try again.' });
     }
   }
 
@@ -434,7 +445,7 @@ const res = await commanderFetch(`/api/commander/dealers/${editingDealer.id}`, {
       }
     } catch (err) {
       console.error('Edit dealer failed:', err);
-      alert('Failed to update dealer. Please try again.');
+      setToast({ type: 'error', text: 'Failed to update dealer. Please try again.' });
     }
   }
 
@@ -455,7 +466,7 @@ const res = await commanderFetch('/api/commander/dealers/rotations', {
       }
     } catch (err) {
       console.error('Rotate dealer failed:', err);
-      alert('Failed to rotate dealer. Please try again.');
+      setToast({ type: 'error', text: 'Failed to rotate dealer. Please try again.' });
     }
   }
 
@@ -697,6 +708,26 @@ const res = await commanderFetch('/api/commander/dealers/rotations', {
           />
         )}
       </div>
+    
+      {/* TOAST */}
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
+          padding: '12px 20px', borderRadius: 12,
+          background: toast.type === 'success' ? '#22C55E' : '#EF4444',
+          color: '#fff', fontSize: 13, fontWeight: 600,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+          display: 'flex', alignItems: 'center', gap: 8,
+          animation: 'slideUp 0.3s ease',
+          maxWidth: 360,
+        }}>
+          <span>{toast.text}</span>
+          <button onClick={() => setToast(null)} style={{
+            background: 'none', border: 'none', color: '#fff',
+            cursor: 'pointer', fontSize: 16, lineHeight: 1, padding: 0, marginLeft: 8,
+          }}>×</button>
+        </div>
+      )}
     </CommanderLayout>
   );
 }
