@@ -22,6 +22,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { withRetry } from '../../../src/lib/supabaseRetry';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -124,23 +125,26 @@ export default async function handler(req, res) {
               return res.status(400).json({ success: false, error: 'Missing required fields' });
           }
 
-          // 1. Save level completion to history
-          const { data: levelHistory, error: historyError } = await supabase
-              .from('training_level_history')
-              .insert({
-                  user_id: userId,
-                  game_id: gameId,
-                  level: level,
-                  questions_answered: questionsAnswered,
-                  questions_correct: questionsCorrect,
-                  accuracy_percentage: accuracy,
-                  passed: passed,
-                  time_spent_seconds: timeSpentSeconds,
-                  best_streak: streak,
-                  diamonds_earned: diamondsEarned
-              })
-              .select()
-              .maybeSingle();
+          // 1. Save level completion to history (with retry for transient failures)
+          const { data: levelHistory, error: historyError } = await withRetry(
+              () => supabase
+                  .from('training_level_history')
+                  .insert({
+                      user_id: userId,
+                      game_id: gameId,
+                      level: level,
+                      questions_answered: questionsAnswered,
+                      questions_correct: questionsCorrect,
+                      accuracy_percentage: accuracy,
+                      passed: passed,
+                      time_spent_seconds: timeSpentSeconds,
+                      best_streak: streak,
+                      diamonds_earned: diamondsEarned
+                  })
+                  .select()
+                  .maybeSingle(),
+              { label: 'SaveProgress:history' }
+          );
 
           if (historyError) {
               console.error('Error saving level history:', historyError);

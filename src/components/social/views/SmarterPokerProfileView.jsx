@@ -645,6 +645,27 @@ export const SmarterPokerProfileView = ({ onNavigate, onOpenChat }) => {
         }
     };
 
+    // Comment + Delete handlers
+    const handleComment = async (postId, text) => {
+        if (!socialService || !authUser?.id) return;
+        await socialService.createComment({ postId, authorId: authUser.id, content: text });
+    };
+
+    const handleLoadComments = async (postId) => {
+        if (!socialService) return [];
+        return await socialService.getComments(postId);
+    };
+
+    const handleDeletePost = async (postId) => {
+        if (!socialService) return;
+        try {
+            await socialService.deletePost(postId);
+            setUserPosts(prev => prev.filter(p => p.id !== postId));
+        } catch (err) {
+            console.error('Delete failed:', err);
+        }
+    };
+
     const posts = userPosts.length > 0 ? userPosts : [
         {
             id: 1,
@@ -742,6 +763,10 @@ export const SmarterPokerProfileView = ({ onNavigate, onOpenChat }) => {
                                     key={post.id || i}
                                     post={post}
                                     user={user}
+                                    onSubmitComment={handleComment}
+                                    onLoadComments={handleLoadComments}
+                                    onDeletePost={handleDeletePost}
+                                    currentUserId={authUser?.id}
                                 />
                             ))
                         )}

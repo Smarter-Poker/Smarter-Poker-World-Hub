@@ -9,7 +9,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { sanitizeParam } from '../../../src/utils/trainingApiUtils';
+import { sanitizeParam, clampPagination } from '../../../src/utils/trainingApiUtils';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -29,15 +29,15 @@ export default async function handler(req, res) {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
 
-      const { gameId: rawGameId, limit = '50' } = req.query;
+      const { gameId: rawGameId, limit: rawLimit = '50' } = req.query;
       const gameId = rawGameId ? sanitizeParam(rawGameId, 100) : null;
-      const boundedLimit = Math.min(100, Math.max(1, parseInt(limit, 10) || 50));
+      const { limit: boundedLimit } = clampPagination(rawLimit, 1);
 
       try {
-          // Try training_sessions first (rich data)
+          // Try training_sessions first (rich data — select only frontend-consumed columns)
           let query = supabase
               .from('training_sessions')
-              .select('*')
+              .select('id, game_id, game_name, gtow_score, hands_played, total_ev_loss, mistake_count, accuracy, correct_count, best_streak, level_passed, level, created_at')
               .eq('user_id', user.id)
               .order('created_at', { ascending: false })
               .limit(boundedLimit);

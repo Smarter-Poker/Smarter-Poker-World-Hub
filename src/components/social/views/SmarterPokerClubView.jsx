@@ -601,6 +601,27 @@ export const SmarterPokerClubView = ({ onNavigate }) => {
         return () => { if (unsubscribe) unsubscribe(); };
     }, [socialService]);
 
+    // Comment + Delete handlers
+    const handleComment = async (postId, text) => {
+        if (!socialService || !currentUser) return;
+        await socialService.createComment({ postId, authorId: currentUser.id, content: text });
+    };
+
+    const handleLoadComments = async (postId) => {
+        if (!socialService) return [];
+        return await socialService.getComments(postId);
+    };
+
+    const handleDeletePost = async (postId) => {
+        if (!socialService) return;
+        try {
+            await socialService.deletePost(postId);
+            setPosts(prev => prev.filter(p => p.id !== postId));
+        } catch (err) {
+            console.error('Delete failed:', err);
+        }
+    };
+
     return (
         <div className="club-page">
             <ClubHeader club={club} isMember={true} />
@@ -625,7 +646,15 @@ export const SmarterPokerClubView = ({ onNavigate }) => {
                         </div>
                     ) : (
                         displayPosts.map(post => (
-                            <SPPostCard key={post.id} post={post} user={post.user || post.author} />
+                            <SPPostCard
+                                key={post.id}
+                                post={post}
+                                user={post.user || post.author}
+                                onSubmitComment={handleComment}
+                                onLoadComments={handleLoadComments}
+                                onDeletePost={handleDeletePost}
+                                currentUserId={currentUser?.id}
+                            />
                         ))
                     )}
                 </div>

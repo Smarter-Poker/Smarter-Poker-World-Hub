@@ -245,12 +245,12 @@ export default async function handler(req, res) {
               // Determine category from gameId
               const category = getGameCategory(gameId);
 
-              // Get active challenges
+              // Get active challenges (narrow select to needed columns)
               const { data: definitions } = await supabase
                   .from('training_challenge_definitions')
-                  .select('*')
+                  .select('id, name, challenge_type, metric, target_value, diamond_reward, description')
                   .eq('is_active', true)
-                      .limit(100);
+                  .limit(100);
 
               const updatedChallenges = [];
 

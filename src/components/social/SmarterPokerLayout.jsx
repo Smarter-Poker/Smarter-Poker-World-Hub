@@ -116,6 +116,29 @@ const SPNavBar = ({
                         <div className="notif-dropdown-container">
                             <NotificationsDropdown
                                 notifications={notifications}
+                                onNotificationClick={async (notif) => {
+                                    // Mark as read in Supabase
+                                    if (notif?.id && !notif.read) {
+                                        try {
+                                            await supabase
+                                                .from('notifications')
+                                                .update({ read: true })
+                                                .eq('id', notif.id);
+                                            setNotifications(prev => prev.map(n =>
+                                                n.id === notif.id ? { ...n, read: true } : n
+                                            ));
+                                            setUnreadCount(prev => Math.max(0, prev - 1));
+                                        } catch { /* silent */ }
+                                    }
+                                    // Navigate based on type
+                                    const type = notif?.type || '';
+                                    if (type === 'like' || type === 'comment' || type === 'reaction') {
+                                        onNavigate?.('feed');
+                                    } else if (type === 'follow' || type === 'friend_request') {
+                                        onNavigate?.('profile');
+                                    }
+                                    setShowNotifs(false);
+                                }}
                                 onMarkAllRead={async () => {
                                     if (!authUser?.id) return;
                                     try {

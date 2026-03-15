@@ -103,3 +103,24 @@ export function sanitizeParam(value, maxLength = 200) {
     if (!value || typeof value !== 'string') return '';
     return value.replace(/[^a-zA-Z0-9_+\-.]/g, '').slice(0, maxLength);
 }
+
+// ── Pagination constants ────────────────────────────────────────────────
+export const PAGINATION = {
+    DEFAULT_LIMIT: 50,
+    MAX_LIMIT: 100,
+    DEFAULT_PAGE: 1,
+};
+
+/**
+ * Clamp pagination parameters to safe bounds.
+ * Prevents excessively large queries and invalid page numbers.
+ *
+ * @param {string|number} limit - Requested limit
+ * @param {string|number} page - Requested page (1-indexed)
+ * @returns {{ limit: number, page: number, offset: number }}
+ */
+export function clampPagination(limit, page) {
+    const l = Math.min(PAGINATION.MAX_LIMIT, Math.max(1, parseInt(limit, 10) || PAGINATION.DEFAULT_LIMIT));
+    const p = Math.max(1, parseInt(page, 10) || PAGINATION.DEFAULT_PAGE);
+    return { limit: l, page: p, offset: (p - 1) * l };
+}

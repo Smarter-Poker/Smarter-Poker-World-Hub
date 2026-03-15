@@ -9,6 +9,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { withRetry } from '../../../src/lib/supabaseRetry';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -99,9 +100,12 @@ export default async function handler(req, res) {
               created_at: now,
           };
 
-          const { error: sessErr } = await supabase
-              .from('training_sessions')
-              .insert(detailedSession);
+          const { error: sessErr } = await withRetry(
+              () => supabase
+                  .from('training_sessions')
+                  .insert(detailedSession),
+              { label: 'SaveSession:insert' }
+          );
 
           if (sessErr) {
               // Table might not exist yet — gracefully degrade

@@ -7,6 +7,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { withRetry } from '../../../src/lib/supabaseRetry';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -160,16 +161,19 @@ export default async function handler(req, res) {
 
               const newLongest = Math.max(existing.longest_streak, newStreak);
 
-              await supabase
-                  .from('training_streaks')
-                  .update({
-                      current_streak: newStreak,
-                      longest_streak: newLongest,
-                      last_training_date: today,
-                      streak_start_date: daysDiff === 1 ? existing.streak_start_date : today,
-                      updated_at: new Date().toISOString()
-                  })
-                  .eq('user_id', userId);
+              await withRetry(
+                  () => supabase
+                      .from('training_streaks')
+                      .update({
+                          current_streak: newStreak,
+                          longest_streak: newLongest,
+                          last_training_date: today,
+                          streak_start_date: daysDiff === 1 ? existing.streak_start_date : today,
+                          updated_at: new Date().toISOString()
+                      })
+                      .eq('user_id', userId),
+                  { label: 'Streak:update' }
+              );
 
               // Check for newly achieved milestones
               const newMilestones = STREAK_MILESTONES.filter(m =>
