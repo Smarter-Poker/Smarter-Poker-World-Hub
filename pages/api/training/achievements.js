@@ -120,7 +120,7 @@ export default async function handler(req, res) {
               const [{ data: definitions }, { data: existing }] = await Promise.all([
                   supabase
                       .from('training_achievement_definitions')
-                      .select('id, category, threshold, diamond_reward, name'),
+                      .select('id, category, threshold, diamond_reward, name, icon'),
                   supabase
                       .from('training_user_achievements')
                       .select('achievement_id')
