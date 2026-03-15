@@ -30,6 +30,7 @@ import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getStaffSession, getVenueId } from '../../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
+import { useConfirmAction } from "../../../src/components/commander/shared/ConfirmModal";
 
 const STATUS_CONFIG = {
   scheduled: { bg: 'bg-[#64748B]/10', text: 'text-[#64748B]', label: 'Scheduled' },
@@ -52,6 +53,8 @@ export default function TournamentDetailPage() {
   useTrainingBus('commander-tournaments-id');
 
   // ── Toast auto-dismiss ──
+  const { requestConfirm, ConfirmDialog } = useConfirmAction();
+
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 4000);
@@ -562,6 +565,8 @@ const json = await commanderFetchJSON(`/api/commander/tournaments/${tournament.i
           }}>×</button>
         </div>
       )}
+    
+      <ConfirmDialog />
     </CommanderLayout>
   );
 }

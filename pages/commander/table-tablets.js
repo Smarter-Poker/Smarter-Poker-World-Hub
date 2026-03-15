@@ -17,6 +17,7 @@ import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCo
 import { busEmit } from '../../src/engine/EventBus';
 import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
+import { useConfirmAction } from "../../src/components/commander/shared/ConfirmModal";
 
 const STATUS_BADGE = {
     in_use: { bg: '#31A24C', label: 'Active' },
@@ -121,6 +122,8 @@ function computeSeatPositions(maxSeats) {
 }
 
 export default function TableTabletsPage() {
+  const { requestConfirm, ConfirmDialog } = useConfirmAction();
+
   useEffect(() => { busEmit.sessionStart('commander-table-tablets'); }, []);
     const router = useRouter();
     const [tables, setTables] = useState([]);
@@ -2039,6 +2042,8 @@ const res = await commanderFetch('/api/commander/dealer/player-scan-in', {
                     </div>
                 </div>
             )}
-        </CommanderLayout>
+        
+      <ConfirmDialog />
+    </CommanderLayout>
     );
 }

@@ -20,6 +20,7 @@ import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCo
 import useDebounce from '../../src/hooks/useDebounce';
 import { getStaffData } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
+import { useConfirmAction } from "../../src/components/commander/shared/ConfirmModal";
 
 const QUICK_AMOUNTS = [50, 100, 200, 300, 500, 1000];
 // Fallback time options — overridden by owner settings from Time Billing page
@@ -43,6 +44,8 @@ export default function Cashier() {
   const router = useRouter();
 
   // ── EventBus: Commander session telemetry ──
+  const { requestConfirm, ConfirmDialog } = useConfirmAction();
+
   useEffect(() => { busEmit.sessionStart('commander-cashier'); }, []);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);

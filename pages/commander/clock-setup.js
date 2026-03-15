@@ -12,6 +12,7 @@ import { Palette, Save, Loader2, Check, Plus, Trash2, Copy, Volume2, VolumeX, Mo
 import { busEmit } from '../../src/engine/EventBus';
 import { getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
+import { useConfirmAction } from "../../src/components/commander/shared/ConfirmModal";
 
 const DEFAULT_THEME = {
     background: '#0D192E',
@@ -67,6 +68,8 @@ const STARTER_THEMES = [
 export default function ClockSetup() {
 
   // ── Toast auto-dismiss ──
+  const { requestConfirm, ConfirmDialog } = useConfirmAction();
+
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 4000);
@@ -582,6 +585,8 @@ export default function ClockSetup() {
           }}>×</button>
         </div>
       )}
+    
+      <ConfirmDialog />
     </CommanderLayout>
     );
 }

@@ -17,6 +17,7 @@ import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCo
 import { busEmit } from '../../src/engine/EventBus';
 import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
+import { useConfirmAction } from "../../src/components/commander/shared/ConfirmModal";
 
 const PROMO_TYPES = [
   { value: 'high_hand', label: 'High Hand', icon: Trophy, color: '#F59E0B' },
@@ -288,6 +289,8 @@ export default function PromotionsPage() {
   const router = useRouter();
 
   // ── Toast auto-dismiss ──
+  const { requestConfirm, ConfirmDialog } = useConfirmAction();
+
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 4000);
@@ -1611,6 +1614,8 @@ const res = await commanderFetch(`/api/commander/promotions/${id}`, { method: 'D
           }}>×</button>
         </div>
       )}
+    
+      <ConfirmDialog />
     </CommanderLayout>
   );
 }

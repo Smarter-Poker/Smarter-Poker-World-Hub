@@ -15,6 +15,7 @@ import { busEmit } from '../../../src/engine/EventBus';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { getVenueId } from '../../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
+import { useConfirmAction } from "../../../src/components/commander/shared/ConfirmModal";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -55,6 +56,8 @@ const TYPE_ICONS = {
 export default function AnnouncementsDisplay() {
 
   // ── Toast auto-dismiss ──
+  const { requestConfirm, ConfirmDialog } = useConfirmAction();
+
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 4000);
@@ -696,6 +699,8 @@ export default function AnnouncementsDisplay() {
           }}>×</button>
         </div>
       )}
+    
+      <ConfirmDialog />
     </CommanderLayout>
   );
 }

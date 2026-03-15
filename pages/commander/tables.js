@@ -15,6 +15,7 @@ import Pagination from '../../src/components/commander/shared/Pagination';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
+import { useConfirmAction } from "../../src/components/commander/shared/ConfirmModal";
 
 const STATUS_COLORS = {
   available: { bg: 'rgba(49,162,76,0.15)', border: '#31A24C', text: '#31A24C', label: 'Available' },
@@ -65,6 +66,8 @@ export default function CommanderTablesPage() {
   // ── EventBus: Commander session telemetry ──
 
   // ── Toast auto-dismiss ──
+  const { requestConfirm, ConfirmDialog } = useConfirmAction();
+
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 4000);
@@ -237,27 +240,28 @@ const res = await commanderFetch('/api/commander/games', {
   };
 
   const handleCloseGame = async (gameId) => {
-    if (!confirm('Close this game? Players will be unseated.')) return;
-    setActionLoading(true);
-    try {
-const res1 = await commanderFetch(`/api/commander/games/${gameId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'closed' })
-      });
-      if (!res1.ok) throw new Error('Failed to close game');
-      if (selectedTable) {
-        const res2 = await commanderFetch(`/api/commander/tables/${selectedTable.id}`, {
+    requestConfirm('Close this game? Players will be unseated.', async () => {
+      setActionLoading(true);
+      try {
+        const res1 = await commanderFetch(`/api/commander/games/${gameId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: 'available', game_type: null, stakes: null, mode: 'inactive' })
+          body: JSON.stringify({ status: 'closed' })
         });
-        if (!res2.ok) throw new Error('Failed to update table status');
-      }
-      await fetchTables();
-      broadcastChange('games');
-    } catch (err) { console.error('Close game error:', err); setToast({ type: 'error', text: 'Action failed: Close game. Please try again.' }); }
-    finally { setActionLoading(false); }
+        if (!res1.ok) throw new Error('Failed to close game');
+        if (selectedTable) {
+          const res2 = await commanderFetch(`/api/commander/tables/${selectedTable.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'available', game_type: null, stakes: null, mode: 'inactive' })
+          });
+          if (!res2.ok) throw new Error('Failed to update table status');
+        }
+        await fetchTables();
+        broadcastChange('games');
+      } catch (err) { console.error('Close game error:', err); setToast({ type: 'error', text: 'Action failed: Close game. Please try again.' }); }
+      finally { setActionLoading(false); }
+    }, { confirmLabel: 'Close Game', variant: 'danger' });
   };
 
   const handleSetStatus = async (status) => {
@@ -284,18 +288,19 @@ const updates = { status };
 
   const handleDeleteTable = async () => {
     if (!selectedTable) return;
-    if (!confirm(`Delete Table ${selectedTable.table_number}? This cannot be undone.`)) return;
-    setActionLoading(true);
-    try {
-const res = await commanderFetch(`/api/commander/tables/${selectedTable.id}`, {
-        method: 'DELETE'});
-      if (res.ok) {
-        setSelectedTableId(null);
-        await fetchTables();
-        broadcastChange('tables');
-      }
-    } catch (err) { console.error('Delete table error:', err); setToast({ type: 'error', text: 'Action failed: Delete table. Please try again.' }); }
-    finally { setActionLoading(false); }
+    requestConfirm(`Delete Table ${selectedTable.table_number}? This cannot be undone.`, async () => {
+      setActionLoading(true);
+      try {
+        const res = await commanderFetch(`/api/commander/tables/${selectedTable.id}`, {
+          method: 'DELETE'});
+        if (res.ok) {
+          setSelectedTableId(null);
+          await fetchTables();
+          broadcastChange('tables');
+        }
+      } catch (err) { console.error('Delete table error:', err); setToast({ type: 'error', text: 'Action failed: Delete table. Please try again.' }); }
+      finally { setActionLoading(false); }
+    }, { confirmLabel: 'Delete Table', variant: 'danger' });
   };
 
   const handleAddTable = async (tableData) => {
@@ -949,6 +954,8 @@ const res = await commanderFetch('/api/commander/tables', {
           }}>×</button>
         </div>
       )}
+    
+      <ConfirmDialog />
     </CommanderLayout>
   );
 }

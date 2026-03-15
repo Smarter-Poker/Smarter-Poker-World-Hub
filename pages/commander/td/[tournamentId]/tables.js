@@ -15,6 +15,7 @@ import { broadcastChange } from '../../../../src/lib/commander/useCommanderSync'
 import { Trophy, LayoutGrid, Users, Monitor, Loader2, RefreshCw, X, ArrowRightLeft, AlertTriangle, Printer, UserX, DollarSign, FileText } from 'lucide-react';
 import { busEmit } from '../../../../src/engine/EventBus';
 import { commanderFetch } from '../../../../src/lib/commander/commanderFetch';
+import { useConfirmAction } from "../../../../src/components/commander/shared/ConfirmModal";
 
 const NAV_ITEMS = [
   { key: 'control', icon: Trophy, label: 'Control', path: '' },
@@ -57,6 +58,8 @@ function getSeatPositions(maxSeats) {
 export default function TDTablesMap() {
 
   // ── Toast auto-dismiss ──
+  const { requestConfirm, ConfirmDialog } = useConfirmAction();
+
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 4000);
@@ -562,6 +565,8 @@ ${receipts.map(r => `<div class="card">
           }}>×</button>
         </div>
       )}
+    
+      <ConfirmDialog />
     </CommanderLayout>
   );
 }

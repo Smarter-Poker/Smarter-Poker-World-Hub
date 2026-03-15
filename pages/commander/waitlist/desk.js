@@ -23,6 +23,7 @@ const SkeletonDark = dynamic(() => import('../../../src/components/ui/SkeletonDa
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
 import { getVenueId, getStaffData } from '../../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
+import { useConfirmAction } from "../../../src/components/commander/shared/ConfirmModal";
 
 // Format phone to 555-555-5555 (internal display only)
 function formatPhone(raw) {
@@ -62,6 +63,8 @@ export default function WaitlistDesk() {
   // ── EventBus: Commander session telemetry ──
 
   // ── Toast auto-dismiss ──
+  const { requestConfirm, ConfirmDialog } = useConfirmAction();
+
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 4000);

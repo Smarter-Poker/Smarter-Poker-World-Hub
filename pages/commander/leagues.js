@@ -14,6 +14,7 @@ import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCo
 import { busEmit } from '../../src/engine/EventBus';
 import { getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
+import { useConfirmAction } from "../../src/components/commander/shared/ConfirmModal";
 
 /* ───────── Status colors ───────── */
 const STATUS_COLORS = {
@@ -41,6 +42,8 @@ const QUAL_PERIODS = [
 ];
 
 export default function LeaguesAndFreerollsManagement() {
+  const { requestConfirm, ConfirmDialog } = useConfirmAction();
+
   useEffect(() => { busEmit.sessionStart('commander-leagues'); }, []);
   const router = useRouter();
   const [staff, setStaff] = useState(null);
@@ -923,6 +926,8 @@ export default function LeaguesAndFreerollsManagement() {
           )}
         </div>
       </div>
+    
+      <ConfirmDialog />
     </CommanderLayout>
   );
 }

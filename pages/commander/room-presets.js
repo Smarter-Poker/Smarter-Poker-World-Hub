@@ -18,10 +18,13 @@ import { hasFeature } from '../../src/lib/commander/tierConfig';
 import { busEmit } from '../../src/engine/EventBus';
 import { getToken, getStaffSession, getStaffData } from '../../src/lib/commander/clientAuth';
 import { commanderFetch } from '../../src/lib/commander/commanderFetch';
+import { useConfirmAction } from "../../src/components/commander/shared/ConfirmModal";
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export default function DailyPresetsPage() {
+  const { requestConfirm, ConfirmDialog } = useConfirmAction();
+
   useEffect(() => { busEmit.sessionStart('commander-room-presets'); }, []);
   const router = useRouter();
   const [presets, setPresets] = useState([]);
@@ -1023,6 +1026,8 @@ const res = await commanderFetch('/api/commander/settings', {
         </div>
         <style jsx>{``}</style>
       </>
+    
+      <ConfirmDialog />
     </CommanderLayout>
   );
 }

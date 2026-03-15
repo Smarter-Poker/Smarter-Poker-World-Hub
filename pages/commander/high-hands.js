@@ -12,6 +12,7 @@ import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCo
 import { busEmit } from '../../src/engine/EventBus';
 import { getStaffData } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
+import { useConfirmAction } from "../../src/components/commander/shared/ConfirmModal";
 
 const HAND_RANKS = [
   'Royal Flush', 'Straight Flush', 'Four of a Kind', 'Full House',
@@ -26,6 +27,8 @@ const RANK_SCORES = {
 
 export default function HighHands() {
   const router = useRouter();
+  const { requestConfirm, ConfirmDialog } = useConfirmAction();
+
   useEffect(() => { busEmit.sessionStart('commander-high-hands'); }, []);
   const [highHands, setHighHands] = useState([]);
   const [currentHigh, setCurrentHigh] = useState(null);
@@ -296,6 +299,8 @@ const res = await commanderFetch(`/api/commander/high-hands/${id}`, {
         <style jsx>{`
 `}</style>
       </>
+    
+      <ConfirmDialog />
     </CommanderLayout>
   );
 }

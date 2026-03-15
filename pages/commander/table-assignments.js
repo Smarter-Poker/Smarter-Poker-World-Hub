@@ -22,6 +22,7 @@ import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCo
 import { busEmit } from '../../src/engine/EventBus';
 import { getStaffSession, getStaffData } from '../../src/lib/commander/clientAuth';
 import { commanderFetch } from '../../src/lib/commander/commanderFetch';
+import { useConfirmAction } from "../../src/components/commander/shared/ConfirmModal";
 
 const MODE_COLORS = {
   inactive: { bg: '#3A3B3C', border: '#4A4B4C', text: '#B0B3B8', label: 'Inactive', icon: Power },
@@ -30,6 +31,8 @@ const MODE_COLORS = {
 };
 
 export default function TableAssignments() {
+  const { requestConfirm, ConfirmDialog } = useConfirmAction();
+
   useEffect(() => { busEmit.sessionStart('commander-table-assignments'); }, []);
   const router = useRouter();
   const [tables, setTables] = useState([]);
@@ -434,6 +437,8 @@ return {
         )}
       </div>
       <style jsx>{``}</style>
+    
+      <ConfirmDialog />
     </CommanderLayout>
   );
 }

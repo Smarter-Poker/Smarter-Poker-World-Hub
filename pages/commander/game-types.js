@@ -12,6 +12,7 @@ import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCo
 import { busEmit } from '../../src/engine/EventBus';
 import { getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
+import { useConfirmAction } from "../../src/components/commander/shared/ConfirmModal";
 
 const PRESET_GAMES = [
   { name: 'No Limit Hold\'em', short_code: 'NLH', max_players: 9, color: '#1877F2' },
@@ -27,6 +28,8 @@ const PRESET_GAMES = [
 
 export default function GameTypesPage() {
   const router = useRouter();
+  const { requestConfirm, ConfirmDialog } = useConfirmAction();
+
   useEffect(() => { busEmit.sessionStart('commander-game-types'); }, []);
   const [gameTypes, setGameTypes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -399,6 +402,8 @@ const res = await commanderFetch(`/api/commander/game-types/${gt.id}?venue_id=${
         <style jsx>{`
 `}</style>
       </>
+    
+      <ConfirmDialog />
     </CommanderLayout>
   );
 }

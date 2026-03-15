@@ -16,6 +16,7 @@ import { getToken } from '../../../src/lib/commander/clientAuth';
 import { busEmit } from '../../../src/engine/EventBus';
 import { broadcastChange } from '../../../src/lib/commander/useCommanderSync';
 import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
+import { useConfirmAction } from "../../../src/components/commander/shared/ConfirmModal";
 
 // API Keys Modal
 function ApiKeysModal({ isOpen, onClose, venueId, onSuccess }) {
@@ -26,6 +27,9 @@ function ApiKeysModal({ isOpen, onClose, venueId, onSuccess }) {
   const [showKey, setShowKey] = useState({});
   const [copiedKey, setCopiedKey] = useState(null);
   const [error, setError] = useState(null);
+
+  const { requestConfirm, ConfirmDialog } = useConfirmAction();
+
 
   useEffect(() => {
     if (isOpen && venueId) loadApiKeys();
@@ -717,6 +721,8 @@ export default function AdminDashboard() {
         onSave={handleVenueSettingsSaved}
         onSuccess={() => broadcastChange('venues')}
       />
+    
+      <ConfirmDialog />
     </CommanderLayout>
   );
 }
