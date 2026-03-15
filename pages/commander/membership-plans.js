@@ -78,9 +78,7 @@ export default function MembershipPlansPage() {
   async function fetchPlans(signal) {
     setLoading(true);
     try {
-const res = await fetch(`/api/commander/membership-plans?venue_id=${venueId}&include_inactive=true`, {
-        headers: { || '' }
-      });
+const res = await fetch(`/api/commander/membership-plans?venue_id=${venueId}&include_inactive=true`);
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {

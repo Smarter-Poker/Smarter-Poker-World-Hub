@@ -106,9 +106,7 @@ export default function ExportsHub() {
   const exportHendonMob = async (tournamentId) => {
     setCreating('hendon');
     try {
-      const res = await commanderFetch(`/api/commander/exports/hendon-mob?tournament_id=${tournamentId}`, {
-        headers: { || '' }
-      });
+      const res = await commanderFetch(`/api/commander/exports/hendon-mob?tournament_id=${tournamentId}`);
       if (res.ok) {
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);

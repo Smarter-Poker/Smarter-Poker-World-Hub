@@ -79,9 +79,6 @@ export default function DailyPresetsPage() {
   useEffect(() => {
     if (!staff) return;
     try {
-      const token = getToken();
-      if (!token) return;
-      const staffSession = getStaffSession() || '';
       commanderFetch('/api/commander/settings', {})
         .then(r => r.json())
         .then(data => {
@@ -145,15 +142,13 @@ export default function DailyPresetsPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const token = getToken();
-      const headers = { || '' };
       const stored = JSON.parse(getStaffSession() || '{}');
       const venueId = stored.venue_id;
       const safeJson = (r) => (r && typeof r.json === 'function') ? r.json().catch(() => ({})) : Promise.resolve({});
       const [presetsRes, typesRes, promosRes] = await Promise.all([
-        commanderFetch(`/api/commander/room-presets?venue_id=${venueId}`, { headers }).catch(() => null),
-        commanderFetch(`/api/commander/game-types?venue_id=${venueId}`, { headers }).catch(() => null),
-        commanderFetch(`/api/commander/promotions?venue_id=${venueId}&status=all`, { headers }).catch(() => null)
+        commanderFetch(`/api/commander/room-presets?venue_id=${venueId}`).catch(() => null),
+        commanderFetch(`/api/commander/game-types?venue_id=${venueId}`).catch(() => null),
+        commanderFetch(`/api/commander/promotions?venue_id=${venueId}&status=all`).catch(() => null)
       ]);
       const [presetsJson, typesJson, promosJson] = await Promise.all([
         safeJson(presetsRes), safeJson(typesRes), safeJson(promosRes)
@@ -184,8 +179,6 @@ export default function DailyPresetsPage() {
     setApplying(preset.id);
     setError(null);
     try {
-      const token = getToken();
-      const staffSession = getStaffSession() || '';
       const res = await commanderFetch(`/api/commander/room-presets?id=${preset.id}&action=apply`, {
         method: 'POST'});
       if (res.ok) {
@@ -300,10 +293,8 @@ export default function DailyPresetsPage() {
     }
     setError(null);
     try {
-      const token = getToken();
-      const staffSession = getStaffSession() || '';
       const url = editingId ? `/api/commander/room-presets?id=${editingId}` : '/api/commander/room-presets';
-      const res = await fetch(url, {
+      const res = await commanderFetch(url, {
         method: editingId ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form)
@@ -330,8 +321,6 @@ export default function DailyPresetsPage() {
   async function handleDelete(preset) {
     if (!confirm(`Delete "${preset.name}"? This cannot be undone.`)) return;
     try {
-      const token = getToken();
-      const staffSession = getStaffSession() || '';
       const res = await commanderFetch(`/api/commander/room-presets?id=${preset.id}`, {
         method: 'DELETE'});
       if (res.ok) {

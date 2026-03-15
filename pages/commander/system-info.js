@@ -38,9 +38,7 @@ export default function SystemInfoPage() {
   async function fetchInfo(showRefresh = false) {
     if (showRefresh) setRefreshing(true);
     try {
-const res = await commanderFetch('/api/commander/system-info', {
-        headers: { || '' }
-      });
+const res = await commanderFetch('/api/commander/system-info');
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) setInfo(json.data);

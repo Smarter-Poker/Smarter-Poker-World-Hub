@@ -465,8 +465,8 @@ export default function AdminDashboard() {
       }
 
       // Load venues with summary
-      const fetchOpts = (h) => signal ? { headers: h, signal } : { headers: h };
-      const venuesRes = await commanderFetch('/api/commander/admin/venues?summary=true', fetchOpts({ || '' }));
+      const fetchOpts = () => signal ? { signal } : {};
+      const venuesRes = await commanderFetch('/api/commander/admin/venues?summary=true', fetchOpts());
       if (!venuesRes.ok) throw new Error(`Request failed (${venuesRes.status})`);
       const venuesData = await venuesRes.json();
       if (venuesData.venues) {
@@ -475,7 +475,7 @@ export default function AdminDashboard() {
       }
 
       // Load exports
-      const exportsRes = await commanderFetch('/api/commander/exports', fetchOpts({ || '' }));
+      const exportsRes = await commanderFetch('/api/commander/exports', fetchOpts());
       if (!exportsRes.ok) throw new Error(`Request failed (${exportsRes.status})`);
       const exportsData = await exportsRes.json();
       if (exportsData.exports) {
