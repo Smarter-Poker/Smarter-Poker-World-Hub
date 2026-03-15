@@ -29,7 +29,7 @@ export default async function handler(req, res) {
 
       // GET: Fetch user achievements
       if (req.method === 'GET') {
-          res.setHeader('Cache-Control', 'private, max-age=30');
+          res.setHeader('Cache-Control', 'private, max-age=60, stale-while-revalidate=120');
 
           try {
               // Parallel fetch: definitions and user achievements are independent
