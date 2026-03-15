@@ -154,7 +154,8 @@ export default async function handler(req, res) {
                       hit_count: 1,
                       created_at: new Date().toISOString()
                   }, { onConflict: 'cache_key,was_correct' })
-                  .then(() => console.log(`[GrokExplain] 💾 Cached response for ${cacheKey.slice(0, 8)}...`));
+                  .then(() => console.log(`[GrokExplain] 💾 Cached response for ${cacheKey.slice(0, 8)}...`))
+                  .catch(e => console.warn('[GrokExplain] Cache save failed:', e.message));
 
               return res.status(200).json({
                   success: true,
