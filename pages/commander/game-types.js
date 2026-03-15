@@ -61,9 +61,7 @@ export default function GameTypesPage() {
   const fetchGameTypes = useCallback(async () => {
     if (!venueId) return;
     try {
-const res = await commanderFetch('/api/commander/game-types?include_inactive=true', {
-        headers: { || '' }
-      });
+const res = await commanderFetch('/api/commander/game-types?include_inactive=true');
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) setGameTypes(json.data || []);

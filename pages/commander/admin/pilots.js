@@ -52,7 +52,7 @@ export default function PilotVenuesPage() {
     try {
       const token = getToken();
       const res = await commanderFetch('/api/commander/admin/pilots', {
-        headers: { || '' }
+        
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();

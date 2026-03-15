@@ -38,7 +38,7 @@ function ApiKeysModal({ isOpen, onClose, venueId, onSuccess }) {
     try {
       const token = getToken();
       const res = await commanderFetch(`/api/commander/admin/api-keys?venue_id=${venueId}`, {
-        headers: { || '' }
+        
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
@@ -95,7 +95,7 @@ function ApiKeysModal({ isOpen, onClose, venueId, onSuccess }) {
       const token = getToken();
       const res = await commanderFetch(`/api/commander/admin/api-keys/${keyId}?venue_id=${venueId}`, {
         method: 'DELETE',
-        headers: { || '' }
+        
       });
       if (!res.ok) throw new Error('Request failed');
       const data = await res.json();
@@ -499,7 +499,7 @@ export default function AdminDashboard() {
       if (filters.dateTo) params.set('date_to', filters.dateTo);
 
       const res = await commanderFetch(`/api/commander/admin/audit-logs?${params}`, {
-        headers: { || '' }
+        
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();

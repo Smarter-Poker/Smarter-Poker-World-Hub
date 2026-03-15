@@ -684,6 +684,44 @@ export const SmarterPokerProfileView = ({ onNavigate, onOpenChat }) => {
         }
     };
 
+    // Like handler — persists to Supabase
+    const handleLike = async (postId) => {
+        if (!socialService || !authUser?.id) return;
+        setUserPosts(prev => prev.map(p => {
+            if (p.id === postId) {
+                const isLiked = p.isLiked;
+                return {
+                    ...p,
+                    isLiked: !isLiked,
+                    engagement: {
+                        ...p.engagement,
+                        likeCount: isLiked ? (p.engagement?.likeCount || 0) - 1 : (p.engagement?.likeCount || 0) + 1
+                    }
+                };
+            }
+            return p;
+        }));
+        try {
+            await socialService.toggleReaction(postId, authUser.id, 'like');
+        } catch {
+            // Revert on failure
+            setUserPosts(prev => prev.map(p => {
+                if (p.id === postId) {
+                    const isLiked = p.isLiked;
+                    return {
+                        ...p,
+                        isLiked: !isLiked,
+                        engagement: {
+                            ...p.engagement,
+                            likeCount: isLiked ? (p.engagement?.likeCount || 0) - 1 : (p.engagement?.likeCount || 0) + 1
+                        }
+                    };
+                }
+                return p;
+            }));
+        }
+    };
+
     // Comment + Delete handlers
     const handleComment = async (postId, text) => {
         if (!socialService || !authUser?.id) return;
@@ -803,6 +841,7 @@ export const SmarterPokerProfileView = ({ onNavigate, onOpenChat }) => {
                                     key={post.id || i}
                                     post={post}
                                     user={user}
+                                    onLike={() => handleLike(post.id)}
                                     onSubmitComment={handleComment}
                                     onLoadComments={handleLoadComments}
                                     onDeletePost={handleDeletePost}

@@ -52,10 +52,9 @@ export default function ExportsHub() {
     if (!venueId) return;
     setLoading(true);
     try {
-      const headers = { || '' };
       const [expRes, tRes] = await Promise.all([
-        commanderFetch(`/api/commander/exports?venue_id=${venueId}`, { headers }).catch(() => ({ ok: false })),
-        commanderFetch(`/api/commander/tournaments?venue_id=${venueId}&status=completed&limit=20`, { headers }).catch(() => ({ ok: false })),
+        commanderFetch(`/api/commander/exports?venue_id=${venueId}`).catch(() => ({ ok: false })),
+        commanderFetch(`/api/commander/tournaments?venue_id=${venueId}&status=completed&limit=20`).catch(() => ({ ok: false })),
       ]);
       const expJson = await expRes.json().catch(() => ({ exports: [] }));
       const tJson = await tRes.json().catch(() => ({ data: [] }));

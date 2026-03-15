@@ -31,7 +31,7 @@ export default function DisplayManagement() {
   const fetchData = useCallback(async(signal) => {
     try {
 const res = await commanderFetch('/api/commander/tournaments', {
-        headers: { || '' }
+        
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
