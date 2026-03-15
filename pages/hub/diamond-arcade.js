@@ -233,6 +233,7 @@ export default function DiamondArcade() {
         return () => {
             _ctrl.abort();
             clearInterval(interval);
+            if (timerRef.current) clearInterval(timerRef.current);
             if (duelPollRef.current) clearInterval(duelPollRef.current);
             if (typeof window !== 'undefined') {
                 window.removeEventListener('diamond-balance-refresh', handleBalanceRefresh);
