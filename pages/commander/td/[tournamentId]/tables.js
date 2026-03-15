@@ -60,12 +60,6 @@ export default function TDTablesMap() {
   // ── Toast auto-dismiss ──
   const { requestConfirm, ConfirmDialog } = useConfirmAction();
 
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 4000);
-    return () => clearTimeout(t);
-  }, [toast]);
-
   useEffect(() => { busEmit.sessionStart('commander-td-tournamentId-tables'); }, []);
   const router = useRouter();
   const { tournamentId } = router.query;
@@ -79,6 +73,13 @@ export default function TDTablesMap() {
 
   // ── Toast notification state ──
   const [toast, setToast] = useState(null);
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   const fetchFloor = useCallback(async (signal) => {
 

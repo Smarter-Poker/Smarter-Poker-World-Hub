@@ -22,13 +22,6 @@ import { commanderFetch } from '../../../src/lib/commander/commanderFetch';
 
 export default function MemberProfile() {
 
-  // ── Toast auto-dismiss ──
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 4000);
-    return () => clearTimeout(t);
-  }, [toast]);
-
   useEffect(() => { busEmit.sessionStart('commander-members-id'); }, []);
   const router = useRouter();
   const { id } = router.query;
@@ -42,6 +35,13 @@ export default function MemberProfile() {
 
   // ── Toast notification state ──
   const [toast, setToast] = useState(null);
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   useEffect(() => {
     const _c = new AbortController();

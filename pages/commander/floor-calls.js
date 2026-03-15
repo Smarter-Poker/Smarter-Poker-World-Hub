@@ -76,13 +76,6 @@ export default function FloorCalls() {
 
   // ── EventBus: Commander session telemetry ──
 
-  // ── Toast auto-dismiss ──
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 4000);
-    return () => clearTimeout(t);
-  }, [toast]);
-
   useEffect(() => { busEmit.sessionStart('commander-floor-calls'); }, []);
   const [calls, setCalls] = useState([]);
   const [resolved, setResolved] = useState([]);
@@ -120,6 +113,13 @@ export default function FloorCalls() {
 
   // ── Toast notification state ──
   const [toast, setToast] = useState(null);
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
     return getVenueId();
   });
 

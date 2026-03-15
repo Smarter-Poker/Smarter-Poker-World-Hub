@@ -228,6 +228,13 @@ export default function StaffSchedule() {
   const [broadcasting, setBroadcasting] = useState(false);
   const [broadcastResult, setBroadcastResult] = useState(null);
   const [toast, setToast] = useState(null);
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
   const [usingMockData, setUsingMockData] = useState(false);
 
   // Post-write cooldown — suppress Supabase Realtime echo after local writes

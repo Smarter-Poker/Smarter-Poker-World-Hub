@@ -54,13 +54,6 @@ const TIME_QUICKPICKS = [
 export default function CompSystem() {
   const router = useRouter();
 
-  // ── Toast auto-dismiss ──
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 4000);
-    return () => clearTimeout(t);
-  }, [toast]);
-
   useEffect(() => { busEmit.sessionStart('commander-comps'); }, []);
   const [tab, setTab] = useState('dashboard');
   const [loading, setLoading] = useState(false);
@@ -109,6 +102,13 @@ export default function CompSystem() {
 
   // ── Toast notification state ──
   const [toast, setToast] = useState(null);
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   // ─── Auth helpers ───
   const getHeaders = () => {

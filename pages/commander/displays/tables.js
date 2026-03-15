@@ -91,6 +91,13 @@ export default function TablesDisplay() {
   const [showPlayerMenu, setShowPlayerMenu] = useState(null); // seat object
   const [playerActionLoading, setPlayerActionLoading] = useState(false);
   const [toast, setToast] = useState(null); // { type: 'success'|'error', text }
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
   const [movingPlayer, setMovingPlayer] = useState(null); // { seat, player_name } — active move mode
 
   // Extract venueId/venueName from staff session (client-only)

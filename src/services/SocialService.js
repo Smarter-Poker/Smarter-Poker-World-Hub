@@ -306,14 +306,16 @@ export class SocialService {
      */
     async toggleReaction(postId, userId, interactionType = 'like') {
         try {
-            // Check if ANY reaction by this user on this post already exists
-            const { data: existing } = await this.supabase
+            // Check if ANY reaction by this user on this post already exists (any type)
+            // Use .limit(1) instead of .maybeSingle() — legacy data may have multiple rows
+            const { data: rows } = await this.supabase
                 .from('social_interactions')
                 .select('id, interaction_type')
                 .eq('post_id', postId)
                 .eq('user_id', userId)
-                .in('interaction_type', ['like', 'love', 'haha', 'wow', 'sad', 'fire'])
-                .maybeSingle();
+                .limit(1);
+
+            const existing = rows?.[0] || null;
 
             if (existing) {
                 if (existing.interaction_type === interactionType) {

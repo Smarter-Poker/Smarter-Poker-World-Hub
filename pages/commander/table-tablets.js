@@ -159,6 +159,13 @@ export default function TableTabletsPage() {
     const [showPlayerMenu, setShowPlayerMenu] = useState(null); // { number, taken, tableNumber }
     const [playerActionLoading, setPlayerActionLoading] = useState(false);
     const [toast, setToast] = useState(null);
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
     const [seatScanner, setSeatScanner] = useState(null); // { tableNumber, seatNumber }
     const seatScannerVideoRef = useRef(null);
     const seatScannerStreamRef = useRef(null);

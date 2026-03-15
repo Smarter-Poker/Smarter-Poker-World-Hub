@@ -50,6 +50,13 @@ export default function LeaguesAndFreerollsManagement() {
   const [activeTab, setActiveTab] = useState('leagues');
   const [toast, setToast] = useState(null);
 
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   /* ── Leagues state ── */
   const [leagues, setLeagues] = useState([]);
   const [leaguesLoading, setLeaguesLoading] = useState(true);

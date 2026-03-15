@@ -55,12 +55,6 @@ export default function TournamentDetailPage() {
   // ── Toast auto-dismiss ──
   const { requestConfirm, ConfirmDialog } = useConfirmAction();
 
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 4000);
-    return () => clearTimeout(t);
-  }, [toast]);
-
   useEffect(() => { busEmit.sessionStart('commander-tournaments-id'); }, []);
   const router = useRouter();
   const { id } = router.query;
@@ -81,6 +75,13 @@ export default function TournamentDetailPage() {
 
   // ── Toast notification state ──
   const [toast, setToast] = useState(null);
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
     if (typeof window === 'undefined') return null;
     return getVenueId();
   });

@@ -36,13 +36,6 @@ function calculateCharge(startTime, ratePerHour) {
 
 export default function TimeBilling() {
 
-  // ── Toast auto-dismiss ──
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 4000);
-    return () => clearTimeout(t);
-  }, [toast]);
-
   useEffect(() => { busEmit.sessionStart('commander-time-billing'); }, []);
   const router = useRouter();
   const [sessions, setSessions] = useState([]);
@@ -145,6 +138,13 @@ const headers = { };
 
   // ── Toast notification state ──
   const [toast, setToast] = useState(null);
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   // Cross-tab + cross-device real-time sync
   useCommanderSync(syncVenueId, fetchData, { entities: ['tables', 'settings'] });

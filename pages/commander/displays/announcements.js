@@ -58,12 +58,6 @@ export default function AnnouncementsDisplay() {
   // ── Toast auto-dismiss ──
   const { requestConfirm, ConfirmDialog } = useConfirmAction();
 
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 4000);
-    return () => clearTimeout(t);
-  }, [toast]);
-
   useEffect(() => { busEmit.sessionStart('commander-displays-announcements'); }, []);
   // ─── Display state ───
   const [announcements, setAnnouncements] = useState([]);
@@ -86,6 +80,13 @@ export default function AnnouncementsDisplay() {
 
   // ── Toast notification state ──
   const [toast, setToast] = useState(null);
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
     return getVenueId();
   });
 

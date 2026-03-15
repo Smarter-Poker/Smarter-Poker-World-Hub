@@ -70,12 +70,6 @@ export default function ClockSetup() {
   // ── Toast auto-dismiss ──
   const { requestConfirm, ConfirmDialog } = useConfirmAction();
 
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 4000);
-    return () => clearTimeout(t);
-  }, [toast]);
-
   useEffect(() => { busEmit.sessionStart('commander-clock-setup'); }, []);
     const router = useRouter();
     const [staff, setStaff] = useState(null);
@@ -91,6 +85,13 @@ export default function ClockSetup() {
 
   // ── Toast notification state ──
   const [toast, setToast] = useState(null);
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
     useEffect(() => {
         const stored = getStaffSession();

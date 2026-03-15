@@ -36,13 +36,6 @@ function formatMoney(n) {
 
 export default function TDPayouts() {
 
-  // ── Toast auto-dismiss ──
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 4000);
-    return () => clearTimeout(t);
-  }, [toast]);
-
     useEffect(() => { busEmit.sessionStart('commander-td-tournamentId-payouts'); }, []);
     const router = useRouter();
     const { tournamentId } = router.query;
@@ -327,6 +320,13 @@ function ICMCalculator({ payouts, prizePool, onApply }) {
 
   // ── Toast notification state ──
   const [toast, setToast] = useState(null);
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
     const calculate = () => {
         const players = Object.entries(chipInputs)

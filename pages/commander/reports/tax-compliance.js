@@ -24,6 +24,13 @@ export default function TaxCompliance() {
   const [generating, setGenerating] = useState(null);
   const [toast, setToast] = useState(null);
 
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   useEffect(() => {    const _c = new AbortController();
 
     const stored = getStaffSession();

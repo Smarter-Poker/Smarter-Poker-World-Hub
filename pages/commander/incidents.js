@@ -349,13 +349,6 @@ function IncidentDetailModal({ incident, onResolve, onClose }) {
 export default function IncidentsPage() {
   const router = useRouter();
 
-  // ── Toast auto-dismiss ──
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 4000);
-    return () => clearTimeout(t);
-  }, [toast]);
-
   useEffect(() => { busEmit.sessionStart('commander-incidents'); }, []);
   const [staff, setStaff] = useState(null);
   const [venueId, setVenueId] = useState(null);
@@ -369,6 +362,13 @@ export default function IncidentsPage() {
 
   // ── Toast notification state ──
   const [toast, setToast] = useState(null);
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   useEffect(() => {
     const storedStaff = getStaffSession();

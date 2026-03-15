@@ -22,13 +22,6 @@ import { commanderFetch } from '../../src/lib/commander/commanderFetch';
 export default function CloseDay() {
   const router = useRouter();
 
-  // ── Toast auto-dismiss ──
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 4000);
-    return () => clearTimeout(t);
-  }, [toast]);
-
   useEffect(() => { busEmit.sessionStart('commander-close-day'); }, []);
   const [step, setStep] = useState(1); // 1: review, 2: reconcile, 3: sign-off, 4: done
   const [loading, setLoading] = useState(true);
@@ -43,6 +36,13 @@ export default function CloseDay() {
 
   // ── Toast notification state ──
   const [toast, setToast] = useState(null);
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   useEffect(() => {
     const ctrl = new AbortController();

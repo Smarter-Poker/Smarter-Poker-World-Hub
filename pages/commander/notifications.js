@@ -59,12 +59,6 @@ export default function NotificationCenter() {
   // ── Toast auto-dismiss ──
   const { requestConfirm, ConfirmDialog } = useConfirmAction();
 
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 4000);
-    return () => clearTimeout(t);
-  }, [toast]);
-
   useEffect(() => { busEmit.sessionStart('commander-notifications'); }, []);
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('notifications');
@@ -86,6 +80,13 @@ export default function NotificationCenter() {
 
   // ── Toast notification state ──
   const [toast, setToast] = useState(null);
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   // ─── Notifications ───
   const fetchNotifications = useCallback(async (signal) => {

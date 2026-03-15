@@ -35,13 +35,6 @@ const COMMON_STAKES = {
 
 export default function OpenGame() {
 
-  // ── Toast auto-dismiss ──
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 4000);
-    return () => clearTimeout(t);
-  }, [toast]);
-
   useEffect(() => { busEmit.sessionStart('commander-open-game'); }, []);
   const router = useRouter();
 
@@ -57,6 +50,13 @@ export default function OpenGame() {
 
   // ── Toast notification state ──
   const [toast, setToast] = useState(null);
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   // fetchTables declared first — must precede useEffect/useCommanderSync that reference it
   const fetchTables = useCallback(async () => {

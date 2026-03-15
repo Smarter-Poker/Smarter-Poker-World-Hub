@@ -54,6 +54,13 @@ export default function LeaderboardBuilder() {
     const [showCreate, setShowCreate] = useState(false);
     const [toast, setToast] = useState(null);
 
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
     // Create form state
     const [newBoard, setNewBoard] = useState({
         name: '', description: '', leaderboard_type: 'custom',

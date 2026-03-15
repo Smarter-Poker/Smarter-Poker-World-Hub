@@ -68,12 +68,6 @@ export default function CommanderTablesPage() {
   // ── Toast auto-dismiss ──
   const { requestConfirm, ConfirmDialog } = useConfirmAction();
 
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 4000);
-    return () => clearTimeout(t);
-  }, [toast]);
-
   useEffect(() => { busEmit.sessionStart('commander-tables'); }, []);
   const [staff, setStaff] = useState(null);
   const [venueId, setVenueId] = useState(null);
@@ -969,6 +963,13 @@ function AddTableModal({ existingCount, onClose, onSubmit }) {
 
   // ── Toast notification state ──
   const [toast, setToast] = useState(null);
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   async function handleSubmit(e) {
     e.preventDefault();

@@ -24,13 +24,6 @@ const NAV_ICONS = { control: Trophy, tables: LayoutGrid, players: Users, payouts
 
 export default function TDClock() {
 
-  // ── Toast auto-dismiss ──
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 4000);
-    return () => clearTimeout(t);
-  }, [toast]);
-
   useEffect(() => { busEmit.sessionStart('commander-td-tournamentId-clock'); }, []);
   const router = useRouter();
   const { tournamentId } = router.query;
@@ -44,6 +37,13 @@ export default function TDClock() {
 
   // ── Toast notification state ──
   const [toast, setToast] = useState(null);
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
   const timerRef = useRef(null);
   const containerRef = useRef(null);
 

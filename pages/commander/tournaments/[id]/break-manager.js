@@ -27,13 +27,6 @@ import { commanderFetch, commanderFetchJSON } from '../../../../src/lib/commande
 
 export default function BreakManager() {
 
-  // ── Toast auto-dismiss ──
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 4000);
-    return () => clearTimeout(t);
-  }, [toast]);
-
   useEffect(() => { busEmit.sessionStart('commander-tournaments-id-break-manager'); }, []);
   const router = useRouter();
   const { id: tournamentId } = router.query;
@@ -70,6 +63,13 @@ export default function BreakManager() {
 
   // ── Toast notification state ──
   const [toast, setToast] = useState(null);
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
     return getVenueId();
   });
 

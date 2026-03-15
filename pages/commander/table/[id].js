@@ -30,13 +30,6 @@ function formatCountdown(minutes) {
 
 export default function TableSeating() {
 
-  // ── Toast auto-dismiss ──
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 4000);
-    return () => clearTimeout(t);
-  }, [toast]);
-
   useEffect(() => { busEmit.sessionStart('commander-table-id'); }, []);
   const router = useRouter();
   const { id } = router.query;
@@ -48,6 +41,13 @@ export default function TableSeating() {
 
   // ── Toast notification state ──
   const [toast, setToast] = useState(null);
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   // fetchData declared first — must precede useEffect/useCommanderSync that reference it
   const fetchData = async (signal) => {
@@ -272,6 +272,25 @@ const res = await commanderFetch(`/api/commander/dealer/sessions/${sessionId}/en
       </div>
       <style jsx>{`
 `}</style>
+    
+      {/* TOAST */}
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
+          padding: '12px 20px', borderRadius: 12,
+          background: toast.type === 'success' ? '#22C55E' : '#EF4444',
+          color: '#fff', fontSize: 13, fontWeight: 600,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+          display: 'flex', alignItems: 'center', gap: 8,
+          maxWidth: 360,
+        }}>
+          <span>{toast.text}</span>
+          <button onClick={() => setToast(null)} style={{
+            background: 'none', border: 'none', color: '#fff',
+            cursor: 'pointer', fontSize: 16, lineHeight: 1, padding: 0, marginLeft: 8,
+          }}>×</button>
+        </div>
+      )}
     </>
   );
 }

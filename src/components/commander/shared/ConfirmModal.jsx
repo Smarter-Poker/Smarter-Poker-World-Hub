@@ -11,7 +11,7 @@
  *   // In JSX:     <ConfirmDialog />
  */
 import { useState, useCallback, useEffect } from 'react';
-import { AlertTriangle, X } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 
 /**
  * Hook: useConfirmAction

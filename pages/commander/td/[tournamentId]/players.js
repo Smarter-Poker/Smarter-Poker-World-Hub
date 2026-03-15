@@ -38,13 +38,6 @@ function formatChips(n) {
 
 export default function TDPlayers() {
 
-  // ── Toast auto-dismiss ──
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 4000);
-    return () => clearTimeout(t);
-  }, [toast]);
-
   useEffect(() => { busEmit.sessionStart('commander-td-tournamentId-players'); }, []);
   const router = useRouter();
   const { tournamentId, move: moveEntryId } = router.query;
@@ -63,6 +56,13 @@ export default function TDPlayers() {
 
   // ── Toast notification state ──
   const [toast, setToast] = useState(null);
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   const fetchFloor = useCallback(async (signal) => {
 

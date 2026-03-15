@@ -38,13 +38,6 @@ export default function FloorMap() {
 
   // ── EventBus: Commander session telemetry ──
 
-  // ── Toast auto-dismiss ──
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 4000);
-    return () => clearTimeout(t);
-  }, [toast]);
-
   useEffect(() => { busEmit.sessionStart('commander-floor'); }, []);
   const canvasRef = useRef(null);
   const [tables, setTables] = useState([]);
@@ -68,6 +61,13 @@ export default function FloorMap() {
 
   // ── Toast notification state ──
   const [toast, setToast] = useState(null);
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   // Auth
   useEffect(() => {

@@ -41,13 +41,6 @@ function formatTime(dateStr) {
 export default function DealerRotation() {
   const router = useRouter();
 
-  // ── Toast auto-dismiss ──
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 4000);
-    return () => clearTimeout(t);
-  }, [toast]);
-
   useEffect(() => { busEmit.sessionStart('commander-dealer-rotation'); }, []);
   const [dealers, setDealers] = useState([]);
   const [tables, setTables] = useState([]);
@@ -62,6 +55,13 @@ export default function DealerRotation() {
 
   // ── Toast notification state ──
   const [toast, setToast] = useState(null);
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   const getHeaders = () => ({
     'Content-Type': 'application/json'

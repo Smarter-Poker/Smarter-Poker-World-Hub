@@ -65,12 +65,6 @@ export default function WaitlistDesk() {
   // ── Toast auto-dismiss ──
   const { requestConfirm, ConfirmDialog } = useConfirmAction();
 
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 4000);
-    return () => clearTimeout(t);
-  }, [toast]);
-
   useEffect(() => { busEmit.sessionStart('commander-waitlist-desk'); }, []);
   const [tables, setTables] = useState([]);
   const [waitlists, setWaitlists] = useState([]);
@@ -1349,6 +1343,13 @@ function DeskSettingsModal({ custom, onSave, onClose, onUpdate }) {
 
   // ── Toast notification state ──
   const [toast, setToast] = useState(null);
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
   const logoInputRef = useRef(null);
 
   const handleLogoUpload = async (e) => {

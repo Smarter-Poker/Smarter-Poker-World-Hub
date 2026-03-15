@@ -42,13 +42,6 @@ const ROLES = [
 export default function CommanderStaffPage() {
   const router = useRouter();
 
-  // ── Toast auto-dismiss ──
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 4000);
-    return () => clearTimeout(t);
-  }, [toast]);
-
   useEffect(() => { busEmit.sessionStart('commander-staff'); }, []);
 
   const [currentStaff, setCurrentStaff] = useState(null);
@@ -576,6 +569,13 @@ function StaffModal({ staff, existingStaff = [], onClose, onSubmit }) {
 
   // ── Toast notification state ──
   const [toast, setToast] = useState(null);
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   const isEditing = !!staff;
 

@@ -20,13 +20,6 @@ const ICON_MAP = {
 
 export default function TournamentSettingsPage() {
 
-  // ── Toast auto-dismiss ──
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 4000);
-    return () => clearTimeout(t);
-  }, [toast]);
-
   useEffect(() => { busEmit.sessionStart('commander-tournament-settings'); }, []);
     const router = useRouter();
     const [staff, setStaff] = useState(null);
@@ -42,6 +35,13 @@ export default function TournamentSettingsPage() {
 
   // ── Toast notification state ──
   const [toast, setToast] = useState(null);
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
     useEffect(() => {    const _c = new AbortController();
 

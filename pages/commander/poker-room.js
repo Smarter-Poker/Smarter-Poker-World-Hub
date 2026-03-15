@@ -21,13 +21,6 @@ import { commanderFetch } from '../../src/lib/commander/commanderFetch';
 
 export default function PokerRoomFunctions() {
 
-  // ── Toast auto-dismiss ──
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 4000);
-    return () => clearTimeout(t);
-  }, [toast]);
-
   useEffect(() => { busEmit.sessionStart('commander-poker-room'); }, []);
   const router = useRouter();
   const [roomOpen, setRoomOpen] = useState(false);
@@ -38,6 +31,13 @@ export default function PokerRoomFunctions() {
 
   // ── Toast notification state ──
   const [toast, setToast] = useState(null);
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   // Init venueId from localStorage
   useEffect(() => {

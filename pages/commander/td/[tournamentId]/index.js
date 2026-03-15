@@ -56,13 +56,6 @@ function formatMoney(n) {
 
 export default function TDControlCenter() {
 
-  // ── Toast auto-dismiss ──
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 4000);
-    return () => clearTimeout(t);
-  }, [toast]);
-
   useEffect(() => { busEmit.sessionStart('commander-td-tournamentId-index'); }, []);
   const router = useRouter();
   const { tournamentId } = router.query;
@@ -76,6 +69,13 @@ export default function TDControlCenter() {
 
   // ── Toast notification state ──
   const [toast, setToast] = useState(null);
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
   const pollRef = useRef(null);
 
   const fetchFloor = useCallback(async (signal) => {

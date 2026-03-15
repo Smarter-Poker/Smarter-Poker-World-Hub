@@ -21,6 +21,13 @@ export default function AnalyticsDailyReport() {
   const [range, setRange] = useState(14);
   const [toast, setToast] = useState(null);
 
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   useEffect(() => {    const _c = new AbortController();
 
     const stored = getStaffSession();
