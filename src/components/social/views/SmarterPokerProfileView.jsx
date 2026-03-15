@@ -540,6 +540,7 @@ const AboutCard = ({ user }) => (
 export const SmarterPokerProfileView = ({ onNavigate, onOpenChat }) => {
     const { user: authUser, profile: authProfile, supabase } = useSupabase();
     const socialService = useMemo(() => supabase ? new SocialService(supabase) : null, [supabase]);
+    const [postsLoading, setPostsLoading] = useState(true);
 
     // Determine profile subject (default to current user)
     // In future, pull userId from URL params
@@ -588,12 +589,18 @@ export const SmarterPokerProfileView = ({ onNavigate, onOpenChat }) => {
 
     // Fetch user's posts from Supabase
     const fetchPosts = useCallback(async () => {
-        if (!socialService || !authUser?.id) return;
+        if (!socialService || !authUser?.id) {
+            setPostsLoading(false);
+            return;
+        }
         try {
+            setPostsLoading(true);
             const { posts: fetched } = await socialService.getFeed({ userId: authUser.id, limit: 10 });
             if (fetched?.length > 0) setUserPosts(fetched);
         } catch (err) {
             console.warn('Failed to fetch profile posts:', err.message);
+        } finally {
+            setPostsLoading(false);
         }
     }, [socialService, authUser?.id]);
 
@@ -718,13 +725,26 @@ export const SmarterPokerProfileView = ({ onNavigate, onOpenChat }) => {
                             </div>
                         </div>
 
-                        {posts.map((post, i) => (
-                            <SPPostCard
-                                key={post.id || i}
-                                post={post}
-                                user={user}
-                            />
-                        ))}
+                        {postsLoading ? (
+                            <div style={{ padding: '0 4px' }}>
+                                {[1,2,3].map(i => (
+                                    <div key={i} style={{
+                                        height: 140, background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
+                                        backgroundSize: '200% 100%', animation: 'profileShimmer 1.5s infinite',
+                                        borderRadius: 8, marginBottom: 16
+                                    }} />
+                                ))}
+                                <style>{`@keyframes profileShimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }`}</style>
+                            </div>
+                        ) : (
+                            posts.map((post, i) => (
+                                <SPPostCard
+                                    key={post.id || i}
+                                    post={post}
+                                    user={user}
+                                />
+                            ))
+                        )}
                     </div>
                 </div>
             </div>

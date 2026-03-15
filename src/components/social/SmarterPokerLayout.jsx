@@ -421,13 +421,17 @@ export const SmarterPokerLayout = ({ children, currentUser: propUser, onNavigate
                 (payload) => {
                     const n = payload.new;
                     if (BLOCKED_NOTIF_TYPES.includes(n.type)) return; // Skip blocked types
-                    setNotifications(prev => [{
-                        id: n.id,
-                        type: n.type || 'info',
-                        text: n.message,
-                        time: getRelativeTime(n.created_at),
-                        read: n.read,
-                    }, ...prev]);
+                    setNotifications(prev => {
+                        // Dedup guard — prevent duplicate if Supabase retries delivery
+                        if (prev.some(existing => existing.id === n.id)) return prev;
+                        return [{
+                            id: n.id,
+                            type: n.type || 'info',
+                            text: n.message,
+                            time: getRelativeTime(n.created_at),
+                            read: n.read,
+                        }, ...prev];
+                    });
                     if (!n.read) setUnreadCount(prev => prev + 1);
                 }
             )
