@@ -15,7 +15,7 @@ import HighHandDisplay from '../../src/components/commander/promotions/HighHandD
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
-import { getToken } from '../../src/lib/commander/clientAuth';
+import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const PROMO_TYPES = [
@@ -59,7 +59,7 @@ function RecordHighHandModal({ isOpen, onClose, onSubmit, venueId, staff }) {
     setSubmitting(true);
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch('/api/commander/high-hands', {
         method: 'POST',
         headers: {
@@ -315,7 +315,7 @@ export default function PromotionsPage() {
   const [editCodeForm, setEditCodeForm] = useState({ code: '', description: '', max_uses: '' });
 
   useEffect(() => {
-    const storedStaff = localStorage.getItem('commander_staff');
+    const storedStaff = getStaffSession();
     if (!storedStaff) {
       router.push('/commander/login').catch(() => { });
       return;
@@ -335,7 +335,7 @@ export default function PromotionsPage() {
     if (!venueId) return;
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch(`/api/commander/promotions?venue_id=${venueId}`, {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
@@ -357,7 +357,7 @@ export default function PromotionsPage() {
     if (!venueId) return;
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch(`/api/commander/high-hands?venue_id=${venueId}&limit=20`, {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
@@ -381,7 +381,7 @@ export default function PromotionsPage() {
     setPromoCodesLoading(true);
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch('/api/promo/admin-promo-codes', {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
@@ -396,7 +396,7 @@ export default function PromotionsPage() {
     setSeedingPromos(true);
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch('/api/promo/seed-premade', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
@@ -416,7 +416,7 @@ export default function PromotionsPage() {
   const togglePromoCode = async (code) => {
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch('/api/promo/admin-promo-codes', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
@@ -430,7 +430,7 @@ export default function PromotionsPage() {
     if (!confirm(`Deactivate promo code "${code.code}"?`)) return;
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch(`/api/promo/admin-promo-codes?id=${code.id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
@@ -448,7 +448,7 @@ export default function PromotionsPage() {
     if (!editingPromoCode) return;
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch('/api/promo/admin-promo-codes', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
@@ -515,7 +515,7 @@ export default function PromotionsPage() {
   async function bulkToggle(activate) {
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const results = await Promise.allSettled([...selectedIds].map(id =>
         fetch(`/api/commander/promotions/${id}`, {
           method: 'PATCH',
@@ -537,7 +537,7 @@ export default function PromotionsPage() {
     if (!confirm(`Delete ${selectedIds.size} promotion(s)?`)) return;
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const results = await Promise.allSettled([...selectedIds].map(id =>
         fetch(`/api/commander/promotions/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } })
         .then(r => { if (!r.ok) throw new Error('fail'); return r; })
@@ -586,7 +586,7 @@ export default function PromotionsPage() {
     setAwardsLoading(true);
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch(`/api/commander/promotions/${promo.id}/awards?limit=50`, {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
@@ -604,7 +604,7 @@ export default function PromotionsPage() {
   async function handleVerifyHighHand(highHand) {
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch(`/api/commander/high-hands/${highHand.id}`, {
         method: 'PUT',
         headers: {
@@ -628,7 +628,7 @@ export default function PromotionsPage() {
   async function handleToggle(promo) {
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch(`/api/commander/promotions/${promo.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
@@ -648,7 +648,7 @@ export default function PromotionsPage() {
     if (!confirm(`Delete "${promo.name}"?`)) return;
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch(`/api/commander/promotions/${promo.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } });
       if (res.ok) {
         broadcastChange('settings');
@@ -668,7 +668,7 @@ export default function PromotionsPage() {
   async function handleDuplicate(promo) {
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const cloneData = {
         venue_id: venueId,
         name: `${promo.name} (Copy)`,
@@ -742,7 +742,7 @@ export default function PromotionsPage() {
     setDraggedId(null); setDragOverId(null);
     // Persist in background
     const token = getToken();
-    const staffSession = localStorage.getItem('commander_staff') || '';
+    const staffSession = getStaffSession() || '';
     try {
       await Promise.allSettled(items.map((p, idx) =>
         fetch(`/api/commander/promotions/${p.id}`, {
@@ -1066,7 +1066,7 @@ export default function PromotionsPage() {
                   onSubmitHand={async (handData) => {
                     try {
                       const token = getToken();
-                      const staffSession = localStorage.getItem('commander_staff') || '';
+                      const staffSession = getStaffSession() || '';
                       const res = await fetch('/api/commander/high-hands', {
                         method: 'POST',
                         headers: {
@@ -1467,7 +1467,7 @@ export default function PromotionsPage() {
                   onSubmit={async (data) => {
                     try {
                       const token = getToken();
-                      const staffSession = localStorage.getItem('commander_staff') || '';
+                      const staffSession = getStaffSession() || '';
                       const res = await fetch('/api/commander/promotions', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
@@ -1498,7 +1498,7 @@ export default function PromotionsPage() {
               onSave={async (data) => {
                 try {
                   const token = getToken();
-                  const staffSession = localStorage.getItem('commander_staff') || '';
+                  const staffSession = getStaffSession() || '';
                   const res = await fetch('/api/commander/promotions', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
@@ -1530,7 +1530,7 @@ export default function PromotionsPage() {
             onSave={async (data) => {
               try {
                 const token = getToken();
-                const staffSession = localStorage.getItem('commander_staff') || '';
+                const staffSession = getStaffSession() || '';
                 const res = await fetch(`/api/commander/promotions/${editingPromo.id}`, {
                   method: 'PUT',
                   headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
@@ -1555,7 +1555,7 @@ export default function PromotionsPage() {
               if (!confirm('Delete this promotion?')) return;
               try {
                 const token = getToken();
-                const staffSession = localStorage.getItem('commander_staff') || '';
+                const staffSession = getStaffSession() || '';
                 const res = await fetch(`/api/commander/promotions/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } });
                 if (res.ok) {
                   fetchPromotions();

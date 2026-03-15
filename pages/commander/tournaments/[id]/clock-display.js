@@ -25,7 +25,7 @@ import { calculateICM, calculateChipChop } from '../../../../src/lib/commander/i
 import { useCommanderSync, broadcastChange } from '../../../../src/lib/commander/useCommanderSync';
 import useWakeLock from '../../../../src/hooks/useWakeLock';
 import { busEmit } from '../../../../src/engine/EventBus';
-import { getToken } from '../../../../src/lib/commander/clientAuth';
+import { getToken, getStaffSession } from '../../../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../../../src/lib/commander/commanderFetch';
 
 function formatClock(seconds) {
@@ -171,7 +171,7 @@ export default function ClockDisplay() {
   // Fetch clock preset
   const fetchPreset = useCallback(async (presetId) => {
     try {
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch('/api/commander/clock-presets', {
         headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
       });
@@ -188,7 +188,7 @@ export default function ClockDisplay() {
   const fetchData = useCallback(async (signal) => {
     if (!id) return;
     try {
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch(`/api/commander/tournaments/${id}/floor-view`, {
         headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
         ...(signal ? { signal } : {}),
@@ -326,7 +326,7 @@ export default function ClockDisplay() {
     if (!id || actionLoading) return;
     setActionLoading(true);
     try {
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch(`/api/commander/tournaments/${id}/clock`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },

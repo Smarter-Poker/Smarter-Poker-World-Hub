@@ -18,7 +18,7 @@ const MemberDetailPanel = dynamic(() => import('../../src/components/commander/m
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
-import { getToken } from '../../src/lib/commander/clientAuth';
+import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 
 const TIER_COLORS = { daily: '#3B82F6', weekly: '#F59E0B', monthly: '#10B981', yearly: '#A855F7' };
 const TIER_LABELS = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly' };
@@ -52,7 +52,7 @@ export default function MembersPage() {
 
     // Auth
     useEffect(() => {
-        const stored = localStorage.getItem('commander_staff');
+        const stored = getStaffSession();
         if (!stored) { router.push('/commander/login').catch(() => { }); return; }
         try {
             const data = JSON.parse(stored);
@@ -75,7 +75,7 @@ export default function MembersPage() {
         membersKey,
         (url) => {
             const token = getToken();
-            const staffSession = localStorage.getItem('commander_staff') || '';
+            const staffSession = getStaffSession() || '';
             return fetch(url, { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } }).then(r => r.json()).catch(() => null);
         },
         { revalidateOnFocus: true, dedupingInterval: 5000 }

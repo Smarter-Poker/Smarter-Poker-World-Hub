@@ -37,8 +37,13 @@ export function ReelsViewer({ onClose }) {
     const [paused, setPaused] = useState(false);
     const [liked, setLiked] = useState({});
     const [currentUserId, setCurrentUserId] = useState(null);
+    const [showCommentInput, setShowCommentInput] = useState(false);
+    const [commentText, setCommentText] = useState('');
+    const [reelComments, setReelComments] = useState([]);
+    const [shareToast, setShareToast] = useState(false);
     const videoRef = useRef(null);
     const containerRef = useRef(null);
+    const commentInputRef = useRef(null);
 
     useEffect(() => {
         loadReels();
@@ -136,6 +141,64 @@ export function ReelsViewer({ onClose }) {
             setLiked(prev => ({ ...prev, [currentReel.id]: wasLiked }));
         }
     };
+
+    // Comment handler
+    const handleOpenComments = async () => {
+        setShowCommentInput(prev => !prev);
+        if (!showCommentInput && currentReel?.id) {
+            try {
+                const { data } = await supabase
+                    .from('social_comments')
+                    .select('*, profiles:author_id (username, avatar_url)')
+                    .eq('post_id', currentReel.id)
+                    .order('created_at', { ascending: true })
+                    .limit(20);
+                setReelComments(data || []);
+            } catch { setReelComments([]); }
+            setTimeout(() => commentInputRef.current?.focus(), 100);
+        }
+    };
+
+    const handleSubmitComment = async (e) => {
+        if (e.key !== 'Enter' || !commentText.trim() || !currentUserId || !currentReel?.id) return;
+        const text = commentText.trim();
+        setCommentText('');
+        setReelComments(prev => [...prev, {
+            id: Date.now(), content: text,
+            profiles: { username: 'You', avatar_url: null },
+            created_at: new Date().toISOString()
+        }]);
+        try {
+            await supabase.from('social_comments').insert({
+                post_id: currentReel.id, author_id: currentUserId, content: text
+            });
+        } catch { /* optimistic stays */ }
+    };
+
+    // Share handler
+    const handleShare = async () => {
+        if (!currentReel?.id) return;
+        const url = `${window.location.origin}/app/social/reel/${currentReel.id}`;
+        try {
+            await navigator.clipboard.writeText(url);
+        } catch {
+            const input = document.createElement('input');
+            input.value = url;
+            document.body.appendChild(input);
+            input.select();
+            document.execCommand('copy');
+            document.body.removeChild(input);
+        }
+        setShareToast(true);
+        setTimeout(() => setShareToast(false), 2000);
+    };
+
+    // Reset comment drawer on reel change
+    useEffect(() => {
+        setShowCommentInput(false);
+        setCommentText('');
+        setReelComments([]);
+    }, [currentIndex]);
 
     // Keyboard navigation
     useEffect(() => {
@@ -331,21 +394,27 @@ export function ReelsViewer({ onClose }) {
                     </button>
 
                     {/* Comment */}
-                    <button style={{
-                        background: 'none', border: 'none',
-                        display: 'flex', flexDirection: 'column', alignItems: 'center',
-                        cursor: 'pointer',
-                    }}>
+                    <button
+                        onClick={handleOpenComments}
+                        style={{
+                            background: 'none', border: 'none',
+                            display: 'flex', flexDirection: 'column', alignItems: 'center',
+                            cursor: 'pointer',
+                        }}
+                    >
                         <span style={{ fontSize: 28 }}>💬</span>
                         <span style={{ color: 'white', fontSize: 12 }}>Comment</span>
                     </button>
 
                     {/* Share */}
-                    <button style={{
-                        background: 'none', border: 'none',
-                        display: 'flex', flexDirection: 'column', alignItems: 'center',
-                        cursor: 'pointer',
-                    }}>
+                    <button
+                        onClick={handleShare}
+                        style={{
+                            background: 'none', border: 'none',
+                            display: 'flex', flexDirection: 'column', alignItems: 'center',
+                            cursor: 'pointer',
+                        }}
+                    >
                         <span style={{ fontSize: 28 }}>📤</span>
                         <span style={{ color: 'white', fontSize: 12 }}>Share</span>
                     </button>
@@ -362,6 +431,59 @@ export function ReelsViewer({ onClose }) {
                         <span style={{ fontSize: 24 }}>{muted ? '🔇' : '🔊'}</span>
                     </button>
                 </div>
+
+                {/* Comment Drawer */}
+                {showCommentInput && (
+                    <div onClick={(e) => e.stopPropagation()} style={{
+                        position: 'absolute', bottom: 0, left: 0, right: 0,
+                        background: 'rgba(0,0,0,0.9)', borderRadius: '16px 16px 0 0',
+                        maxHeight: '50vh', display: 'flex', flexDirection: 'column',
+                        zIndex: 30,
+                    }}>
+                        <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.1)', fontWeight: 600, color: 'white', fontSize: 15 }}>
+                            Comments
+                        </div>
+                        <div style={{ flex: 1, overflowY: 'auto', padding: '8px 16px', maxHeight: 'calc(50vh - 100px)' }}>
+                            {reelComments.length === 0 && (
+                                <div style={{ color: C.textSec, textAlign: 'center', padding: 20, fontSize: 14 }}>No comments yet. Be the first!</div>
+                            )}
+                            {reelComments.map((c, i) => (
+                                <div key={c.id || i} style={{ display: 'flex', gap: 10, padding: '8px 0' }}>
+                                    <img src={c.profiles?.avatar_url || '/default-avatar.png'} style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} />
+                                    <div>
+                                        <span style={{ color: 'white', fontWeight: 600, fontSize: 13 }}>{c.profiles?.username || 'User'}</span>
+                                        <span style={{ color: C.textSec, fontSize: 13, marginLeft: 8 }}>{c.content}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        <div style={{ padding: '10px 16px', borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', gap: 10 }}>
+                            <input
+                                ref={commentInputRef}
+                                type="text"
+                                placeholder="Add a comment..."
+                                value={commentText}
+                                onChange={(e) => setCommentText(e.target.value)}
+                                onKeyDown={handleSubmitComment}
+                                style={{
+                                    flex: 1, background: 'rgba(255,255,255,0.1)', border: 'none',
+                                    borderRadius: 20, padding: '10px 16px', color: 'white', fontSize: 14,
+                                    outline: 'none',
+                                }}
+                            />
+                        </div>
+                    </div>
+                )}
+
+                {/* Share Toast */}
+                {shareToast && (
+                    <div style={{
+                        position: 'absolute', top: 60, left: '50%', transform: 'translateX(-50%)',
+                        background: 'rgba(255,255,255,0.15)', color: 'white',
+                        padding: '8px 20px', borderRadius: 20, fontSize: 14, zIndex: 30,
+                        backdropFilter: 'blur(10px)',
+                    }}>Link Copied</div>
+                )}
 
                 {/* Navigation indicators */}
                 <div style={{

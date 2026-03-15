@@ -11,7 +11,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { ChevronLeft, Building2, CheckCircle, XCircle, AlertTriangle, RefreshCw, Plus, MapPin, Calendar, Target, Award } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
-import { getToken } from '../../../src/lib/commander/clientAuth';
+import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
 import { busEmit } from '../../../src/engine/EventBus';
 
 // Success criteria from IMPLEMENTATION_PHASES.md Step 6.6
@@ -52,7 +52,7 @@ export default function PilotVenuesPage() {
     try {
       const token = getToken();
       const res = await fetch('/api/commander/admin/pilots', {
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': localStorage.getItem('commander_staff') || '' }
+        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() || '' }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();

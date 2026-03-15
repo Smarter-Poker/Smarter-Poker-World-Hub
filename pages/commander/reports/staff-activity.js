@@ -9,7 +9,7 @@ import { Activity, Loader2, Shield } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import AuditLogViewer from '../../../src/components/commander/admin/AuditLogViewer';
 import { busEmit } from '../../../src/engine/EventBus';
-import { getToken } from '../../../src/lib/commander/clientAuth';
+import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
 
 export default function StaffActivity() {
@@ -27,7 +27,7 @@ export default function StaffActivity() {
       const { signal } = controller;
       try {
         const token = getToken();
-        const staffSession = localStorage.getItem('commander_staff') || '';
+        const staffSession = getStaffSession() || '';
         const res = await fetch('/api/commander/incidents?status=all&limit=50', {
           headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
         });
@@ -44,7 +44,7 @@ export default function StaffActivity() {
     setAuditLoading(true);
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const params = new URLSearchParams();
       if (filters.category) params.set('action_category', filters.category);
       if (filters.dateFrom) params.set('date_from', filters.dateFrom);

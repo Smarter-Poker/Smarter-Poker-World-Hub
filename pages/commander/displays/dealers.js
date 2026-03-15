@@ -12,7 +12,7 @@ import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
 import { busEmit } from '../../../src/engine/EventBus';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import { getToken } from '../../../src/lib/commander/clientAuth';
+import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
 
 export default function DealerRotationDisplay() {
@@ -23,11 +23,11 @@ export default function DealerRotationDisplay() {
   const wakeLockRef = useRef(null);
 
   const venueIdRef = useRef(null);
-  try { venueIdRef.current = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id : null; } catch { venueIdRef.current = null; }
+  try { venueIdRef.current = typeof window !== 'undefined' ? JSON.parse(getStaffSession() || '{}').venue_id : null; } catch { venueIdRef.current = null; }
 
   const getHeaders = () => {
     try {
-      const staff = localStorage.getItem('commander_staff') || '';
+      const staff = getStaffSession() || '';
       const token = getToken();
       return { Authorization: `Bearer ${token}`, 'x-staff-session': staff };
     } catch { return {}; }

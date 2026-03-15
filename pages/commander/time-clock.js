@@ -10,7 +10,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { Clock, ScanLine, UserCheck, LogIn, LogOut, Camera, X, AlertCircle, CheckCircle, Timer, Users } from 'lucide-react';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
-import { getToken } from '../../src/lib/commander/clientAuth';
+import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 export default function TimeClock() {
@@ -30,7 +30,7 @@ export default function TimeClock() {
     const scanIntervalRef = useRef(null);
 
     useEffect(() => {
-        const stored = localStorage.getItem('commander_staff');
+        const stored = getStaffSession();
         if (!stored) { router.push('/commander/login'); return; }
         try {
             const data = JSON.parse(stored);
@@ -44,7 +44,7 @@ export default function TimeClock() {
         if (!venueId) return;
         try {
             const token = getToken();
-            const staffSession = localStorage.getItem('commander_staff') || '';
+            const staffSession = getStaffSession() || '';
             const res = await fetch(`/api/commander/time-clock?venue_id=${venueId}`, { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }, ...(signal ? { signal } : {}) });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const data = await res.json();
@@ -114,7 +114,7 @@ export default function TimeClock() {
         try {
              const res = await fetch('/api/commander/time-clock', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': localStorage.getItem('commander_staff') || '' },
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() || '' },
                 body: JSON.stringify({ venue_id: venueId, qr_code: qrCode }),
             });
             if (!res.ok) throw new Error('Request failed');

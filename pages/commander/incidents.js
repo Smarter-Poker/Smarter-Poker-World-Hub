@@ -11,7 +11,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import useDebounce from '../../src/hooks/useDebounce';
 import { busEmit } from '../../src/engine/EventBus';
-import { getToken } from '../../src/lib/commander/clientAuth';
+import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const INCIDENT_TYPES = [
@@ -367,7 +367,7 @@ export default function IncidentsPage() {
   const [selectedIncident, setSelectedIncident] = useState(null);
 
   useEffect(() => {
-    const storedStaff = localStorage.getItem('commander_staff');
+    const storedStaff = getStaffSession();
     if (!storedStaff) { router.push('/commander/login').catch(() => { }); return; }
     try {
       const staffData = JSON.parse(storedStaff);
@@ -388,7 +388,7 @@ export default function IncidentsPage() {
     setLoading(true);
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch(`/api/commander/incidents?venue_id=${venueId}`, {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
@@ -404,7 +404,7 @@ export default function IncidentsPage() {
   async function handleCreateIncident(data) {
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch('/api/commander/incidents', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
@@ -426,7 +426,7 @@ export default function IncidentsPage() {
   async function handleResolveIncident(incidentId, resolution) {
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch(`/api/commander/incidents/${incidentId}/resolve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },

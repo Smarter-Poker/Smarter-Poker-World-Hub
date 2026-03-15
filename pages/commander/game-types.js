@@ -10,7 +10,7 @@ import { Plus, Edit2, Trash2, X, Loader2, Save, DollarSign, Users, Percent, Cloc
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
-import { getToken } from '../../src/lib/commander/clientAuth';
+import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const PRESET_GAMES = [
@@ -47,7 +47,7 @@ export default function GameTypesPage() {
   });
 
   useEffect(() => {
-    const stored = localStorage.getItem('commander_staff');
+    const stored = getStaffSession();
     if (!stored) { router.push('/commander/login').catch(() => { }); return; }
     try {
       const s = JSON.parse(stored);
@@ -63,7 +63,7 @@ export default function GameTypesPage() {
     try {
       const token = getToken();
       const res = await fetch('/api/commander/game-types?include_inactive=true', {
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': localStorage.getItem('commander_staff') || '' }
+        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() || '' }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
@@ -114,7 +114,7 @@ export default function GameTypesPage() {
     setError(null);
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const url = editingId
         ? `/api/commander/game-types?id=${editingId}`
         : '/api/commander/game-types';
@@ -140,7 +140,7 @@ export default function GameTypesPage() {
 
   async function handleToggleActive(gt) {
     try {
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const token = getToken();
       const res = await fetch(`/api/commander/game-types/${gt.id}`, {
         method: 'PUT',
@@ -157,7 +157,7 @@ export default function GameTypesPage() {
   async function handleDelete(gt) {
     if (!confirm(`Remove "${gt.name} ${gt.stakes}" permanently?`)) return;
     try {
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const token = getToken();
       const res = await fetch(`/api/commander/game-types/${gt.id}?venue_id=${venueId}`, {
         method: 'DELETE',

@@ -11,7 +11,7 @@ import {
   BarChart3, Repeat, ChevronDown, Search, ArrowLeft
 } from 'lucide-react';
 import { busEmit } from '../../../src/engine/EventBus';
-import { getToken } from '../../../src/lib/commander/clientAuth';
+import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
 
 export default function PlayerActivityReport() {
@@ -29,7 +29,7 @@ export default function PlayerActivityReport() {
     setLoading(true);
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
       const [membersRes, sessionsRes] = await Promise.all([
         fetch(`/api/commander/members?sort=${sortBy}&limit=100`, { headers }).catch(() => ({ ok: false })),

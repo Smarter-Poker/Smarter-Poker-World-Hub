@@ -29,7 +29,7 @@ import DealerTicker from '../../../src/components/commander/shared/DealerTicker'
 import useWakeLock from '../../../src/hooks/useWakeLock';
 import { busEmit } from '../../../src/engine/EventBus';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import { getToken } from '../../../src/lib/commander/clientAuth';
+import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
 
 const MEDAL = ['#FFD700', '#C0C0C0', '#CD7F32'];
@@ -45,7 +45,7 @@ export default function LeaderboardDisplay() {
   useWakeLock();
 
   const [venueId] = useState(() => {
-    try { const s = JSON.parse(localStorage.getItem('commander_staff') || '{}'); return s.venue_id || null; } catch { return null; }
+    try { const s = JSON.parse(getStaffSession() || '{}'); return s.venue_id || null; } catch { return null; }
   });
 
   // ═══════════════════════════════════════════════════════════════
@@ -82,7 +82,7 @@ export default function LeaderboardDisplay() {
   // ═══════════════════════════════════════════════════════════════
   const fetchData = useCallback(async (signal) => {
     if (!venueId) return;
-    const staffSession = typeof window !== 'undefined' ? localStorage.getItem('commander_staff') || '' : '';
+    const staffSession = typeof window !== 'undefined' ? getStaffSession() || '' : '';
     const token = typeof window !== 'undefined' ? (getToken()) : '';
     const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
     const fetchOpts = signal ? { headers, signal } : { headers };
@@ -93,7 +93,7 @@ export default function LeaderboardDisplay() {
       const mJson = await mRes.json();
       const members = (mJson?.data?.members || mJson?.members || []).filter(m => m.membership_status === 'active');
       setTotalMembers(members.length);
-      if (!venueName) { try { setVenueName(JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_name || ''); } catch (e) { console.error("[leaderboard.js]", e); } }
+      if (!venueName) { try { setVenueName(JSON.parse(getStaffSession() || '{}').venue_name || ''); } catch (e) { console.error("[leaderboard.js]", e); } }
 
       const built = [];
 

@@ -14,7 +14,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
 import SEOHead from '../../src/components/seo/SEOHead';
-import { getToken } from '../../src/lib/commander/clientAuth';
+import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const PLAN_ORDER = ['daily', 'weekly', 'monthly', 'yearly'];
@@ -62,7 +62,7 @@ export default function MembershipPlansPage() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const s = localStorage.getItem('commander_staff');
+    const s = getStaffSession();
     if (!s) return router.push('/commander/login').catch(() => { });
     try {
       const sd = JSON.parse(s);
@@ -81,7 +81,7 @@ export default function MembershipPlansPage() {
     try {
       const token = getToken();
       const res = await fetch(`/api/commander/membership-plans?venue_id=${venueId}&include_inactive=true`, {
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': localStorage.getItem('commander_staff') || '' }
+        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() || '' }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
@@ -138,7 +138,7 @@ export default function MembershipPlansPage() {
       const token = getToken();
       const res = await fetch(`/api/commander/membership-plans?venue_id=${venueId}&id=${plan.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': localStorage.getItem('commander_staff') || '' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() || '' },
         body: JSON.stringify({ [field]: price })
       });
       if (!res.ok) throw new Error('Request failed');

@@ -18,7 +18,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import useWakeLock from '../../src/hooks/useWakeLock';
 import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
-import { getToken } from '../../src/lib/commander/clientAuth';
+import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 export default function LobbyDisplay() {
@@ -30,14 +30,14 @@ export default function LobbyDisplay() {
   const [now, setNow] = useState(new Date());
   useWakeLock();
   const [venueId] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
+    try { return JSON.parse(getStaffSession() || '{}').venue_id; } catch { return null; }
   });
 
   const fetchData = useCallback(async (signal) => {
     if (!venueId) return;
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
       const opts = signal ? { headers, signal } : { headers };
       const [tablesRes, waitlistRes, tournamentsRes] = await Promise.all([

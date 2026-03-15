@@ -15,6 +15,7 @@ import { canAccessRoute, getUpgradeTier, getTierConfig } from '../../src/lib/com
 import { canRoleAccessRoute } from '../../src/lib/commander/auth';
 import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
+import { getStaffSession } from '../../src/lib/commander/clientAuth';
 
 /* ─────────────────────────────────────────────────
    CARD DEFINITIONS — each card has sub-features
@@ -167,7 +168,7 @@ export default function CommanderDashboard() {
     const controller = new AbortController();
     const { signal } = controller;
     async function validateSession() {
-      const stored = localStorage.getItem('commander_staff');
+      const stored = getStaffSession();
       if (!stored) {
         if (router.asPath !== '/commander/login') router.push('/commander/login').catch(() => { });
         return;
@@ -221,7 +222,7 @@ export default function CommanderDashboard() {
   const fetchHardStop = useCallback(() => {
     if (!staff) return;
     try {
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const venueId = staff?.venue_id;
       if (!venueId) return;
       fetch(`/api/commander/settings?venue_id=${venueId}`, { headers: { 'x-staff-session': staffSession } })

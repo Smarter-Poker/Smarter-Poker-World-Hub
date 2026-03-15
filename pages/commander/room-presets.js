@@ -16,7 +16,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { hasFeature } from '../../src/lib/commander/tierConfig';
 import { busEmit } from '../../src/engine/EventBus';
-import { getToken } from '../../src/lib/commander/clientAuth';
+import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -61,7 +61,7 @@ export default function DailyPresetsPage() {
   });
 
   useEffect(() => {
-    const stored = localStorage.getItem('commander_staff');
+    const stored = getStaffSession();
     if (!stored) { router.push('/commander/login').catch(() => { }); return; }
     try {
       const s = JSON.parse(stored);
@@ -81,7 +81,7 @@ export default function DailyPresetsPage() {
     try {
       const token = getToken();
       if (!token) return;
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       fetch('/api/commander/settings', { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } })
         .then(r => r.json())
         .then(data => {
@@ -100,7 +100,7 @@ export default function DailyPresetsPage() {
     try {
       const token = getToken();
       if (!token) return;
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch('/api/commander/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
@@ -124,7 +124,7 @@ export default function DailyPresetsPage() {
     try {
       const token = getToken();
       if (!token) return;
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch('/api/commander/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
@@ -146,8 +146,8 @@ export default function DailyPresetsPage() {
   const fetchData = useCallback(async () => {
     try {
       const token = getToken();
-      const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': localStorage.getItem('commander_staff') || '' };
-      const stored = JSON.parse(localStorage.getItem('commander_staff') || '{}');
+      const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() || '' };
+      const stored = JSON.parse(getStaffSession() || '{}');
       const venueId = stored.venue_id;
       const safeJson = (r) => (r && typeof r.json === 'function') ? r.json().catch(() => ({})) : Promise.resolve({});
       const [presetsRes, typesRes, promosRes] = await Promise.all([
@@ -185,7 +185,7 @@ export default function DailyPresetsPage() {
     setError(null);
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch(`/api/commander/room-presets?id=${preset.id}&action=apply`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
@@ -303,7 +303,7 @@ export default function DailyPresetsPage() {
     setError(null);
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const url = editingId ? `/api/commander/room-presets?id=${editingId}` : '/api/commander/room-presets';
       const res = await fetch(url, {
         method: editingId ? 'PUT' : 'POST',
@@ -333,7 +333,7 @@ export default function DailyPresetsPage() {
     if (!confirm(`Delete "${preset.name}"? This cannot be undone.`)) return;
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch(`/api/commander/room-presets?id=${preset.id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }

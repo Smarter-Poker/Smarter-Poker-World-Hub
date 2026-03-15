@@ -12,7 +12,7 @@ import CreateTournamentModal from '../../../src/components/commander/modals/Crea
 import Pagination from '../../../src/components/commander/shared/Pagination';
 import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../../src/engine/EventBus';
-import { getToken } from '../../../src/lib/commander/clientAuth';
+import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
 
 /* ─── Status Config ─────────────────────────────────────────── */
@@ -80,7 +80,7 @@ export default function CommanderTournamentsPage() {
 
   /* ─── Init staff session ─── */
   useEffect(() => {
-    const raw = localStorage.getItem('commander_staff');
+    const raw = getStaffSession();
     if (!raw) { router.push('/commander/login'); return; }
     try {
       const s = JSON.parse(raw);
@@ -100,7 +100,7 @@ export default function CommanderTournamentsPage() {
     try {
       const params = new URLSearchParams({ venue_id: venueId, limit: '200' });
       if (filter !== 'all') params.set('status', filter);
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const bearerToken = getToken();
       const res = await fetch(`/api/commander/tournaments?${params}`, { headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${bearerToken}` } });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);

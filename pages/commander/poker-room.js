@@ -16,7 +16,7 @@ const SkeletonDark = dynamic(() => import('../../src/components/ui/SkeletonDark'
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
-import { getToken } from '../../src/lib/commander/clientAuth';
+import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 export default function PokerRoomFunctions() {
@@ -33,7 +33,7 @@ export default function PokerRoomFunctions() {
   // Init venueId from localStorage
   useEffect(() => {
     try {
-      const s = JSON.parse(localStorage.getItem('commander_staff') || '{}');
+      const s = JSON.parse(getStaffSession() || '{}');
       if (s.venue_id) setVenueId(s.venue_id);
     } catch (e) { /* silent */ }
   }, []);
@@ -41,7 +41,7 @@ export default function PokerRoomFunctions() {
   const fetchData = useCallback(async (signal) => {
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
 
       // Get settings (room open/close state + venue_id)
@@ -115,7 +115,7 @@ export default function PokerRoomFunctions() {
     setToggling(true);
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch('/api/commander/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },

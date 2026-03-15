@@ -9,7 +9,7 @@ import { Send, Users, Clock, CheckCircle, Loader2 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
-import { getToken } from '../../src/lib/commander/clientAuth';
+import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const QUICK_MESSAGES = [
@@ -37,7 +37,7 @@ export default function CommanderAnnouncementsPage() {
 
   // Check staff session
   useEffect(() => {
-    const storedStaff = localStorage.getItem('commander_staff');
+    const storedStaff = getStaffSession();
     if (!storedStaff) {
       router.push('/commander/login').catch(() => { });
       return;
@@ -68,7 +68,7 @@ export default function CommanderAnnouncementsPage() {
 
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch('/api/commander/notifications/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },

@@ -16,7 +16,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { RefreshCw, Users, Loader2, Lock, Unlock, Save, AlertTriangle, Activity, X, Clock, ZoomIn, ZoomOut, RotateCw } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
-import { getToken } from '../../src/lib/commander/clientAuth';
+import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const STATUS_CONFIG = {
@@ -64,7 +64,7 @@ export default function FloorMap() {
   // Auth
   useEffect(() => {
     try {
-      const staff = localStorage.getItem('commander_staff');
+      const staff = getStaffSession();
       if (!staff) { router.push('/commander/login').catch(() => { }); return; }
       const parsed = JSON.parse(staff);
       if (!parsed.venue_id) { router.push('/commander/login').catch(() => { }); return; }
@@ -75,7 +75,7 @@ export default function FloorMap() {
 
   const getHeaders = () => {
     const token = getToken();
-    const staffSession = localStorage.getItem('commander_staff') || '';
+    const staffSession = getStaffSession() || '';
     return { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
   };
 

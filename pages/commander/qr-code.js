@@ -9,6 +9,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { QrCode, Download, Maximize2 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../src/engine/EventBus';
+import { getStaffSession } from '../../src/lib/commander/clientAuth';
 
 export default function VenueQRCodePage() {
   useEffect(() => { busEmit.sessionStart('commander-qr-code'); }, []);
@@ -21,7 +22,7 @@ export default function VenueQRCodePage() {
   const [qrUrl, setQrUrl] = useState('');
 
   useEffect(() => {
-    const storedStaff = localStorage.getItem('commander_staff');
+    const storedStaff = getStaffSession();
     if (!storedStaff) {
       router.push('/commander/login').catch(() => {});
       return;

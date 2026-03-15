@@ -4,6 +4,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import ArenaLedger from '../../src/components/commander/admin/ArenaLedger';
 import { busEmit } from '../../src/engine/EventBus';
 import { supabase } from '../../src/lib/supabase';
+import { getStaffSession } from '../../src/lib/commander/clientAuth';
 
 export default function ArenaLedgerPage() {
   useEffect(() => { busEmit.sessionStart?.('commander-arena-ledger'); }, []);
@@ -11,7 +12,7 @@ export default function ArenaLedgerPage() {
 
   useEffect(() => {
     try {
-      const stored = localStorage.getItem('commander_staff');
+      const stored = getStaffSession();
       if (stored) {
         const staff = JSON.parse(stored);
         if (staff.venue_id) setClubId(staff.venue_id);

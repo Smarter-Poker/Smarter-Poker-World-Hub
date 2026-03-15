@@ -20,7 +20,7 @@ import {
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
-import { getToken } from '../../src/lib/commander/clientAuth';
+import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const MODE_COLORS = {
@@ -50,7 +50,7 @@ export default function TableAssignments() {
 
   const getHeaders = () => {
     const token = getToken();
-    const staffSession = localStorage.getItem('commander_staff') || '';
+    const staffSession = getStaffSession() || '';
     return {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
@@ -79,14 +79,14 @@ export default function TableAssignments() {
 
   useEffect(() => {    const _c = new AbortController();
 
-    const stored = localStorage.getItem('commander_staff');
+    const stored = getStaffSession();
     if (!stored) { router.push('/commander/login').catch(() => { }); return; }
     fetchData();
     return () => _c.abort();
   }, [fetchData, router]);
 
   // Commander Data Bus — sync when tables are changed from other tabs
-  const venueId = (() => { try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id || ''; } catch { return ''; } })();
+  const venueId = (() => { try { return JSON.parse(getStaffSession() || '{}').venue_id || ''; } catch { return ''; } })();
   useCommanderSync(venueId, fetchData, { entities: ['tables'] });
 
   const openAssign = (table) => {

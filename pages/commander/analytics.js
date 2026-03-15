@@ -120,7 +120,7 @@ function ActivityTrendLine({ dailyData }) {
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
-import { getToken } from '../../src/lib/commander/clientAuth';
+import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 
 function StatCard({ title, value, change, icon: Icon, color = '#1877F2' }) {
   const hasChange = change !== undefined && change !== null;
@@ -232,7 +232,7 @@ export default function AnalyticsPage() {
   const [summary, setSummary] = useState({});
 
   useEffect(() => {
-    const storedStaff = localStorage.getItem('commander_staff');
+    const storedStaff = getStaffSession();
     if (!storedStaff) {
       router.push('/commander/login').catch(() => { });
       return;
@@ -255,7 +255,7 @@ export default function AnalyticsPage() {
       const periodDays = period === 'week' ? 7 : period === 'month' ? 30 : 365;
 
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
       const [dailyRes, playersRes] = await Promise.all([
         fetch(`/api/commander/analytics/daily?venue_id=${venueId}&days=${periodDays * 2}`, { headers }).catch(() => ({ ok: false })),

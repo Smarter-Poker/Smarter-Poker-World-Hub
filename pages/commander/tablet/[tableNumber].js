@@ -19,6 +19,7 @@ import Head from 'next/head';
 import { createClient } from '@supabase/supabase-js';
 import { busEmit } from '../../../src/engine/EventBus';
 import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
+import { getStaffSession } from '../../../src/lib/commander/clientAuth';
 
 /* ─── Supabase client for Realtime (no auth needed for display) ── */
 /* GUARD: createClient must NOT run during SSG — localStorage doesn't exist on server */
@@ -98,7 +99,7 @@ export default function TabletDisplay() {
 
     // Resolve venue_id from query or localStorage
     const venueId = venue || (() => {
-        try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
+        try { return JSON.parse(getStaffSession() || '{}').venue_id; } catch { return null; }
     })();
 
     /* ─── Data Fetching ─────────────────────────────────────────── */

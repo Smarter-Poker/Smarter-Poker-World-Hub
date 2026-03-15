@@ -8,7 +8,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { Users, Package, Star, MapPin, Calendar, CheckCircle, Search, Loader2, X } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
-import { getToken } from '../../src/lib/commander/clientAuth';
+import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 import { busEmit } from '../../src/engine/EventBus';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import useDebounce from '../../src/hooks/useDebounce';
@@ -35,7 +35,7 @@ function RentEquipmentModal({ isOpen, onClose, equipment, venueId, onSuccess }) 
 
     setSubmitting(true);
     try {
-      const staffSession = localStorage.getItem('commander_staff');
+      const staffSession = getStaffSession();
       const res = await fetch(`/api/commander/marketplace/equipment/${equipment.id}/rent`, {
         method: 'POST',
         headers: {
@@ -180,7 +180,7 @@ function BookDealerModal({ isOpen, onClose, dealer, venueId, onSuccess }) {
     setSubmitting(true);
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch(`/api/commander/marketplace/dealers/${dealer.id}/book`, {
         method: 'POST',
         headers: {
@@ -455,7 +455,7 @@ export default function MarketplacePage() {
   const [showRentModal, setShowRentModal] = useState(false);
 
   useEffect(() => {
-    const storedStaff = localStorage.getItem('commander_staff');
+    const storedStaff = getStaffSession();
     if (!storedStaff) {
       router.push('/commander/login').catch(() => { });
       return;
@@ -472,7 +472,7 @@ export default function MarketplacePage() {
   const fetchDealers = useCallback(async () => {
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch('/api/commander/marketplace/dealers?limit=50', {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
@@ -489,7 +489,7 @@ export default function MarketplacePage() {
   const fetchEquipment = useCallback(async () => {
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch('/api/commander/marketplace/equipment?limit=50', {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });

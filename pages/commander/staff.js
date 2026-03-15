@@ -11,7 +11,7 @@ import useDebounce from '../../src/hooks/useDebounce';
 import Pagination from '../../src/components/commander/shared/Pagination';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
-import { getToken } from '../../src/lib/commander/clientAuth';
+import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 const ID_TYPES = [
@@ -65,7 +65,7 @@ export default function CommanderStaffPage() {
 
   // Check staff session
   useEffect(() => {
-    const storedStaff = localStorage.getItem('commander_staff');
+    const storedStaff = getStaffSession();
     if (!storedStaff) {
       router.push('/commander/login').catch(() => { });
       return;
@@ -93,7 +93,7 @@ export default function CommanderStaffPage() {
     if (!venueId) return;
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch(`/api/commander/staff/venue/${venueId}`, {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         ...(signal ? { signal } : {}),
@@ -120,7 +120,7 @@ export default function CommanderStaffPage() {
   async function handleAddStaff(staffData) {
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch('/api/commander/staff', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
@@ -234,7 +234,7 @@ export default function CommanderStaffPage() {
   async function handleUpdateStaff(staffId, staffData) {
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch(`/api/commander/staff/${staffId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
@@ -265,7 +265,7 @@ export default function CommanderStaffPage() {
     setConfirmDeleteId(null);
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch(`/api/commander/staff/${staffId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
@@ -306,7 +306,7 @@ export default function CommanderStaffPage() {
     setLinkCodeLoading(staffId);
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch('/api/commander/staff/generate-claim', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },

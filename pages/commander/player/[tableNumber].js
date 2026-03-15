@@ -37,6 +37,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import Script from 'next/script';
 import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../../src/engine/EventBus';
+import { getStaffSession } from '../../../src/lib/commander/clientAuth';
 
 function formatCountdown(seconds) {
   if (seconds === null || seconds === undefined) return '--:--';
@@ -359,7 +360,7 @@ export default function PlayerTableDisplay() {
 
   // Commander Data Bus — instant sync for player and dealer changes
   const [syncVenueId] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return table?.venue_id || null; }
+    try { return JSON.parse(getStaffSession() || '{}').venue_id; } catch { return table?.venue_id || null; }
   });
   useCommanderSync(syncVenueId || table?.venue_id || '', fetchData, { entities: ['tables', 'dealers'] });
 

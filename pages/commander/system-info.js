@@ -12,7 +12,7 @@ import { Server, Database, Wifi, Shield, Clock, RefreshCw,
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../src/engine/EventBus';
-import { getToken } from '../../src/lib/commander/clientAuth';
+import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
 
 export default function SystemInfoPage() {
@@ -25,7 +25,7 @@ export default function SystemInfoPage() {
   const [venueName, setVenueName] = useState('');
 
   useEffect(() => {
-    const stored = localStorage.getItem('commander_staff');
+    const stored = getStaffSession();
     if (!stored) { router.push('/commander/login').catch(() => {}); return; }
     try {
       const s = JSON.parse(stored);
@@ -40,7 +40,7 @@ export default function SystemInfoPage() {
     try {
       const token = getToken();
       const res = await fetch('/api/commander/system-info', {
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': localStorage.getItem('commander_staff') || '' }
+        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() || '' }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();

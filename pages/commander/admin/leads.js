@@ -11,7 +11,7 @@ import { useRouter } from 'next/router';
 import useDebounce from '../../../src/hooks/useDebounce';
 import { ChevronLeft, Phone, Mail, MapPin, Search, ChevronDown, XCircle, Building2, MoreVertical } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
-import { getToken } from '../../../src/lib/commander/clientAuth';
+import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
 import { busEmit } from '../../../src/engine/EventBus';
 import { broadcastChange } from '../../../src/lib/commander/useCommanderSync';
 
@@ -55,7 +55,7 @@ export default function LeadManagementPage() {
     setLoading(true);
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch(`/api/commander/admin/leads?status=${statusFilter}`, {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
@@ -77,7 +77,7 @@ export default function LeadManagementPage() {
   async function updateLeadStatus(leadId, newStatus) {
     try {
       const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffSession = getStaffSession() || '';
       const res = await fetch('/api/commander/admin/leads', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
