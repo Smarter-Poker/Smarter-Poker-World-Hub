@@ -264,7 +264,6 @@ export default function TiltGuardPage() {
     try {
       const token = getAccessToken();
       const res = await authedFetch(`/api/training/get-sessions?limit=20`, {
-        headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();

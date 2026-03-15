@@ -310,7 +310,6 @@ export default function MilestonesPage() {
     try {
       const token = getAccessToken();
       const res = await authedFetch(`/api/training/get-sessions?limit=500`, {
-        headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();

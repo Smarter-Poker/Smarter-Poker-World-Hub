@@ -118,7 +118,6 @@ export default function WeaknessScannerPage() {
     try {
       const token = getAccessToken();
       const res = await authedFetch(`/api/training/get-sessions?limit=50`, {
-        headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const d = await res.json();

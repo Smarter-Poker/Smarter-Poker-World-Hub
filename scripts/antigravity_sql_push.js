@@ -135,8 +135,9 @@ const CONNECT_RETRY_DELAY_MS = 2000;
 async function connectWithRetry() {
     for (let attempt = 1; attempt <= MAX_CONNECT_RETRIES; attempt++) {
         for (const cfg of connConfigs) {
+            let pool;
             try {
-                const pool = new Pool({
+                pool = new Pool({
                     ...cfg,
                     ssl: { rejectUnauthorized: false },
                     connectionTimeoutMillis: 10000,
