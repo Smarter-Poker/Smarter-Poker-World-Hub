@@ -1774,6 +1774,7 @@ const headers = { };
 
         {/* PIN Keypad Overlay */}
         {pinStep && <PinKeypad />}
+      <ConfirmDialog />
       </div >
     </CommanderLayout >
   );

@@ -1584,6 +1584,7 @@ function DeskSettingsModal({ custom, onSave, onClose, onUpdate }) {
           }}>×</button>
         </div>
       )}
+      <ConfirmDialog />
     </div>
   );
 }
