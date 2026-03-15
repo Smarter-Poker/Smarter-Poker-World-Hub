@@ -11,10 +11,11 @@ import {
   CheckCircle2, Clock, Ban, UserX, Users
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
 import useDebounce from '../../src/hooks/useDebounce';
-import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
-import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
+import { getStaffSession } from '../../src/lib/commander/clientAuth';
+import { commanderFetch } from '../../src/lib/commander/commanderFetch';
 
 export default function ResponsibleGaming() {
   useEffect(() => { busEmit.sessionStart('commander-responsible-gaming'); }, []);
@@ -36,7 +37,7 @@ export default function ResponsibleGaming() {
     if (!venueId) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/commander/members?venue_id=${venueId}&limit=200`, {});
+      const res = await commanderFetch(`/api/commander/members?venue_id=${venueId}&limit=200`);
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) setMembers(json.data || []);
@@ -46,6 +47,9 @@ export default function ResponsibleGaming() {
 
   useEffect(() => { const _c = new AbortController(); fetchMembers(_c.signal); return () => _c.abort(); }, [fetchMembers]);
 
+  // Commander Data Bus — sync when members or exclusions change
+  useCommanderSync(venueId || '', fetchMembers, { entities: ['members'] });
+
   // Search/check specific player
   const executeSearch = useCallback(async (query) => {
     if (!query.trim()) return;
@@ -53,7 +57,7 @@ export default function ResponsibleGaming() {
     setSearchResult(null);
     try {
       // Search members first
-      const res = await fetch(`/api/commander/members/search?q=${encodeURIComponent(query)}&venue_id=${venueId}`, {});
+      const res = await commanderFetch(`/api/commander/members/search?q=${encodeURIComponent(query)}&venue_id=${venueId}`);
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       const players = json.data || json.members || [];
@@ -67,7 +71,7 @@ export default function ResponsibleGaming() {
       const results = [];
       for (const player of players.slice(0, 5)) {
         try {
-          const checkRes = await fetch(`/api/commander/responsible-gaming/check/${player.user_id || player.id}?venue_id=${venueId}`, {});
+          const checkRes = await commanderFetch(`/api/commander/responsible-gaming/check/${player.user_id || player.id}?venue_id=${venueId}`);
           if (!checkRes.ok) throw new Error(`Request failed (${checkRes.status})`);
           const checkJson = await checkRes.json();
           results.push({

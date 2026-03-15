@@ -11,9 +11,10 @@ import {
   Loader2, ChevronDown, ChevronUp, Clock, Calendar
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
 import { getStaffSession } from '../../src/lib/commander/clientAuth';
-import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
+import { commanderFetch } from '../../src/lib/commander/commanderFetch';
 
 export default function ChurnPrediction() {
   useEffect(() => { busEmit.sessionStart('commander-churn-prediction'); }, []);
@@ -46,8 +47,7 @@ export default function ChurnPrediction() {
   const fetchPredictions = async(signal) => {
     setLoading(true);
     try {
-const staffSession = getStaffSession() || '';
-      const res = await fetch(`/api/commander/ai/churn-prediction?venue_id=${staff.venue_id}&limit=100`, {});
+      const res = await commanderFetch(`/api/commander/ai/churn-prediction?venue_id=${staff.venue_id}&limit=100`, signal ? { signal } : {});
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
@@ -57,6 +57,9 @@ const staffSession = getStaffSession() || '';
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };
+
+  // Commander Data Bus — sync when members change
+  useCommanderSync(staff?.venue_id || '', fetchPredictions, { entities: ['members'] });
 
   const filtered = predictions.filter(p => {
     if (filter === 'high') return p.risk === 'high';

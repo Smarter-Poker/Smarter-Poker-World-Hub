@@ -452,8 +452,11 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
                     user={currentUser}
                     inline={true}
                     onPostCreated={(newPost) => {
-                        // Prepend new post to feed
-                        setPosts(prev => [newPost, ...prev]);
+                        // Dedup: WS subscribeFeed may have already prepended this post
+                        setPosts(prev => {
+                            if (prev.some(p => p.id === newPost?.id)) return prev;
+                            return [newPost, ...prev];
+                        });
                     }}
                 />
 

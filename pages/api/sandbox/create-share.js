@@ -58,23 +58,9 @@ export default async function handler(req, res) {
               .maybeSingle();
 
           if (error) {
-              // Auto-create table logic if missing
+              // Table should always exist — if 42P01, log warning and return error
               if (error.code === '42P01') {
-                  await supabase.rpc('exec_sql', {
-                      query: `
-                      CREATE TABLE IF NOT EXISTS public.sandbox_shared_scenarios (
-                          id TEXT PRIMARY KEY,
-                          creator_id UUID REFERENCES auth.users,
-                          state_json JSONB NOT NULL,
-                          views INT DEFAULT 0,
-                          created_at TIMESTAMPTZ DEFAULT NOW()
-                      );
-                      `
-                  });
-                  // Retry once
-                  const retry = await supabase.from('sandbox_shared_scenarios').insert({ id: shortId, creator_id: userId, state_json }).select('id').maybeSingle();
-                  if (retry.error) throw retry.error;
-                  return res.status(200).json({ success: true, shareId: retry.data.id });
+                  console.error('[create-share] sandbox_shared_scenarios table missing — run migration to restore');
               }
               throw error;
           }
